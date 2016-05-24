@@ -1,0 +1,1800 @@
+{
+    "Common": {
+        "LKVOG strategy": {
+            "name": "separate modules"
+        },
+        "Linux kernel": {
+            "build kernel": false,
+            "configuration": "allmodconfig",
+            "source": "linux-3.14"
+        },
+        "VTG strategy": {
+            "merge source files": true,
+            "name": "all bug kinds merge",
+            "resource limits": {
+                "wall time": 1000000,
+                "CPU time": 900000,
+                "memory size": 10000000000,
+                "result size": 1000000,
+                "number of CPU cores": 1,
+                "CPU model": null
+            },
+            "verifier": {
+                "name": "CPAchecker",
+                "options": [
+                    {
+                        "-ldv": ""
+                    }
+                ],
+                "version": "20376"
+            }
+        },
+        "rule specifications DB": "rule specs.json"
+    },
+    "Sub-jobs": [
+        {
+            "Linux kernel": {
+                "external modules": "tests/atmdev_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/atmdev_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/atmdev_ops",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/devm_postponed_irq",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/devm_postponed_irq",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/devm_postponed_irq",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/dm_dirty_log_type",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/dm_dirty_log_type",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ethtool_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ethtool_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ethtool_ops",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "reg3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/file_operations",
+                "modules": [
+                    "unreg3.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "order4.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke5.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "order6.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke6.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/generic",
+                "modules": [
+                    "invoke7.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/hermes_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/hermes_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/hwbus_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ieee80211_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ieee80211_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/ieee80211_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer_setup_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer_setup_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer_setup_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/iio_buffer_setup_ops",
+                "modules": [
+                    "order2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/md_personality",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/md_personality",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/md_personality",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/net_device_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/net_device_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/net_device_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/net_device_ops",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/no_exit",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/pci_driver",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/pci_driver",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/pci_driver",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/pci_driver",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/percpu_irq",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/percpu_irq",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/percpu_irq",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/platform_driver",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/platform_driver",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/platform_driver_pm",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/platform_driver_pm",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/platform_driver_reg",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/postponed_irq",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/postponed_irq",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/postponed_irq",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/rtc_class_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/rtc_class_ops",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_device_handler",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_device_handler",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_device_handler",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_host_template",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_host_template",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_host_template",
+                "modules": [
+                    "reg3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_host_template",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/scsi_host_template",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/seq_operations",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/seq_operations",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/seq_operations",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/seq_operations",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/seq_operations",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/serio_driver",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/serio_driver",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/serio_driver",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/simple_irq",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/simple_irq",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/simple_irq",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/simple_irq",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/target_type",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg10.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg11.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg4.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg5.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg6.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg7.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg8.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "reg9.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg3.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg4.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg5.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg6.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/timer",
+                "modules": [
+                    "unreg7.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/tty_port_operations",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/tty_port_operations",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/tty_port_operations",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": [
+                    "invoke1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": [
+                    "order2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/videobuf_queue_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/videobuf_queue_ops",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/videobuf_queue_ops",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/videobuf_queue_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/videobuf_queue_ops",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/wlcore_ops",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/wlcore_ops",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg4.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg5.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg6.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg7.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "reg8.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg1.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg2.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg3.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg4.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg5.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg6.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg7.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "unreg8.ko"
+                ]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order1.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order10.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order11.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order12.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order13.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order2.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order3.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order4.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order5.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order6.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order7.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order8.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/workqueue",
+                "modules": [
+                    "order9.ko"
+                ]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": [
+                "linux:mutex:as"
+            ]
+        }
+    ]
+}

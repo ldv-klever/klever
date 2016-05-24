@@ -1,0 +1,9 @@
+obj-m += invoke1.o invoke2.o invoke3.o order4.o invoke5.o order6.o invoke6.o invoke7.o
+invoke1-objs := invoke1_file1.o invoke1_file2.o
+invoke2-objs := invoke2_file1.o invoke2_file2.o
+invoke3-objs := invoke3_file1.o invoke3_file2.o invoke3_file3.o
+order4-objs := order4_file1.o
+invoke5-objs := invoke5_file1.o invoke5_file2.o
+order6-objs := order6_file1.o
+invoke6-objs := invoke6_file1.o invoke6_file2.o
+invoke7-objs := invoke7_file1.o invoke7_file2.o
