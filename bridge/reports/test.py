@@ -213,7 +213,6 @@ class TestReports(TestCase):
             self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('reports:unknowns', args=[main_report.pk, report.component_id]))
             self.assertEqual(response.status_code, 200)
-            # TODO: Test list_tag, list_mark, list_verdict and unknowns_problem after marks creation
         for report in ReportUnknown.objects.all():
             response = self.client.get(reverse('reports:leaf', args=['unknown', report.pk]))
             self.assertEqual(response.status_code, 200)

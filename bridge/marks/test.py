@@ -37,6 +37,7 @@ class TestMarks(TestCase):
         DecideJobs('service', 'service', CHUNKS1)
         self.safe_archive = 'test_safemark.tar.gz'
         self.unsafe_archive = 'test_unsafemark.tar.gz'
+        self.unknown_archive = 'test_unknownmark.tar.gz'
 
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
@@ -82,6 +83,7 @@ class TestMarks(TestCase):
             mark = MarkSafe.objects.get(prime=safe, job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
+        self.assertEqual(mark.type, MARK_TYPE[0][0])
         self.assertEqual(mark.verdict, MARK_SAFE[1][0])
         self.assertEqual(mark.status, MARK_STATUS[2][0])
         self.assertEqual(mark.version, 1)
@@ -217,6 +219,7 @@ class TestMarks(TestCase):
             newmark = MarkSafe.objects.get(pk=res.get('mark_id', 0))
         except ObjectDoesNotExist:
             self.fail('Mark was not uploaded')
+        self.assertEqual(newmark.type, MARK_TYPE[2][0])
         self.assertEqual(newmark.verdict, MARK_SAFE[2][0])
         self.assertEqual(newmark.version, 2)
         self.assertEqual(newmark.description, 'New mark description')
@@ -388,6 +391,7 @@ class TestMarks(TestCase):
             mark = MarkUnsafe.objects.get(prime=unsafe, job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
+        self.assertEqual(mark.type, MARK_TYPE[0][0])
         self.assertEqual(mark.verdict, MARK_UNSAFE[1][0])
         self.assertEqual(mark.status, MARK_STATUS[2][0])
         self.assertEqual(mark.version, 1)
@@ -489,7 +493,7 @@ class TestMarks(TestCase):
         response = self.client.get('/marks/association_changes/%s/' % cache_id)
         self.assertEqual(response.status_code, 200)
 
-        # Safe marks list page
+        # Unsafe marks list page
         response = self.client.get(reverse('marks:mark_list', args=['unsafe']))
         self.assertEqual(response.status_code, 200)
 
@@ -522,6 +526,7 @@ class TestMarks(TestCase):
             newmark = MarkUnsafe.objects.get(pk=res.get('mark_id', 0))
         except ObjectDoesNotExist:
             self.fail('Mark was not uploaded')
+        self.assertEqual(newmark.type, MARK_TYPE[2][0])
         self.assertEqual(newmark.verdict, MARK_UNSAFE[2][0])
         self.assertEqual(newmark.version, 2)
         self.assertEqual(newmark.description, 'New mark description')
@@ -630,8 +635,284 @@ class TestMarks(TestCase):
         )
         self.assertEqual(len(MarkUnsafeReport.objects.all()), 0)
 
+    def test_unknown(self):
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Get report
+        unknown = None
+        for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
+            problem_desc = u.problem_description.file.read()
+            if problem_desc == b"ValueError: got wrong attribute: 'rule'.":
+                unknown = u
+        parent = ReportComponent.objects.get(pk=unknown.parent_id)
+        if unknown is None:
+            self.fail("Unknown with needed problem description was not found in test job decision")
+
+        # Create mark page
+        response = self.client.get(reverse('marks:create_mark', args=['unknown', unknown.pk]))
+        self.assertEqual(response.status_code, 200)
+
+        # Save mark
+        response = self.client.post('/marks/ajax/save_mark/', {
+            'savedata': json.dumps({
+                'report_id': unknown.pk,
+                'data_type': 'unknown',
+                'description': 'Mark description',
+                'is_modifiable': True,
+                'status': MARK_STATUS[2][0],
+                'function': "ValueError:\sgot\swrong\sattribute:\s'(\S*)'",
+                'problem': 'EVal: {0}',
+                'link': 'http://mysite.com/'
+            })
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertIsNone(res.get('error'))
+        self.assertTrue('cache_id' in res)
+        cache_id = res['cache_id']
+
+        # Check mark's tables
+        try:
+            mark = MarkUnknown.objects.get(prime=unknown, job=self.job, author__username='manager')
+        except ObjectDoesNotExist:
+            self.fail('Mark was not created')
+        self.assertEqual(mark.type, MARK_TYPE[0][0])
+        self.assertEqual(mark.status, MARK_STATUS[2][0])
+        self.assertEqual(mark.version, 1)
+        self.assertEqual(mark.description, 'Mark description')
+        self.assertEqual(mark.link, 'http://mysite.com/')
+        self.assertEqual(mark.problem_pattern, 'EVal: {0}')
+        self.assertEqual(mark.function, "ValueError:\sgot\swrong\sattribute:\s'(\S*)'")
+        self.assertEqual(mark.is_modifiable, True)
+        self.assertEqual(len(mark.versions.all()), 1)
+        mark_version = MarkUnknownHistory.objects.get(mark=mark)
+        self.assertEqual(mark_version.version, 1)
+        self.assertEqual(mark_version.author.username, 'manager')
+        self.assertEqual(mark_version.status, mark.status)
+        self.assertEqual(mark_version.description, mark.description)
+        self.assertEqual(mark_version.link, mark.link)
+        self.assertEqual(mark_version.problem_pattern, mark.problem_pattern)
+        self.assertEqual(mark_version.function, mark.function)
+        self.assertEqual(len(UnknownProblem.objects.filter(name='EVal: rule')), 1)
+        self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
+
+        try:
+            cmup = ComponentMarkUnknownProblem.objects.get(
+                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
+            )
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+        except ObjectDoesNotExist:
+            self.fail('Reports cache was not filled')
+
+        # Associations changes
+        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        self.assertEqual(response.status_code, 200)
+
+        # Edit mark page
+        response = self.client.get(reverse('marks:edit_mark', args=['unknown', mark.pk]))
+        self.assertEqual(response.status_code, 200)
+
+        # Edit mark
+        response = self.client.post('/marks/ajax/save_mark/', {
+            'savedata': json.dumps({
+                'mark_id': mark.pk,
+                'data_type': 'unknown',
+                'description': 'New mark description',
+                'is_modifiable': True,
+                'status': MARK_STATUS[1][0],
+                'function': "ValueError:.*'(\S*)'",
+                'problem': 'EVal: {0}',
+                'link': 'http://mysite.com/',
+                'comment': 'Change 1'
+            })
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertIsNone(res.get('error'))
+        self.assertTrue('cache_id' in res)
+        cache_id = res['cache_id']
+
+        # Check mark's tables
+        try:
+            mark = MarkUnknown.objects.get(prime=unknown, job=self.job, author__username='manager')
+        except ObjectDoesNotExist:
+            self.fail('Mark was not created')
+        self.assertEqual(mark.version, 2)
+        self.assertEqual(mark.description, 'New mark description')
+        self.assertEqual(mark.is_modifiable, True)
+        self.assertEqual(len(mark.versions.all()), 2)
+        mark_version = MarkUnknownHistory.objects.filter(mark=mark).order_by('-version').first()
+        self.assertEqual(mark_version.version, 2)
+        self.assertEqual(mark_version.author.username, 'manager')
+        self.assertEqual(mark_version.description, mark.description)
+        self.assertEqual(mark_version.comment, 'Change 1')
+        self.assertEqual(mark_version.link, mark.link)
+        self.assertEqual(mark_version.problem_pattern, mark.problem_pattern)
+        self.assertEqual(mark_version.function, mark.function)
+        self.assertEqual(len(UnknownProblem.objects.filter(name='EVal: rule')), 1)
+        self.assertEqual(len(MarkUnknownReport.objects.filter(mark=mark, report=unknown)), 1)
+
+        try:
+            cmup = ComponentMarkUnknownProblem.objects.get(
+                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
+            )
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+        except ObjectDoesNotExist:
+            self.fail('Reports tags cache was not filled')
+
+        # Associations changes
+        response = self.client.get('/marks/association_changes/%s/' % cache_id)
+        self.assertEqual(response.status_code, 200)
+
+        # Unknown marks list page
+        response = self.client.get(reverse('marks:mark_list', args=['unknown']))
+        self.assertEqual(response.status_code, 200)
+
+        # Download mark
+        response = self.client.get(reverse('marks:download_mark', args=['unknown', mark.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        with open(os.path.join(MEDIA_ROOT, self.unknown_archive), mode='wb') as fp:
+            fp.write(response.content)
+            fp.close()
+
+        # Delete mark
+        response = self.client.get(reverse('marks:delete_mark', args=['unknown', mark.pk]))
+        self.assertRedirects(response, reverse('marks:mark_list', args=['unknown']))
+        self.assertEqual(len(MarkUnknown.objects.filter(prime=unknown)), 0)
+        self.assertEqual(len(MarkUnknownReport.objects.all()), 0)
+        self.assertEqual(len(ComponentMarkUnknownProblem.objects.filter(problem__name='EVal: rule')), 0)
+
+        # Upload mark
+        with open(os.path.join(MEDIA_ROOT, self.unknown_archive), mode='rb') as fp:
+            response = self.client.post('/marks/ajax/upload_marks/', {'file': fp})
+            fp.close()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertEqual(res.get('status', None), True)
+        self.assertEqual(res.get('mark_type', None), 'unknown')
+        try:
+            newmark = MarkUnknown.objects.get(pk=res.get('mark_id', 0))
+        except ObjectDoesNotExist:
+            self.fail('Mark was not uploaded')
+        self.assertEqual(newmark.version, 2)
+        self.assertEqual(newmark.description, 'New mark description')
+        self.assertEqual(newmark.is_modifiable, True)
+        self.assertEqual(len(newmark.versions.all()), 2)
+        newmark_version = MarkUnknownHistory.objects.filter(mark=newmark).order_by('-version').first()
+        self.assertEqual(newmark_version.version, 2)
+        self.assertEqual(newmark_version.author.username, 'manager')
+        self.assertEqual(newmark_version.comment, 'Change 1')
+        self.assertEqual(len(MarkUnknownReport.objects.filter(mark=newmark, report=unknown)), 1)
+        self.assertEqual(len(MarkUnknownReport.objects.filter(report=unknown)), 1)
+        self.assertEqual(len(UnknownProblem.objects.filter(name='EVal: rule')), 1)
+
+        try:
+            cmup = ComponentMarkUnknownProblem.objects.get(
+                Q(report__parent=None, report__root__job=self.job) & ~Q(problem=None)
+            )
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+            cmup = ComponentMarkUnknownProblem.objects.get(Q(report=parent) & ~Q(problem=None))
+            self.assertEqual(cmup.component, parent.component)
+            self.assertEqual(cmup.problem.name, 'EVal: rule')
+            self.assertEqual(cmup.number, 1)
+        except ObjectDoesNotExist:
+            self.fail('Reports tags cache was not filled')
+
+        # Some more mark changes
+        for i in range(3, 6):
+            response = self.client.post('/marks/ajax/save_mark/', {
+                'savedata': json.dumps({
+                    'mark_id': newmark.pk,
+                    'data_type': 'unknown',
+                    'description': 'New mark description',
+                    'is_modifiable': True,
+                    'status': MARK_STATUS[2][0],
+                    'function': "ValueError:.*'(\S*)'",
+                    'problem': 'EVal: {0}',
+                    'link': 'http://mysite.com/',
+                    'comment': 'Change %s' % i
+                })
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response['Content-Type'], 'application/json')
+            self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+
+        self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 5)
+
+        # Get 3d version data
+        response = self.client.post('/marks/ajax/get_mark_version_data/', {
+            'type': 'unknown', 'version': 3, 'mark_id': newmark.pk
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertIsNone(res.get('error'))
+        self.assertIn('data', res)
+
+        # Get mark's versions
+        response = self.client.post('/marks/ajax/getversions/', {'mark_type': 'unknown', 'mark_id': newmark.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
+
+        # Remove 2nd and 4th versions
+        response = self.client.post('/marks/ajax/remove_versions/', {
+            'mark_type': 'unknown', 'mark_id': newmark.pk, 'versions': json.dumps([2, 4])
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertIsNone(res.get('error'))
+        self.assertIn('message', res)
+        self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 3)
+
+        # Reports' lists pages
+        root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
+        response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unknowns', newmark.pk]))
+        self.assertEqual(response.status_code, 200)
+        response = self.client.get(reverse('reports:unknowns', args=[root_comp.pk, parent.component_id]))
+        self.assertEqual(response.status_code, 200)
+        try:
+            problem_id = UnknownProblem.objects.get(name='EVal: rule').pk
+        except ObjectDoesNotExist:
+            self.fail("Can't find unknown problem")
+        response = self.client.get(
+            reverse('reports:unknowns_problem', args=[root_comp.pk, parent.component_id, problem_id])
+        )
+        self.assertEqual(response.status_code, 200)
+
+        # Delete all marks
+        self.assertEqual(response.status_code, 200)
+        response = self.client.post('/marks/ajax/delete/', {
+            'type': 'unknown', 'ids': json.dumps([newmark.pk])
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+        self.assertEqual(len(MarkUnknown.objects.filter(pk=newmark.pk)), 0)
+        self.assertEqual(len(MarkUnknownReport.objects.filter(problem__name='EVal: rule')), 0)
+
     def tearDown(self):
         if os.path.exists(os.path.join(MEDIA_ROOT, self.safe_archive)):
             os.remove(os.path.join(MEDIA_ROOT, self.safe_archive))
         if os.path.exists(os.path.join(MEDIA_ROOT, self.unsafe_archive)):
             os.remove(os.path.join(MEDIA_ROOT, self.unsafe_archive))
+        if os.path.exists(os.path.join(MEDIA_ROOT, self.unknown_archive)):
+            os.remove(os.path.join(MEDIA_ROOT, self.unknown_archive))
