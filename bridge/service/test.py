@@ -147,7 +147,7 @@ class TestService(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[0][0]).status, SCHEDULER_STATUS[0][0])
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[1][0]).status, SCHEDULER_STATUS[0][0])
 
@@ -162,7 +162,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         try:
             new_sch_data = json.loads(res['jobs and tasks status'])
             self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
@@ -198,7 +198,7 @@ class TestService(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
             progress = SolvingProgress.objects.get(job_id=self.job.pk)
-            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
             self.assertEqual(len(Task.objects.filter(progress__job_id=self.job.pk)), 1 + i)
             self.assertEqual(progress.tasks_pending, 1 + i)
             self.assertEqual(progress.tasks_total, 1 + i)
@@ -214,11 +214,11 @@ class TestService(TestCase):
         response = self.scheduler.post('/service/update_tools/', {'tools data': json.dumps(scheduler_tools)})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         tools = VerificationTool.objects.filter(scheduler__type=SCHEDULER_TYPE[0][0])
         self.assertEqual(len(tools), len(scheduler_tools))
         for tool in tools:
-            self.assertEqual({'tool': tool.name, 'version': tool.version} in scheduler_tools, True)
+            self.assertIn({'tool': tool.name, 'version': tool.version}, scheduler_tools)
 
         # Get tasks
         sch_data2 = sch_data.copy()
@@ -227,7 +227,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
 
         # Get task status
@@ -235,15 +235,16 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(res['task status'], TASK_STATUS[0][0])
 
         # Trying to delete unfinished task
         response = self.core.post('/service/remove_task/', {'task id': task_ids[3]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), "The task is not finished")
+        self.assertJSONEqual(
+            str(response.content, encoding='utf8'), json.dumps({'error': 'The task is not finished'})
+        )
 
         # Process all tasks
         sch_data2['tasks']['processing'] = task_ids
@@ -252,7 +253,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(task_ids))
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['pending'], [])
 
@@ -260,11 +261,11 @@ class TestService(TestCase):
         response = self.core.post('/service/cancel_task/', {'task id': task_ids[0]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         response = self.core.post('/service/cancel_task/', {'task id': task_ids[1]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1]])), 0)
         progress = SolvingProgress.objects.get(job_id=self.job.pk)
         self.assertEqual(progress.tasks_total, 5)
@@ -285,8 +286,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
                 'task id': task_ids[3], 'file': fp, 'description': json.dumps({'solution_data': None})
@@ -294,8 +294,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Solution.objects.filter(task_id__in=[task_ids[2], task_ids[3]])), 2)
         progress = SolvingProgress.objects.get(job_id=self.job.pk)
         self.assertEqual(progress.solutions, 2)
@@ -304,8 +303,7 @@ class TestService(TestCase):
         response = self.core.post('/service/download_solution/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), 'The task is not finished')
+        self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'error': 'The task is not finished'}))
 
         # Finish decision of 3d and 4th tasks and finish with error for 5th task
         sch_data2['tasks']['processing'] = []
@@ -317,7 +315,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['processing'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['pending'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
@@ -330,21 +328,21 @@ class TestService(TestCase):
         response = self.core.post('/service/download_solution/', {'task id': task_ids[4]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error')
+        self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'task error': 'Task error'}))
 
         # Delete finished tasks (FAIL FOR WINDOWS)
         response = self.core.post('/service/remove_task/', {'task id': task_ids[2]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         response = self.core.post('/service/remove_task/', {'task id': task_ids[3]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         response = self.core.post('/service/remove_task/', {'task id': task_ids[4]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Task.objects.filter(id__in=task_ids)), 0)
 
         # Upload finish report
@@ -360,7 +358,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check that scheduler does not get any tasks or jobs
         sch_data3 = sch_data.copy()
@@ -371,7 +369,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         new_sch_data = json.loads(res['jobs and tasks status'])
         self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
         self.assertEqual(new_sch_data['jobs'], {
@@ -414,7 +412,7 @@ class TestService(TestCase):
                 fp.close()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
             self.assertEqual(len(Task.objects.filter(progress__job_id=self.job.pk)), 1 + i)
             task_id = json.loads(str(response.content, encoding='utf8')).get('task id', 0)
             self.assertEqual(len(Task.objects.filter(pk=task_id)), 1)
@@ -430,7 +428,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
 
         # Process first 3 tasks
@@ -455,7 +453,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Solution.objects.filter(task_id=task_ids[0])), 1)
         self.assertEqual(SolvingProgress.objects.get(job_id=self.job.pk).solutions, 1)
 
@@ -469,7 +467,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), {task_ids[2]})
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), {task_ids[4]})
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
@@ -479,11 +477,11 @@ class TestService(TestCase):
         response = self.core.post('/service/remove_task/', {'task id': task_ids[0]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         response = self.core.post('/service/remove_task/', {'task id': task_ids[1]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1], task_ids[3]])), 0)
 
         # Upload finish report
@@ -499,7 +497,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check that scheduler does not get any tasks or jobs
         sch_data3 = sch_data.copy()
@@ -508,7 +506,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         new_sch_data = json.loads(res['jobs and tasks status'])
         self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
         self.assertEqual(new_sch_data['jobs'], {
@@ -547,7 +545,7 @@ class TestService(TestCase):
                 fp.close()
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
             self.assertEqual(len(Task.objects.filter(progress__job_id=self.job.pk)), 1 + i)
             task_id = json.loads(str(response.content, encoding='utf8')).get('task id', 0)
             self.assertEqual(len(Task.objects.filter(pk=task_id)), 1)
@@ -568,7 +566,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(task_ids))
 
         # Process first 4 tasks
@@ -578,7 +576,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(task_ids[:4]))
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), {task_ids[4]})
 
@@ -590,7 +588,7 @@ class TestService(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(Solution.objects.filter(task_id=task_ids[0])), 1)
 
         # Finish decision of 1st task and finish with error for 2nd task
@@ -603,14 +601,12 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         self.assertEqual(
-            set(json.loads(res['jobs and tasks status'])['tasks']['processing']),
-            set(sch_data['tasks']['processing'])
+            set(json.loads(res['jobs and tasks status'])['tasks']['processing']), set(sch_data['tasks']['processing'])
         )
         self.assertEqual(
-            set(json.loads(res['jobs and tasks status'])['tasks']['pending']),
-            set(sch_data['tasks']['pending'])
+            set(json.loads(res['jobs and tasks status'])['tasks']['pending']), set(sch_data['tasks']['pending'])
         )
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['error'], [])
         self.assertEqual(json.loads(res['jobs and tasks status'])['tasks']['finished'], [])
@@ -622,7 +618,7 @@ class TestService(TestCase):
         response = self.core.post('/service/download_solution/', {'task id': task_ids[1]})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('task error', None), 'Task error')
+        self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'task error': 'Task error'}))
 
         # Disconnect Klever scheduler
         response = self.controller.post('/service/set_schedulers_status/', {
@@ -633,7 +629,7 @@ class TestService(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[0][0]).status, SCHEDULER_STATUS[2][0])
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[1][0]).status, SCHEDULER_STATUS[0][0])
 
@@ -653,7 +649,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         new_sch_data = json.loads(res['jobs and tasks status'])
         self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
         self.assertEqual(new_sch_data['jobs'], {
@@ -672,9 +668,9 @@ class TestService(TestCase):
             })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(
-            json.loads(str(response.content, encoding='utf8')).get('error', None),
-            'Reports can be uploaded only for processing jobs'
+        self.assertJSONEqual(
+            str(response.content, encoding='utf8'),
+            json.dumps({'error': 'Reports can be uploaded only for processing jobs'})
         )
 
         # Check tasks quantities after finishing job decision
@@ -737,7 +733,7 @@ class TestService(TestCase):
         response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': self.job.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check that scheduler does not get any tasks or jobs
         sch_data = {
@@ -750,7 +746,7 @@ class TestService(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error', None))
+        self.assertNotIn('error', res)
         new_sch_data = json.loads(res['jobs and tasks status'])
         self.assertEqual(new_sch_data['tasks'], {'pending': [], 'processing': [], 'error': [], 'finished': []})
         self.assertEqual(new_sch_data['jobs'], {
@@ -835,7 +831,7 @@ class TestService(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error', None))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         for n_conf in nodes_data:
             try:
                 configuration = NodesConfiguration.objects.get(

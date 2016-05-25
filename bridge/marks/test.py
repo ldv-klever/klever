@@ -75,7 +75,7 @@ class TestMarks(TestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -148,7 +148,7 @@ class TestMarks(TestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -258,7 +258,7 @@ class TestMarks(TestCase):
             })
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         self.assertEqual(len(MarkSafeHistory.objects.filter(mark=newmark)), 5)
 
@@ -269,7 +269,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('data', res)
 
         # Get mark's versions
@@ -284,7 +284,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('message', res)
         self.assertEqual(len(MarkSafeHistory.objects.filter(mark=newmark)), 3)
 
@@ -310,7 +310,7 @@ class TestMarks(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(MarkSafe.objects.all()), 0)
         # All verdicts must be "safe unmarked"
         self.assertEqual(
@@ -343,7 +343,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertEqual(res.get('description', None), compare_f.description)
         try:
             convert_f = MarkUnsafeConvert.objects.get(name=DEFAULT_CONVERT)
@@ -355,7 +355,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertEqual(res.get('description', None), convert_f.description)
 
         # Save mark
@@ -382,8 +382,8 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertNotIn('error', res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -451,8 +451,8 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertNotIn('error', res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -571,7 +571,7 @@ class TestMarks(TestCase):
             })
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 5)
 
@@ -582,7 +582,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('data', res)
 
         # Get mark's versions
@@ -597,7 +597,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('message', res)
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 3)
 
@@ -626,7 +626,7 @@ class TestMarks(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(MarkUnsafe.objects.all()), 0)
         # All verdicts must be "unsafe unmarked"
         self.assertEqual(
@@ -668,8 +668,8 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertNotIn('error', res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -736,8 +736,8 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
-        self.assertTrue('cache_id' in res)
+        self.assertNotIn('error', res)
+        self.assertIn('cache_id', res)
         cache_id = res['cache_id']
 
         # Check mark's tables
@@ -853,7 +853,7 @@ class TestMarks(TestCase):
             })
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 5)
 
@@ -864,7 +864,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('data', res)
 
         # Get mark's versions
@@ -879,7 +879,7 @@ class TestMarks(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertIsNone(res.get('error'))
+        self.assertNotIn('error', res)
         self.assertIn('message', res)
         self.assertEqual(len(MarkUnknownHistory.objects.filter(mark=newmark)), 3)
 
@@ -905,7 +905,7 @@ class TestMarks(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertIsNone(json.loads(str(response.content, encoding='utf8')).get('error'))
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(MarkUnknown.objects.filter(pk=newmark.pk)), 0)
         self.assertEqual(len(MarkUnknownReport.objects.filter(problem__name='EVal: rule')), 0)
 

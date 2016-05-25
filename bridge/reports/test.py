@@ -266,7 +266,7 @@ class TestReports(TestCase):
         response = self.client.post('/reports/ajax/fill_compare_cache/', {'job1': job1.pk, 'job2': job2.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         try:
             comparison = CompareJobsInfo.objects.get(
                 user__username='manager', root1__job_id=job1.pk, root2__job_id=job2.pk
@@ -302,7 +302,7 @@ class TestReports(TestCase):
         response = self.service_client.post('/reports/upload/', {'report': json.dumps(report)})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportComponent.objects.filter(
             root__job_id=self.job.pk,
             identifier=self.job.identifier + r_id,
@@ -322,7 +322,7 @@ class TestReports(TestCase):
             })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportComponent.objects.filter(
             Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
         )), 1)
@@ -336,7 +336,7 @@ class TestReports(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
     def __upload_data_report(self, r_id, data=None):
         if data is None:
@@ -347,7 +347,7 @@ class TestReports(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
     def __upload_verification_report(self, name, parent, attrs=None):
         r_id = self.__get_report_id(name)
@@ -362,7 +362,7 @@ class TestReports(TestCase):
             response = self.service_client.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportComponent.objects.filter(
             Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
               parent__identifier=self.job.identifier + parent, component__name=name) & ~Q(finish_date=None)
@@ -376,7 +376,7 @@ class TestReports(TestCase):
             response = self.service_client.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportUnknown.objects.filter(
             root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
             parent__identifier=self.job.identifier + parent
@@ -390,7 +390,7 @@ class TestReports(TestCase):
             }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportSafe.objects.filter(
             root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
             parent__identifier=self.job.identifier + parent
@@ -405,7 +405,7 @@ class TestReports(TestCase):
             }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportUnsafe.objects.filter(
             root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
             parent__identifier=self.job.identifier + parent
@@ -427,12 +427,12 @@ class TestReports(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual('error' in res, False)
-        self.assertEqual('jobs and tasks status' in res, True)
+        self.assertNotIn('error', res)
+        self.assertIn('jobs and tasks status', res)
         res_data = json.loads(res['jobs and tasks status'])
         try:
-            self.assertEqual(self.job.identifier in res_data['jobs']['pending'], True)
-            self.assertEqual(self.job.identifier in res_data['job configurations'], True)
+            self.assertIn(self.job.identifier, res_data['jobs']['pending'])
+            self.assertIn(self.job.identifier, res_data['job configurations'])
         except KeyError:
             self.fail('Wrong result format')
 

@@ -54,12 +54,8 @@ class TestLoginAndRegister(TestCase):
         self.assertRedirects(response, reverse('users:login'))
         # Check if new user exists in DB
         self.assertEqual(len(Extended.objects.filter(
-            user__username='user',
-            first_name='Firstname',
-            last_name='Lastname',
-            data_format=DATAFORMAT[1][0],
-            accuracy=2,
-            language=LANGUAGES[0][0]
+            user__username='user', first_name='Firstname', last_name='Lastname',
+            data_format=DATAFORMAT[1][0], accuracy=2, language=LANGUAGES[0][0]
         )), 1)
 
     def test_service(self):
@@ -81,17 +77,17 @@ class TestLoginAndRegister(TestCase):
         response = self.client.post('/users/service_signin/', {'username': 'service', 'password': 'incorrect'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual('error' in res, True)
-        self.assertEqual(res['error'], 'Incorrect username or password')
+        self.assertJSONEqual(
+            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'})
+        )
 
         User.objects.create_user(username='service2', password='service2')
         response = self.client.post('/users/service_signin/', {'username': 'service2', 'password': 'service2'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual('error' in res, True)
-        self.assertEqual(res['error'], 'User does not have extended data')
+        self.assertJSONEqual(
+            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'})
+        )
 
 
 class TestLoggedInUser(TestCase):
@@ -103,19 +99,18 @@ class TestLoggedInUser(TestCase):
     def test_show_profile(self):
         response = self.client.get(reverse('users:show_profile', args=[self.user.pk]))
         self.assertEqual(response.status_code, 200)
-        # Check that page with unexisted user profile does not exist
-        response = self.client.get(reverse('users:show_profile', args=[self.user.pk + 1]))
-        self.assertEqual(response.status_code, 404)
 
     def test_save_notifications(self):
         save_ntf_url = '/users/ajax/save_notifications/'
         response = self.client.post(save_ntf_url, {'self_ntf': 'true', 'notifications': '["0_0","0_4"]'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('status', None), 0)
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
+        self.assertIn('message', res)
         ntf = Notifications.objects.get(user=self.user)
-        self.assertEqual(ntf.self_ntf, True)
-        self.assertEqual(ntf.settings, '["0_0","0_4"]')
+        self.assertTrue(ntf.self_ntf)
+        self.assertEqual(set(json.loads(ntf.settings)), {"0_0", "0_4"})
 
     def test_edit_profile(self):
         response = self.client.get(reverse('users:edit_profile'))

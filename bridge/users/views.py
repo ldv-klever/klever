@@ -309,8 +309,8 @@ def save_notifications(request):
             new_ntf.self_ntf = json.loads(request.POST.get('self_ntf', 'false'))
         except Exception as e:
             logger.error("Can't parse json: %s" % e, stack_info=True)
-            return JsonResponse({'status': 1, 'message': _('Unknown error')})
+            return JsonResponse({'error': 'Unknown error'})
         new_ntf.settings = request.POST.get('notifications', '[]')
         new_ntf.save()
-        return JsonResponse({'status': 0, 'message': _('Saved')})
-    return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        return JsonResponse({'message': _('Saved')})
+    return JsonResponse({'error': _('Unknown error')})

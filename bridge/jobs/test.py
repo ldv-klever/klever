@@ -49,7 +49,7 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         try:
             view_id = int(res['view_id'])
         except KeyError or ValueError:
@@ -73,7 +73,7 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         try:
             view_id = int(res['view_id'])
         except KeyError or ValueError:
@@ -93,8 +93,8 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        self.assertEqual('message' in res, True)
+        self.assertNotIn('error', res)
+        self.assertIn('message', res)
         self.assertEqual(len(PreferableView.objects.filter(user__username='manager', view_id=view_id)), 1)
         response = self.client.get(reverse('jobs:tree'))
         self.assertEqual(response.status_code, 200)
@@ -103,29 +103,29 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'Default'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': ''})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'My view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/jobs/ajax/check_view_name/', {'view_type': '1', 'view_title': 'New view'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check view deletion
         response = self.client.post('/jobs/ajax/remove_view/', {'view_type': '1', 'view_id': view_id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
-        self.assertEqual('message' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertIn('message', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(PreferableView.objects.filter(user__username='manager')), 0)
         self.assertEqual(len(View.objects.filter(author__username='manager')), 0)
 
@@ -148,12 +148,12 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/get_job_data/', {'job_id': job_template.pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Create job page
         response = self.client.post(reverse('jobs:create'), {'parent_id': job_template.pk})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual((len(response.content) > 0), True)
+        self.assertTrue(len(response.content) > 0)
 
         # Save new job
         file_data = []
@@ -176,7 +176,7 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
+        self.assertNotIn('error', res)
         try:
             newjob_pk = int(res['job_id'])
         except ValueError or KeyError:
@@ -190,7 +190,7 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/get_job_data/', {'job_id': newjob_pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Check if job and its versions exist
         try:
@@ -207,7 +207,7 @@ class TestJobs(TestCase):
         # Edit job data
         response = self.client.post('/jobs/ajax/editjob/', {'job_id': newjob.pk, 'version': newjob.version})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual((len(response.content) > 0), True)
+        self.assertTrue(len(response.content) > 0)
 
         # Job versions data
         response = self.client.post('/jobs/ajax/getversions/', {'job_id': newjob.pk})
@@ -217,7 +217,7 @@ class TestJobs(TestCase):
         # Job data for viewing it
         response = self.client.post('/jobs/ajax/showjobdata/', {'job_id': newjob.pk})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual((len(response.content) > 0), True)
+        self.assertTrue(len(response.content) > 0)
 
         for i in range(1, 5):
             response = self.client.post('/jobs/ajax/savejob/', {
@@ -233,8 +233,8 @@ class TestJobs(TestCase):
             })
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
-            self.assertEqual('job_id' in json.loads(str(response.content, encoding='utf8')), True)
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+            self.assertIn('job_id', json.loads(str(response.content, encoding='utf8')))
             self.assertEqual(len(JobHistory.objects.filter(job=newjob)), 1 + i)
 
         # Job versions data again (after there are versions user can delete)
@@ -245,20 +245,20 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/remove_versions/', {'job_id': newjob.pk, 'versions': '["2","3"]'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
-        self.assertEqual('message' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertIn('message', json.loads(str(response.content, encoding='utf8')))
 
         # Try to remove first version
         response = self.client.post('/jobs/ajax/remove_versions/', {'job_id': newjob.pk, 'versions': '["1"]'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual('error' in json.loads(str(response.content, encoding='utf8')), True)
+        self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Remove job
         response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob.pk])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
     def test_files(self):
         self.client.post(reverse('population'))
@@ -285,8 +285,8 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        self.assertEqual('checksum' in res, True)
+        self.assertNotIn('error', res)
+        self.assertIn('checksum', res)
 
         try:
             newfile = File.objects.get(hash_sum=res['checksum'])
@@ -310,8 +310,8 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        self.assertEqual('job_id' in res, True)
+        self.assertNotIn('error', res)
+        self.assertIn('job_id', res)
         self.assertEqual(len(JobHistory.objects.filter(job_id=newjob_pk)), 2)
         try:
             job_file = FileSystem.objects.get(job__job_id=newjob_pk, job__version=2)
@@ -320,7 +320,7 @@ class TestJobs(TestCase):
         except MultipleObjectsReturned:
             self.fail('Too many files for new job (only 1 expected)')
         self.assertEqual(job_file.name, 'filename.txt')
-        self.assertEqual(job_file.parent, None)
+        self.assertIsNone(job_file.parent)
         self.assertEqual(job_file.file_id, newfile.pk)
 
         # Try to download new file
@@ -339,7 +339,7 @@ class TestJobs(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Try to download new job
         response = self.client.get('/jobs/ajax/downloadjob/%s/' % newjob_pk)
@@ -354,7 +354,7 @@ class TestJobs(TestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('status', None), True)
+        self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'status': True}))
         self.assertEqual(len(Job.objects.filter(parent__identifier=newjob.identifier)), 1)
         uploaded_job = Job.objects.get(parent__identifier=newjob.identifier)
         self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=2)), 1)
@@ -401,7 +401,7 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/stop_decision/', {'job_id': job_pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[6][0])
         self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 1)
 
@@ -415,8 +415,8 @@ class TestJobs(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('error', None), None)
-        self.assertEqual('value' in res, True)
+        self.assertNotIn('error', res)
+        self.assertIn('value', res)
 
         # Start decision with settings
         run_conf = json.dumps([
@@ -431,7 +431,7 @@ class TestJobs(TestCase):
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(Job.objects.get(pk=job_pk).status, JOB_STATUS[1][0])
         self.assertEqual(len(RunHistory.objects.filter(job_id=job_pk, operator__username='manager')), 2)
 

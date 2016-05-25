@@ -55,8 +55,7 @@ class TestPopulation(TestCase):
         # Testing populated jobs
         self.assertEqual(len(Job.objects.filter(parent=None)), len(JOB_CLASSES))
         self.assertEqual(
-            len(Job.objects.filter(~Q(parent=None))),
-            len(os.listdir(os.path.join(BASE_DIR, 'jobs', 'presets')))
+            len(Job.objects.filter(~Q(parent=None))), len(os.listdir(os.path.join(BASE_DIR, 'jobs', 'presets')))
         )
 
         # Testing populated users
@@ -78,7 +77,7 @@ class TestPopulation(TestCase):
             manager={'username': 'manager', 'password': '12345'},
             service={'username': 'service', 'password': 'service'}
         )
-        self.assertEqual(result, None)
+        self.assertIsNone(result)
         self.assertEqual(len(Extended.objects.filter(user__username='manager', role=USER_ROLES[2][0])), 1)
         self.assertEqual(len(Extended.objects.filter(user__username='service', role=USER_ROLES[4][0])), 1)
 
