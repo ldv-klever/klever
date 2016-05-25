@@ -21,14 +21,14 @@ def before_launch_sub_job_components(context):
     context.mqs['Linux kernel module deps function'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
-    context.mqs['Additional modules'] = multiprocessing.Queue()
+    context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
-def after_build_linux_kernel(context):
+def after_extract_linux_kernel_build_commands(context):
     if 'modules' in context.conf['Linux kernel'] and ('all' in context.conf['Linux kernel']['modules'] \
             or context.conf['Linux kernel'].get('build kernel', False)):
         if 'modules dep file' not in context.conf['Linux kernel']:
@@ -120,90 +120,69 @@ class LKVOG(core.components.Component):
         module_deps = {}
         module_deps_function = {}
         module_sizes = {}
+        if 'modules dep file' in self.conf['Linux kernel']:
+            module_deps = self.mqs['Linux kernel module deps'].get()
+        if 'modules dep function file' in self.conf['Linux kernel']:
+            module_deps_function = self.mqs['Linux kernel module deps function'].get()
+        if 'module size file' in self.conf['Linux kernel']:
+            module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        if ('all' in self.conf['Linux kernel']['modules'] or
-                self.conf['Linux kernel'].get('build kernel', False)):
+        if 'modules dep file' not in self.conf['Linux kernel']:
+            if strategy_name == 'separate modules':
+                self.mqs['Linux kernel modules'].put({'build kernel': False,
+                                                      'modules': self.conf['Linux kernel']['modules']})
+            else:
+                self.mqs['Linux kernel modules'].put({'build kernel': True})
 
                 module_deps = self.mqs['Linux kernel module deps'].get()
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
-        else:
-            if strategy_name != 'separate modules' and 'modules dep file' not in self.conf['Linux kernel']:
-                raise RuntimeError("Strategy {} will not receive dependencied"
-                                   .format(self.conf['LKVOG strategy']['name']))
-            elif 'modules dep file' in self.conf['Linux kernel']:
-                module_deps = self.mqs['Linux kernel module deps'].get()
-            if 'modules dep function file' in self.conf['Linux kernel']:
-                module_deps_function = self.mqs['Linux kernel module deps function'].get()
-            if 'modules size file' in self.conf['Linux kernel']:
-                module_sizes = self.mqs['Linux kernel module sizes'].get()
-        
+
         self.mqs['Linux kernel module deps'].close()
         self.mqs['Linux kernel module deps function'].close()
         self.mqs['Linux kernel module sizes'].close()
 
-        if strategy_name != 'separate modules':
-            # Use strategy
-            strategy = None
+        if strategy_name not in strategies_list:
+            raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
 
-            if strategy_name == 'closure':
-                strategy = closure.Closure(self.logger, module_deps, self.conf['LKVOG strategy'])
+        strategy_params = {'module_deps': module_deps,
+                           'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                                    strategy_name)),
+                           'export funcs': module_deps_function,
+                           'module_sizes': module_sizes}
+        strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
 
-            elif strategy_name == 'scotch':
-                scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
-                if not os.path.isdir(scotch_dir_path):
-                    os.mkdir(scotch_dir_path)
-                else:
-                    # Clear scotch directory
-                    file_list = os.listdir(scotch_dir_path)
-                    for file_name in file_list:
-                        os.remove(os.path.join(scotch_dir_path, file_name))
-
-                strategy = scotch.Scotch(self.logger, module_deps,
-                                         os.path.join(scotch_dir_path, 'graph_file'),
-                                         os.path.join(scotch_dir_path, 'scotch_log'),
-                                         os.path.join(scotch_dir_path, 'scotch_out'), params=self.conf['LKVOG strategy'])
-            elif strategy_name == 'strategy1':
-                strategy = strategy1.Strategy1(self.logger, module_deps, params=self.conf['LKVOG strategy'],
-                                               export_func=module_deps_function, module_sizes=module_sizes)
-            elif strategy_name == 'separate modules':
-                pass
-
+        build_modules = set()
+        self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
+        for kernel_module in self.conf['Linux kernel']['modules']:
+            if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
+                # Invidiual module just use strategy
+                self.logger.debug('Use strategy for {} module'.format(kernel_module))
+                clusters = strategy.divide(kernel_module)
+                self.all_clusters.update(clusters)
+                for cluster in clusters:
+                    for cluster_module in cluster.modules:
+                        build_modules.add(cluster_module.id)
+                        self.checked_modules.add(cluster_module.id)
             else:
-                raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
-
-            build_modules = set()
-            self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
-            for kernel_module in self.conf['Linux kernel']['modules']:
-                if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
-                    # Invidiual module just use strategy
-                    self.logger.debug('Use strategy for {} module'.format(kernel_module))
-                    clusters = strategy.divide(kernel_module)
+                # Module is subsystem
+                build_modules.add(kernel_module)
+                subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps)
+                for module2 in subsystem_modules:
+                    clusters = strategy.divide(module2)
                     self.all_clusters.update(clusters)
                     for cluster in clusters:
-                        for cluster_module in cluster.modules:
-                            build_modules.add(cluster_module.id)
-                            self.checked_modules.add(cluster_module.id)
-                else:
-                    # Module is subsystem
-                    build_modules.add(kernel_module)
-                    subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps)
-                    for module2 in subsystem_modules:
-                        clusters = strategy.divide(module2)
-                        self.all_clusters.update(clusters)
-                        for cluster in clusters:
-                            # Need update build_modules and checked_modules
-                            for module3 in cluster.modules:
-                                self.checked_modules.add(module3.id)
-                                if not self.is_part_of_subsystem(module3, build_modules):
-                                    build_modules.add(module3.id)
+                        # Need update build_modules and checked_modules
+                        for module3 in cluster.modules:
+                            self.checked_modules.add(module3.id)
+                            if not self.is_part_of_subsystem(module3, build_modules):
+                                build_modules.add(module3.id)
 
-            self.logger.debug('After dividing build modules: {}'.format(build_modules))
+        self.logger.debug('After dividing build modules: {}'.format(build_modules))
 
-            if 'all' not in self.conf['Linux kernel']['modules'] \
-                    and not self.conf['Linux kernel'].get('build kernel', False):
-                self.mqs['Linux kernel modules'].put(build_modules)
-                self.mqs['Additional modules'].put(build_modules)
+        if 'modules dep file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
+            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
+            self.mqs['Linux kernel additional modules'].put(build_modules)
         else:
             self.mqs['Linux kernel module deps'].close()
             self.mqs['Linux kernel module deps function'].close()
@@ -250,7 +229,11 @@ class LKVOG(core.components.Component):
 
         strategy = self.conf['LKVOG strategy']['name']
 
-        self.verification_obj_desc['id'] = self.cluster.root.id + str(hash(self.cluster))
+        self.verification_obj_desc['id'] = self.cluster.root.id
+
+        if len(self.cluster.modules) > 1:
+            self.verification_obj_desc['id'] += self.cluster.md5_hash()
+
         self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
         self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
@@ -293,9 +276,8 @@ class LKVOG(core.components.Component):
                 and not self.conf['Linux kernel'].get('build kernel', False)) \
                 and 'modules dep file' in self.conf['Linux kernel'] \
                 and self.conf['LKVOG strategy']['name'] != 'separate_modules':
-            self.conf['Linux kernel']['modules'] = self.mqs['Additional modules'].get()
-        self.mqs['Additional modules'].close()
-
+            self.conf['Linux kernel']['modules'] = self.mqs['Linux kernel additional modules'].get()
+        self.mqs['Linux kernel additional modules'].close()
 
         while True:
             desc = self.mqs['Linux kernel build cmd descs'].get()

@@ -4,16 +4,13 @@ from operator import itemgetter
 
 
 class Strategy1:
-    def __init__(self, logger, deps, params=None, export_func=None, module_sizes=None):
-        if module_sizes is None:
-            module_sizes = {}
-        if export_func is None:
-            export_func = []
-        if params is None:
-            params = {}
-        self.logger = logger
+    def __init__(self, logger, strategy_params, params=None):
+        module_sizes = strategy_params['module_sizes']
+        export_func = strategy_params['export funcs']
+        deps = strategy_params['module_deps']
 
         # Going to read params
+        self.logger = logger
         self.koef = params.get('cluster size', 5)
         self.max_g_for_m = params.get('max_g_for_m', 5)
         self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)

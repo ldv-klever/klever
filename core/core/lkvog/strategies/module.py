@@ -1,4 +1,4 @@
-
+from hashlib import md5
 
 class Module:
     def __init__(self, id):
@@ -26,6 +26,9 @@ class Module:
     def __hash__(self):
         return hash(self.id)
 
+    def md5_hash(self):
+        return md5(self.id.encode('utf-8').hexdigest())
+
 
 class Cluster:
     def __init__(self, root):
@@ -46,6 +49,9 @@ class Cluster:
     def __hash__(self):
         return hash(frozenset(self.modules))
 
+    def md5_hash(self):
+        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()
+
 
 class Graph:
     def __init__(self, modules):
@@ -55,3 +61,7 @@ class Graph:
 
     def __hash__(self):
         return hash(frozenset(self.modules))
+
+    def md5_hash(self):
+        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()
+

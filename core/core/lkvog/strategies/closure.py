@@ -3,17 +3,17 @@ from core.lkvog.strategies.module import Cluster
 
 
 class Closure:
-    def __init__(self, logger, module_deps, params={}):
+    def __init__(self, logger, strategy_params, params={}):
         self.logger = logger
         self.cluster_size = params.get('cluster size', 0)
         self.logger.info('Calculate graph of all dependencies between modules')
         self.modules = {}
         self.checked_clusters = set()
 
-        for module in sorted(module_deps.keys()):
+        for module in sorted(strategy_params['module_deps'].keys()):
             if module not in self.modules:
                 self.modules[module] = Module(module)
-            for pred in sorted(module_deps[module]):
+            for pred in sorted(strategy_params['module_deps'][module]):
                 if pred not in self.modules:
                     self.modules[pred] = Module(pred)
                 self.modules[module].add_predecessor(self.modules[pred])

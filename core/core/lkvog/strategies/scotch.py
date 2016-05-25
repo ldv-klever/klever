@@ -6,20 +6,28 @@ from core.lkvog.strategies.module import Graph
 
 class Scotch:
     # TODO: graph_file, scotch_out, scotch_log from parameters
-    def __init__(self, logger, module_deps, graph_file, scotch_log,
-                 scotch_out, params={}):
+    def __init__(self, logger, strategy_params, params={}):
         self.logger = logger
         self.scotch_path = params['scotch path']
-        self.graph_file = graph_file
-        self.scotch_log = scotch_log
-        self.scotch_out = scotch_out
-        self.module_deps = module_deps
+        self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file')
+        self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch_log')
+        self.scotch_out = os.path.join(strategy_params['work dir'], 'scotch_out')
+        self.module_deps = strategy_params['module_deps']
         self.task_size = params['cluster size']
         self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.balance_tolerance = params.get('balance tolerance', 0.05)
         self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
         self.clusters = set()
+
+        # Clean working directory
+        if not os.path.isdir(strategy_params['work dir']):
+            os.mkdir(strategy_params['work dir'])
+        else:
+            # Clear scotch directory
+            file_list = os.listdir(strategy_params['work dir'])
+            for file_name in file_list:
+                os.remove(os.path.join(strategy_params['work dir'], file_name))
 
         all_dep_modules = set()
         count_e = 0
@@ -144,5 +152,5 @@ class Scotch:
         for ret_cluster in ret_clusters:
             ret_cluster.root = [module for module in ret_cluster.modules if module.id == module_name][0]
         if not ret_clusters:
-            ret_clusters = Graph([Module(module_name)])
+            ret_clusters = [Graph([Module(module_name)])]
         return ret_clusters
