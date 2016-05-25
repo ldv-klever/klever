@@ -771,7 +771,11 @@ class GetConfiguration(object):
         try:
             self.configuration = [
                 [filedata['priority'], scheduler, filedata['abstract task generation priority']],
-                [filedata['parallelism']['Build'], filedata['parallelism']['Tasks generation']],
+                [
+                    filedata['parallelism']['Sub-jobs processing'],
+                    filedata['parallelism']['Build'],
+                    filedata['parallelism']['Tasks generation']
+                ],
                 [
                     filedata['resource limits']['memory size'] / 10**9,
                     filedata['resource limits']['number of CPU cores'],
@@ -802,8 +806,7 @@ class GetConfiguration(object):
                 return float(val)
 
         try:
-            conf[1][0] = int_or_float(conf[1][0])
-            conf[1][1] = int_or_float(conf[1][1])
+            conf[1] = [int_or_float(conf[1][i]) for i in range(3)]
             if len(conf[2][3]) == 0:
                 conf[2][3] = None
             conf[2][0] = float(conf[2][0])
@@ -823,7 +826,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
             return False
-        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 2:
+        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 3:
             return False
         if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
             return False
@@ -837,10 +840,9 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
             return False
-        if not isinstance(self.configuration[1][0], (float, int)):
-            return False
-        if not isinstance(self.configuration[1][1], (float, int)):
-            return False
+        for i in range(3):
+            if not isinstance(self.configuration[1][i], (float, int)):
+                return False
         if not isinstance(self.configuration[2][0], (float, int)):
             return False
         if not isinstance(self.configuration[2][1], int):

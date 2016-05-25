@@ -57,7 +57,9 @@ class Core(core.utils.CallbacksCaller):
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.decide(self.conf, self.mqs, self.uploading_reports_process)
+            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
+        except SystemExit:
+            self.exit_code = 1
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
@@ -188,7 +190,7 @@ class Core(core.utils.CallbacksCaller):
         git_repo_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
         if os.path.isdir(os.path.join(git_repo_dir, '.git')):
             self.logger.info('Get version on the basis of the Git repository')
-            version = setuptools_scm.get_version(root=git_repo_dir, local_scheme='dirty-tag')
+            version = setuptools_scm.get_version(root=git_repo_dir)
         else:
             self.logger.info('Get version on the basis of package information')
             version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),

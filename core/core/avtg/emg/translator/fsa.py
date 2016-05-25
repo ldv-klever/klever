@@ -183,6 +183,21 @@ class State:
         self.predecessors.remove(old)
         self.predecessors.add(new)
 
+    def _relevant_checks(self):
+        checks = []
+
+        # Add state checks
+        if self.code and 'relevant automata' in self.code:
+            for name in sorted(self.code['relevant automata'].keys()):
+                for st in self.code['relevant automata'][name]['states']:
+                    for index in self.code['relevant automata'][name]["automaton"].state_blocks:
+                        if st in self.code['relevant automata'][name]["automaton"].state_blocks[index]:
+                            checks.append("{} == {}".
+                                          format(self.code['relevant automata'][name]["automaton"].state_variable.name,
+                                                 index))
+
+        return checks
+
 
 class Automaton:
 
@@ -545,10 +560,24 @@ class Automaton:
                         if ret_subprocess:
                             ret_access = self.process.resolve_access(ret_subprocess[0].retlabel)
 
+                    # Match label
                     if ret_access:
-                        retval = ret_access[0].access_with_variable(
-                            self.determine_variable(ret_access[0].label))
-                        case['retval'] = retval
+                        suits = [access for access in ret_access if
+                                 (access.interface and
+                                  access.interface.declaration.compare(signature.points.return_value)) or
+                                 (not access.interface and access.label and
+                                  signature.points.return_value.identifier in (d.identifier for d
+                                                                               in access.label.declarations))]
+                        if len(suits) > 0:
+                            if suits[0].interface:
+                                label_var = self.determine_variable(suits[0].label, suits[0].interface.identifier)
+                            else:
+                                label_var = self.determine_variable(suits[0].label)
+                            retval = suits[0].access_with_variable(label_var)
+                            case['retval'] = retval
+                        else:
+                            raise RuntimeError("Cannot find a suitable label for return value of action '{}'".
+                                               format(state.action.name))
 
                     # Add additional condition
                     if state.action.condition and len(state.action.condition) > 0:

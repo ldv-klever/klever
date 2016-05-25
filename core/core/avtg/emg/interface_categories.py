@@ -406,13 +406,13 @@ class CategoriesSpecification:
                     p_interface = self.resolve_interface(declaration.parameters[index], category, False)
                     if len(p_interface) == 0:
                         p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
-
                     if len(p_interface) == 1:
-                        p_interface = p_interface[-1]
+                        p_interface = p_interface[0]
                     elif len(p_interface) == 0:
                         p_interface = None
                     else:
-                        raise ValueError('Cannot match parameter with two or more interfaces')
+                        # todo: how to match several interfaces with the same signature?
+                        p_interface = p_interface[0]
                 else:
                     p_interface = None
 
