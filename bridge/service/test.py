@@ -769,7 +769,7 @@ class TestService(TestCase):
         self.assertEqual(progress.tasks_finished, 1)
         self.assertEqual(progress.tasks_cancelled, 3)
 
-    def test_nodes(self):
+    def test_nodes_and_sch_user(self):
         nodes_data = [
             {
                 'CPU model': 'CPU_model_1',
@@ -864,3 +864,14 @@ class TestService(TestCase):
                     self.assertIsNone(node.workload)
         response = self.client.get(reverse('service:schedulers', args=[]))
         self.assertEqual(response.status_code, 200)
+
+        response = self.client.post('/service/ajax/add_scheduler_user/', {
+            'login': 'sch_user', 'password': 'sch_passwd'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertEqual(str(response.content, encoding='utf8'), '{}')
+        try:
+            SchedulerUser.objects.get(user__username='manager', login='sch_user', password='sch_passwd')
+        except ObjectDoesNotExist:
+            self.fail()

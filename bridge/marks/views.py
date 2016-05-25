@@ -387,7 +387,7 @@ def remove_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'status': 1, 'message': 'Unknown error'})
+        return JsonResponse({'error': 'Unknown error'})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:
@@ -398,17 +398,12 @@ def remove_versions(request):
         elif mark_type == 'unknown':
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
-            return JsonResponse({'message': 'Unknown error'})
+            return JsonResponse({'error': 'Unknown error'})
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
-        return JsonResponse({
-            'status': 1, 'message': _('The mark was not found')
-        })
+        return JsonResponse({'error': _('The mark was not found')})
     if not MarkAccess(request.user, mark).can_edit():
-        return JsonResponse({
-            'status': 1,
-            'message': _("You don't have an access to edit this mark")
-        })
+        return JsonResponse({'error': _("You don't have an access to edit this mark")})
 
     versions = json.loads(request.POST.get('versions', '[]'))
     checked_versions = mark_history.filter(version__in=versions)
@@ -416,11 +411,8 @@ def remove_versions(request):
     checked_versions.delete()
 
     if deleted_versions > 0:
-        return JsonResponse({
-            'status': 0,
-            'message': _('Selected versions were successfully deleted')
-        })
-    return JsonResponse({'status': 1, 'message': _('Nothing to delete')})
+        return JsonResponse({'message': _('Selected versions were successfully deleted')})
+    return JsonResponse({'error': _('Nothing to delete')})
 
 
 @login_required

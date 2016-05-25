@@ -265,7 +265,7 @@ function set_actions_for_mark_versions_delete() {
                         version_line.remove();
                     }
                 });
-                data.status === 0 ? success_notify(data.message) : err_notify(data.message);
+                data.error ? err_notify(data.error) : success_notify(data.message);
                 if (global_parent && global_parent.children().first().children().length == 0) {
                     $('#versions_to_delete_form').remove();
                     $('#no_versions_to_delete').show();
