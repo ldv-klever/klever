@@ -3,9 +3,9 @@ import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.test import Client, TestCase
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
+from bridge.utils import KleverTestCase
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -16,9 +16,9 @@ from marks.models import *
 REPORT_ARCHIVES = os.path.join(BASE_DIR, 'reports', 'test_files')
 
 
-class TestMarks(TestCase):
+class TestMarks(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestMarks, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
             admin={'username': 'superuser'},
@@ -916,3 +916,4 @@ class TestMarks(TestCase):
             os.remove(os.path.join(MEDIA_ROOT, self.unsafe_archive))
         if os.path.exists(os.path.join(MEDIA_ROOT, self.unknown_archive)):
             os.remove(os.path.join(MEDIA_ROOT, self.unknown_archive))
+        super(TestMarks, self).tearDown()

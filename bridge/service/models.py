@@ -151,5 +151,5 @@ def solution_delete(**kwargs):
     storage, path = file.archive.storage, file.archive.path
     try:
         storage.delete(path)
-    except Exception as e:
-        logger.exception("Can't delete task archive: %s" % e, stack_info=True)
+    except PermissionError:
+        pass

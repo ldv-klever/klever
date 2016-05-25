@@ -386,8 +386,10 @@ class GetSource(object):
 
     def __get_source(self, file_name):
         data = ''
+        if file_name.startswith('/'):
+            file_name = file_name[1:]
         try:
-            src = self.report.files.get(name=file_name[1:])
+            src = self.report.files.get(name=file_name)
         except ObjectDoesNotExist:
             self.error = _("Could not find the source file")
             return

@@ -3,10 +3,11 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.test import Client, TestCase
+from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
 from bridge.vars import JOB_STATUS
+from bridge.utils import KleverTestCase
 from reports.test import COMPUTER
 from service.models import *
 
@@ -104,9 +105,9 @@ TEST_JSON = {
 ARCHIVE_PATH = os.path.join(BASE_DIR, 'service', 'test_files')
 
 
-class TestService(TestCase):
+class TestService(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestService, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
             admin={'username': 'superuser'},

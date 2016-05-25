@@ -1,15 +1,12 @@
 import json
 from django.core.urlresolvers import reverse
-from django.test import Client, TestCase
+from bridge.utils import KleverTestCase
 from bridge.vars import LANGUAGES, DATAFORMAT
 from users.models import User, Extended, Notifications
 from service.models import SchedulerUser
 
 
-class TestLoginAndRegister(TestCase):
-    def setUp(self):
-        self.client = Client()
-
+class TestLoginAndRegister(KleverTestCase):
     def test_admin(self):
         uname = 'user'
 
@@ -90,9 +87,9 @@ class TestLoginAndRegister(TestCase):
         )
 
 
-class TestLoggedInUser(TestCase):
+class TestLoggedInUser(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestLoggedInUser, self).setUp()
         self.user = User.objects.create_user('user', password='top_secret')
         self.client.post(reverse('users:login'), {'username': 'user', 'password': 'top_secret'})
 

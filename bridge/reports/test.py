@@ -4,10 +4,11 @@ import random
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.test import Client, TestCase
+from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES
+from bridge.utils import KleverTestCase
 from reports.models import *
 
 
@@ -154,9 +155,9 @@ def resources():
     }
 
 
-class TestReports(TestCase):
+class TestReports(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestReports, self).setUp()
         self.service_client = Client()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
@@ -234,7 +235,7 @@ class TestReports(TestCase):
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertEqual(json.loads(str(response.content, encoding='utf8')).get('error', None), None)
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/reports/logcontent/%s/' % main_report.pk)
         self.assertEqual(response.status_code, 200)
@@ -442,14 +443,48 @@ class TestReports(TestCase):
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
-        self.__upload_data_report(
-            '/',
-            [
-                ["bug name 1", "unsafe", "safe", "Some description here"],
-                ["bug name 2", "unsafe", "unknown", "Some description here"],
-                ["bug name 3", "safe", "unsafe", "Some description here"]
-            ]
-        )
+        core_data = None
+        if self.job.type == JOB_CLASSES[0][0]:
+            core_data = {
+                'module1': {
+                    'ideal verdict': 'safe',
+                    'verification status': 'unsafe',
+                    'comment': 'This is comment for module1'
+                },
+                'module2': {
+                    'ideal verdict': 'safe',
+                    'verification status': 'safe'
+                },
+                'module3': {
+                    'ideal verdict': 'unsafe',
+                    'verification status': 'unsafe',
+                    'comment': 'This is comment for module3'
+                },
+                'module4': {
+                    'ideal verdict': 'unsafe',
+                    'verification status': 'unknown'
+                }
+            }
+        elif self.job.type == JOB_CLASSES[3][0]:
+            core_data = {
+                'module1': {
+                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
+                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 after fix'},
+                },
+                'module2': {
+                    'before fix': {'verification status': 'safe'},
+                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module2 after fix'},
+                },
+                'module3': {
+                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module3 before fix'},
+                    'after fix': {'verification status': 'safe'},
+                },
+                'module4': {
+                    'before fix': {'verification status': 'unsafe'}, 'after fix': {'verification status': 'unknown'},
+                }
+            }
+
+        self.__upload_data_report('/', core_data)
 
         lkbce = self.__upload_start_report('LKBCE', '/')
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
@@ -538,7 +573,7 @@ class DecideJobs(object):
             self.service.post('/users/service_signin/', {
                 'username': self.username, 'password': self.password, 'job identifier': job_identifier
             })
-            self.__decide_job()
+            self.__decide_job(job_identifier)
             self.service.post('/users/service_signout/')
             sch_data['jobs']['finished'].append(job_identifier)
         scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
@@ -613,19 +648,53 @@ class DecideJobs(object):
                 'error trace': 'unsafe-error-trace.graphml', 'attrs': attrs
             }), 'file': fp})
 
-    def __decide_job(self):
+    def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'version-1'}], 'comp': COMPUTER
         }), 'job format': 1})
 
-        self.__upload_data_report(
-            '/',
-            [
-                ["bug name 1", "unsafe", "safe", "Some description here"],
-                ["bug name 2", "unsafe", "unknown", "Some description here"],
-                ["bug name 3", "safe", "unsafe", "Some description here"]
-            ]
-        )
+        core_data = None
+        if Job.objects.get(identifier=job_identifier).type == JOB_CLASSES[0][0]:
+            core_data = {
+                'module1': {
+                    'ideal verdict': 'safe',
+                    'verification status': 'unsafe',
+                    'comment': 'This is comment for module1'
+                },
+                'module2': {
+                    'ideal verdict': 'safe',
+                    'verification status': 'safe'
+                },
+                'module3': {
+                    'ideal verdict': 'unsafe',
+                    'verification status': 'unsafe',
+                    'comment': 'This is comment for module3'
+                },
+                'module4': {
+                    'ideal verdict': 'unsafe',
+                    'verification status': 'unknown'
+                }
+            }
+        elif Job.objects.get(identifier=job_identifier).type == JOB_CLASSES[3][0]:
+            core_data = {
+                'module1': {
+                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
+                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 after fix'},
+                },
+                'module2': {
+                    'before fix': {'verification status': 'safe'},
+                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module2 after fix'},
+                },
+                'module3': {
+                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module3 before fix'},
+                    'after fix': {'verification status': 'safe'},
+                },
+                'module4': {
+                    'before fix': {'verification status': 'unsafe'}, 'after fix': {'verification status': 'unknown'},
+                }
+            }
+
+        self.__upload_data_report('/', core_data)
 
         lkbce = self.__upload_start_report('LKBCE', '/')
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])

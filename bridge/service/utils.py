@@ -141,7 +141,7 @@ class RemoveTask(object):
                 return
         elif self.task.status == TASK_STATUS[2][0]:
             try:
-                self.task.solution
+                Solution.objects.get(task=self.task)
             except ObjectDoesNotExist:
                 self.error = "The solution of the finished task doesn't exist"
                 return

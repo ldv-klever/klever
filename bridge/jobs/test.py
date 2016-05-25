@@ -3,16 +3,16 @@ import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
-from django.test import Client, TestCase
 from bridge.populate import populate_users
 from bridge.settings import MEDIA_ROOT
+from bridge.utils import KleverTestCase
 from users.models import View, PreferableView
 from jobs.models import *
 
 
-class TestJobs(TestCase):
+class TestJobs(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestJobs, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         populate_users(
             admin={'username': 'superuser'},
@@ -24,7 +24,6 @@ class TestJobs(TestCase):
         self.test_archive = 'test_jobarchive.tar.gz'
 
     def test_tree_and_views(self):
-
         # Check jobs tree before and after population
         response = self.client.get(reverse('jobs:tree'))
         self.assertEqual(response.status_code, 200)
@@ -420,8 +419,7 @@ class TestJobs(TestCase):
 
         # Start decision with settings
         run_conf = json.dumps([
-            ["HIGH", "0", "rule specifications"],
-            ["2.0", "2.0"], [1, 1, 100, '', 15, None],
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
             [
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
@@ -445,3 +443,4 @@ class TestJobs(TestCase):
             os.remove(os.path.join(MEDIA_ROOT, self.test_filename))
         if os.path.exists(os.path.join(MEDIA_ROOT, self.test_archive)):
             os.remove(os.path.join(MEDIA_ROOT, self.test_archive))
+        super(TestJobs, self).tearDown()

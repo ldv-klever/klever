@@ -1,9 +1,9 @@
 import os
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.test import Client, TestCase
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
+from bridge.utils import KleverTestCase
 from bridge.vars import JOB_CLASSES, USER_ROLES
 from users.models import User, Extended
 from jobs.models import Job
@@ -11,9 +11,9 @@ from marks.models import MarkUnknown
 from service.models import Scheduler, SCHEDULER_TYPE
 
 
-class TestPopulation(TestCase):
+class TestPopulation(KleverTestCase):
     def setUp(self):
-        self.client = Client()
+        super(TestPopulation, self).setUp()
         User.objects.create_superuser('superuser', '', 'top_secret')
         User.objects.create_user(username='user', password='top_secret2')
 

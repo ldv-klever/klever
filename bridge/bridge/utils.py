@@ -1,5 +1,6 @@
 import os
 import time
+import shutil
 import logging
 import hashlib
 import tarfile
@@ -7,13 +8,15 @@ import tempfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
+from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import MAX_FILE_SIZE
+from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
 from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+TESTS_DIR = 'Tests'
 
 logger = logging.getLogger('bridge')
 
@@ -131,3 +134,30 @@ def extract_tar_temp(archive):
 
 def unique_id():
     return hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()
+
+
+def tests_logging_conf():
+    tests_logging = LOGGING.copy()
+    cnt = 1
+    for handler in tests_logging['handlers']:
+        if 'filename' in tests_logging['handlers'][handler]:
+            tests_logging['handlers'][handler]['filename'] = os.path.join(MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
+            cnt += 1
+    return tests_logging
+
+
+# Logging overriding does not work, maybe it's Django's bug
+@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR), LOGGING=tests_logging_conf())
+class KleverTestCase(TestCase):
+    def setUp(self):
+        if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
+            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR))
+        self.client = Client()
+        super(KleverTestCase, self).setUp()
+
+    def tearDown(self):
+        super(KleverTestCase, self).tearDown()
+        try:
+            shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
+        except PermissionError:
+            pass
