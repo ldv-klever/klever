@@ -210,6 +210,12 @@ class LKBCE(core.components.Component):
             self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                         specify_arch=False, collect_build_cmds=False)
+            if 'external modules' in self.conf['Linux kernel']:
+                self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']),
+                             'M=ext-modules', 'modules_install'],
+                    jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
+                    specify_arch=False, collect_build_cmds=False)
+
             self.parse_linux_kernel_mod_deps(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
                                                           self.linux_kernel['version'], 'modules.dep'))
 
