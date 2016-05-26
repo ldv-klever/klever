@@ -120,6 +120,7 @@ class DownloadJob(object):
         self.__add_component_files(jobtar_obj)
         common_data = {
             'format': str(self.job.format),
+            'identifier': str(self.job.identifier),
             'type': str(self.job.type),
             'status': self.job.status,
             'filedata': json.dumps(files_in_tar),
@@ -288,6 +289,9 @@ class UploadJob(object):
             return _("The job archive is corrupted")
         if int(jobdata['format']) != FORMAT:
             return _("The job format is not supported")
+        if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
+            if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
+                return _("The job with identifier specified in the archive already exists")
         if jobdata['type'] != self.parent.type:
             return _("The job class does not equal to the parent class")
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
@@ -321,6 +325,7 @@ class UploadJob(object):
 
         job = create_job({
             'name': version_list[0]['name'],
+            'identifier': jobdata.get('identifier'),
             'author': self.user,
             'description': version_list[0]['description'],
             'parent': self.parent,
