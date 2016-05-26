@@ -474,3 +474,13 @@ def association_changes(request, association_id):
         'MarkTable': data,
         'header': Header(data.get('columns', []), MARK_TITLES).struct
     })
+
+
+def show_tags(request, tags_type):
+    if tags_type == 'unsafe':
+        page_title = "Unsafe tags"
+    else:
+        page_title = "Safe tags"
+    return render(request, 'marks/ShowTags.html', {
+        'title': page_title
+    })
