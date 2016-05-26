@@ -54,10 +54,12 @@ class Core(core.utils.CallbacksCaller):
                                                   })
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
-            self.mqs['report files'] = multiprocessing.Queue()
+            self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.decide(self.conf, self.mqs, self.uploading_reports_process)
+            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
+        except SystemExit:
+            self.exit_code = 1
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
@@ -188,7 +190,7 @@ class Core(core.utils.CallbacksCaller):
         git_repo_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
         if os.path.isdir(os.path.join(git_repo_dir, '.git')):
             self.logger.info('Get version on the basis of the Git repository')
-            version = setuptools_scm.get_version(root=git_repo_dir, local_scheme='dirty-tag')
+            version = setuptools_scm.get_version(root=git_repo_dir)
         else:
             self.logger.info('Get version on the basis of package information')
             version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
@@ -223,10 +225,6 @@ class Core(core.utils.CallbacksCaller):
 
                 if report_and_report_files_archive is None:
                     self.logger.debug('Report files message queue was terminated')
-                    # Note that this and all other closing of message queues aren't strictly necessary and everything
-                    # will work without them as well, but this potentially can save some memory since closing explicitly
-                    # notifies that corresponding message queue won't be used any more and its memory could be freed.
-                    self.mqs['report files'].close()
                     break
 
                 report_file = report_and_report_files_archive['report file']

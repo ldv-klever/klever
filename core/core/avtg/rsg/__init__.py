@@ -1,11 +1,20 @@
 #!/usr/bin/python3
 
 import json
+import multiprocessing
 import os
 import string
 
 import core.components
 import core.utils
+
+
+def before_launch_sub_job_components(context):
+    context.mqs['src tree root'] = multiprocessing.Queue()
+
+
+def after_set_src_tree_root(context):
+    context.mqs['src tree root'].put(context.src_tree_root)
 
 
 class RSG(core.components.Component):
@@ -21,9 +30,7 @@ class RSG(core.components.Component):
             for file in self.abstract_task_desc['files']:
                 ext = os.path.splitext(file)[1]
                 if ext == '.c':
-                    models.append(os.path.relpath(os.path.join(self.conf['main working directory'], file),
-                                                  os.path.join(self.conf['main working directory'],
-                                                               self.conf['source tree root'])))
+                    models.append(os.path.relpath(os.path.join(self.conf['main working directory'], file)))
                     self.logger.debug('Get additional model "{0}'.format(file))
                 elif ext == '.aspect':
                     aspects.append(file)
@@ -68,8 +75,7 @@ class RSG(core.components.Component):
         for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
             model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
             self.logger.debug('Get model "{0}"'.format(model))
-            models.append(os.path.relpath(model, os.path.join(self.conf['main working directory'],
-                                                              self.conf['source tree root'])))
+            models.append(model)
 
         if not models:
             self.logger.warning('No models are specified')
@@ -94,17 +100,20 @@ class RSG(core.components.Component):
                             suffix = str(int(suffix) + 1)
                         else:
                             break
+                # Otput file should be located somewhere inside RSG working directory to avoid races.
                 out_file = os.path.join('models',
-                                        '{0}{1}.o'.format(os.path.splitext(os.path.basename(model))[0], suffix))
+                                        '{0}{1}.c'.format(os.path.splitext(os.path.basename(model))[0], suffix))
                 self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w', encoding='ascii') as fp:
                     json.dump({
-                        # Input file path should be relative to source tree root since compilation options are relative
-                        # to this directory and we will change directory to that one before invoking preprocessor.
-                        'in files': [model],
-                        # Otput file should be located somewhere inside RSG working directory to avoid races.
+                        'cwd': self.conf['shadow source tree'],
+                        # Input and output file paths should be relative to source tree root since compilation options
+                        # are relative to this directory and we will change directory to that one before invoking
+                        # preprocessor.
+                        'in files': [os.path.relpath(model, os.path.join(self.conf['main working directory'],
+                                                                         self.conf['shadow source tree']))],
                         'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
-                                                                           self.conf['source tree root'])),
+                                                                           self.conf['shadow source tree'])),
                         'opts':
                             [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
                              self.conf['model CC options']]

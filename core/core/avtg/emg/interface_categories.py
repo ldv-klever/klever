@@ -1,7 +1,7 @@
 import copy
 
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
-from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
+from core.avtg.emg.common.signature import Declaration, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
     Structure, Pointer, Union, import_signature
 
 
@@ -119,8 +119,9 @@ class CategoriesSpecification:
         Search for containers with a declaration of type Structure and with a provided field. If a signature parameter
         is provided than those containers are chosen which additionaly has the field with the corresponding type.
         Containers can be chosen from a provided categorty only.
+
         :param field: Name of the structure field to match.
-        :param signature: a declaration object (Any inherited from BaseType from common.signature) to match the field.
+        :param signature: Declaration object to match the field.
         :param category: a category name string.
         :return: List with Container objects.
         """
@@ -133,29 +134,46 @@ class CategoriesSpecification:
                   (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
                 (not category or container.category == category)]
 
-    def resolve_containers(self, target, category=None):
-        self.logger.debug("Resolve containers for signature '{}'".format(target.identifier))
-        if target.identifier not in self._containers_cache:
-            self._containers_cache[target.identifier] = {}
+    def resolve_containers(self, declaration, category=None):
+        """
+        Tries to find containers from given category which contains an element or field of type according to
+        provided declaration.
 
-        if category and category not in self._containers_cache[target.identifier]:
+        :param declaration: Declaration of an element or a field.
+        :param category:  Category name string.
+        :return: List with Container objects.
+        """
+        self.logger.debug("Resolve containers for signature '{}'".format(declaration.identifier))
+        if declaration.identifier not in self._containers_cache:
+            self._containers_cache[declaration.identifier] = {}
+
+        if category and category not in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache miss")
-            cnts = self.__resolve_containers(target, category)
-            self._containers_cache[target.identifier][category] = cnts
+            cnts = self.__resolve_containers(declaration, category)
+            self._containers_cache[declaration.identifier][category] = cnts
             return cnts
-        elif not category and 'default' not in self._containers_cache[target.identifier]:
+        elif not category and 'default' not in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache miss")
-            cnts = self.__resolve_containers(target, category)
-            self._containers_cache[target.identifier]['default'] = cnts
+            cnts = self.__resolve_containers(declaration, category)
+            self._containers_cache[declaration.identifier]['default'] = cnts
             return cnts
-        elif category and category in self._containers_cache[target.identifier]:
+        elif category and category in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache hit")
-            return self._containers_cache[target.identifier][category]
+            return self._containers_cache[declaration.identifier][category]
         else:
             self.logger.debug("Cache hit")
-            return self._containers_cache[target.identifier]['default']
+            return self._containers_cache[declaration.identifier]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
+        """
+        Tries to find an interface which matches a type from a provided declaration from a given category.
+
+        :param signature: Declaration.
+        :param category: Category object.
+        :param use_cache: Flag that allows to use or omit cache - better to use cache only if all interfaces are
+                          extracted or generated and no new types or interfaces will appear.
+        :return: Returns list of Container objects.
+        """
         if type(signature) is InterfaceReference and signature.interface in self.interfaces:
             return [self.interfaces[signature.interface]]
         elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
@@ -175,6 +193,16 @@ class CategoriesSpecification:
             return self._interface_cache[signature.identifier]
 
     def resolve_interface_weakly(self, signature, category=None, use_cache=True):
+        """
+        Tries to find an interface which matches a type from a provided declaration from a given category. This
+        function allows to match pointers to a declaration or types to which given type points.
+
+        :param signature: Declaration.
+        :param category: Category object.
+        :param use_cache: Flag that allows to use or omit cache - better to use cache only if all interfaces are
+                          extracted or generated and no new types or interfaces will appear.
+        :return: Returns list of Container objects.
+        """
         self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
         intf = self.resolve_interface(signature, category, use_cache)
         if not intf and type(signature) is Pointer:
@@ -184,6 +212,17 @@ class CategoriesSpecification:
         return intf
 
     def implementations(self, interface, weakly=True):
+        """
+        Finds all implementations which are relevant toa given interface. This function finds all implementations
+        available for a given declaration in interface and tries to filter out that implementations which implements
+        the other interfaces with the same declaration. This can be done on base of connections with containers and
+        many other assumptions.
+
+        :param interface: Interface object.
+        :param weakly: Seach for implementations in implementations of pointers to given type or in implementations
+                       available for a type to which given type points.
+        :return: List of Implementation objects.
+        """
         self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
@@ -367,13 +406,13 @@ class CategoriesSpecification:
                     p_interface = self.resolve_interface(declaration.parameters[index], category, False)
                     if len(p_interface) == 0:
                         p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
-
                     if len(p_interface) == 1:
-                        p_interface = p_interface[-1]
+                        p_interface = p_interface[0]
                     elif len(p_interface) == 0:
                         p_interface = None
                     else:
-                        raise ValueError('Cannot match parameter with two or more interfaces')
+                        # todo: how to match several interfaces with the same signature?
+                        p_interface = p_interface[0]
                 else:
                     p_interface = None
 

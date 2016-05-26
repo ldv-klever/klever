@@ -1,4 +1,7 @@
-def split_into_instances(analysis, process):
+from core.avtg.emg.common.interface import Resource, Container
+
+
+def split_into_instances(analysis, process, resource_new_insts):
     """
     Get a process and calculate instances to get automata with exactly one implementation per interface.
 
@@ -14,12 +17,13 @@ def split_into_instances(analysis, process):
     provided to a copy of the Process object later in translator.
     :param analysis: ModuleCategoriesSpecification object.
     :param process: Process object.
+    :param resource_new_insts: Number of new instances allowed to generate for resources.
     :return: Dictionary: {'Access.expression string'->'Interface.identifier string'->'Implementation object/None'}.
     """
     access_map = {}
 
     accesses = process.accesses()
-    interface_to_value, value_to_implementation, interface_to_expression, final_options_list = \
+    interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list = \
         _extract_implementation_dependencies(analysis, access_map, accesses)
 
     # Generate access maps itself with base values only
@@ -95,15 +99,25 @@ def split_into_instances(analysis, process):
                     chosen_values.add(suits[0])
                     total_chosen_values.add(suits[0])
                 elif len(suits) > 1:
-                    # Expect that this caused by an array
-                    # todo: remember arrays to choose the same for such values
-                    additional_maps = [[dict(amap), set(chosen_values)] for i in range(len(suits) - 1)]
-
                     # Fulfill existing instance
                     first = suits.pop()
                     amap[expression][interface] = value_to_implementation[first]
                     chosen_values.add(first)
                     total_chosen_values.add(first)
+
+                    # There can be many useless resource implementations ...
+                    if type(analysis.interfaces[interface]) is Resource and resource_new_insts > 0:
+                        suits = suits[0:resource_new_insts]
+                    elif type(analysis.interfaces[interface]) is Container:
+                        # Ignore additional container values which does not influence the other interfaces
+                        suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
+                    else:
+                        # Try not to repeate values
+                        suits = [v for v in suits if v not in total_chosen_values]
+
+                    # Expect that this caused by an array
+                    # todo: remember arrays to choose the same for such values
+                    additional_maps = [[dict(amap), set(chosen_values)] for i in range(len(suits))]
 
                     # Fulfill new instances
                     for additional_value in suits:
@@ -146,6 +160,8 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
                                     'Implementation.base_value string'}
     value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}
+    basevalue_to_value: Dictionary with relevant implementations on each container value:
+                        {'Value string' -> {'Set with relevant value strings'}
     interface_to_expression: Dictionary {'Interface.identifier string' -> 'Access.expression string'}
     final_options_list: List ['Interface.identifier string'] - contains sorted list of interfaces identifiers for which
     is necessary to choose implementations first (see description above). The greatest element is the first.
@@ -232,6 +248,6 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
                                                      if value in basevalue_to_value]) > 0]
     final_options_list = list(reversed(sorted(options, key=lambda o: containers_impacts[o])))
 
-    return interface_to_value, value_to_implementation, interface_to_expression, final_options_list
+    return interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

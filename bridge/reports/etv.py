@@ -387,7 +387,7 @@ class GetSource(object):
     def __get_source(self, file_name):
         data = ''
         try:
-            src = self.report.files.get(name=file_name)
+            src = self.report.files.get(name=file_name[1:])
         except ObjectDoesNotExist:
             self.error = _("Could not find the source file")
             return
