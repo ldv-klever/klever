@@ -658,7 +658,8 @@ class DecideJobs(object):
         }), 'job format': 1})
 
         core_data = None
-        if Job.objects.get(identifier=job_identifier).type == JOB_CLASSES[0][0]:
+        job = Job.objects.get(identifier=job_identifier)
+        if job.type == JOB_CLASSES[0][0]:
             core_data = {
                 'module1': {
                     'ideal verdict': 'safe',
@@ -679,7 +680,7 @@ class DecideJobs(object):
                     'verification status': 'unknown'
                 }
             }
-        elif Job.objects.get(identifier=job_identifier).type == JOB_CLASSES[3][0]:
+        elif job.type == JOB_CLASSES[3][0]:
             core_data = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
@@ -711,6 +712,8 @@ class DecideJobs(object):
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
 
         for chunk in self.reports_data:
+            if job.type == JOB_CLASSES[3][0]:
+                chunk['attrs']['Commit'] = 'HEAD'
             sa = self.__upload_start_report('SA', avtg, chunk['attrs'])
             self.__upload_data_report(sa)
             self.__upload_finish_report(sa)
