@@ -247,9 +247,10 @@ class TestReports(KleverTestCase):
 
     def test_comparison(self):
         try:
-            job1 = Job.objects.filter(~Q(parent=None))[0]
+            # Exclude jobs "Validation on commits" due to they need additional attribute for comparison: "Commit"
+            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[3][0]))[0]
         except IndexError:
-            job1 = Job.objects.all()[0]
+            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[3][0]))[0]
 
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -273,7 +274,10 @@ class TestReports(KleverTestCase):
                 user__username='manager', root1__job_id=job1.pk, root2__job_id=job2.pk
             )
         except ObjectDoesNotExist:
-            self.fail('Comnparsion cache is empty')
+            self.fail('Comparsion cache is empty')
+
+        # 6 modules (1 module veridfied by 2 rules)
+        self.assertEqual(len(CompareJobsCache.objects.filter(info=comparison)), 7)
 
         response = self.client.get(reverse('reports:comparison', args=[job1.pk, job2.pk]))
         self.assertEqual(response.status_code, 200)

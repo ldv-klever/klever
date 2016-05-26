@@ -146,8 +146,9 @@ def tests_logging_conf():
     return tests_logging
 
 
-# Logging overriding does not work, maybe it's Django's bug
-@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR), LOGGING=tests_logging_conf())
+# Logging overriding does not work (does not override it for tests but override it after tests done)
+# Maybe it's Django's bug (LOGGING=tests_logging_conf())
+@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR))
 class KleverTestCase(TestCase):
     def setUp(self):
         if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
