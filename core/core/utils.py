@@ -207,7 +207,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
                 if stream_q is out_q:
                     logger.debug(m)
                 else:
-                    logger.warning(m)
+                    pass
 
     for stream_q in (out_q, err_q):
         stream_q.join()
@@ -514,5 +514,5 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     # Put report to message queue if it is specified.
     if mq:
         mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
-
+    time.sleep(0.1)
     return report_file

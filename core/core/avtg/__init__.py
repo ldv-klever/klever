@@ -334,7 +334,7 @@ class AVTG(core.components.Component):
         # Invoke all plugins one by one.
         cur_abstract_task_desc = initial_abstract_task_desc
         plugin_mqs = self.mqs
-        plugin_mqs.update({'abstract task description': multiprocessing.Queue()})
+        plugin_mqs.update({'abstract task description': multiprocessing.Manager().Queue()})
         try:
             for plugin_desc in rule_spec_desc['plugins']:
                 self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
@@ -422,4 +422,4 @@ class AVTG(core.components.Component):
         except core.components.ComponentError:
             self.abstract_task_desc = None
         finally:
-            plugin_mqs['abstract task description'].close()
+            pass
