@@ -807,7 +807,7 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = file_get_or_create(args['error_trace'], MARK_ERROR_TRACE_FILE_NAME)
+                mark.error_trace = file_get_or_create(args['error_trace'], MARK_ERROR_TRACE_FILE_NAME)[0]
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
@@ -990,7 +990,7 @@ class ReadTarMark(object):
                 version_data['comment'] = '1'
             if self.type == 'unsafe':
                 version_data['compare_id'] = get_func_id(version_data['function'])
-            del version_data['function']
+                del version_data['function']
             upd_mark = NewMark(mark, self.user, self.type, version_data, False)
             if upd_mark.error is not None:
                 mark.delete()

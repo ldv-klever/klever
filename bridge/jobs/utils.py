@@ -119,7 +119,6 @@ class JobAccess(object):
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        # TODO: can author decide the job?
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
