@@ -564,3 +564,69 @@ def error_trace_callstack(error_trace):
         if 'warning' in n.attr:
             break
     return json.dumps([call_stack1, call_stack2])
+
+
+# Some constants for internal representation of error traces.
+_CALL = 'CALL'
+_RET = 'RET'
+
+
+# Extracts model functions in specific format with some heuristics.
+def error_trace_model_functions(error_trace):
+
+    # TODO: Very bad method.
+    model_functions = set()
+    for line in error_trace.split("\n"):
+        res = re.search(r'<data key=\"enterFunction\">ldv_linux_(.*)</data>', line)
+        if res:
+            mf = res.group(1)
+            model_functions.add(mf)
+
+    call_tree = [{"entry_point": _CALL}]
+    for line in error_trace.split("\n"):
+        res = re.search(r'<data key=\"enterFunction\">(.*)</data>', line)
+        if res:
+            function_call = res.group(1)
+            call_tree.append({function_call: _CALL})
+
+        res = re.search(r'<data key=\"returnFrom\">(.*)</data>', line)
+        if res:
+            function_return = res.group(1)
+            is_done = False
+            for mf in model_functions:
+                if function_return.__contains__(mf):
+                    call_tree.append({function_return: _RET})
+                    is_done = True
+
+            if not is_done:
+                # Check from the last call of that function.
+                is_save = False
+                sublist = []
+                for elem in reversed(call_tree):
+                    sublist.append(elem)
+                    func_name = list(elem.keys()).__getitem__(0)
+                    for mf in model_functions:
+                        if func_name.__contains__(mf):
+                            is_save = True
+                    if elem == {function_return: _CALL}:
+                        sublist.reverse()
+                        break
+                if is_save:
+                    call_tree.append({function_return: _RET})
+                else:
+                    call_tree = call_tree[:-sublist.__len__()]
+
+    # Maybe for debug print?
+    level = 0
+    for elem in call_tree:
+        func_name, op = list(elem.items())[0]
+        spaces = ""
+        for i in range(0, level):
+            spaces += " "
+        if op == _CALL:
+            level += 1
+            print(spaces + func_name)
+        else:
+            level -= 1
+
+    return json.dumps(call_tree)

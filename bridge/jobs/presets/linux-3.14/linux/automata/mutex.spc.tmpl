@@ -1,0 +1,24 @@
+// for arg_sign in mutex_arg_signs
+OBSERVER AUTOMATON linux_mutex_as{{ arg_sign.id }}
+
+INITIAL STATE Unlocked;
+
+STATE USEFIRST Unlocked :
+  MATCH CALL {ldv_mutex_lock{{ arg_sign.id }}($?)} -> GOTO Locked;
+  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)==0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH RETURN {$1=ldv_mutex_trylock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH CALL {ldv_mutex_unlock{{ arg_sign.id }}($?)} -> ERROR("linux:mutex::one thread:double unlock");
+
+STATE USEFIRST Locked :
+  MATCH CALL {ldv_mutex_lock{{ arg_sign.id }}($?)} -> ERROR("linux:mutex::one thread:double lock");
+  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> ERROR("linux:mutex::one thread:double lock");
+  MATCH RETURN {$1 = ldv_mutex_is_acquired{{ arg_sign.id }}($?)} -> SPLIT {((int)$1) == 1} GOTO Locked NEGATION GOTO Stop;
+  MATCH RETURN {$1=ldv_mutex_trylock{{ arg_sign.id }}($?)}  -> ERROR("linux:mutex::one thread:double lock try");
+  MATCH CALL {ldv_mutex_unlock{{ arg_sign.id }}($?)} ->  GOTO Unlocked;
+  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:mutex::one thread:locked at exit");
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor

@@ -71,6 +71,172 @@ def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
     return plugin_descs
 
 
+def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
+    logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
+
+    # Get raw rule specification description.
+    if 'rule specifications' not in raw_rule_spec_descs:
+        raise KeyError(
+            'Rule specifications DB has not mandatory attribute "rule specifications"')
+    if rule_spec_id in raw_rule_spec_descs['rule specifications']:
+        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+    else:
+        is_alias_found = False
+        for potential_rule_spec_id, potential_rule_spec_desc in raw_rule_spec_descs['rule specifications'].items():
+            if 'aliases' in potential_rule_spec_desc:
+                for alias in potential_rule_spec_desc['aliases']:
+                    if rule_spec_id == alias:
+                        is_alias_found = True
+                        logger.debug(
+                            'Rule specification "{0}" was found by alias "{1}"'.format(potential_rule_spec_id,
+                                                                                       rule_spec_id))
+                        # Use true rule specification ID rather than its alias further.
+                        rule_spec_id = potential_rule_spec_id
+                        break
+            if is_alias_found:
+                rule_spec_desc = potential_rule_spec_desc
+                break
+
+        if not is_alias_found:
+            raise ValueError(
+                'Specified rule specification "{0}" could not be found in rule specifications DB'.format(
+                    rule_spec_id))
+
+    # Get rid of useless information.
+    for attr in ('aliases', 'description'):
+        if attr in rule_spec_desc:
+            del (rule_spec_desc[attr])
+
+    # Get rule specification template which it is based on.
+    if 'template' not in rule_spec_desc:
+        raise ValueError(
+            'Rule specification "{0}" has not mandatory attribute "template"'.format(rule_spec_id))
+    tmpl_id = rule_spec_desc['template']
+    # This information won't be used any more.
+    del (rule_spec_desc['template'])
+    logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
+    if 'templates' not in raw_rule_spec_descs or tmpl_id not in raw_rule_spec_descs['templates']:
+        raise ValueError(
+            'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
+                tmpl_id, rule_spec_id))
+    tmpl_desc = raw_rule_spec_descs['templates'][tmpl_id]
+
+    # Get options for plugins specified in template.
+    plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
+
+    # Get options for plugins specified in base template and merge them with the ones extracted above.
+    if 'template' in tmpl_desc:
+        if tmpl_desc['template'] not in raw_rule_spec_descs['templates']:
+            raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
+                tmpl_desc['template'], tmpl_id))
+
+        logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+
+        base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
+                                                       raw_rule_spec_descs['templates'][tmpl_desc['template']])
+
+        for plugin_desc in plugin_descs:
+            for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
+                if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
+                    if 'options' in base_tmpl_plugin_desc:
+                        if 'options' in plugin_desc:
+                            plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
+                                                                            plugin_desc['options'])
+                        else:
+                            plugin_desc['options'] = base_tmpl_plugin_desc['options']
+
+    # Add plugin options specific for rule specification.
+    rule_spec_plugin_names = []
+    for attr in rule_spec_desc:
+        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
+        if attr == 'rule specifications':
+            continue
+
+        plugin_name = attr
+        rule_spec_plugin_names.append(plugin_name)
+        is_plugin_specified = False
+
+        for plugin_desc in plugin_descs:
+            if plugin_name == plugin_desc['name']:
+                is_plugin_specified = True
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options'].update(rule_spec_desc[plugin_name])
+                logger.debug(
+                    'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(
+                        plugin_name, rule_spec_id, rule_spec_desc[plugin_name]))
+                break
+
+        if not is_plugin_specified:
+            raise ValueError(
+                'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
+                    rule_spec_id, plugin_name, tmpl_id))
+
+    # We don't need to keep plugin options specific for rule specification in such the form any more.
+    for plugin_name in rule_spec_plugin_names:
+        del (rule_spec_desc[plugin_name])
+
+    if 'rule specifications' in rule_spec_desc:
+        # Merge plugin options specific for constituent rule specifications.
+        for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
+            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs, constituent_rule_spec_id)['plugins']:
+                for plugin_desc in plugin_descs:
+                    if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
+                        # Specify constituent rule specification identifier for RSG models. It will be used to generate
+                        # unique variable and function names.
+                        if constituent_rule_spec_plugin_desc['name'] == 'RSG' \
+                           and 'options' in constituent_rule_spec_plugin_desc \
+                           and 'models' in constituent_rule_spec_plugin_desc['options']:
+                            rsg_models = constituent_rule_spec_plugin_desc['options']['models']
+                            for model in rsg_models:
+                                rsg_models[model]['rule specification identifier'] = constituent_rule_spec_id
+                        if 'options' in plugin_desc and 'options' in constituent_rule_spec_plugin_desc:
+                            core.utils.merge_confs(plugin_desc['options'], constituent_rule_spec_plugin_desc['options'])
+                        elif 'options' in constituent_rule_spec_plugin_desc:
+                            plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
+                        break
+        del (rule_spec_desc['rule specifications'])
+
+    rule_spec_desc['plugins'] = plugin_descs
+
+    # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
+    # plugin name above.
+    rule_spec_desc['id'] = rule_spec_id
+
+    return rule_spec_desc
+
+
+# This function automatically untites all rule specifications and creates new rule specification.
+def unite_rule_specifications(conf, logger, raw_rule_spec_descs):
+    logger.info("Uniting all rule specifications")
+    rule_specifications = conf['rule specifications']
+    prefix = os.path.commonprefix(rule_specifications)
+    postfixes = []
+    for rule_spec_id in rule_specifications:
+        postfixes.append(rule_spec_id.replace(prefix, ''))
+    new_rule_name_id = prefix + ":" + '+'.join(postfixes)
+    logger.info("United rule specification was given the following name '{0}'".
+                format(new_rule_name_id))
+    template = 'Linux kernel modules'
+    for rule_specification in rule_specifications:
+        model = raw_rule_spec_descs['rule specifications'][rule_specification]
+        if model['template'] == 'Argument signatures for Linux kernel modules':
+            template = 'Argument signatures for Linux kernel modules'
+            break
+    if 'common aspect' in conf:
+        common_aspect = conf['common aspect']
+        new_rule_spec_desc = {
+            "template": template,
+            "rule specifications": rule_specifications,
+            "RSG": {"common aspect": common_aspect}}
+    else:
+        new_rule_spec_desc = {
+            "template": template,
+            "rule specifications": rule_specifications}
+    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = new_rule_spec_desc
+    conf['rule specifications'] = [new_rule_name_id]
+
+
 # This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
@@ -79,118 +245,29 @@ def _extract_rule_spec_descs(conf, logger):
         logger.warning('Nothing will be verified since rule specifications are not specified')
         return []
 
-    # Read rule specification descriprions DB.
+    # Read rule specification descriptions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
               encoding='ascii') as fp:
-        descs = json.load(fp)
+        raw_rule_spec_descs = json.load(fp)
 
     rule_spec_descs = []
 
+    if 'unite rule specifications' in conf and conf['unite rule specifications']:
+        unite_rule_specifications(conf, logger, raw_rule_spec_descs)
+    else:
+        # TODO: somehow common aspect may affect Single strategies!
+        if conf.__contains__('common aspect'):
+            conf.__delitem__('common aspect')
+
     for rule_spec_id in conf['rule specifications']:
-        logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
+        rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
 
-        # Get raw rule specification description.
-        if 'rule specifications' not in descs or rule_spec_id not in descs['rule specifications']:
-            is_alias_found = False
-            for potential_rule_spec_id, potential_rule_spec_desc in descs['rule specifications'].items():
-                if 'aliases' in potential_rule_spec_desc:
-                    for alias in potential_rule_spec_desc['aliases']:
-                        if rule_spec_id == alias:
-                            is_alias_found = True
-                            logger.debug(
-                                'Rule specification "{0}" was found by alias "{1}"'.format(potential_rule_spec_id,
-                                                                                           rule_spec_id))
-                            # Use true rule specification ID rather than its alias further.
-                            rule_spec_id = potential_rule_spec_id
-                            break
-                if is_alias_found:
-                    rule_spec_desc = potential_rule_spec_desc
-                    break
-
-            if not is_alias_found:
-                raise ValueError(
-                    'Specified rule specification "{0}" could not be found in rule specifications DB'.format(
-                        rule_spec_id))
-        else:
-            rule_spec_desc = descs['rule specifications'][rule_spec_id]
-
-        rule_spec_desc['id'] = rule_spec_id
-
-        # Get rid of useless information.
-        for attr in ('aliases', 'description'):
-            if attr in rule_spec_desc:
-                del (rule_spec_desc[attr])
-
-        # Get rule specification template which it is based on.
-        if 'template' not in rule_spec_desc:
-            raise ValueError(
-                'Rule specification "{0}" has not mandatory attribute "template"'.format(rule_spec_id))
-        tmpl_id = rule_spec_desc['template']
-        # This information won't be used any more.
-        del (rule_spec_desc['template'])
-        logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
-        if 'templates' not in descs or tmpl_id not in descs['templates']:
-            raise ValueError(
-                'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
-                    tmpl_id, rule_spec_id))
-        tmpl_desc = descs['templates'][tmpl_id]
-
-        # Get options for plugins specified in template.
-        plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
-
-        # Get options for plugins specified in base template and merge them with the ones extracted above.
-        if 'template' in tmpl_desc:
-            if tmpl_desc['template'] not in descs['templates']:
-                raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
-                    tmpl_desc['template'], tmpl_id))
-
-            logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
-
-            base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
-                                                           descs['templates'][tmpl_desc['template']])
-
-            for plugin_desc in plugin_descs:
-                for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
-                    if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
-                        if 'options' in base_tmpl_plugin_desc:
-                            if 'options' in plugin_desc:
-                                plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
-                                                                                plugin_desc['options'])
-                            else:
-                                plugin_desc['options'] = base_tmpl_plugin_desc['options']
-
-        # Add plugin options specific for rule specification.
-        rule_spec_plugin_names = []
-        for attr in rule_spec_desc:
-            # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('id', 'bug kinds'):
-                plugin_name = attr
-                rule_spec_plugin_names.append(plugin_name)
-                is_plugin_specified = False
-
-                for plugin_desc in plugin_descs:
-                    if plugin_name == plugin_desc['name']:
-                        is_plugin_specified = True
-                        if 'options' not in plugin_desc:
-                            plugin_desc['options'] = {}
-                        plugin_desc['options'].update(rule_spec_desc[plugin_name])
-                        logger.debug(
-                            'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
-                                                                                                          rule_spec_id,
-                                                                                                          rule_spec_desc[
-                                                                                                              plugin_name]))
-                        break
-
-                if not is_plugin_specified:
-                    raise ValueError(
-                        'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
-                            rule_spec_id, plugin_name, tmpl_id))
-        # We don't need to keep plugin options specific for rule specification in such the form any more.
-        for plugin_name in rule_spec_plugin_names:
-            del (rule_spec_desc[plugin_name])
-        rule_spec_desc['plugins'] = plugin_descs
-
-        rule_spec_descs.append(rule_spec_desc)
+    if conf['keep intermediate files']:
+        if os.path.isfile('rule spec descs.json'):
+            raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
+        logger.debug('Create rule specification descriptions file "rule spec descs.json"')
+        with open('rule spec descs.json', 'w', encoding='ascii') as fp:
+            json.dump(rule_spec_descs, fp, sort_keys=True, indent=4)
 
     return rule_spec_descs
 
@@ -414,6 +491,13 @@ class AVTG(core.components.Component):
 
             # VTG will consume this abstract verification task description.
             self.abstract_task_desc = cur_abstract_task_desc
+
+            # Set AVTG options, that are relevant to VTG.
+            self.abstract_task_desc['AVTG'] = {}
+            if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
+                self.abstract_task_desc['AVTG']['unite rule specifications'] = True
+            if 'RSG strategy' in self.conf:
+                self.abstract_task_desc['AVTG']['RSG strategy'] = self.conf['RSG strategy']
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1

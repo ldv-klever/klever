@@ -139,7 +139,8 @@ class Weaver(core.components.Component):
 
                 if 'bug kinds' in cc_extra_full_desc_file:
                     extra_c_file['bug kinds'] = cc_extra_full_desc_file['bug kinds']
-
+                if 'automaton' in cc_extra_full_desc_file:
+                    extra_c_file['automaton'] = cc_extra_full_desc_file['automaton']
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
         # These sections won't be reffered any more.

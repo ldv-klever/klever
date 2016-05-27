@@ -1,18 +1,18 @@
 before: file ("$this")
 {
-void ldv_usb_get_dev(void);
-void ldv_usb_put_dev(void);
-void ldv_atomic_sub(i,v);
+struct usb_device;
+
+struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
+void ldv_usb_put_dev(struct usb_device *dev);
+
 }
 
-/* Change state after increasing reference counter with usb_get_dev(). */
-after: call(struct usb_device *usb_get_dev(..))
+around: call(struct usb_device *usb_get_dev(..))
 {
-	ldv_usb_get_dev();
+	return ldv_usb_get_dev($arg1);
 }
 
-/* Change state after decreasing reference counter with usb_put_dev().*/
-after: call(void usb_put_dev(..))
+around: call(void usb_put_dev(..))
 {
-	ldv_usb_put_dev();
+	ldv_usb_put_dev($arg1);
 }

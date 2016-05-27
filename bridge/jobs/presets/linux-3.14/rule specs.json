@@ -69,15 +69,15 @@
               "-D__KERNEL__",
               "-Os"
             ],
-            "common models": [
-              "linux/err.c",
-              "linux/ldv/common.c",
-              "verifier/common.c",
-              "verifier/nondet.c",
-              "verifier/memory.c",
-              "verifier/thread.c"
-            ],
-            "common aspects": ["linux/err.aspect"]
+            "common sets model": "counter",
+            "common models": {
+              "linux/err.c": {},
+              "linux/ldv/common.c": {},
+              "verifier/common.c": {},
+              "verifier/nondet.c": {},
+              "verifier/memory.c": {},
+              "verifier/thread.c": {}
+            }
           }
         },
         "Weaver"
@@ -156,7 +156,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/mmc/sdio_func.c"],
+        "models": {"linux/mmc/sdio_func.c": {}},
         "aspects": ["linux/mmc/sdio_func.aspect"]
       }
     },
@@ -166,31 +166,33 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/module.c"],
+        "models": {"linux/module.c": {}},
         "aspects": ["linux/module.aspect"]
+      }
+    },
+    "linux:module:next": {
+      "aliases": ["8"],
+      "description": "...",
+      "bug kinds": [],
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {"linux/module.next.c": {}},
+        "aspects": ["linux/module.next.aspect"]
       }
     },
     "linux:mutex": {
       "aliases": ["32"],
       "description": "...",
       "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
-      ],
-      "template": "Linux kernel modules",
-      "RSG": {
-        "models": ["linux/mutex.c"],
-        "aspects": ["linux/mutex.aspect"]
-      }
-    },
-    "linux:mutex:as": {
-      "description": "...",
-      "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
+        "linux:mutex::one thread:double lock",
+        "linux:mutex::one thread:double lock try",
+        "linux:mutex::one thread:double unlock",
+        "linux:mutex::one thread:locked at exit"
       ],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/mutex.request.aspect"},
+      "ASE": {
+        "argument signatures list": "mutex_arg_signs"
+      },
       "TR": {
         "templates": [
           "linux/mutex.c.tmpl",
@@ -198,20 +200,30 @@
         ]
       }
     },
-    "linux:mutex:next": {
+    "linux:mutex:as": {
       "description": "...",
-      "bug kinds": [
-        "one thread:double acquisition",
-        "one thread:unreleased at exit"
-      ],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/mutex.next.request.aspect"},
+      "ASE": {
+        "argument signatures list": "mutex_arg_signs",
+        "request aspect": "linux/mutex.request.aspect"
+      },
       "TR": {
         "templates": [
-          "linux/mutex.next.c.tmpl",
-          "linux/mutex.next.aspect.tmpl"
+          "linux/mutex.c.tmpl",
+          "linux/mutex.aspect.tmpl",
+          "linux/automata/mutex.spc.tmpl"
         ]
-      }
+      },
+      "RSG": {"models": {"$linux/mutex.c": {
+        "bug kinds": [
+          "linux:mutex::one thread:double lock",
+          "linux:mutex::one thread:double lock try",
+          "linux:mutex::one thread:double unlock",
+          "linux:mutex::one thread:locked at exit"
+        ],
+        "sets model": "flag",
+        "automaton": "$linux/automata/mutex_as.spc"
+      }}}
     },
     "linux:rwlock": {
       "aliases": ["118"],
@@ -219,7 +231,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/rwlock.c"],
+        "models": {"linux/rwlock.c": {}},
         "aspects": ["linux/rwlock.aspect"]
       }
     },
@@ -228,7 +240,10 @@
       "description": "...",
       "bug kinds": [],
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspect": "linux/spinlock.request.aspect"},
+      "ASE": {
+        "argument signatures list": "spinlock_arg_signs",
+        "request aspect": "linux/spinlock.request.aspect"
+      },
       "TR": {
         "templates": [
           "linux/spinlock.c.tmpl",
@@ -238,21 +253,18 @@
     },
     "linux:usb:dev": {
       "aliases": ["132"],
-      "description": "Usb device reference counting with usb_get_dev/usb_put_dev",
-      "bug kinds": [
-        "less initial decrement",
-        "more initial at exit"
-      ],
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {
-        "models": [
-          "linux/asm/atomic.c",
-          "linux/usb/dev.c"
-        ],
-        "aspects": [
-          "linux/asm/atomic.aspect",
-          "linux/usb/dev.aspect"
-        ]
+        "models": {
+          "linux/asm/atomic.c": {},
+          "linux/usb/dev.c": {"bug kinds": [
+            "linux:usb:resource:ref:unincremented counter decrement",
+            "linux:usb:resource:ref:less initial decrement",
+            "linux:usb:resource:ref:more initial at exit"
+          ],
+          "automaton": "linux/automata/usb1.spc"}
+        }
       }
     },
     "linux:usb:register": {
@@ -281,7 +293,7 @@
       "bug kinds": [],
       "template": "Linux kernel modules",
       "RSG": {
-        "models": ["linux/usb/gadget.c"],
+        "models": {"linux/usb/gadget.c": {}},
         "aspects": ["linux/usb/gadget.aspect"]
       }
     },

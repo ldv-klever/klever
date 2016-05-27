@@ -9,7 +9,7 @@ extern void __ldv_spin_unlock_wait(spinlock_t *lock);
 extern void __ldv_spin_can_lock(spinlock_t *lock);
 extern int __ldv_atomic_dec_and_lock(spinlock_t *lock);
 
-// for arg_sign in arg_signs
+// for arg_sign in spinlock_arg_signs
 extern void ldv_spin_lock{{ arg_sign.id }}(void);
 extern void ldv_spin_unlock{{ arg_sign.id }}(void);
 extern int ldv_spin_trylock{{ arg_sign.id }}(void);
