@@ -171,6 +171,30 @@ Documentation run/debug configuration
 
     $ mv pycharm-5.0.3/helpers/roman.py pycharm-5.0.3/helpers/roman.py.old
 
+Testing
+^^^^^^^
+
+Klever Bridge testing
+"""""""""""""""""""""
+
+#. :menuselection:`Tools --> Run manage.py Task...`::
+
+    manage.py@bridge > test
+
+.. note:: To start tests from console::
+
+    $ cd bridge
+    $ python3 manage.py test
+
+.. note:: Another way to starr tests from console::
+
+    $ python3 path/to/klever/bridge/manage.py test bridge users jobs reports marks service
+
+.. note:: The test database is created and deleted automatically. If the user will interrupt tests the test database
+          will preserved and the user will be asked for its deletion for following testing. 
+
+.. note:: PyCharm has reach abilities to analyse tests and their results. 
+
 Additional documentation
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
