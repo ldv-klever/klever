@@ -14,7 +14,7 @@ from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
 from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
-from marks.tags import GetTagsData, GetParents
+from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
@@ -469,6 +469,8 @@ def get_mark_versions(request):
 
 @login_required
 def association_changes(request, association_id):
+    activate(request.user.extended.language)
+
     try:
         ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
     except ObjectDoesNotExist:
@@ -483,7 +485,10 @@ def association_changes(request, association_id):
     })
 
 
+@login_required
 def show_tags(request, tags_type):
+    activate(request.user.extended.language)
+
     if tags_type == 'unsafe':
         page_title = "Unsafe tags"
     else:
@@ -496,17 +501,23 @@ def show_tags(request, tags_type):
         'title': page_title,
         'tags': tags_data.table.data,
         'tags_type': tags_type,
-        'can_edit': True
+        'can_edit': can_edit_tags(request.user)
     })
 
 
+@login_required
 def get_tag_parents(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
     if 'tag_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    if 'tag_type' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+        if request.POST['tag_type'] == 'unsafe':
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')))})
+        else:
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')))})
     res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
     if res.error is not None:
         return JsonResponse({'error': str(res.error)})
@@ -516,7 +527,38 @@ def get_tag_parents(request):
     })
 
 
+@login_required
 def save_tag(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to edit tags")})
+    res = SaveTag(request.POST)
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({})
+
+
+@login_required
+def remove_tag(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to remove tags") + ''})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    if request.POST['tag_type'] == 'safe':
+        try:
+            SafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The tag was not found')})
+    else:
+        try:
+            UnsafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The tag was not found')})
     return JsonResponse({})

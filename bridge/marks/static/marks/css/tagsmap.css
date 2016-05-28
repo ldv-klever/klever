@@ -3,34 +3,40 @@
     margin: 20px;
     padding-bottom: 20px;
 }
+.icon-text {
+    display: none;
+    font-size: 90%;
+    color: #b1b1af;
+    font-style: italic;
+}
+.tag-icon {
+    float: right;
+    cursor: pointer;
+}
 
 .mark-tag {
     white-space: nowrap;
     cursor: pointer;
     font-weight: 700;
-    color: #ffffff !important;
+    color: #ffffff;
     padding: 3px 10px 3px 10px;
     text-align: center;
-    background-clip: border-box;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
-	box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
-	-webkit-box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
-	-moz-box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
 }
 
 .mark-tag.unsafe {
-    background: linear-gradient(to bottom, #e8843e, #ffad4f);
+    background: linear-gradient(to top, #e17c3f, #ffad4f);
 }
 .mark-tag.unsafe:hover {
-    background: linear-gradient(to bottom, #ffad4f, #ffad4f);
+    background: #ffad4f;
 }
 .mark-tag.safe {
-    background: linear-gradient(to bottom, #27bc62, #29de7d);
+    background: linear-gradient(to top, #27ab5c, #2ce884);
 }
 .mark-tag.safe:hover {
-    background: linear-gradient(to bottom, #29de7d, #29de7d);
+    background: #2ce07c;
 }
 
 .line {

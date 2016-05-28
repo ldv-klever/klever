@@ -22,4 +22,5 @@ urlpatterns = [
     url(r'^ajax/remove_versions/$', views.remove_versions),
     url(r'^ajax/get_tag_parents/$', views.get_tag_parents),
     url(r'^ajax/save_tag/$', views.save_tag),
+    url(r'^ajax/remove_tag/$', views.remove_tag),
 ]

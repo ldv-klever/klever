@@ -1,7 +1,15 @@
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
+from bridge.vars import USER_ROLES
 from marks.models import SafeTag, UnsafeTag
+
+
+# TODO: who can edit or create tags?
+def can_edit_tags(user):
+    if user.extended.role == USER_ROLES[2][0]:
+        return True
+    return False
 
 
 class TagTable(object):
@@ -194,9 +202,87 @@ class GetParents(object):
         return black
 
     def __get_parents(self):
-        return list(tag.pk for tag in self._tag_table.objects.filter(~Q(id__in=self._black_parents)))
+        return list(tag.pk for tag in self._tag_table.objects.filter(~Q(id__in=self._black_parents)).order_by('tag'))
 
 
+class SaveTag(object):
+    def __init__(self, data):
+        self.error = None
+        self.data = data
+        if 'action' not in self.data or self.data['action'] not in ['edit', 'create']:
+            self.error = 'Unknown error'
+            return
+        if 'tag_type' not in self.data or self.data['tag_type'] not in ['safe', 'unsafe']:
+            self.error = 'Unknown error'
+            return
+        if self.data['tag_type'] == 'unsafe':
+            self.table = UnsafeTag
+        else:
+            self.table = SafeTag
+        if self.data['action'] == 'edit':
+            self.__edit_tag()
+        else:
+            self.__create_tag()
+
+    def __create_tag(self):
+        if any(x not in self.data for x in ['description', 'name', 'parent_id']):
+            self.error = 'Unknown error'
+            return
+        if len(self.data['name']) == 0:
+            self.error = _('The tag name is required')
+            return
+        if len(self.table.objects.filter(tag=self.data['name'])) > 0:
+            self.error = _('The tag name is used already')
+            return
+        parent = None
+        if self.data['parent_id'] != '0':
+            try:
+                parent = self.table.objects.get(pk=self.data['parent_id'])
+            except ObjectDoesNotExist:
+                self.error = _('The tag parent was not found')
+                return
+        self.table.objects.create(tag=self.data['name'], parent=parent, description=self.data['description'])
+
+    def __edit_tag(self):
+        if any(x not in self.data for x in ['tag_id', 'description', 'name', 'parent_id']):
+            self.error = 'Unknown error'
+            return
+        if len(self.data['name']) == 0:
+            self.error = _('The tag name is required')
+            return
+        try:
+            tag = self.table.objects.get(pk=self.data['tag_id'])
+        except ObjectDoesNotExist:
+            self.error = _('The tag was not found')
+            return
+        if len(self.table.objects.filter(Q(tag=self.data['name']) & ~Q(id=self.data['tag_id']))) > 0:
+            self.error = _('The tag name is used already')
+            return
+        parent = None
+        if self.data['parent_id'] != '0':
+            try:
+                parent = self.table.objects.get(pk=self.data['parent_id'])
+            except ObjectDoesNotExist:
+                self.error = _('The tag parent was not found')
+                return
+        if not self.__check_parent(tag, parent):
+            self.error = _('Choose another tag parent')
+            return
+        tag.description = self.data['description']
+        tag.tag = self.data['name']
+        tag.parent = parent
+        tag.save()
+
+    def __check_parent(self, tag, parent):
+        self.ccc = 0
+        while parent is not None:
+            if parent.pk == tag.pk:
+                return False
+            parent = parent.parent
+        return True
+
+
+# TODO: remove
 def fill_test_data():
     SafeTag.objects.all().delete()
     hierarhy = [
