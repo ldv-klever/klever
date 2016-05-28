@@ -1,146 +1,44 @@
-/* TODO: autodetect width */
-#primaryNav li {
-	width:20%;
+.tagsmap {
+    overflow-x: auto;
+    margin: 20px;
+    padding-bottom: 20px;
 }
 
-#primaryNav li ul li {
-	width:100% !important;
-}
-
-.sitemap {
-	padding: 40px;
-	line-height: 1;
-}
-
-.sitemap ul {
-    padding: 0;
-	list-style: none;
-}
-
-
-/* ------------------------------------------------------------
-	Site Map Styles
------------------------------------------------------------- */
-
-/* --------	Top Level --------- */
-
-#primaryNav {
-	margin: 0;
-	float: left;
-	width: 100%;
-}
-#primaryNav #home {
-	display: block;
-	float: none;
-	background: #ffffff url('images/L1-left.png') center bottom no-repeat;
-	position: relative;
-	z-index: 2;
-	padding: 0 0 30px 0;
-}
-#primaryNav li {
-	float: left;
-	background: url('images/L1-center.png') center top no-repeat;
-	padding: 30px 0;
-	margin-top: -30px;
-}
-#primaryNav li a {
-	margin: 0 20px 0 0;
-	padding: 10px 0;
-	display: block;
-	font-size: 14px;
-	font-weight: bold;
-	text-align: center;
-	color: black;
-	background: #c3eafb url('images/white-highlight.png') top left repeat-x;
-	border: 2px solid #b5d9ea;
+.mark-tag {
+    white-space: nowrap;
+    cursor: pointer;
+    font-weight: 700;
+    color: #ffffff !important;
+    padding: 3px 10px 3px 10px;
+    text-align: center;
+    background-clip: border-box;
+	border-radius: 5px;
 	-moz-border-radius: 5px;
 	-webkit-border-radius: 5px;
+	box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
 	-webkit-box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
-	-moz-box-shadow: rgba(0,0,0,0.5) 2px 2px 2px; /* FF 3.5+ */
-}
-#primaryNav li a:hover {
-	background-color: #e2f4fd;
-	border-color: #97bdcf;
-}
-#primaryNav li:last-child {
-	background: url('images/L1-right.png') center top no-repeat;
-}
-.sitemap a:link:before,
-.sitemap a:visited:before {
-	content: " "attr(href)" ";
-	display: block;
-	text-transform: uppercase;
-	font-size: 10px;
-	margin-bottom: 5px;
-	word-wrap: break-word;
-}
-#primaryNav li a:link:before,
-#primaryNav li a:visited:before {
-	color: #78a9c0;
+	-moz-box-shadow: rgba(0,0,0,0.5) 2px 2px 2px;
 }
 
-/* --------	Second Level --------- */
-
-#primaryNav li li {
-	width: 100%;
-	clear: left;
-	margin-top: 0;
-	padding: 10px 0 0 0;
-	background: url('images/vertical-line.png') center bottom repeat-y;
+.mark-tag.unsafe {
+    background: linear-gradient(to bottom, #e8843e, #ffad4f);
 }
-#primaryNav li li a {
-	background-color: #cee3ac;
-	border-color: #b8da83;
+.mark-tag.unsafe:hover {
+    background: linear-gradient(to bottom, #ffad4f, #ffad4f);
 }
-#primaryNav li li a:hover {
-	border-color: #94b75f;
-	background-color: #e7f1d7;
+.mark-tag.safe {
+    background: linear-gradient(to bottom, #27bc62, #29de7d);
 }
-#primaryNav li li:first-child {
-	padding-top: 30px;
-}
-#primaryNav li li:last-child {
-	background: url('images/vertical-line.png') center bottom repeat-y;
-}
-#primaryNav li li a:link:before,
-#primaryNav li li a:visited:before {
-	color: #8faf5c;
+.mark-tag.safe:hover {
+    background: linear-gradient(to bottom, #29de7d, #29de7d);
 }
 
-/* --------	Third Level --------- */
-
-#primaryNav li li ul {
-	margin: 10px 0 0 0;
-	width: 100%;
-	float: right;
-	padding: 9px 0 10px 0;
-	background: #ffffff url('images/L3-ul-top.png') center top no-repeat;
-}
-#primaryNav li li li {
-	background: url('images/L3-center.png') left center no-repeat;
-	padding: 5px 0;
-}
-#primaryNav li li li a {
-	background-color: #fff7aa;
-	border-color: #e3ca4b;
-	font-size: 12px;
-	padding: 5px 0;
-	width: 80%;
-	float: right;
-}
-#primaryNav li li li a:hover {
-	background-color: #fffce5;
-	border-color: #d1b62c;
-}
-#primaryNav li li li:first-child {
-	padding: 15px 0 5px 0;
-	background: url('images/L3-li-top.png') left center no-repeat;
-}
-#primaryNav li li li:last-child {
-	background: url('images/L3-bottom.png') left center no-repeat;
-}
-#primaryNav li li li a:link:before,
-#primaryNav li li li a:visited:before {
-	color: #ccae14;
-	font-size: 9px;
+.line {
+    min-width: 30px;
+    padding: 0;
+    margin: 0;
+    background-size: 100%;
+    -moz-background-size: 100%; /* Firefox 3.6+ */
+    -webkit-background-size: 100%; /* Safari 3.1+ и Chrome 4.0+ */
+    -o-background-size: 100%; /* Opera 9.6+ */
 }

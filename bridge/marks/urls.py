@@ -20,4 +20,6 @@ urlpatterns = [
     url(r'^ajax/get_mark_version_data/$', views.get_mark_version_data),
     url(r'^ajax/getversions/$', views.get_mark_versions),
     url(r'^ajax/remove_versions/$', views.remove_versions),
+    url(r'^ajax/get_tag_parents/$', views.get_tag_parents),
+    url(r'^ajax/save_tag/$', views.save_tag),
 ]

@@ -4,69 +4,100 @@
 
 {% block head_block %}
     <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
-
+    <script type="text/javascript" src="/static/marks/js/tagsmap.js"></script>
 {% endblock %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block body_block %}
-    <div class="sitemap">
-		<ul id="primaryNav">
-			<li id="home"><a href="http://sitetitle.com">Home</a></li>
-			<li><a href="/about">About Us</a>
-				<ul>
-					<li><a href="/history">Our History</a></li>
-					<li><a href="/mission">Mission Statement</a></li>
-					<li><a href="/principals">Principals</a></li>
-				</ul>
-			</li>
-			<li><a href="/services">Services</a>
-				<ul>
-					<li><a href="/services/design">Graphic Design</a></li>
-					<li><a href="/services/development">Web Development</a></li>
-					<li><a href="/services/marketing">Internet Marketing</a>
-						<ul>
-							<li><a href="/social-media">Social Media</a></li>
-							<li><a href="/optimization">Search Optimization</a></li>
-							<li><a href="/adwords">Google AdWords</a></li>
-						</ul>
-					</li>
-					<li><a href="/services/copywriting">Copywriting</a></li>
-					<li><a href="/services/photography">Photography</a></li>
-				</ul>
-			</li>
-			<li><a href="/projects">Projects</a>
-				<ul>
-					<li><a href="/projects/finance">Finance</a></li>
-					<li><a href="/projects/medical">Medical</a></li>
-					<li><a href="/projects/education">Education</a></li>
-					<li><a href="/projects/professional">Professional</a></li>
-					<li><a href="/projects/industrial">Industrial</a></li>
-					<li><a href="/projects/commercial">Commercial</a></li>
-					<li><a href="/projects/energy">Energy</a></li>
-				</ul>
-			</li>
-			<li><a href="/contact">Contact</a>
-				<ul>
-					<li><a href="/contact/offices">Offices</a>
-						<ul>
-							<li><a href="contact/map">Map</a></li>
-							<li><a href="contact/form">Contact Form</a></li>
-						</ul>
-					</li>
-				</ul>
-			</li>
-            <li><a href="/contact">Contact</a>
-				<ul>
-					<li><a href="/contact/offices">Offices</a>
-						<ul>
-							<li><a href="contact/map">Map</a></li>
-							<li><a href="contact/form">Contact Form</a></li>
-						</ul>
-					</li>
-				</ul>
-			</li>
-		</ul>
+    <div class="tagsmap">
+        <table>
+            {% for row in tags %}
+                <tr>
+                {% for cell in row %}
+                    {% if cell|value_type == "<class 'str'>" %}
+                        <td class="line line-{{ cell }}">&nbsp;</td>
+                    {% elif cell|value_type == "<class 'marks.tags.TagData'>" %}
+                        <td id="tag_id_{{ cell.id }}" class="mark-tag {{ tags_type }}">{{ cell.name }}</td>
+                    {% else %}
+                        <td></td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <span id="tags_type" hidden>{{ tags_type }}</span>
+    <div class="popups">
+        {% for row in tags %}
+            {% for cell in row %}
+                {% if cell|value_type == "<class 'marks.tags.TagData'>" %}
+                    <div id="tag_description_popup_{{ cell.id }}" class="ui popup">
+                        <div class="content">{{ cell.description|safe }}</div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
 
-	</div>
+    {% if can_edit %}
+        <div id="edit_tag_modal" class="ui dinamic modal">
+            <div class="ui header">{% trans 'Edit tag' %}</div>
+            <div class="content">
+                <div class="ui form">
+                    <div class="ui grid">
+                        <div class="eight wide column">
+                            <label class="bold-text" for="tag_name">{% trans 'Name' %}</label>
+                            <div class="ui input fluid">
+                                <input id="tag_name" type="text">
+                            </div>
+                        </div>
+                        <div class="eight wide column">
+                            <label class="bold-text" for="tag_parent">{% trans 'Parent' %}</label>
+                            <select id="tag_parent" class="ui search selection dropdown fluid">
+                                <option value="0">{% trans 'Root' %}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br>
+                    <label class="bold-text" for="tag_description">{% trans 'Description' %}</label>
+                    <textarea id="tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                    <input id="edit_tag_id" type="hidden">
+                    <br><br>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui small buttons">
+                    <button id="save_tag" type="button" class="ui teal button">{% trans 'Save changes' %}</button>
+                    <button id="create_tag" type="button" class="ui green button ">{% trans 'Create child tag' %}</button>
+                    <button id="remove_tag" type="button" class="ui red button ">{% trans 'Remove tag' %}</button>
+                    <button id="cancel_edit_tag" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+        <div id="create_tag_modal" class="ui dinamic modal">
+            <div class="ui header">{% trans 'Create tag' %}</div>
+            <div class="content">
+                <div class="ui form">
+                    <div class="ui input fluid">
+                        <input id="create_tag_name" type="text" placeholder="{% trans 'Tag name' %}">
+                    </div>
+                    <br><br>
+                    <textarea id="create_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                    <br><br>
+                    <label for="create_tag_parent">{% trans 'Tag parent' %}</label>
+                    <select id="create_tag_parent" class="ui search selection dropdown fluid">
+                        <option value="0">{% trans 'Root' %}</option>
+                    </select>
+                    <br><br>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui buttons">
+                    <button id="create_tag" type="button" class="ui teal button">{% trans 'Create' %}</button>
+                    <button id="cancel_create_tag" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 {% endblock %}

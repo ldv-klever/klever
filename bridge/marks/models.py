@@ -148,14 +148,18 @@ class MarkUnsafeReport(models.Model):
 
 # Tags tables
 class SafeTag(models.Model):
-    tag = models.CharField(max_length=1023)
+    parent = models.ForeignKey('self', null=True, related_name='children')
+    tag = models.CharField(max_length=32)
+    description = models.TextField(default='')
 
     class Meta:
         db_table = "mark_safe_tag"
 
 
 class UnsafeTag(models.Model):
-    tag = models.CharField(max_length=1023)
+    parent = models.ForeignKey('self', null=True, related_name='children')
+    tag = models.CharField(max_length=32)
+    description = models.TextField(default='')
 
     class Meta:
         db_table = "mark_unsafe_tag"
