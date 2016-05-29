@@ -17,7 +17,7 @@ $(document).ready(function () {
             '/users/ajax/save_notifications/',
             {self_ntf: self_ntf, notifications: JSON.stringify(notifications)},
             function (data) {
-                data.status === 1 ? err_notify(data.message) : success_notify(data.message);
+                data.error ? err_notify(data.error) : success_notify(data.message);
             },
             'json'
         );

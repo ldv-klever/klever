@@ -855,7 +855,7 @@ $(document).ready(function () {
     });
 
     $("#copy_job_btn").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').val()});
+        $.redirectPost('/jobs/create/', {parent_id: $('#job_pk').val()});
     });
 
     $('#remove_job_btn').click(function () {

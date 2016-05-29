@@ -1,15 +1,14 @@
 import os
 import mimetypes
 from urllib.parse import quote
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
 from bridge.utils import unparallel_group, unparallel
+from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
-from service.test import *
 
 
 # Case 3.1(3)

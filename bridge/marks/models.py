@@ -1,10 +1,7 @@
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models.signals import post_init
-from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
-from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent,\
-    Component, ReportUnknown, AttrName
+from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
 from jobs.models import Job, File
 
 
@@ -112,7 +109,7 @@ class MarkUnsafe(Mark):
     prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.ForeignKey(File, null=True)
+    error_trace = models.ForeignKey(File)
 
     class Meta:
         db_table = 'mark_unsafe'
