@@ -4,10 +4,6 @@
 
 {% block title %}{% trans 'Create mark' %}{% endblock %}
 
-{% block marks_head_block %}
-    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
-    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
-{% endblock %}
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">

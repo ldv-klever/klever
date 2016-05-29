@@ -10,11 +10,6 @@
     {% if markdata.type == 'safe' %}{% trans 'Safes mark' %}{% elif markdata.type == 'unknown' %}{% trans 'Unknowns mark' %}{% else %}{% trans 'Unsafes mark' %}{% endif %}
 {% endblock %}
 
-{% block marks_head_block %}
-    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
-    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
-{% endblock %}
-
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">

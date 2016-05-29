@@ -311,13 +311,21 @@ class NewMark(object):
                         safe_tag = SafeTag.objects.get(pk=tag)
                     except ObjectDoesNotExist:
                         return _('One of tags was not found')
-                    MarkSafeTag.objects.create(tag=safe_tag, mark_version=self.mark_version)
+                    MarkSafeTag.objects.get_or_create(tag=safe_tag, mark_version=self.mark_version)
+                    newtag = safe_tag.parent
+                    while newtag is not None:
+                        MarkSafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
+                        newtag = newtag.parent
                 elif self.type == 'unsafe':
                     try:
                         unsafe_tag = UnsafeTag.objects.get(pk=tag)
                     except ObjectDoesNotExist:
                         return _('One of tags was not found')
-                    MarkUnsafeTag.objects.create(tag=unsafe_tag, mark_version=self.mark_version)
+                    MarkUnsafeTag.objects.get_or_create(tag=unsafe_tag, mark_version=self.mark_version)
+                    newtag = unsafe_tag.parent
+                    while newtag is not None:
+                        MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
+                        newtag = newtag.parent
         return None
 
     def __update_attributes(self, old_mark, attrs):
@@ -865,7 +873,9 @@ class ReadTarMark(object):
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
                 return 'Unknown error'
 
-            self.__update_mark(mark, tags=tags)
+            res = self.__update_mark(mark, tags=tags)
+            if res is not None:
+                return res
             if self.type != 'unknown':
                 res = self.__create_attributes(args['attrs'])
                 if res is not None:
@@ -901,14 +911,27 @@ class ReadTarMark(object):
             if isinstance(tags, list):
                 for tag in tags:
                     if self.type == 'safe':
-                        safetag = SafeTag.objects.get_or_create(tag=tag)[0]
-                        MarkSafeTag.objects.create(tag=safetag,
-                                                   mark_version=new_version)
+                        try:
+                            safetag = SafeTag.objects.get(tag=tag)
+                        except ObjectDoesNotExist:
+                            return _('One of tags was not found')
+                        MarkSafeTag.objects.get_or_create(tag=safetag, mark_version=new_version)
+                        newtag = safetag.parent
+                        while newtag is not None:
+                            MarkSafeTag.objects.get_or_create(tag=newtag, mark_version=new_version)
+                            newtag = newtag.parent
                     elif self.type == 'unsafe':
-                        unsafetag = UnsafeTag.objects.get_or_create(tag=tag)[0]
-                        MarkUnsafeTag.objects.create(tag=unsafetag,
-                                                     mark_version=new_version)
+                        try:
+                            unsafetag = UnsafeTag.objects.get(tag=tag)
+                        except ObjectDoesNotExist:
+                            return _('One of tags was not found')
+                        MarkUnsafeTag.objects.get_or_create(tag=unsafetag, mark_version=new_version)
+                        newtag = unsafetag.parent
+                        while newtag is not None:
+                            MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=new_version)
+                            newtag = newtag.parent
             self.mark_version = new_version
+            return None
 
         def __create_attributes(self, attrs):
             if not isinstance(attrs, list):
@@ -997,6 +1020,20 @@ class ReadTarMark(object):
         if not isinstance(mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
             return _("Unknown error")
         for version_data in version_list[1:]:
+            if 'tags' in version_data:
+                if self.type == 'safe':
+                    tag_table = SafeTag
+                elif self.type == 'unsafe':
+                    tag_table = UnsafeTag
+                else:
+                    return 'Unknown error'
+                tag_ids = []
+                for t_name in version_data['tags']:
+                    try:
+                        tag_ids.append(tag_table.objects.get(tag=t_name).pk)
+                    except ObjectDoesNotExist:
+                        return _('One of tags was not found')
+                version_data['tags'] = tag_ids
             if len(version_data['comment']) == 0:
                 version_data['comment'] = '1'
             if self.type == 'unsafe':
