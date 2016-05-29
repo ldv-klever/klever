@@ -81,7 +81,7 @@
                         </div>
                     </div>
                 </div>
-                {% include 'marks/EditMarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
@@ -145,7 +145,7 @@
                 </div>
             </div>
             <div class="seven wide column">
-                {% include 'marks/EditMarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <br>
                 <div class="ui styled accordion fluid">
                     <div class="title">

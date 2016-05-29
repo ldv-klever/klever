@@ -504,7 +504,7 @@ def show_tags(request, tags_type):
     if tags_data.error is not None:
         logger.error("Can't get tags data: %s" % tags_data.error)
         return HttpResponseRedirect(reverse('error', args=[500]))
-    return render(request, 'marks/ShowTags.html', {
+    return render(request, 'marks/TagsTree.html', {
         'title': page_title,
         'tags': tags_data.table.data,
         'tags_type': tags_type,
@@ -599,5 +599,7 @@ def get_tags_data(request):
     return JsonResponse({
         'available': json.dumps(res.available),
         'selected': json.dumps(res.selected),
-        'tree': get_template('marks/AddedTagsMap.html').render({'tags': res.table, 'tags_type': res.tag_type})
+        'tree': get_template('marks/MarkTagsTree.html').render({
+            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
+        })
     })

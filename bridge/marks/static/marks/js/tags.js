@@ -93,4 +93,3 @@ window.activate_tags = function () {
         update_tags($(this).attr('id').replace('remove_tag_', ''));
     });
 };
-

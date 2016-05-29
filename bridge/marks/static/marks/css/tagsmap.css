@@ -5,7 +5,8 @@
 }
 #tags_tree {
     overflow-x: auto;
-    padding-bottom: 20px;
+    padding-bottom: 15px;
+    margin: 0;
 }
 
 .icon-text {
