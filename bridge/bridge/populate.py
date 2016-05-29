@@ -351,7 +351,8 @@ class Population(object):
                         created_tags[tag_name] = tag_table[tag_type].objects.create(
                             tag=tag_name,
                             parent=created_tags[newtags[tag_name]['parent']],
-                            description=newtags[tag_name]['description']
+                            description=newtags[tag_name]['description'],
+                            populated=True
                         )
                         num_of_new += 1
                     new_parents.append(tag_name)

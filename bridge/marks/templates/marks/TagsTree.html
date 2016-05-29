@@ -30,6 +30,7 @@
             {% endfor %}
         </table>
     </div>
+    <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
     <span id="tags_type" hidden>{{ tags_type }}</span>
     <div class="popups">
         {% for row in tags %}
@@ -37,6 +38,7 @@
                 {% if cell|value_type == "<class 'marks.tags.TagData'>" %}
                     <div id="tag_popup_{{ cell.id }}" class="ui popup" style="min-width: 250px;">
                         {% if can_edit %}
+                            {% if cell.populated %}<i class="ui tiny gift purple icon"></i>{% endif %}
                             <span class="icon-text" style="display: inline">&nbsp;</span>
                             <span class="icon-text icon-text-create">{% trans 'Create child' %}</span>
                             <span class="icon-text icon-text-edit">{% trans 'Edit' %}</span>

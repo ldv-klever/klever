@@ -75,6 +75,7 @@ class TagData(object):
         self.name = tag.tag
         self.children = list(child.pk for child in tag.children.all())
         self.description = tag.description
+        self.populated = tag.populated
 
     def __repr__(self):
         return "<Tag: '%s'>" % self.name

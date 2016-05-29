@@ -148,6 +148,7 @@ class SafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
     tag = models.CharField(max_length=32)
     description = models.TextField(default='')
+    populated = models.BooleanField(default=False)
 
     class Meta:
         db_table = "mark_safe_tag"
@@ -157,6 +158,7 @@ class UnsafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
     tag = models.CharField(max_length=32)
     description = models.TextField(default='')
+    populated = models.BooleanField(default=False)
 
     class Meta:
         db_table = "mark_unsafe_tag"
