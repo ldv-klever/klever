@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+
+{% load i18n %}
+
+{% block head_block %}
+    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
+    <script type="text/javascript" src="/static/marks/js/tagsmap.js"></script>
+{% endblock %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block body_block %}
+    <div class="tagsmap">
+        <button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>
+        <br><br>
+        <table>
+            {% for row in tags %}
+                <tr>
+                {% for cell in row %}
+                    {% if cell|value_type == "<class 'str'>" %}
+                        <td class="line line-{{ cell }}">&nbsp;</td>
+                    {% elif cell|value_type == "<class 'marks.tags.TagData'>" %}
+                        <td id="tag_id_{{ cell.id }}" class="edit-tag-cell {{ tags_type }}">{{ cell.name }}</td>
+                    {% else %}
+                        <td>&nbsp;</td>
+                    {% endif %}
+                {% endfor %}
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    <span id="tags_type" hidden>{{ tags_type }}</span>
+    <div class="popups">
+        {% for row in tags %}
+            {% for cell in row %}
+                {% if cell|value_type == "<class 'marks.tags.TagData'>" %}
+                    <div id="tag_popup_{{ cell.id }}" class="ui popup" style="min-width: 250px;">
+                        {% if can_edit %}
+                            <span class="icon-text" style="display: inline">&nbsp;</span>
+                            <span class="icon-text icon-text-create">{% trans 'Create child' %}</span>
+                            <span class="icon-text icon-text-edit">{% trans 'Edit' %}</span>
+                            <span class="icon-text icon-text-remove">{% trans 'Remove' %}</span>
+                            <i class="ui small remove blue icon remove-tag-icon tag-icon" style="float: right"></i>
+                            <i class="ui small write blue icon edit-tag-icon tag-icon" style="float: right"></i>
+                            <i class="ui small add blue icon create-tag-icon tag-icon" style="float: right"></i>
+                        {% endif %}
+                        <div class="content">{{ cell.description|safe }}</div>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+
+    {% if can_edit %}
+        <input id="edit_tag_id" type="hidden">
+        <div id="edit_tag_modal" class="ui dinamic modal">
+            <div class="ui header">{% trans 'Edit tag' %}</div>
+            <div class="content">
+                <div class="ui form">
+                    <div class="ui grid">
+                        <div class="eight wide column">
+                            <label class="bold-text" for="tag_name">{% trans 'Name' %}</label>
+                            <div class="ui input fluid">
+                                <input id="tag_name" type="text" maxlength="32">
+                            </div>
+                        </div>
+                        <div class="eight wide column">
+                            <label class="bold-text" for="tag_parent">{% trans 'Parent' %}</label>
+                            <select id="tag_parent" class="ui search selection dropdown fluid">
+                                <option value="0">{% trans 'Root' %}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br>
+                    <label class="bold-text" for="tag_description">{% trans 'Description' %}</label>
+                    <textarea id="tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                    <br><br>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui grid">
+                    <div class="eight wide column left aligned">
+                        <button id="save_tag" type="button" class="ui green button small">{% trans 'Save' %}</button>
+                    </div>
+                    <div class="eight wide column right aligned">
+                        <button id="cancel_edit_tag" type="button" class="ui blue button small">{% trans 'Cancel' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="create_tag_modal" class="ui dinamic modal">
+            <div class="ui header">{% trans 'Create tag' %}</div>
+            <div class="content">
+                <div class="ui form">
+                    <div class="ui grid">
+                        <div class="eight wide column">
+                            <label class="bold-text" for="create_tag_name">{% trans 'Name' %}</label>
+                            <div class="ui input fluid">
+                                <input id="create_tag_name" type="text" maxlength="32">
+                            </div>
+                        </div>
+                        <div class="eight wide column">
+                            <label class="bold-text" for="create_tag_parent">{% trans 'Parent' %}</label>
+                            <select id="create_tag_parent" class="ui search selection dropdown fluid">
+                                <option value="0">{% trans 'Root' %}</option>
+                            </select>
+                        </div>
+                    </div>
+                    <br>
+                    <label class="bold-text" for="create_tag_description">{% trans 'Description' %}</label>
+                    <textarea id="create_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                    <br><br>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui grid">
+                    <div class="eight wide column left aligned">
+                        <button id="confirm_create_tag" type="button" class="ui green button small">{% trans 'Create' %}</button>
+                    </div>
+                    <div class="eight wide column right aligned">
+                        <button id="cancel_create_tag" type="button" class="ui blue button small">{% trans 'Cancel' %}</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="remove_tag_modal" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All children of the selected tag will be also removed' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_remove_tag" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="confirm_remove_tag" class="ui red basic inverted button">{% trans 'Remove' %}</button>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
