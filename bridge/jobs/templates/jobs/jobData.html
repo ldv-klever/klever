@@ -69,6 +69,41 @@
         {% endif %}
     </div>
 {% endif %}
+{% if reportdata.view_data.tags_unsafe|length or reportdata.view_data.tags_safe|length %}
+    <h3 class="header ui violet">{% trans 'Tags' %}</h3>
+    <div class="ui grid">
+        {% if reportdata.view_data.tags_unsafe|length %}
+            <div class="eight wide column">
+                <h5 class="header ui orange">{% trans 'Unsafe' %}</h5>
+                <div class="ui list">
+                    {% for t in reportdata.view_data.tags_unsafe %}
+                        <div class="item" style="padding-left: {{ t.padding }}px;">
+                            <i class="tag tiny orange icon"></i>
+                            <div class="content">
+                                <span{% if t.description != '' %} id="tag_description_id_{{ t.id }}" class="tag-description-popup" data-variation="very wide" data-content="{{ t.description }}"{% endif %}>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+        {% if reportdata.view_data.tags_safe|length %}
+            <div class="eight wide column">
+                <h5 class="header ui green">{% trans 'Safe' %}</h5>
+                <div class="ui list">
+                    {% for t in reportdata.view_data.tags_safe %}
+                        <div class="item" style="padding-left: {{ t.padding }}px;">
+                            <i class="tag green icon"></i>
+                            <div class="content">
+                                <span{% if t.description != '' %} id="tag_description_id_{{ t.id }}" class="tag-description-popup" data-variation="very wide" data-content="{{ t.description }}"{% endif %}>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+{% endif %}
 {% if reportdata.view_data.resources|length %}
     {% if reportdata.view_data.resources|length %}
         <h4 class="header ui violet">{% trans 'Consumed resources' %}
@@ -90,38 +125,4 @@
         </div>
     {% endif %}
 {% endif %}
-{% if reportdata.view_data.tags_unsafe|length or reportdata.view_data.tags_safe|length %}
-    <h3 class="header ui violet">{% trans 'Tags' %}</h3>
-    <div class="ui grid">
-        {% if reportdata.view_data.tags_unsafe|length %}
-            <div class="eight wide column">
-                <h5 class="header ui orange">{% trans 'Unsafe' %}</h5>
-                <div class="ui list">
-                    {% for t in reportdata.view_data.tags_unsafe %}
-                        <div class="item">
-                            <i class="tag tiny orange icon"></i>
-                            <div class="content">
-                                <span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-        {% if reportdata.view_data.tags_safe|length %}
-            <div class="eight wide column">
-                <h5 class="header ui green">{% trans 'Safe' %}</h5>
-                <div class="ui list">
-                    {% for t in reportdata.view_data.tags_safe %}
-                        <div class="item">
-                            <i class="tag green icon"></i>
-                            <div class="content">
-                                <span>{{ t.name }}: </span><a href="{{ t.href }}">{{ t.number }}</a>
-                            </div>
-                        </div>
-                    {% endfor %}
-                </div>
-            </div>
-        {% endif %}
-    </div>
-{% endif %}
+<br><br>
