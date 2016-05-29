@@ -8,6 +8,10 @@
 
 {% block title %}{% if type == 'unsafe' %}{% trans 'Unsafes mark' %}{% else %}{% trans 'Safes mark' %}{% endif %}{% endblock %}
 
+{% block marks_head_block %}
+    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
+{% endblock %}
 {% block body_block %}
     <form autocomplete="off" onsubmit="return false">
         <div class="ui grid">
@@ -124,7 +128,7 @@
                 {% endif %}
                 <div class="ui divider"></div>
                 <div id="mark_data_div">
-                    {% include 'marks/MarkAddData.html' with markdata=markdata %}
+                    {% include 'marks/MarkAddData.html' with markdata=markdata tags=tags %}
                 </div>
                 <br>
                 {% if can_freeze %}

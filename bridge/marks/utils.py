@@ -159,7 +159,10 @@ class NewMark(object):
         except Exception as e:
             logger.exception('Saving mark failed: %s' % e, stack_info=True)
             return 'Unknown error'
-        self.__update_mark(mark, args.get('tags'))
+        res = self.__update_mark(mark, args.get('tags'))
+        if res is not None:
+            mark.delete()
+            return res
 
         if self.type != 'unknown':
             if self.__create_attributes(report, args.get('attrs')):
@@ -245,7 +248,10 @@ class NewMark(object):
             mark.description = str(args['description'])
         mark.version += 1
 
-        self.__update_mark(mark, args.get('tags', []), args['comment'])
+        res = self.__update_mark(mark, args.get('tags', []), args['comment'])
+        if res is not None:
+            self.mark_version.delete()
+            return res
 
         if self.type != 'unknown':
             if self.__update_attributes(last_v, args.get('attrs')):
@@ -301,13 +307,18 @@ class NewMark(object):
         if isinstance(tags, list):
             for tag in tags:
                 if self.type == 'safe':
-                    MarkSafeTag.objects.create(
-                        tag=SafeTag.objects.get_or_create(tag=tag)[0], mark_version=self.mark_version
-                    )
+                    try:
+                        safe_tag = SafeTag.objects.get(pk=tag)
+                    except ObjectDoesNotExist:
+                        return _('One of tags was not found')
+                    MarkSafeTag.objects.create(tag=safe_tag, mark_version=self.mark_version)
                 elif self.type == 'unsafe':
-                    MarkUnsafeTag.objects.create(
-                        tag=UnsafeTag.objects.get_or_create(tag=tag)[0], mark_version=self.mark_version
-                    )
+                    try:
+                        unsafe_tag = UnsafeTag.objects.get(pk=tag)
+                    except ObjectDoesNotExist:
+                        return _('One of tags was not found')
+                    MarkUnsafeTag.objects.create(tag=unsafe_tag, mark_version=self.mark_version)
+        return None
 
     def __update_attributes(self, old_mark, attrs):
         if old_mark is None:

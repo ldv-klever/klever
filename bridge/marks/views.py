@@ -14,8 +14,8 @@ from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
 from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
-from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
+from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo
+from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, DeleteMark
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -40,13 +40,17 @@ def create_mark(request, mark_type, report_id):
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
         return HttpResponseRedirect(reverse('error', args=[601]))
+    tags = TagsInfo(mark_type, [])
+    if tags.error is not None:
+        logger.error(tags.error, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
     return render(request, 'marks/CreateMark.html', {
         'report': report,
         'type': mark_type,
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'tags': TagsInfo(mark_type),
+        'tags': tags,
         'can_edit': True
     })
 
@@ -68,6 +72,14 @@ def edit_mark(request, mark_type, mark_id):
     can_edit = MarkAccess(request.user, mark=mark).can_edit()
     history_set = mark.versions.order_by('-version')
     last_version = history_set[0]
+
+    tags = None
+    if mark_type != 'unknown':
+        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
+        if tags.error is not None:
+            logger.error(tags.error, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+
     if can_edit:
         template = 'marks/EditMark.html'
         if mark_type == 'unknown':
@@ -100,7 +112,7 @@ def edit_mark(request, mark_type, mark_id):
             'reports': MarkReportsTable(request.user, mark),
             'versions': mark_versions,
             'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-            'tags': TagsInfo(mark_type, mark),
+            'tags': tags,
             'can_edit': True
         })
     else:
@@ -111,7 +123,7 @@ def edit_mark(request, mark_type, mark_id):
             'type': mark_type,
             'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
-            'tags': TagsInfo(mark_type, mark)
+            'tags': tags
         })
 
 
@@ -240,9 +252,12 @@ def get_mark_version_data(request):
         })
     else:
         data_templ = get_template('marks/MarkAddData.html')
+        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in mark_version.tags.all()))
+        if tags.error is not None:
+            return JsonResponse({'error': str(tags.error)})
         data = data_templ.render({
             'markdata': MarkData(mark_type, mark_version=mark_version),
-            'tags': TagsInfo(mark_type, mark_version),
+            'tags': tags,
             'can_edit': True
         })
     return JsonResponse({'data': data})
@@ -554,3 +569,35 @@ def remove_tag(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The tag was not found')})
     return JsonResponse({})
+
+
+@login_required
+def get_tags_data(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    if 'selected_tags' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    deleted_tag = None
+    if 'deleted' in request.POST and request.POST['deleted'] is not None:
+        try:
+            deleted_tag = int(request.POST['deleted'])
+        except Exception as e:
+            logger.error("Deleted tag has wrong format: %s" % e)
+            return JsonResponse({'error': 'Unknown error'})
+    try:
+        selected_tags = json.loads(request.POST['selected_tags'])
+    except Exception as e:
+        logger.error("Can't parse selected tags: %s" % e, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
+    res = TagsInfo(request.POST['tag_type'], selected_tags, deleted_tag)
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({
+        'available': json.dumps(res.available),
+        'selected': json.dumps(res.selected),
+        'tree': get_template('marks/AddedTagsMap.html').render({'tags': res.table, 'tags_type': res.tag_type})
+    })

@@ -133,7 +133,7 @@ function collect_new_markdata() {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: $('#tag_list').val(),
+            tags: get_tags_values(),
             description: description
         };
     }
@@ -196,7 +196,7 @@ function collect_markdata() {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: $('#tag_list').val(),
+            tags: get_tags_values(),
             comment: $('#edit_mark_comment').val(),
             description: description
         };
@@ -274,53 +274,6 @@ function set_actions_for_mark_versions_delete() {
             'json'
         );
     });
-}
-
-function activate_tags() {
-    $('#tag_list').dropdown({
-        allowAdditions: true,
-        className: {
-            label: 'ui label ' + $('#tag_label_color').text(),
-            selected: 'klever-active'
-        },
-        message: {
-            addResult: $('#tags__add_tag').text() + ' <b>{term}</b>'
-        },
-        onChange: function(value) {
-            var last_added_tag = value.slice(-1)[0];
-            if (last_added_tag && last_added_tag.length > 15) {
-                value.pop();
-                var available_tags = [], taglist = $('#tag_list');
-                taglist.children('option').each(function () {
-                    if ($(this).val() != last_added_tag && value.indexOf($(this).val()) < 0 && $(this).val()) {
-                        available_tags.push($(this).val());
-                    }
-                });
-                taglist.parent().remove();
-                $('label[for=tag_list]').after($('<select>', {
-                    class: 'ui search selection dropdown fluid',
-                    multiple: true,
-                    id: 'tag_list'
-                }));
-                $.each(value, function (i, v) {
-                    $('#tag_list').append($('<option>', {
-                        value: v,
-                        text: v,
-                        selected: true
-                    }));
-                });
-                $.each(available_tags, function (i, v) {
-                    $('#tag_list').append($('<option>', {
-                        value: v,
-                        text: v
-                    }));
-                });
-                activate_tags();
-                err_notify($('#error__tag_is_long').text());
-            }
-        }
-    });
-    return false;
 }
 
 $(document).ready(function () {

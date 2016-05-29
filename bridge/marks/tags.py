@@ -81,10 +81,11 @@ class TagData(object):
 
 
 class GetTagsData(object):
-    def __init__(self, tags_type):
+    def __init__(self, tags_type, tag_ids=None):
         self.error = None
         self.__type = tags_type
         self.tags = []
+        self.tag_ids = tag_ids
         if self.__type not in ['safe', 'unsafe']:
             self.error = 'Unknown error'
             return
@@ -99,6 +100,8 @@ class GetTagsData(object):
                 tags_filter = {'parent_id__in': parents}
             else:
                 tags_filter = {'parent': None}
+            if self.tag_ids is not None:
+                tags_filter['id__in'] = self.tag_ids
             if self.__type == 'safe':
                 next_level = [TagData(tag) for tag in SafeTag.objects.filter(**tags_filter).order_by('tag')]
             else:
@@ -288,25 +291,52 @@ class SaveTag(object):
         return True
 
 
-# TODO: remove
-def fill_test_data():
-    SafeTag.objects.all().delete()
-    hierarhy = [
+class TagsInfo(object):
+    def __init__(self, tag_type, selected_tags, deleted_tag=None):
+        self.error = None
+        self.tag_type = tag_type
+        self.tag_table = {'safe': SafeTag, 'unsafe': UnsafeTag}
+        if self.tag_type not in self.tag_table:
+            self.error = 'Unknown error'
+            return
+        self.available = []
+        self.selected = []
+        self.__get_selected(selected_tags, deleted_tag)
+        if self.error is not None:
+            return
+        self.__get_available()
+        self.table = self.__get_table()
 
-    ]
-    saved_data = {
-        None: None
-    }
-    tag_description = """
-Description for safe tag with id {0} and parent with id {1}<br>
-<span style="color: red;">It is red text</span><br>
-<a href="http://google.com/">This this link to google</a><br>
-"""
-    for row in hierarhy:
-        for c in row:
-            newtag = SafeTag.objects.create(
-                tag="safe:t%s" % c[0],
-                parent=saved_data[c[1]],
-                description=tag_description.format(c[0], c[1])
-            )
-            saved_data[c[0]] = newtag
+    def __get_selected(self, selected, deleted):
+        tags_for_del = []
+        if deleted is not None:
+            tags_for_del.append(int(deleted))
+            old_len = 0
+            while old_len < len(tags_for_del):
+                old_len = len(tags_for_del)
+                for t in self.tag_table[self.tag_type].objects.filter(parent_id__in=tags_for_del):
+                    if t.pk not in tags_for_del:
+                        tags_for_del.append(t.pk)
+        for sel_id in selected:
+            try:
+                tag = self.tag_table[self.tag_type].objects.get(pk=sel_id)
+            except ObjectDoesNotExist:
+                self.error = _('The tag was not found')
+                return
+            if tag.pk not in tags_for_del:
+                self.selected.append(tag.pk)
+            while tag.parent is not None:
+                if tag.parent_id not in self.selected and tag.parent_id not in tags_for_del:
+                    self.selected.append(tag.parent_id)
+                tag = tag.parent
+
+    def __get_available(self):
+        for tag in self.tag_table[self.tag_type].objects.filter(~Q(id__in=self.selected)).order_by('tag'):
+            self.available.append([tag.pk, tag.tag])
+
+    def __get_table(self):
+        res = GetTagsData(self.tag_type, self.selected)
+        if res.error is not None:
+            self.error = res.error
+            return None
+        return res.table.data

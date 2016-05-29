@@ -1,33 +1,6 @@
 $(document).ready(function () {
-    // Drowing connections
-    $('.tagsmap').find(".line").each(function () {
-        var for_style = [];
-        $.each($(this).attr('class').split(/\s+/), function (a, cl_name) {
-            var img_types;
-            if (cl_name.startsWith('line-')) {
-                 img_types = cl_name.replace('line-', '').split('');
-            }
-            if (img_types) {
-                $.each(img_types, function (a, img_t) {
-                    for_style.push("url('/static/marks/css/images/L_" + img_t + ".png') center no-repeat");
-                });
-            }
-        });
-        if (for_style.length) {
-            $(this).attr('style', "background: " + for_style.join(',') + ';');
-        }
-    });
-
-    // Popups initialisation
-    $('td[id^="tag_id_"]').each(function () {
-        var tag_id = $(this).attr('id').replace('tag_id_', '');
-        $(this).popup({
-            popup: $('#tag_popup_' + tag_id),
-            hoverable: true,
-            delay: {show: 100, hide: 300},
-            variation: 'very wide'
-        });
-    });
+    drow_connections();
+    init_popups();
     var create_root_btn = $('#create_root_tag');
     create_root_btn.popup();
 
@@ -65,7 +38,7 @@ $(document).ready(function () {
     var remove_tag_modal = $('#remove_tag_modal');
     remove_tag_modal.modal({transition: 'fly up', autofocus: false, closable: false});
     remove_tag_icon.click(function () {
-        $('.mark-tag').popup('hide');
+        $('.edit-tag-cell').popup('hide');
         $('#edit_tag_id').val($(this).parent().attr('id').replace('tag_popup_', ''));
         remove_tag_modal.modal('show');
     });
@@ -134,7 +107,7 @@ $(document).ready(function () {
                 });
                 $('#edit_tag_id').val(tag_id);
 
-                $('.mark-tag').popup('hide');
+                $('.edit-tag-cell').popup('hide');
                 edit_tag_modal.modal('show');
 
                 parent_dropdown.dropdown('refresh');
@@ -201,7 +174,7 @@ $(document).ready(function () {
                 setTimeout(function () {
                     create_tag_parent.dropdown('set selected', create_tag_parent.val());
                 }, 1);
-                $('.mark-tag').popup('hide');
+                $('.edit-tag-cell').popup('hide');
                 create_tag_modal.modal('show');
             }
         });

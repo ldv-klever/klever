@@ -3,6 +3,11 @@
     margin: 20px;
     padding-bottom: 20px;
 }
+#tags_tree {
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+
 .icon-text {
     display: none;
     font-size: 90%;
@@ -14,9 +19,33 @@
     cursor: pointer;
 }
 
-.mark-tag {
+.edit-tag-cell {
     white-space: nowrap;
     cursor: pointer;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 3px 10px 3px 10px;
+    text-align: center;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+
+.edit-tag-cell.unsafe {
+    background: linear-gradient(to top, #e17c3f, #ffad4f);
+}
+.edit-tag-cell.unsafe:hover {
+    background: #ffad4f;
+}
+.edit-tag-cell.safe {
+    background: linear-gradient(to top, #27ab5c, #2ce884);
+}
+.edit-tag-cell.safe:hover {
+    background: #2ce07c;
+}
+
+.mark-tag {
+    white-space: nowrap;
     font-weight: 700;
     color: #ffffff;
     padding: 3px 10px 3px 10px;
@@ -29,14 +58,8 @@
 .mark-tag.unsafe {
     background: linear-gradient(to top, #e17c3f, #ffad4f);
 }
-.mark-tag.unsafe:hover {
-    background: #ffad4f;
-}
 .mark-tag.safe {
     background: linear-gradient(to top, #27ab5c, #2ce884);
-}
-.mark-tag.safe:hover {
-    background: #2ce07c;
 }
 
 .line {
@@ -47,4 +70,12 @@
     -moz-background-size: 100%; /* Firefox 3.6+ */
     -webkit-background-size: 100%; /* Safari 3.1+ и Chrome 4.0+ */
     -o-background-size: 100%; /* Opera 9.6+ */
+}
+
+.remove-tag-from-mark {
+    cursor: pointer;
+    margin: 0 0 0 10px!important;
+}
+.remove-tag-from-mark:hover {
+    color: #ffe4f6;
 }

@@ -55,7 +55,7 @@
         <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
     </div>
 </div>
-{% include 'marks/Tags.html' %}
+{% include 'marks/EditMarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
 
 {% if markdata.type == 'unsafe' or markdata.type == 'safe' %}
     <div class="ui styled accordion fluid">

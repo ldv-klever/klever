@@ -4,6 +4,10 @@
 
 {% block title %}{% trans 'Create mark' %}{% endblock %}
 
+{% block marks_head_block %}
+    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
+    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
+{% endblock %}
 {% block body_block %}
 {% if type == 'unsafe' %}
     <form autocomplete="off" onsubmit="return false">
@@ -77,7 +81,7 @@
                         </div>
                     </div>
                 </div>
-                {% include 'marks/Tags.html' %}
+                {% include 'marks/EditMarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
@@ -141,7 +145,7 @@
                 </div>
             </div>
             <div class="seven wide column">
-                {% include 'marks/Tags.html' %}
+                {% include 'marks/EditMarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <br>
                 <div class="ui styled accordion fluid">
                     <div class="title">
