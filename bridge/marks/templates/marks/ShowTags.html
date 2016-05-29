@@ -43,7 +43,6 @@
                             <i class="ui small remove blue icon remove-tag-icon tag-icon" style="float: right"></i>
                             <i class="ui small write blue icon edit-tag-icon tag-icon" style="float: right"></i>
                             <i class="ui small add blue icon create-tag-icon tag-icon" style="float: right"></i>
-
                         {% endif %}
                         <div class="content">{{ cell.description|safe }}</div>
                     </div>
@@ -62,7 +61,7 @@
                         <div class="eight wide column">
                             <label class="bold-text" for="tag_name">{% trans 'Name' %}</label>
                             <div class="ui input fluid">
-                                <input id="tag_name" type="text">
+                                <input id="tag_name" type="text" maxlength="32">
                             </div>
                         </div>
                         <div class="eight wide column">
@@ -97,7 +96,7 @@
                         <div class="eight wide column">
                             <label class="bold-text" for="create_tag_name">{% trans 'Name' %}</label>
                             <div class="ui input fluid">
-                                <input id="create_tag_name" type="text">
+                                <input id="create_tag_name" type="text" maxlength="32">
                             </div>
                         </div>
                         <div class="eight wide column">

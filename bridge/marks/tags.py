@@ -231,6 +231,9 @@ class SaveTag(object):
         if len(self.data['name']) == 0:
             self.error = _('The tag name is required')
             return
+        if len(self.data['name']) > 32:
+            self.error = _('The maximum length of a tag must be 32 characters')
+            return
         if len(self.table.objects.filter(tag=self.data['name'])) > 0:
             self.error = _('The tag name is used already')
             return
@@ -249,6 +252,9 @@ class SaveTag(object):
             return
         if len(self.data['name']) == 0:
             self.error = _('The tag name is required')
+            return
+        if len(self.data['name']) > 32:
+            self.error = _('The maximum length of a tag must be 32 characters')
             return
         try:
             tag = self.table.objects.get(pk=self.data['tag_id'])
@@ -286,12 +292,7 @@ class SaveTag(object):
 def fill_test_data():
     SafeTag.objects.all().delete()
     hierarhy = [
-        [(1, None)],
-        [(2, 1), (3, 1)],
-        [(12, 2), (5, 2), (6, 3), (4, 3)],
-        [(13, 12), (14, 12), (15, 12), (7, 5), (8, 5), (9, 5), (23, 6)],
-        [(16, 14), (17, 14), (10, 9), (11, 9), (18, 23), (19, 23)],
-        [(20, 18), (21, 19), (22, 19)]
+
     ]
     saved_data = {
         None: None

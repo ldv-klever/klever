@@ -1,0 +1,18 @@
+[
+  {
+    "name": "safe:tag:1",
+    "description": "The description"
+  },
+  {
+    "name": "safe:tag:2",
+    "description": "Description of the tag:2<br><a href=\"http://google.com/\">Link</a> to the google",
+    "parent": "safe:tag:1"
+  },
+  {
+    "name": "safe:tag:3",
+    "parent": "safe:tag:1"
+  },
+  {
+    "name": "safe:tag:4"
+  }
+]
