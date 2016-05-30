@@ -395,6 +395,7 @@ class GetSource(object):
             return
         cnt = 1
         lines = src.file.file.read().decode('utf8').split('\n')
+        src.file.file.close()
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)

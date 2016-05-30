@@ -182,7 +182,7 @@ class ReportsData(object):
         def get_date(d):
             return [d.year, d.month, d.day, d.hour, d.minute, d.second, d.microsecond] if d is not None else None
 
-        return {
+        rep_data = {
             'pk': report.pk,
             'parent': report.parent_id,
             'identifier': report.identifier,
@@ -198,6 +198,8 @@ class ReportsData(object):
             'data': report.data.file.read().decode('utf8') if report.data is not None else None,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
+        report.data.file.close()
+        return rep_data
 
     def __report_leaf_data(self, report):
         self.ccc = 0

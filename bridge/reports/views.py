@@ -75,6 +75,7 @@ def report_component(request, job_id, report_id):
     if report.data is not None:
         try:
             report_data = json.loads(report.data.file.read().decode('utf8'))
+            report.data.file.close()
         except Exception as e:
             logger.exception("Json parsing error: %s" % e, stack_info=True)
 
@@ -244,13 +245,16 @@ def report_leaf(request, leaf_type, report_id):
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
         etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
+        report.error_trace.file.close()
         if etv.error is not None:
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
         main_file_content = report.proof.file.read()
+        report.proof.file.close()
     elif leaf_type == 'unknown':
         main_file_content = report.problem_description.file.read()
+        report.problem_description.file.close()
     try:
         return render(
             request, template,
@@ -284,6 +288,7 @@ def report_etv_full(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[400]))
 
     etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
+    report.error_trace.file.close()
     if etv.error is not None:
         logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
