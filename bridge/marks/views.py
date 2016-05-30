@@ -1,4 +1,7 @@
+import os
 import json
+import mimetypes
+from io import BytesIO
 from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -14,7 +17,7 @@ from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
 from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
-from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo
+from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, DeleteMark
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
@@ -603,3 +606,43 @@ def get_tags_data(request):
             'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
         })
     })
+
+
+@login_required
+def download_tags(request, tags_type):
+    tags_data = []
+    if tags_type == 'safe':
+        tags_table = SafeTag
+    else:
+        tags_table = UnsafeTag
+    for tag in tags_table.objects.all():
+        tag_data = {'name': tag.tag, 'description': tag.description}
+        if tag.parent is not None:
+            tag_data['parent'] = tag.parent.tag
+        tags_data.append(tag_data)
+    fp = BytesIO()
+    fp.write(json.dumps(tags_data, sort_keys=True, indent=4).encode('utf8'))
+    fp.seek(0)
+    tags_file_name = 'Tags-%s.json' % tags_type
+    mimetype = mimetypes.guess_type(os.path.basename(tags_file_name))[0]
+    response = HttpResponse(content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % tags_file_name
+    response.write(fp.read())
+    return response
+
+
+@login_required
+def upload_tags(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    fp = None
+    for f in request.FILES.getlist('file'):
+        fp = f
+    if fp is None:
+        return JsonResponse({'error': 'Unknown error'})
+    res = CreateTagsFromFile(fp, request.POST['tags_type'])
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({})

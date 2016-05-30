@@ -12,7 +12,9 @@
 
 {% block body_block %}
     <div class="tagsmap">
-        <button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>
+        {% if can_edit %}<button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>{% endif %}
+        <a id="download_all_tags" class="ui tiny olive basic icon button" href="{% url 'marks:download_tags' tags_type %}" data-content="Download all tags"><i class="ui download icon"></i></a>
+        {% if can_edit %}<button id="upload_tags" data-content="Upload tags" class="ui tiny green basic icon button"><i class="ui upload icon"></i></button>{% endif %}
         <br><br>
         <table>
             {% for row in tags %}
@@ -141,6 +143,25 @@
                     <button id="cancel_remove_tag" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <button id="confirm_remove_tag" class="ui red basic inverted button">{% trans 'Remove' %}</button>
                 </div>
+            </div>
+        </div>
+        <div id="upload_tags_modal" class="ui modal">
+            <div class="header">{% trans 'Upload Tags' %}</div>
+            <div class="content">
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="four wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_tags_file_input" type="file"></span>
+                        </div>
+                        <div class="twelve wide column">
+                            <span id="upload_tags_filename"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_tags_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
+                <button id="upload_tags_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
             </div>
         </div>
     {% endif %}

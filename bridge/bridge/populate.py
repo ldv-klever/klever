@@ -14,6 +14,7 @@ from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
+from marks.tags import CreateTagsFromFile
 from service.models import Scheduler
 
 JOB_SETTINGS_FILE = 'settings.json'
@@ -297,67 +298,28 @@ class Population(object):
 
     def __populate_tags(self):
         self.changes['tags'] = []
-        for tag_type in ['unsafe', 'safe']:
-            num_of_new = self.__create_tags(tag_type)
-            if num_of_new > 0:
-                self.changes['tags'].append(ungettext_lazy(
-                    '%(count)d new %(name)s tag uploaded.', '%(count)d new %(name)s tags uploaded.', num_of_new
-                ) % {'count': num_of_new, 'name': tag_type})
+        num_of_new = self.__create_tags('unsafe')
+        if num_of_new > 0:
+            self.changes['tags'].append(ungettext_lazy(
+                '%(count)d new unsafe tag uploaded.', '%(count)d new unsafe tags uploaded.', num_of_new
+            ) % {'count': num_of_new})
+        num_of_new = self.__create_tags('safe')
+        if num_of_new > 0:
+            self.changes['tags'].append(ungettext_lazy(
+                '%(count)d new safe tag uploaded.', '%(count)d new safe tags uploaded.', num_of_new
+            ) % {'count': num_of_new})
 
     def __create_tags(self, tag_type):
         self.ccc = 0
-        from marks.models import UnsafeTag, SafeTag
-        tag_table = {'unsafe': UnsafeTag, 'safe': SafeTag}
-        newtags = {}
-
         preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
         if not os.path.isfile(preset_tags):
             logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
         with open(preset_tags, encoding='utf8') as fp:
-            try:
-                tags_data = json.load(fp)
-            except Exception as e:
-                logger.exception("Error while parsing tag's data %s: %s" % (preset_tags, e), stack_info=True)
-                return 0
-        if not isinstance(tags_data, list):
-            logger.error("Preset tags must be list json: %s" % preset_tags)
-
-        for data in tags_data:
-            if 'name' in data:
-                tag_name = str(data.get('name', ''))
-            if len(tag_name) > 32 or len(tag_name) == 0:
-                logger.error("The tag name length must be 1-32, '%s'" % len(tag_name))
-                continue
-
-            parent = data.get('parent', None)
-            if parent is not None:
-                parent = str(parent)
-
-            if tag_name in newtags:
-                logger.error("Tag name must be unique for preset tags")
-            newtags[tag_name] = {'parent': parent, 'description': str(data.get('description', ''))}
-
-        parents = [None]
-        created_tags = {None: None}
-        num_of_new = 0
-        while len(parents) > 0:
-            new_parents = []
-            for tag_name in newtags:
-                if newtags[tag_name]['parent'] in parents:
-                    try:
-                        created_tags[tag_name] = tag_table[tag_type].objects.get(tag=tag_name)
-                    except ObjectDoesNotExist:
-                        created_tags[tag_name] = tag_table[tag_type].objects.create(
-                            tag=tag_name,
-                            parent=created_tags[newtags[tag_name]['parent']],
-                            description=newtags[tag_name]['description'],
-                            populated=True
-                        )
-                        num_of_new += 1
-                    new_parents.append(tag_name)
-            parents = new_parents
-        return num_of_new
+            res = CreateTagsFromFile(fp, tag_type, True)
+            if res.error is not None:
+                logger.error("Error while creating tags: %s" % res.error, stack_info=True)
+        return res.number_of_created
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}

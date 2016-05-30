@@ -1,7 +1,9 @@
+import json
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES
+from bridge.utils import logger
 from marks.models import SafeTag, UnsafeTag
 
 
@@ -341,3 +343,69 @@ class TagsInfo(object):
             self.error = res.error
             return None
         return res.table.data
+
+
+class CreateTagsFromFile(object):
+    def __init__(self, fp, tags_type, population=False):
+        self.error = None
+        self.fp = fp
+        self.tags_type = tags_type
+        self.number_of_created = 0
+        self.__create_tags(population)
+
+    def __read_json(self):
+        try:
+            return json.loads(self.fp.read().decode('utf8'))
+        except Exception as e:
+            logger.exception("Error while parsing tag's data: %s" % e, stack_info=True)
+            self.error = 'Unknown error'
+            return None
+
+    def __create_tags(self, population):
+        tag_table = {'unsafe': UnsafeTag, 'safe': SafeTag}
+        if self.tags_type not in tag_table:
+            self.error = 'Unknown error'
+            return
+        newtags = {}
+        list_of_tags = self.__read_json()
+        if self.error is not None:
+            return
+        if not isinstance(list_of_tags, list):
+            self.error = _('Wrong tags format')
+            return
+        for data in list_of_tags:
+            if 'name' not in data:
+                self.error = _('Tag name is required')
+                return
+            tag_name = str(data['name'])
+            if len(tag_name) > 32 or len(tag_name) == 0:
+                self.error = _("The tag name length must be 1-32 (%(name)s)") % {'name': tag_name}
+                return
+            if tag_name in newtags:
+                self.error = _("Thename must be unique (%(name)s)") % {'name': tag_name}
+                return
+
+            parent = data.get('parent', None)
+            if parent is not None:
+                parent = str(parent)
+
+            newtags[tag_name] = {'parent': parent, 'description': str(data.get('description', ''))}
+
+        parents = [None]
+        created_tags = {None: None}
+        while len(parents) > 0:
+            new_parents = []
+            for tag_name in newtags:
+                if newtags[tag_name]['parent'] in parents:
+                    try:
+                        created_tags[tag_name] = tag_table[self.tags_type].objects.get(tag=tag_name)
+                    except ObjectDoesNotExist:
+                        created_tags[tag_name] = tag_table[self.tags_type].objects.create(
+                            tag=tag_name,
+                            parent=created_tags[newtags[tag_name]['parent']],
+                            description=newtags[tag_name]['description'],
+                            populated=population
+                        )
+                        self.number_of_created += 1
+                    new_parents.append(tag_name)
+            parents = new_parents
