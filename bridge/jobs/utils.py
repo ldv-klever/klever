@@ -792,7 +792,7 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instances']
+                    filedata['ignore other instances']
                 ]
             ]
         except Exception as e:
