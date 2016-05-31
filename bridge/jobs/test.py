@@ -273,7 +273,6 @@ class TestJobs(KleverTestCase):
             'file_data': '[]'
         })
         newjob_pk = int(json.loads(str(response.content, encoding='utf8'))['job_id'])
-        newjob = Job.objects.get(pk=newjob_pk)
 
         with open(os.path.join(MEDIA_ROOT, self.test_filename), mode='wb') as fp:
             fp.write(b'My test text')
@@ -346,20 +345,29 @@ class TestJobs(KleverTestCase):
         with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='wb') as fp:
             fp.write(response.content)
             fp.close()
+
+        # We have to remove job before uploading new one with the same identifier
+        response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob_pk])})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Upload downloaded job
         with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='rb') as fp:
-            response = self.client.post('/jobs/ajax/upload_job/%s/' % newjob.identifier, {
+            response = self.client.post('/jobs/ajax/upload_job/%s/' % job_template.identifier, {
                 'file': fp
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'status': True}))
-        self.assertEqual(len(Job.objects.filter(parent__identifier=newjob.identifier)), 1)
-        uploaded_job = Job.objects.get(parent__identifier=newjob.identifier)
-        self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=2)), 1)
-        self.assertEqual(len(FileSystem.objects.filter(job__job=newjob, job__version=1)), 0)
-        self.assertEqual(len(JobHistory.objects.filter(job=newjob)), 2)
-        self.assertEqual(uploaded_job.name, newjob.name)
+        try:
+            uploaded_job = Job.objects.get(parent__identifier=job_template.identifier, name='New job title')
+        except ObjectDoesNotExist:
+            self.fail('The job was not found after upload')
+        self.assertEqual(len(FileSystem.objects.filter(job__job=uploaded_job, job__version=2)), 1)
+        self.assertEqual(len(FileSystem.objects.filter(job__job=uploaded_job, job__version=1)), 0)
+        self.assertEqual(len(JobHistory.objects.filter(job=uploaded_job)), 2)
 
         # Check file content of uploaded job
         response = self.client.post('/jobs/ajax/getfilecontent/', {
@@ -368,10 +376,6 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/html; charset=utf-8')
         self.assertEqual(response.content, b'My test text')
-
-        # Check that user can't compare jobs that are not decided
-        response = self.client.get(reverse('jobs:comparison', args=[newjob_pk, uploaded_job.pk]))
-        self.assertRedirects(response, reverse('error', args=[507]))
 
     def test_run_decision(self):
         self.client.post(reverse('population'))
