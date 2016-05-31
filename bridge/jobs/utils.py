@@ -460,8 +460,11 @@ def create_job(kwargs):
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
 
-    time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
-    newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    if 'identifier' in kwargs and kwargs['identifier'] is not None:
+        newjob.identifier = kwargs['identifier']
+    else:
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 
     new_version = create_version(newjob, kwargs)

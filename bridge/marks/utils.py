@@ -99,6 +99,7 @@ class NewMark(object):
                 return _('The error traces conversion function was not found')
 
             converted = ConvertTrace(func.name, report.error_trace.file.read().decode('utf8'))
+            report.error_trace.file.close()
             if converted.error is not None:
                 logger.error(converted.error, stack_info=True)
                 return _('Error trace converting failed')
@@ -390,6 +391,7 @@ class ConnectReportWithMarks(object):
     def __connect_unsafe(self):
         self.report.markreport_set.all().delete()
         error_trace = self.report.error_trace.file.read().decode('utf8')
+        self.report.error_trace.file.close()
         for mark in MarkUnsafe.objects.all():
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
@@ -401,6 +403,7 @@ class ConnectReportWithMarks(object):
             else:
                 compare_failed = False
                 compare = CompareTrace(mark.function.name, mark.error_trace.file.read().decode('utf8'), error_trace)
+                mark.error_trace.file.close()
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
                     compare_failed = True
@@ -426,6 +429,7 @@ class ConnectReportWithMarks(object):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
         problem_description = self.report.problem_description.file.read().decode('utf8')
+        self.report.problem_description.file.close()
         for mark in MarkUnknown.objects.filter(component=self.report.component):
             problem = MatchUnknown(problem_description, mark.function, mark.problem_pattern).problem
             if problem is None:
@@ -472,6 +476,7 @@ class ConnectMarkWithReports(object):
             }
         self.mark.markreport_set.all().delete()
         pattern_error_trace = self.mark.error_trace.file.read().decode('utf8')
+        self.mark.error_trace.file.close()
         for unsafe in ReportUnsafe.objects.all():
             for attr in last_version.attrs.all():
                 if attr.is_compare:
@@ -484,6 +489,7 @@ class ConnectMarkWithReports(object):
                 compare_failed = False
                 compare = CompareTrace(self.mark.function.name, pattern_error_trace,
                                        unsafe.error_trace.file.read().decode('utf8'))
+                unsafe.error_trace.file.close()
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
@@ -537,6 +543,7 @@ class ConnectMarkWithReports(object):
                 self.mark.function,
                 self.mark.problem_pattern
             ).problem
+            unknown.problem_description.file.close()
             if problem is None:
                 continue
             elif len(problem) > 15:
@@ -785,7 +792,8 @@ class CreateMarkTar(object):
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
-            'format': self.mark.format
+            'format': self.mark.format,
+            'identifier': self.mark.identifier
         }
         if self.type == 'unknown':
             common_data['component'] = self.mark.component.name
@@ -835,8 +843,11 @@ class ReadTarMark(object):
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
 
-            time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
-            mark.identifier = hashlib.md5(time_encoded).hexdigest()
+            if 'identifier' in args:
+                mark.identifier = args['identifier']
+            else:
+                time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
+                mark.identifier = hashlib.md5(time_encoded).hexdigest()
 
             if isinstance(args['is_modifiable'], bool):
                 mark.is_modifiable = args['is_modifiable']
@@ -994,6 +1005,12 @@ class ReadTarMark(object):
         elif self.type == 'unknown' and 'component' not in mark_data:
             return _("The mark archive is corrupted")
 
+        if 'identifier' in mark_data and isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
+            if self.type == 'unsafe' and len(MarkUnsafe.objects.filter(identifier=mark_data['identifier'])) > 0 or \
+                    self.type == 'safe' and len(MarkSafe.objects.filter(identifier=mark_data['identifier'])) > 0 or \
+                    self.type == 'unknown' and len(MarkUnknown.objects.filter(identifier=mark_data['identifier'])) > 0:
+                return _("The mark with identifier specified in the archive already exists")
+
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
             if any(x not in version for x in ['status', 'comment']):
@@ -1005,8 +1022,7 @@ class ReadTarMark(object):
             if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
                 return _("The mark archive is corrupted")
 
-        new_m_args = {}
-        new_m_args.update(mark_data)
+        new_m_args = mark_data.copy()
         new_m_args.update(version_list[0])
         if self.type == 'unsafe':
             new_m_args['error_trace'] = err_trace
