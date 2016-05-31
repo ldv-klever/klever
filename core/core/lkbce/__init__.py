@@ -238,10 +238,19 @@ class LKBCE(core.components.Component):
                 all_modules.update(deps)
 
             self.linux_kernel['module sizes'] = {}
+
             for module in all_modules:
-                self.linux_kernel['module sizes'][module] = \
-                    os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                                                 self.linux_kernel['version'], 'kernel', module))
+                if os.path.isfile(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                               self.linux_kernel['version'], 'kernel', module)):
+                    self.linux_kernel['module sizes'][module] = \
+                        os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                                     self.linux_kernel['version'], 'kernel', module))
+                elif module.startswith('ext-modules') and os.path.isfile(os.path.join(
+                        self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                        self.linux_kernel['version'], 'extra', module.replace('ext-modules/', ''))):
+                    self.linux_kernel['module sizes'][module] = \
+                        os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                                     self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
 
     def parse_linux_kernel_mod_function_deps(self, fp):
         self.linux_kernel['module deps function'] = []
@@ -250,9 +259,13 @@ class LKBCE(core.components.Component):
             first = splts[0]
             if 'kernel' in first:
                 first = first[first.find('kernel') + 7:]
+            elif 'extra' in first:
+                first = 'ext-modules/' + first[first.find('extra') + 6:]
             second = splts[3]
             if 'kernel' in second:
                 second = second[second.find('kernel') + 7:]
+            elif 'extra' in second:
+                second = 'ext-modules/' + second[second.find('extra') + 6:]
             func = splts[2][1:-2]
             self.linux_kernel['module deps function'].append((second, func, first))
 
@@ -268,9 +281,11 @@ class LKBCE(core.components.Component):
                     continue
                 module_name = splits[0]
                 module_name = module_name[7:] if module_name.startswith('kernel/') else module_name
+                module_name = ('ext-modules/' + module_name[6:]) if module_name.startswith('extra/') else module_name
                 module_deps = splits[1]
                 module_deps = list(filter(lambda x: x != '', module_deps.split(' ')))
                 module_deps = [dep[7:] if dep.startswith('kernel/') else dep for dep in module_deps]
+                module_deps = [('ext-modules/' + dep[6:]) if dep.startswith('extra/') else dep for dep in module_deps]
                 module_deps = list(sorted(module_deps))
                 self.linux_kernel['module deps'][module_name] = module_deps
 

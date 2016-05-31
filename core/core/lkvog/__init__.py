@@ -29,6 +29,8 @@ def after_set_linux_kernel_attrs(context):
 
 
 def after_extract_linux_kernel_build_commands(context):
+    i = 1
+    return
     if 'modules' in context.conf['Linux kernel'] and ('all' in context.conf['Linux kernel']['modules'] \
             or context.conf['Linux kernel'].get('build kernel', False)):
         if 'modules dep file' not in context.conf['Linux kernel']:
@@ -131,8 +133,16 @@ class LKVOG(core.components.Component):
             if strategy_name == 'separate modules':
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
+
+
             else:
-                self.mqs['Linux kernel modules'].put({'build kernel': True})
+                if 'external modules' not in self.conf['Linux kernel']:
+                    self.mqs['Linux kernel modules'].put({'build kernel': True})
+
+
+                else:
+                    self.mqs['Linux kernel modules'].put({'build kernel': True,
+                                                          'modules': self.conf['Linux kernel']['modules']})
 
                 module_deps = self.mqs['Linux kernel module deps'].get()
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
@@ -155,6 +165,7 @@ class LKVOG(core.components.Component):
         build_modules = set()
         self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
         for kernel_module in self.conf['Linux kernel']['modules']:
+            kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] else 'ext-modules/' + kernel_module
             if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
                 # Invidiual module just use strategy
                 self.logger.debug('Use strategy for {} module'.format(kernel_module))
@@ -182,7 +193,6 @@ class LKVOG(core.components.Component):
 
         if 'modules dep file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
-            self.mqs['Linux kernel additional modules'].put(build_modules)
         else:
             self.mqs['Linux kernel module deps'].close()
             self.mqs['Linux kernel module deps function'].close()
@@ -191,13 +201,30 @@ class LKVOG(core.components.Component):
         cc_ready = set()
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
-            self.logger.debug('Recieved module {}'.format(self.module['name']))
-            cc_ready.add(self.module['name'])
 
             if self.module['name'] is None:
                 self.logger.debug('Linux kernel module names was terminated')
                 self.linux_kernel_module_names_mq.close()
                 break
+
+            match = False
+            if 'modules' in self.conf['Linux kernel']:
+                if 'all' in self.conf['Linux kernel']['modules']:
+                    match = True
+                else:
+                    for modules in build_modules:
+                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
+                                     self.module['name']):
+                            match = True
+                            break
+            else:
+                self.logger.warning(
+                    'Module {0} will not be verified since modules to be verified are not specified'.format(
+                        self.module['name']))
+            if not match:
+                continue
+            self.logger.debug('Recieved module {}'.format(self.module['name']))
+            cc_ready.add(self.module['name'])
 
             if not self.module['name'] in self.all_modules:
                 self.all_modules[self.module['name']] = True
@@ -272,13 +299,6 @@ class LKVOG(core.components.Component):
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
-        if ('all' not in self.conf['Linux kernel']['modules']
-                and not self.conf['Linux kernel'].get('build kernel', False)) \
-                and 'modules dep file' in self.conf['Linux kernel'] \
-                and self.conf['LKVOG strategy']['name'] != 'separate_modules':
-            self.conf['Linux kernel']['modules'] = self.mqs['Linux kernel additional modules'].get()
-        self.mqs['Linux kernel additional modules'].close()
-
         while True:
             desc = self.mqs['Linux kernel build cmd descs'].get()
 
@@ -318,23 +338,7 @@ class LKVOG(core.components.Component):
                 r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
-            match = False
-            if 'modules' in self.conf['Linux kernel']:
-                if 'all' in self.conf['Linux kernel']['modules']:
-                    match = True
-                else:
-                    for modules in self.conf['Linux kernel']['modules']:
-                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
-                                     desc['out file']):
-                            match = True
-                            break
-            else:
-                self.logger.warning(
-                    'Module {0} will not be verified since modules to be verified are not specified'.format(
-                        desc['out file']))
-
-            if match:
-                self.linux_kernel_module_names_mq.put(desc['out file'])
+            self.linux_kernel_module_names_mq.put(desc['out file'])
 
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))

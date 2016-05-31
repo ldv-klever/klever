@@ -157,8 +157,7 @@ class Strategy1:
 
     def count_already_weight(self, module, unused):
         # Returns weight based on counts groups for module
-        # TODO: one thousand?
-        return -self.count_groups_for_m.get(module, 0)#(self.max_g_for_m - self.count_groups_for_m.get(module, 0)) / self.max_g_for_m
+        return -self.count_groups_for_m.get(module, 0)
 
     def more_difference(self, ret, process, module):
         if not ret or not process:
@@ -241,11 +240,6 @@ class Strategy1:
         process = sorted(modules)
         for i in range(len(modules[0][1])):
             max_value = max(process, key=lambda module: module[1][i])[1][i]
-            #if max_value < 0:
-            #    return None
-            if max_value == 0:
-                continue
-            # TODO:  < 0.5? Maybe, other number
             process = list(sorted(filter(lambda module: max_value - module[1][i] < 0.5, process)))
         return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
 
@@ -255,7 +249,6 @@ class Strategy1:
             for module in sorted(self.modules.keys()):
                 ret.update(self.divide(module))
             return ret
-
 
         if module_name not in self.modules:
             # This module has no dependencies

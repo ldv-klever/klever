@@ -136,10 +136,6 @@ class Scotch:
                 graph = Graph(sorted(list(group_dict.values())))
                 self.clusters.add(graph)
 
-        #if len(clusters) != partitions:
-        #    raise ValueError('Number of yielded partitions is less than expected: {0}. Expected: {1}'
-        #                     .format(str(len(clusters)), str(partitions)))
-
         self.logger.info("Number of clusters is {0}".format(len(self.clusters)))
 
     def divide(self, module_name):
