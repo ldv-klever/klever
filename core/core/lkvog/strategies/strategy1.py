@@ -6,8 +6,7 @@ from operator import itemgetter
 class Strategy1:
     def __init__(self, logger, strategy_params, params=None):
         module_sizes = strategy_params['module_sizes']
-        export_func = strategy_params['export funcs']
-        deps = strategy_params['module_deps']
+        deps = strategy_params['module_deps_function']
 
         # Going to read params
         self.logger = logger
@@ -20,29 +19,29 @@ class Strategy1:
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
         self.analyze_all_export_function = \
-            params.get('analyze_all_export_function', self.division_type != 'Module') and bool(export_func)
+            params.get('analyze_all_export_function', self.division_type != 'Module')
         self.analyze_all_calls = \
-            params.get('analyze_all_calls', self.division_type != 'Library') and bool(export_func)
+            params.get('analyze_all_calls', self.division_type != 'Library')
         self.priority_on_export_function = \
-            params.get('priority_on_export_function', self.division_type != 'Module') and bool(export_func)
+            params.get('priority_on_export_function', self.division_type != 'Module')
         self.priority_on_calls = \
-            params.get('priority_on_calls', self.division_type != 'Library') and bool(export_func)
+            params.get('priority_on_calls', self.division_type != 'Library')
         self.maximize_subsystems = params.get('maximize_subsystems', True)
 
         # Creating modules dict
         self.modules = {}
-        for module, m_deps in sorted(deps.items()):
+        for succ, _, module in sorted(deps):
             self.modules.setdefault(module, Module(module))
-            for m_dep in m_deps:
-                self.modules.setdefault(m_dep, Module(m_dep))
-                self.modules[module].add_successor(self.modules[m_dep])
+            self.modules.setdefault(succ, Module(succ))
+            self.modules[module].add_successor(self.modules[succ])
 
             self.modules[module].size = module_sizes.get(module, 0)
+            self.modules[succ].size = module_sizes.get(succ, 0)
 
         # Creating export/call functions
         self.not_checked_export_f = {}
         self.not_checked_call_f = {}
-        for module_succ, func, module_pred in export_func:
+        for module_succ, func, module_pred in deps:
             if module_pred not in self.modules or module_succ not in self.modules:
                 continue
             self.modules[module_succ].export_functions.setdefault(func, [])

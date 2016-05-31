@@ -17,7 +17,6 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
-    context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
     context.mqs['Linux kernel module deps function'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
@@ -26,19 +25,6 @@ def before_launch_sub_job_components(context):
 
 def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
-
-
-def after_extract_linux_kernel_build_commands(context):
-    i = 1
-    return
-    if 'modules' in context.conf['Linux kernel'] and ('all' in context.conf['Linux kernel']['modules'] \
-            or context.conf['Linux kernel'].get('build kernel', False)):
-        if 'modules dep file' not in context.conf['Linux kernel']:
-            context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
-        if 'modules dep function file' not in context.conf['Linux kernel']:
-            context.mqs['Linux kernel module deps function'].put(context.linux_kernel['module deps function'])
-        if 'modules size file' not in context.conf['Linux kernel']:
-            context.mqs['Linux kernel module sizes'].put(context.linux_kernel['module sizes'])
 
 
 def after_process_all_linux_kernel_raw_build_cmds(context):
@@ -119,17 +105,14 @@ class LKVOG(core.components.Component):
     def generate_all_verification_obj_descs(self):
         strategy_name = self.conf['LKVOG strategy']['name']
 
-        module_deps = {}
         module_deps_function = {}
         module_sizes = {}
-        if 'modules dep file' in self.conf['Linux kernel']:
-            module_deps = self.mqs['Linux kernel module deps'].get()
         if 'modules dep function file' in self.conf['Linux kernel']:
             module_deps_function = self.mqs['Linux kernel module deps function'].get()
         if 'module size file' in self.conf['Linux kernel']:
             module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        if 'modules dep file' not in self.conf['Linux kernel']:
+        if 'modules dep function file' not in self.conf['Linux kernel']:
             if strategy_name == 'separate modules':
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
@@ -144,21 +127,18 @@ class LKVOG(core.components.Component):
                     self.mqs['Linux kernel modules'].put({'build kernel': True,
                                                           'modules': self.conf['Linux kernel']['modules']})
 
-                module_deps = self.mqs['Linux kernel module deps'].get()
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        self.mqs['Linux kernel module deps'].close()
         self.mqs['Linux kernel module deps function'].close()
         self.mqs['Linux kernel module sizes'].close()
 
         if strategy_name not in strategies_list:
             raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
 
-        strategy_params = {'module_deps': module_deps,
+        strategy_params = {'module_deps_function': module_deps_function,
                            'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
                                                                     strategy_name)),
-                           'export funcs': module_deps_function,
                            'module_sizes': module_sizes}
         strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
 
@@ -191,7 +171,7 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('After dividing build modules: {}'.format(build_modules))
 
-        if 'modules dep file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
+        if 'modules dep function file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
         else:
             self.mqs['Linux kernel module deps'].close()

@@ -10,13 +10,12 @@ class Closure:
         self.modules = {}
         self.checked_clusters = set()
 
-        for module in sorted(strategy_params['module_deps'].keys()):
+        for pred, _, module in sorted(strategy_params['module_deps_function']):
+            if pred not in self.modules:
+                self.modules[pred] = Module(pred)
             if module not in self.modules:
                 self.modules[module] = Module(module)
-            for pred in sorted(strategy_params['module_deps'][module]):
-                if pred not in self.modules:
-                    self.modules[pred] = Module(pred)
-                self.modules[module].add_predecessor(self.modules[pred])
+            self.modules[module].add_predecessor(self.modules[pred])
 
     def divide(self, module_name):
         """Auxiliary function for preparation groups of modules with
