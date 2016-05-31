@@ -394,8 +394,8 @@ class GetSource(object):
             self.error = _("Could not find the source file")
             return
         cnt = 1
-        lines = src.file.file.read().decode('utf8').split('\n')
-        src.file.file.close()
+        with src.file.file as fp:
+            lines = fp.read().decode('utf8').split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
