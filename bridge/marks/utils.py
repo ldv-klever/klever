@@ -768,7 +768,8 @@ class CreateMarkTar(object):
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
-            'format': self.mark.format
+            'format': self.mark.format,
+            'identifier': self.mark.identifier
         }
         if self.type == 'unknown':
             common_data['component'] = self.mark.component.name
@@ -818,8 +819,11 @@ class ReadTarMark(object):
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
 
-            time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
-            mark.identifier = hashlib.md5(time_encoded).hexdigest()
+            if 'identifier' in args:
+                mark.identifier = args['identifier']
+            else:
+                time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
+                mark.identifier = hashlib.md5(time_encoded).hexdigest()
 
             if isinstance(args['is_modifiable'], bool):
                 mark.is_modifiable = args['is_modifiable']
@@ -981,8 +985,7 @@ class ReadTarMark(object):
             if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
                 return _("The mark archive is corrupted")
 
-        new_m_args = {}
-        new_m_args.update(mark_data)
+        new_m_args = mark_data.copy()
         new_m_args.update(version_list[0])
         if self.type == 'unsafe':
             new_m_args['error_trace'] = err_trace
@@ -993,7 +996,7 @@ class ReadTarMark(object):
         if umark.error is not None:
             return umark.error
         mark = umark.mark
-        if not isinstance(mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
+        if not isinstance(mark, mark_table[self.type]):
             return _("Unknown error")
         for version_data in version_list[1:]:
             if len(version_data['comment']) == 0:

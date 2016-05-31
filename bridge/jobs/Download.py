@@ -120,6 +120,7 @@ class DownloadJob(object):
         self.__add_component_files(jobtar_obj)
         common_data = {
             'format': str(self.job.format),
+            'identifier': str(self.job.identifier),
             'type': str(self.job.type),
             'status': self.job.status,
             'filedata': json.dumps(files_in_tar),
@@ -331,6 +332,7 @@ class UploadJob(object):
 
         job = create_job({
             'name': version_list[0]['name'],
+            'identifier': jobdata.get('identifier'),
             'author': self.user,
             'description': version_list[0]['description'],
             'parent': self.parent,
