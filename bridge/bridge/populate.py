@@ -315,7 +315,7 @@ class Population(object):
         if not os.path.isfile(preset_tags):
             logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
-        with open(preset_tags, encoding='utf8') as fp:
+        with open(preset_tags, mode='rb') as fp:
             res = CreateTagsFromFile(fp, tag_type, True)
             if res.error is not None:
                 logger.error("Error while creating tags: %s" % res.error, stack_info=True)

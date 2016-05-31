@@ -278,7 +278,7 @@ UNKNOWN_LIST_DEF_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_SAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {
@@ -301,7 +301,7 @@ MARKS_SAFE_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_UNSAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {

@@ -4,13 +4,9 @@ function encodeData(s) {
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern', 'type'],
         order_type = $('input[name=marks_enable_order]:checked').val();
-    $.each(columns, function (index, val) {
-        var column_checkbox = $('#marks_filter_checkbox__' + val);
-        if (column_checkbox.length && column_checkbox.is(':checked')) {
-            view_values['columns'].push(val);
-        }
+    $('input[id^="marks_filter_checkbox__"]:checked').each(function () {
+        view_values['columns'].push($(this).attr('id').replace('marks_filter_checkbox__', ''));
     });
     if (order_type == 'attribute') {
         var order = $('#filter__attr__order').val();

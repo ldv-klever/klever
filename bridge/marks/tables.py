@@ -32,7 +32,8 @@ MARK_TITLES = {
     'checkbox': '',
     'type': _('Source'),
     'is_prime': _('Automatic association'),
-    'has_prime': _('Has non-automatic association')
+    'has_prime': _('Has non-automatic association'),
+    'tags': _('Tags')
 }
 
 STATUS_COLOR = {
@@ -459,7 +460,7 @@ class MarksList(object):
                 if col in self.view['columns']:
                     columns.append(col)
         else:
-            for col in ['num_of_links', 'verdict', 'status', 'author', 'format', 'type']:
+            for col in ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format', 'type']:
                 if col in self.view['columns']:
                     columns.append(col)
         return columns
@@ -581,6 +582,12 @@ class MarksList(object):
                     val = mark.problem_pattern
                 elif col == 'type':
                     val = mark.get_type_display()
+                elif col == 'tags':
+                    val = '; '.join(
+                        tag.tag.tag for tag in mark.versions.order_by('-version').first().tags.order_by('tag__tag')
+                    )
+                    if val == '':
+                        val = '-'
                 if col == 'checkbox':
                     values_str.append({'checkbox': mark.pk})
                 else:
