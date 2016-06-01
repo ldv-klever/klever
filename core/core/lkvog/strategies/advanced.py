@@ -3,9 +3,9 @@ from core.lkvog.strategies.module import Graph
 from operator import itemgetter
 
 
-class Strategy1:
+class Advanced:
     def __init__(self, logger, strategy_params, params=None):
-        module_sizes = strategy_params['module_sizes']
+        module_sizes = strategy_params.get('module_sizes', {})
         deps = strategy_params['module_deps_function']
 
         # Going to read params

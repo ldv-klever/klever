@@ -7,7 +7,7 @@ import re
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
-from core.lkvog.strategies import strategy1
+from core.lkvog.strategies import advanced
 from core.lkvog.strategies import strategies_list
 from core.lkvog.strategies import module
 import core.components
@@ -174,7 +174,6 @@ class LKVOG(core.components.Component):
         if 'modules dep function file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
         else:
-            self.mqs['Linux kernel module deps'].close()
             self.mqs['Linux kernel module deps function'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
