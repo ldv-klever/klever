@@ -119,7 +119,6 @@ class JobAccess(object):
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        # TODO: can author decide the job?
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
@@ -461,8 +460,11 @@ def create_job(kwargs):
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
 
-    time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
-    newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    if 'identifier' in kwargs and kwargs['identifier'] is not None:
+        newjob.identifier = kwargs['identifier']
+    else:
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 
     new_version = create_version(newjob, kwargs)

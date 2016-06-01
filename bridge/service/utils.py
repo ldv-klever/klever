@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import logger, file_checksum
+from bridge.utils import file_checksum
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
@@ -141,7 +141,7 @@ class RemoveTask(object):
                 return
         elif self.task.status == TASK_STATUS[2][0]:
             try:
-                self.task.solution
+                Solution.objects.get(task=self.task)
             except ObjectDoesNotExist:
                 self.error = "The solution of the finished task doesn't exist"
                 return
@@ -174,7 +174,7 @@ class CancelTask(object):
             if self.task.progress.tasks_pending > 0:
                 self.task.progress.tasks_pending -= 1
         elif self.task.status == TASK_STATUS[1][0]:
-            if self.task.progress.tasks_pending > 0:
+            if self.task.progress.tasks_processing > 0:
                 self.task.progress.tasks_processing -= 1
         else:
             self.error = 'The task status is wrong'
@@ -334,7 +334,7 @@ class GetTasks(object):
             'cancelled': []
         }
         found_ids = []
-        for task in Task.objects.filter(progress__scheduler=self.scheduler):
+        for task in Task.objects.filter(progress__scheduler=self.scheduler, progress__job__status=JOB_STATUS[2][0]):
             found_ids.append(task.pk)
             for status in status_map:
                 if status_map[status] == task.status:
@@ -470,7 +470,9 @@ class GetTasks(object):
                 return None
 
         if self.scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in SolvingProgress.objects.all():
+            for progress in SolvingProgress.objects.filter(
+                    job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
+            ):
                 if progress.job.status == JOB_STATUS[1][0]:
                     new_data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
@@ -575,7 +577,7 @@ class SaveSolution(object):
 
     def __create_solution(self, description, archive):
         try:
-            self.task.solution.description = '{}'
+            Solution.objects.get(task=self.task)
             self.error = 'The task already has solution'
             return
         except ObjectDoesNotExist:

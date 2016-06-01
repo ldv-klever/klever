@@ -491,11 +491,14 @@ class MarksList(object):
                 else:
                     unfilter['type'] = self.view['filters']['type']['value']
 
+        table_filters = Q(**filters)
+        for uf in unfilter:
+            table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
         if self.type == 'unsafe':
-            return MarkUnsafe.objects.filter(Q(**filters) & ~Q(**unfilter))
+            return MarkUnsafe.objects.filter(table_filters)
         elif self.type == 'safe':
-            return MarkSafe.objects.filter(Q(**filters) & ~Q(**unfilter))
-        return MarkUnknown.objects.filter(Q(**filters) & ~Q(**unfilter))
+            return MarkSafe.objects.filter(table_filters)
+        return MarkUnknown.objects.filter(table_filters)
 
     def __get_attrs(self):
         data = {}
