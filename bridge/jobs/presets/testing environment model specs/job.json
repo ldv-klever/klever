@@ -35,39 +35,69 @@
         {
             "Linux kernel": {
                 "external modules": "tests/atmdev_ops",
-                "modules": [
-                    "order1.ko"
-                ]
+                "modules": ["atm_dev_register.ko"]
             },
             "ideal verdict": "safe",
-            "rule specifications": [
-                "linux:mutex:as"
-            ]
+            "rule specifications": ["linux:emg:test"]
         },
         {
             "Linux kernel": {
                 "external modules": "tests/atmdev_ops",
-                "modules": [
-                    "unreg1.ko"
-                ]
+                "modules": ["atm_dev_deregister.ko"]
             },
             "ideal verdict": "safe",
-            "rule specifications": [
-                "linux:mutex:as"
-            ]
+            "rule specifications": ["linux:emg:test"]
         },
         {
             "Linux kernel": {
                 "external modules": "tests/atmdev_ops",
-                "modules": [
-                    "invoke1.ko"
-                ]
+                "modules": ["atm_dev_callbacks.ko"]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": ["linux:emg:test"]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/atmdev_ops",
+                "modules": ["atm_dev_invoke.ko"]
             },
             "ideal verdict": "unsafe",
-            "rule specifications": [
-                "linux:mutex:as"
-            ]
+            "rule specifications": ["linux:emg:test"]
         },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": ["usb_register.ko"]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": ["linux:emg:test"]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": ["usb_deregister.ko"]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": ["linux:emg:test"]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": ["usb_callbacks.ko"]
+            },
+            "ideal verdict": "safe",
+            "rule specifications": ["linux:emg:test"]
+        },
+        {
+            "Linux kernel": {
+                "external modules": "tests/usb_driver",
+                "modules": ["usb_invoke.ko"]
+            },
+            "ideal verdict": "unsafe",
+            "rule specifications": ["linux:emg:test"]
+        }
+    ],
+    "x": [
         {
             "Linux kernel": {
                 "external modules": "tests/devm_postponed_irq",
