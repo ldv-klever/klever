@@ -386,13 +386,16 @@ class GetSource(object):
 
     def __get_source(self, file_name):
         data = ''
+        if file_name.startswith('/'):
+            file_name = file_name[1:]
         try:
-            src = self.report.files.get(name=file_name[1:])
+            src = self.report.files.get(name=file_name)
         except ObjectDoesNotExist:
             self.error = _("Could not find the source file")
             return
         cnt = 1
-        lines = src.file.file.read().decode('utf8').split('\n')
+        with src.file.file as fp:
+            lines = fp.read().decode('utf8').split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)

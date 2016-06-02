@@ -29,7 +29,10 @@ class Run:
         else:
             self.tool = "CPAchecker"
 
-        self.version = description["verifier"]["version"]
+        if "version" in description["verifier"]:
+            self.version = description["verifier"]["version"]
+        else:
+            self.version = None
 
         # Check priority
         if description["priority"] not in ["LOW", "IDLE"]:
@@ -166,10 +169,11 @@ class Scheduler(schedulers.SchedulerExchange):
         run = Run(task_data_dir, description, user, password)
         # Expect branch:revision or revision
         branch, revision = None, None
-        if ":" in run.version:
+        if run.version and ":" in run.version:
             branch, revision = run.version.split(':')
-        else:
+        elif run.version:
             revision = run.version
+
         if not branch:
             logging.warning("Branch has not given for the task {}".format(identifier))
             branch = None

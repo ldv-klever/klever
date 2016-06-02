@@ -59,7 +59,8 @@ class Notify(object):
         try:
             s = smtplib.SMTP(self.server)
         except Exception as e:
-            logger.exception("SMTP registration error: %s" % e)
+            # TODO: analize exception
+            # logger.exception("SMTP registration error: %s" % e)
             return
         for user in User.objects.filter(
                 ~Q(notifications__settings='[]') & ~Q(notifications=None)):

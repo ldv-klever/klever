@@ -74,7 +74,8 @@ def report_component(request, job_id, report_id):
     report_data = None
     if report.data is not None:
         try:
-            report_data = json.loads(report.data.file.read().decode('utf8'))
+            with report.data.file as fp:
+                report_data = json.loads(fp.read().decode('utf8'))
         except Exception as e:
             logger.exception("Json parsing error: %s" % e, stack_info=True)
 
@@ -243,14 +244,17 @@ def report_leaf(request, leaf_type, report_id):
     main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
+        with report.error_trace.file as fp:
+            etv = GetETV(fp.read(), request.user.extended.assumptions)
         if etv.error is not None:
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
-        main_file_content = report.proof.file.read()
+        with report.proof.file as fp:
+            main_file_content = fp.read()
     elif leaf_type == 'unknown':
-        main_file_content = report.problem_description.file.read()
+        with report.problem_description.file as fp:
+            main_file_content = fp.read()
     try:
         return render(
             request, template,
@@ -283,7 +287,8 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    etv = GetETV(report.error_trace.file.read(), request.user.extended.assumptions)
+    with report.error_trace.file as fp:
+        etv = GetETV(fp.read(), request.user.extended.assumptions)
     if etv.error is not None:
         logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
@@ -371,7 +376,8 @@ def get_log_content(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     if len(report.log.file) > 10000:
         return HttpResponse(_('The component log is huge and can not be showed but you can download it'))
-    return HttpResponse(report.log.file.read().decode('utf8'))
+    with report.log.file as fp:
+        return HttpResponse(fp.read().decode('utf8'))
 
 
 @login_required

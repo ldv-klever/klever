@@ -1,6 +1,6 @@
 import json
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.models import User
+from django.contrib.auth.models import User, AnonymousUser
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.core.urlresolvers import reverse
@@ -12,6 +12,7 @@ from django.utils.timezone import pytz
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE
+from bridge.utils import logger
 from bridge.settings import DEF_USER
 from bridge.populate import extend_user
 from django.shortcuts import get_object_or_404
@@ -40,7 +41,10 @@ def user_signin(request):
                     if next_url is not None and next_url != '':
                         return HttpResponseRedirect(next_url)
                     return HttpResponseRedirect(reverse('jobs:tree'))
-                return HttpResponseRedirect(reverse('population'))
+                if user.is_staff:
+                    return HttpResponseRedirect(reverse('population'))
+                else:
+                    return HttpResponseRedirect(reverse('jobs:tree'))
             else:
                 login_error = _("Account has been disabled")
         else:
@@ -57,6 +61,8 @@ def user_signout(request):
 
 def register(request):
     activate(request.LANGUAGE_CODE)
+    if not isinstance(request.user, AnonymousUser):
+        logout(request)
 
     if request.method == 'POST':
         user_form = UserForm(data=request.POST)
@@ -79,13 +85,12 @@ def register(request):
         user_form = UserForm()
         profile_form = UserExtendedForm()
 
-    return render(request, 'users/register.html',
-                  {
-                      'user_form': user_form,
-                      'profile_form': profile_form,
-                      'timezones': pytz.common_timezones,
-                      'def_timezone': DEF_USER['timezone']
-                  })
+    return render(request, 'users/register.html', {
+        'user_form': user_form,
+        'profile_form': profile_form,
+        'timezones': pytz.common_timezones,
+        'def_timezone': DEF_USER['timezone']
+    })
 
 
 @login_required
@@ -93,18 +98,14 @@ def edit_profile(request):
     activate(request.user.extended.language)
 
     if request.method == 'POST':
-        user_form = EditUserForm(data=request.POST, request=request,
-                                 instance=request.user)
-        profile_form = UserExtendedForm(
-            data=request.POST,
-            instance=request.user.extended
-        )
+        user_form = EditUserForm(data=request.POST, request=request, instance=request.user)
+        profile_form = UserExtendedForm(data=request.POST, instance=request.user.extended)
         user_tz = request.POST.get('timezone')
         if user_form.is_valid() and profile_form.is_valid():
             user = user_form.save(commit=False)
             new_pass = request.POST.get('new_password')
             do_redirect = False
-            if len(new_pass):
+            if len(new_pass) > 0:
                 user.set_password(new_pass)
                 do_redirect = True
             user.save()
@@ -151,18 +152,12 @@ def edit_profile(request):
         })
 
 
-def index_page(request):
-    if request.user.is_authenticated():
-        return HttpResponseRedirect(reverse('jobs:tree'))
-    return HttpResponseRedirect(reverse('users:login'))
-
-
 @login_required
-def show_profile(request, user_id=None):
+def show_profile(request, user_id):
     activate(request.user.extended.language)
     if len(user_id) == 0:
         return HttpResponseRedirect(reverse('jobs:tree'))
-    target = get_object_or_404(User, pk=int(user_id))
+    target = get_object_or_404(User, pk=user_id)
     activity = []
     for act in target.jobhistory.all().order_by('-change_date')[:30]:
         act_comment = act.comment
@@ -305,15 +300,17 @@ def service_signout(request):
 def save_notifications(request):
     activate(request.user.extended.language)
     if request.method == 'POST':
-        notifications = request.POST.get('notifications', '[]')
-        self_ntf = json.loads(request.POST.get('self_ntf', False))
         try:
             new_ntf = request.user.notifications
         except ObjectDoesNotExist:
             new_ntf = Notifications()
             new_ntf.user = request.user
-        new_ntf.settings = notifications
-        new_ntf.self_ntf = self_ntf
+        try:
+            new_ntf.self_ntf = json.loads(request.POST.get('self_ntf', 'false'))
+        except Exception as e:
+            logger.error("Can't parse json: %s" % e, stack_info=True)
+            return JsonResponse({'error': 'Unknown error'})
+        new_ntf.settings = request.POST.get('notifications', '[]')
         new_ntf.save()
-        return JsonResponse({'status': 0, 'message': _('Saved')})
-    return JsonResponse({'status': 1, 'message': _('Unknown error')})
+        return JsonResponse({'message': _('Saved')})
+    return JsonResponse({'error': _('Unknown error')})

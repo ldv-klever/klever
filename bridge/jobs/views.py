@@ -51,12 +51,11 @@ def preferable_view(request):
 
     view_id = request.POST.get('view_id', None)
     view_type = request.POST.get('view_type', None)
-    if view_id is None or view_type is None:
+    if view_id is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
         return JsonResponse({'error': "Unknown error"})
 
     if view_id == 'default':
-        pref_views = request.user.preferableview_set.filter(
-            view__type=view_type)
+        pref_views = request.user.preferableview_set.filter(view__type=view_type)
         if len(pref_views):
             pref_views.delete()
             return JsonResponse({'message': _("The default view was made preferred")})
@@ -86,13 +85,10 @@ def check_view_name(request):
     if view_name is None or view_type is None:
         return JsonResponse({'error': 'Unknown error'})
 
-    if view_name == _('Default'):
-        return JsonResponse({'error': _("Please choose another view name")})
-
     if view_name == '':
         return JsonResponse({'error': _("The view name is required")})
 
-    if len(request.user.view_set.filter(type=view_type, name=view_name)):
+    if view_name == _('Default') or len(request.user.view_set.filter(type=view_type, name=view_name)):
         return JsonResponse({'error': _("Please choose another view name")})
     return JsonResponse({})
 
@@ -109,8 +105,7 @@ def save_view(request):
     view_name = request.POST.get('title', '')
     view_id = request.POST.get('view_id', None)
     view_type = request.POST.get('view_type', None)
-    if view_data is None or view_type is None or \
-            view_type not in list(x[0] for x in VIEW_TYPES):
+    if view_data is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
         return JsonResponse({'error': 'Unknown error'})
     if view_id == 'default':
         return JsonResponse({'error': _("You can't edit the default view")})
@@ -119,7 +114,7 @@ def save_view(request):
             new_view = request.user.view_set.get(pk=int(view_id))
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The view was not found')})
-    elif len(view_name):
+    elif len(view_name) > 0:
         new_view = View()
         new_view.name = view_name
         new_view.type = view_type
@@ -372,16 +367,9 @@ def get_job_versions(request):
     except ObjectDoesNotExist:
         return JsonResponse({'message': _('The job was not found')})
     job_versions = []
-    for j in job.versions.filter(
-            ~Q(version__in=[job.version, 1])).order_by('-version'):
-        job_time = j.change_date.astimezone(
-            pytz.timezone(request.user.extended.timezone)
-        )
-        title = job_time.strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (
-            j.change_author.extended.last_name,
-            j.change_author.extended.first_name,
-        )
+    for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
+        title = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
+        title += " (%s %s)" % (j.change_author.extended.last_name, j.change_author.extended.first_name)
         title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
@@ -438,6 +426,7 @@ def save_job(request):
         'filedata': json.loads(request.POST.get('file_data', '[]')),
         'author': request.user
     }
+
     job_id = request.POST.get('job_id', None)
     parent_identifier = request.POST.get('parent_identifier', None)
 
@@ -449,9 +438,7 @@ def save_job(request):
         if not JobAccess(request.user, job).can_edit():
             return JsonResponse({'error': _("You don't have an access to edit this job")})
         if parent_identifier is not None and len(parent_identifier) > 0:
-            parents = Job.objects.filter(
-                identifier__startswith=parent_identifier
-            )
+            parents = Job.objects.filter(identifier__startswith=parent_identifier)
             if len(parents) == 0:
                 return JsonResponse({'error': _('The job parent was not found')})
             elif len(parents) > 1:
@@ -471,8 +458,7 @@ def save_job(request):
             return JsonResponse({'error': _("Your version is expired, please reload the page")})
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
-        job_kwargs['absolute_url'] = 'http://' + request.get_host() + \
-                                     reverse('jobs:job', args=[job_id])
+        job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
         updated_job = update_job(job_kwargs)
         if isinstance(updated_job, Job):
             return JsonResponse({'job_id': job.pk})
@@ -656,8 +642,7 @@ def upload_job(request, parent_id=None):
     if len(parents) == 0:
         return JsonResponse({
             'status': False,
-            'message': _("The parent with the specified "
-                         "identifier was not found")
+            'message': _("The parent with the specified identifier was not found")
         })
     elif len(parents) > 1:
         return JsonResponse({
@@ -707,9 +692,7 @@ def decide_job(request):
 
     if not JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
-            'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(
-                request.user, job.identifier
-            )
+            'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(request.user, job.identifier)
         })
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
@@ -896,13 +879,12 @@ def get_file_by_checksum(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         diff_result = []
-        for line in unified_diff(
-                f1.file.read().decode('utf8').split('\n'),
-                f2.file.read().decode('utf8').split('\n'),
-                fromfile=request.POST.get('job1_name', ''),
-                tofile=request.POST.get('job2_name', '')
-        ):
-            diff_result.append(line)
+        with f1.file as fp1, f2.file as fp2:
+            for line in unified_diff(
+                fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('job1_name', ''), tofile=request.POST.get('job2_name', '')
+            ):
+                diff_result.append(line)
         return HttpResponse('\n'.join(diff_result))
 
     return JsonResponse({'error': 'Unknown error'})

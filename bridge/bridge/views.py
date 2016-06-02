@@ -11,6 +11,12 @@ from bridge.utils import unparallel
 from users.models import Extended
 
 
+def index_page(request):
+    if request.user.is_authenticated():
+        return HttpResponseRedirect(reverse('jobs:tree'))
+    return HttpResponseRedirect(reverse('users:login'))
+
+
 def klever_bridge_error(request, err_code=0, user_message=None):
     if request.user.is_authenticated():
         activate(request.user.extended.language)
