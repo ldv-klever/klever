@@ -43,10 +43,12 @@ def create_mark(request, mark_type, report_id):
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
         return HttpResponseRedirect(reverse('error', args=[601]))
-    tags = TagsInfo(mark_type, [])
-    if tags.error is not None:
-        logger.error(tags.error, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+    tags = None
+    if mark_type != 'unknown':
+        tags = TagsInfo(mark_type, [])
+        if tags.error is not None:
+            logger.error(tags.error, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
 
     return render(request, 'marks/CreateMark.html', {
         'report': report,
