@@ -166,7 +166,7 @@ class Command:
         # Execute original build command.
         if 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ and self.name == 'gcc':
             self.opts.append(
-                "-I{}".format(os.environ['KLEVER_RULE_DB_PATH']))
+                "-I{}".format(os.environ['KLEVER_JOB_ROOT']))
         exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
