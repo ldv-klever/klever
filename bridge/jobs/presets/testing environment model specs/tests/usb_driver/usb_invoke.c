@@ -21,8 +21,7 @@ static struct usb_driver ldv_driver = {
 
 static int __init ldv_init(void)
 {
-	usb_register(&ldv_driver);
-	return 0;
+	return usb_register(&ldv_driver);
 }
 
 static void __exit ldv_exit(void)
