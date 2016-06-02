@@ -665,7 +665,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             df_parameters.append(dispatcher_expr)
 
         decl = self._get_cf_struct(automaton, function_parameters)
-        cf_param = '& cf_arg'
+        cf_param = 'cf_arg'
 
         vf_param_var = Variable('cf_arg', None, decl, False)
         body.append(vf_param_var.declare() + ';')
@@ -684,7 +684,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for name in state.code['relevant automata']:
                     for r_state in state.code['relevant automata'][name]['states']:
                         block = []
-                        call = self._call_cf(state.code['relevant automata'][name]['automaton'], cf_param)
+                        call = self._call_cf(state.code['relevant automata'][name]['automaton'], '& ' + cf_param)
                         if r_state.action.replicative:
                             if self._direct_cf_calls:
                                 block.append(call)
@@ -711,7 +711,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         else:
              blocks.append(
                  [
-                     '{}->signal_pending = 1;'.format(vf_param_var.name)
+                     '{}.signal_pending = 1;'.format(vf_param_var.name)
                  ]
              )
 
@@ -770,7 +770,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _dispatch_var(self, automaton, state, params):
         decl = self._get_cf_struct(automaton, params)
         vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
-                                None, decl.take_pointer, False)
+                                None, decl, False)
 
         self._add_global_variable(vf_param_var)
         return vf_param_var
@@ -844,18 +844,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         dispatch_var = self._dispatch_var(state.code['relevant automata'][name]['automaton'], r_state,
                                                           param_declarations)
 
-                        conditions = ['{}->signal_pending'.format(dispatch_var.name)]
+                        conditions = ['{}.signal_pending'.format(dispatch_var.name)]
                         if len(state.code["receive guard"]) > 0:
                             for condition in state.code["receive guard"]:
                                 stm = condition
                                 for position in range(1, len(param_expressions) + 1):
-                                    stm = stm.replace('$ARG{}'.format(position), '{}->arg{}'.format(dispatch_var.name,
+                                    stm = stm.replace('$ARG{}'.format(position), '{}.arg{}'.format(dispatch_var.name,
                                                                                                     position - 1))
                                 conditions.append(stm)
                         bl.append('ldv_assume({});'.format(' && '.join(conditions)))
                         for index in range(len(param_expressions)):
-                            bl.append('{} = {}->arg{};'.format(param_expressions[0], dispatch_var.name, index))
-                        bl.append('{}->signal_pending = 0;'.format(dispatch_var.name))
+                            bl.append('{} = {}.arg{};'.format(param_expressions[0], dispatch_var.name, index))
+                        bl.append('{}.signal_pending = 0;'.format(dispatch_var.name))
                         elements.append(bl)
 
                 if len(elements) == 1:
