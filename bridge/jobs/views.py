@@ -879,13 +879,12 @@ def get_file_by_checksum(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         diff_result = []
-        for line in unified_diff(
-                f1.file.read().decode('utf8').split('\n'),
-                f2.file.read().decode('utf8').split('\n'),
-                fromfile=request.POST.get('job1_name', ''),
-                tofile=request.POST.get('job2_name', '')
-        ):
-            diff_result.append(line)
+        with f1.file as fp1, f2.file as fp2:
+            for line in unified_diff(
+                fp1.read().decode('utf8').split('\n'), fp2.read().decode('utf8').split('\n'),
+                fromfile=request.POST.get('job1_name', ''), tofile=request.POST.get('job2_name', '')
+            ):
+                diff_result.append(line)
         return HttpResponse('\n'.join(diff_result))
 
     return JsonResponse({'error': 'Unknown error'})

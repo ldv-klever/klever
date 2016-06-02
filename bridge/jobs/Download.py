@@ -183,7 +183,11 @@ class ReportsData(object):
         def get_date(d):
             return [d.year, d.month, d.day, d.hour, d.minute, d.second, d.microsecond] if d is not None else None
 
-        rep_data = {
+        data = None
+        if report.data is not None:
+            with report.data.file as fp:
+                data = fp.read().decode('utf8')
+        return {
             'pk': report.pk,
             'parent': report.parent_id,
             'identifier': report.identifier,
@@ -196,11 +200,9 @@ class ReportsData(object):
             } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
-            'data': report.data.file.read().decode('utf8') if report.data is not None else None,
+            'data': data,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
-        report.data.file.close()
-        return rep_data
 
     def __report_leaf_data(self, report):
         self.ccc = 0
@@ -289,9 +291,14 @@ class UploadJob(object):
             return _("The job archive is corrupted")
         if int(jobdata['format']) != FORMAT:
             return _("The job format is not supported")
-        if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
-            if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
-                return _("The job with identifier specified in the archive already exists")
+
+        if 'identifier' in jobdata:
+            if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
+                if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
+                    return _("The job with identifier specified in the archive already exists")
+            else:
+                del jobdata['identifier']
+
         if jobdata['type'] != self.parent.type:
             return _("The job class does not equal to the parent class")
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):

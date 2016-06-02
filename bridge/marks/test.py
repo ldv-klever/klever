@@ -814,10 +814,9 @@ class TestMarks(KleverTestCase):
         # Get report
         unknown = None
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            problem_desc = u.problem_description.file.read()
-            u.problem_description.file.close()
-            if problem_desc == b"ValueError: got wrong attribute: 'rule'.":
-                unknown = u
+            with u.problem_description.file as fp:
+                if fp.read() == b"ValueError: got wrong attribute: 'rule'.":
+                    unknown = u
         parent = ReportComponent.objects.get(pk=unknown.parent_id)
         if unknown is None:
             self.fail("Unknown with needed problem description was not found in test job decision")

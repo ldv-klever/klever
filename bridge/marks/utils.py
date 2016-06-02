@@ -98,8 +98,8 @@ class NewMark(object):
                 logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
                 return _('The error traces conversion function was not found')
 
-            converted = ConvertTrace(func.name, report.error_trace.file.read().decode('utf8'))
-            report.error_trace.file.close()
+            with report.error_trace.file as fp:
+                converted = ConvertTrace(func.name, fp.read().decode('utf8'))
             if converted.error is not None:
                 logger.error(converted.error, stack_info=True)
                 return _('Error trace converting failed')
@@ -390,8 +390,8 @@ class ConnectReportWithMarks(object):
 
     def __connect_unsafe(self):
         self.report.markreport_set.all().delete()
-        error_trace = self.report.error_trace.file.read().decode('utf8')
-        self.report.error_trace.file.close()
+        with self.report.error_trace.file as fp:
+            error_trace = fp.read().decode('utf8')
         for mark in MarkUnsafe.objects.all():
             for attr in mark.versions.get(version=mark.version).attrs.all():
                 if attr.is_compare:
@@ -402,8 +402,8 @@ class ConnectReportWithMarks(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(mark.function.name, mark.error_trace.file.read().decode('utf8'), error_trace)
-                mark.error_trace.file.close()
+                with mark.error_trace.file as fp:
+                    compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), error_trace)
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
                     compare_failed = True
@@ -428,8 +428,8 @@ class ConnectReportWithMarks(object):
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
-        problem_description = self.report.problem_description.file.read().decode('utf8')
-        self.report.problem_description.file.close()
+        with self.report.problem_description.file as fp:
+            problem_description = fp.read().decode('utf8')
         for mark in MarkUnknown.objects.filter(component=self.report.component):
             problem = MatchUnknown(problem_description, mark.function, mark.problem_pattern).problem
             if problem is None:
@@ -475,8 +475,8 @@ class ConnectMarkWithReports(object):
                 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
-        pattern_error_trace = self.mark.error_trace.file.read().decode('utf8')
-        self.mark.error_trace.file.close()
+        with self.mark.error_trace.file as fp:
+            pattern_error_trace = fp.read().decode('utf8')
         for unsafe in ReportUnsafe.objects.all():
             for attr in last_version.attrs.all():
                 if attr.is_compare:
@@ -487,9 +487,8 @@ class ConnectMarkWithReports(object):
                         pass
             else:
                 compare_failed = False
-                compare = CompareTrace(self.mark.function.name, pattern_error_trace,
-                                       unsafe.error_trace.file.read().decode('utf8'))
-                unsafe.error_trace.file.close()
+                with unsafe.error_trace.file as fp:
+                    compare = CompareTrace(self.mark.function.name, pattern_error_trace, fp.read().decode('utf8'))
                 if compare.error is not None:
                     logger.error("Comparing traces failed: %s" % compare.error)
                     compare_failed = True
@@ -538,12 +537,8 @@ class ConnectMarkWithReports(object):
             self.changes[mark_unknown.report] = {'kind': '-'}
         self.mark.markreport_set.all().delete()
         for unknown in ReportUnknown.objects.filter(component=self.mark.component):
-            problem = MatchUnknown(
-                unknown.problem_description.file.read().decode('utf8'),
-                self.mark.function,
-                self.mark.problem_pattern
-            ).problem
-            unknown.problem_description.file.close()
+            with unknown.problem_description.file as fp:
+                problem = MatchUnknown(fp.read().decode('utf8'), self.mark.function, self.mark.problem_pattern).problem
             if problem is None:
                 continue
             elif len(problem) > 15:
@@ -1005,11 +1000,13 @@ class ReadTarMark(object):
         elif self.type == 'unknown' and 'component' not in mark_data:
             return _("The mark archive is corrupted")
 
-        if 'identifier' in mark_data and isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
-            if self.type == 'unsafe' and len(MarkUnsafe.objects.filter(identifier=mark_data['identifier'])) > 0 or \
-                    self.type == 'safe' and len(MarkSafe.objects.filter(identifier=mark_data['identifier'])) > 0 or \
-                    self.type == 'unknown' and len(MarkUnknown.objects.filter(identifier=mark_data['identifier'])) > 0:
-                return _("The mark with identifier specified in the archive already exists")
+        mark_table = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
+        if 'identifier' in mark_data:
+            if isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
+                if len(mark_table[self.type].objects.filter(identifier=mark_data['identifier'])) > 0:
+                    return _("The mark with identifier specified in the archive already exists")
+            else:
+                del mark_data['identifier']
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
@@ -1033,7 +1030,7 @@ class ReadTarMark(object):
         if umark.error is not None:
             return umark.error
         mark = umark.mark
-        if not isinstance(mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
+        if not isinstance(mark, mark_table[self.type]):
             return _("Unknown error")
         for version_data in version_list[1:]:
             if 'tags' in version_data:
