@@ -18,17 +18,19 @@ static int ldv_open(struct atm_vcc *vcc)
 }
 
 static struct atmdev_ops ldv_ops = {
-        .open		= ldv_open,
-        .close		= ldv_close
+        .open = ldv_open,
+        .close = ldv_close
 };
 
 static int __init ldv_init(void)
 {
     int res;
+    long *flags;
+
     res = ldv_undef_int();
     if (!res) {
         ldv_register();
-        return atm_dev_register("ldv", ldv_parent, &ldv_ops, number, flags);
+        return atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags);
     }
 
     return 0;

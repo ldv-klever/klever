@@ -8,20 +8,26 @@ struct device *ldv_parent;
 
 static void ldv_close(struct atm_dev *dev)
 {
-    ldv_assert(0);
+    ldv_invoke_reached();
 }
 
 
 static int ldv_open(struct atm_vcc *vcc)
 {
-    ldv_assert(0);
+    ldv_invoke_reached();
 }
+
+static struct atmdev_ops ldv_ops = {
+        .open = ldv_open,
+        .close = ldv_close
+};
 
 static int __init ldv_init(void)
 {
+    long *flags;
+
     ldv_register();
-    atm_dev_register("ldv", ldv_parent, &ldv_ops, number, flags);
-    return 0;
+    return atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags);
 }
 
 static void __exit ldv_exit(void)

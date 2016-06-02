@@ -15,9 +15,9 @@ static void ldv_disconnect(struct usb_interface *intf)
 }
 
 static struct usb_driver ldv_driver = {
-	.name =		"ldv-test",
-	.probe =	ldv_probe,
-	.disconnect =	ldv_disconnect,
+	.name = "ldv-test",
+	.probe = ldv_probe,
+    .disconnect = ldv_disconnect,
 };
 
 static int __init ldv_init(void)

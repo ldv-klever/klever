@@ -1,6 +1,9 @@
 /* Check that callback can be called*/
 void ldv_invoke_callback(void);
 
+/* If function can be reached then produce an unsafe verdict to guarantee that there is a trace to the callback */
+void ldv_invoke_reached(void);
+
 /* Call if callbacks registration function has been successfully called */
 void ldv_deregister(void);
 
