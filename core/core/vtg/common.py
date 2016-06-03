@@ -47,6 +47,7 @@ class CommonStrategy(core.components.Component):
 
     # This function executes VTG strategy.
     def execute(self):
+        self.conf['source tree root'] = self.conf['main working directory']
         self.check_for_mpv()
         self.perform_sanity_checks()
         self.perform_preprocess_actions()

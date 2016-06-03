@@ -214,16 +214,18 @@
           "linux/automata/mutex.spc.tmpl"
         ]
       },
-      "RSG": {"models": {"$linux/mutex.c": {
-        "bug kinds": [
-          "linux:mutex::one thread:double lock",
-          "linux:mutex::one thread:double lock try",
-          "linux:mutex::one thread:double unlock",
-          "linux:mutex::one thread:locked at exit"
-        ],
-        "sets model": "flag",
-        "automaton": "$linux/automata/mutex_as.spc"
-      }}}
+      "RSG": {
+        "models": {"$linux/mutex.c": {
+          "bug kinds": [
+            "linux:mutex::one thread:double lock",
+            "linux:mutex::one thread:double lock try",
+            "linux:mutex::one thread:double unlock",
+            "linux:mutex::one thread:locked at exit"
+          ],
+          "sets model": "flag",
+          "automaton": "$linux/automata/mutex_as.spc"
+        }}
+      }
     },
     "linux:rwlock": {
       "aliases": ["118"],
@@ -264,7 +266,8 @@
             "linux:usb:resource:ref:more initial at exit"
           ],
           "automaton": "linux/automata/usb1.spc"}
-        }
+        },
+        "aspects": ["linux/usb/dev.aspect", "linux/asm/atomic.aspect"]
       }
     },
     "linux:usb:register": {

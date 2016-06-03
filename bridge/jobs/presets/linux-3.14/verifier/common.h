@@ -4,7 +4,7 @@
 /* If expr evaluates to zero, ldv_assert() causes a program to reach the error
  * function call like the standard assert().
  */
-extern void ldv_assert(int expression);
+extern void ldv_assert(const char *, int expression);
 
 /* Internal aliases */
 /* Proceed ony if a condition is true */

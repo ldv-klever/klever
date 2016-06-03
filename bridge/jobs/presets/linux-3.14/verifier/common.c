@@ -3,14 +3,6 @@
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error(void);
 
-/* If expr evaluates to zero, ldv_assert() causes a program to reach the error
- * function call like the standard assert().
- */
-void ldv_assert(int expression)
-{
-    (expression) ? 0 : __VERIFIER_error();
-}
-
 void ldv_assume(int expression)
 {
     if (!expression)
@@ -44,5 +36,5 @@ long __builtin_expect(long exp, long c)
  */
 void __builtin_trap(void)
 {
-	ldv_assert(0);
+	ldv_assert("", 0);
 }

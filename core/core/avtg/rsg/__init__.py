@@ -4,6 +4,7 @@ import json
 import multiprocessing
 import os
 import string
+import re
 
 import core.components
 import core.utils
@@ -35,6 +36,9 @@ class RSG(core.components.Component):
                 elif ext == '.aspect':
                     aspects.append(file)
                     self.logger.debug('Get additional aspect "{0}'.format(file))
+                elif ext == '.spc':
+                    pass
+                    # TODO: add support for automata
                 else:
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
@@ -72,10 +76,21 @@ class RSG(core.components.Component):
         self.logger.info('Add models to abstract task description')
 
         # Get common and rule specific models.
-        for model in (self.conf.get('common models') or []) + (self.conf.get('models') or []):
-            model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
-            self.logger.debug('Get model "{0}"'.format(model))
-            models.append(model)
+        for model in (self.conf.get('common models')):
+                try:
+                    _model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
+                    self.logger.debug('Get model "{0}"'.format(_model))
+                    models.append(_model)
+                except FileNotFoundError:
+                    continue
+
+        for model in (self.conf.get('models')):
+                try:
+                    _model = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], model)
+                    self.logger.debug('Get model "{0}"'.format(_model))
+                    models.append(_model)
+                except FileNotFoundError:
+                    continue
 
         if not models:
             self.logger.warning('No models are specified')
@@ -90,6 +105,30 @@ class RSG(core.components.Component):
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add models to group "{0}"'.format(grp['id']))
             for model in models:
+
+                bug_kinds = set()
+                lines = []
+                with open(model,encoding='ascii') as fp:
+                    for line in fp:
+                        # Bug kinds are specified in form of strings like in rule specifications DB as first actual
+                        # parameters of ldv_assert().
+                        match = re.search(r'ldv_assert\("([^"]+)"', line)
+                        if match:
+                            bug_kind, = match.groups()
+                            bug_kinds.add(bug_kind)
+                            # Include bug kinds in names of ldv_assert().
+                            lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
+                                                r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
+                        else:
+                            lines.append(line)
+
+                with open(model, 'w', encoding='ascii') as fp:
+                    # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
+                    # defined later somehow by VTG.
+                    for bug_kind in bug_kinds:
+                        fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
+                    for line in lines:
+                        fp.write(line)
                 suffix = ''
                 full_desc_file = os.path.join('models', '{0}.json'.format(os.path.basename(model)))
                 if os.path.isfile(full_desc_file):
@@ -116,11 +155,21 @@ class RSG(core.components.Component):
                                                                            self.conf['shadow source tree'])),
                         'opts':
                             [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
-                             self.conf['model CC options']]
+                             self.conf['model CC options']] +
+                            ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
+                                                    else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
-
+                for model_file, attrs in self.conf['models'].items():
+                    # TODO: absolutely different formats...
+                    if os.path.commonprefix([model_file[::-1], model[::-1]]).__len__() > 5:
+                        if "bug kinds" in attrs:
+                            grp['cc extra full desc files'].append({
+                                'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
+                                'rule spec id': self.conf['rule spec id'],
+                                'bug kinds': attrs['bug kinds']
+                            })
+                            continue
                 grp['cc extra full desc files'].append({
                     'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
-                    'rule spec id': self.conf['rule spec id'],
-                    'bug kinds': self.conf['bug kinds']
+                    'rule spec id': self.conf['rule spec id']
                 })

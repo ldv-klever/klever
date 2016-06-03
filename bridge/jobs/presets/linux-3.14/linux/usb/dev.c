@@ -1,5 +1,6 @@
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
+#include <verifier/map.h>
 
 struct usb_device;
 
