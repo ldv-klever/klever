@@ -61,15 +61,12 @@ jQuery.expr[':'].regex = function(elem, index, match) {
 };
 
 window.err_notify = function (message, duration) {
-    if (isNaN(duration)) {
-        duration = 2500;
+    var notify_opts = {autoHide: false, style: 'bootstrap', className: 'error'};
+    if (!isNaN(duration)) {
+        notify_opts['autoHide'] = true;
+        notify_opts['autoHideDelay'] = duration;
     }
-    $.notify(message, {
-        autoHide: true,
-        autoHideDelay: duration,
-        style: 'bootstrap',
-        className: 'error'
-    });
+    $.notify(message, notify_opts);
 };
 
 window.success_notify = function (message) {
@@ -257,7 +254,7 @@ $(document).ready(function () {
                     if (data.messages && data.messages.length) {
                         for (var i = 0; i < data.messages.length; i++) {
                             var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
-                            err_notify(err_message, 10000);
+                            err_notify(err_message);
                         }
                     }
                     else if (data.message && data.message.length) {
@@ -338,7 +335,7 @@ $(document).ready(function () {
                     if (data.messages) {
                         for (var i = 0; i < data.messages.length; i++) {
                             var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
-                            err_notify(err_message, 10000);
+                            err_notify(err_message);
                         }
                     }
                     else {

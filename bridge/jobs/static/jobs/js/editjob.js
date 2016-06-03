@@ -256,7 +256,7 @@ function load_new_files() {
                 async: false,
                 success: function (data) {
                     if (data.error) {
-                        err_notify(data.error, 15000);
+                        err_notify(data.error);
                         success = false;
                     }
                     else {
