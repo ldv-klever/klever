@@ -18,8 +18,8 @@ static int ldv_open(struct atm_vcc *vcc)
 }
 
 static struct atmdev_ops ldv_ops = {
-        .open = ldv_open,
-        .close = ldv_close
+    .open = ldv_open,
+    .close = ldv_close
 };
 
 static int __init ldv_init(void)

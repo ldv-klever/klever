@@ -5,7 +5,7 @@
 
 int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
-	ldv_invoke_reached();
+    ldv_invoke_reached();
 }
 
 static void ldv_disconnect(struct usb_interface *intf)
@@ -14,19 +14,19 @@ static void ldv_disconnect(struct usb_interface *intf)
 }
 
 static struct usb_driver ldv_driver = {
-	.name = "ldv-test",
-	.probe = ldv_probe,
-	.disconnect = ldv_disconnect
+    .name = "ldv-test",
+    .probe = ldv_probe,
+    .disconnect = ldv_disconnect
 };
 
 static int __init ldv_init(void)
 {
-	return usb_register(&ldv_driver);
+    return usb_register(&ldv_driver);
 }
 
 static void __exit ldv_exit(void)
 {
-	usb_deregister(&ldv_driver);
+    usb_deregister(&ldv_driver);
 }
 
 module_init(ldv_init);
