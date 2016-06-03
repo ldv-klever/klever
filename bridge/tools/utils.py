@@ -4,30 +4,25 @@ from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.utils import logger
+from bridge.utils import logger, has_references
+from jobs.models import JOBFILE_DIR
+from service.models import FILE_DIR, Solution, Task
+from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 from reports.models import *
 from marks.models import *
-from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 
 
 def clear_files():
-    from jobs.models import File, JOBFILE_DIR
     files_in_the_system = []
     for f in File.objects.all():
-
-        if len(f.etvfiles_set.all()) == 0 \
-                and len(f.filesystem_set.all()) == 0 and len(f.reportfiles_set.all()) == 0 \
-                and len(f.runhistory_set.all()) == 0 and len(f.reports1.all()) == 0 \
-                and len(f.reports2.all()) == 0 and len(f.etvfiles_set.all()) == 0 \
-                and len(f.markunsafe_set.all()) == 0 and len(f.reportsafe_set.all()) == 0 \
-                and len(f.reportunsafe_set.all()) == 0 and len(f.reportunknown_set.all()) == 0:
-            f.delete()
-        else:
+        if has_references(f):
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
             files_in_the_system.append(file_path)
-            if not(os.path.exists(file_path) and os.path.isfile(file_path)):
+            if not (os.path.exists(file_path) and os.path.isfile(file_path)):
                 logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
                 f.delete()
+        else:
+            f.delete()
     files_directory = os.path.join(MEDIA_ROOT, JOBFILE_DIR)
     if os.path.exists(files_directory):
         for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
@@ -36,7 +31,6 @@ def clear_files():
 
 
 def clear_service_files():
-    from service.models import FILE_DIR, Solution, Task
     files_in_the_system = []
     for s in Solution.objects.all():
         files_in_the_system.append(os.path.abspath(os.path.join(MEDIA_ROOT, s.archive.name)))

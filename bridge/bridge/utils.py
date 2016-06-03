@@ -162,3 +162,10 @@ class KleverTestCase(TestCase):
             shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
         except PermissionError:
             pass
+
+
+def has_references(obj):
+    for link in list(rel.get_accessor_name() for rel in getattr(obj, '_meta').get_all_related_objects()):
+        if len(getattr(obj, link).all()) > 0:
+            return True
+    return False

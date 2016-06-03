@@ -3,7 +3,6 @@ from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
-from bridge.utils import logger
 from jobs.models import Job
 
 FILE_DIR = 'Service'
