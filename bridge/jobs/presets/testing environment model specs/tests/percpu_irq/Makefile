@@ -1,4 +1,1 @@
-obj-m += reg1.o order1.o unreg1.o
-reg1-objs := reg1_file1.o
-order1-objs := order1_file1.o
-unreg1-objs := unreg1_file1.o
+obj-m += free_percpu_irq.o percpu_irq_callbacks.o percpu_irq_invoke.o request_percpu_irq.o
