@@ -2,7 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models.signals import pre_delete, post_delete
 from django.dispatch.dispatcher import receiver
-from bridge.settings import FILES_AUTODLETE
+from bridge.settings import FILES_AUTODELETE
 from bridge.utils import has_references
 from jobs.models import File, RunHistory, FileSystem
 from reports.models import ReportComponent, ReportFiles, ReportUnsafe, ETVFiles, ReportSafe, ReportUnknown
@@ -57,7 +57,7 @@ def create_functions(m):
     return function_pre, function_post
 
 
-if FILES_AUTODLETE:
+if FILES_AUTODELETE:
     SIGNAL_FUNCTIONS = {}
     for model in MODELS_WITH_FILE:
         SIGNAL_FUNCTIONS[model] = create_functions(model)
