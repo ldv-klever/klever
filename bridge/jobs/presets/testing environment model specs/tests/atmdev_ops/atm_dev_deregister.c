@@ -24,11 +24,11 @@ static struct atmdev_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-    int res;
+    int flip_a_coin;
     long *flags;
 
-    res = ldv_undef_int();
-    if (!res) {
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
         ldv_register();
         if (!atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags)) {
             atm_dev_deregister(ldv_dev);

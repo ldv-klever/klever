@@ -1,3 +1,1 @@
-obj-m += order1.o invoke1.o
-order1-objs := order1_file1.o
-invoke1-objs := invoke1_file1.o
+obj-m += dm_dirty_log_type_unregister.o dm_dirty_log_type_register.o dm_dirty_log_type_callbacks.o dm_dirty_log_type_invoke.o

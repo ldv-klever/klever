@@ -22,8 +22,10 @@ static struct usb_driver ldv_driver = {
 
 static int __init ldv_init(void)
 {
-    int res = ldv_undef_int();
-    if (res) {
+    int flip_a_coin;
+
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
         ldv_register();
         if (!usb_register(&ldv_driver)) {
             usb_deregister(&ldv_driver);

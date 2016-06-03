@@ -19,10 +19,10 @@ static irqreturn_t irq_thread(int irq_id, void * data){
 
 static int __init ldv_init(void)
 {
-	int res;
+	int flip_a_coin;
 
-    res = ldv_undef_int();
-    if (!res) {
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
         ldv_register();
         if(!devm_request_threaded_irq(dev, irq_id,irq_handler, irq_thread, NULL, "ldv interrupt", data)) {
         	devm_free_irq(dev, irq_id, data);

@@ -5,6 +5,7 @@
 
 struct atm_dev *ldv_dev;
 struct device *ldv_parent;
+int flip_a_coin;
 
 static void ldv_close(struct atm_dev *dev)
 {
@@ -15,6 +16,7 @@ static void ldv_close(struct atm_dev *dev)
 static int ldv_open(struct atm_vcc *vcc)
 {
     ldv_invoke_callback();
+    return 0;
 }
 
 static struct atmdev_ops ldv_ops = {
@@ -24,11 +26,10 @@ static struct atmdev_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-    int res;
     long *flags;
 
-    res = ldv_undef_int();
-    if (!res) {
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
         ldv_register();
         return atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags);
     }
@@ -38,8 +39,10 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-    atm_dev_deregister(ldv_dev);
-    ldv_deregister();
+    if (flip_a_coin) {
+        atm_dev_deregister(ldv_dev);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);

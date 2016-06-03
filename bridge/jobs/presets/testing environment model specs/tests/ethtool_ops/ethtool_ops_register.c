@@ -1,33 +1,28 @@
 #include <linux/module.h>
-#include <linux/usb.h>
+#include <linux/netdevice.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
+struct net_device dev;
 int flip_a_coin;
 
-int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
+static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
     ldv_invoke_callback();
     return 0;
 }
 
-static void ldv_disconnect(struct usb_interface *intf)
-{
-    ldv_invoke_callback();
-}
-
-static struct usb_driver ldv_driver = {
-    .name = "ldv-test",
-    .probe = ldv_probe,
-    .disconnect = ldv_disconnect,
+static struct ethtool_ops ops = {
+    .set_settings = set_settings
 };
 
 static int __init ldv_init(void)
 {
     flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
+        SET_ETHTOOL_OPS(&dev, &ops);
         ldv_register();
-        return usb_register(&ldv_driver);
+        return register_netdev(&dev);
     }
     return 0;
 }
@@ -35,7 +30,7 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void)
 {
     if (flip_a_coin) {
-        usb_deregister(&ldv_driver);
+        unregister_netdev(&dev);
         ldv_deregister();
     }
 }
