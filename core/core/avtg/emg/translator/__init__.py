@@ -603,7 +603,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _join_cf(self, automaton):
         sv = automaton.thread_variable
 
-        return 'ldv_thread_join({});'.format('& ' + sv.name)
+        if self._direct_cf_calls:
+            return '/* Skip thread join call */'
+        else:
+            return 'ldv_thread_join({}, {});'.format('& ' + sv.name,
+                                                     self.CF_PREFIX + str(automaton.identifier))
 
     def _get_cf_struct(self, automaton, params):
         cache_identifier = ''

@@ -131,7 +131,7 @@ LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
 #   upload input files of static verifiers - True or False,
 #   upload other intermediate files - True or False,
 #   allow local source directories use - True or False,
-#   ignore another instances - True or False.
+#   ignore other instances - True or False.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
