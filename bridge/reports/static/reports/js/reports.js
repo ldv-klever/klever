@@ -29,6 +29,13 @@ function component_filters_data() {
 
 function unsafe_filters_data() {
     var view_values = {}, filter_values = {};
+    var columns = [];
+    $('input[id^="list_filter_checkbox__"]').each(function () {
+        if ($(this).is(':checked')) {
+            columns.push($(this).attr('id').replace('list_filter_checkbox__', ''));
+        }
+    });
+    view_values['columns'] = columns;
     var order = $('#filter__attr__order').val();
     if (order.length > 0) {
         view_values['order'] = [order, $('input[name="order_value"]:checked').val()];
