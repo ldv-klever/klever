@@ -119,7 +119,7 @@ class LKVOG(core.components.Component):
                     self.mqs['Linux kernel modules'].put({'build kernel': True,
                                                           'modules': self.conf['Linux kernel']['modules']})
 
-                module_deps_function = self.mqs['Linux kernel module deps function'].get()
+                module_deps_function = self.mqs['Linux kernel module dependencies'].get()
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
 
         self.mqs['Linux kernel module dependencies'].close()
