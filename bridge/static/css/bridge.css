@@ -87,3 +87,8 @@ body {
 .bold-text {
     font-weight: bold;
 }
+
+.tag-description-popup {
+    color: #4b09b5;
+    cursor: pointer;
+}

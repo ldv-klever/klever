@@ -104,7 +104,7 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/Tags.html' %}
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 </div>
                 <div class="ui teal segment">
                     <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
@@ -152,7 +152,7 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/Tags.html' %}
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 </div>
                 <div class="ui styled accordion fluid">
                     <div class="title">

@@ -38,9 +38,103 @@ class TestMarks(KleverTestCase):
         self.safe_archive = 'test_safemark.tar.gz'
         self.unsafe_archive = 'test_unsafemark.tar.gz'
         self.unknown_archive = 'test_unknownmark.tar.gz'
+        self.test_tagsfile = 'test_tags.json'
 
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Create 5 safe tags
+        created_tags = []
+        response = self.client.post('/marks/ajax/save_tag/', {
+            'action': 'create', 'tag_type': 'safe', 'parent_id': '0', 'name': 'test:safe:tag:1',
+            'description': 'Test safe tag description'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        try:
+            created_tags.append(SafeTag.objects.get(tag='test:safe:tag:1'))
+        except ObjectDoesNotExist:
+            self.fail('Safe tag was not created')
+        self.assertEqual(created_tags[0].description, 'Test safe tag description')
+        self.assertEqual(created_tags[0].parent, None)
+
+        for i in range(2, 6):
+            self.client.post('/marks/ajax/save_tag/', {
+                'action': 'create', 'tag_type': 'safe',
+                'parent_id': created_tags[i - 2].pk, 'name': 'test:safe:tag:%s' % i, 'description': ''
+            })
+            created_tags.append(SafeTag.objects.get(tag='test:safe:tag:%s' % i))
+            self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
+
+        # Get tag parents for editing tag 'test:safe:tag:3'
+        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Get tag parents for creating new tag
+        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Edit 5th tag
+        response = self.client.post('/marks/ajax/save_tag/', {
+            'action': 'edit', 'tag_type': 'safe', 'parent_id': created_tags[2].pk,
+            'name': 'test:safe:tag:5', 'tag_id': created_tags[4].pk,
+            'description': 'Test safe tag 5 description'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        try:
+            created_tags[4] = SafeTag.objects.get(tag='test:safe:tag:5')
+        except ObjectDoesNotExist:
+            self.fail('Tag 5 was not found after editing')
+        self.assertEqual(created_tags[4].parent, created_tags[2])
+        self.assertEqual(created_tags[4].description, 'Test safe tag 5 description')
+
+        # Remove 3d tag and check that its children (tag4 and tag5) are also removed
+        response = self.client.post('/marks/ajax/remove_tag/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(
+            len(SafeTag.objects.filter(tag__in=['test:safe:tag:3', 'test:safe:tag:4', 'test:safe:tag:5'])), 0
+        )
+        del created_tags[2:]
+
+        # Get tags data (for edit/create mark page). Just check that there is no error in response.
+        response = self.client.post('/marks/ajax/get_tags_data/', {
+            'tag_type': 'safe', 'selected_tags': json.dumps([created_tags[1].pk])
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Download tags
+        response = self.client.post(reverse('marks:download_tags', args=['safe']))
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(MEDIA_ROOT, self.test_tagsfile), mode='wb') as fp:
+            fp.write(response.content)
+        SafeTag.objects.all().delete()
+
+        # Upload tags
+        with open(os.path.join(MEDIA_ROOT, self.test_tagsfile), mode='rb') as fp:
+            response = self.client.post('/marks/ajax/upload_tags/', {'tags_type': 'safe', 'file': fp})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        for i in range(0, len(created_tags)):
+            try:
+                created_tags[i] = SafeTag.objects.get(tag=created_tags[i].tag)
+            except ObjectDoesNotExist:
+                self.fail("Tags weren't uploaded")
+
+        # Tags tree page
+        response = self.client.post(reverse('marks:tags', args=['safe']))
+        self.assertEqual(response.status_code, 200)
 
         # Get report
         try:
@@ -67,7 +161,7 @@ class TestMarks(KleverTestCase):
                 'is_modifiable': True,
                 'verdict': MARK_SAFE[1][0],
                 'status': MARK_STATUS[2][0],
-                'tags': ['safe:tag:1', 'safe:tag:2'],
+                'tags': [created_tags[1].pk],
                 'attrs': compare_attrs
             })
         })
@@ -100,24 +194,20 @@ class TestMarks(KleverTestCase):
             self.assertIn({'is_compare': mark_attr.is_compare, 'attr': mark_attr.attr.name.name}, compare_attrs)
         self.assertEqual(ReportSafe.objects.get(pk=safe.pk).verdict, SAFE_VERDICTS[1][0])
         self.assertEqual(len(MarkSafeReport.objects.filter(mark=mark, report=safe)), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:1')), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:2')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag__tag='safe:tag:1')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag__tag='safe:tag:2')), 1)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag=created_tags[0])), 1)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag=created_tags[1])), 1)
         try:
-            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__parent=None, tag__tag='safe:tag:1')
+            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__parent=None, tag=created_tags[0])
             self.assertEqual(rst.number, 1)
-            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__parent=None, tag__tag='safe:tag:2')
+            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__parent=None, tag=created_tags[1])
             self.assertEqual(rst.number, 1)
-            rst = ReportSafeTag.objects.get(report__root__job=self.job, report_id=safe.parent_id,
-                                            tag__tag='safe:tag:1')
+            rst = ReportSafeTag.objects.get(report__root__job=self.job, report_id=safe.parent_id, tag=created_tags[0])
             self.assertEqual(rst.number, 1)
-            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__id=safe.parent_id,
-                                            tag__tag='safe:tag:2')
+            rst = ReportSafeTag.objects.get(report__root__job=self.job, report__id=safe.parent_id, tag=created_tags[1])
             self.assertEqual(rst.number, 1)
-            srt = SafeReportTag.objects.get(report=safe, tag__tag='safe:tag:1')
+            srt = SafeReportTag.objects.get(report=safe, tag=created_tags[0])
             self.assertEqual(srt.number, 1)
-            srt = SafeReportTag.objects.get(report=safe, tag__tag='safe:tag:2')
+            srt = SafeReportTag.objects.get(report=safe, tag=created_tags[1])
             self.assertEqual(srt.number, 1)
         except ObjectDoesNotExist:
             self.fail('Reports tags cache was not filled')
@@ -139,7 +229,7 @@ class TestMarks(KleverTestCase):
                 'is_modifiable': True,
                 'verdict': MARK_SAFE[2][0],
                 'status': MARK_STATUS[2][0],
-                'tags': ['safe:tag:1'],
+                'tags': [created_tags[0].pk],
                 'attrs': compare_attrs,
                 'comment': 'Change 1'
             })
@@ -169,18 +259,16 @@ class TestMarks(KleverTestCase):
         self.assertEqual(mark_version.comment, 'Change 1')
         self.assertEqual(ReportSafe.objects.get(pk=safe.pk).verdict, SAFE_VERDICTS[2][0])
         self.assertEqual(len(MarkSafeReport.objects.filter(mark=mark, report=safe)), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:1')), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:2')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag__tag='safe:tag:1')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag__tag='safe:tag:2')), 0)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag=created_tags[0])), 1)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=mark_version, tag=created_tags[1])), 0)
         self.assertEqual(len(ReportSafeTag.objects.filter(report__root__job=self.job, report__parent=None)), 1)
         self.assertEqual(len(ReportSafeTag.objects.filter(report__root__job=self.job, report__id=safe.parent_id)), 1)
         try:
-            srt = SafeReportTag.objects.get(report=safe, tag__tag='safe:tag:1')
+            srt = SafeReportTag.objects.get(report=safe, tag=created_tags[0])
             self.assertEqual(srt.number, 1)
         except ObjectDoesNotExist:
             self.fail('Reports tags cache was not filled')
-        self.assertEqual(len(SafeReportTag.objects.filter(report=safe, tag__tag='safe:tag:2')), 0)
+        self.assertEqual(len(SafeReportTag.objects.filter(report=safe, tag=created_tags[1])), 0)
 
         # Associations changes
         response = self.client.get('/marks/association_changes/%s/' % cache_id)
@@ -234,10 +322,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(ReportSafe.objects.get(pk=safe.pk).verdict, SAFE_VERDICTS[2][0])
         self.assertEqual(len(MarkSafeReport.objects.filter(mark=newmark, report=safe)), 1)
         self.assertEqual(len(MarkSafeReport.objects.filter(report=safe)), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:1')), 1)
-        self.assertEqual(len(SafeTag.objects.filter(tag='safe:tag:2')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=newmark_version, tag__tag='safe:tag:1')), 1)
-        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=newmark_version, tag__tag='safe:tag:2')), 0)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[0])), 1)
+        self.assertEqual(len(MarkSafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[1])), 0)
         self.assertEqual(len(ReportSafeTag.objects.filter(report__root__job=self.job, report__parent=None)), 1)
         self.assertEqual(len(ReportSafeTag.objects.filter(report__root__job=self.job, report__id=safe.parent_id)), 1)
 
@@ -251,7 +337,7 @@ class TestMarks(KleverTestCase):
                     'is_modifiable': True,
                     'verdict': MARK_SAFE[2][0],
                     'status': MARK_STATUS[2][0],
-                    'tags': ['safe:tag:1'],
+                    'tags': [created_tags[0].pk],
                     'attrs': compare_attrs,
                     'comment': 'Change %s' % i
                 })
@@ -290,11 +376,9 @@ class TestMarks(KleverTestCase):
 
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
-        tag = SafeTag.objects.get(tag='safe:tag:1')
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', tag.pk]))
+        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[0].pk]))
         self.assertEqual(response.status_code, 200)
-        tag = SafeTag.objects.get(tag='safe:tag:2')
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', tag.pk]))
+        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[1].pk]))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'safes', newmark.pk]))
         self.assertEqual(response.status_code, 200)
@@ -321,6 +405,101 @@ class TestMarks(KleverTestCase):
 
     def test_unsafe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Create 5 unsafe tags
+        created_tags = []
+        response = self.client.post('/marks/ajax/save_tag/', {
+            'action': 'create', 'tag_type': 'unsafe', 'parent_id': '0', 'name': 'test:unsafe:tag:1',
+            'description': 'Test unsafe tag description'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        try:
+            created_tags.append(UnsafeTag.objects.get(tag='test:unsafe:tag:1'))
+        except ObjectDoesNotExist:
+            self.fail('Unsafe tag was not created')
+        self.assertEqual(created_tags[0].description, 'Test unsafe tag description')
+        self.assertEqual(created_tags[0].parent, None)
+
+        for i in range(2, 6):
+            self.client.post('/marks/ajax/save_tag/', {
+                'action': 'create', 'tag_type': 'unsafe',
+                'parent_id': created_tags[i - 2].pk, 'name': 'test:unsafe:tag:%s' % i, 'description': ''
+            })
+            created_tags.append(UnsafeTag.objects.get(tag='test:unsafe:tag:%s' % i))
+            self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
+
+        # Get tag parents for editing tag 'test:unsafe:tag:3'
+        response = self.client.post('/marks/ajax/get_tag_parents/', {
+            'tag_type': 'unsafe', 'tag_id': created_tags[2].pk
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Get tag parents for creating new tag
+        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'unsafe'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Edit 5th tag
+        response = self.client.post('/marks/ajax/save_tag/', {
+            'action': 'edit', 'tag_type': 'unsafe', 'parent_id': created_tags[2].pk,
+            'name': 'test:unsafe:tag:5', 'tag_id': created_tags[4].pk,
+            'description': 'Test unsafe tag 5 description'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        try:
+            created_tags[4] = UnsafeTag.objects.get(tag='test:unsafe:tag:5')
+        except ObjectDoesNotExist:
+            self.fail('Tag 5 was not found after editing')
+        self.assertEqual(created_tags[4].parent, created_tags[2])
+        self.assertEqual(created_tags[4].description, 'Test unsafe tag 5 description')
+
+        # Remove 3d tag and check that its children (tag4 and tag5) are also removed
+        response = self.client.post('/marks/ajax/remove_tag/', {'tag_type': 'unsafe', 'tag_id': created_tags[2].pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(
+            len(UnsafeTag.objects.filter(tag__in=['test:unsafe:tag:3', 'test:unsafe:tag:4', 'test:unsafe:tag:5'])), 0
+        )
+        del created_tags[2:]
+
+        # Get tags data (for edit/create mark page). Just check that there is no error in response.
+        response = self.client.post('/marks/ajax/get_tags_data/', {
+            'tag_type': 'unsafe', 'selected_tags': json.dumps([created_tags[1].pk])
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # Download tags
+        response = self.client.post(reverse('marks:download_tags', args=['unsafe']))
+        self.assertEqual(response.status_code, 200)
+        with open(os.path.join(MEDIA_ROOT, self.test_tagsfile), mode='wb') as fp:
+            fp.write(response.content)
+        UnsafeTag.objects.all().delete()
+
+        # Upload tags
+        with open(os.path.join(MEDIA_ROOT, self.test_tagsfile), mode='rb') as fp:
+            response = self.client.post('/marks/ajax/upload_tags/', {'tags_type': 'unsafe', 'file': fp})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        for i in range(0, len(created_tags)):
+            try:
+                created_tags[i] = UnsafeTag.objects.get(tag=created_tags[i].tag)
+            except ObjectDoesNotExist:
+                self.fail("Tags weren't uploaded")
+
+        # Tags tree page
+        response = self.client.post(reverse('marks:tags', args=['unsafe']))
+        self.assertEqual(response.status_code, 200)
 
         # Get report
         try:
@@ -375,7 +554,7 @@ class TestMarks(KleverTestCase):
                 'is_modifiable': True,
                 'verdict': MARK_UNSAFE[1][0],
                 'status': MARK_STATUS[2][0],
-                'tags': ['unsafe:tag:1'],
+                'tags': [created_tags[0].pk],
                 'attrs': compare_attrs
             })
         })
@@ -409,18 +588,18 @@ class TestMarks(KleverTestCase):
             self.assertIn({'is_compare': mark_attr.is_compare, 'attr': mark_attr.attr.name.name}, compare_attrs)
         self.assertEqual(ReportUnsafe.objects.get(pk=unsafe.pk).verdict, UNSAFE_VERDICTS[1][0])
         self.assertEqual(len(MarkUnsafeReport.objects.filter(mark=mark, report=unsafe)), 1)
-        self.assertEqual(len(UnsafeTag.objects.filter(tag='unsafe:tag:1')), 1)
-        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag__tag='unsafe:tag:1')), 1)
+        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag=created_tags[0])), 1)
         try:
-            rst = ReportUnsafeTag.objects.get(report__root__job=self.job, report__parent=None, tag__tag='unsafe:tag:1')
+            rst = ReportUnsafeTag.objects.get(report__root__job=self.job, report__parent=None, tag=created_tags[0])
             # The number of unsafes for root report with specified tag equals the number of marked unsafes
             self.assertEqual(rst.number, len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[1][0])))
-            rst = ReportUnsafeTag.objects.get(report__root__job=self.job, report_id=unsafe.parent_id,
-                                              tag__tag='unsafe:tag:1')
+            rst = ReportUnsafeTag.objects.get(
+                report__root__job=self.job, report_id=unsafe.parent_id, tag=created_tags[0]
+            )
             # The number of unsafes for parent report (for unsafe) with specified tag
             # equals 1 due to only one unsafe is child for report
             self.assertEqual(rst.number, 1)
-            srt = UnsafeReportTag.objects.get(report=unsafe, tag__tag='unsafe:tag:1')
+            srt = UnsafeReportTag.objects.get(report=unsafe, tag=created_tags[0])
             self.assertEqual(srt.number, 1)
         except ObjectDoesNotExist:
             self.fail('Reports tags cache was not filled')
@@ -443,7 +622,7 @@ class TestMarks(KleverTestCase):
                 'is_modifiable': True,
                 'verdict': MARK_UNSAFE[2][0],
                 'status': MARK_STATUS[2][0],
-                'tags': ['unsafe:tag:1', 'unsafe:tag:2'],
+                'tags': [created_tags[1].pk],
                 'attrs': compare_attrs,
                 'comment': 'Change 1'
             })
@@ -473,19 +652,17 @@ class TestMarks(KleverTestCase):
         self.assertEqual(mark_version.comment, 'Change 1')
         self.assertEqual(ReportUnsafe.objects.get(pk=unsafe.pk).verdict, SAFE_VERDICTS[2][0])
         self.assertEqual(len(MarkUnsafeReport.objects.filter(mark=mark, report=unsafe)), 1)
-        self.assertEqual(len(UnsafeTag.objects.filter(tag='unsafe:tag:1')), 1)
-        self.assertEqual(len(UnsafeTag.objects.filter(tag='unsafe:tag:2')), 1)
-        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag__tag='unsafe:tag:1')), 1)
-        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag__tag='unsafe:tag:2')), 1)
+        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag=created_tags[0])), 1)
+        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=mark_version, tag=created_tags[1])), 1)
         self.assertEqual(len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)), 2)
         self.assertEqual(len(
             ReportUnsafeTag.objects.filter(report__root__job=self.job, report__id=unsafe.parent_id)
         ), 2)
         try:
-            srt = UnsafeReportTag.objects.get(report=unsafe, tag__tag='unsafe:tag:1')
-            self.assertEqual(srt.number, 1)
-            srt = UnsafeReportTag.objects.get(report=unsafe, tag__tag='unsafe:tag:2')
-            self.assertEqual(srt.number, 1)
+            urt = UnsafeReportTag.objects.get(report=unsafe, tag=created_tags[0])
+            self.assertEqual(urt.number, 1)
+            urt = UnsafeReportTag.objects.get(report=unsafe, tag=created_tags[1])
+            self.assertEqual(urt.number, 1)
         except ObjectDoesNotExist:
             self.fail('Reports tags cache was not filled')
 
@@ -541,10 +718,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(ReportUnsafe.objects.get(pk=unsafe.pk).verdict, UNSAFE_VERDICTS[2][0])
         self.assertEqual(len(MarkUnsafeReport.objects.filter(mark=newmark, report=unsafe)), 1)
         self.assertEqual(len(MarkUnsafeReport.objects.filter(report=unsafe)), 1)
-        self.assertEqual(len(UnsafeTag.objects.filter(tag='unsafe:tag:1')), 1)
-        self.assertEqual(len(UnsafeTag.objects.filter(tag='unsafe:tag:2')), 1)
-        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag__tag='unsafe:tag:1')), 1)
-        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag__tag='unsafe:tag:2')), 1)
+        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[0])), 1)
+        self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[1])), 1)
         self.assertEqual(
             len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)),
             len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0]))
@@ -564,7 +739,7 @@ class TestMarks(KleverTestCase):
                     'is_modifiable': True,
                     'verdict': MARK_UNSAFE[2][0],
                     'status': MARK_STATUS[2][0],
-                    'tags': ['unsafe:tag:1'],
+                    'tags': [created_tags[0].pk],
                     'attrs': compare_attrs,
                     'comment': 'Change %s' % i
                 })
@@ -603,11 +778,9 @@ class TestMarks(KleverTestCase):
 
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
-        tag = UnsafeTag.objects.get(tag='unsafe:tag:1')
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', tag.pk]))
+        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[0].pk]))
         self.assertEqual(response.status_code, 200)
-        tag = UnsafeTag.objects.get(tag='unsafe:tag:2')
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', tag.pk]))
+        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[1].pk]))
         self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unsafes', newmark.pk]))
         self.assertEqual(response.status_code, 200)
@@ -916,4 +1089,6 @@ class TestMarks(KleverTestCase):
             os.remove(os.path.join(MEDIA_ROOT, self.unsafe_archive))
         if os.path.exists(os.path.join(MEDIA_ROOT, self.unknown_archive)):
             os.remove(os.path.join(MEDIA_ROOT, self.unknown_archive))
+        if os.path.exists(os.path.join(MEDIA_ROOT, self.test_tagsfile)):
+            os.remove(os.path.join(MEDIA_ROOT, self.test_tagsfile))
         super(TestMarks, self).tearDown()
