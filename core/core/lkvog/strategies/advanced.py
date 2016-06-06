@@ -251,12 +251,12 @@ class Advanced:
 
         if module_name not in self.modules:
             # This module has no dependencies
-            self.logger.debug('Module {} has no dependencies'.format(module_name))
+            self.logger.debug('Module {0} has no dependencies'.format(module_name))
             return [Graph([Module(module_name)])]
 
         main_module = self.modules[module_name]
         if self.is_fully_checked(main_module):
-            self.logger.debug('Module {} reachs max group'.format(main_module.id))
+            self.logger.debug('Module {0} reachs max group'.format(main_module.id))
             return []
 
         clusters = set()
@@ -321,7 +321,7 @@ class Advanced:
                 if process in clusters:
                     break
                 if process not in self.checked_clusters:
-                    self.logger.debug('Append cluster: {}'.format([module.id for module in process]))
+                    self.logger.debug('Append cluster: {0}'.format([module.id for module in process]))
                     clusters.add(frozenset(process))
                     self.checked_clusters.add(frozenset(process))
                 for module in process:
@@ -331,7 +331,7 @@ class Advanced:
                 continue
             if len(process) > 1 or (len(process) == 1 and not clusters):
                 if process not in self.checked_clusters:
-                    self.logger.debug('Append cluster: {}'.format([module.id for module in process]))
+                    self.logger.debug('Append cluster: {0}'.format([module.id for module in process]))
                     clusters.add(frozenset(process))
                     self.checked_clusters.add(frozenset(process))
             for module in process:

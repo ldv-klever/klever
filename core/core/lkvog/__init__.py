@@ -128,7 +128,7 @@ class LKVOG(core.components.Component):
         self.mqs['Linux kernel module sizes'].close()
 
         if strategy_name not in strategies_list:
-            raise NotImplementedError("Strategy {} not implemented".format(strategy_name))
+            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
 
         strategy_params = {'module_deps_function': module_deps_function,
                            'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
@@ -137,12 +137,12 @@ class LKVOG(core.components.Component):
         strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
 
         build_modules = set()
-        self.logger.debug("Initial build modules: {}".format(self.conf['Linux kernel']['modules']))
+        self.logger.debug("Initial list of modules to be built: {0}".format(self.conf['Linux kernel']['modules']))
         for kernel_module in self.conf['Linux kernel']['modules']:
             kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] else 'ext-modules/' + kernel_module
             if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
                 # Invidiual module just use strategy
-                self.logger.debug('Use strategy for {} module'.format(kernel_module))
+                self.logger.debug('Use strategy for {0} module'.format(kernel_module))
                 clusters = strategy.divide(kernel_module)
                 self.all_clusters.update(clusters)
                 for cluster in clusters:
@@ -163,7 +163,7 @@ class LKVOG(core.components.Component):
                             if not self.is_part_of_subsystem(module3, build_modules):
                                 build_modules.add(module3.id)
 
-        self.logger.debug('After dividing build modules: {}'.format(build_modules))
+        self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
@@ -196,7 +196,7 @@ class LKVOG(core.components.Component):
                         self.module['name']))
             if not match:
                 continue
-            self.logger.debug('Recieved module {}'.format(self.module['name']))
+            self.logger.debug('Recieved module {0}'.format(self.module['name']))
             cc_ready.add(self.module['name'])
 
             if not self.module['name'] in self.all_modules:

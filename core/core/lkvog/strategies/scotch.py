@@ -105,7 +105,7 @@ class Scotch:
                                                                                      '-vm', "-b" + str(
                 self.balance_tolerance)]))
         if result != 0:
-            raise ValueError("Scotch gpart error {}".format(result))
+            raise ValueError("Scotch gpart error {0}".format(result))
         # Import results
         self.logger.debug("Import partitioning results from the file")
 
