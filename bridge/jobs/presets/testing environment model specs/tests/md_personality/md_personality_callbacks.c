@@ -1,29 +1,26 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include "md.h"
+#include "../drivers/md/md.h"
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-static struct cdev ldv_cdev;
+int flip_a_coin;
 
 static int run(struct mddev *mddev)
 {
-	int err;
-	err = ldv_function();
-	if (err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	int res;
+
+    ldv_invoke_callback();
+    res = ldv_undef_int();
+    if (!res)
+        ldv_probe_up();
+    return res;
 }
 
 static int stop(struct mddev *mddev)
 {
-	mutex_unlock(ldv_envgen);
-	return 0;
+	ldv_release_down();
+    ldv_invoke_callback();
+    return 0;
 }
 
 static struct md_personality ldv_personality =
@@ -35,12 +32,20 @@ static struct md_personality ldv_personality =
 
 static int __init ldv_init(void)
 {
-	return register_md_personality(&ldv_personality);
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        return register_md_personality(&ldv_personality);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	unregister_md_personality(&ldv_personality);
+	if (flip_a_coin) {
+        unregister_md_personality(&ldv_personality);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);
