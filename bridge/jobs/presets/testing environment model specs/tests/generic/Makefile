@@ -1,9 +1,3 @@
-obj-m += invoke1.o invoke2.o invoke3.o order4.o invoke5.o order6.o invoke6.o invoke7.o
-invoke1-objs := invoke1_file1.o invoke1_file2.o
-invoke2-objs := invoke2_file1.o invoke2_file2.o
-invoke3-objs := invoke3_file1.o invoke3_file2.o invoke3_file3.o
-order4-objs := order4_file1.o
-invoke5-objs := invoke5_file1.o invoke5_file2.o
-order6-objs := order6_file1.o
-invoke6-objs := invoke6_file1.o invoke6_file2.o
-invoke7-objs := invoke7_file1.o invoke7_file2.o
+obj-m += default_array_invoke.o default_callbacks.o default_deregister.o default_invoke.o default_register.o external_invoke.o external_type_invoke.o no_exit.o
+external_invoke-objs := external_invoke1.o external_invoke2.o
+external_type_invoke-objs := external_type_invoke1.o external_type_invoke2.o

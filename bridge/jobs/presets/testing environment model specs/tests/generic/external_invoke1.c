@@ -3,12 +3,9 @@
 #include <linux/emg/test_model.h>
 #include "ldvops.h"
 
-void ldv_handler(struct ldv_resource *arg)
-{
-    ldv_invoke_reached();
-}
+extern void ldv_handler(struct ldv_resource *arg);
 
-static struct ldv_driver ops = {
+struct ldv_driver ops = {
 	.handler = & ldv_handler,
 };
 
