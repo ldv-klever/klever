@@ -37,6 +37,6 @@ void ldv_check_return_value_probe(int retval)
 	if (ldv_probe_state == LDV_PROBE_ERROR)
 	{
 		/* ASSERT Errors of register_netdev() should be properly propagated */
-		ldv_assert(retval != 0);
+		ldv_assert("linux:netdev:wrong return value", retval != 0);
 	}
 }

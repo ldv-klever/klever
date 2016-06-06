@@ -7,8 +7,10 @@
     },
     "LKVOG strategy": {"name": "separate modules"},
     "rule specifications DB": "rule specs.json",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
     "VTG strategy": {
-      "name": "all bug kinds merge",
+      "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",
@@ -31,7 +33,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-lock.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -39,7 +41,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-unlock.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -47,7 +49,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-unlock-2.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -55,8 +57,16 @@
         "external modules": "tests/linux/mutex",
         "modules": ["locked-at-exit.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
@@ -367,7 +377,7 @@
         "external modules": "tests/linux/alloc1",
         "modules": ["wrong-flags.ko"]
       },
-      "rule specifications": ["linux:alloc1"],
+      "rule specifications": ["linux:alloc:irq"],
       "ideal verdict": "unsafe"
     },
     {
@@ -375,7 +385,7 @@
         "external modules": "tests/linux/alloc1",
         "modules": ["nonatomic.ko"]
       },
-      "rule specifications": ["linux:alloc1"],
+      "rule specifications": ["linux:alloc:irq"],
       "ideal verdict": "unsafe"
     },
     {
@@ -383,7 +393,7 @@
         "external modules": "tests/linux/alloc1",
         "modules": ["safe.ko"]
       },
-      "rule specifications": ["linux:alloc1"],
+      "rule specifications": ["linux:alloc:irq"],
       "ideal verdict": "safe"
     },
     {
@@ -391,7 +401,7 @@
         "external modules": "tests/linux/alloc2",
         "modules": ["wrong-flags-lock.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -399,7 +409,7 @@
         "external modules": "tests/linux/alloc2",
         "modules": ["wrong-flags-trylock.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -407,7 +417,7 @@
         "external modules": "tests/linux/alloc2",
         "modules": ["nonatomic-lock.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -415,7 +425,7 @@
         "external modules": "tests/linux/alloc2",
         "modules": ["nonatomic-trylock.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -423,7 +433,7 @@
         "external modules": "tests/linux/alloc2",
         "modules": ["safe.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe"
     },
     {
@@ -431,7 +441,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["wrong-flags-lock.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -439,7 +449,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["wrong-flags-lock-for-reset.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -447,7 +457,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["wrong-flags-trylock.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -455,7 +465,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["nonatomic-lock.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -463,7 +473,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["nonatomic-lock-for-reset.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -471,7 +481,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["nonatomic-trylock.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -479,7 +489,7 @@
         "external modules": "tests/linux/alloc3",
         "modules": ["safe.ko"]
       },
-      "rule specifications": ["linux:alloc3"],
+      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdict": "safe"
     },
     {
@@ -487,7 +497,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["atomic.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -495,7 +505,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["double-lock.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -503,7 +513,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["double-unlock.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -511,7 +521,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["double-unlock-2.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -519,7 +529,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["is-locked.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -527,7 +537,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["trylock.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -535,7 +545,7 @@
         "external modules": "tests/linux/spinlock",
         "modules": ["safe.ko"]
       },
-      "rule specifications": ["linux:spinlock:as"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "safe"
     },
     {

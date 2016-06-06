@@ -46,7 +46,7 @@ void ldv_module_put(struct module *module)
 	{
 		// linux:module:double acquisition
 		/* ASSERT Decremented module reference counter should be greater than its initial state */
-		ldv_assert(ldv_module_refcounter > 1);
+		ldv_assert("linux:module:resource:less initial decrement", ldv_module_refcounter > 1);
 		/* CHANGE_STATE Decrement module reference counter */
 		ldv_module_refcounter--;
 	}
@@ -73,5 +73,5 @@ void ldv_check_final_state(void)
 {
 	// linux:module:unreleased at exit
 	/* ASSERT Module reference counter should be decremented to its initial value before finishing operation */
-	ldv_assert(ldv_module_refcounter == 1);
+	ldv_assert("linux:module:resource:more initial at exit", ldv_module_refcounter == 1);
 }

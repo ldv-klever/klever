@@ -17,14 +17,14 @@ int ldv_spin = LDV_SPIN_UNLOCKED;
 void ldv_check_alloc_flags(gfp_t flags)
 {
 	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
+	ldv_assert("linux:alloc:spin lock:wrong flags", ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
 }
 
 /* MODEL_FUNC_DEF Check that spinlock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
 	/* ASSERT Spinlock should not be acquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED);
+	ldv_assert("linux:alloc:spin lock:nonatomic", ldv_spin == LDV_SPIN_UNLOCKED);
 }
 
 //TODO: merge it with linux:spinlock:as

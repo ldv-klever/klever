@@ -11,7 +11,7 @@ int ldv_wlock = 1;
 void ldv_read_lock(rwlock_t *lock)
 {
 	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
+	ldv_assert("linux:rwlock:read lock on write lock", ldv_wlock == 1);
 	/* CHANGE_STATE Acquire read lock */
 	ldv_rlock += 1;
 }
@@ -20,7 +20,7 @@ void ldv_read_lock(rwlock_t *lock)
 void ldv_read_unlock(rwlock_t *lock)
 {
 	/* ASSERT Read lock should be acquired */
-	ldv_assert(ldv_rlock > 1);
+	ldv_assert("linux:rwlock:more read unlocks", ldv_rlock > 1);
 	/* CHANGE_STATE Release read lock */
 	ldv_rlock -= 1;
 }
@@ -29,7 +29,7 @@ void ldv_read_unlock(rwlock_t *lock)
 void ldv_write_lock(rwlock_t *lock)
 {
 	/* ASSERT Write lock should not be aquired */
-	ldv_assert(ldv_wlock == 1);
+	ldv_assert("linux:rwlock:double write lock", ldv_wlock == 1);
 	/* CHANGE_STATE Acquire write lock */
 	ldv_wlock = 2;
 }
@@ -38,7 +38,7 @@ void ldv_write_lock(rwlock_t *lock)
 void ldv_write_unlock(rwlock_t *lock)
 {
 	/* ASSERT Write lock should be aquired */
-	ldv_assert(ldv_wlock != 1);
+	ldv_assert("linux:rwlock:double write unlock", ldv_wlock != 1);
 	/* CHANGE_STATE Release write lock */
 	ldv_wlock = 1;
 }
@@ -83,7 +83,7 @@ int ldv_write_trylock(rwlock_t *lock)
 void ldv_check_final_state(void)
 {
 	/* ASSERT All acquired read locks should be released before finishing operation */
-	ldv_assert(ldv_rlock == 1);
+	ldv_assert("linux:rwlock:read lock at exit", ldv_rlock == 1);
 	/* ASSERT All acquired write locks should be released before finishing operation */
-	ldv_assert(ldv_wlock == 1);
+	ldv_assert("linux:rwlock:write lock at exit", ldv_wlock == 1);
 }
