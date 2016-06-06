@@ -1,188 +1,468 @@
 {
-    "Common": {
-        "LKVOG strategy": {
-            "name": "separate modules"
-        },
-        "Linux kernel": {
-            "build kernel": false,
-            "configuration": "allmodconfig",
-            "source": "linux-3.14"
-        },
-        "VTG strategy": {
-            "merge source files": true,
-            "name": "all bug kinds merge",
-            "resource limits": {
-                "wall time": 1000000,
-                "CPU time": 900000,
-                "memory size": 10000000000,
-                "result size": 1000000,
-                "number of CPU cores": 1,
-                "CPU model": null
-            },
-            "verifier": {
-                "name": "CPAchecker",
-                "options": [
-                    {
-                        "-ldv": ""
-                    }
-                ],
-                "version": "20376"
-            }
-        },
-        "rule specifications DB": "rule specs.json"
+  "Common": {
+    "LKVOG strategy": {
+      "name": "separate modules"
     },
-    "Sub-jobs": [
-        {
-            "Linux kernel": {
-                "external modules": "tests/atmdev_ops",
-                "modules": ["atm_dev_register.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/atmdev_ops",
-                "modules": ["atm_dev_deregister.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/atmdev_ops",
-                "modules": ["atm_dev_callbacks.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/atmdev_ops",
-                "modules": ["atm_dev_invoke.ko"]
-            },
-            "ideal verdict": "unsafe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/usb_driver",
-                "modules": ["usb_register.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/usb_driver",
-                "modules": ["usb_deregister.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/usb_driver",
-                "modules": ["usb_callbacks.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/usb_driver",
-                "modules": ["usb_invoke.ko"]
-            },
-            "ideal verdict": "unsafe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/devm_postponed_irq",
-                "modules": ["devm_request_threaded_irq.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/devm_postponed_irq",
-                "modules": ["devm_free_irq.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/devm_postponed_irq",
-                "modules": ["devm_threaded_irq_callbacks.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/devm_postponed_irq",
-                "modules": ["devm_threaded_irq_invoke.ko"]
-            },
-            "ideal verdict": "unsafe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/dm_dirty_log_type",
-                "modules": ["dm_dirty_log_type_register.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/dm_dirty_log_type",
-                "modules": ["dm_dirty_log_type_unregister.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/dm_dirty_log_type",
-                "modules": ["dm_dirty_log_type_callbacks.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/dm_dirty_log_type",
-                "modules": ["dm_dirty_log_type_invoke.ko"]
-            },
-            "ideal verdict": "unsafe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/ethtool_ops",
-                "modules": ["ethtool_ops_register.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/ethtool_ops",
-                "modules": ["ethtool_ops_deregister.ko"]
-            },
-            "ideal verdict": "safe",
-            "rule specifications": ["linux:emg:test"]
-        },
-        {
-            "Linux kernel": {
-                "external modules": "tests/ethtool_ops",
-                "modules": ["ethtool_ops_invoke.ko"]
-            },
-            "ideal verdict": "unsafe",
-            "rule specifications": ["linux:emg:test"]
-        }
-    ]
+    "Linux kernel": {
+      "build kernel": false,
+      "configuration": "allmodconfig",
+      "source": "linux-3.14"
+    },
+    "VTG strategy": {
+      "merge source files": true,
+      "name": "all bug kinds merge",
+      "resource limits": {
+        "wall time": 1000000,
+        "CPU time": 900000,
+        "memory size": 10000000000,
+        "result size": 1000000,
+        "number of CPU cores": 1,
+        "CPU model": null
+      },
+      "verifier": {
+        "name": "CPAchecker",
+        "options": [
+          {
+            "-ldv": ""
+          }
+        ],
+        "version": "20376"
+      }
+    },
+    "rule specifications DB": "rule specs.json"
+  },
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/atmdev_ops",
+        "modules": ["atm_dev_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/atmdev_ops",
+        "modules": ["atm_dev_deregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/atmdev_ops",
+        "modules": ["atm_dev_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/atmdev_ops",
+        "modules": ["atm_dev_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_deregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/devm_threaded_irq",
+        "modules": ["devm_request_threaded_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/devm_threaded_irq",
+        "modules": ["devm_free_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/devm_threaded_irq",
+        "modules": ["devm_threaded_irq_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/devm_threaded_irq",
+        "modules": ["devm_threaded_irq_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/dm_dirty_log_type",
+        "modules": ["dm_dirty_log_type_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/dm_dirty_log_type",
+        "modules": ["dm_dirty_log_type_unregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/dm_dirty_log_type",
+        "modules": ["dm_dirty_log_type_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/dm_dirty_log_type",
+        "modules": ["dm_dirty_log_type_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ethtool_ops",
+        "modules": ["register_netdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ethtool_ops",
+        "modules": ["unregister_netdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ethtool_ops",
+        "modules": ["ethtool_ops_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["cdev_init.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["cdev_del.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["misc_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["misc_deregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["register_chrdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["unregister_chrdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["file_operations_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/file_operations",
+        "modules": ["file_operations_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["default_array_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["default_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["default_deregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["default_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["default_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["external_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["external_type_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["no_exit.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ieee80211_ops",
+        "modules": ["ieee80211_alloc_hw.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ieee80211_ops",
+        "modules": ["ieee80211_free_hw.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ieee80211_ops",
+        "modules": ["ieee80211_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/ieee80211_ops",
+        "modules": ["ieee80211_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/iio_triggered_buffer",
+        "modules": ["iio_triggered_buffer_setup.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/iio_triggered_buffer",
+        "modules": ["iio_triggered_buffer_cleanup.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/iio_triggered_buffer",
+        "modules": ["iio_triggered_buffer_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/irq",
+        "modules": ["request_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/irq",
+        "modules": ["request_any_context_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/irq",
+        "modules": ["free_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/irq",
+        "modules": ["irq_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/md_personality",
+        "modules": ["register_md_personality.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/md_personality",
+        "modules": ["unregister_md_personality.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/md_personality",
+        "modules": ["md_personality_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/md_personality",
+        "modules": ["md_personality_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
+        "modules": ["register_netdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
+        "modules": ["unregister_netdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
+        "modules": ["net_device_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
+        "modules": ["net_device_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    }
+  ]
 }
