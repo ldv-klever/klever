@@ -156,7 +156,7 @@ class Advanced:
 
     def count_already_weight(self, module, unused):
         # Returns weight based on counts groups for module
-        return -self.count_groups_for_m.get(module, 0)
+        return -1 - self.count_groups_for_m.get(module, 0)
 
     def more_difference(self, ret, process, module):
         if not ret or not process:
@@ -239,7 +239,10 @@ class Advanced:
         process = sorted(modules)
         for i in range(len(modules[0][1])):
             max_value = max(process, key=lambda module: module[1][i])[1][i]
-            process = list(sorted(filter(lambda module: max_value - module[1][i] < 0.5, process)))
+            if max_value == 0:
+                continue
+            process = list(sorted(filter(lambda module: module[1][i] / max_value >= 0.5 if max_value > 0 else
+                                         max_value / module[1][i] >= 0.5, process)))
         return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
 
     def divide(self, module_name):
