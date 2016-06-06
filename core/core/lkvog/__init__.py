@@ -27,12 +27,6 @@ def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
 
 
-def after_process_all_linux_kernel_raw_build_cmds(context):
-    context.logger.info('Terminate Linux kernel build command descriptions message queue')
-    context.mqs['Linux kernel build cmd descs'].put(None)
-
-
-
 def after_get_linux_kernel_build_cmd_desc(context):
     with open(context.linux_kernel['build cmd desc file'], encoding='ascii') as fp:
         context.mqs['Linux kernel build cmd descs'].put(json.load(fp))
