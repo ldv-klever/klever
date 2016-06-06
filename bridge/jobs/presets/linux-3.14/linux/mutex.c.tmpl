@@ -39,7 +39,7 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 }
 
 /* MODEL_FUNC_DEF Say whether mutex{{ arg_sign.text }} was locked in this or another thread  */
-int ldv_mutex_is_acquired{{ arg_sign.id }}(struct mutex *lock)
+int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* OTHER Whether mutex{{ arg_sign.text }} was locked in this thread */
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
@@ -67,7 +67,7 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 	ldv_assert("linux:mutex::one thread:double lock try", !ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
 
 	/* OTHER Whether mutex{{ arg_sign.text }} was locked */
-	if (ldv_mutex_is_acquired{{ arg_sign.id }}(lock))
+	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock))
 	{
 		/* RETURN Mutex{{ arg_sign.text }} was locked */
 		return 0;
