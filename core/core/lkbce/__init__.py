@@ -72,13 +72,15 @@ class LKBCE(core.components.Component):
                 os.remove(self.linux_kernel['build cmd descs file'])
 
     def extract_module_deps_and_sizes(self):
-        if 'module dependencies file' not in self.conf['Linux kernel']:
-            self.extract_all_linux_kernel_mod_deps_function()
-            self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
+        if 'all' in self.linux_kernel['modules'] \
+                or self.linux_kernel['build kernel']:
+            if 'module dependencies file' not in self.conf['Linux kernel']:
+                self.extract_all_linux_kernel_mod_deps_function()
+                self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
 
-        if 'module sizes file' not in self.conf['Linux kernel']:
-            self.extract_all_linux_kernel_mod_size()
-            self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
+            if 'module sizes file' not in self.conf['Linux kernel']:
+                self.extract_all_linux_kernel_mod_size()
+                self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
 
     def receive_modules_to_build(self):
         linux_kernel_modules = self.mqs['Linux kernel modules'].get()
@@ -187,55 +189,50 @@ class LKBCE(core.components.Component):
             fp.write('\n')
 
     def extract_all_linux_kernel_mod_deps_function(self):
-        if 'all' in self.linux_kernel['modules'] \
-                or self.linux_kernel['build kernel']:
+        self.logger.info('Extract all Linux kernel module dependencies')
 
-            self.logger.info('Extract all Linux kernel module dependencies')
+        self.logger.info('Install Linux kernel modules')
 
-            self.logger.info('Install Linux kernel modules')
-
-            # Specify installed Linux kernel modules directory like Linux kernel working source tree in
-            # fetch_linux_kernel_work_src_tree().
-            self.linux_kernel['installed modules dir'] = os.path.abspath(os.path.join(os.path.pardir, 'linux-modules'))
-            os.mkdir(self.linux_kernel['installed modules dir'])
-            # TODO: whether parallel execution has some benefits here?
-            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
+        # Specify installed Linux kernel modules directory like Linux kernel working source tree in
+        # fetch_linux_kernel_work_src_tree().
+        self.linux_kernel['installed modules dir'] = os.path.abspath(os.path.join(os.path.pardir, 'linux-modules'))
+        os.mkdir(self.linux_kernel['installed modules dir'])
+        # TODO: whether parallel execution has some benefits here?
+        self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
+                    jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
+                    specify_arch=False, collect_build_cmds=False)
+        if 'external modules' in self.conf['Linux kernel']:
+            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']),
+                         'M=ext-modules', 'modules_install'],
                         jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                         specify_arch=False, collect_build_cmds=False)
-            if 'external modules' in self.conf['Linux kernel']:
-                self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']),
-                             'M=ext-modules', 'modules_install'],
-                            jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
-                            specify_arch=False, collect_build_cmds=False)
 
-            depmod_output = core.utils.execute(self.logger, ['/sbin/depmod', '-b',
-                                                             self.linux_kernel['installed modules dir'],
-                                                             self.linux_kernel['version'], '-v'],
-                                               collect_all_stdout=True)
-            self.parse_linux_kernel_mod_function_deps(depmod_output, False)
+        depmod_output = core.utils.execute(self.logger, ['/sbin/depmod', '-b',
+                                                         self.linux_kernel['installed modules dir'],
+                                                         self.linux_kernel['version'], '-v'],
+                                           collect_all_stdout=True)
+        self.parse_linux_kernel_mod_function_deps(depmod_output, False)
 
     def extract_all_linux_kernel_mod_size(self):
-        if 'all' in self.linux_kernel['modules'] \
-                or self.linux_kernel['build kernel']:
-            all_modules = set()
-            for module, _, module2 in self.linux_kernel['module dependencies']:
-                all_modules.add(module)
-                all_modules.add(module2)
+        all_modules = set()
+        for module, _, module2 in self.linux_kernel['module dependencies']:
+            all_modules.add(module)
+            all_modules.add(module2)
 
-            self.linux_kernel['module sizes'] = {}
+        self.linux_kernel['module sizes'] = {}
 
-            for module in all_modules:
-                if os.path.isfile(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                                               self.linux_kernel['version'], 'kernel', module)):
-                    self.linux_kernel['module sizes'][module] = \
-                        os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                                                     self.linux_kernel['version'], 'kernel', module))
-                elif module.startswith('ext-modules') and os.path.isfile(os.path.join(
-                        self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                        self.linux_kernel['version'], 'extra', module.replace('ext-modules/', ''))):
-                    self.linux_kernel['module sizes'][module] = \
-                        os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                                                     self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
+        for module in all_modules:
+            if os.path.isfile(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                           self.linux_kernel['version'], 'kernel', module)):
+                self.linux_kernel['module sizes'][module] = \
+                    os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                                 self.linux_kernel['version'], 'kernel', module))
+            elif module.startswith('ext-modules') and os.path.isfile(os.path.join(
+                    self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                    self.linux_kernel['version'], 'extra', module.replace('ext-modules/', ''))):
+                self.linux_kernel['module sizes'][module] = \
+                    os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
+                                                 self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
 
     def parse_linux_kernel_mod_function_deps(self, lines, remove_newline_symbol):
         self.linux_kernel['module dependencies'] = []
