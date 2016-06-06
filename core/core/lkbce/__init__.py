@@ -77,8 +77,8 @@ class LKBCE(core.components.Component):
             self.launch_subcomponents(('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
 
-            if 'all' in self.linux_kernel.get('modules', []) \
-                    or self.linux_kernel.get('build kernel', False):
+            if 'all' in self.linux_kernel['modules'] \
+                    or self.linux_kernel['build kernel']:
 
                 if 'module dependencies file' not in self.conf['Linux kernel']:
                     self.extract_all_linux_kernel_mod_deps_function()
@@ -128,7 +128,7 @@ class LKBCE(core.components.Component):
             # Linux kernel external modules always require this preparation.
             build_targets.append(('modules_prepare',))
 
-        if self.linux_kernel.get('modules', []):
+        if self.linux_kernel['modules']:
             # Specially process building of all modules.
             if 'all' in self.linux_kernel['modules']:
                 if not len(self.linux_kernel['modules']) == 1:
@@ -166,7 +166,7 @@ class LKBCE(core.components.Component):
                                                                                    self.linux_kernel['work src tree']))
 
                         build_targets.append(('M=' + modules_dir, 'modules'))
-        elif not self.linux_kernel.get('build kernel', False):
+        elif not self.linux_kernel['build kernel']:
             self.logger.warning('Nothing will be verified since modules are not specified')
 
         if build_targets:
@@ -184,8 +184,8 @@ class LKBCE(core.components.Component):
             fp.write('\n')
 
     def extract_all_linux_kernel_mod_deps_function(self):
-        if 'all' in self.linux_kernel.get('modules', []) \
-                or self.linux_kernel.get('build kernel', False):
+        if 'all' in self.linux_kernel['modules'] \
+                or self.linux_kernel['build kernel']:
 
             self.logger.info('Extract all Linux kernel module dependencies')
 
@@ -212,8 +212,8 @@ class LKBCE(core.components.Component):
                 self.parse_linux_kernel_mod_function_deps(fp)
 
     def extract_all_linux_kernel_mod_size(self):
-        if 'all' in self.linux_kernel.get('modules', []) \
-                or self.linux_kernel.get('build kernel', False):
+        if 'all' in self.linux_kernel['modules'] \
+                or self.linux_kernel['build kernel']:
             all_modules = set()
             for module, _, module2 in self.linux_kernel['module dependencies']:
                 all_modules.add(module)
