@@ -8,6 +8,6 @@ struct ldv_thread;
 extern int ldv_thread_create(void *ldv_thread, void (*function)(void *), void *data);
 
 /* Join thread */
-extern int ldv_thread_join(void *ldv_thread);
+extern int ldv_thread_join(void *ldv_thread, void (*function)(void *));
 
 #endif /* __VERIFIER_THREAD_H */

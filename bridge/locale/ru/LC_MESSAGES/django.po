@@ -973,7 +973,7 @@ msgid "Allow use of local source directories"
 msgstr "Разрешить использовать локальные директории с исходным кодом"
 
 #: jobs/templates/jobs/startDecision.html:233
-msgid "Ignore another instances of Klever Core"
+msgid "Ignore other instances of Klever Core"
 msgstr "Игнорировать другие экземпляры Klever Core"
 
 #: jobs/templates/jobs/startDecision.html:239
