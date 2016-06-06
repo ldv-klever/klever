@@ -10,16 +10,18 @@ class Scotch:
     def __init__(self, logger, strategy_params, params={}):
         self.logger = logger
         self.scotch_path = params['scotch path']
+        # TODO: Extensions?
         self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file')
         self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch_log')
         self.scotch_out = os.path.join(strategy_params['work dir'], 'scotch_out')
         self.module_deps = {}
         self.task_size = params['cluster size']
-        self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.balance_tolerance = params.get('balance tolerance', 0.05)
+        self.clusters = set()
+
+        self.logger.debug('Going to get verification verification objects of size less than ' + str(self.task_size))
         self.logger.debug('Going to keep balance tolerance equal to ' + str(self.balance_tolerance))
         self.logger.debug('Calculate graph of all dependencies between modules')
-        self.clusters = set()
 
         for pred, _, module in strategy_params['module_deps_function']:
             self.module_deps.setdefault(module, [])

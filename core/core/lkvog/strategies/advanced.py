@@ -59,7 +59,6 @@ class Advanced:
             self.not_checked_preds[module] = set(module.predecessors)
             self.not_checked_succs[module] = set(module.successors)
 
-
         self.checked_clusters = set()
         self.checked_modules = set()
         self.count_groups_for_m = {}

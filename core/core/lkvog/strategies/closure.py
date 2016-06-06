@@ -6,10 +6,10 @@ class Closure:
     def __init__(self, logger, strategy_params, params={}):
         self.logger = logger
         self.cluster_size = params.get('cluster size', 0)
-        self.logger.info('Calculate graph of all dependencies between modules')
         self.modules = {}
         self.checked_clusters = set()
 
+        self.logger.info('Calculate graph of all dependencies between modules')
         for pred, _, module in sorted(strategy_params['module_deps_function']):
             if pred not in self.modules:
                 self.modules[pred] = Module(pred)
@@ -18,9 +18,11 @@ class Closure:
             self.modules[module].add_predecessor(self.modules[pred])
 
     def divide(self, module_name):
-        """Auxiliary function for preparation groups of modules with
+        """
+        Auxiliary function for preparation groups of modules with
         its dependencies taking into account size restrictions of
-        verification objects"""
+        verification objects.
+        """
 
         # Calculation
         clusters = []
@@ -30,17 +32,18 @@ class Closure:
             return clusters
 
         self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
-        self.logger.debug('Calculate dependencies for these "top" modules')
+        self.logger.debug("Calculate dependencies for these 'top' modules")
         root = self.modules.get(module_name, Module(module_name))
+
         # Will be created own graph
         cluster = Cluster(root)
         if self.cluster_size != 0:
             if cluster.size > self.cluster_size:
-                self.logger.info('Module {0} has too much dependencies, going to divide this verificatoin object'.format(root.id))
+                self.logger.info(
+                    'Module {0} has too much dependencies, going to divide this verificatoin object'.format(root.id))
                 shatters = self.divide_cluster(cluster)
                 clusters.extend(shatters)
             else:
-
                 clusters.append(cluster)
         else:
             clusters.append(cluster)
@@ -137,6 +140,7 @@ class Closure:
                 for predecessor in sorted(task_hash.get(obj.id, {}).keys()):
                     if predecessor in modules:
                         obj.add_predecessor(modules[predecessor])
+
             # If root was shifted down during calculation - use original one
             if 'origin' in task:
                 root = modules[task['origin']]

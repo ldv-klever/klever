@@ -229,7 +229,7 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc['id'] = self.cluster.root.id
 
         if len(self.cluster.modules) > 1:
-            self.verification_obj_desc['id'] += self.cluster.md5_hash()
+            self.verification_obj_desc['id'] += self.cluster.md5_hash
 
         self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
