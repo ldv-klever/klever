@@ -39,7 +39,7 @@ static int __init ldv_init(void)
 {
 	deg_lock = 0;
 	int err;
-	err = __serio_register_driver(&ldv_drv,THIS_MODULE,"modname");
+	err = serio_register_driver(&ldv_drv);
 	if (err)
 		return err;
 	return 0;
