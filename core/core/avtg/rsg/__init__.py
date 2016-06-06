@@ -56,6 +56,11 @@ class RSG(core.components.Component):
         self.logger.info('Add aspects to abstract task description')
 
         # Get common and rule specific aspects.
+        if 'common aspect' in self.conf:
+            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['common aspect'])
+            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
+            aspects.append(os.path.relpath(common_aspect, self.conf['main working directory']))
         for aspect in (self.conf.get('common aspects') or []) + (self.conf.get('aspects') or []):
             aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'], aspect)
             self.logger.debug('Get aspect "{0}"'.format(aspect))
@@ -159,6 +164,7 @@ class RSG(core.components.Component):
                             ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
+                is_add = False
                 for model_file, attrs in self.conf['models'].items():
                     # TODO: absolutely different formats...
                     if os.path.commonprefix([model_file[::-1], model[::-1]]).__len__() > 5:
@@ -168,8 +174,9 @@ class RSG(core.components.Component):
                                 'rule spec id': self.conf['rule spec id'],
                                 'bug kinds': attrs['bug kinds']
                             })
-                            continue
-                grp['cc extra full desc files'].append({
-                    'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
-                    'rule spec id': self.conf['rule spec id']
-                })
+                            is_add = True
+                if not is_add:
+                    grp['cc extra full desc files'].append({
+                        'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
+                        'rule spec id': self.conf['rule spec id']
+                    })

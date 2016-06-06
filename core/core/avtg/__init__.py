@@ -211,10 +211,7 @@ def unite_rule_specifications(conf, logger, raw_rule_spec_descs):
     logger.info("Uniting all rule specifications")
     rule_specifications = conf['rule specifications']
     prefix = os.path.commonprefix(rule_specifications)
-    postfixes = []
-    for rule_spec_id in rule_specifications:
-        postfixes.append(rule_spec_id.replace(prefix, ''))
-    new_rule_name_id = prefix + ":" + '+'.join(postfixes)
+    new_rule_name_id = prefix + ":" + 'united'
     logger.info("United rule specification was given the following name '{0}'".
                 format(new_rule_name_id))
     template = 'Linux kernel modules'
@@ -411,7 +408,7 @@ class AVTG(core.components.Component):
         # Invoke all plugins one by one.
         cur_abstract_task_desc = initial_abstract_task_desc
         plugin_mqs = self.mqs
-        plugin_mqs.update({'abstract task description': multiprocessing.Manager().Queue()})
+        plugin_mqs.update({'abstract task description': multiprocessing.Queue()})
         try:
             for plugin_desc in rule_spec_desc['plugins']:
                 self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
@@ -506,4 +503,4 @@ class AVTG(core.components.Component):
         except core.components.ComponentError:
             self.abstract_task_desc = None
         finally:
-            pass
+            plugin_mqs['abstract task description'].close()
