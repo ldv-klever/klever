@@ -55,7 +55,6 @@ class Closure:
         return ret_clusters
 
     def divide_cluster(self, input_cluster):
-
         # Get simple task_hash
         task_hash = {}
         for module in input_cluster.modules:
@@ -86,7 +85,6 @@ class Closure:
                                 'modules': [child]}
                     rest_list.append(new_task)
             if task['size'] < self.cluster_size or children:
-
                 # Reach limit, rebuild graph without selected edges
                 new_hash = {}
                 exclude = {module: 1 for module in task['modules']}
@@ -100,7 +98,6 @@ class Closure:
                         new_hash[module] = task['task_hash'][module]
 
                 if children:
-
                     # Limit reached ? Proceed with same values but new task_hash
                     new_task = {'root': task['root'],
                                 'task_hash': new_hash,
@@ -111,7 +108,6 @@ class Closure:
                     task_id = " ".join(list(sorted(task['modules'])))
                     task_list[task_id] = task
                 else:
-
                     # Limit wasn't reached ? Find new root
                     for module in sorted(task['modules']):
                         if module != task['root'] and module in task['task_hash'] and task['task_hash'][module].keys():
@@ -131,7 +127,6 @@ class Closure:
         # Prepare Cluster objects
         ret = []
         for _, task in sorted(task_list.items()):
-
             # Initialize module objects
             modules = {}
             for module in sorted(task['modules']):

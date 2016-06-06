@@ -62,7 +62,6 @@ class Scotch:
         i = 0
 
         for v1 in unordered_graph:
-
             for v2 in unordered_graph[v1]:
                 v12 = v1 + ' ' + v2 if v1 < v2 else v2 + ' ' + v1
 

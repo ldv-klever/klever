@@ -79,7 +79,6 @@ class LKBCE(core.components.Component):
 
             if 'all' in self.linux_kernel['modules'] \
                     or self.linux_kernel['build kernel']:
-
                 if 'module dependencies file' not in self.conf['Linux kernel']:
                     self.extract_all_linux_kernel_mod_deps_function()
                     self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
@@ -137,7 +136,6 @@ class LKBCE(core.components.Component):
                 build_targets.append(('M=ext-modules', 'modules')
                                      if 'external modules' in self.conf['Linux kernel'] else ('modules',))
             else:
-
                 # Check that module sets aren't intersect explicitly.
                 for i, modules1 in enumerate(self.linux_kernel['modules']):
                     for j, modules2 in enumerate(self.linux_kernel['modules']):
