@@ -2,6 +2,7 @@ import os
 
 from core.lkvog.strategies.module import Module
 from core.lkvog.strategies.module import Graph
+from core.utils import execute
 
 
 class Scotch:
@@ -100,12 +101,8 @@ class Scotch:
         self.logger.debug('Going to obtain ' + str(int(partitions)) + ' verification object in total')
 
         # Going to run scotch partitioner
-        result = os.system(os.path.join(self.scotch_path, "gpart") + ' ' + ' '.join([str(partitions), self.graph_file,
-                                                                                     self.scotch_out, self.scotch_log,
-                                                                                     '-vm', "-b" + str(
-                self.balance_tolerance)]))
-        if result != 0:
-            raise ValueError("Scotch gpart error {0}".format(result))
+        execute(self.logger, [os.path.join(self.scotch_path, "gpart"), str(partitions), self.graph_file,
+                              self.scotch_out, self.scotch_log, "-vm", "-b" + str(self.balance_tolerance)])
         # Import results
         self.logger.debug("Import partitioning results from the file")
 
