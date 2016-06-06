@@ -78,7 +78,7 @@ class LKVOG(core.components.Component):
             [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
 
     def get_modules_from_deps(self, subsystem, deps):
-        # Extract all modules in subsystem from dependencies
+        # Extract all modules in subsystem from dependencies.
         ret = set()
         for module in deps:
             if module.startswith(subsystem):
@@ -89,7 +89,7 @@ class LKVOG(core.components.Component):
         return ret
 
     def is_part_of_subsystem(self, module, modules):
-        # Returns true if module is a part of subsystem that contains in modules
+        # Returns true if module is a part of subsystem that contains in modules.
         for module2 in modules:
             if module.id.startswith(module2):
                 return True
@@ -111,11 +111,9 @@ class LKVOG(core.components.Component):
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
 
-
             else:
                 if 'external modules' not in self.conf['Linux kernel']:
                     self.mqs['Linux kernel modules'].put({'build kernel': True})
-
 
                 else:
                     self.mqs['Linux kernel modules'].put({'build kernel': True,
@@ -141,7 +139,7 @@ class LKVOG(core.components.Component):
         for kernel_module in self.conf['Linux kernel']['modules']:
             kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] else 'ext-modules/' + kernel_module
             if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
-                # Invidiual module just use strategy
+                # Invidiual module.
                 self.logger.debug('Use strategy for {0} module'.format(kernel_module))
                 clusters = strategy.divide(kernel_module)
                 self.all_clusters.update(clusters)
@@ -150,14 +148,13 @@ class LKVOG(core.components.Component):
                         build_modules.add(cluster_module.id)
                         self.checked_modules.add(cluster_module.id)
             else:
-                # Module is subsystem
+                # Module is subsystem.
                 build_modules.add(kernel_module)
                 subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps_function)
                 for module2 in subsystem_modules:
                     clusters = strategy.divide(module2)
                     self.all_clusters.update(clusters)
                     for cluster in clusters:
-                        # Need update build_modules and checked_modules
                         for module3 in cluster.modules:
                             self.checked_modules.add(module3.id)
                             if not self.is_part_of_subsystem(module3, build_modules):
@@ -211,7 +208,7 @@ class LKVOG(core.components.Component):
                                     break
                             else:
                                 module_clusters.append(cluster)
-                    # Remove appended clusters
+                    # Remove clusters that will be checked.
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                         self.all_clusters))
                 else:
