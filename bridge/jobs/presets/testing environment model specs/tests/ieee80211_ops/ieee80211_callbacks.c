@@ -1,26 +1,26 @@
 #include <linux/module.h>
-#include <linux/kernel.h>
-#include <linux/mutex.h>
 #include <net/mac80211.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
 struct mwl8k_priv *priv;
-static int ldv_function(void);
+int flip_a_coin;
 
 static int ldv_start_callback(struct ieee80211_hw *hw)
 {
-	int err;
-	err = ldv_function();
-	if(err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	int res;
+
+    ldv_invoke_callback();
+    res = ldv_undef_int();
+    if (!res)
+        ldv_probe_up();
+    return res;
 }
 
 static void ldv_stop_callback(struct ieee80211_hw *hw)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_release_down();
+    ldv_invoke_callback();
 }
 
 static const struct ieee80211_ops ldv_ops = {
@@ -30,16 +30,27 @@ static const struct ieee80211_ops ldv_ops = {
 
 static int __init ldv_init(void)
 {
-	priv = ieee80211_alloc_hw(sizeof(struct ieee80211_ops), &ldv_ops);
-	if (!priv) {
-		return -ENOMEM;
-	}
-	return 0;
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        priv = ieee80211_alloc_hw(sizeof(struct ieee80211_ops), &ldv_ops);
+        if (priv) {
+            return 0;
+        }
+        else {
+            return -ENOMEM;
+        }
+
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	ieee80211_free_hw(priv);
+	if (flip_a_coin) {
+        ieee80211_free_hw(priv);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);
