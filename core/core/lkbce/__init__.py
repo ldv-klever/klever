@@ -69,10 +69,10 @@ class LKBCE(core.components.Component):
                 with open(self.conf['Linux kernel']['modules size file']) as fp:
                     self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
-            tmp = self.mqs['Linux kernel modules'].get()
+            linux_kernel_modules = self.mqs['Linux kernel modules'].get()
             self.mqs['Linux kernel modules'].close()
-            self.conf['Linux kernel']['modules'] = tmp.get('modules', [])
-            self.conf['Linux kernel']['build kernel'] = tmp.get('build kernel', False)
+            self.conf['Linux kernel']['modules'] = linux_kernel_modules.get('modules', [])
+            self.conf['Linux kernel']['build kernel'] = linux_kernel_modules.get('build kernel', False)
 
             self.launch_subcomponents(('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
