@@ -151,7 +151,7 @@ class Core(core.utils.CallbacksCaller):
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+            if not self.conf['ignore other instances'] and os.path.isfile(self.is_solving_file):
                 raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
                     self.conf['working directory']))
 
