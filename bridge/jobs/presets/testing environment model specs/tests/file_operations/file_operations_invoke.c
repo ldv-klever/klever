@@ -1,41 +1,26 @@
-#include <linux/init.h>
-#include <linux/fs.h>
-#include <linux/major.h>
-#include <linux/blkdev.h>
 #include <linux/module.h>
-#include <linux/raw.h>
-#include <linux/capability.h>
-#include <linux/uio.h>
+#include <linux/fs.h>
 #include <linux/cdev.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/gfp.h>
-#include <linux/compat.h>
-#include <linux/vmalloc.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-#include <asm/uaccess.h>
+int flip_a_coin;
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-static struct cdev ldv_cdev;
- 
 static int ldv_open(struct inode *inode, struct file *filp)
 {
-	int err = ldv_function();
-	if (err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_invoke_reached();
+    return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
-	mutex_unlock(ldv_envgen);
-	return 0;
+	ldv_invoke_reached();
+    return 0;
 }
 
-static const struct file_operations ldv_fops = {
+static struct cdev ldv_cdev;
+
+static struct file_operations ldv_fops = {
 	.open		= ldv_open,
 	.release	= ldv_release,
 	.owner		= THIS_MODULE,
@@ -43,11 +28,6 @@ static const struct file_operations ldv_fops = {
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = ldv_function();
-	if (err){
-		return err;
-	}
 	cdev_init(&ldv_cdev, &ldv_fops);
 	return 0;
 }
