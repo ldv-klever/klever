@@ -17,7 +17,7 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
-    context.mqs['Linux kernel module deps function'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
@@ -107,12 +107,12 @@ class LKVOG(core.components.Component):
 
         module_deps_function = {}
         module_sizes = {}
-        if 'modules dep function file' in self.conf['Linux kernel']:
-            module_deps_function = self.mqs['Linux kernel module deps function'].get()
-        if 'module size file' in self.conf['Linux kernel']:
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            module_deps_function = self.mqs['Linux kernel module dependencies'].get()
+        if 'module sizes file' in self.conf['Linux kernel']:
             module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        if 'modules dep function file' not in self.conf['Linux kernel']:
+        if 'modules dependencies' not in self.conf['Linux kernel']:
             if strategy_name == 'separate modules':
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
@@ -130,7 +130,7 @@ class LKVOG(core.components.Component):
                 module_deps_function = self.mqs['Linux kernel module deps function'].get()
                 module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        self.mqs['Linux kernel module deps function'].close()
+        self.mqs['Linux kernel module dependencies'].close()
         self.mqs['Linux kernel module sizes'].close()
 
         if strategy_name not in strategies_list:
@@ -158,7 +158,7 @@ class LKVOG(core.components.Component):
             else:
                 # Module is subsystem
                 build_modules.add(kernel_module)
-                subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps)
+                subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps_function)
                 for module2 in subsystem_modules:
                     clusters = strategy.divide(module2)
                     self.all_clusters.update(clusters)
@@ -171,10 +171,10 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('After dividing build modules: {}'.format(build_modules))
 
-        if 'modules dep function file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
+        if 'module dependencies file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
         else:
-            self.mqs['Linux kernel module deps function'].close()
+            self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
         cc_ready = set()

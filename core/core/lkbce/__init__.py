@@ -60,13 +60,13 @@ class LKBCE(core.components.Component):
             with open(self.linux_kernel['build cmd descs file'], 'w'):
                 pass
 
-            if 'modules dep function file' in self.conf['Linux kernel']:
-                with open(self.conf['Linux kernel']['modules dep function file']) as fp:
+            if 'module dependencies file' in self.conf['Linux kernel']:
+                with open(self.conf['Linux kernel']['module dependencies file']) as fp:
                     self.parse_linux_kernel_mod_function_deps(fp)
-                    self.mqs['Linux kernel module deps function'].put(self.linux_kernel['module deps function'])
+                    self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
 
-            if 'modules size file' in self.conf['Linux kernel']:
-                with open(self.conf['Linux kernel']['modules size file']) as fp:
+            if 'module sizes file' in self.conf['Linux kernel']:
+                with open(self.conf['Linux kernel']['module sizes file']) as fp:
                     self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
             linux_kernel_modules = self.mqs['Linux kernel modules'].get()
@@ -80,11 +80,11 @@ class LKBCE(core.components.Component):
             if 'all' in self.linux_kernel.get('modules', []) \
                     or self.linux_kernel.get('build kernel', False):
 
-                if 'modules dep function file' not in self.conf['Linux kernel']:
+                if 'module dependencies file' not in self.conf['Linux kernel']:
                     self.extract_all_linux_kernel_mod_deps_function()
-                    self.mqs['Linux kernel module deps function'].put(self.linux_kernel['module deps function'])
+                    self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
 
-                if 'modules size file' not in self.conf['Linux kernel']:
+                if 'module sizes file' not in self.conf['Linux kernel']:
                     self.extract_all_linux_kernel_mod_size()
                     self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
 
@@ -215,7 +215,7 @@ class LKBCE(core.components.Component):
         if 'all' in self.linux_kernel.get('modules', []) \
                 or self.linux_kernel.get('build kernel', False):
             all_modules = set()
-            for module, _, module2 in self.linux_kernel['module deps function']:
+            for module, _, module2 in self.linux_kernel['module dependencies']:
                 all_modules.add(module)
                 all_modules.add(module2)
 
@@ -235,7 +235,7 @@ class LKBCE(core.components.Component):
                                                      self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
 
     def parse_linux_kernel_mod_function_deps(self, fp):
-        self.linux_kernel['module deps function'] = []
+        self.linux_kernel['module dependencies'] = []
         for line in fp:
             splts = line[:-1].split(' ')
             first = splts[0]
@@ -249,7 +249,7 @@ class LKBCE(core.components.Component):
             elif 'extra' in second:
                 second = 'ext-modules/' + second[second.find('extra') + 6:]
             func = splts[2][1:-2]
-            self.linux_kernel['module deps function'].append((second, func, first))
+            self.linux_kernel['module depencendies'].append((second, func, first))
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
