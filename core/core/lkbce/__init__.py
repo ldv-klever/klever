@@ -60,35 +60,40 @@ class LKBCE(core.components.Component):
             with open(self.linux_kernel['build cmd descs file'], 'w'):
                 pass
 
-            if 'module dependencies file' in self.conf['Linux kernel']:
-                with open(self.conf['Linux kernel']['module dependencies file']) as fp:
-                    self.parse_linux_kernel_mod_function_deps(fp)
-                    self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
-
-            if 'module sizes file' in self.conf['Linux kernel']:
-                with open(self.conf['Linux kernel']['module sizes file']) as fp:
-                    self.mqs['Linux kernel module sizes'].put(json.load(fp))
-
-            linux_kernel_modules = self.mqs['Linux kernel modules'].get()
-            self.mqs['Linux kernel modules'].close()
-            self.linux_kernel['modules'] = linux_kernel_modules.get('modules', [])
-            self.linux_kernel['build kernel'] = linux_kernel_modules.get('build kernel', False)
+            self.extract_module_files()
+            self.receive_modules_to_build()
 
             self.launch_subcomponents(('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
 
-            if 'all' in self.linux_kernel['modules'] \
-                    or self.linux_kernel['build kernel']:
-                if 'module dependencies file' not in self.conf['Linux kernel']:
-                    self.extract_all_linux_kernel_mod_deps_function()
-                    self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
-
-                if 'module sizes file' not in self.conf['Linux kernel']:
-                    self.extract_all_linux_kernel_mod_size()
-                    self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
+            self.extract_module_deps_and_sizes()
 
             if not self.conf['keep intermediate files']:
                 os.remove(self.linux_kernel['build cmd descs file'])
+
+    def extract_module_deps_and_sizes(self):
+        if 'module dependencies file' not in self.conf['Linux kernel']:
+            self.extract_all_linux_kernel_mod_deps_function()
+            self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
+
+        if 'module sizes file' not in self.conf['Linux kernel']:
+            self.extract_all_linux_kernel_mod_size()
+            self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
+
+    def receive_modules_to_build(self):
+        linux_kernel_modules = self.mqs['Linux kernel modules'].get()
+        self.mqs['Linux kernel modules'].close()
+        self.linux_kernel['modules'] = linux_kernel_modules.get('modules', [])
+        self.linux_kernel['build kernel'] = linux_kernel_modules.get('build kernel', False)
+
+    def extract_module_files(self):
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            with open(self.conf['Linux kernel']['module dependencies file']) as fp:
+                self.parse_linux_kernel_mod_function_deps(fp)
+                self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
+        if 'module sizes file' in self.conf['Linux kernel']:
+            with open(self.conf['Linux kernel']['module sizes file']) as fp:
+                self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands
 
