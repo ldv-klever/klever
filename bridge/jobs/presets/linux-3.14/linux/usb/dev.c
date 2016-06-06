@@ -38,7 +38,6 @@ void ldv_usb_put_dev(struct usb_device *dev)
 	}
 }
 
-/* TODO: EMG doesn't support this now. */
 /* MODEL_FUNC_DEF Check that probe() keeps model in proper state */
 void ldv_check_return_value_probe(int retval)
 {
@@ -46,7 +45,7 @@ void ldv_check_return_value_probe(int retval)
 	if (retval)
 	{
 		/* ASSERT USB device reference counter should not be increased */
-		ldv_assert("", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
+		ldv_assert("linux:usb:resource:ref:probe failed", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
 	}
 }
 

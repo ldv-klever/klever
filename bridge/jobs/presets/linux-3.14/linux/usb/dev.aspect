@@ -16,3 +16,8 @@ around: call(void usb_put_dev(..))
 {
 	ldv_usb_put_dev($arg1);
 }
+
+before: call(int ldv_post_probe(..))
+{
+	ldv_check_return_value_probe($arg1);
+}
