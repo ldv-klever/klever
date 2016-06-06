@@ -106,7 +106,7 @@ class LKVOG(core.components.Component):
         if 'module sizes file' in self.conf['Linux kernel']:
             module_sizes = self.mqs['Linux kernel module sizes'].get()
 
-        if 'modules dependencies' not in self.conf['Linux kernel']:
+        if 'module dependencies file' not in self.conf['Linux kernel']:
             if strategy_name == 'separate modules':
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
