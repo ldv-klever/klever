@@ -89,7 +89,7 @@ class LKBCE(core.components.Component):
     def extract_module_files(self):
         if 'module dependencies file' in self.conf['Linux kernel']:
             with open(self.conf['Linux kernel']['module dependencies file']) as fp:
-                self.parse_linux_kernel_mod_function_deps(fp)
+                self.parse_linux_kernel_mod_function_deps(fp, True)
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
         if 'module sizes file' in self.conf['Linux kernel']:
             with open(self.conf['Linux kernel']['module sizes file']) as fp:
@@ -208,11 +208,11 @@ class LKBCE(core.components.Component):
                             jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
                             specify_arch=False, collect_build_cmds=False)
 
-            p = subprocess.Popen(['/sbin/depmod', '-b', self.linux_kernel['installed modules dir'],
-                              self.linux_kernel['version'], '-v'], stdout=subprocess.PIPE,
-                             stderr=subprocess.DEVNULL, universal_newlines=True)
-            with p.stdout as fp:
-                self.parse_linux_kernel_mod_function_deps(fp)
+            depmod_output = core.utils.execute(self.logger, ['/sbin/depmod', '-b',
+                                                             self.linux_kernel['installed modules dir'],
+                                                             self.linux_kernel['version'], '-v'],
+                                               collect_all_stdout=True)
+            self.parse_linux_kernel_mod_function_deps(depmod_output, False)
 
     def extract_all_linux_kernel_mod_size(self):
         if 'all' in self.linux_kernel['modules'] \
@@ -237,10 +237,12 @@ class LKBCE(core.components.Component):
                         os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
                                                      self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
 
-    def parse_linux_kernel_mod_function_deps(self, fp):
+    def parse_linux_kernel_mod_function_deps(self, lines, remove_newline_symbol):
         self.linux_kernel['module dependencies'] = []
-        for line in fp:
-            splts = line[:-1].split(' ')
+        for line in lines:
+            if remove_newline_symbol:
+                line = line[:-1]
+            splts = line.split(' ')
             first = splts[0]
             if 'kernel' in first:
                 first = first[first.find('kernel') + 7:]
@@ -252,7 +254,7 @@ class LKBCE(core.components.Component):
             elif 'extra' in second:
                 second = 'ext-modules/' + second[second.find('extra') + 6:]
             func = splts[2][1:-2]
-            self.linux_kernel['module depencendies'].append((second, func, first))
+            self.linux_kernel['module dependencies'].append((second, func, first))
 
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
