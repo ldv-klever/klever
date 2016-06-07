@@ -1,0 +1,17 @@
+before: file ("$this")
+{
+struct urb;
+
+extern struct urb *ldv_usb_alloc_urb(void);
+extern void ldv_usb_free_urb(struct urb *urb);
+}
+
+around: call(void usb_free_urb(struct urb *urb))
+{
+	ldv_usb_free_urb(urb);
+}
+
+around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
+{
+	return ldv_usb_alloc_urb();
+}

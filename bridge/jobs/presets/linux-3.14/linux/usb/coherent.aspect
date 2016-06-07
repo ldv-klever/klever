@@ -1,0 +1,16 @@
+before: file ("$this")
+{
+extern void *ldv_usb_alloc_coherent(void);
+extern void ldv_usb_free_coherent(void *addr);
+}
+
+around: call(void usb_free_coherent(struct usb_device *dev, size_t size, void *addr, dma_addr_t dma))
+{
+  ldv_usb_free_coherent(addr);
+}
+
+around: call(void *usb_alloc_coherent(struct usb_device *dev, size_t size,
+    gfp_t mem_flags, dma_addr_t *dma))
+{
+  return ldv_usb_alloc_coherent();
+}

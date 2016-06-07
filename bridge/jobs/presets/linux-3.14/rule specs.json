@@ -276,6 +276,40 @@
         "aspects": ["linux/usb/dev.aspect", "linux/asm/atomic.aspect"]
       }
     },
+    "linux:usb:urb": {
+      "aliases": ["68"],
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {
+          "linux/usb/urb.c": {
+            "bug kinds":
+            [
+              "linux:usb:urb:less initial decrement",
+              "linux:usb:urb:more initial at exit"
+            ]
+          },
+          "aspects": ["linux/usb/urb.aspect"]
+        }
+      }
+    },
+    "linux:usb:coherent": {
+      "aliases": ["69"],
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {
+          "linux/usb/coherent.c": {
+            "bug kinds":
+            [
+              "linux:usb:coherent:less initial decrement",
+              "linux:usb:coherent:more initial at exit"
+            ]
+          },
+          "aspects": ["linux/usb/coherent.aspect"]
+        }
+      }
+    },
     "linux:alloc:resource": {
       "aliases": ["104"],
       "description": "...",
