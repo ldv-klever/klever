@@ -1,44 +1,42 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include <linux/of_platform.h>
+#include <linux/platform_device.h>
 #include <linux/pm.h>
-#include <linux/of_device.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-static struct cdev ldv_cdev;
+int flip_a_coin;
 
 static int ldvprobe(struct platform_device *op)
 {
-	int err;
-	err = ldv_function();
-	if(err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	int res;
+
+    ldv_invoke_callback();
+    res = ldv_undef_int();
+    if (!res)
+        ldv_probe_up();
+    return res;
 }
 
 static int ldvremove(struct platform_device *op)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_release_completely();
+    ldv_invoke_callback();
+    return 0;
 }
 
 static int test_suspend(struct device *dev)
 {
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_probe_up();
+    ldv_invoke_middle_callback();
+    return 0;
 }
 
 static int test_resume(struct device *dev)
 {
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_release_down();
+    ldv_invoke_middle_callback();
+    return 0;
 }
-
 
 static SIMPLE_DEV_PM_OPS(test_pm_ops, test_suspend, test_resume);
 
@@ -54,18 +52,22 @@ static struct platform_driver ldv_platform_driver = {
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = platform_driver_register(&ldv_platform_driver);
-	if (err) {
-		return err;
-	}
-	return 0;
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        return platform_driver_register(&ldv_platform_driver);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	platform_driver_unregister(&ldv_platform_driver);
+	if (flip_a_coin) {
+        platform_driver_unregister(&ldv_platform_driver);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
+

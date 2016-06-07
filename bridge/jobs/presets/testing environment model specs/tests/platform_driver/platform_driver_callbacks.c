@@ -1,39 +1,26 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include <linux/of_platform.h>
-#include <linux/of_device.h>
+#include <linux/platform_device.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-static struct cdev ldv_cdev;
-int deg_lock;
-
-struct ldvdriver {
-	void (*handler)(void);
-};
+int flip_a_coin;
 
 static int ldvprobe(struct platform_device *op)
 {
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
-	int err;
-	err = ldv_function();
-	if (err){
-		return err;
-	}
-	return 0;
+	int res;
+
+    ldv_invoke_callback();
+    res = ldv_undef_int();
+    if (!res)
+        ldv_probe_up();
+    return res;
 }
 
 static int ldvremove(struct platform_device *op)
 {
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
-	return 0;
+	ldv_release_down();
+    ldv_invoke_callback();
+    return 0;
 }
 
 static struct platform_driver ldv_platform_driver = {
@@ -45,25 +32,22 @@ static struct platform_driver ldv_platform_driver = {
 	},
 };
 
-static void handler(void)
-{
-	platform_driver_unregister(&ldv_platform_driver);
-	deg_lock = 1;
-};
-
-static struct ldvdriver driver = {
-	.handler =	handler
-};
-
 static int __init ldv_init(void)
 {
-	deg_lock = 0;
-	return platform_driver_register(&ldv_platform_driver);
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        return platform_driver_register(&ldv_platform_driver);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	//nothing
+	if (flip_a_coin) {
+        platform_driver_unregister(&ldv_platform_driver);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);
