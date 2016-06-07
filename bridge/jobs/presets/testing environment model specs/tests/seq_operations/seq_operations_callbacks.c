@@ -1,43 +1,50 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include <linux/err.h>
 #include <linux/seq_file.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
+int flip_a_coin;
 struct file *file;
-struct inode * inode;
+struct inode *inode;
 
-static void *ldvstart(struct seq_file *file, loff_t *pos)
+static void *ldv_start(struct seq_file *file, loff_t *pos)
 {
-	mutex_lock(ldv_envgen);
+	int res;
+
+    ldv_invoke_callback();
+    res = ldv_undef_int();
+    if (!res)
+        ldv_probe_up();
+    return res;
 }
 
-static void ldvstop(struct seq_file *file, void *iter_ptr)
+static void ldv_stop(struct seq_file *file, void *iter_ptr)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_release_down();
+    ldv_invoke_callback();
 }
 
 static const struct seq_operations ldv_ops = {
-	.start = ldvstart,
-	.stop  = ldvstop,
+	.start = ldv_start,
+	.stop  = ldv_stop,
 };
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = seq_open(file, &ldv_ops);
-	if (err)
-		return err;
-	return 0;
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        return seq_open(file, &ldv_ops);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	seq_release(inode,file);
+	if (flip_a_coin) {
+        seq_release(inode,file);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);

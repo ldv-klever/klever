@@ -1,65 +1,47 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include <linux/err.h>
 #include <linux/seq_file.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
 struct file *file;
-struct inode * inode;
-int psize;
+struct inode *inode;
 
-int deg_lock;
-struct ldvdriver {
-	void (*handler)(void);
-};
-
-static void *ldvstart(struct seq_file *file, loff_t *pos)
+static void *ldv_start(struct seq_file *file, loff_t *pos)
 {
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
+	ldv_invoke_callback();
+    return 0;
 }
 
-static void ldvstop(struct seq_file *file, void *iter_ptr)
+static void ldv_stop(struct seq_file *file, void *iter_ptr)
 {
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
+	ldv_invoke_callback();
 }
 
 static const struct seq_operations ldv_ops = {
-	.start = ldvstart,
-	.stop  = ldvstop,
-};
-
-static void handler(void)
-{
-	seq_release_private(inode,file);
-	deg_lock = 1;
-};
-
-static struct ldvdriver driver = {
-	.handler =	handler
+	.start = ldv_start,
+	.stop  = ldv_stop,
 };
 
 static int __init ldv_init(void)
 {
-	deg_lock = 0;
-	int err;
-	err = seq_open_private(file, &ldv_ops, psize);
-	if (!err)
-		return err;
-	return 0;
+	int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        if (!seq_open_private(file, &ldv_ops, ldv_undef_int())) {
+            seq_release_private(inode, file);
+            ldv_deregister();
+        }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	//nothing
+	/* pass */
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
+
