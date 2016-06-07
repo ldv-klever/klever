@@ -112,6 +112,7 @@ class Closure:
                     task_list[task_id] = task
                 else:
                     # Limit wasn't reached ? Find new root
+                    flag = False
                     for module in sorted(task['modules']):
                         if module != task['root'] and module in task['task_hash'] and task['task_hash'][module].keys():
                             flag = True
@@ -124,6 +125,9 @@ class Closure:
                             else:
                                 new_task['origin'] = task['root']
                             rest_list.append(new_task)
+                    if not flag:
+                        task_id = " ".join(list(sorted(task['modules'])))
+                        task_list[task_id] = task
             else:
                 task_id = " ".join(list(sorted(task['modules'])))
                 task_list[task_id] = task
