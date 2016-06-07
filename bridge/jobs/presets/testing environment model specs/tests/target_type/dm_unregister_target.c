@@ -1,49 +1,44 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
 #include <linux/device-mapper.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-
-static int ldvctr(struct dm_target *ti, unsigned int argc, char **argv)
+static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-	int err;
-	err = ldv_function();
-	if(err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_invoke_callback();
+    return 0;
 }
 
-static void ldvdtr(struct dm_target *ti)
+static void ldv_dtr(struct dm_target *ti)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_invoke_callback();
 }
-
 
 static struct target_type ldv_target = {
 	.name	     = "ldv",
 	.module      = THIS_MODULE,
-	.ctr	     = ldvctr,
-	.dtr	     = ldvdtr,
+	.ctr	     = ldv_ctr,
+	.dtr	     = ldv_dtr,
 };
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = dm_register_target(&ldv_target);
-	if (err!=0)
-		return err;
-	return 0;
+	int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        if (!dm_register_target(&ldv_target)) {
+            dm_unregister_target(&ldv_target);
+            ldv_deregister();
+        }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	dm_unregister_target(&ldv_target);
+	/* pass */
 }
 
 module_init(ldv_init);

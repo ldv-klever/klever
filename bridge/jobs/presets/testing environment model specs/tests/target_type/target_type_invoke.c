@@ -1,44 +1,29 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
 #include <linux/device-mapper.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-
-static int ldvctr(struct dm_target *ti, unsigned int argc, char **argv)
+static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-	int err;
-	err = ldv_function();
-	if(err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_invoke_reached();
+    return 0;
 }
 
-static void ldvdtr(struct dm_target *ti)
+static void ldv_dtr(struct dm_target *ti)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_invoke_reached();
 }
-
 
 static struct target_type ldv_target = {
 	.name	     = "ldv",
 	.module      = THIS_MODULE,
-	.ctr	     = ldvctr,
-	.dtr	     = ldvdtr,
+	.ctr	     = ldv_ctr,
+	.dtr	     = ldv_dtr,
 };
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = dm_register_target(&ldv_target);
-	if (err!=0)
-		return err;
-	return 0;
+	dm_register_target(&ldv_target);
 }
 
 static void __exit ldv_exit(void)
