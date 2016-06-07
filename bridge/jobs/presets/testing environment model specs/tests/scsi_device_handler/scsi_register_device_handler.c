@@ -1,45 +1,43 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <scsi/scsi_dh.h>
+#include <scsi/scsi_device.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int random_function(void);
+int flip_a_coin;
 
-static int test_attach(struct scsi_device *sdev)
+static int ldv_attach(struct scsi_device *sdev)
 {
-	int ret;
-	ret = random_function();
-	if(ret == 0){
-		mutex_unlock(ldv_envgen);
-	}
-	return ret;
+	ldv_invoke_callback();
+    return 0;
 }
 
-static void test_detach(struct scsi_device *sdev)
+static void ldv_detach(struct scsi_device *sdev)
 {
-	mutex_lock(ldv_envgen);
+	ldv_invoke_callback();
 }
 
 static struct scsi_device_handler ldv_test_struct = {
-	.name =		"ldv-test",
-	.attach =		test_attach,
-	.detach =		test_detach,
+	.name =	"ldv-test",
+	.attach = ldv_attach,
+	.detach = ldv_detach,
 };
 
 static int __init test_init(void)
 {
-	int ret;
-	ret = scsi_register_device_handler(&ldv_test_struct);
-	if(ret == 0){
-			mutex_lock(ldv_envgen);
-	}
-	return ret;
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        return scsi_register_device_handler(&ldv_test_struct);
+    }
+    return 0;
 }
 
 static void __exit test_exit(void)
 {
-	mutex_unlock(ldv_envgen);
-	scsi_unregister_device_handler(&ldv_test_struct);
+	if (flip_a_coin) {
+        scsi_unregister_device_handler(&ldv_test_struct);
+        ldv_deregister();
+    }
 }
 
 module_init(test_init);
