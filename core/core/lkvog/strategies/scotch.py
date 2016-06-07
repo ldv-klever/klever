@@ -11,9 +11,9 @@ class Scotch:
             params = {}
         self.logger = logger
         self.scotch_path = params['scotch path']
-        self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file')
-        self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch')
-        self.scotch_out = os.path.join(strategy_params['work dir'], 'scotch_out')
+        self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file.txt')
+        self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch.log')
+        self.scotch_out = os.path.join(strategy_params['work dir'], 'scotch_out.txt')
         self.module_deps = {}
         self.task_size = params['cluster size']
         self.balance_tolerance = params.get('balance tolerance', 0.05)
