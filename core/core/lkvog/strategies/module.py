@@ -100,3 +100,31 @@ class Graph:
     def size(self):
         return len(self.modules)
 
+
+def order_build(modules, function_deps):
+    deps = {}
+    for module1, func, module2 in function_deps:
+        deps.setdefault(module2, [])
+        deps[module2].append(module1)
+
+    ret = []
+    unmarked = list(sorted(list(modules)))
+    marked = {}
+    while unmarked:
+        selected = unmarked.pop(0)
+        if selected not in marked:
+            visit(selected, marked, ret, modules, deps)
+
+    return ret
+
+
+def visit(selected, marked, sorted_list, modules, deps):
+    if selected not in marked:
+        marked[selected] = 0
+
+        if selected in modules:
+            for m in set(deps.get(selected, [])).intersection(modules):
+                visit(m, marked, sorted_list, modules, deps)
+
+        marked[selected] = 1
+        sorted_list.append(selected)

@@ -168,7 +168,11 @@ class LKVOG(core.components.Component):
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
-            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
+            # Build order must be from "independed" modules
+            # Otherwise, module_name.mod.c will be changed
+            send_build = module.order_build(build_modules, module_deps_function)
+            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(send_build)})
+
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
