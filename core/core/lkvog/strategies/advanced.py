@@ -77,7 +77,7 @@ class Advanced:
             return False
 
         if not self.analyze_all_export_function and not self.analyze_all_calls and \
-                        self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
+                                                self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
             # All export functions has checked and the max gropus for the module has reached
             return True
 
@@ -97,7 +97,7 @@ class Advanced:
             return True
 
         if not self.not_checked_call_f.get(module, {}) \
-            and not self.not_checked_export_f.get(module, {}) and self.minimize_groups_for_module:
+                and not self.not_checked_export_f.get(module, {}) and self.minimize_groups_for_module:
             return True
 
         if self.count_groups_for_m.get(module, 0) > self.max_g_for_m:
@@ -184,7 +184,7 @@ class Advanced:
 
     def measure_predecessor(self, module_pred, module_succ, process, ret):
         weight_funcs = [self.count_already_weight, self.size_weight, self.export_provided_weight,
-                   self.remoteness_weight]
+                        self.remoteness_weight]
         if self.analyze_all_export_function:
             weight_funcs.insert(0, self.export_weight)
         else:
@@ -195,7 +195,7 @@ class Advanced:
 
     def measure_successor(self, module_pred, module_succ, process, ret):
         weight_funcs = [self.count_already_weight, self.size_weight, self.call_provided_weight,
-                   self.remoteness_weight]
+                        self.remoteness_weight]
         if self.analyze_all_calls:
             weight_funcs.insert(0, self.call_weight)
         else:
@@ -278,12 +278,14 @@ class Advanced:
                 for module in process:
                     if self.division_type != 'Module':
                         # Search best candidate from successors
-                        candidate_list += list(map(lambda module_pred: (module_pred, self.measure_predecessor(module_pred, module, process, clusters)),
+                        candidate_list += list(map(lambda module_pred: (
+                            module_pred, self.measure_predecessor(module_pred, module, process, clusters)),
                                                    filter(lambda module: module not in process, module.predecessors)))
 
                     if self.division_type != 'Library':
                         # Search best candidate from predecessors
-                        candidate_list += list(map(lambda module_succ: (module_succ, self.measure_successor(module, module_succ, process, clusters)),
+                        candidate_list += list(map(lambda module_succ: (
+                            module_succ, self.measure_successor(module, module_succ, process, clusters)),
                                                    filter(lambda module: module not in process, module.successors)))
                 best_candidate = self.get_best_candidate(candidate_list)
                 if best_candidate:
@@ -294,25 +296,24 @@ class Advanced:
                     self.count_groups_for_m.setdefault(best_candidate, 0)
                     self.count_groups_for_m[best_candidate] += 1
 
-
                     # Update not checked export functions and not checked call functions
                     for succ in filter(lambda module: module in process, best_candidate.successors):
                         self.not_checked_export_f.setdefault(succ, set()).difference_update \
                             ([functions for functions, modules in succ.export_functions.items()
-                                if best_candidate in modules])
+                              if best_candidate in modules])
                     for pred in filter(lambda module: module in process, best_candidate.predecessors):
                         self.not_checked_export_f.setdefault(best_candidate, set()).difference_update \
                             ([function for function, modules in best_candidate.export_functions.items()
-                                if pred in modules])
+                              if pred in modules])
 
                     for succ in filter(lambda module: module in process, best_candidate.successors):
                         self.not_checked_call_f.setdefault(best_candidate, set()).difference_update \
                             ([function for function, modules in best_candidate.call_functions.items()
-                                if succ in modules])
+                              if succ in modules])
                     for pred in filter(lambda module: module in process, best_candidate.predecessors):
                         self.not_checked_call_f.setdefault(pred, set()).difference_update \
                             ([function for function, modules in pred.call_functions.items()
-                                if best_candidate in modules])
+                              if best_candidate in modules])
 
                     for module in process:
                         self.not_checked_succs[module].discard(best_candidate)
@@ -359,4 +360,5 @@ class Advanced:
             print('Not checked all call', main_module.id, len(self.not_checked_call_f[main_module]))
         if self.not_checked_export_f[main_module]:
             print('Not checked all export', main_module.id, len(self.not_checked_export_f[main_module]))
+
         return ret

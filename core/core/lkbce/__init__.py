@@ -7,7 +7,6 @@ import shutil
 import tarfile
 import time
 import urllib.parse
-import subprocess
 import json
 
 import core.components
@@ -232,7 +231,8 @@ class LKBCE(core.components.Component):
                     self.linux_kernel['version'], 'extra', module.replace('ext-modules/', ''))):
                 self.linux_kernel['module sizes'][module] = \
                     os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
-                                                 self.linux_kernel['version'], 'extra', module.replace('ext-modules/', '')))
+                                                 self.linux_kernel['version'], 'extra', module.replace('ext-modules/',
+                                                                                                       '')))
 
     def parse_linux_kernel_mod_function_deps(self, lines, remove_newline_symbol):
         self.linux_kernel['module dependencies'] = []

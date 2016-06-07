@@ -1,8 +1,9 @@
 from core.lkvog.strategies.module import Module
 from core.lkvog.strategies.module import Graph
 
+
 class Separate_modules:
-    def __init__(self, logger, module_deps, params={}):
+    def __init__(self, logger, module_deps, params):
         self.logger = logger
         self.checked_clusters = set()
 

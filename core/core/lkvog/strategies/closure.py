@@ -114,6 +114,7 @@ class Closure:
                     # Limit wasn't reached ? Find new root
                     for module in sorted(task['modules']):
                         if module != task['root'] and module in task['task_hash'] and task['task_hash'][module].keys():
+                            flag = True
                             new_task = {'root': module,
                                         'task_hash': new_hash,
                                         'size': len(task['modules']),
@@ -150,4 +151,5 @@ class Closure:
             ret.append(cluster)
 
         self.logger.info("The nuber of clusters is {0}".format(len(ret)))
+
         return ret

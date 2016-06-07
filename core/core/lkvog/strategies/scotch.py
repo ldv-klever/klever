@@ -6,13 +6,13 @@ from core.utils import execute
 
 
 class Scotch:
-    # TODO: graph_file, scotch_out, scotch_log from parameters
-    def __init__(self, logger, strategy_params, params={}):
+    def __init__(self, logger, strategy_params, params=None):
+        if params is None:
+            params = {}
         self.logger = logger
         self.scotch_path = params['scotch path']
-        # TODO: Extensions?
         self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file')
-        self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch_log')
+        self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch')
         self.scotch_out = os.path.join(strategy_params['work dir'], 'scotch_out')
         self.module_deps = {}
         self.task_size = params['cluster size']
@@ -151,4 +151,5 @@ class Scotch:
             ret_cluster.root = [module for module in ret_cluster.modules if module.id == module_name][0]
         if not ret_clusters:
             ret_clusters = [Graph([Module(module_name)])]
+
         return ret_clusters

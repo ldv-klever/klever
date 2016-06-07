@@ -137,7 +137,8 @@ class LKVOG(core.components.Component):
         build_modules = set()
         self.logger.debug("Initial list of modules to be built: {0}".format(self.conf['Linux kernel']['modules']))
         for kernel_module in self.conf['Linux kernel']['modules']:
-            kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] else 'ext-modules/' + kernel_module
+            kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] \
+                else 'ext-modules/' + kernel_module
             if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
                 # Invidiual module.
                 self.logger.debug('Use strategy for {0} module'.format(kernel_module))
@@ -210,7 +211,7 @@ class LKVOG(core.components.Component):
                                 module_clusters.append(cluster)
                     # Remove clusters that will be checked.
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
-                        self.all_clusters))
+                                                   self.all_clusters))
                 else:
                     self.checked_modules.add(module.Module(self.module['name']))
                     module_clusters.append(module.Graph([module.Module(self.module['name'])]))
