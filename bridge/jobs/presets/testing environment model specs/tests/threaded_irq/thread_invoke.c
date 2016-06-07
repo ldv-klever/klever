@@ -9,13 +9,18 @@ void * data;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
+	return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t ldv_thread(int irq_id, void * data)
+{
 	ldv_invoke_reached();
 	return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)
 {
-	return request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
+	return request_threaded_irq(irq_id, irq_handler, ldv_thread, 0, "ldv interrupt", data);
 }
 
 static void __exit ldv_exit(void)

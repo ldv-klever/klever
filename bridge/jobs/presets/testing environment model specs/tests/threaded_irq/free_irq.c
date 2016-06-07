@@ -1,54 +1,43 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
 unsigned int irq_id = 100;
 void * data;
-void __percpu *percpu_dev_id;
-struct device *dev;
-const char *devname;
-int deg_lock;
 
-static irqreturn_t irq_handler1(int irq_id, void * data){
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
+static irqreturn_t irq_handler(int irq_id, void * data)
+{
+	ldv_invoke_callback();
+	return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t ldv_thread(int irq_id, void * data)
+{
+	ldv_invoke_callback();
 	return IRQ_HANDLED;
 }
 
-struct ldvdriver {
-	void (*handler)(void);
-};
-
-static void handler(void)
-{
-	free_irq(irq_id, data);
-	deg_lock = 1;
-};
-
-static struct ldvdriver driver = {
-	.handler =	handler
-};
-
 static int __init ldv_init(void)
 {
-	deg_lock = 0;
-	int err;
-	err = request_threaded_irq(irq_id, irq_handler1, NULL, 0, "ldv interrupt", data);
-	if (err) {
-		return err;
-	}
-	return 0;
+    int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        if (!request_threaded_irq(irq_id, irq_handler, ldv_thread, 0, "ldv interrupt", data)) {
+            free_irq(irq_id, data);
+            ldv_deregister();
+        }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	//...
+	/* pass */
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

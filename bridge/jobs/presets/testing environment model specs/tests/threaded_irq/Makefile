@@ -1,4 +1,2 @@
-obj-m += reg1.o order1.o unreg1.o
-reg1-objs := reg1_file1.o
-order1-objs := order1_file1.o
-unreg1-objs := unreg1_file1.o
+obj-m += free_irq.o irq_invoke.o request_threaded_irq.o thread_invoke.o threaded_irq_callbacks.o
+

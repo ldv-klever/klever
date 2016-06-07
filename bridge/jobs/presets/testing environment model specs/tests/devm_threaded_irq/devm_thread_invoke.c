@@ -8,18 +8,20 @@ unsigned int irq_id = 100;
 void *data;
 struct device *dev;
 
-static irqreturn_t irq_handler(int irq_id, void * data){
+static irqreturn_t irq_handler(int irq_id, void * data)
+{
+    return IRQ_WAKE_THREAD;
+}
+
+static irqreturn_t irq_thread(int irq_id, void * data)
+{
     ldv_invoke_reached();
     return IRQ_HANDLED;
 }
 
-static irqreturn_t irq_thread(int irq_id, void * data){
-    ldv_invoke_reached();
-}
-
 static int __init ldv_init(void)
 {
-    return devm_request_threaded_irq(dev, irq_id,irq_handler, irq_thread, NULL, "ldv interrupt", data);
+    return devm_request_threaded_irq(dev, irq_id, irq_handler, irq_thread, NULL, "ldv interrupt", data);
 }
 
 static void __exit ldv_exit(void)

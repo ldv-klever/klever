@@ -9,13 +9,16 @@ void *data;
 struct device *dev;
 int flip_a_coin;
 
-static irqreturn_t irq_handler(int irq_id, void * data){
+static irqreturn_t irq_handler(int irq_id, void * data)
+{
 	ldv_invoke_callback();
-    return IRQ_HANDLED;
+    return IRQ_WAKE_THREAD;
 }
 
-static irqreturn_t irq_thread(int irq_id, void * data){
+static irqreturn_t irq_thread(int irq_id, void * data)
+{
     ldv_invoke_callback();
+    return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)

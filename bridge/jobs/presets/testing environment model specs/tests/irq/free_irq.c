@@ -7,7 +7,8 @@
 unsigned int irq_id = 100;
 void * data;
 
-static irqreturn_t irq_handler(int irq_id, void * data){
+static irqreturn_t irq_handler(int irq_id, void * data)
+{
 	ldv_invoke_callback();
 	return IRQ_HANDLED;
 }
