@@ -1,1 +1,1 @@
-obj-m += free_percpu_irq.o percpu_irq_callbacks.o percpu_irq_invoke.o request_percpu_irq.o
+obj-m += free_percpu_irq.o percpu_irq_invoke.o request_percpu_irq.o
