@@ -49,6 +49,17 @@ class Cluster:
 
         self.modules = list(modules.values())
 
+    def draw(self, dir):
+        g = Digraph(name=str(self.root.id),
+                    format="png")
+        for module in self.modules:
+            g.node(module.id, module.id)
+        for module in self.modules:
+            for pred in module.predecessors:
+                g.edge(module.id, pred.id)
+        g.save(os.path.join(dir, self.root.id + self.md5_hash))
+        g.render()
+
     def __hash__(self):
         return hash(frozenset(self.modules))
 
@@ -70,6 +81,17 @@ class Graph:
     def __hash__(self):
         return hash(frozenset(self.modules))
 
+    def draw(self, dir):
+        g = Digraph(name=str(self.root.id),
+                    format="png")
+        for module in self.modules:
+            g.node(module.id, module.id)
+        for module in self.modules:
+            for pred in module.predecessors:
+                g.edge(module.id, pred.id)
+        g.save(os.path.join(dir, self.root.id + self.md5_hash))
+        g.render()
+
     @property
     def md5_hash(self):
         return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()
@@ -77,3 +99,4 @@ class Graph:
     @property
     def size(self):
         return len(self.modules)
+

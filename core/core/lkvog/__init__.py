@@ -145,6 +145,8 @@ class LKVOG(core.components.Component):
                 clusters = strategy.divide(kernel_module)
                 self.all_clusters.update(clusters)
                 for cluster in clusters:
+                    if self.conf['LKVOG strategy'].get('draw graphs', False):
+                        cluster.draw(".")
                     for cluster_module in cluster.modules:
                         build_modules.add(cluster_module.id)
                         self.checked_modules.add(cluster_module.id)
@@ -156,6 +158,8 @@ class LKVOG(core.components.Component):
                     clusters = strategy.divide(module2)
                     self.all_clusters.update(clusters)
                     for cluster in clusters:
+                        if self.conf['LKVOG strategy'].get('draw graphs', False):
+                            cluster.draw(".")
                         for module3 in cluster.modules:
                             self.checked_modules.add(module3.id)
                             if not self.is_part_of_subsystem(module3, build_modules):
