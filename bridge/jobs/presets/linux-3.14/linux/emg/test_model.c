@@ -48,6 +48,17 @@ void ldv_probe_up(void)
 /* More resources are freed */
 void ldv_release_down(void)
 {
-    probed--;
+    if (probed > 0)
+        probed--;
+    else
+        ldv_assert(0);
 }
 
+/* Free all resources */
+void ldv_release_completely(void)
+{
+    if (!probed)
+        ldv_assert(0);
+    else
+        probed = 0;
+}

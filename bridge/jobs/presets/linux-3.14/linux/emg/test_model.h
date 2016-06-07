@@ -18,3 +18,6 @@ void ldv_probe_up(void);
 
 /* More resources are freed */
 void ldv_release_down(void);
+
+/* Free all resources */
+void ldv_release_completely(void);
