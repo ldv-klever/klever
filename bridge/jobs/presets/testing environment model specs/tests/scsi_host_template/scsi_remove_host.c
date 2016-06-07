@@ -1,55 +1,40 @@
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
-#include "scsi.h"
+#include <scsi/scsi_host.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-struct rtc_device *rtc;
-struct Scsi_Host *instance;
-int privsize;
-int deg_lock;
+struct device *dev;
+struct Scsi_Host host;
 
-
-struct ldvdriver {
-	void (*handler)(void);
-};
-
-static int ldvreset(struct scsi_cmnd *cmd){
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
+static int ldv_reset(struct scsi_cmnd *cmd){
+	ldv_invoke_callback();
+    return 0;
 }
 
 static struct scsi_host_template ldv_template = {
-	.eh_bus_reset_handler   = ldvreset,
-};
-
-static void handler(void)
-{
-	scsi_remove_host(instance);
-	deg_lock = 1;
-};
-
-static struct ldvdriver driver = {
-	.handler =	handler
+	.eh_bus_reset_handler   = ldv_reset,
 };
 
 static int __init ldv_init(void)
 {
-	deg_lock = 0;
-	int err;
-	err = scsi_host_alloc( &ldv_template, privsize);
-	if (!err)
-		return err;
-	return 0;
+	int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        host.hostt = & ldv_template;
+	    if (!scsi_add_host(& host, dev)) {
+	        scsi_remove_host(& host);
+            ldv_deregister();
+	    }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	//nothing
+	/* pass */
 }
 
 module_init(ldv_init);

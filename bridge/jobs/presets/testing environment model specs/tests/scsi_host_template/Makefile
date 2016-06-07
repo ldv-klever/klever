@@ -1,6 +1,1 @@
-obj-m += reg1.o reg2.o reg3.o unreg1.o unreg2.o
-reg1-objs := reg1_file1.o
-reg2-objs := reg2_file1.o
-reg3-objs := reg3_file1.o
-unreg1-objs := unreg1_file1.o
-unreg2-objs := unreg2_file1.o
+obj-m += scsi_add_host.o scsi_add_host_with_dma.o scsi_host_alloc.o scsi_host_alloc_invoke.o scsi_host_template_invoke.o scsi_remove_host.o scsi_unregister.o
