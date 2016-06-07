@@ -34,40 +34,6 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "external modules": "tests/scsi_device_handler",
-        "modules": ["scsi_register_device_handler.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/scsi_device_handler",
-        "modules": ["scsi_unregister_device_handler.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/scsi_device_handler",
-        "modules": ["scsi_device_handler_callbacks.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/scsi_device_handler",
-        "modules": ["scsi_device_handler_invoke.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    }
-  ],
-  "tmp": [
-    {
-      "Linux kernel": {
         "external modules": "tests/atmdev_ops",
         "modules": ["atm_dev_register.ko"]
       },
