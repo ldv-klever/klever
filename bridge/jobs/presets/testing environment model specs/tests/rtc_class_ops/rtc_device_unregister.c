@@ -1,41 +1,43 @@
-#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
 #include <linux/rtc.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
 struct device *dev;
 struct rtc_device *rtc;
 
-static int ldvgettime(struct device *dev, struct rtc_time *tm)
+static int ldv_read_time(struct device *dev, struct rtc_time *tm)
 {
-	mutex_unlock(ldv_envgen);
-}
-
-static int ldvsettime(struct device *dev, struct rtc_time *tm)
-{
-	mutex_unlock(ldv_envgen);
+	ldv_invoke_callback();
+    return 0;
 }
 
 static const struct rtc_class_ops ldv_ops = {
-	.read_time = ldvgettime,
-	.set_time = ldvsettime,
+	.read_time = ldv_read_time,
 };
 
 static int __init ldv_init(void)
 {
-	rtc = rtc_device_register("rtc-ldv", &dev, &ldv_ops,THIS_MODULE);
-	if (IS_ERR(rtc))
-		return PTR_ERR(rtc);
-	return 0;
+	int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        rtc = rtc_device_register("rtc-ldv", &dev, &ldv_ops, THIS_MODULE);
+        if (IS_ERR(rtc))
+            return PTR_ERR(rtc);
+        else {
+            rtc_device_unregister(rtc);
+            ldv_deregister();
+        }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	rtc_device_unregister(rtc);
+	/* pass */
 }
 
 module_init(ldv_init);
