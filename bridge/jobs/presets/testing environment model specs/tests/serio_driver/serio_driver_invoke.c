@@ -1,45 +1,30 @@
-#include <linux/init.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/mutex.h>
-#include <linux/vmalloc.h>
 #include <linux/serio.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-
-static void ldvdisconnect(struct serio *serio)
+static int ldv_connect(struct serio *serio, struct serio_driver *drv)
 {
-	mutex_unlock(ldv_envgen);
+	ldv_invoke_reached();
+    return 0;
 }
 
-static int ldvconnect(struct serio *serio, struct serio_driver *drv)
+static void ldv_disconnect(struct serio *serio)
 {
-	int err;
-	err = ldv_function();
-	if(err){
-		return err;
-	}
-	mutex_lock(ldv_envgen);
-	return 0;
+	ldv_invoke_reached();
 }
-
 
 static struct serio_driver ldv_drv = {
 	.driver		= {
 		.name	= "ldv",
 	},
-	.connect	= ldvconnect,
-	.disconnect	= ldvdisconnect,
+	.connect	= ldv_connect,
+	.disconnect	= ldv_disconnect,
 };
 
 static int __init ldv_init(void)
 {
-	int err;
-	err = __serio_register_driver(&ldv_drv,THIS_MODULE,"modname");
-	if (err)
-		return err;
-	return 0;
+	return serio_register_driver(&ldv_drv);
 }
 
 static void __exit ldv_exit(void)
