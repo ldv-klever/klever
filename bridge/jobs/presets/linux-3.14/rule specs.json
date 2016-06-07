@@ -276,6 +276,26 @@
         "aspects": ["linux/usb/dev.aspect", "linux/asm/atomic.aspect"]
       }
     },
+    "linux:alloc:resource": {
+      "aliases": ["104"],
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {
+          "linux/memory.c": {
+            "bug kinds": [
+              "linux:alloc:resource:more at exit",
+              "linux:alloc:resource:less at exit"
+            ]
+          }
+        },
+        "aspects": [
+          "linux/memory.aspect",
+          "linux/alloc.aspect"
+        ]
+      }
+    },
+
     "linux:usb:register": {
       "aliases": ["134"],
       "description": "Error handling for usb register in probe()",

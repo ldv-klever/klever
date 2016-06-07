@@ -571,6 +571,30 @@
       },
       "rule specifications": ["linux:usb:dev"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["alloc-without-free.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["free-without-alloc.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "safe"
     }
   ]
 }
