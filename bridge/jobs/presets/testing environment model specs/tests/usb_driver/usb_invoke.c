@@ -6,6 +6,7 @@
 int ldv_probe(struct usb_interface *intf, const struct usb_device_id *id)
 {
     ldv_invoke_reached();
+    return 0;
 }
 
 static void ldv_disconnect(struct usb_interface *intf)

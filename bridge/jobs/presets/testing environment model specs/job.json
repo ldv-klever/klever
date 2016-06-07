@@ -34,6 +34,40 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_register_device_handler.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_unregister_device_handler.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_device_handler_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_device_handler_invoke.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    }
+  ],
+  "tmp": [
+    {
+      "Linux kernel": {
         "external modules": "tests/atmdev_ops",
         "modules": ["atm_dev_register.ko"]
       },
@@ -123,7 +157,15 @@
     {
       "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
-        "modules": ["devm_threaded_irq_invoke.ko"]
+        "modules": ["devm_irq_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/devm_threaded_irq",
+        "modules": ["devm_thread_invoke.ko"]
       },
       "ideal verdict": "unsafe",
       "rule specifications": ["linux:emg:test"]
@@ -443,6 +485,14 @@
     {
       "Linux kernel": {
         "external modules": "tests/net_device_ops",
+        "modules": ["alloc_netdev.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
         "modules": ["unregister_netdev.ko"]
       },
       "ideal verdict": "safe",
@@ -459,7 +509,391 @@
     {
       "Linux kernel": {
         "external modules": "tests/net_device_ops",
+        "modules": ["setup_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/net_device_ops",
         "modules": ["net_device_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/pci_driver",
+        "modules": ["pci_register_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/pci_driver",
+        "modules": ["pci_unregister_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/pci_driver",
+        "modules": ["pci_driver_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/pci_driver",
+        "modules": ["pci_driver_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/percpu_irq",
+        "modules": ["request_percpu_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/percpu_irq",
+        "modules": ["free_percpu_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/percpu_irq",
+        "modules": ["percpu_irq_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_probe.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_unregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_with_pm_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_with_pm_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/platform_driver",
+        "modules": ["platform_driver_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/rtc_class_ops",
+        "modules": ["rtc_device_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/rtc_class_ops",
+        "modules": ["rtc_device_unregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/rtc_class_ops",
+        "modules": ["rtc_class_ops_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_register_device_handler.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_unregister_device_handler.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_device_handler_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_device_handler",
+        "modules": ["scsi_device_handler_invoke.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_add_host.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_add_host_with_dma.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_host_alloc.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_remove_host.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_unregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_host_alloc_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": ["scsi_host_template_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_open.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_open_private.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_release.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_release_private.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_operations_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_operations_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/serio_driver",
+        "modules": ["serio_register_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/serio_driver",
+        "modules": ["serio_unregister_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/serio_driver",
+        "modules": ["serio_driver_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/serio_driver",
+        "modules": ["serio_driver_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/target_type",
+        "modules": ["dm_register_target.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/target_type",
+        "modules": ["dm_unregister_target.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/target_type",
+        "modules": ["target_type_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/target_type",
+        "modules": ["target_type_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/threaded_irq",
+        "modules": ["request_threaded_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/threaded_irq",
+        "modules": ["free_irq.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/threaded_irq",
+        "modules": ["threaded_irq_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/threaded_irq",
+        "modules": ["irq_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/threaded_irq",
+        "modules": ["thread_invoke.ko"]
       },
       "ideal verdict": "unsafe",
       "rule specifications": ["linux:emg:test"]
