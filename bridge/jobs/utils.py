@@ -792,7 +792,8 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instances']
+                    filedata['ignore other instances'],
+                    filedata['ignore failed sub-jobs']
                 ]
             ]
         except Exception as e:
@@ -835,7 +836,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 5:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 6:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False

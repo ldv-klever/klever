@@ -104,6 +104,8 @@ class Weaver(core.components.Component):
                                        '-x', 'c', cc_full_desc['out file'],
                                        '-o', preprocessed_c_file
                                    ))
+                if not self.conf['keep intermediate files']:
+                    os.remove(cc_full_desc['out file'])
                 self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
                 abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
@@ -129,6 +131,8 @@ class Weaver(core.components.Component):
                             fp_out.write(match.group(1) + file + match.group(3))
                         else:
                             fp_out.write(line)
+                if not self.conf['keep intermediate files']:
+                    os.remove(preprocessed_c_file)
                 self.logger.debug(
                     'Preprocessed weaved C file with absolute paths was put to "{0}"'.format(abs_paths_c_file))
 

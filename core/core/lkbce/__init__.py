@@ -376,12 +376,16 @@ class LKBCE(core.components.Component):
     def __make(self, build_target, jobs_num=1, specify_arch=False, collect_build_cmds=False, collect_all_stdout=False):
         # Update environment variables so that invoke build command wrappers and optionally collect build commands.
         env = dict(os.environ)
+        if os.path.isdir(os.path.abspath(self.conf['main working directory'] + '/job/root')):
+            env['KLEVER_JOB_ROOT'] = os.path.abspath(self.conf['main working directory'] + '/job/root')
+        else:
+            env['KLEVER_JOB_ROOT'] = os.path.abspath(os.path.dirname(self.conf['main working directory']))
         env.update({'PATH': '{0}:{1}'.format(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'wrappers'),
                                              os.environ['PATH'])})
         if collect_build_cmds:
             env.update({
                 'KLEVER_BUILD_CMD_DESCS_FILE': os.path.abspath(self.linux_kernel['build cmd descs file']),
-                'KLEVER_MAIN_WORK_DIR': self.conf['main working directory']
+                'KLEVER_MAIN_WORK_DIR': self.conf['main working directory'],
             })
 
         return core.utils.execute(self.logger,

@@ -857,7 +857,8 @@ class StartJobDecision(object):
             'upload input files of static verifiers': self.data[4][1],
             'upload other intermediate files': self.data[4][2],
             'allow local source directories use': self.data[4][3],
-            'ignore another instances': self.data[4][4],
+            'ignore other instances': self.data[4][4],
+            'ignore failed sub-jobs': self.data[4][5],
             'logging': {
                 'formatters': [
                     {
