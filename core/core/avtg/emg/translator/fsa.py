@@ -231,10 +231,13 @@ class Automaton:
 
         return self.__state_variable
 
-    @property
-    def thread_variable(self):
+    def thread_variable(self, number=1):
         if not self.__thread_variable:
-            var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread a', True)
+            if number > 1:
+                var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread_set a', True)
+                var.value = '{' + '.number = {}'.format(number) + '}'
+            else:
+                var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread a', True)
             var.use += 1
             self.__thread_variable = var
 

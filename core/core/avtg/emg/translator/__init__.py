@@ -297,26 +297,32 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def _initial_instances(self, analysis, process):
         base_list = []
-        undefined_labels = []
-        # Determine nonimplemented containers
-        self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
-                          "category {}".format(process.name, process.category))
-        for label in [process.labels[name] for name in sorted(process.labels.keys())
-                      if len(process.labels[name].interfaces) > 0]:
-            nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                          if len(analysis.implementations(analysis.interfaces[interface])) == 0]
-            if len(nonimplemented_intrerfaces) > 0:
-                undefined_labels.append(label)
 
-        # Determine is it necessary to make several instances
-        if len(undefined_labels) > 0:
-            for i in range(self.__instance_modifier):
-                base_list.append(self._copy_process(process))
-        else:
+        if self._nested_automata and self._omit_all_states and not self._direct_cf_calls:
+            # So called parallel environment model
             base_list.append(self._copy_process(process))
+        else:
+            # Sequential environment model
+            undefined_labels = []
+            # Determine nonimplemented containers
+            self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                              "category {}".format(process.name, process.category))
+            for label in [process.labels[name] for name in sorted(process.labels.keys())
+                          if len(process.labels[name].interfaces) > 0]:
+                nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                              if len(analysis.implementations(analysis.interfaces[interface])) == 0]
+                if len(nonimplemented_intrerfaces) > 0:
+                    undefined_labels.append(label)
 
-        self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
-                         format(len(base_list), len(undefined_labels), process.name, process.category))
+            # Determine is it necessary to make several instances
+            if len(undefined_labels) > 0:
+                for i in range(self.__instance_modifier):
+                    base_list.append(self._copy_process(process))
+            else:
+                base_list.append(self._copy_process(process))
+
+            self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                             format(len(base_list), len(undefined_labels), process.name, process.category))
 
         return base_list
 
@@ -591,21 +597,29 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         return inv
 
     def _call_cf(self, automaton, parameter='0'):
-        sv = automaton.thread_variable
 
         if self._direct_cf_calls:
             return '{}({});'.format(self.CF_PREFIX + str(automaton.identifier), parameter)
+        elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
+            sv = automaton.thread_variable(self.__instance_modifier)
+            return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
+                                                             self.CF_PREFIX + str(automaton.identifier),
+                                                             parameter)
         else:
+            sv = automaton.thread_variable()
             return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
                                                            self.CF_PREFIX + str(automaton.identifier),
                                                            parameter)
 
     def _join_cf(self, automaton):
-        sv = automaton.thread_variable
-
         if self._direct_cf_calls:
             return '/* Skip thread join call */'
+        elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
+            sv = automaton.thread_variable(self.__instance_modifier)
+            return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name,
+                                                       self.CF_PREFIX + str(automaton.identifier))
         else:
+            sv = automaton.thread_variable()
             return 'ldv_thread_join({}, {});'.format('& ' + sv.name,
                                                      self.CF_PREFIX + str(automaton.identifier))
 
@@ -1098,7 +1112,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if not self._nested_automata and not aspect:
             self._add_global_variable(automaton.state_variable)
         elif not aspect:
-            self._add_global_variable(automaton.thread_variable)
+            if self._nested_automata and self.__instance_modifier > 1:
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier))
+            else:
+                self._add_global_variable(automaton.thread_variable())
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
@@ -1304,7 +1321,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             tab -= 1
             f_code.append('out_{}:'.format(automaton.identifier))
             f_code.append('return;')
-            self._add_global_variable(automaton.thread_variable)
+            if self.__instance_modifier > 1:
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier))
+            else:
+                self._add_global_variable(automaton.thread_variable())
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
             self._add_global_variable(automaton.state_variable)
