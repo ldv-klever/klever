@@ -1,3 +1,4 @@
+import copy
 from core.avtg.emg.common.interface import Resource, Container
 
 
@@ -102,8 +103,8 @@ def split_into_instances(analysis, process, resource_new_insts):
                     # Fulfill existing instance
                     first = suits.pop()
                     amap[expression][interface] = value_to_implementation[first]
-                    chosen_values.add(first)
-                    total_chosen_values.add(first)
+                    first_added = _add_value(interface, first, chosen_values, total_chosen_values, interface_to_value,
+                                             value_to_implementation)
 
                     # There can be many useless resource implementations ...
                     if type(analysis.interfaces[interface]) is Resource and resource_new_insts > 0:
@@ -117,23 +118,16 @@ def split_into_instances(analysis, process, resource_new_insts):
 
                     # Expect that this caused by an array
                     # todo: remember arrays to choose the same for such values
-                    additional_maps = [[dict(amap), set(chosen_values)] for i in range(len(suits))]
+                    additional_maps = [[copy.deepcopy(amap), copy.copy(chosen_values)] for i in range(len(suits))]
 
                     # Fulfill new instances
                     for additional_value in suits:
                         nm, ncv = additional_maps.pop()
-
-                        hidden_container_values = sorted([cv for cv in interface_to_value[interface][additional_value]
-                                                          if cv not in value_to_implementation])
-                        if len(hidden_container_values) > 0:
-                            first_random = hidden_container_values.pop()
-                            ncv.add(first_random)
-                            total_chosen_values.add(first_random)
+                        ncv.difference_update(first_added)
+                        _add_value(interface, additional_value, ncv, total_chosen_values, interface_to_value,
+                                   value_to_implementation)
 
                         nm[expression][interface] = value_to_implementation[additional_value]
-                        ncv.add(additional_value)
-                        total_chosen_values.add(additional_value)
-
                         intf_additional_maps.append([nm, ncv])
 
             # Add additional maps
@@ -249,5 +243,34 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     final_options_list = list(reversed(sorted(options, key=lambda o: containers_impacts[o])))
 
     return interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list
+
+
+def _add_value(interface, value, chosen_values, total_chosen_values, interface_to_value, value_to_implementation):
+    """
+    Add a given value and a corresponding container (if it can be found) to a chosen value set.
+
+    :param interface: Interface identifier.
+    :param value: Provided implementation of an interface.
+    :param chosen_values: Set of already added values.
+    :param total_chosen_values: Set of already added values from all instance maps.
+    :param interface_to_expression: Dictionary {'Interface.identifier string' -> 'Access.expression string'}.
+    :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
+    :return: Set with all added values (a given one plus a container if so).
+    """
+    added = set([value])
+
+    chosen_values.add(value)
+    total_chosen_values.add(value)
+
+    hidden_container_values = sorted([cv for cv in interface_to_value[interface][value]
+                                      if cv not in value_to_implementation])
+
+    if len(hidden_container_values) > 0:
+        first_random = hidden_container_values.pop()
+        chosen_values.add(first_random)
+        total_chosen_values.add(first_random)
+        added.add(first_random)
+
+    return added
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
