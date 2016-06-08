@@ -290,6 +290,14 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/generic",
+        "modules": ["double_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/ieee80211_ops",
         "modules": ["ieee80211_alloc_hw.ko"]
       },
