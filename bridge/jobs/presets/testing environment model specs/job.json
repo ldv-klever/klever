@@ -34,56 +34,6 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_open.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_open_private.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_release.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_release_private.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_operations_callbacks.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/seq_operations",
-        "modules": ["seq_operations_invoke.ko"]
-      },
-      "ideal verdict": "unsafe",
-      "rule specifications": ["linux:emg:test"]
-    }
-  ],
-  "Sub-jobsx": [
-    {
-      "Linux kernel": {
         "external modules": "tests/atmdev_ops",
         "modules": ["atm_dev_register.ko"]
       },
