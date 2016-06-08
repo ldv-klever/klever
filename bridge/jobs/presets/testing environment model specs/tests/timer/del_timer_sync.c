@@ -1,47 +1,35 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/timer.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-struct mutex *ldv_envgen;
-static int ldv_function(void);
-static struct timer_list my_timer;
-int deg_lock = 0;
+struct timer_list ldv_timer;
+unsigned long expires;
 
-void my_timer_callback( unsigned long data )
+void ldv_handler(unsigned long data)
 {
-	if(deg_lock){
-		mutex_lock(ldv_envgen);
-	}
+	ldv_invoke_callback();
 }
-
-struct ldvdriver {
-	void (*handler)(void);
-};
-
-static void handler(void)
-{
-	del_timer_sync( &my_timer );
-	deg_lock = 1;
-};
-
-static struct ldvdriver driver = {
-	.handler =	handler
-};
 
 static int __init ldv_init(void)
 {
-	int ret;
-	setup_timer( &my_timer, my_timer_callback, 0 );
-	ret = mod_timer( &my_timer, jiffies + msecs_to_jiffies(200) );
-	if (ret) {
-		return ret;
-	}
-	return 0;
+    int flip_a_coin;
+
+	setup_timer(&ldv_timer, ldv_handler, 0);
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+        if (!mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200))) {
+            del_timer_sync(&ldv_timer);
+            ldv_deregister();
+        }
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	//...
+    /* pass */
 }
 
 module_init(ldv_init);

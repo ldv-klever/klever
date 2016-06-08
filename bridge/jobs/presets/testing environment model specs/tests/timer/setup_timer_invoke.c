@@ -9,26 +9,18 @@ unsigned long data;
 
 void ldv_handler(unsigned long data)
 {
-	ldv_invoke_callback();
+	ldv_invoke_reached();
 }
 
 static int __init ldv_init(void)
 {
 	setup_timer(&ldv_timer, ldv_handler, data);
-	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return mod_timer_pinned(&ldv_timer, jiffies + msecs_to_jiffies(200));
-    }
-    return 0;
+	return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-        del_timer(&ldv_timer);
-        ldv_deregister();
-    }
+	del_timer(&ldv_timer);
 }
 
 module_init(ldv_init);

@@ -1,20 +1,2 @@
-obj-m += reg1.o reg10.o reg11.o reg2.o reg3.o reg4.o reg5.o reg6.o reg7.o reg8.o reg9.o order1.o unreg1.o unreg2.o unreg3.o unreg4.o unreg5.o unreg6.o unreg7.o
-reg1-objs := reg1_file1.o
-reg10-objs := reg10_file1.o
-reg11-objs := reg11_file1.o
-reg2-objs := reg2_file1.o
-reg3-objs := reg3_file1.o
-reg4-objs := reg4_file1.o
-reg5-objs := reg5_file1.o
-reg6-objs := reg6_file1.o
-reg7-objs := reg7_file1.o
-reg8-objs := reg8_file1.o
-reg9-objs := reg9_file1.o
-order1-objs := order1_file1.o
-unreg1-objs := unreg1_file1.o
-unreg2-objs := unreg2_file1.o
-unreg3-objs := unreg3_file1.o
-unreg4-objs := unreg4_file1.o
-unreg5-objs := unreg5_file1.o
-unreg6-objs := unreg6_file1.o
-unreg7-objs := unreg7_file1.o
+obj-m += mod_timer_pinned.o setup_deferrable_timer_on_stack.o del_timer_sync.o setup_timer_invoke.o mod_timer_pending.o init_timer.o setup_timer.o del_timer.o init_timer_invoke.o try_to_del_timer_sync.o setup_timer_on_stack.o init_timer_deferrable.o
+
