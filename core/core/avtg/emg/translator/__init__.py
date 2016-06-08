@@ -399,6 +399,34 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         if variable.value:
             self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
+    def set_initial_state(self, automaton):
+        body = list()
+        body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                    format(automaton.identifier, automaton.process.name, automaton.process.category))
+        body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
+        initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+        if len(initial_states) == 1:
+            body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+        elif len(initial_states) == 2:
+            body.extend([
+                '\tif (ldv_undef_int())',
+                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                '\telse',
+                '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+            ])
+        elif len(initial_states) > 2:
+            body.append('switch (ldv_undef_int()) {')
+            for index in range(len(initial_states)):
+                body.append('\t\tcase {}: '.format(index) + '{')
+                body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                body.append('\t\t}')
+                body.append('\t\tdefault: ldv_stop();')
+                body.append('\t}')
+        body.append('}')
+
+        return body
+
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
 
@@ -408,31 +436,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Initialize states in an entry point
         body = []
-        if not self._omit_all_states:
+        if not self._omit_all_states and not self._nested_automata:
             for automaton in [self._entry_fsa] + self._callback_fsa:
-                body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
-                            format(automaton.identifier, automaton.process.name, automaton.process.category))
-                body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-                initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-                if len(initial_states) == 1:
-                    body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-                elif len(initial_states) == 2:
-                    body.extend([
-                        '\tif (ldv_undef_int())',
-                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                        '\telse',
-                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-                    ])
-                elif len(initial_states) > 2:
-                    body.append('switch (ldv_undef_int()) {')
-                    for index in range(len(initial_states)):
-                        body.append('\t\tcase {}: '.format(index) + '{')
-                        body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                        body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                        body.append('\t\t}')
-                        body.append('\t\tdefault: ldv_stop();')
-                        body.append('\t}')
-                body.append('}')
+                body.extend(self.set_initial_state(automaton))
 
         # Prepare action blocks
         self.logger.info('Prepare code base block on each action of each instance')
@@ -1269,8 +1275,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Generate function definition
         cf = self._new_control_function(analysis, automaton, v_code, f_code, None)
 
-        # Add loop for nested case
+        # Add a loop for nested case
         if self._nested_automata:
+            f_code.extend(self.set_initial_state(automaton))
             f_code.append('while (1) {')
             tab += 1
 
