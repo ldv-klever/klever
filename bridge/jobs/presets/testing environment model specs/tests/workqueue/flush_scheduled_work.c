@@ -1,50 +1,41 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/export.h>
 #include <linux/workqueue.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-static struct mutex *mtx;
-static int ldv_function(void);
-static struct workqueue_struct *myqueue;
+static struct workqueue_struct *queue;
+static struct work_struct work;
 
-static struct delayed_work work1, work2, work3, work4;
-
-static int count;
-
-static void myHandler(struct work_struct *work)
+static void ldv_handler(struct work_struct *work)
 {
-	++count;
+    ldv_invoke_callback();
 }
 
-//Проверяем flush_scheduled_work
 static int __init ldv_init(void)
 {
-	count = 0;
+	int flip_a_coin;
 
-	INIT_DELAYED_WORK(&work1, myHandler);
-	INIT_DELAYED_WORK(&work2, myHandler);
-	INIT_DELAYED_WORK(&work3, myHandler);
-	INIT_DELAYED_WORK(&work4, myHandler);
+	queue = alloc_workqueue("ldv_queue", 0, 0);
+	if (!queue)
+        return -ENOMEM;
 
-	schedule_delayed_work(&work1, 10);
-	schedule_delayed_work(&work2, 10);
-	schedule_delayed_work(&work3, 10);
-	schedule_delayed_work(&work4, 10);
-	
-	flush_scheduled_work();
-	if(count != 4)
-	{
-		mutex_lock(mtx);
-		mutex_lock(mtx);
+    ldv_register();
+    INIT_WORK(&work, ldv_handler);
+    schedule_work(&work);
+
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        flush_scheduled_work();
+        ldv_deregister();
 	}
-
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
+    destroy_workqueue(queue);
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
+

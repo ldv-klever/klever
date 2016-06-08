@@ -1,53 +1,39 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/export.h>
 #include <linux/workqueue.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-static struct mutex *mtx;
-static int ldv_function(void);
-static struct workqueue_struct *myqueue;
+static struct workqueue_struct *queue;
+static struct work_struct work;
 
-static struct work_struct work1, work2, work3, work4;
-
-static void myHandler(struct work_struct *work)
+static void ldv_handler(struct work_struct *work)
 {
-	mutex_lock(mtx);
+    ldv_invoke_callback();
 }
 
-//Проверяем, что flush действительно вызывает work
 static int __init ldv_init(void)
 {
-	myqueue = alloc_workqueue("myqueue", 0, 0);
-	if(myqueue == NULL)
-		return -ENOMEM;
+	int flip_a_coin;
 
-	INIT_WORK(&work1, myHandler);
-	INIT_WORK(&work2, myHandler);
-	INIT_WORK(&work3, myHandler);
-	INIT_WORK(&work4, myHandler);
+	queue = alloc_workqueue("ldv_queue", 0, 0);
+	if (!queue)
+        return -ENOMEM;
 
-	queue_work(myqueue, &work1);
-	queue_work(myqueue, &work2);
-	queue_work(myqueue, &work3);
-	queue_work(myqueue, &work4);
+    ldv_register();
+    INIT_WORK(&work, ldv_handler);
+    queue_work(queue, &work);
 
-	flush_work(&work1);
-	mutex_unlock(mtx);
-	flush_work(&work2);
-	mutex_unlock(mtx);
-	flush_work(&work3);
-	mutex_unlock(mtx);
-	flush_work(&work4);
-	mutex_unlock(mtx);
-
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        flush_work(&work);
+        ldv_deregister();
+	}
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-	mutex_lock(mtx);
-	mutex_unlock(mtx);
+    destroy_workqueue(queue);
 }
 
 module_init(ldv_init);

@@ -1,46 +1,37 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/export.h>
 #include <linux/workqueue.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-static struct mutex *mtx;
-static int ldv_function(void);
-static struct workqueue_struct *myqueue;
+int flip_a_coin;
+static struct work_struct work;
 
-static int count;
-
-static void myHandler(struct work_struct *work)
+static void ldv_handler(struct work_struct *work)
 {
-	++count;
-	if(count == 4)
-	{
-		mutex_lock(mtx);
-		mutex_lock(mtx);
-	}
+    ldv_invoke_callback();
 }
 
-//Проверяем schedule_work_on
 static int __init ldv_init(void)
 {
-	count = 0;
+    int cpu = 1;
 
-	DECLARE_WORK(work1, myHandler);
-	DECLARE_WORK(work2, myHandler);
-	DECLARE_WORK(work3, myHandler);
-	DECLARE_WORK(work4, myHandler);
-
-	schedule_work_on(1, &work1);
-	schedule_work_on(1, &work2);
-	schedule_work_on(1, &work3);
-	schedule_work_on(1, &work4);
-
+	flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+	    INIT_WORK(&work, ldv_handler);
+        ldv_register();
+	    schedule_work_on(cpu, &work);
+	}
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
+    if (flip_a_coin) {
+        cancel_work_sync(&work);
+        ldv_deregister();
+    }
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
+

@@ -1,48 +1,40 @@
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/moduleparam.h>
-#include <linux/export.h>
 #include <linux/workqueue.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-static struct mutex *mtx;
-static int ldv_function(void);
-static struct workqueue_struct *myqueue;
+int flip_a_coin;
+static struct workqueue_struct *queue;
+static struct delayed_work work;
 
-static struct delayed_work work1, work2, work3, work4;
-
-static void myHandler(struct work_struct *work)
+static void ldv_handler(struct work_struct *work)
 {
-	mutex_lock(mtx);
-	mutex_lock(mtx);
+    ldv_invoke_callback();
 }
 
-//Проверяем cancel_delayed_work_sync
 static int __init ldv_init(void)
 {
-	myqueue = alloc_workqueue("myqueue", 0, 0);
-	if(myqueue == NULL)
-		return -ENOMEM;
+    int delay = ldv_undef_int();
+	queue = alloc_workqueue("ldv_queue", 0, 0);
+	if (!queue)
+        return -ENOMEM;
 
-	INIT_DELAYED_WORK(&work1, myHandler);
-	INIT_DELAYED_WORK(&work2, myHandler);
-	INIT_DELAYED_WORK(&work3, myHandler);
-	INIT_DELAYED_WORK(&work4, myHandler);
-
-	queue_delayed_work(myqueue, &work1, 10);
-	queue_delayed_work(myqueue, &work2, 10);
-	queue_delayed_work(myqueue, &work3, 10);
-	queue_delayed_work(myqueue, &work4, 10);
-
-	cancel_delayed_work_sync(&work1);
-	cancel_delayed_work_sync(&work2);
-	cancel_delayed_work_sync(&work3);
-	cancel_delayed_work_sync(&work4);
-
+    flip_a_coin = ldv_undef_int();
+    if (flip_a_coin) {
+        ldv_register();
+	    INIT_DELAYED_WORK(&work, ldv_handler);
+	    queue_delayed_work(queue, &work, delay);
+	    cancel_delayed_work_sync(&work);
+        ldv_deregister();
+	}
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
+    if (flip_a_coin) {
+        destroy_workqueue(queue);
+    }
 }
 
 module_init(ldv_init);
