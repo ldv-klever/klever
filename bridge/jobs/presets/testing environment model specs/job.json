@@ -34,6 +34,56 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_open.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_open_private.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_release.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_release_private.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_operations_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/seq_operations",
+        "modules": ["seq_operations_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    }
+  ],
+  "Sub-jobsx": [
+    {
+      "Linux kernel": {
         "external modules": "tests/atmdev_ops",
         "modules": ["atm_dev_register.ko"]
       },
@@ -60,38 +110,6 @@
       "Linux kernel": {
         "external modules": "tests/atmdev_ops",
         "modules": ["atm_dev_invoke.ko"]
-      },
-      "ideal verdict": "unsafe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/usb_driver",
-        "modules": ["usb_register.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/usb_driver",
-        "modules": ["usb_deregister.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/usb_driver",
-        "modules": ["usb_callbacks.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/usb_driver",
-        "modules": ["usb_invoke.ko"]
       },
       "ideal verdict": "unsafe",
       "rule specifications": ["linux:emg:test"]
@@ -860,6 +878,437 @@
       "Linux kernel": {
         "external modules": "tests/threaded_irq",
         "modules": ["thread_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["setup_timer.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["setup_deferrable_timer_on_stack.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["setup_timer_on_stack.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["init_timer.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["init_timer_deferrable.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["del_timer_sync.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["del_timer.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["try_to_del_timer_sync.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["mod_timer_pending.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["mod_timer_pinned.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["setup_timer_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": ["init_timer_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_register_device.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_register_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_unregister_device.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_unregister_driver.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_operations_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_port_operations_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_operations_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/tty",
+        "modules": ["tty_port_operations_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_register.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_deregister.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_driver",
+        "modules": ["usb_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_work_on.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_delayed_work_on.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_delayed_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_delayed_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_work_on.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_delayed_work_on.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["cancel_work_sync.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["cancel_delayed_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["cancel_delayed_work_sync.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["destroy_workqueue.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_delayed_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_scheduled_work.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["drain_workqueue.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_workqueue.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["drain_workqueue_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_delayed_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },{
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_scheduled_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["flush_workqueue_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_delayed_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_delayed_work_on_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["queue_work_on_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_delayed_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_delayed_work_on_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_work_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/workqueue",
+        "modules": ["schedule_work_on_invoke.ko"]
       },
       "ideal verdict": "unsafe",
       "rule specifications": ["linux:emg:test"]
