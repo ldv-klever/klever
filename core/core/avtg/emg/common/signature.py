@@ -189,6 +189,7 @@ class Declaration:
         new = Implementation(self, value, path, root_type, root_value, root_sequence)
         if new.identifier not in self.implementations:
             self.implementations[new.identifier] = new
+        return new
 
     def to_string(self, replacement='', pointer=False):
         if pointer:
@@ -541,6 +542,7 @@ class Implementation:
         self.file = file
         self.sequence = sequence
         self.identifier = str([value, file, base_value])
+        self.fixed_interface = None
         self.__declaration = declaration
 
     def adjusted_value(self, declaration):

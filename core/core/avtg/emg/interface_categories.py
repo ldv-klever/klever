@@ -240,6 +240,11 @@ class CategoriesSpecification:
             candidates = [interface.declaration.implementations[name] for name in
                           sorted(interface.declaration.implementations.keys())]
 
+        # Filter implementations with fixed interafces
+        if len(candidates) > 0:
+            candidates = [impl for impl in candidates
+                          if not impl.fixed_interface or impl.fixed_interface == interface.identifier]
+
         if len(candidates) > 0:
             # Filter filter interfaces
             implementations = []
@@ -305,7 +310,7 @@ class CategoriesSpecification:
             refinement = False
             ret = True
             cp_declaration = copy.copy(declaration)
-            
+
             if cp_declaration.return_value and not cp_declaration.return_value.clean_declaration:
                 rv = self._refine_declaration(cp_declaration.return_value)
                 if rv:
@@ -354,10 +359,12 @@ class CategoriesSpecification:
 
             for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())]:
                 if not interface.declaration.clean_declaration:
-                    new_declaration = self._refine_declaration(interface.declaration)
+                    declaration = self._refine_declaration(interface.declaration)
 
-                    if new_declaration:
-                        interface.declaration = new_declaration
+                    if declaration and type(declaration) is Pointer and type(declaration.points) is Function:
+                        clean_flag = True
+                    elif declaration:
+                        interface.declaration = declaration
                         clean_flag = True
 
         self.logger.debug("Restore field declarations in structure declarations")

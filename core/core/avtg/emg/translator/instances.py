@@ -56,8 +56,8 @@ def split_into_instances(analysis, process, resource_new_insts):
                     ivector[interface_index] = 0
             maps.append([new_map, chosen_values])
     else:
-        # Choose at least one map
-        if len(maps) == 0:
+        # Choose atleast one map
+        if len(maps)== 0:
             maps = [[access_map, set()]]
 
     # Then set the other values
