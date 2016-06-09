@@ -721,7 +721,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                             state.code['relevant automata'][name]['automaton'].process.name,
                                             state.code['relevant automata'][name]['automaton'].process.category))
             else:
-                for name in state.code['relevant automata']:
+                for name in (n for n in state.code['relevant automata']
+                             if len(state.code['relevant automata'][n]['states']) > 0):
                     call = self._join_cf(state.code['relevant automata'][name]['automaton'])
                     if self._direct_cf_calls:
                         block = [call]
