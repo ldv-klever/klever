@@ -167,7 +167,7 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
-        if 'module dependencies file' in self.conf['Linux kernel'] and strategy_name != 'separate modules':
+        if 'module dependencies file' in self.conf['Linux kernel']:
             # Build order must be from "independed" modules
             # Otherwise, module_name.mod.c will be changed
             send_build = module.order_build(build_modules, module_deps_function)
