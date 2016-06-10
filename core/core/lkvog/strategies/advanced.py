@@ -11,22 +11,22 @@ class Advanced:
         # Going to read params
         self.logger = logger
         self.koef = params.get('cluster size', 5)
-        self.max_g_for_m = params.get('max_g_for_m', 5)
-        self.minimize_groups_for_module = params.get('minimize_groups_for_module', True)
-        self.priority_on_module_size = params.get('priority_on_module_size', True) and bool(module_sizes)
-        self.user_deps = params.get('user_deps', {})
-        self.division_type = params.get('division_type', 'All')
+        self.max_g_for_m = params.get('max group for module', 5)
+        self.minimize_groups_for_module = params.get('minimize groups for module', True)
+        self.priority_on_module_size = params.get('priority on module size', True) and bool(module_sizes)
+        self.user_deps = params.get('user deps', {})
+        self.division_type = params.get('division type', 'All')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
         self.analyze_all_export_function = \
-            params.get('analyze_all_export_function', self.division_type != 'Module')
+            params.get('analyze all export function', self.division_type != 'Module')
         self.analyze_all_calls = \
-            params.get('analyze_all_calls', self.division_type != 'Library')
+            params.get('analyze all calls', self.division_type != 'Library')
         self.priority_on_export_function = \
-            params.get('priority_on_export_function', self.division_type != 'Module')
+            params.get('priority on export function', self.division_type != 'Module')
         self.priority_on_calls = \
-            params.get('priority_on_calls', self.division_type != 'Library')
-        self.maximize_subsystems = params.get('maximize_subsystems', True)
+            params.get('priority on calls', self.division_type != 'Library')
+        self.maximize_subsystems = params.get('maximize subsystems', True)
 
         # Creating modules dict
         self.modules = {}
