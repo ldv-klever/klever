@@ -154,7 +154,8 @@ class Command:
 
         # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
         # to CC commands filtered out above.
-        if self.type == 'LD' and (not self.out_file or self.out_file.endswith('.tmp')):
+        if self.type == 'LD' and (not self.out_file or self.out_file.endswith('.tmp')
+                                  or self.in_files[0].startswith('samples')):
             return True
 
         return False
