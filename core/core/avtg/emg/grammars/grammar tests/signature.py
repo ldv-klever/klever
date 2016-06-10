@@ -1,4 +1,4 @@
-from core.avtg.emg.common.signature import import_signature, setup_collection
+from core.avtg.emg.common.signature import import_declaration, setup_collection
 
 
 __grammar_tests = [
@@ -90,7 +90,7 @@ __grammar_tests = [
 setup_collection({}, {})
 for test in __grammar_tests:
     print(test)
-    object = import_signature(test)
+    object = import_declaration(test)
     #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))

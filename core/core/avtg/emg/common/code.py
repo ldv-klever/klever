@@ -1,7 +1,7 @@
 import re
 
 from core.avtg.emg.common.signature import Declaration, Pointer, Structure, Array, Union, Function, Primitive, \
-    import_signature
+    import_declaration
 
 
 class Variable:
@@ -15,7 +15,7 @@ class Variable:
         self.use = 0
 
         if type(signature) is str:
-            self.declaration = import_signature(signature)
+            self.declaration = import_declaration(signature)
         elif issubclass(type(signature), Declaration):
             self.declaration = signature
         else:
@@ -63,7 +63,7 @@ class FunctionDefinition:
 
         if not signature:
             signature = 'void f(void)'
-        self.declaration = import_signature(signature)
+        self.declaration = import_declaration(signature)
 
     def get_declaration(self, extern=False):
         declaration = self.declaration.to_string(self.name)

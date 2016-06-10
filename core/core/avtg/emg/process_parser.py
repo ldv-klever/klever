@@ -1,4 +1,4 @@
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
 
@@ -66,7 +66,7 @@ def __import_process(name, dic):
                 else:
                     TypeError('Expect list or string with interface identifier')
             if 'signature' in dic['labels'][name]:
-                label.prior_signature = import_signature(dic['labels'][name]['signature'])
+                label.prior_signature = import_declaration(dic['labels'][name]['signature'])
 
     # Import process
     process_strings = []

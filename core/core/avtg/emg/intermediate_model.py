@@ -1,6 +1,6 @@
 import copy
 
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.interface import Interface, Callback, Container, Resource
 from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetval, Dispatch, Receive, Condition, \
     rename_subprocess
@@ -51,12 +51,12 @@ class ProcessModel:
         init_name = list(analysis.inits.values())[0]
         init_label = Label('init')
         init_label.value = "& {}".format(init_name)
-        init_label.prior_signature = import_signature("int (*f)(void)")
+        init_label.prior_signature = import_declaration("int (*f)(void)")
         self.logger.debug("Found init function {}".format(init_name))
 
         # Add ret value
         ret_label = Label('ret')
-        ret_label.prior_signature = import_signature("int label")
+        ret_label.prior_signature = import_declaration("int label")
         init_subprocess.retlabel = "%ret%"
         init_subprocess.post_call = [
             '%ret% = ldv_post_init(%ret%);'
@@ -67,7 +67,7 @@ class ProcessModel:
         exit_subprocess.callback = "%exit%"
 
         exit_label = Label('exit')
-        exit_label.prior_signature = import_signature("void (*f)(void)")
+        exit_label.prior_signature = import_declaration("void (*f)(void)")
         # todo: Add none instead of particular name (relevant to #6571)
         if len(analysis.exits) != 0:
             exit_name = list(analysis.exits.values())[0]

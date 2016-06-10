@@ -4,7 +4,7 @@ import abc
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
@@ -638,10 +638,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if struct_name in self._structures:
                 raise KeyError('Structure name is not unique')
 
-            decl = import_signature('struct {} a'.format(struct_name))
+            decl = import_declaration('struct {} a'.format(struct_name))
             for index in range(len(params)):
                 decl.fields['arg{}'.format(index)] = params[index]
-            decl.fields['signal_pending'] = import_signature('int a')
+            decl.fields['signal_pending'] = import_declaration('int a')
 
             self._structures[cache_identifier] = decl
         else:

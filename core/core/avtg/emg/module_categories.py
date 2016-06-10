@@ -4,7 +4,7 @@ import re
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
-    setup_collection, import_signature, import_typedefs, extract_name, check_null
+    setup_collection, import_declaration, import_typedefs, extract_name, check_null
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -232,7 +232,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 if not variable_name:
                     raise ValueError('Global variable without a name')
 
-                signature = import_signature(variable['declaration'])
+                signature = import_declaration(variable['declaration'])
                 if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
                     entity = {
                         "path": variable['path'],
@@ -256,7 +256,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.logger.info("Import types from kernel functions")
             for function in sorted(analysis['kernel functions'].keys()):
                 self.logger.debug("Parse signature of function {}".format(function))
-                declaration = import_signature(analysis['kernel functions'][function]['signature'])
+                declaration = import_declaration(analysis['kernel functions'][function]['signature'])
 
                 if function in self.kernel_functions:
                     self.__set_declaration(self.kernel_functions[function], declaration)
@@ -282,7 +282,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 for path in sorted(module_function["files"].keys()):
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
-                        {'declaration': import_signature(module_function["files"][path]["signature"])}
+                        {'declaration': import_declaration(module_function["files"][path]["signature"])}
 
                     if "called at" in module_function["files"][path]:
                         modules_functions[function][path]["called at"] = \
@@ -360,7 +360,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         field = extract_name(entry['field'])
                         # Ignore actually unions and structures without a name
                         if field:
-                            e_bt = import_signature(entry['field'], None, bt)
+                            e_bt = import_declaration(entry['field'], None, bt)
                             new_sequence = list(entity["root sequence"])
                             new_sequence.append(field)
 
