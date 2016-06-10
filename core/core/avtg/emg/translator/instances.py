@@ -33,7 +33,7 @@ def split_into_instances(analysis, process, resource_new_insts):
     if len(final_options_list) > 0:
         ivector = [0 for i in enumerate(final_options_list)]
         for _ in enumerate(interface_to_value[final_options_list[0]]):
-            new_map = dict(access_map)
+            new_map = copy.deepcopy(access_map)
             chosen_values = set()
 
             # Set chosen implementations
@@ -68,7 +68,7 @@ def split_into_instances(analysis, process, resource_new_insts):
             # container
             if access_map[expression][interface] and len([val for val in interface_to_value[interface]
                                                           if len(interface_to_value[interface][val]) != 0]) > 0:
-                new = [dict(maps[0][0]), set(maps[0][1])]
+                new = [copy.deepcopy(maps[0][0]), copy.copy(maps[0][1])]
                 new[1].remove(new[0][expression][interface])
                 new[0][expression][interface] = None
                 maps.append(new)
