@@ -300,7 +300,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                               check_null(kf.declaration, call[index])]:
                                     new = kf.declaration.parameters[index].\
                                         add_implementation(call[index], path, None, None, [])
-                                    if kf.param_interfaces[index]:
+                                    if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
                                         new.fixed_interface = kf.param_interfaces[index].identifier
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
