@@ -1,5 +1,6 @@
 import copy
 from core.avtg.emg.common.interface import Resource, Container
+from core.avtg.emg.common.signature import Implementation
 
 
 def split_into_instances(analysis, process, resource_new_insts):
@@ -73,62 +74,53 @@ def split_into_instances(analysis, process, resource_new_insts):
                 new[0][expression][interface] = None
                 maps.append(new)
 
-            for amap, chosen_values in ([m, s] for m, s in maps if not m[expression][interface]):
-                # Choose those values whose base values are already chosen
+            for amap, chosen_values in maps:
+                if not amap[expression][interface]:
+                    # Choose those values whose base values are already chosen
 
-                # Try to avoid repeating values
-                strict_suits = [value for value in interface_to_value[interface]
-                                if value not in total_chosen_values and
-                                (len(interface_to_value[interface][value]) == 0 or
+                    # Try to avoid repeating values
+                    strict_suits = [value for value in interface_to_value[interface]
+                                    if value not in total_chosen_values and
+                                    (len(interface_to_value[interface][value]) == 0 or
+                                     len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
+                                     len([cv for cv in interface_to_value[interface][value]
+                                          if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
+                    if len(strict_suits) == 0:
+                        # If values are repeated just choose random one
+                        suits = [value for value in interface_to_value[interface]
+                                 if len(interface_to_value[interface][value]) == 0 or
                                  len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                                 len([cv for cv in interface_to_value[interface][value]
-                                      if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
-                if len(strict_suits) == 0:
-                    # If values are repeated just choose random one
-                    suits = [value for value in interface_to_value[interface]
-                             if len(interface_to_value[interface][value]) == 0 or
-                             len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                             (len([cv for cv in interface_to_value[interface][value]
-                                   if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
-                    if len(suits) > 0:
-                        suits = [list(sorted(suits)).pop()]
-                else:
-                    suits = strict_suits
-
-                if len(suits) == 1:
-                    amap[expression][interface] = value_to_implementation[suits[0]]
-                    chosen_values.add(suits[0])
-                    total_chosen_values.add(suits[0])
-                elif len(suits) > 1:
-                    # Fulfill existing instance
-                    first = suits.pop()
-                    amap[expression][interface] = value_to_implementation[first]
-                    first_added = _add_value(interface, first, chosen_values, total_chosen_values, interface_to_value,
-                                             value_to_implementation)
-
-                    # There can be many useless resource implementations ...
-                    if type(analysis.interfaces[interface]) is Resource and resource_new_insts > 0:
-                        suits = suits[0:resource_new_insts]
-                    elif type(analysis.interfaces[interface]) is Container:
-                        # Ignore additional container values which does not influence the other interfaces
-                        suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
+                                 (len([cv for cv in interface_to_value[interface][value]
+                                       if cv not in value_to_implementation and cv not in chosen_values]) > 0)]
+                        if len(suits) > 0:
+                            suits = [list(sorted(suits)).pop()]
                     else:
-                        # Try not to repeate values
-                        suits = [v for v in suits if v not in total_chosen_values]
+                        suits = strict_suits
 
-                    # Expect that this caused by an array
-                    # todo: remember arrays to choose the same for such values
-                    additional_maps = [[copy.deepcopy(amap), copy.copy(chosen_values)] for i in range(len(suits))]
+                    if len(suits) == 1:
+                        amap[expression][interface] = value_to_implementation[suits[0]]
+                        chosen_values.add(suits[0])
+                        total_chosen_values.add(suits[0])
+                    elif len(suits) > 1:
+                        # Choose at least one
+                        first = suits.pop()
 
-                    # Fulfill new instances
-                    for additional_value in suits:
-                        nm, ncv = additional_maps.pop()
-                        ncv.difference_update(first_added)
-                        _add_value(interface, additional_value, ncv, total_chosen_values, interface_to_value,
-                                   value_to_implementation)
+                        # There can be many useless resource implementations ...
+                        if type(analysis.interfaces[interface]) is Resource and resource_new_insts > 0:
+                            suits = suits[0:resource_new_insts]
+                        elif type(analysis.interfaces[interface]) is Container:
+                            # Ignore additional container values which does not influence the other interfaces
+                            suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
+                        else:
+                            # Try not to repeate values
+                            suits = [v for v in suits if v not in total_chosen_values]
 
-                        nm[expression][interface] = value_to_implementation[additional_value]
-                        intf_additional_maps.append([nm, ncv])
+                        # Return the first one
+                        value_map = _match_array_maps(expression, interface, suits, maps, interface_to_value,
+                                                      value_to_implementation)
+                        intf_additional_maps.extend(_fulfil_map(expression, interface, value_map, [[amap, chosen_values]],
+                                                                value_to_implementation, total_chosen_values,
+                                                                interface_to_value))
 
             # Add additional maps
             maps.extend(intf_additional_maps)
@@ -245,6 +237,96 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     return interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list
 
 
+def _match_array_maps(expression, interface, values, maps, interface_to_value, value_to_implementation):
+    """
+    Tries to find an existing solution map for a given value which will contain another values from the same container
+    from which springs a value under conideration. Function also distinguish containers from the same arrays and tries
+    to not mix callbacks from such arrays of containers. Such match allows to drastically reduce number of generated
+    instances especially generated for containers from arrays.
+
+    :param expression: Expression string.
+    :param interface: An interface identifier.
+    :param values: List of unique values implementing the interface.
+    :param maps: Existing solutions: List with elements with a list of structure:
+                 [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                   set{used values strings}].
+    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
+                                           'Implementation.base_value string'}
+    :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}
+    :return: Map from values to solutions (if so suitable found):
+             {'Value string'->[{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                               set{used values strings}]}
+    """
+    result_map = dict()
+    added = []
+
+    for value in values:
+        v_implementation = value_to_implementation[value]
+        result_map[value] = None
+
+        if len(interface_to_value[interface][value]) > 0:
+            suitable_map = None
+            for mp, chosen_values in ((m, cv) for m, cv in maps if not m[expression][interface] and m not in added):
+                for e in (e for e in mp if type(mp[e]) is dict):
+                    same_container = \
+                        [mp for i in mp[e] if i != interface and type(mp[e][i]) is Implementation and
+                         mp[e][i].base_value and _from_same_container(v_implementation, mp[e][i])]
+                    if len(same_container) > 0 and mp not in added:
+                        suitable_map = [mp, chosen_values]
+                        added.append(mp)
+                        break
+                if suitable_map:
+                    break
+            if suitable_map:
+                result_map[value] = suitable_map
+    return result_map
+
+
+def _fulfil_map(expression, interface, value_map, reuse, value_to_implementation, total_chosen_values,
+                interface_to_value):
+    """
+    Get map from values to maps (instance prototypes) and assign a value to a corresponding map, if map is not found for
+    a value the function creates a new one on base of the first item in reuse parameter. Reuse parameter is used as a
+    stack with an additional maps which can be used before creating new maps.
+
+    :param expression: Expression string.
+    :param interface: An interface identifier.
+    :param value_map: {'Value string' ->
+                       [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                        set{used values strings}]}
+    :param reuse: List with elements with a list of structure:
+                  [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                   set{used values strings}].
+    :param value_to_implementation: Dictionary {'Implementation.value string' -> 'Implementation object'}.
+    :param total_chosen_values: Set of already added values from all instance maps.
+    :param interface_to_value: Dictionary {'Interface.identifier string' -> 'Implementation.value string' ->
+                                           'Implementation.base_value string'}
+    :return: List with new created elements with a list of structure:
+                  [{'Access.expression string'->'Interface.identifier string'->'Implementation object/None'},
+                   set{used values strings}].
+    """
+    new_maps = []
+
+    if len(reuse) == 0:
+        raise ValueError('Expect non-empty list of maps for instanciating from')
+    first = reuse[0]
+
+    for value in value_map:
+        if value_map[value]:
+            new = value_map[value]
+        else:
+            if len(reuse) > 0:
+                new = reuse.pop()
+            else:
+                new = [copy.deepcopy(first[0]), copy.copy(first[1])]
+                new_maps.append(new)
+
+        new[0][expression][interface] = value_to_implementation[value]
+        _add_value(interface, value, new[1], total_chosen_values, interface_to_value, value_to_implementation)
+
+    return new_maps
+
+
 def _add_value(interface, value, chosen_values, total_chosen_values, interface_to_value, value_to_implementation):
     """
     Add a given value and a corresponding container (if it can be found) to a chosen value set.
@@ -272,5 +354,39 @@ def _add_value(interface, value, chosen_values, total_chosen_values, interface_t
         added.add(first_random)
 
     return added
+
+
+def _from_same_container(a, b):
+    """
+    Check that two implementations spring from a one container and if it is an array check that there are belong to the
+    same item.
+
+    :param a: Implementation object.
+    :param b: Implementation object which can be even that container.
+    :return: True - yes, belong;
+             False - no, the first value is from an another container.
+    """
+    types = [type(a) for a in a.sequence]
+    if int in types:
+        exist_array = True
+    else:
+        exist_array = False
+
+    if exist_array:
+        if a.base_value and b.base_value and a.base_value == b.base_value:
+            iterate = min(len(a.sequence), len(b.sequence))
+            if iterate > 1:
+                for i in range(iterate):
+                    if a.sequence[i] != b.sequence[i]:
+                        return False
+                    elif type(a.sequence[i]) is int:
+                        return True
+    else:
+        if a.base_value and b.base_value and a.base_value == b.base_value:
+            return True
+        elif a.base_value and not b.base_value and a.base_value == b.value:
+            return True
+
+    return False
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
