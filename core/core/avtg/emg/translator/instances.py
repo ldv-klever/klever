@@ -56,8 +56,8 @@ def split_into_instances(analysis, process, resource_new_insts):
                     ivector[interface_index] = 0
             maps.append([new_map, chosen_values])
     else:
-        # Choose at least one map
-        if len(maps) == 0:
+        # Choose atleast one map
+        if len(maps)== 0:
             maps = [[access_map, set()]]
 
     # Then set the other values
@@ -216,7 +216,7 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
         fulfilled_interfaces = set()
         final_set = set()
         original_options = list(reversed(sorted(list(original_options), key=lambda v: len(basevalue_to_value[v]))))
-        while len(fulfilled_values) != len(summary_values) and len(fulfilled_interfaces) != len(summary_interfaces):
+        while len(fulfilled_values) != len(summary_values) or len(fulfilled_interfaces) != len(summary_interfaces):
             value = set(summary_values - fulfilled_values).pop()
             chosen_value = None
 

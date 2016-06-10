@@ -298,8 +298,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                 for index in [index for index in range(len(call))
                                               if call[index] and
                                               check_null(kf.declaration, call[index])]:
-                                    kf.declaration.parameters[index].\
+                                    new = kf.declaration.parameters[index].\
                                         add_implementation(call[index], path, None, None, [])
+                                    if kf.param_interfaces[index]:
+                                        new.fixed_interface = kf.param_interfaces[index].identifier
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in sorted(self.kernel_functions.keys()):
