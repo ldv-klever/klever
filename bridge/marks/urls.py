@@ -28,6 +28,6 @@ urlpatterns = [
     url(r'^ajax/upload_tags/$', views.upload_tags),
 
     # For service requests
-    url(r'^download-all/$', views.download_all),
-    url(r'^upload-all/$', views.upload_all),
+    url(r'^download-all/$', views.download_all, name='download_all'),
+    url(r'^upload-all/$', views.upload_all, name='upload_all'),
 ]
