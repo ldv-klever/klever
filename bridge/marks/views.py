@@ -15,11 +15,11 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel
+from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
-from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar
+from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -660,3 +660,27 @@ def download_all(request):
     response.write(arch.tempfile.read())
 
     return response
+
+
+@unparallel_group(['mark'])
+def upload_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    delete_all_marks = False
+    if int(request.POST.get('delete', 0)) == 1:
+        delete_all_marks = True
+
+    if len(request.FILES.getlist('file')) == 0:
+        return JsonResponse({'error': 'Archive with marks expected'})
+    try:
+        marks_dir = extract_tar_temp(request.FILES.getlist('file')[0])
+    except Exception as e:
+        logger.exception("Archive extraction failed" % e, stack_info=True)
+        return JsonResponse({'error': 'Archive extraction failed'})
+
+    res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
+    if res.error is not None:
+        return JsonResponse({'error': res.error})
+    return JsonResponse(res.numbers)

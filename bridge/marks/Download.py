@@ -9,7 +9,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.utils import file_get_or_create, logger
-from marks.utils import MARK_ERROR_TRACE_FILE_NAME, NewMark, UpdateTags, ConnectMarkWithReports
+from marks.utils import MARK_ERROR_TRACE_FILE_NAME, NewMark, UpdateTags, ConnectMarkWithReports, DeleteMark
 from marks.models import *
 
 
@@ -373,3 +373,33 @@ class ReadTarMark(object):
         UpdateTags(mark, changes=ConnectMarkWithReports(mark).changes)
         self.mark = mark
         return None
+
+
+class UploadAllMarks(object):
+    def __init__(self, user, marks_dir, delete_all_marks):
+        self.error = None
+        self.user = user
+        self.numbers = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}
+        self.delete_all = delete_all_marks
+        self.__delete_all_marks()
+        self.__upload_all(marks_dir)
+
+    def __delete_all_marks(self):
+        if self.delete_all:
+            for mark in MarkSafe.objects.all():
+                DeleteMark(mark)
+            for mark in MarkUnsafe.objects.all():
+                DeleteMark(mark)
+            for mark in MarkUnknown.objects.all():
+                DeleteMark(mark)
+
+    def __upload_all(self, marks_dir):
+        for file_name in os.listdir(marks_dir):
+            mark_path = os.path.join(marks_dir, file_name)
+            if os.path.isfile(mark_path):
+                with open(mark_path, mode='rb') as fp:
+                    res = ReadTarMark(self.user, fp)
+                if res.error is None and res.type in self.numbers:
+                    self.numbers[res.type] += 1
+                else:
+                    self.numbers['fail'] += 1
