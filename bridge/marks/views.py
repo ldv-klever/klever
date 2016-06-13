@@ -654,6 +654,8 @@ def upload_tags(request):
 def download_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to download all marks"})
     arch = AllMarksTar()
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
@@ -666,6 +668,10 @@ def download_all(request):
 def upload_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to upload marks"})
+
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
     delete_all_marks = False
