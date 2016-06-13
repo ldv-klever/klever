@@ -26,4 +26,7 @@ urlpatterns = [
     url(r'^ajax/remove_tag/$', views.remove_tag),
     url(r'^ajax/get_tags_data/$', views.get_tags_data),
     url(r'^ajax/upload_tags/$', views.upload_tags),
+
+    # For service requests
+    url(r'^download-all/$', views.download_all)
 ]

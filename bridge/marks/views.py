@@ -18,7 +18,8 @@ from bridge.tableHead import Header
 from bridge.utils import logger, unparallel_group, unparallel
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, DeleteMark
+from marks.utils import NewMark, MarkAccess, DeleteMark
+from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -323,9 +324,8 @@ def download_mark(request, mark_type, mark_id):
     mark_tar = CreateMarkTar(mark)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.marktar_name
-    mark_tar.memory.seek(0)
-    response.write(mark_tar.memory.read())
+    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.name
+    response.write(mark_tar.tempfile.read())
     return response
 
 
@@ -648,3 +648,15 @@ def upload_tags(request):
     if res.error is not None:
         return JsonResponse({'error': str(res.error)})
     return JsonResponse({})
+
+
+@unparallel_group(['mark'])
+def download_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    arch = AllMarksTar()
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
+    response.write(arch.tempfile.read())
+
+    return response
