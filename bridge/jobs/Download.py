@@ -2,6 +2,7 @@ import os
 import re
 import json
 import tarfile
+import tempfile
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -74,15 +75,18 @@ class DownloadJob(object):
     def __init__(self, job):
         self.tarname = ''
         self.job = job
-        self.memory = BytesIO()
+        self.tempfile = tempfile.TemporaryFile()
         self.error = None
         self.__create_tar()
+        self.tempfile.flush()
+        self.size = self.tempfile.tell()
+        self.tempfile.seek(0)
 
     def __create_tar(self):
 
         files_in_tar = {}
         self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        jobtar_obj = tarfile.open(fileobj=self.tempfile, mode='w:gz')
 
         def write_file_str(file_name, file_content):
             file_content = file_content.encode('utf-8')
@@ -131,17 +135,18 @@ class DownloadJob(object):
 
     def __add_unsafe_files(self, jobtar):
         for unsafe in ReportUnsafe.objects.filter(root__job=self.job):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in unsafe.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % unsafe.pk
-            tinfo = tarfile.TarInfo(os.path.join('Unsafes', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+            temptar = tempfile.TemporaryFile()
+            with tarfile.open(fileobj=temptar, mode='w:gz') as tarobj:
+                for f in unsafe.files.all():
+                    tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
+                tarobj.close()
+            temptar.flush()
+
+            tinfo = tarfile.TarInfo(os.path.join('Unsafes', '%s.tar.gz' % unsafe.pk))
+            tinfo.size = temptar.tell()
+            temptar.seek(0)
+            jobtar.addfile(tinfo, temptar)
 
     def __add_safe_files(self, jobtar):
         for safe in ReportSafe.objects.filter(root__job=self.job):
@@ -159,17 +164,18 @@ class DownloadJob(object):
 
     def __add_component_files(self, jobtar):
         for report in ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(log=None)):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in report.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % report.pk
-            tinfo = tarfile.TarInfo(os.path.join('Components', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+            temptar = tempfile.TemporaryFile()
+            with tarfile.open(fileobj=temptar, mode='w:gz') as tarobj:
+                for f in report.files.all():
+                    tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
+                tarobj.close()
+            temptar.flush()
+
+            tinfo = tarfile.TarInfo(os.path.join('Components', '%s.tar.gz' % report.pk))
+            tinfo.size = temptar.tell()
+            temptar.seek(0)
+            jobtar.addfile(tinfo, temptar)
 
 
 class ReportsData(object):
