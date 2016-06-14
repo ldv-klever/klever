@@ -19,6 +19,7 @@ class ABKM(core.components.Component):
         self.logger.info('Generate one verification task by merging all bug kinds')
 
         self.prepare_common_verification_task_desc()
+        self.prepare_verifier_specific_verificition_task_desc()
         self.prepare_property_file()
         self.prepare_src_files()
 
@@ -47,6 +48,23 @@ class ABKM(core.components.Component):
 
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
+
+    def prepare_verifier_specific_verificition_task_desc(self):
+        if self.task_desc['verifier']['name'] == 'CPAchecker':
+            if 'options' not in self.task_desc['verifier']:
+                self.task_desc['verifier']['options'] = []
+
+            # To refer to original source files rather than to CIL ones.
+            self.task_desc['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
+
+            # To allow to output multiple error traces if other options (configuration) will need this.
+            self.task_desc['verifier']['options'].append({'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+
+            # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
+            # general memory size limit if users don't specify their own sizes.
+            if '-heap' not in [list(opt.keys())[0] for opt in self.task_desc['verifier']['options']]:
+                self.task_desc['verifier']['options'].append({'-heap': '{0}m'.format(
+                    round(3 * self.task_desc['resource limits']['memory size'] / (4 * 1000 ** 2)))})
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
@@ -181,6 +199,21 @@ class ABKM(core.components.Component):
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification'.format(self.id)
+
+                log_file = None
+
+                if self.conf['VTG strategy']['merge source files']:
+                    log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+
+                    if len(log_files) != 1:
+                        RuntimeError(
+                            'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
+                                log_files))
+
+                    log_file = log_files[0]
+                else:
+                    NotImplementedError('https://forge.ispras.ru/issues/6545')
+
                 # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
                 core.utils.report(self.logger,
                                   'verification',
@@ -192,8 +225,8 @@ class ABKM(core.components.Component):
                                       'attrs': [],
                                       'name': self.conf['VTG strategy']['verifier']['name'],
                                       'resources': decision_results['resources'],
-                                      'log': 'cil.i.log',
-                                      'files': ['cil.i.log'] + (
+                                      'log': log_file,
+                                      'files': [log_file] + (
                                           (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
                                           [self.task_desc['property file']] + self.task_desc['files']
                                           if self.conf['upload input files of static verifiers']
@@ -213,8 +246,8 @@ class ABKM(core.components.Component):
                                           'parent id': verification_report_id,
                                           'attrs': [],
                                           # TODO: just the same file as parent log, looks strange.
-                                          'proof': 'cil.i.log',
-                                          'files': ['cil.i.log']
+                                          'proof': log_file,
+                                          'files': [log_file]
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
@@ -408,9 +441,9 @@ class ABKM(core.components.Component):
                                               'id': verification_report_id + '/unknown',
                                               'parent id': verification_report_id,
                                               # TODO: just the same file as parent log, looks strange.
-                                              'problem desc': 'cil.i.log' if decision_results['status'] not in (
+                                              'problem desc': log_file if decision_results['status'] not in (
                                                   'CPU time exhausted', 'memory exhausted') else 'error.txt',
-                                              'files': ['cil.i.log' if decision_results['status'] not in (
+                                              'files': [log_file if decision_results['status'] not in (
                                                   'CPU time exhausted', 'memory exhausted') else 'error.txt']
                                           },
                                           self.mqs['report files'],
