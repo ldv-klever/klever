@@ -149,6 +149,7 @@
 }
 
 .ETV_LN_Note {
+    cursor: default;
     background-color: #4aafdd;
     border-radius: 2px;
 }
@@ -157,6 +158,7 @@
 
 }
 .ETV_LN_Warning {
+    cursor: default;
     background-color: #dd2222;
     border-radius: 2px;
 }
