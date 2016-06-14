@@ -168,10 +168,7 @@ class LKVOG(core.components.Component):
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel']:
-            # Build order must be from "independed" modules
-            # Otherwise, module_name.mod.c will be changed
-            send_build = module.order_build(build_modules, module_deps_function)
-            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(send_build)})
+            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
 
         else:
             self.mqs['Linux kernel module dependencies'].close()
@@ -331,7 +328,6 @@ class LKVOG(core.components.Component):
                 cc_full_desc_files.append(out_file_desc['full desc file'])
             else:
                 for in_file in out_file_desc['in files']:
-                    if not re.search(r'\.mod\.o$', in_file):
-                        cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
+                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
         return cc_full_desc_files

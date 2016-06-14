@@ -49,12 +49,12 @@ class Command:
                 deps_file = match.group(1)
                 break
         if not deps_file:
-            # # Generate them by ourselves if not so.
-            # deps_file = self.out_file + '.d'
-            # p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
-            #                      stderr=subprocess.DEVNULL)
-            # if p.wait():
-            #     raise RuntimeError('Getting dependencies failed')
+            # Generate them by ourselves if not so.
+            deps_file = self.out_file + '.d'
+            p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
+                                 stderr=subprocess.DEVNULL)
+            if p.wait():
+                raise RuntimeError('Getting dependencies failed')
             raise AssertionError(
                 'Could not find dependencies file for CC command with input files: "{0}", output file: "{1}" and options "{2}"'.format(self.in_files, self.out_file, self.other_opts))
 
@@ -147,16 +147,19 @@ class Command:
         # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
         # or samples. They won't be used when building verification object descriptions.
         if self.type == 'CC':
+            if self.in_files[0].endswith('.mod.c'):
+                return True
             if not self.in_files or not self.out_file:
                 return True
-            if self.in_files[0] in ('/dev/null', '-') or self.in_files[0].startswith('samples'):
+            if self.in_files[0] in ('/dev/null', '-'):
                 return True
 
         # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
         # to CC commands filtered out above.
-        if self.type == 'LD' and (not self.out_file or self.out_file.endswith('.tmp')
-                                  or self.in_files[0].startswith('samples')):
-            return True
+        if self.type == 'LD':
+            self.in_files = [in_file for in_file in self.in_files if not in_file.endswith('.mod.o')]
+            if not self.out_file or self.out_file.endswith('.tmp'):
+                return True
 
         return False
 
