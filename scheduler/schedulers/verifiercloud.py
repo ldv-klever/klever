@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import sys
 import shutil
@@ -162,6 +163,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         # TODO: Add more exceptions handling to make code more reliable
+        with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
+                  encoding="ascii") as fp:
+            json.dump(description, fp, sort_keys=True, indent=4)
 
         # Prepare command to submit
         logging.debug("Prepare arguments of the task {}".format(identifier))
