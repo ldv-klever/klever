@@ -54,7 +54,7 @@ class RunHistory(models.Model):
     job = models.ForeignKey(Job)
     operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     configuration = models.ForeignKey(File)
-    date = models.DateTimeField(auto_now=True)
+    date = models.DateTimeField()
     status = models.CharField(choices=JOB_STATUS, max_length=1)
 
     class Meta:
