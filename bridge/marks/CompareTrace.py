@@ -1,6 +1,6 @@
 import json
 from types import MethodType
-from reports.etv import error_trace_callstack
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree
 
 # To create new funciton:
 # 1) Add created function to the class CompareTrace;
@@ -10,7 +10,7 @@ from reports.etv import error_trace_callstack
 # Do not use 'error_trace', 'pattern_error_trace', 'error'
 # and 'result' as function name.
 
-DEFAULT_COMPARE = 'callstack_compare'
+DEFAULT_COMPARE = 'callstack_tree_compare'
 
 
 class CompareTrace(object):
@@ -96,6 +96,17 @@ the error trace. And m - the length of pattern error trace.
 If call stacks are identical returns 1 else returns 0.
         """
         err_trace1 = error_trace_callstack(self.error_trace)
+        err_trace2 = self.pattern_error_trace
+        if err_trace1 == err_trace2:
+            return 1
+        return int(json.loads(err_trace1)[0] == json.loads(err_trace2)[1] and
+                   json.loads(err_trace1)[1] == json.loads(err_trace2)[0])
+
+    def callstack_tree_compare(self):
+        """
+If call stacks trees are identical returns 1 else returns 0.
+        """
+        err_trace1 = ErrorTraceCallstackTree(self.error_trace).trace
         err_trace2 = self.pattern_error_trace
         if err_trace1 == err_trace2:
             return 1
