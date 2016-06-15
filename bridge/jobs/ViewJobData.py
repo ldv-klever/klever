@@ -78,15 +78,28 @@ class ViewJobData(object):
             fv = self.view['filters']['safe_tag']['value']
             safe_tag_filter = {ft: fv}
 
-        safe_tags_data = []
-        for st in self.report.safe_tags.filter(**safe_tag_filter):
-            safe_tags_data.append({
-                'number': st.number,
-                'href': reverse('reports:list_tag',
-                                args=[self.report.pk, 'safes', st.tag.pk]),
+        tree_data = []
+        for st in self.report.safe_tags.filter(**safe_tag_filter).order_by('tag__tag'):
+            tree_data.append({
+                'id': st.tag.pk,
+                'parent': st.tag.parent_id,
                 'name': st.tag.tag,
+                'number': st.number,
+                'href': reverse('reports:list_tag', args=[self.report.pk, 'safes', st.tag.pk]),
+                'description': st.tag.description
             })
-        return safe_tags_data
+
+        def get_children(parent, padding):
+            children = []
+            if parent['id'] is not None:
+                parent['padding'] = padding * 13
+                children.append(parent)
+            for t in tree_data:
+                if t['parent'] == parent['id']:
+                    children.extend(get_children(t, padding + 1))
+            return children
+
+        return get_children({'id': None}, -1)
 
     def __unsafe_tags_info(self):
         unsafe_tag_filter = {}
@@ -95,15 +108,29 @@ class ViewJobData(object):
             fv = self.view['filters']['unsafe_tag']['value']
             unsafe_tag_filter = {ft: fv}
 
-        unsafe_tags_data = []
-        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter):
-            unsafe_tags_data.append({
-                'number': ut.number,
-                'href': reverse('reports:list_tag',
-                                args=[self.report.pk, 'unsafes', ut.tag.pk]),
+        tree_data = []
+        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter).order_by('tag__tag'):
+            tree_data.append({
+                'id': ut.tag.pk,
+                'parent': ut.tag.parent_id,
                 'name': ut.tag.tag,
+                'number': ut.number,
+                'href': reverse('reports:list_tag', args=[self.report.pk, 'unsafes', ut.tag.pk]),
+                'description': ut.tag.description
             })
-        return unsafe_tags_data
+
+        def get_children(parent, padding):
+            children = []
+            if parent['id'] is not None:
+                parent['padding'] = padding * 13
+                children.append(parent)
+            for t in tree_data:
+                if t['parent'] == parent['id']:
+                    children.extend(get_children(t, padding + 1))
+            return children
+
+        return get_children({'id': None}, -1)
+
 
     def __resource_info(self):
         res_data = {}

@@ -1,5 +1,7 @@
 import os
+import json
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
@@ -7,7 +9,7 @@ from bridge.utils import KleverTestCase
 from bridge.vars import JOB_CLASSES, USER_ROLES
 from users.models import User, Extended
 from jobs.models import Job
-from marks.models import MarkUnknown
+from marks.models import MarkUnknown, SafeTag, UnsafeTag
 from service.models import Scheduler, SCHEDULER_TYPE
 
 
@@ -70,6 +72,48 @@ class TestPopulation(KleverTestCase):
         self.assertEqual(len(MarkUnknown.objects.all()), number_of_preset_marks)
         self.assertEqual(len(Scheduler.objects.filter(type=SCHEDULER_TYPE[0][0])), 1)
         self.assertEqual(len(Scheduler.objects.filter(type=SCHEDULER_TYPE[1][0])), 1)
+
+        safe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'safe.json')
+        if os.path.isfile(safe_tags_presets):
+            with open(safe_tags_presets) as fp:
+                data = json.load(fp)
+            if not isinstance(data, list):
+                self.fail('Wrong preset safe tags format')
+            for t in data:
+                if not isinstance(t, dict):
+                    self.fail('Wrong preset safe tags format')
+                if 'name' not in t:
+                    self.fail('Safe tag name is required')
+                try:
+                    tag = SafeTag.objects.get(tag=t['name'])
+                except ObjectDoesNotExist:
+                    self.fail('Preset safe tag "%s" was not created' % t['name'])
+                if 'parent' in t and t['parent'] is not None:
+                    self.assertEqual(tag.parent.tag, t['parent'])
+                else:
+                    self.assertEqual(tag.parent, None)
+                self.assertEqual(tag.description, t.get('description', ''))
+
+        unsafe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'unsafe.json')
+        if os.path.isfile(unsafe_tags_presets):
+            with open(unsafe_tags_presets) as fp:
+                data = json.load(fp)
+            if not isinstance(data, list):
+                self.fail('Wrong preset safe tags format')
+            for t in data:
+                if not isinstance(t, dict):
+                    self.fail('Wrong preset safe tags format')
+                if 'name' not in t:
+                    self.fail('Safe tag name is required')
+                try:
+                    tag = UnsafeTag.objects.get(tag=t['name'])
+                except ObjectDoesNotExist:
+                    self.fail('Preset unsafe tag "%s" was not created' % t['name'])
+                if 'parent' in t and t['parent'] is not None:
+                    self.assertEqual(tag.parent.tag, t['parent'])
+                else:
+                    self.assertEqual(tag.parent, None)
+                self.assertEqual(tag.description, t.get('description', ''))
 
     def test_service_population(self):
         result = populate_users(

@@ -349,4 +349,10 @@ $(document).ready(function () {
         });
         return false;
     });
+    $('.tag-description-popup').each(function () {
+        $(this).popup({
+            html: $(this).attr('data-content'),
+            hoverable: true
+        });
+    });
 });
