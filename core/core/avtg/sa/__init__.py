@@ -6,7 +6,7 @@ import re
 
 import jinja2
 
-import core.components
+import core.avtg.plugins
 import core.utils
 from core.avtg.sa.initparser import parse_initializations
 
@@ -15,7 +15,7 @@ def nested_dict():
     return collections.defaultdict(nested_dict)
 
 
-class SA(core.components.Component):
+class SA(core.avtg.plugins.Plugin):
     # TODO: Use template processor instead of predefined aspect file and target output files
     collection = None
     files = []
@@ -23,12 +23,6 @@ class SA(core.components.Component):
     kernel_functions = []
 
     def analyze_sources(self):
-        self.logger.info("Start source analyzer {}".format(self.id))
-
-        self.logger.info("Going to extract abstract verification task from queue")
-        avt = self.mqs['abstract task description'].get()
-        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
-
         # Init an empty collection
         self.logger.info("Initialize an empty collection before analyzing source code")
         self.collection = collections.defaultdict(nested_dict)
@@ -41,7 +35,7 @@ class SA(core.components.Component):
 
         # Perform requests
         self.logger.info("Run source code analysis")
-        self._perform_info_requests(avt)
+        self._perform_info_requests(self.abstract_task_desc)
         self.logger.info("Source analysis has been finished successfully")
 
         # Extract data
@@ -61,13 +55,10 @@ class SA(core.components.Component):
         self.logger.info("Collection has been saved succussfully")
 
         # Save data to abstract task
-        self.logger.info("Add the collection to an abstract verification task {}".format(avt["id"]))
+        self.logger.info("Add the collection to an abstract verification task {}".format(self.abstract_task_desc["id"]))
         # todo: better do this way: avt["source analysis"] = self.collection
-        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
-
-        # Put edited task and terminate
-        self.mqs['abstract task description'].put(avt)
-        self.logger.info("Source analyzer {} successfully finished".format(self.id))
+        self.abstract_task_desc["source analysis"] = os.path.relpath("model.json", os.path.realpath(
+            self.conf["main working directory"]))
 
     def _generate_aspect_file(self):
         # Prepare aspect file

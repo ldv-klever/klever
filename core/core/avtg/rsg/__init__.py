@@ -5,7 +5,7 @@ import multiprocessing
 import os
 import string
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
@@ -17,10 +17,8 @@ def after_set_src_tree_root(context):
     context.mqs['src tree root'].put(context.src_tree_root)
 
 
-class RSG(core.components.Component):
+class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         aspects = []
         models = []
 
@@ -43,8 +41,6 @@ class RSG(core.components.Component):
 
         if 'files' in self.abstract_task_desc:
             self.abstract_task_desc.pop('files')
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = generate_rule_specification
 
