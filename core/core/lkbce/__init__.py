@@ -133,6 +133,9 @@ class LKBCE(core.components.Component):
             # Linux kernel external modules always require this preparation.
             build_targets.append(('modules_prepare',))
 
+            if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
+                build_targets.append(('M=ext-modules', 'modules'))
+
         if self.linux_kernel['modules']:
             # Specially process building of all modules.
             if 'all' in self.linux_kernel['modules']:
@@ -150,26 +153,27 @@ class LKBCE(core.components.Component):
                                 'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
                 # Examine module sets.
-                for modules_set in self.linux_kernel['modules']:
-                    # Module sets ending with .ko imply individual modules.
-                    if re.search(r'\.ko$', modules_set):
-                        build_targets.append(('M=ext-modules', modules_set)
-                                             if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
-                    # Otherwise it is directory that can contain modules.
-                    else:
-                        # Add "modules_prepare" target once.
-                        if not build_targets or build_targets[0] != ('modules_prepare',):
-                            build_targets.insert(0, ('modules_prepare',))
+                if 'build kernel' not in self.linux_kernel or not self.linux_kernel['build kernel']:
+                    for modules_set in self.linux_kernel['modules']:
+                        # Module sets ending with .ko imply individual modules.
+                        if re.search(r'\.ko$', modules_set):
+                            build_targets.append(('M=ext-modules', modules_set)
+                                                 if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
+                        # Otherwise it is directory that can contain modules.
+                        else:
+                            # Add "modules_prepare" target once.
+                            if not build_targets or build_targets[0] != ('modules_prepare',):
+                                build_targets.insert(0, ('modules_prepare',))
 
-                        modules_dir = os.path.join('ext-modules', modules_set) \
-                            if 'external modules' in self.conf['Linux kernel'] else modules_set
+                            modules_dir = os.path.join('ext-modules', modules_set) \
+                                if 'external modules' in self.conf['Linux kernel'] else modules_set
 
-                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_dir)):
-                            raise ValueError(
-                                'There is not directory "{0}" inside "{1}"'.format(modules_dir,
-                                                                                   self.linux_kernel['work src tree']))
+                            if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_dir)):
+                                raise ValueError(
+                                    'There is not directory "{0}" inside "{1}"'.format(modules_dir,
+                                                                                       self.linux_kernel['work src tree']))
 
-                        build_targets.append(('M=' + modules_dir, 'modules'))
+                            build_targets.append(('M=' + modules_dir, 'modules'))
         elif not self.linux_kernel['build kernel']:
             self.logger.warning('Nothing will be verified since modules are not specified')
 
