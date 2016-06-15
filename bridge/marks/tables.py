@@ -20,7 +20,7 @@ MARK_TITLES = {
     'sum_verdict': _('Total verdict'),
     'result': _('Similarity'),
     'status': _('Status'),
-    'author': _('Author'),
+    'author': _('Last change author'),
     'report': _('Report'),
     'job': _('Job'),
     'format': _('Format'),
