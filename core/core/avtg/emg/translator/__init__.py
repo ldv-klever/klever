@@ -360,12 +360,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             }
 
         self.files[file]['functions'][function.name] = function.get_definition()
-        if file == self.entry_file:
-            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=False)
-        else:
-            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=True)
+        self._add_function_declaration(file, function, extern=False)
 
-    def _add_function_declaration(self, file, function):
+    def _add_function_declaration(self, file, function, extern=False):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
@@ -374,12 +371,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'initializations': {}
             }
 
-        self.files[file]['declarations'][function.name] = function.get_declaration(extern=True)
+        if extern and function.name in self.files[file]['declarations']:
+            return
+        self.files[file]['declarations'][function.name] = function.get_declaration(extern=extern)
 
-    def _add_global_variable(self, variable):
-        if variable.file:
+    def _add_global_variable(self, variable, file, extern=False):
+        if not file and variable.file:
             file = variable.file
-        else:
+        elif not file:
             file = self.entry_file
 
         if file not in self.files:
@@ -390,14 +389,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'initializations': {}
             }
 
-        if file == self.entry_file:
-            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
-        else:
-            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=True) + ";\n"
-            self.files[file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
-
-        if variable.value:
-            self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
+        if extern and variable.name not in self.files[file]['variables']:
+            self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
+        elif not extern:
+            self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
+            if variable.value:
+                self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
     def _set_initial_state(self, automaton):
         body = list()
@@ -480,6 +477,24 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         func = self._generate_entry_functions(body, global_switch_automata)
         self._add_function_definition(self.entry_file, func)
 
+    def _choose_file(self, analysis, automaton):
+        file = automaton.file
+        if file:
+            return file
+
+        files = set()
+        if automaton.process.category == "kernel models":
+            # Calls
+            files.update(set(analysis.kernel_functions[automaton.process.name].files_called_at))
+            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+                # Caller definitions
+                files.update(set(analysis.modules_functions[caller].keys()))
+
+        if len(files) == 0:
+            return self.entry_file
+        else:
+            return sorted(list(files))[0]
+
     def _generate_entry_functions(self, body, global_switch_automata):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
@@ -533,7 +548,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         # Export
         for file in files:
-            self._add_function_declaration(file, function)
+            self._add_function_declaration(file, function, extern=True)
 
     def _call(self, analysis, automaton, state):
         # Generate function call and corresponding function
@@ -590,6 +605,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
+        self._add_function_declaration(self._choose_file(analysis, automaton), function, extern=True)
 
         # Add declarations
         self._propogate_aux_function(analysis, automaton, function)
@@ -695,10 +711,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             for index in range(len(function_parameters)):
                 body.append('{}.arg{} = arg{};'.format(vf_param_var.name, index, index))
-
-            if not self._nested_automata:
-                vf_param_var = self._dispatch_var(automaton, state, function_parameters)
-                body.append('{} = {};'.format(vf_param_var.name, cf_param))
             body.append('')
 
             if replicative:
@@ -747,13 +759,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                             # Determine var
                             var = state.code['relevant automata'][name]['automaton'].\
                                 determine_variable(receiver_access.label, param_interfaces[index].identifier)
+                            self._add_global_variable(var, self._choose_file(analysis, automaton), extern=True)
 
                             receiver_expr = receiver_access.access_with_variable(var)
                             block.append("{} = arg{};".format(receiver_expr, index))
 
                     # Update state
                     block.extend(['', "/* Switch state of the reciever */"])
-                    block.extend(self._switch_state_code(state.code['relevant automata'][name]['automaton'], r_state))
+                    block.extend(self._switch_state_code(analysis, state.code['relevant automata'][name]['automaton'],
+                                                         r_state))
+                    self._add_global_variable(state.code['relevant automata'][name]['automaton'].state_variable,
+                                              self._choose_file(analysis, automaton), extern=True)
 
                     blocks.append(block)
 
@@ -799,7 +815,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
 
         df.body.extend(body)
-        self._add_function_definition(self.entry_file, df)
+        self._add_function_definition(self._choose_file(analysis, automaton), df)
 
         # Add declarations
         self._propogate_aux_function(analysis, automaton, df)
@@ -808,14 +824,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             '/* Dispatch {} */'.format(state.action.name),
             '{}({});'.format(df.name, ', '.join(df_parameters))
         ]
-
-    def _dispatch_var(self, automaton, state, params):
-        decl = self._get_cf_struct(automaton, params)
-        vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
-                                None, decl, False)
-
-        self._add_global_variable(vf_param_var)
-        return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
         block = []
@@ -1096,18 +1104,21 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 processed.append(subp.action.name)
 
         if not self._nested_automata and not aspect:
-            self._add_global_variable(automaton.state_variable)
+            self._add_global_variable(automaton.state_variable, self._choose_file(analysis, automaton), extern=False)
         elif not aspect:
             if self._nested_automata and self.__instance_modifier > 1:
-                self._add_global_variable(automaton.thread_variable(self.__instance_modifier))
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier),
+                                          self._choose_file(analysis, automaton), extern=False)
             else:
-                self._add_global_variable(automaton.thread_variable())
+                self._add_global_variable(automaton.thread_variable(), self._choose_file(analysis, automaton),
+                                          extern=False)
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
         if not aspect:
-            self._add_function_definition(self.entry_file, cf)
+            self._add_function_definition(self._choose_file(analysis, automaton), cf)
+            self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
 
     def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
@@ -1143,14 +1154,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 v_code.append(definition)
         elif not aspect:
             for var in automaton.variables():
-                self._add_global_variable(var)
+                self._add_global_variable(var, self._choose_file(analysis, automaton), extern=False)
 
         return cf
 
-    def _state_switch(self, states):
-        key = ''.join((str(i) for i in states))
+    def _state_switch(self, states, file):
+        key = ''.join(sorted([str(i) for i in states]))
         if key in self.__switchers_cache:
-            return self.__switchers_cache[key]
+            self._add_function_declaration(file, self.__switchers_cache[key]['function'], extern=True)
+            return self.__switchers_cache[key]['call']
 
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
@@ -1172,7 +1184,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._add_function_definition(self.entry_file, function)
 
         invoke = '{}()'.format(name)
-        self.__switchers_cache[key] = invoke
+        self.__switchers_cache[key] = {
+            'call': invoke,
+            'function':  function
+        }
         return invoke
 
     def _state_sequences(self, automaton):
@@ -1202,7 +1217,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return blocks
 
-    def _switch_state_code(self, automaton, state):
+    def _switch_state_code(self, analysis, automaton, state):
         code = []
 
         successors = sorted(list(state.successors), key=lambda f: f.identifier)
@@ -1216,7 +1231,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
             ])
         elif len(state.successors) > 2:
-            switch_call = self._state_switch([st.identifier for st in successors])
+            switch_call = self._state_switch([st.identifier for st in successors],
+                                             self._choose_file(analysis, automaton))
             code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
         else:
             code.append('/* Reset automaton state */')            
@@ -1251,7 +1267,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             code.append('')
 
         if self._nested_automata or type(state_block[0].action) is not Receive:
-            code.extend(self._switch_state_code(automaton, state))
+            code.extend(self._switch_state_code(analysis, automaton, state))
         else:
             code.append('/* Omit state transition for a receive */')
 
@@ -1321,16 +1337,20 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             f_code.append('out_{}:'.format(automaton.identifier))
             f_code.append('return;')
             if self.__instance_modifier > 1:
-                self._add_global_variable(automaton.thread_variable(self.__instance_modifier))
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier),
+                                          self._choose_file(analysis, automaton), extern=False)
             else:
-                self._add_global_variable(automaton.thread_variable())
+                self._add_global_variable(automaton.thread_variable(), self._choose_file(analysis, automaton),
+                                          extern=False)
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
-            self._add_global_variable(automaton.state_variable)
+            self._add_global_variable(automaton.state_variable, self._choose_file(analysis, automaton), extern=False)
+            self._add_global_variable(automaton.state_variable, self.entry_file, extern=True)
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
-        self._add_function_definition(self.entry_file, cf)
+        self._add_function_definition(self._choose_file(analysis, automaton), cf)
+        self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
 
     def __generate_aspects(self):

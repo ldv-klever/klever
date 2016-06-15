@@ -210,6 +210,7 @@ class Automaton:
         self.__state_variable = None
         self.__thread_variable = None
         self.__label_variables = {}
+        self.__file = None
 
         # Set given values
         self.logger = logger
@@ -221,6 +222,42 @@ class Automaton:
                          format(self.identifier, self.process.name, self.process.category))
         self.fsa = FSA(self.process)
         self.variables()
+
+    @property
+    def file(self):
+        if self.__file:
+            return self.__file
+        files = set()
+
+        # Try to determine base values
+        base_values = set()
+        change = True
+        while change:
+            change = False
+
+            for expr in self.process.allowed_implementations:
+                for impl in (impl for impl in self.process.allowed_implementations[expr].values() if impl):
+                    if impl.base_value and impl.base_value not in base_values:
+                        base_values.add(impl.base_value)
+                        change = True
+                    elif not impl.base_value and impl.value not in base_values:
+                        base_values.add(impl.value)
+                        change = True
+
+                    if impl.value in base_values and impl.file not in files:
+                        files.add(impl.file)
+                        change = True
+
+        # If no base values then try to find callback call files
+        files.update(set([s.code['file'] for s in self.fsa.states if s.code and 'file' in s.code]))
+
+        if len(files) > 0:
+            chosen_one = sorted(list(files))[0]
+            self.__file = chosen_one
+        else:
+            self.__file = None
+
+        return self.__file
 
     @property
     def state_variable(self):
