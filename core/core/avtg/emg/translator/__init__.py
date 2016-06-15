@@ -430,6 +430,16 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Generate control function objects before filling their bodies
+        for automaton in [self._entry_fsa] + self._callback_fsa:
+            cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
+                                    False)
+            automaton.control_function = cf
+        for automaton in self._model_fsa:
+            cf = Aspect(automaton.process.name, analysis.kernel_functions[automaton.process.name].declaration, 'around')
+            self.model_aspects.append(cf)
+            automaton.control_function = cf
+
         # Initialize states in an entry point
         body = []
         if not self._omit_all_states and not self._nested_automata:
@@ -582,10 +592,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         params = ", ".join(params)
         resources = ", ".join(resources)
 
-        function = FunctionDefinition(fname,
-                                      state.code['file'],
-                                      "{} {}({})".format(ret, fname, resources),
-                                      True)
+        function = FunctionDefinition(fname, state.code['file'], "{} {}({})".format(ret, fname, resources), True)
 
         function.body.append("/* Callback {} */".format(state.action.name))
         inv = [
@@ -617,32 +624,35 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return inv
 
-    def _call_cf(self, automaton, parameter='0'):
+    def _call_cf(self, file, automaton, parameter='0'):
+        self._add_function_declaration(file, automaton.control_function, extern=True)
 
         if self._direct_cf_calls:
-            return '{}({});'.format(self.CF_PREFIX + str(automaton.identifier), parameter)
+            return '{}({});'.format(automaton.control_function.name, parameter)
         elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
             sv = automaton.thread_variable(self.__instance_modifier)
+            self._add_global_variable(file, sv, extern=True)
             return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
-                                                             self.CF_PREFIX + str(automaton.identifier),
+                                                             automaton.control_function.name,
                                                              parameter)
         else:
             sv = automaton.thread_variable()
+            self._add_global_variable(file, sv, extern=True)
             return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
-                                                           self.CF_PREFIX + str(automaton.identifier),
+                                                           automaton.control_function.name,
                                                            parameter)
 
-    def _join_cf(self, automaton):
+    def _join_cf(self, file, automaton):
+        self._add_function_declaration(file, automaton.control_function, extern=True)
+
         if self._direct_cf_calls:
             return '/* Skip thread join call */'
         elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
             sv = automaton.thread_variable(self.__instance_modifier)
-            return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name,
-                                                       self.CF_PREFIX + str(automaton.identifier))
+            return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name, automaton.control_function.name)
         else:
             sv = automaton.thread_variable()
-            return 'ldv_thread_join({}, {});'.format('& ' + sv.name,
-                                                     self.CF_PREFIX + str(automaton.identifier))
+            return 'ldv_thread_join({}, {});'.format('& ' + sv.name, automaton.control_function.name)
 
     def _get_cf_struct(self, automaton, params):
         cache_identifier = ''
@@ -667,6 +677,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def _dispatch(self, analysis, automaton, state):
         body = []
+        file = self._choose_file(analysis, automaton)
         if not self._direct_cf_calls:
             body = ['int ret;']
 
@@ -717,7 +728,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 for name in state.code['relevant automata']:
                     for r_state in state.code['relevant automata'][name]['states']:
                         block = []
-                        call = self._call_cf(state.code['relevant automata'][name]['automaton'], '& ' + cf_param)
+                        call = self._call_cf(file,
+                                             state.code['relevant automata'][name]['automaton'], '& ' + cf_param)
                         if r_state.action.replicative:
                             if self._direct_cf_calls:
                                 block.append(call)
@@ -735,7 +747,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             else:
                 for name in (n for n in state.code['relevant automata']
                              if len(state.code['relevant automata'][n]['states']) > 0):
-                    call = self._join_cf(state.code['relevant automata'][name]['automaton'])
+                    call = self._join_cf(file, state.code['relevant automata'][name]['automaton'])
                     if self._direct_cf_calls:
                         block = [call]
                     else:
@@ -800,7 +812,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if len(function_parameters) > 0:
             df = FunctionDefinition(
-                "ldv_dispatch_{}_{}_{}".format(automaton.identifier, state.identifier, state.action.name),
+                "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                 self.entry_file,
                 "void f({})".format(', '.join([function_parameters[index].to_string('arg{}'.format(index)) for index in
                                                range(len(function_parameters))])),
@@ -808,14 +820,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
         else:
             df = FunctionDefinition(
-                "ldv_dispatch_{}_{}_{}".format(automaton.identifier, state.identifier, state.action.name),
+                "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                 self.entry_file,
                 "void f(void)",
                 False
             )
 
         df.body.extend(body)
-        self._add_function_definition(self._choose_file(analysis, automaton), df)
+        self._add_function_definition(file, df)
 
         # Add declarations
         self._propogate_aux_function(analysis, automaton, df)
@@ -1078,7 +1090,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ret_expression = 'return;'
 
         # Generate function definition
-        cf = self._new_control_function(analysis, automaton, v_code, f_code, aspect)
+        cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
 
         main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
                                                         'initial_state')
@@ -1121,32 +1133,27 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
 
-    def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
+    def _init_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
-        if aspect:
-            cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
-            self.model_aspects.append(cf)
-        else:
-            cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
-                                    False)
-            if self._nested_automata:
-                param_declarations = []
-                param_expressions = []
-                for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
-                    if len(receive.parameters) > 0:
-                        for index in range(len(receive.parameters)):
-                            # Determine dispatcher parameter
-                            interface = get_common_parameter(receive, automaton.process, index)
+        cf = automaton.control_function
+        if not aspect and self._nested_automata:
+            param_declarations = []
+            param_expressions = []
+            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
+                if len(receive.parameters) > 0:
+                    for index in range(len(receive.parameters)):
+                        # Determine dispatcher parameter
+                        interface = get_common_parameter(receive, automaton.process, index)
 
-                            # Determine receiver parameter
-                            receiver_access = automaton.process.resolve_access(receive.parameters[index],
-                                                                               interface.identifier)
-                            var = automaton.determine_variable(receiver_access.label, interface.identifier)
-                            receiver_expr = receiver_access.access_with_variable(var)
+                        # Determine receiver parameter
+                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
+                                                                           interface.identifier)
+                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
+                        receiver_expr = receiver_access.access_with_variable(var)
 
-                            param_declarations.append(var.declaration)
-                            param_expressions.append(receiver_expr)
-                        break
+                        param_declarations.append(var.declaration)
+                        param_expressions.append(receiver_expr)
+                    break
 
         if self._nested_automata or aspect:
             for var in automaton.variables():
@@ -1156,6 +1163,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for var in automaton.variables():
                 self._add_global_variable(var, self._choose_file(analysis, automaton), extern=False)
 
+        automaton.control_function = cf
         return cf
 
     def _state_switch(self, states, file):
@@ -1281,7 +1289,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         tab = 0
 
         # Generate function definition
-        cf = self._new_control_function(analysis, automaton, v_code, f_code, None)
+        cf = self._init_control_function(analysis, automaton, v_code, f_code, None)
 
         # Add a loop for nested case
         if self._nested_automata:
