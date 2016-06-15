@@ -63,7 +63,7 @@ class ProcessModel:
             ep.actions[init_label.name] = init_subprocess
 
         ret_label = Label('ret')
-        ret_label.prior_signature = import_signature("int label")
+        ret_label.prior_signature = import_declaration("int label")
         ep.labels['ret'] = ret_label
 
         # Generate exit subprocess
@@ -74,7 +74,7 @@ class ProcessModel:
             exit_subprocess.callback = "%exit%"
 
             exit_label = Label('exit')
-            exit_label.prior_signature = import_signature("void (*f)(void)")
+            exit_label.prior_signature = import_declaration("void (*f)(void)")
             exit_label.value = None
             exit_label.file = None
             ep.labels['exit'] = exit_label
@@ -83,7 +83,7 @@ class ProcessModel:
             for filename, exit_name in analysis.exits:
 
                 exit_label = Label('exit_{}'.format(exit_name))
-                exit_label.prior_signature = import_signature("void (*f)(void)")
+                exit_label.prior_signature = import_declaration("void (*f)(void)")
                 exit_label.value = "& {}".format(exit_name)
                 exit_label.file = filename
                 exit_subprocess = Call(exit_label.name)
