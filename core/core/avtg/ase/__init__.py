@@ -3,14 +3,12 @@
 import json
 import os
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
-class ASE(core.components.Component):
+class ASE(core.avtg.plugins.Plugin):
     def extract_argument_signatures(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         self.request_arg_signs()
 
         arg_signs = []
@@ -30,8 +28,6 @@ class ASE(core.components.Component):
         # * more nice text representation for notes to be shown to users.
         self.abstract_task_desc['template context'] = {
             'arg_signs': [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in arg_signs]}
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     def request_arg_signs(self):
         self.logger.info('Request argument signatures')
