@@ -149,23 +149,33 @@
 }
 
 .ETV_LN_Note {
-    cursor: default;
     background-color: #4aafdd;
     border-radius: 2px;
 }
 .ETV_LN_Note:hover {
     background-color: #4aafdd;
-
 }
+.ETV_LN_Note_Selected {
+    background-color: #61d1f9;
+}
+.ETV_LN_Note_Selected:hover {
+    background-color: #61d1f9;
+}
+
 .ETV_LN_Warning {
-    cursor: default;
     background-color: #dd2222;
     border-radius: 2px;
 }
 .ETV_LN_Warning:hover {
     background-color: #dd2222;
-
 }
+.ETV_LN_Warning_Selected {
+    background-color: #fb7471;
+}
+.ETV_LN_Warning_Selected:hover {
+    background-color: #fb7471;
+}
+
 .ETV_ShowCommentCode {
     font-style: italic;
     font-weight: bold;
