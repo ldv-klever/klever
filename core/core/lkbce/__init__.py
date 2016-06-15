@@ -27,7 +27,7 @@ _arch_hdr_arch = {
 
 class LKBCE(core.components.Component):
     def extract_linux_kernel_build_commands(self):
-        self.linux_kernel = {}
+        self.linux_kernel = {'prepared to build ext modules': None}
         # Prepare Linux kernel source code and extract build commands exclusively but just with other sub-jobs of a
         # given job. It would be more properly to lock working source trees especially if different sub-jobs use
         # different trees (https://forge.ispras.ru/issues/6647).
@@ -39,6 +39,7 @@ class LKBCE(core.components.Component):
             # affect value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather
             # than configuration target.
             self.get_linux_kernel_conf()
+            self.check_preparation_for_building_external_modules()
             self.clean_linux_kernel_work_src_tree()
             self.set_linux_kernel_attrs()
             self.set_hdr_arch()
@@ -183,9 +184,17 @@ class LKBCE(core.components.Component):
 
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
         for build_target in build_targets:
+            if build_target[0] == 'modules_prepare' and self.linux_kernel['prepared to build ext modules']:
+                continue
             self.__make(build_target,
                         jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
+            if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
+                    self.linux_kernel['prepared to build ext modules']:
+                with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
+                          encoding='ascii') as fp:
+                    fp.write(self.linux_kernel['conf'])
+
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='ascii') as fp:
@@ -257,8 +266,22 @@ class LKBCE(core.components.Component):
             func = splts[2][1:-2]
             self.linux_kernel['module dependencies'].append((second, func, first))
 
+    def check_preparation_for_building_external_modules(self):
+        prepared_ext_modules_conf_file = os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf')
+        if 'external modules' in self.conf['Linux kernel'] and os.path.isfile(prepared_ext_modules_conf_file):
+            with open(prepared_ext_modules_conf_file, encoding='ascii') as fp:
+                if fp.readline().rstrip() == self.linux_kernel['conf']:
+                    self.linux_kernel['prepared to build ext modules'] = True
+
     def clean_linux_kernel_work_src_tree(self):
         self.logger.info('Clean Linux kernel working source tree')
+
+        if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], 'ext-modules')):
+            shutil.rmtree(os.path.join(self.linux_kernel['work src tree'], 'ext-modules'))
+
+        if self.linux_kernel['prepared to build ext modules']:
+            return
+
         self.__make(('mrproper',))
 
         # In this case we need to remove intermediate files and directories that could be created during previous run.
@@ -268,7 +291,7 @@ class LKBCE(core.components.Component):
                     if re.search(r'\.json$', filename):
                         os.remove(os.path.join(dirpath, filename))
                 for dirname in dirnames:
-                    if re.search(r'\.task$', dirname) or dirname == 'ext-modules':
+                    if re.search(r'\.task$', dirname):
                         shutil.rmtree(os.path.join(dirpath, dirname))
 
     def get_linux_kernel_conf(self):
@@ -292,6 +315,9 @@ class LKBCE(core.components.Component):
             self.linux_kernel['conf'] = self.conf['Linux kernel']['configuration']
 
     def configure_linux_kernel(self):
+        if self.linux_kernel['prepared to build ext modules']:
+            return
+
         self.logger.info('Configure Linux kernel')
         self.__make(('oldconfig' if 'conf file' in self.linux_kernel else self.conf['Linux kernel']['configuration'],),
                     specify_arch=True, collect_build_cmds=False, collect_all_stdout=True)
