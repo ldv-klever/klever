@@ -595,6 +595,54 @@
       },
       "rule specifications": ["linux:alloc:resource"],
       "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
+      "ideal verdict": "unsafe"
     }
   ]
 }
