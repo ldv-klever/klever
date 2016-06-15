@@ -1,10 +1,11 @@
-from core.lkvog.strategies.module import Module
-from core.lkvog.strategies.module import Graph
+from core.lkvog.strategies.strategy_utils import Module, Graph
+from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 from operator import itemgetter
 
 
-class Advanced:
-    def __init__(self, logger, strategy_params, params=None):
+class Advanced(AbstractStrategy):
+    def __init__(self, logger, strategy_params, params):
+        super().__init__(logger)
         module_sizes = strategy_params.get('module_sizes', {})
         deps = strategy_params['module_deps_function']
 

@@ -9,7 +9,7 @@ from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
 from core.lkvog.strategies import advanced
 from core.lkvog.strategies import strategies_list
-from core.lkvog.strategies import module
+from core.lkvog.strategies import strategy_utils
 import core.components
 import core.utils
 
@@ -218,8 +218,8 @@ class LKVOG(core.components.Component):
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
                 else:
-                    self.checked_modules.add(module.Module(self.module['name']))
-                    module_clusters.append(module.Graph([module.Module(self.module['name'])]))
+                    self.checked_modules.add(strategy_utils.Module(self.module['name']))
+                    module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
 
                 for cluster in module_clusters:
                     self.cluster = cluster

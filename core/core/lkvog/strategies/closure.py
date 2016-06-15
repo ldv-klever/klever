@@ -1,9 +1,11 @@
-from core.lkvog.strategies.module import Module
-from core.lkvog.strategies.module import Cluster
+from core.lkvog.strategies.strategy_utils import Module, Cluster
+from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 
 
-class Closure:
-    def __init__(self, logger, strategy_params, params={}):
+class Closure(AbstractStrategy):
+    def __init__(self, logger, strategy_params, params):
+        super().__init__(logger)
+
         self.logger = logger
         self.cluster_size = params.get('cluster size', 0)
         self.modules = {}

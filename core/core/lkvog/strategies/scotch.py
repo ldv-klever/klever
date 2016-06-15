@@ -1,15 +1,14 @@
 import os
 
-from core.lkvog.strategies.module import Module
-from core.lkvog.strategies.module import Graph
+from core.lkvog.strategies.strategy_utils import Module, Graph
+from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 from core.utils import execute
 
 
-class Scotch:
-    def __init__(self, logger, strategy_params, params=None):
-        if params is None:
-            params = {}
-        self.logger = logger
+class Scotch(AbstractStrategy):
+    def __init__(self, logger, strategy_params, params):
+        super().__init__(logger)
+
         self.scotch_path = params['scotch path']
         self.graph_file = os.path.join(strategy_params['work dir'], 'graph_file.txt')
         self.scotch_log = os.path.join(strategy_params['work dir'], 'scotch.log')
