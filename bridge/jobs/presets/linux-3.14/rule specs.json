@@ -288,9 +288,9 @@
               "linux:usb:urb:less initial decrement",
               "linux:usb:urb:more initial at exit"
             ]
-          },
-          "aspects": ["linux/usb/urb.aspect"]
-        }
+          }
+        },
+        "aspects": ["linux/usb/urb.aspect"]
       }
     },
     "linux:usb:coherent": {
@@ -305,9 +305,9 @@
               "linux:usb:coherent:less initial decrement",
               "linux:usb:coherent:more initial at exit"
             ]
-          },
-          "aspects": ["linux/usb/coherent.aspect"]
-        }
+          }
+        },
+        "aspects": ["linux/usb/coherent.aspect"]
       }
     },
     "linux:alloc:resource": {
