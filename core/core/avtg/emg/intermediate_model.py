@@ -27,7 +27,7 @@ class ProcessModel:
         self.__select_processes_and_models(analysis)
 
         # Finish entry point process generation
-        self.__finish_entry()
+        self.__finish_entry(analysis)
 
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
@@ -41,62 +41,73 @@ class ProcessModel:
         ep.identifier = 0
         self.entry_process = ep
 
-        # Generate init subprocess
-        init_subprocess = Call('init')
-        init_subprocess.callback = "%init%"
-
         if len(analysis.inits) == 0:
             raise RuntimeError('Module does not have Init function')
-        # todo: Add none instead of particular name (relevant to #6571)
-        init_name = list(analysis.inits.values())[0]
-        init_label = Label('init')
-        init_label.value = "& {}".format(init_name)
-        init_label.prior_signature = import_signature("int (*f)(void)")
-        self.logger.debug("Found init function {}".format(init_name))
 
-        # Add ret value
+        # Generate init subprocess
+        for filename, init_name in analysis.inits:
+
+            # todo: Add none instead of particular name (relevant to #6571)
+            init_label = Label('init_{}'.format(init_name))
+            init_label.value = "& {}".format(init_name)
+            init_label.prior_signature = import_signature("int (*f)(void)")
+            init_label.file = filename
+            init_subprocess = Call(init_label.name)
+            init_subprocess.callback = "%init_{}%".format(init_name)
+            init_subprocess.retlabel = "%ret%"
+            init_subprocess.post_call = [
+                '%ret% = ldv_post_init(%ret%);'
+            ]
+            self.logger.debug("Found init function {}".format(init_name))
+            ep.labels[init_label.name] = init_label
+            ep.actions[init_label.name] = init_subprocess
+
         ret_label = Label('ret')
         ret_label.prior_signature = import_signature("int label")
-        init_subprocess.retlabel = "%ret%"
-        init_subprocess.post_call = [
-            '%ret% = ldv_post_init(%ret%);'
-        ]
+        ep.labels['ret'] = ret_label
 
         # Generate exit subprocess
-        exit_subprocess = Call('exit')
-        exit_subprocess.callback = "%exit%"
-
-        exit_label = Label('exit')
-        exit_label.prior_signature = import_signature("void (*f)(void)")
-        # todo: Add none instead of particular name (relevant to #6571)
-        if len(analysis.exits) != 0:
-            exit_name = list(analysis.exits.values())[0]
-            exit_label.value = "& {}".format(exit_name)
-            self.logger.debug("Found exit function {}".format(exit_name))
-        else:
+        if len(analysis.exits) == 0:
+            # todo: Add none instead of particular name (relevant to #6571)
             self.logger.debug("There is no exit function found")
-            exit_label.value = None
+            exit_subprocess = Call('exit')
+            exit_subprocess.callback = "%exit%"
 
-        ep.labels['init'] = init_label
-        ep.labels['exit'] = exit_label
-        ep.labels['ret'] = ret_label
-        ep.actions['init'] = init_subprocess
-        ep.actions['exit'] = exit_subprocess
+            exit_label = Label('exit')
+            exit_label.prior_signature = import_signature("void (*f)(void)")
+            exit_label.value = None
+            exit_label.file = None
+            ep.labels['exit'] = exit_label
+            ep.actions['exit'] = exit_subprocess
+        else:
+            for filename, exit_name in analysis.exits:
+
+                exit_label = Label('exit_{}'.format(exit_name))
+                exit_label.prior_signature = import_signature("void (*f)(void)")
+                exit_label.value = "& {}".format(exit_name)
+                exit_label.file = filename
+                exit_subprocess = Call(exit_label.name)
+                exit_subprocess.callback = "%exit_{}%".format(exit_name)
+                self.logger.debug("Found exit function {}".format(exit_name))
+                ep.labels[exit_label.name] = exit_label
+                ep.actions[exit_label.name] = exit_subprocess
+
         self.logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
 
-    def __finish_entry(self):
+    def __finish_entry(self, analysis):
         self.logger.info("Add signal dispatched for that processes which have no known registration and deregistration"
                          " kernel functions")
         # Retval check
         # todo: it can be done much, much better (relevant to issue #6566)
         dispatches = []
         # All default registrations and then deregistrations
-        names = [name for name in sorted(self.entry_process.actions.keys()) if name not in ["init", "exit"] and
-                 type(self.entry_process.actions[name]) is Dispatch]
+        names = [name for name in sorted(self.entry_process.actions.keys())
+                 if type(self.entry_process.actions[name]) is Dispatch]
         for name in names:
             self.entry_process.actions[name].broadcast = True
         names.sort()
         names.reverse()
+        names[len(names):] = reversed(names[len(names):])
         dispatches.extend(["[@{}]".format(name) for name in names])
 
         # Generate conditions
@@ -118,12 +129,24 @@ class ProcessModel:
         self.entry_process.actions['none'] = none
 
         # Add subprocesses finally
+        self.entry_process.process = ""
+        for i, pair in enumerate(analysis.inits):
+            self.entry_process.process += "[init_{0}].(<init_failed>.".format(pair[1])
+            for j, pair2 in enumerate(analysis.exits[::-1]):
+                if pair2[0] == pair[0]:
+                    break
+            j = 1
+            for _, exit_name in analysis.exits[:j-1:-1]:
+                self.entry_process.process += "[exit_{}].".format(exit_name)
+            self.entry_process.process += "<stop>|<init_success>."
         if len(dispatches):
-            default_dispatches = '({} | <none>)'.format('.'.join(dispatches))
+            self.entry_process.process += "({}|<none>).".format(".".join(dispatches))
         else:
-            default_dispatches = '<none>'
-        self.entry_process.process = "[init].(<init_failed>.<stop> | <init_success>.{}.[exit]." \
-                                      "<stop>)".format(default_dispatches)
+            self.entry_process.process += "<none>."
+        for _, exit_name in analysis.exits:
+            self.entry_process.process += "[exit_{}].".format(exit_name)
+        self.entry_process.process += "<stop>"
+        self.entry_process.process += ")" * len(analysis.inits)
 
     def __select_processes_and_models(self, analysis):
         # Import necessary kernel models

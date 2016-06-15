@@ -5,14 +5,12 @@ import json
 import os
 import re
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
-class Weaver(core.components.Component):
+class Weaver(core.avtg.plugins.Plugin):
     def weave(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         self.abstract_task_desc['extra C files'] = []
 
         for grp in self.abstract_task_desc['grps']:
@@ -149,7 +147,5 @@ class Weaver(core.components.Component):
         # These sections won't be reffered any more.
         del (self.abstract_task_desc['grps'])
         del (self.abstract_task_desc['deps'])
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = weave

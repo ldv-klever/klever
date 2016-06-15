@@ -1,7 +1,7 @@
 import json
 import os
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
@@ -10,7 +10,7 @@ from core.avtg.emg.process_parser import parse_event_specification
 from core.avtg.emg.intermediate_model import ProcessModel
 
 
-class EMG(core.components.Component):
+class EMG(core.avtg.plugins.Plugin):
     """
     EMG plugin for environment model generation.
     """
@@ -34,20 +34,16 @@ class EMG(core.components.Component):
         # Initialization of EMG
         self.logger.info("============== Initialization stage ==============")
 
-        self.logger.info("Going to extract abstract verification task from queue")
-        avt = self.mqs['abstract task description'].get()
-        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
-
         self.logger.info("Expect directory with specifications provided via configuration property "
                          "'specifications directory'")
         spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
                                                self.conf["specifications directory"])
 
         self.logger.info("Import results of source analysis from SA plugin")
-        analysis = self.__get_analysis(avt)
+        analysis = self.__get_analysis(self.abstract_task_desc)
 
         # Choose translator
-        tr = self.__get_translator(avt)
+        tr = self.__get_translator(self.abstract_task_desc)
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -57,7 +53,7 @@ class EMG(core.components.Component):
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
         mcs = ModuleCategoriesSpecification(self.logger, self.conf)
-        mcs.import_specification(interface_spec, module_interface_spec, analysis)
+        mcs.import_specification(self.abstract_task_desc, interface_spec, module_interface_spec, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 
@@ -75,11 +71,6 @@ class EMG(core.components.Component):
         self.logger.info("============== An intermediat model translation stage ==============")
         tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
-
-        self.logger.info("Add generated environment model to the abstract verification task")
-        self.mqs['abstract task description'].put(avt)
-
-        self.logger.info("Environment model generator successfully finished")
 
     main = generate_environment
 

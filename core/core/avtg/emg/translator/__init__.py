@@ -332,8 +332,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         return inst
 
     def _determine_entry(self, analysis):
-        if len(analysis.inits) == 1:
-            file = list(analysis.inits.keys())[0]
+        if len(analysis.inits) >= 1:
+            file = analysis.inits[0][0]
             self.logger.info("Choose file {} to add an entry point function".format(file))
             self.entry_file = file
         elif len(analysis.inits) < 1:
@@ -347,6 +347,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _add_function_definition(self, file, function):
         if file not in self.files:
             self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        if self.entry_file not in self.files:
+            self.files[self.entry_file] = {
                 'variables': {},
                 'functions': {},
                 'declarations': {},
@@ -378,6 +386,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if file not in self.files:
             self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        if self.entry_file not in self.files:
+            self.files[self.entry_file] = {
                 'variables': {},
                 'functions': {},
                 'declarations': {},

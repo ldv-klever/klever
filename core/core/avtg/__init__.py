@@ -357,23 +357,10 @@ class AVTG(core.components.Component):
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
                                           os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
                                           initial_attrs, True, True)
-
                 p.start()
-                # See "Joining processes that use queues" in multiprocessing documentation.
-                while True:
-                    p.join(0.5)
-                    try:
-                        cur_abstract_task_desc = plugin_mqs['abstract task description'].get_nowait()
-                        break
-                    except queue.Empty:
-                        # Complain just if plugin returns well.
-                        if p.exitcode == 0:
-                            raise RuntimeError(
-                                '{0} did not put abstract verification task description back to queue on termination'.format(
-                                    plugin_desc['name']))
-                # Wait for plugin after it put abstract verification task description back to queue, in particular catch
-                # exceptions that may happen.
                 p.join()
+
+                cur_abstract_task_desc = plugin_mqs['abstract task description'].get()
 
                 # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
                 # anything before.

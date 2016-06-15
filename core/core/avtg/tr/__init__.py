@@ -3,14 +3,12 @@
 import jinja2
 import os
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
-class TR(core.components.Component):
+class TR(core.avtg.plugins.Plugin):
     def render_templates(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         if 'template context' not in self.abstract_task_desc:
             self.logger.warning('Template context is not specified (nothing to do)')
         elif not self.abstract_task_desc['template context']:
@@ -58,7 +56,5 @@ class TR(core.components.Component):
                 self.logger.debug('Rendered template was stored into file "{0}"'.format(file))
 
             self.abstract_task_desc.pop('template context')
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = render_templates

@@ -11,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
 from bridge.utils import logger, file_get_or_create
-from jobs.models import JOBFILE_DIR
+from jobs.models import JOBFILE_DIR, RunHistory
 from jobs.utils import create_job, update_job, change_job_status
 from reports.UploadReport import UploadReportFiles
 from reports.models import *
@@ -122,13 +122,15 @@ class DownloadJob(object):
         self.__add_unsafe_files(jobtar_obj)
         self.__add_unknown_files(jobtar_obj)
         self.__add_component_files(jobtar_obj)
+        run_history_data = self.__add_run_history_files(jobtar_obj)
         common_data = {
             'format': str(self.job.format),
             'identifier': str(self.job.identifier),
             'type': str(self.job.type),
             'status': self.job.status,
             'filedata': json.dumps(files_in_tar),
-            'reports': ReportsData(self.job).reports
+            'reports': ReportsData(self.job).reports,
+            'run_history': json.dumps(run_history_data)
         }
         write_file_str('jobdata', json.dumps(common_data))
         jobtar_obj.close()
@@ -176,6 +178,22 @@ class DownloadJob(object):
             tinfo.size = temptar.tell()
             temptar.seek(0)
             jobtar.addfile(tinfo, temptar)
+
+    def __add_run_history_files(self, jobtar):
+        data = []
+        for rh in self.job.runhistory_set.order_by('date'):
+            jobtar.add(
+                os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
+                arcname=os.path.join('Configurations', "%s.json" % rh.pk)
+            )
+            data.append({
+                'id': rh.pk, 'status': rh.status,
+                'date': [
+                    rh.date.year, rh.date.month, rh.date.day, rh.date.hour,
+                    rh.date.minute, rh.date.second, rh.date.microsecond
+                ]
+            })
+        return data
 
 
 class ReportsData(object):
@@ -258,6 +276,7 @@ class UploadJob(object):
         files_in_db = {}
         versions_data = {}
         report_files = {}
+        run_history_files = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
                 if file_name == 'jobdata':
@@ -292,8 +311,13 @@ class UploadJob(object):
                     m = re.match('(\d+)\.tar\.gz', file_name)
                     if m is not None:
                         report_files[('component', int(m.group(1)))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Configurations'):
+                    try:
+                        run_history_files[int(file_name.replace('.json', ''))] = os.path.join(dir_path, file_name)
+                    except ValueError:
+                        return _("The job archive is corrupted")
 
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports', 'run_history']):
             return _("The job archive is corrupted")
         if int(jobdata['format']) != FORMAT:
             return _("The job format is not supported")
@@ -349,6 +373,24 @@ class UploadJob(object):
         })
         if not isinstance(job, Job):
             return job
+
+        try:
+            for rh in json.loads(jobdata['run_history']):
+                run_date = datetime(
+                    rh['date'][0], rh['date'][1], rh['date'][2],
+                    rh['date'][3], rh['date'][4], rh['date'][5], rh['date'][6], tzinfo=pytz.timezone('UTC')
+                )
+                if rh['status'] not in list(x[0] for x in JOB_STATUS):
+                    return _("The job archive is corrupted")
+                with open(run_history_files[rh['id']], mode='rb') as fp:
+                    RunHistory.objects.create(
+                        job=job, status=rh['status'], date=run_date,
+                        configuration=file_get_or_create(fp, 'config.json')[0]
+                    )
+        except Exception as e:
+            logger.exception("Error while parsing run history: %s" % e, stack_info=True)
+            job.delete()
+            return _("The job archive is corrupted")
 
         for version_data in version_list[1:]:
             updated_job = update_job({
