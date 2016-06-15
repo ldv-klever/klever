@@ -5,6 +5,7 @@ from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
     setup_collection, import_declaration, import_typedefs, extract_name, check_null
+from core.avtg.emg import tarjan
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
@@ -41,7 +42,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
     # PUBLIC METHODS
     ####################################################################################################################
 
-    def import_specification(self, specification=None, module_specification=None, analysis=None):
+    def import_specification(self, avt, specification=None, module_specification=None, analysis=None):
         """
         Perform main routin with import of interface categories specification and then results of source analysis.
         After that object contains only relevant to environment generation interfaces and their implementations.
@@ -65,7 +66,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Import source analysis
         self.logger.info("Import results of source code analysis")
-        self.__import_source_analysis(analysis)
+        self.__import_source_analysis(analysis, avt)
 
     def collect_relevant_models(self, function):
         """
@@ -154,6 +155,13 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self._function_calls_cache[function] = [kfs, mfs]
         return kfs, mfs
 
+    def determine_original_file(self, label_value):
+        label_name = self.callback_name(label_value)
+        if label_name and label_name in self.modules_functions:
+            # todo: if several files exist?
+            return list(self.modules_functions[label_name])[0]
+        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
+
     @staticmethod
     def __check_category_relevance(function):
         relevant = []
@@ -189,9 +197,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if not interface.declaration.clean_declaration:
             interface.declaration = declaration
 
-    def __import_source_analysis(self, analysis):
+    def __import_source_analysis(self, analysis, avt):
         self.logger.info("Import modules init and exit functions")
-        self.__import_inits_exits(analysis)
+        self.__import_inits_exits(analysis, avt)
 
         self.logger.info("Extract complete types definitions")
         self.__extract_types(analysis)
@@ -208,16 +216,26 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         self.logger.info("Both specifications are imported and categories are merged")
 
-    def __import_inits_exits(self, analysis):
+    def __import_inits_exits(self, analysis, avt):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
+        deps = {}
+        for module, dep in avt['deps'].items():
+            deps[module] = list(sorted(dep))
+        order = tarjan.calculate_load_order(self.logger, deps)
+        order_c_files = []
+        for module in order:
+            for module2 in avt['grps']:
+                if module2['id'] != module:
+                    continue
+                order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
         if "init" in analysis:
-            self.inits = analysis["init"]
+            self.inits = [(module, analysis['init'][module]) for module in order_c_files if module in analysis["init"]]
         if len(self.inits) == 0:
             raise ValueError('There is no module initialization function provided')
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
-            self.exits = analysis["exit"]
+            self.exits = list(reversed([(module, analysis['exit'][module]) for module in order_c_files if module in analysis['exit']]))
         if len(self.exits) == 0:
             self.logger.warning('There is no module exit function provided')
 
