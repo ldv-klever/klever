@@ -1,0 +1,25 @@
+{
+  "probe": [
+    "probe",
+    "acquire",
+    "open",
+    "bind",
+    "start",
+    "attach",
+    "create",
+    "add",
+    "enable"
+  ],
+  "release": [
+    "release",
+    "disconnect",
+    "remove",
+    "close",
+    "shutdown",
+    "stop",
+    "detach",
+    "free",
+    "disable",
+    "exit"
+  ]
+}

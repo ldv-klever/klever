@@ -21,7 +21,8 @@
             "translator": "default",
             "callstack deep search": 3,
             "intermediate model options": {
-              "ignore missed callbacks": true
+              "ignore missed callbacks": true,
+              "roles match file": "linux/emg/roles match.json"
             },
             "translation options": {
               "direct control function calls": true,

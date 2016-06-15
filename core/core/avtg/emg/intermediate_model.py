@@ -8,11 +8,12 @@ from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetva
 
 class ProcessModel:
 
-    def __init__(self, logger, conf, models, processes):
+    def __init__(self, logger, conf, models, processes, roles_map):
         self.logger = logger
         self.conf = conf
         self.__abstr_model_processes = models
         self.__abstr_event_processes = processes
+        self.roles_map = roles_map
         self.model_processes = []
         self.event_processes = []
         self.entry_process = None
@@ -487,7 +488,7 @@ class ProcessModel:
                         for container_intf in [analysis.interfaces[intf] for intf in
                                                sorted(label_map["matched labels"][container.name])]:
                             for f_intf in [intf for intf in container_intf.field_interfaces.values()
-                                           if type(intf) is Callback  and not intf.called and
+                                           if type(intf) is Callback and not intf.called and
                                            intf.identifier not in label_map['matched callbacks']]:
                                 self.__add_label_match(label_map, callback, f_intf.identifier)
             if len(unmatched_callbacks) > 0:
@@ -689,8 +690,20 @@ class ProcessModel:
         # Collect interface list
         for index in range(len(tail)):
             field = tail[index]
-            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                    if matched[-1].field_interfaces[name].short_identifier == field or name == field]
+
+            # Match using a container field name
+            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
+
+            # Match using an identifier
+            if len(intf) == 0:
+                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                        if matched[-1].field_interfaces[name].short_identifier == field]
+
+            # Math using an interface role or name
+            if len(intf) == 0 and self.roles_map and field in self.roles_map:
+                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                        if matched[-1].field_interfaces[name].short_identifier in self.roles_map[field]]
+
             if len(intf) == 0:
                 return None
             else:

@@ -36,8 +36,7 @@ class EMG(core.avtg.plugins.Plugin):
 
         self.logger.info("Expect directory with specifications provided via configuration property "
                          "'specifications directory'")
-        spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                               self.conf["specifications directory"])
+        spec_dir = self.__get_path(self.conf, "specifications directory")
 
         self.logger.info("Import results of source analysis from SA plugin")
         analysis = self.__get_analysis(self.abstract_task_desc)
@@ -63,7 +62,8 @@ class EMG(core.avtg.plugins.Plugin):
 
         if 'intermediate model options' not in self.conf:
             self.conf['intermediate model options'] = {}
-        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes)
+        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes,
+                             self.__get_json_content(self.conf['intermediate model options'], "roles match file"))
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
@@ -169,5 +169,21 @@ class EMG(core.avtg.plugins.Plugin):
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         return interface_spec, module_interface_spec, event_categories_spec
+
+    def __get_path(self, conf, prop):
+        if prop in conf:
+            spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], conf[prop])
+            return spec_dir
+        else:
+            return None
+
+    def __get_json_content(self, conf, prop):
+        file = self.__get_path(conf, prop)
+        if file:
+            with open(file, encoding="ascii") as fh:
+                content = json.loads(fh.read())
+            return content
+        else:
+            return None
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
