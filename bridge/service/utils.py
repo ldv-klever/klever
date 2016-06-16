@@ -224,13 +224,13 @@ class KleverCoreStartDecision(object):
         try:
             progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = 'Solving progress was not found'
+            self.error = 'Job decision was not successfully started'
             return
         if progress.start_date is not None:
-            self.error = 'Solving progress already has start date'
+            self.error = 'Start core report was already uploaded'
             return
         elif progress.finish_date is not None:
-            self.error = 'Solving progress already has finish date'
+            self.error = 'The job is not solving already'
             return
         progress.start_date = now()
         progress.save()
