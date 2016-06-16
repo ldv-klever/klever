@@ -1100,6 +1100,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Generate function definition
         cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
 
+        for var in automaton.variables():
+            definition = var.declare() + ";"
+            v_code.append(definition)
+
         main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
                                                         'initial_state')
         v_code.extend(main_v_code)
@@ -1135,10 +1139,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
-
-        for var in automaton.variables():
-            definition = var.declare() + ";"
-            v_code.append(definition)
 
         if not aspect:
             self._add_function_definition(self._choose_file(analysis, automaton), cf)
