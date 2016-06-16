@@ -165,7 +165,7 @@ class GetETV(object):
             if 'sourcecode' in n.attr:
                 code = n.attr['sourcecode'].value
             else:
-                code = ''
+                continue
             if 'originFileName' in n.attr:
                 file = n['originFileName']
             if file is None:
@@ -562,3 +562,93 @@ def error_trace_callstack(error_trace):
         if 'warning' in n.attr:
             break
     return [call_stack1, call_stack2]
+
+
+class ErrorTraceCallstackTree(object):
+    def __init__(self, error_trace):
+        self._error_trace = error_trace
+        self._edge_trace1, self._edge_trace2 = self.__get_edge_traces()
+        self.trace = [self.__get_tree(self._edge_trace1), self.__get_tree(self._edge_trace2)]
+
+    def __get_edge_traces(self):
+        try:
+            graph = GraphMLParser().parse(self._error_trace.encode('utf8'))
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            raise ValueError('The error trace has incorrect format')
+        traces = []
+        if graph.set_root_by_attribute('true', 'isEntryNode') is None:
+            raise ValueError('Could not find the entry point was in the error trace')
+
+        for path in graph.bfs():
+            if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
+                traces.append(path)
+        if len(traces) != 1:
+            raise ValueError('Only error traces with one error path are supported')
+        edge_trace1 = []
+        edge_trace2 = []
+        prev_node = traces[0][0]
+        must_have_thread = False
+        for n in traces[0][1:]:
+            e = graph.edge(prev_node, n)
+            if e is not None:
+                if 'thread' in e.attr:
+                    must_have_thread = True
+                    if e['thread'] == '0':
+                        edge_trace1.append(e)
+                    elif e['thread'] == '1':
+                        edge_trace2.append(e)
+                elif must_have_thread:
+                    raise ValueError('One of the edges does not have thread attribute')
+                else:
+                    edge_trace1.append(e)
+            prev_node = n
+        return edge_trace1, edge_trace2
+
+    def __get_tree(self, edge_trace):
+        self.ccc = 0
+        tree = []
+        call_level = 0
+        call_stack = []
+        model_functions = []
+        for n in edge_trace:
+            if 'enterFunction' in n.attr:
+                call_stack.append(n['enterFunction'])
+                call_level += 1
+                while len(tree) <= call_level:
+                    tree.append([])
+                if 'note' in n.attr:
+                    model_functions.append(n['enterFunction'])
+                tree[call_level].append({
+                    'name': n['enterFunction'],
+                    'parent': call_stack[-2] if len(call_stack) > 1 else None
+                })
+            if 'returnFromFunction' in n.attr:
+                call_stack.pop()
+                call_level -= 1
+
+        def not_model_leaf(ii, jj):
+            if tree[ii][jj]['name'] in model_functions:
+                return False
+            elif len(tree) > ii + 1:
+                for ch_j in range(0, len(tree[ii + 1])):
+                    if tree[ii + 1][ch_j]['parent'] == tree[ii][jj]['name']:
+                        return False
+            return True
+
+        for i in reversed(range(0, len(tree))):
+            new_level = []
+            for j in range(0, len(tree[i])):
+                if not not_model_leaf(i, j):
+                    new_level.append(tree[i][j])
+            if len(new_level) == 0:
+                del tree[i]
+            else:
+                tree[i] = new_level
+        just_names = []
+        for level in tree:
+            new_level = []
+            for f_data in level:
+                new_level.append(f_data['name'])
+            just_names.append(' '.join(sorted(str(x) for x in new_level)))
+        return just_names

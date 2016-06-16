@@ -353,6 +353,7 @@ class ABKM(core.components.Component):
 
                         # Two stages are required since for marking edges with warnings we need to know whether there
                         # notes at violation path below.
+                        warn_edges = []
                         for stage in ('notes', 'warns'):
                             for edge in graph.getElementsByTagName('edge'):
                                 src_file, src_line, func_name = (None, None, None)
@@ -429,15 +430,18 @@ class ABKM(core.components.Component):
                                                         if data.getAttribute('key') == 'note':
                                                             warn_edge = cur_src_edge
 
-                                            # Remove note from node for what we are going to add warning if so.
-                                            # Otherwise error trace visualizer will be confused.
-                                            for data in warn_edge.getElementsByTagName('data'):
-                                                if data.getAttribute('key') == 'note':
-                                                    warn_edge.removeChild(data)
                                             warn_edge.appendChild(warn)
+                                            warn_edges.append(warn_edge)
 
                                             # Remove added warning to avoid its addition one more time.
                                             del warns[src_file][src_line]
+
+                        # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be
+                        # confused.
+                        for warn_edge in warn_edges:
+                            for data in warn_edge.getElementsByTagName('data'):
+                                if data.getAttribute('key') == 'note':
+                                    warn_edge.removeChild(data)
 
                         processed_witness = 'witness{0}.processed.graphml'.format(index)
 
