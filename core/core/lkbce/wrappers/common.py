@@ -117,12 +117,14 @@ class Command:
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
             os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
-            with core.utils.LockedOpen(full_desc_file, 'w+', encoding='ascii') as fp:
-                if os.path.getsize(full_desc_file) and sorted(full_desc) != sorted(json.load(fp)):
-                    raise FileExistsError(
-                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file,
-                                                                                                        full_desc))
-                else:
+            if os.path.isfile(full_desc_file):
+                with open(full_desc_file, encoding='ascii') as fp:
+                    if json.dumps(full_desc, sort_keys=True) != json.dumps(json.load(fp), sort_keys=True):
+                        raise FileExistsError(
+                            'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file,
+                                                                                                            full_desc))
+            else:
+                with open(full_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(full_desc, fp, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
@@ -132,12 +134,14 @@ class Command:
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
         os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
-        with core.utils.LockedOpen(self.desc_file, 'w+', encoding='ascii') as fp:
-            if os.path.getsize(self.desc_file) and sorted(desc) != sorted(json.load(fp)):
-                raise FileExistsError(
-                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(
-                        self.desc_file, desc))
-            else:
+        if os.path.isfile(self.desc_file):
+            with open(self.desc_file, encoding='ascii') as fp:
+                if json.dumps(desc, sort_keys=True) != json.dumps(json.load(fp), sort_keys=True):
+                    raise FileExistsError(
+                        'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(
+                            self.desc_file, desc))
+        else:
+            with open(self.desc_file, 'w', encoding='ascii') as fp:
                 json.dump(desc, fp, sort_keys=True, indent=4)
 
     def enqueue(self):
