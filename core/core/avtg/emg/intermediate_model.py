@@ -343,9 +343,9 @@ class ProcessModel:
             self.logger.debug("Check process callback calls at process {} with category {}".
                               format(process.name, process.category))
 
-            for callback_name in sorted(set([cb.callback for cb in process.calls])):
+            for action in sorted(process.calls, key=lambda a: a.callback):
                 # todo: refactoring #6565
-                label, tail = process.extract_label_with_tail(callback_name)
+                label, tail = process.extract_label_with_tail(action.callback)
 
                 if len(label.interfaces) > 0:
                     resolved = False
@@ -353,13 +353,13 @@ class ProcessModel:
                                       if name in analysis.interfaces and
                                       type(analysis.interfaces[name]) is not Resource]:
                         if type(interface) is Container and len(tail) > 0:
-                            intfs = self.__resolve_interface(analysis, interface, tail)
+                            intfs = self.__resolve_interface(analysis, interface, tail, process, action)
                             if intfs:
                                 intfs[-1].called = True
                                 resolved = True
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
-                                                    format(callback_name, process.name))
+                                                    format(action.callback, process.name))
                         elif type(interface) is Callback:
                             self.logger.debug("Callback {} can be called in the model".
                                               format(interface.identifier))
@@ -367,7 +367,7 @@ class ProcessModel:
                             resolved = True
                     if not resolved:
                         raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
-                                         format(callback_name, process.name))
+                                         format(action.callback, process.name))
 
     def __add_label_match(self, label_map, label, interface):
         if label.name not in label_map["matched labels"]:
@@ -426,7 +426,7 @@ class ProcessModel:
                 elif len(label.interfaces) == 0 and not label.prior_signature and tail and label.container and \
                         label.name not in label_map["matched labels"]:
                     for container in analysis.containers(category):
-                        interfaces = self.__resolve_interface(analysis, container, tail)
+                        interfaces = self.__resolve_interface(analysis, container, tail, process, action)
                         if interfaces:
                             self.__add_label_match(label_map, label, container.identifier)
 
@@ -434,7 +434,7 @@ class ProcessModel:
                 functions = []
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in sorted(label_map["matched labels"][label.name]):
-                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail)
+                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
                         if intfs and type(intfs[-1]) is Callback:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
@@ -526,7 +526,7 @@ class ProcessModel:
                     label_map["unmatched callbacks"].append(action.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in sorted(label_map["matched labels"][label.name]):
-                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail)
+                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
 
                         if not intfs and action.callback not in label_map["unmatched callbacks"]:
                             label_map["unmatched callbacks"].append(action.callback)
@@ -547,7 +547,7 @@ class ProcessModel:
             label, tail = process.extract_label_with_tail(action.callback)
             if label.container and tail and label.name in label_map["matched labels"]:
                 for intf in sorted(label_map["matched labels"][label.name]):
-                    intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail)
+                    intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
                     if intfs:
                         # Discard general callbacks match
                         for callback_label in [process.labels[name].name for name in sorted(process.labels.keys())
@@ -666,7 +666,7 @@ class ProcessModel:
         new_dispatch.condition = None
         receive.condition = None
 
-    def __resolve_interface(self, analysis, interface, string):
+    def __resolve_interface(self, analysis, interface, string, process=None, action=None):
         tail = string.split(".")
         # todo: get rid of leading dot and support arrays
         if len(tail) == 1:
@@ -699,10 +699,49 @@ class ProcessModel:
                 intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
                         if matched[-1].field_interfaces[name].short_identifier == field]
 
-            # Math using an interface role or name
-            if len(intf) == 0 and self.roles_map and field in self.roles_map:
+            # Math using an interface role
+            if process and action and type(action) is Call and len(intf) == 0 and self.roles_map and \
+                        field in self.roles_map:
                 intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                        if matched[-1].field_interfaces[name].short_identifier in self.roles_map[field]]
+                        if matched[-1].field_interfaces[name].short_identifier in self.roles_map[field] and
+                        type(matched[-1].field_interfaces[name]) is Callback]
+
+                # Filter by retlabel
+                if action.retlabel and len(intf) > 0:
+                    ret_label, ret_tail = process.extract_label_with_tail(action.retlabel)
+                    if ret_tail == '' and ret_label:
+                        intf = [i for i in intf if i.declaration.points.return_value in ret_label.declarations]
+                    else:
+                        intf = []
+
+                # filter parameters
+                if len(intf) > 0:
+                    # Collect parameters with declarations
+                    param_match = []
+                    for parameter in action.parameters:
+                        p_label, p_tail = process.extract_label_with_tail(parameter)
+
+                        if p_tail == '' and p_label and len(p_label.declarations) > 0:
+                            param_match.append(p_label.declarations)
+
+                    # Match parameters
+                    new_intf = []
+                    for interface in intf:
+                        suits = 0
+                        for index in range(len((param_match))):
+                            found = 0
+                            for param in interface.declaration.points.parameters[index:]:
+                                for option in param_match[index]:
+                                    if option.compare(param):
+                                        found += 1
+                                        break
+                                if found:
+                                    break
+                            if found:
+                                suits += 1
+                        if suits == len(param_match):
+                            new_intf.append(interface)
+                    intf = new_intf
 
             if len(intf) == 0:
                 return None
@@ -755,7 +794,16 @@ class ProcessModel:
 
                             # Calculate interfaces for tail
                             if len(tail) > 0:
-                                intfs = self.__resolve_interface(analysis, interface, tail)
+                                callback_actions = [a for a in process.calls if a.callback == access]
+                                if len(callback_actions) > 0:
+                                    intfs = set()
+                                    for action in callback_actions:
+                                        intfs.update(self.__resolve_interface(analysis, interface, tail, process,
+                                                                              action))
+                                    intfs = sorted(list(intfs), key=lambda i: i.identifier)
+                                else:
+                                    intfs = self.__resolve_interface(analysis, interface, tail)
+
                                 if intfs:
                                     list_access = []
                                     for index in range(len(intfs)):
