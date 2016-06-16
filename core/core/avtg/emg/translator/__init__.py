@@ -4,7 +4,7 @@ import abc
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.signature import import_declaration
+from core.avtg.emg.common.signature import Function, Pointer, import_declaration
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
@@ -401,7 +401,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
         elif not extern:
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
-            if variable.value:
+            if variable.value and type(variable) is Pointer and type(variable.points) is Function:
                 self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
 
     def _set_initial_state(self, automaton):
@@ -1136,6 +1136,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
+        for var in automaton.variables():
+            definition = var.declare() + ";"
+            v_code.append(definition)
+
         if not aspect:
             self._add_function_definition(self._choose_file(analysis, automaton), cf)
             self._add_function_declaration(self.entry_file, cf, extern=True)
@@ -1162,14 +1166,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         param_declarations.append(var.declaration)
                         param_expressions.append(receiver_expr)
                     break
-
-        if self._nested_automata or aspect:
-            for var in automaton.variables():
-                definition = var.declare() + ";"
-                v_code.append(definition)
-        elif not aspect:
-            for var in automaton.variables():
-                self._add_global_variable(var, self._choose_file(analysis, automaton), extern=False)
 
         automaton.control_function = cf
         return cf
@@ -1363,8 +1359,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._add_global_variable(automaton.state_variable, self._choose_file(analysis, automaton), extern=False)
             self._add_global_variable(automaton.state_variable, self.entry_file, extern=True)
         cf.body.extend(v_code + f_code)
-        automaton.control_function = cf
 
+        for var in automaton.variables():
+            self._add_global_variable(var, self._choose_file(analysis, automaton), extern=False)
         self._add_function_definition(self._choose_file(analysis, automaton), cf)
         self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
@@ -1420,7 +1417,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in sorted(self.files):
-                    if "variables" in self.files[file]:
+                    if "initializations" in self.files[file]:
                         for variable in sorted(self.files[file]["initializations"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
                                 lines.append(self.files[file]["initializations"][variable])
