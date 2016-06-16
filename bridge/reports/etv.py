@@ -166,7 +166,7 @@ class GetETV(object):
             if 'sourcecode' in n.attr:
                 code = n.attr['sourcecode'].value
             else:
-                code = ''
+                continue
             if 'originFileName' in n.attr:
                 file = n['originFileName']
             if file is None:
