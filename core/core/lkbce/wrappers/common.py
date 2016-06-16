@@ -38,7 +38,8 @@ class Command:
         self.desc_file = None
 
     def copy_deps(self):
-        if self.type != 'CC':
+        # Dependencies can be obtained just for CC commands taking normal C files as input.
+        if self.type != 'CC' or re.search(r'\.S$', self.in_files[0], re.IGNORECASE):
             return
 
         # We assume that dependency files are generated for all C source files.
