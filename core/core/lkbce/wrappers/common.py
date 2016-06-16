@@ -120,7 +120,8 @@ class Command:
             with core.utils.LockedOpen(full_desc_file, 'w+', encoding='ascii') as fp:
                 if os.path.getsize(full_desc_file) and sorted(full_desc) != sorted(json.load(fp)):
                     raise FileExistsError(
-                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file, full_desc))
+                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file,
+                                                                                                        full_desc))
                 else:
                     json.dump(full_desc, fp, sort_keys=True, indent=4)
 
@@ -134,7 +135,8 @@ class Command:
         with core.utils.LockedOpen(self.desc_file, 'w+', encoding='ascii') as fp:
             if os.path.getsize(self.desc_file) and sorted(desc) != sorted(json.load(fp)):
                 raise FileExistsError(
-                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(self.desc_file, desc))
+                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(
+                        self.desc_file, desc))
             else:
                 json.dump(desc, fp, sort_keys=True, indent=4)
 
