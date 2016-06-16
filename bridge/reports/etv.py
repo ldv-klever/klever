@@ -572,7 +572,7 @@ class ErrorTraceCallstackTree(object):
 
     def __get_edge_traces(self):
         try:
-            graph = GraphMLParser().parse(self._error_trace.encode('utf8'))
+            graph = GraphMLParser().parse(self._error_trace)
         except Exception as e:
             logger.exception(e, stack_info=True)
             raise ValueError('The error trace has incorrect format')
