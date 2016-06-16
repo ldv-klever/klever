@@ -299,7 +299,6 @@ class UploadJob(object):
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
             return _("The job status is wrong")
         for f_id in list(jobdata['files_map']):
-            print(f_id, type(f_id))
             if jobdata['files_map'][f_id] in files_in_db:
                 jobdata['files_map'][int(f_id)] = files_in_db[jobdata['files_map'][f_id]]
                 del jobdata['files_map'][f_id]
