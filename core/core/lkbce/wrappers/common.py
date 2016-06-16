@@ -179,12 +179,17 @@ class Command:
         if exit_code:
             return exit_code
 
-        self.parse()
+        try:
+            self.parse()
 
-        if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
-            self.copy_deps()
-            self.dump()
-            self.enqueue()
+            if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
+                self.copy_deps()
+                self.dump()
+                self.enqueue()
+        except Exception:
+            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
+                fp.write('KLEVER FATAL ERROR\n')
+            raise
 
         return 0
 

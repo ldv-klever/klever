@@ -426,6 +426,8 @@ class LKBCE(core.components.Component):
                     if line == '\n':
                         self.logger.debug('Linux kernel build command decscriptions "message queue" was terminated')
                         return
+                    elif line == 'KLEVER FATAL ERROR\n':
+                        raise RuntimeError('Build command wrapper(s) failed')
                     else:
                         self.linux_kernel['build cmd desc file'] = line.rstrip()
                         self.get_linux_kernel_build_cmd_desc()
