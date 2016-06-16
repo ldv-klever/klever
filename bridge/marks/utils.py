@@ -385,41 +385,46 @@ class ConnectReportWithMarks(object):
 
     def __connect_unsafe(self):
         self.report.markreport_set.all().delete()
+        marks_to_compare = []
+        unsafe_attrs = []
+        for r_attr in self.report.attrs.all():
+            unsafe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
+        for mark in MarkUnsafe.objects.all():
+            mark_attrs = []
+            for m_attr in mark.versions.get(version=mark.version).attrs.filter(is_compare=True):
+                mark_attrs.append((m_attr.attr.name.name, m_attr.attr.value))
+            if all(x in mark_attrs for x in [x for x in unsafe_attrs if x[0] in [y[0] for y in mark_attrs]]):
+                marks_to_compare.append(mark)
+
+        if len(marks_to_compare) == 0:
+            return
+
         afc = ArchiveFileContent(self.report.archive, file_name=self.report.error_trace)
         if afc.error is not None:
             logger.error("Can't get error trace for unsafe '%s': %s" % (self.report.pk, afc.error), stack_info=True)
             return
-        for mark in MarkUnsafe.objects.all():
-            for attr in mark.versions.get(version=mark.version).attrs.all():
-                if attr.is_compare:
-                    try:
-                        if self.report.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
-                            break
-                    except ObjectDoesNotExist:
-                        pass
-            else:
-                compare_failed = False
-                with mark.error_trace.file as fp:
-                    compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), afc.content)
-                if compare.error is not None:
-                    logger.error("Comparing traces failed: %s" % compare.error, stack_info=True)
-                    compare_failed = True
-                if compare.result > 0 or compare_failed:
-                    MarkUnsafeReport.objects.create(
-                        mark=mark, report=self.report, result=compare.result, broken=compare_failed
-                    )
+        for mark in marks_to_compare:
+            compare_failed = False
+            with mark.error_trace.file as fp:
+                compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), afc.content)
+            if compare.error is not None:
+                logger.error("Error traces comparison failed: %s" % compare.error, stack_info=True)
+                compare_failed = True
+            if compare.result > 0 or compare_failed:
+                MarkUnsafeReport.objects.create(
+                    mark=mark, report=self.report, result=compare.result, broken=compare_failed
+                )
 
     def __connect_safe(self):
         self.report.markreport_set.all().delete()
+        safe_attrs = []
+        for r_attr in self.report.attrs.all():
+            safe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
         for mark in MarkSafe.objects.all():
-            for attr in mark.versions.get(version=mark.version).attrs.all():
-                if attr.is_compare:
-                    try:
-                        if self.report.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
-                            break
-                    except ObjectDoesNotExist:
-                        pass
-            else:
+            mark_attrs = []
+            for m_attr in mark.versions.get(version=mark.version).attrs.filter(is_compare=True):
+                mark_attrs.append((m_attr.attr.name.name, m_attr.attr.value))
+            if all(x in mark_attrs for x in [x for x in safe_attrs if x[0] in [y[0] for y in mark_attrs]]):
                 MarkSafeReport.objects.create(mark=mark, report=self.report)
 
     def __connect_unknown(self):
@@ -439,8 +444,9 @@ class ConnectReportWithMarks(object):
                 logger.error(
                     "Generated problem '%s' for mark %s is too long" % (problem, mark.identifier), stack_info=True
                 )
-            problem = UnknownProblem.objects.get_or_create(name=problem)[0]
-            MarkUnknownReport.objects.create(mark=mark, report=self.report, problem=problem)
+            MarkUnknownReport.objects.create(
+                mark=mark, report=self.report, problem=UnknownProblem.objects.get_or_create(name=problem)[0]
+            )
             if self.report not in changes:
                 changes[self.report]['kind'] = '+'
         if self.update_cache:
@@ -466,73 +472,66 @@ class ConnectMarkWithReports(object):
             self.mark.save()
 
     def __connect_unsafe_mark(self):
-        last_version = self.mark.versions.get(version=self.mark.version)
+        mark_attrs = []
+        for attr in self.mark.versions.get(version=self.mark.version).attrs.filter(is_compare=True):
+            mark_attrs.append((attr.attr.name.name, attr.attr.value))
+
         for mark_unsafe in self.mark.markreport_set.all():
             self.changes[mark_unsafe.report] = {
-                'kind': '-',
-                'result1': mark_unsafe.result,
-                'verdict1': mark_unsafe.report.verdict,
+                'kind': '-', 'result1': mark_unsafe.result, 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
         with self.mark.error_trace.file as fp:
             pattern_error_trace = fp.read().decode('utf8')
         for unsafe in ReportUnsafe.objects.all():
-            for attr in last_version.attrs.all():
-                if attr.is_compare:
-                    try:
-                        if unsafe.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
-                            break
-                    except ObjectDoesNotExist:
-                        pass
-            else:
-                compare_failed = False
-                afc = ArchiveFileContent(unsafe.archive, file_name=unsafe.error_trace)
-                if afc.error is not None:
-                    logger.error("Can't get error trace for unsafe '%s': %s" % (unsafe.pk, afc.error), stack_info=True)
-                    return
-                compare = CompareTrace(self.mark.function.name, pattern_error_trace, afc.content)
-                if compare.error is not None:
-                    logger.error("Comparing traces failed: %s" % compare.error)
-                    compare_failed = True
-                    if self.mark.prime == unsafe:
-                        self.mark.prime = None
-                        self.mark.save()
-                if compare.result > 0 or compare_failed:
-                    MarkUnsafeReport.objects.create(
-                        mark=self.mark, report=unsafe, result=compare.result, broken=compare_failed
-                    )
-                    if unsafe in self.changes:
-                        self.changes[unsafe]['kind'] = '='
-                        self.changes[unsafe]['result2'] = compare.result
-                    else:
-                        self.changes[unsafe] = {
-                            'kind': '+',
-                            'result2': compare.result,
-                            'verdict1': unsafe.verdict
-                        }
+            unsafe_attrs = []
+            for r_attr in unsafe.attrs.filter(attr__name__name__in=list(x[0] for x in mark_attrs)):
+                unsafe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
+            if any(x not in mark_attrs for x in unsafe_attrs):
+                continue
+            compare_failed = False
+            afc = ArchiveFileContent(unsafe.archive, file_name=unsafe.error_trace)
+            if afc.error is not None:
+                logger.error("Can't get error trace for unsafe '%s': %s" % (unsafe.pk, afc.error), stack_info=True)
+                return
+            compare = CompareTrace(self.mark.function.name, pattern_error_trace, afc.content)
+            if compare.error is not None:
+                logger.error("Error traces comparison failed: %s" % compare.error)
+                compare_failed = True
+                if self.mark.prime == unsafe:
+                    self.mark.prime = None
+                    self.mark.save()
+            if compare.result > 0 or compare_failed:
+                MarkUnsafeReport.objects.create(
+                    mark=self.mark, report=unsafe, result=compare.result, broken=compare_failed
+                )
+                if unsafe in self.changes:
+                    self.changes[unsafe]['kind'] = '='
+                    self.changes[unsafe]['result2'] = compare.result
+                else:
+                    self.changes[unsafe] = {
+                        'kind': '+', 'result2': compare.result, 'verdict1': unsafe.verdict
+                    }
 
     def __connect_safe_mark(self):
-        last_version = self.mark.versions.get(version=self.mark.version)
+        mark_attrs = []
+        for attr in self.mark.versions.get(version=self.mark.version).attrs.filter(is_compare=True):
+            mark_attrs.append((attr.attr.name.name, attr.attr.value))
+
         for mark_safe in self.mark.markreport_set.all():
-            self.changes[mark_safe.report] = {
-                'kind': '=',
-                'verdict1': mark_safe.report.verdict,
-            }
+            self.changes[mark_safe.report] = {'kind': '=', 'verdict1': mark_safe.report.verdict}
         self.mark.markreport_set.all().delete()
         for safe in ReportSafe.objects.all():
-            for attr in last_version.attrs.all():
-                if attr.is_compare:
-                    try:
-                        if safe.attrs.get(attr__name__name=attr.attr.name.name).attr.value != attr.attr.value:
-                            break
-                    except ObjectDoesNotExist:
-                        pass
+            safe_attrs = []
+            for r_attr in safe.attrs.filter(attr__name__name__in=list(x[0] for x in mark_attrs)):
+                safe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
+            if any(x not in mark_attrs for x in safe_attrs):
+                continue
+            MarkSafeReport.objects.create(mark=self.mark, report=safe)
+            if safe in self.changes:
+                self.changes[safe]['kind'] = '='
             else:
-                MarkSafeReport.objects.create(mark=self.mark, report=safe)
-                if safe in self.changes:
-                    self.changes[safe]['kind'] = '='
-                else:
-                    self.changes[safe] = {'kind': '+', 'verdict1': safe.verdict}
+                self.changes[safe] = {'kind': '+', 'verdict1': safe.verdict}
 
     def __connect_unknown_mark(self):
         for mark_unknown in self.mark.markreport_set.all():
@@ -549,8 +548,9 @@ class ConnectMarkWithReports(object):
             elif len(problem) > 15:
                 problem = 'Too long!'
                 logger.error("Problem '%s' for mark %s is too long" % (problem, self.mark.identifier), stack_info=True)
-            problem = UnknownProblem.objects.get_or_create(name=problem)[0]
-            MarkUnknownReport.objects.create(mark=self.mark, report=unknown, problem=problem)
+            MarkUnknownReport.objects.create(
+                mark=self.mark, report=unknown, problem=UnknownProblem.objects.get_or_create(name=problem)[0]
+            )
             if unknown in self.changes:
                 self.changes[unknown]['kind'] = '='
             else:
