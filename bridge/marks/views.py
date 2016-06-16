@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp
+from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
@@ -33,6 +33,7 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
+    problem_description = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -40,6 +41,11 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
+            afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
@@ -57,7 +63,8 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'can_edit': True
+        'can_edit': True,
+        'problem_description': problem_description
     })
 
 

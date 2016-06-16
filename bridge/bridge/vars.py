@@ -422,3 +422,5 @@ START_JOB_DEFAULT_MODES = {
     'development': _('Development'),
     'paranoid development': _('Paranoid development')
 }
+
+REPORT_FILES_ARCHIVE = 'data.tar.gz'

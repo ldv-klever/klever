@@ -5,6 +5,7 @@ import logging
 import hashlib
 import tarfile
 import tempfile
+from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
@@ -122,13 +123,13 @@ def file_get_or_create(fp, filename, check_size=False):
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
 def extract_tar_temp(archive):
-    fp = tempfile.NamedTemporaryFile()
-    for chunk in archive.chunks():
-        fp.write(chunk)
-    fp.seek(0)
-    tar = tarfile.open(fileobj=fp, mode='r:gz')
-    tmp_dir_name = tempfile.TemporaryDirectory()
-    tar.extractall(tmp_dir_name.name)
+    with tempfile.NamedTemporaryFile() as fp:
+        for chunk in archive.chunks():
+            fp.write(chunk)
+        fp.seek(0)
+        with tarfile.open(fileobj=fp, mode='r:gz') as tar:
+            tmp_dir_name = tempfile.TemporaryDirectory()
+            tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
 
 
@@ -162,3 +163,51 @@ class KleverTestCase(TestCase):
             shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
         except PermissionError:
             pass
+
+
+# TODO: remove if it is not used
+def compress_file(file_pointer, file_name=None):
+    if file_name is None:
+        file_name = file_pointer.name
+    tar_p = BytesIO()
+    with tarfile.open(fileobj=tar_p, mode='w:gz') as arch:
+        t = tarfile.TarInfo(file_name)
+        file_pointer.seek(0, 2)
+        t.size = file_pointer.tell()
+        file_pointer.seek(0)
+        arch.addfile(t, file_pointer)
+    tar_p.flush()
+    tar_p.seek(0)
+    return tar_p
+
+
+# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
+class ArchiveFileContent(object):
+    def __init__(self, file_model, file_name=None, max_size=None):
+        self._file = file_model
+        self._max_size = max_size
+        self._name = file_name
+        self.error = None
+        try:
+            self.content = self.__extract_file_content()
+        except Exception as e:
+            logger.exception("Error while extracting file from archive: %s" % e)
+            self.error = 'Unknown error'
+
+    def __extract_file_content(self):
+        with self._file.file as fp:
+            with tarfile.open(fileobj=fp, mode='r:gz') as arch:
+                for f in arch.getmembers():
+                    if f.isreg():
+                        if self._name is not None and f.name != self._name:
+                            continue
+                        if self._max_size is not None:
+                            fp.seek(0, 2)
+                            if fp.tell() > self._max_size:
+                                self.error = _('The component log is huge and can not be showed but you can download it')
+                                return None
+                            fp.seek(0)
+                        self._name = f.name
+                        return arch.extractfile(f).read().decode('utf8')
+        self.error = _('Needed file was not found')
+        return None
