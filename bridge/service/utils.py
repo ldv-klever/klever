@@ -227,7 +227,7 @@ class KleverCoreStartDecision(object):
             self.error = 'Job decision was not successfully started'
             return
         if progress.start_date is not None:
-            self.error = 'Start core report was already uploaded'
+            self.error = 'The start report of Core was already uploaded'
             return
         elif progress.finish_date is not None:
             self.error = 'The job is not solving already'
