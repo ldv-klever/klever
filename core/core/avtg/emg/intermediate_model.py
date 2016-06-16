@@ -795,16 +795,16 @@ class ProcessModel:
                             # Calculate interfaces for tail
                             if len(tail) > 0:
                                 callback_actions = [a for a in process.calls if a.callback == access]
+                                options = []
                                 if len(callback_actions) > 0:
-                                    intfs = set()
+                                    options = []
                                     for action in callback_actions:
-                                        intfs.update(self.__resolve_interface(analysis, interface, tail, process,
-                                                                              action))
-                                    intfs = sorted(list(intfs), key=lambda i: i.identifier)
+                                        options.append(self.__resolve_interface(analysis, interface, tail, process,
+                                                                                action))
                                 else:
-                                    intfs = self.__resolve_interface(analysis, interface, tail)
+                                    options.append(self.__resolve_interface(analysis, interface, tail))
 
-                                if intfs:
+                                for intfs in (o for o in options if type(o) is list and len(o) > 0):
                                     list_access = []
                                     for index in range(len(intfs)):
                                         if index == 0:
