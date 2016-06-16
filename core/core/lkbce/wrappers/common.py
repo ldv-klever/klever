@@ -116,16 +116,20 @@ class Command:
 
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
+
             os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
-            if os.path.isfile(full_desc_file):
-                with open(full_desc_file, encoding='ascii') as fp:
-                    if json.dumps(full_desc, sort_keys=True) != json.dumps(json.load(fp), sort_keys=True):
-                        raise FileExistsError(
-                            'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file,
-                                                                                                            full_desc))
-            else:
-                with open(full_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(full_desc, fp, sort_keys=True, indent=4)
+
+            full_desc_file_suffix = 2
+            while True:
+                if os.path.isfile(full_desc_file):
+                    full_desc_file = '{0}.ldv{1}{2}'.format(os.path.splitext(full_desc_file)[0], full_desc_file_suffix,
+                                                            os.path.splitext(full_desc_file)[1])
+                    full_desc_file_suffix += 1
+                else:
+                    break
+
+            with open(full_desc_file, 'w', encoding='ascii') as fp:
+                json.dump(full_desc, fp, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -133,16 +137,20 @@ class Command:
 
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
+
         os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
-        if os.path.isfile(self.desc_file):
-            with open(self.desc_file, encoding='ascii') as fp:
-                if json.dumps(desc, sort_keys=True) != json.dumps(json.load(fp), sort_keys=True):
-                    raise FileExistsError(
-                        'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(
-                            self.desc_file, desc))
-        else:
-            with open(self.desc_file, 'w', encoding='ascii') as fp:
-                json.dump(desc, fp, sort_keys=True, indent=4)
+
+        desc_file_suffix = 2
+        while True:
+            if os.path.isfile(self.desc_file):
+                self.desc_file = '{0}.ldv{1}{2}'.format(os.path.splitext(self.desc_file)[0], desc_file_suffix,
+                                                        os.path.splitext(self.desc_file)[1])
+                desc_file_suffix += 1
+            else:
+                break
+
+        with open(self.desc_file, 'w', encoding='ascii') as fp:
+            json.dump(desc, fp, sort_keys=True, indent=4)
 
     def enqueue(self):
         with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
