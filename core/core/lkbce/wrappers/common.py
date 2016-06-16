@@ -55,8 +55,6 @@ class Command:
                                  stderr=subprocess.DEVNULL)
             if p.wait():
                 raise RuntimeError('Getting dependencies failed')
-            raise AssertionError(
-                'Could not find dependencies file for CC command with input files: "{0}", output file: "{1}" and options "{2}"'.format(self.in_files, self.out_file, self.other_opts))
 
         deps = []
         with open(deps_file, encoding='ascii') as fp:
@@ -175,6 +173,7 @@ class Command:
             return exit_code
 
         self.parse()
+
         if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
             self.copy_deps()
             self.dump()
