@@ -297,10 +297,7 @@ class LKVOG(core.components.Component):
 
         # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
         # later when finding all CC full description files.
-        # Do not include assembler files into verification objects since we have no means to instrument and to
-        # analyse them.
-        self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
-            r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
+        self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = desc
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
@@ -314,7 +311,10 @@ class LKVOG(core.components.Component):
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
-                cc_full_desc_files.append(out_file_desc['full desc file'])
+                # Do not include assembler files into verification objects since we have no means to instrument and to
+                # analyse them.
+                if not re.search(r'\.S$', out_file_desc['in files'][0], re.IGNORECASE):
+                    cc_full_desc_files.append(out_file_desc['full desc file'])
             else:
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
