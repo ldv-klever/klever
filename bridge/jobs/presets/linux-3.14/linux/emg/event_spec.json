@@ -113,7 +113,7 @@
       "process": "<assign>.[open].[register] | <none>",
       "actions": {
         "open": {
-          "callback": "%netdev.net_device_ops.open%",
+          "callback": "%netdev.net_device_ops.ndo_open%",
           "parameters": [
             "%netdev%"
           ]
@@ -145,7 +145,7 @@
       "process": "<assign>.[stop].[deregister]",
       "actions": {
         "stop": {
-          "callback": "%netdev.net_device_ops.stop%",
+          "callback": "%netdev.net_device_ops.ndo_stop%",
           "parameters": [
             "%netdev%"
           ]

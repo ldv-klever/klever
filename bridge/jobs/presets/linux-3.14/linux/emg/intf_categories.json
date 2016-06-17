@@ -156,8 +156,8 @@
           "signature": "struct net_device_ops net_device_ops",
           "header": "include/linux/netdevice.h",
           "fields": {
-            "ndo_open": "%net.open%",
-            "ndo_stop": "%net.stop%"
+            "ndo_open": "%net.ndo_open%",
+            "ndo_stop": "%net.ndo_stop%"
           }
         },
         "ethtool_ops": {
@@ -166,11 +166,11 @@
         }
       },
       "callbacks": {
-        "open": {
-          "signature": "int (*open)(*%net.net_device%)"
+        "ndo_open": {
+          "signature": "int (*ndo_open)(*%net.net_device%)"
         },
-        "stop": {
-          "signature": "int (*stop)(*%net.net_device%)"
+        "ndo_stop": {
+          "signature": "int (*ndo_stop)(*%net.net_device%)"
         },
         "setup": {
           "signature": "$ (*setup)(*%net.net_device%)"
