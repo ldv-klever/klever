@@ -336,6 +336,7 @@ class ReportMarkTable(object):
                 value = '-'
                 href = None
                 color = None
+                comment = None
                 if col == 'number':
                     value = cnt
                     href = reverse('marks:edit_mark', args=[self.type, mark_rep.mark.pk])
@@ -349,6 +350,8 @@ class ReportMarkTable(object):
                     if mark_rep.broken:
                         value = _("Comparison failed")
                         color = result_color(0)
+                        if mark_rep.error is not None:
+                            comment = mark_rep.error
                     else:
                         value = "{:.0%}".format(mark_rep.result)
                         color = result_color(mark_rep.result)
@@ -373,7 +376,7 @@ class ReportMarkTable(object):
                         color = '#B12EAF'
                     else:
                         value = _('Yes')
-                values_row.append({'value': value, 'href': href, 'color': color})
+                values_row.append({'value': value, 'href': href, 'color': color, 'comment': comment})
             value_data.append(values_row)
         return value_data
 
@@ -737,6 +740,7 @@ class MarkReportsTable(object):
                     val = '-'
                     color = None
                     href = None
+                    comment = None
                     if col == 'report':
                         val = cnt
                         if JobAccess(self.user, report.root.job).can_view():
@@ -745,6 +749,8 @@ class MarkReportsTable(object):
                         if mark_report.broken:
                             val = _("Comparison failed")
                             color = result_color(0)
+                            if mark_report.error is not None:
+                                comment = mark_report.error
                         else:
                             val = "{:.0%}".format(mark_report.result)
                             color = result_color(mark_report.result)
@@ -758,7 +764,7 @@ class MarkReportsTable(object):
                             color = '#B12EAF'
                         else:
                             val = _('Yes')
-                    values_str.append({'value': val, 'href': href, 'color': color})
+                    values_str.append({'value': val, 'href': href, 'color': color, 'comment': comment})
                 values.append(values_str)
         else:
             report_filters = {
