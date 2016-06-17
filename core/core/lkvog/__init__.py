@@ -239,8 +239,6 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
-        self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-
         self.verification_obj_desc['grps'] = []
         self.verification_obj_desc['deps'] = {}
         for module in self.cluster.modules:
@@ -295,23 +293,14 @@ class LKVOG(core.components.Component):
                                                                                      if desc['out file']
                                                                                      else 'not specified')))
 
-        # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
-        # later when finding all CC full description files.
-        if desc['out file'] and desc['out file'] != '/dev/null':
-            # For instance, this is true for drivers/net/wireless/libertas/libertas.ko in Linux stable a533423.
-            if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
-                self.logger.warning(
-                    'During Linux kernel build output file "{0}" was overwritten'.format(desc['out file']))
-                # Propose new artificial name to avoid infinite recursion later.
-                out_file_root, out_file_ext = os.path.splitext(desc['out file'])
-                desc['out file'] = '{0}{1}{2}'.format(out_file_root,
-                                                      len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
-                                                      out_file_ext)
-
-            # Do not include assembler files into verification objects since we have no means to instrument and to
-            # analyse them.
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
-                r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
+        # Build map from Linux kernel build command output files to correpsonding descriptions.
+        # If more than one build command has the same output file their descriptions are added as list in chronological
+        # order (more early commands are processed more early and placed at the beginning of this list).
+        if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
+                                                                              desc['out file']] + [desc]
+        else:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
@@ -321,11 +310,19 @@ class LKVOG(core.components.Component):
 
         cc_full_desc_files = []
 
-        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
+        # Get more older build commands more early if more than one build command has the same output file.
+        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
+
+        # Remove got build command description from map. It is assumed that each build command output file can be used
+        # as input file of another build command just once.
+        self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
-                cc_full_desc_files.append(out_file_desc['full desc file'])
+                # Do not include assembler files into verification objects since we have no means to instrument and to
+                # analyse them.
+                if not re.search(r'\.S$', out_file_desc['in files'][0], re.IGNORECASE):
+                    cc_full_desc_files.append(out_file_desc['full desc file'])
             else:
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
