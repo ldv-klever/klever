@@ -64,6 +64,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__switchers_cache = {}
         self.__mem_aproaching = 0
         self.__analysis_memusage_cache = None
+        self.__external_allocated = []
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -102,6 +103,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._direct_cf_calls = self.conf["translation options"]["direct control function calls"]
         if "terminate approaching to memory usage" in self.conf["translation options"]:
             self.__mem_aproaching = self.conf["translation options"]["terminate approaching to memory usage"]
+        if "allocate external" in self.conf["translation options"]:
+            self.__allocate_external = self.conf["translation options"]["allocate external"]
 
         self.jump_types = set()
         if self._omit_states['callback']:
@@ -415,6 +418,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
             if variable.value and type(variable) is Pointer and type(variable.points) is Function:
                 self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
+            elif not variable.value and type(variable) is Pointer:
+                if file not in self.__external_allocated:
+                    self.__external_allocated[file] = dict()
+                self.__external_allocated[file].append(variable)
 
     def _set_initial_state(self, automaton):
         body = list()
@@ -540,6 +547,33 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ""
             "/* Initialize initial states of automata */"
         ] + body
+
+        # Init external allocated pointers
+        cnt = 0
+        functions = []
+        if self.__allocate_external and not self._omit_all_states and not self._nested_automata:
+            for file in sorted(list(self.__external_allocated.keys())):
+                func = FunctionDefinition('allocate_external_{}'.format(cnt),
+                                          file,
+                                          "void * external_allocated_{}(void)".format(cnt),
+                                          True)
+
+                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
+                        var in self.__external_allocated[file]]
+                func.body = init
+
+                self._add_function_definition(file, func)
+                self._add_function_declaration(self.entry_file, func, extern=True)
+        gl_init = FunctionDefinition('initialize_external_data',
+                                     self.entry_file,
+                                     'void initialize_external_data(void)')
+        init_body = ['{}();'.format(func.name) for func in functions]
+        gl_init.body = init_body
+        self._add_function_definition(self.entry_file, gl_init)
+        body.extend([
+            '/* Initialize external data */',
+            'initialize_external_data();'
+        ])
 
         body.extend([
             "while(1) {",
