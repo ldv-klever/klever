@@ -35,7 +35,7 @@
                 "condition": true
               },
               "instance modifier": 1,
-              "max instances number": 300,
+              "max instances number": 60,
               "pointer initialization": {
                 "structures": true,
                 "arrays": true,
