@@ -1,6 +1,4 @@
 import json
-import tarfile
-from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
@@ -486,28 +484,3 @@ class AttrData(object):
         for attr in self._attrs:
             if attr[0] in self._name:
                 self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]
-
-
-class GetReportFiles(object):
-    def __init__(self, report):
-        self.report = report
-        self.tarname = "%s files.tar.gz" % self.report.component.name
-        self.memory = BytesIO()
-        self.__create_archive()
-        self.memory.flush()
-        self.memory.seek(0)
-
-    def __create_archive(self):
-        with tarfile.open(fileobj=self.memory, mode='w:gz') as new_tarobj:
-            with self.report.archive.file as fp:
-                with tarfile.open(fileobj=fp, mode='r:gz') as arch:
-                    for f in arch.getmembers():
-                        if f.isreg():
-                            if f.name == self.report.log:
-                                continue
-                            report_fp = arch.extractfile(f)
-                            t = tarfile.TarInfo(f.name)
-                            report_fp.seek(0, 2)
-                            t.size = report_fp.tell()
-                            report_fp.seek(0)
-                            new_tarobj.addfile(t, report_fp)
