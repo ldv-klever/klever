@@ -651,13 +651,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             return '{}({});'.format(automaton.control_function.name, parameter)
         elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
             sv = automaton.thread_variable(self.__instance_modifier)
-            self._add_global_variable(file, sv, extern=True)
+            self._add_global_variable(sv, file, extern=True)
             return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
                                                              automaton.control_function.name,
                                                              parameter)
         else:
             sv = automaton.thread_variable()
-            self._add_global_variable(file, sv, extern=True)
+            self._add_global_variable(sv, file, extern=True)
             return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
                                                            automaton.control_function.name,
                                                            parameter)
@@ -669,9 +669,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             return '/* Skip thread join call */'
         elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
             sv = automaton.thread_variable(self.__instance_modifier)
+            self._add_global_variable(sv, file, extern=True)
             return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name, automaton.control_function.name)
         else:
             sv = automaton.thread_variable()
+            self._add_global_variable(sv, file, extern=True)
             return 'ldv_thread_join({}, {});'.format('& ' + sv.name, automaton.control_function.name)
 
     def _get_cf_struct(self, automaton, params):
