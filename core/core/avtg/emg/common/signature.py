@@ -613,6 +613,9 @@ class Implementation:
             return '*' + self.value
         elif self.__declaration.take_pointer.compare(declaration):
             return '&' + self.value
+        elif type(declaration) is Pointer and type(self.__declaration) is Pointer and \
+                        self.__declaration.identifier == 'void *':
+            return self.value
         else:
             raise ValueError("Cannot adjust declaration '{}' to declaration '{}'".
                              format(self.__declaration.to_string('%s'), declaration.to_string('%s')))
