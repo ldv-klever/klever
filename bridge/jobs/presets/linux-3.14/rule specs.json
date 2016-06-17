@@ -25,6 +25,7 @@
               "roles match file": "linux/emg/roles match.json"
             },
             "translation options": {
+              "terminate approaching to memory usage": 300000000,
               "direct control function calls": true,
               "omit all states": false,
               "nested automata": false,

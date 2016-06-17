@@ -1,6 +1,7 @@
 import os
 import copy
 import abc
+from pympler import asizeof
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
@@ -61,6 +62,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__max_instances = None
         self.__resource_new_insts = 1
         self.__switchers_cache = {}
+        self.__mem_aproaching = 0
+        self.__analysis_memusage_cache = None
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -97,6 +100,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._nested_automata = self.conf["translation options"]["nested automata"]
         if "direct control function calls" in self.conf["translation options"]:
             self._direct_cf_calls = self.conf["translation options"]["direct control function calls"]
+        if "terminate approaching to memory usage" in self.conf["translation options"]:
+            self.__mem_aproaching = self.conf["translation options"]["terminate approaching to memory usage"]
 
         self.jump_types = set()
         if self._omit_states['callback']:
@@ -239,6 +244,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for instance in base_list:
                 fsa = Automaton(self.logger, instance, self.__yeild_identifier())
                 self._callback_fsa.append(fsa)
+
+            if self.__mem_aproaching:
+                if not self.__analysis_memusage_cache:
+                    self.__analysis_memusage_cache = asizeof.asizeof(analysis)
+                mcnt = asizeof.asizeof(self) + self.__analysis_memusage_cache
+                if mcnt >= self.__mem_aproaching:
+                    raise RuntimeError("EMG has eaten more than '{}' bytes of memory, aborting")
 
         # Generate automata for models
         self.logger.info("Generate automata for kernel model processes")
