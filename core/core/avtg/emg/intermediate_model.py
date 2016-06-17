@@ -709,8 +709,9 @@ class ProcessModel:
                 # Filter by retlabel
                 if action.retlabel and len(intf) > 0:
                     ret_label, ret_tail = process.extract_label_with_tail(action.retlabel)
-                    if ret_tail == '' and ret_label:
-                        intf = [i for i in intf if i.declaration.points.return_value in ret_label.declarations]
+                    if ret_tail == '' and ret_label and len(ret_label.declarations) > 0:
+                        intf = [i for i in intf if len([r for r in ret_label.declarations
+                                                        if i.declaration.points.return_value.compare(r)]) > 0]
                     else:
                         intf = []
 
