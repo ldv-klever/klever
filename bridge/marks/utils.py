@@ -1,16 +1,13 @@
 import re
-from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger, unique_id, file_get_or_create, ArchiveFileContent
+from bridge.utils import logger, unique_id, ArchiveFileContent
 from marks.models import *
 from reports.models import ReportComponent, Verdict
-from marks.ConvertTrace import ConvertTrace
+from marks.ConvertTrace import GetConvertedErrorTrace
 from marks.CompareTrace import CompareTrace
-
-MARK_ERROR_TRACE_FILE_NAME = 'converted-error-trace.json'
 
 
 class NewMark(object):
@@ -91,18 +88,10 @@ class NewMark(object):
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
                 return _('The error traces conversion function was not found')
-
-            error_trace = ArchiveFileContent(report.archive, report.error_trace)
-            if error_trace.error is not None:
-                return error_trace.error
-            converted = ConvertTrace(func.name, error_trace.content)
-            if converted.error is not None:
-                logger.error(converted.error, stack_info=True)
-                return _('Error trace converting failed')
-            mark.error_trace = file_get_or_create(
-                BytesIO(converted.pattern_error_trace.encode('utf8')), MARK_ERROR_TRACE_FILE_NAME
-            )[0]
-
+            res = GetConvertedErrorTrace(func, report)
+            if res.error is not None:
+                return res.error
+            mark.error_trace = res.converted
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
@@ -399,14 +388,10 @@ class ConnectReportWithMarks(object):
         if len(marks_to_compare) == 0:
             return
 
-        afc = ArchiveFileContent(self.report.archive, file_name=self.report.error_trace)
-        if afc.error is not None:
-            logger.error("Can't get error trace for unsafe '%s': %s" % (self.report.pk, afc.error), stack_info=True)
-            return
         for mark in marks_to_compare:
             compare_failed = False
             with mark.error_trace.file as fp:
-                compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), afc.content)
+                compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), self.report)
             if compare.error is not None:
                 logger.error("Error traces comparison failed: %s" % compare.error, stack_info=True)
                 compare_failed = True
@@ -490,11 +475,7 @@ class ConnectMarkWithReports(object):
             if any(x not in mark_attrs for x in unsafe_attrs):
                 continue
             compare_failed = False
-            afc = ArchiveFileContent(unsafe.archive, file_name=unsafe.error_trace)
-            if afc.error is not None:
-                logger.error("Can't get error trace for unsafe '%s': %s" % (unsafe.pk, afc.error), stack_info=True)
-                return
-            compare = CompareTrace(self.mark.function.name, pattern_error_trace, afc.content)
+            compare = CompareTrace(self.mark.function.name, pattern_error_trace, unsafe)
             if compare.error is not None:
                 logger.error("Error traces comparison failed: %s" % compare.error)
                 compare_failed = True

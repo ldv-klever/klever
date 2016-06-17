@@ -18,7 +18,8 @@ def clear_files():
         if len(f.reportunsafe_set.all()) == 0 and len(f.reportsafe_set.all()) == 0 \
                 and len(f.reportunknown_set.all()) == 0 and len(f.markunsafe_set.all()) == 0 \
                 and len(f.filesystem_set.all()) == 0 and len(f.runhistory_set.all()) == 0 \
-                and len(f.reports1.all()) == 0 and len(f.reports2.all()) == 0:
+                and len(f.reports1.all()) == 0 and len(f.reports2.all()) == 0 \
+                and len(f.errortraceconvertioncache_set.all()) == 0:
             f.delete()
         else:
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))

@@ -178,7 +178,7 @@ class ArchiveFileContent(object):
             self.error = 'Unknown error'
 
     def __extract_file_content(self):
-        with self._file.file as fp:
+        with File.objects.get(pk=self._file.pk).file as fp:
             with tarfile.open(fileobj=fp, mode='r:gz') as arch:
                 for f in arch.getmembers():
                     if f.isreg():
@@ -187,7 +187,8 @@ class ArchiveFileContent(object):
                         if self._max_size is not None:
                             fp.seek(0, 2)
                             if fp.tell() > self._max_size:
-                                self.error = _('The component log is huge and can not be showed but you can download it')
+                                self.error = _('The component log is huge and '
+                                               'can not be showed but you can download it')
                                 return None
                             fp.seek(0)
                         self._name = f.name

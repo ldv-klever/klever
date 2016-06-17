@@ -9,7 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.utils import file_get_or_create, logger
-from marks.utils import MARK_ERROR_TRACE_FILE_NAME, NewMark, UpdateTags, ConnectMarkWithReports, DeleteMark
+from marks.utils import NewMark, UpdateTags, ConnectMarkWithReports, DeleteMark
+from marks.ConvertTrace import ET_FILE_NAME
 from marks.models import *
 
 
@@ -142,7 +143,7 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = file_get_or_create(args['error_trace'], MARK_ERROR_TRACE_FILE_NAME)[0]
+                mark.error_trace = file_get_or_create(args['error_trace'], ET_FILE_NAME)[0]
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:

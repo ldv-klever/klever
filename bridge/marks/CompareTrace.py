@@ -1,6 +1,7 @@
 import json
 from types import MethodType
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree
+from marks.models import MarkUnsafeConvert
+from marks.ConvertTrace import GetConvertedErrorTrace
 
 # To create new funciton:
 # 1) Add created function to the class CompareTrace;
@@ -15,16 +16,17 @@ DEFAULT_COMPARE = 'callstack_tree_compare'
 
 class CompareTrace(object):
 
-    def __init__(self, function_name, pattern_error_trace, error_trace):
+    def __init__(self, func_name, pattern_error_trace, unsafe):
         """
         If something failed self.error is not None.
         In case of success you need just self.result.
-        :param function_name: name of the function (str).
+        :param func_name: name of the function (str).
         :param pattern_error_trace: pattern error trace of the mark (str).
-        :param error_trace: error trace (str).
+        :param unsafe: unsafe (ReportUnsafe).
         :return: nothing.
         """
-        self.error_trace = error_trace
+
+        self.unsafe = unsafe
         try:
             self.pattern_error_trace = json.loads(pattern_error_trace)
         except Exception as e:
@@ -33,11 +35,11 @@ class CompareTrace(object):
 
         self.error = None
         self.result = 0.0
-        if function_name.startswith('__'):
+        if func_name.startswith('__'):
             self.error = 'Wrong function name'
             return
         try:
-            function = getattr(self, function_name)
+            function = getattr(self, func_name)
             if not isinstance(function, MethodType):
                 self.error = 'Wrong function name'
                 return
@@ -66,7 +68,12 @@ Always returns 1.
         """
 If call stacks are identical returns 1 else returns 0.
         """
-        err_trace_converted = error_trace_callstack(self.error_trace)
+
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='call_stack'), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+
+        err_trace_converted = res.parsed_trace()
         pattern = self.pattern_error_trace
         if err_trace_converted == pattern:
             return 1
@@ -76,8 +83,12 @@ If call stacks are identical returns 1 else returns 0.
         """
 If call stacks trees are identical returns 1 else returns 0.
         """
-        err_trace1 = ErrorTraceCallstackTree(self.error_trace).trace
-        err_trace2 = self.pattern_error_trace
-        if err_trace1 == err_trace2:
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='call_stack_tree'), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+
+        err_trace_converted = res.parsed_trace()
+        pattern = self.pattern_error_trace
+        if err_trace_converted == pattern:
             return 1
-        return int(err_trace1[0] == err_trace2[1] and err_trace1[1] == err_trace2[0])
+        return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])

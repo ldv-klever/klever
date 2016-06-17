@@ -277,3 +277,12 @@ class MarkAssociationsChanges(models.Model):
 
     class Meta:
         db_table = 'cache_mark_associations_changes'
+
+
+class ErrorTraceConvertionCache(models.Model):
+    unsafe = models.ForeignKey(ReportUnsafe)
+    function = models.ForeignKey(MarkUnsafeConvert)
+    converted = models.ForeignKey(File)
+
+    class Meta:
+        db_table = 'cache_error_trace_converted'

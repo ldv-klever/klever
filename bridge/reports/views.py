@@ -1,3 +1,4 @@
+from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
