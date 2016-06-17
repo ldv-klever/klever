@@ -1152,9 +1152,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
 
         for var in automaton.variables():
-            if var.value:
-                definition = var.declare_with_init() + ";"
-            elif type(var.declaration) is Pointer and self.__allocate_external:
+            if type(var.declaration) is Pointer and self.__allocate_external:
                 definition = var.declare() + " = external_allocated_data();"
             else:
                 definition = var.declare() + ";"
