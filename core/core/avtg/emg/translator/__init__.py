@@ -65,8 +65,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__mem_aproaching = 0
         self.__analysis_memusage_cache = None
         self.__external_allocated = dict()
+        self.__allocate_external = False
 
-        # Read translation options
+		# Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
             self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "translation options" not in self.conf:
