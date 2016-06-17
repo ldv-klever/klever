@@ -64,7 +64,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__switchers_cache = {}
         self.__mem_aproaching = 0
         self.__analysis_memusage_cache = None
-        self.__external_allocated = []
+        self.__external_allocated = dict()
 
         # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
@@ -418,9 +418,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
             if variable.value and type(variable) is Pointer and type(variable.points) is Function:
                 self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
-            elif not variable.value and type(variable) is Pointer:
+            elif not variable.value and type(variable.declaration) is Pointer:
                 if file not in self.__external_allocated:
-                    self.__external_allocated[file] = dict()
+                    self.__external_allocated[file] = []
                 self.__external_allocated[file].append(variable)
 
     def _set_initial_state(self, automaton):
@@ -555,7 +555,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for file in sorted(list(self.__external_allocated.keys())):
                 func = FunctionDefinition('allocate_external_{}'.format(cnt),
                                           file,
-                                          "void * external_allocated_{}(void)".format(cnt),
+                                          "void external_allocated_{}(void)".format(cnt),
                                           True)
 
                 init = ["{} = {}();".format(var.name, 'external_allocated_data') for
@@ -564,16 +564,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 self._add_function_definition(file, func)
                 self._add_function_declaration(self.entry_file, func, extern=True)
-        gl_init = FunctionDefinition('initialize_external_data',
-                                     self.entry_file,
-                                     'void initialize_external_data(void)')
-        init_body = ['{}();'.format(func.name) for func in functions]
-        gl_init.body = init_body
-        self._add_function_definition(self.entry_file, gl_init)
-        body.extend([
-            '/* Initialize external data */',
-            'initialize_external_data();'
-        ])
+                functions.append(func)
+                cnt += 1
+
+            gl_init = FunctionDefinition('initialize_external_data',
+                                         self.entry_file,
+                                         'void initialize_external_data(void)')
+            init_body = ['{}();'.format(func.name) for func in functions]
+            gl_init.body = init_body
+            self._add_function_definition(self.entry_file, gl_init)
+            body.extend([
+                '/* Initialize external data */',
+                'initialize_external_data();'
+            ])
 
         body.extend([
             "while(1) {",
@@ -1149,7 +1152,12 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
 
         for var in automaton.variables():
-            definition = var.declare() + ";"
+            if var.value:
+                definition = var.declare_with_init() + ";"
+            elif type(var.declaration) is Pointer and self.__allocate_external:
+                definition = var.declare() + " = external_allocated_data();"
+            else:
+                definition = var.declare() + ";"
             v_code.append(definition)
 
         main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
