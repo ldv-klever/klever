@@ -106,6 +106,43 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         return sorted(relevant)
 
+    def find_relevant_function(self, parameter_interfaces):
+        """
+        Get a list of options of function parameters (interfaces) and tries to find a kernel function which would
+        has a prameter from each provided set in its parameters.
+
+        :param interface: List with lists of Interface objects.
+        :return: List with dictionaries:
+                 {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
+        """
+        matches = []
+        for function in self.kernel_functions.values():
+            match = {
+                "function": function,
+                "parameters": []
+            }
+            if len(parameter_interfaces) > 0:
+                # Match parameters
+                params = []
+                suits = 0
+                for index in range(len((parameter_interfaces))):
+                    found = 0
+                    for param in (p for p in function.param_interfaces[index:] if p):
+                        for option in parameter_interfaces[index]:
+                            if option.identifier == param.identifier:
+                                found = param
+                                break
+                        if found:
+                            break
+                    if found:
+                        suits += 1
+                        params.append(param)
+                if suits == len(parameter_interfaces):
+                    match["parameters"] = params
+                    matches.append(match)
+
+        return matches
+
     @staticmethod
     def callback_name(call):
         """

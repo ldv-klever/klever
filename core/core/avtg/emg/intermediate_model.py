@@ -1,4 +1,5 @@
 import copy
+import re
 
 from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.interface import Interface, Callback, Container, Resource
@@ -13,7 +14,16 @@ class ProcessModel:
         self.conf = conf
         self.__abstr_model_processes = models
         self.__abstr_event_processes = processes
-        self.roles_map = roles_map
+        self.__roles_map = dict()
+        self.__functions_map = dict()
+
+        if "roles map" in roles_map:
+            self.__roles_map = roles_map["roles map"]
+        if "functions map" in roles_map:
+            self.__functions_map = roles_map["functions map"]
+            for type in self.__functions_map:
+                self.__functions_map[type] = [re.compile(pattern) for pattern in self.__functions_map[type]]
+
         self.model_processes = []
         self.event_processes = []
         self.entry_process = None
@@ -47,7 +57,6 @@ class ProcessModel:
 		
 		# Generate init subprocess
         for filename, init_name in analysis.inits:
-
             # todo: Add none instead of particular name (relevant to #6571)
             init_label = Label('init_{}'.format(init_name))
             init_label.value = "& {}".format(init_name)
@@ -598,13 +607,19 @@ class ProcessModel:
         if len(process.unmatched_receives) > 0:
             for receive in process.unmatched_receives:
                 if receive.name == "register":
+                    # todo: Be sure that match will wotk with factories to add instance_register
                     self.logger.info("Generate default registration for process {} with category {}".
                                      format(process.name, process.category))
-                    self.__add_default_dispatch(process, receive)
-                elif receive.name == "deregister":
+                    success = self.__predict_dispatcher(analysis, process, receive)
+                    if not success:
+                        self.__add_default_dispatch(process, receive)
+                elif receive.name in ["deregister"]:
+                    # todo: Be sure that match will wotk with factories to add instance_deregister
                     self.logger.info("Generate default deregistration for process {} with category {}".
                                      format(process.name, process.category))
-                    self.__add_default_dispatch(process, receive)
+                    success = self.__predict_dispatcher(analysis, process, receive)
+                    if not success:
+                        self.__add_default_dispatch(process, receive)
                 else:
                     self.logger.warning("Signal {} cannot be received by process {} with category {}, "
                                         "since nobody can send it".
@@ -666,6 +681,87 @@ class ProcessModel:
         new_dispatch.condition = None
         receive.condition = None
 
+    def __predict_dispatcher(self, analysis, process, receive):
+        self.logger.info("Looking for a suitable kernel functions to use tham as registration and deregistration "
+                         "for category '{}'".format(process.category))
+        # Determine parameters
+        parameter_sets = []
+        for access in receive.parameters:
+            label, tail = process.extract_label_with_tail(access)
+            suits = []
+            if label:
+                for intf in label.interfaces:
+                    if label and tail != '':
+                        parameter = self.__resolve_interface(analysis, intf, tail, process, receive)
+                        if parameter:
+                            suits.append(parameter)
+                    elif label:
+                        suits.append(analysis.interfaces[intf])
+            else:
+                return False
+
+            parameter_sets.append(suits)
+
+        # Get suitable functions
+        suits = analysis.find_relevant_function(parameter_sets)
+
+        # Filter functions
+        deregisters = [m for m in suits if len([regex for regex in self.__functions_map["deregistration"]
+                                          if regex.search(m["function"].identifier)]) > 0]
+        if receive.name in ['deregister', 'instance_deregister']:
+            suits = deregisters
+        elif receive.name in ['register', 'instance_register']:
+            suits = [m for m in suits if len([regex for regex in self.__functions_map["registration"]
+                                              if regex.search(m["function"].identifier)]) > 0 and
+                     m not in deregisters]
+        else:
+            raise ValueError('Unknown default signal name {}'.format(receive.name))
+
+        # Generate models
+        for match in suits:
+            new = Process(match['function'].identifier)
+            # Generate labels
+            expressions = []
+            for interface in match['parameters']:
+                new_label = Label(interface.short_identifier)
+                position = match['function'].param_interfaces.index(interface)
+                expressions.append(["%{}%".format(new_label.name), position])
+
+                declaration = match['function'].declaration.parameters[position]
+                new_label.set_declaration(interface.identifier, declaration)
+
+                new.labels[new_label.name] = new_label
+
+            # Generate actions
+            assign = Condition('assign')
+            assign.statements = ['{} = $arg{};'.format(exp, str(pos + 1)) for exp, pos in expressions]
+            new.actions[assign.name] = assign
+
+            # Generate Process
+            dispatch = Dispatch(receive.name)
+            dispatch.parameters = [exp for exp, pos in expressions]
+            new.actions[dispatch.name] = dispatch
+
+            # Add process to the rest ones
+            if receive.name in ['deregister', 'instance_deregister'] or \
+                    not match['function'].declaration.return_value or \
+                    match['function'].declaration.return_value.identifier != 'int':
+                new.process = "<{}>.[{}]".format(assign.name, dispatch.name)
+            else:
+                assign.condition = ['$res == 0']
+                none = Condition('none')
+                none.condition = ['$res != 0']
+                new.actions[none.name] = none
+
+                new.process = "<{}>.[{}] | <{}>".format(assign.name, dispatch.name, none.name)
+
+            self.__add_process(analysis, new, model=True, peer=process)
+
+        if len(suits) > 0:
+            return True
+        else:
+            return False
+
     def __resolve_interface(self, analysis, interface, string, process=None, action=None):
         tail = string.split(".")
         # todo: get rid of leading dot and support arrays
@@ -700,10 +796,10 @@ class ProcessModel:
                         if matched[-1].field_interfaces[name].short_identifier == field]
 
             # Math using an interface role
-            if process and action and type(action) is Call and len(intf) == 0 and self.roles_map and \
-                        field in self.roles_map:
+            if process and action and type(action) is Call and len(intf) == 0 and self.__roles_map and \
+                        field in self.__roles_map:
                 intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
-                        if matched[-1].field_interfaces[name].short_identifier in self.roles_map[field] and
+                        if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
                         type(matched[-1].field_interfaces[name]) is Callback]
 
                 # Filter by retlabel
