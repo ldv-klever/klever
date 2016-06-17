@@ -412,7 +412,7 @@ class ConnectReportWithMarks(object):
                 compare_failed = True
             if compare.result > 0 or compare_failed:
                 MarkUnsafeReport.objects.create(
-                    mark=mark, report=self.report, result=compare.result, broken=compare_failed
+                    mark=mark, report=self.report, result=compare.result, broken=compare_failed, error=compare.error
                 )
 
     def __connect_safe(self):
@@ -503,7 +503,7 @@ class ConnectMarkWithReports(object):
                     self.mark.save()
             if compare.result > 0 or compare_failed:
                 MarkUnsafeReport.objects.create(
-                    mark=self.mark, report=unsafe, result=compare.result, broken=compare_failed
+                    mark=self.mark, report=unsafe, result=compare.result, broken=compare_failed, error=compare.error
                 )
                 if unsafe in self.changes:
                     self.changes[unsafe]['kind'] = '='
