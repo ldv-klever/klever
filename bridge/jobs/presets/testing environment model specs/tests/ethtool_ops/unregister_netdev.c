@@ -8,7 +8,7 @@ struct net_device dev;
 
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
-    ldv_invoke_reached();
+    ldv_invoke_callback();
     return 0;
 }
 
