@@ -238,8 +238,9 @@ class MarkChangesTable(object):
                         val = CHANGE_DATA[self.changes[report]['kind']][0]
                         color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
-                    val = "%s %s" % (self.mark.author.extended.last_name, self.mark.author.extended.first_name)
-                    href = reverse('users:show_profile', args=[self.mark.author.pk])
+                    if self.mark.author is not None:
+                        val = "%s %s" % (self.mark.author.extended.last_name, self.mark.author.extended.first_name)
+                        href = reverse('users:show_profile', args=[self.mark.author.pk])
                 elif col == 'job':
                     val = report.root.job.name
                     href = reverse('jobs:job', args=[report.root.job.pk])
@@ -291,8 +292,9 @@ class MarkChangesTable(object):
                         val = CHANGE_DATA[self.changes[report]['kind']][0]
                         color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
-                    val = "%s %s" % (self.mark.author.extended.last_name, self.mark.author.extended.first_name)
-                    href = reverse('users:show_profile', args=[self.mark.author.pk])
+                    if self.mark.author is not None:
+                        val = "%s %s" % (self.mark.author.extended.last_name, self.mark.author.extended.first_name)
+                        href = reverse('users:show_profile', args=[self.mark.author.pk])
                 elif col == 'job':
                     val = report.root.job.name
                     href = reverse('jobs:job', args=[report.root.job.pk])
@@ -540,8 +542,9 @@ class MarksList(object):
                     val = mark.get_status_display()
                     color = STATUS_COLOR[mark.status]
                 elif col == 'author':
-                    val = "%s %s" % (mark.author.extended.last_name, mark.author.extended.first_name)
-                    href = reverse('users:show_profile', args=[mark.author.pk])
+                    if mark.author is not None:
+                        val = "%s %s" % (mark.author.extended.last_name, mark.author.extended.first_name)
+                        href = reverse('users:show_profile', args=[mark.author.pk])
                 elif col == 'format':
                     val = mark.format
                 elif col == 'component':

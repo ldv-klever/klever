@@ -728,11 +728,7 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
-        if isinstance(self.mark, MarkUnsafe):
-            first_vers = self.mark.versions.order_by('version')[0]
-        elif isinstance(self.mark, MarkSafe):
-            first_vers = self.mark.versions.order_by('version')[0]
-        elif isinstance(self.mark, MarkUnknown):
+        if isinstance(self.mark, (MarkUnsafe, MarkSafe, MarkUnknown)):
             first_vers = self.mark.versions.order_by('version')[0]
         else:
             return False

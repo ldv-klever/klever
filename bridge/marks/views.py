@@ -102,19 +102,12 @@ def edit_mark(request, mark_type, mark_id):
             if m.version == mark.version:
                 title = _("Current version")
             else:
-                change_time = m.change_date.astimezone(
-                    pytz.timezone(request.user.extended.timezone)
-                )
+                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
                 title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                title += " (%s %s)" % (
-                    m.author.extended.last_name,
-                    m.author.extended.first_name,
-                )
+                if m.author is not None:
+                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
                 title += ': ' + m.comment
-            mark_versions.append({
-                'version': m.version,
-                'title': title
-            })
+            mark_versions.append({'version': m.version, 'title': title})
 
         return render(request, template, {
             'mark': mark,
@@ -472,17 +465,12 @@ def get_mark_versions(request):
         return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
-        mark_time = m.change_date.astimezone(
-            pytz.timezone(request.user.extended.timezone)
-        )
+        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (m.author.extended.last_name,
-                               m.author.extended.first_name)
+        if m.author is not None:
+            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
         title += ': ' + m.comment
-        mark_versions.append({
-            'version': m.version,
-            'title': title
-        })
+        mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
 
 
