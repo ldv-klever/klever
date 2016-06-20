@@ -32,7 +32,8 @@ def after_set_shadow_src_tree(context):
 
 def after_generate_verification_obj_desc(context):
     # We need to copy verification object description since it may be accidently overwritten by LKVOG.
-    context.mqs['verification obj descs'].put(copy.deepcopy(context.verification_obj_desc))
+    if context.verification_obj_desc:
+        context.mqs['verification obj descs'].put(copy.deepcopy(context.verification_obj_desc))
 
 
 def after_generate_all_verification_obj_descs(context):

@@ -248,6 +248,7 @@ class LKVOG(core.components.Component):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
+        self.verification_obj_desc = {}
         strategy = self.conf['LKVOG strategy']['name']
 
         self.verification_obj_desc['id'] = self.cluster.root.id
@@ -267,6 +268,13 @@ class LKVOG(core.components.Component):
             self.verification_obj_desc['deps'][module.id] = \
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
             self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(cc_full_desc_files)
+
+        if 'maximum verification object size' in self.conf \
+                and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:
+            self.logger.debug('Linux kernel verification object "{0}" reachs max size'
+                              .format(self.verification_obj_desc['id']))
+            self.verification_obj_desc = None
+            return
 
         self.logger.debug(
             'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
