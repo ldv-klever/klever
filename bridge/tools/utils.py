@@ -59,9 +59,9 @@ def clear_files():
 
     empty_db_files = []
     for f in files_in_db:
-        if f[1] not in files_on_disk:
-            logger.error('Deleted from DB (file does not exists): %s' % f[1], stack_info=True)
-            empty_db_files.append(f['id'])
+        if f[0] in files_in_use and f[1] not in files_on_disk:
+            logger.error('Deleted from DB (file does not exists): %s' % f[1])
+            empty_db_files.append(f[0])
 
     File.objects.filter(id__in=empty_db_files).delete()
 
