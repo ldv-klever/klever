@@ -724,6 +724,7 @@ class ProcessModel:
             expressions = []
             for interface in match['parameters']:
                 new_label = Label(interface.short_identifier)
+                new_label.parameter = True
                 position = match['function'].param_interfaces.index(interface)
                 expressions.append(["%{}%".format(new_label.name), position])
 
