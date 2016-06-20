@@ -49,7 +49,6 @@ Klever Bridge installation
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
     $ python3 manage.py createsuperuser
 
@@ -113,14 +112,9 @@ Update for development purposes
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
 
-#. If some of previous commands failed it is recommended to do the following steps.
-#. Remove previously created migrations::
-
-    find ./ -name "migrations" | xargs -n1 rm -rf
-
+#. If the last command failed it is recommended to do the following steps.
 #. Recreate the MySQL/MariaDB database::
 
     MariaDB [(none)]> DROP DATABASE `db_name`;
