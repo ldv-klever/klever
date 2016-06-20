@@ -49,6 +49,7 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc = {}
         self.all_clusters = set()
         self.checked_modules = set()
+        self.cc_full_descs_files = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -307,6 +308,9 @@ class LKVOG(core.components.Component):
 
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
+        if out_file in self.cc_full_descs_files:
+            self.logger.debug('CC full description files for "{0}" already found'.format(out_file))
+            return self.cc_full_descs_files[out_file]
 
         cc_full_desc_files = []
 
@@ -327,4 +331,5 @@ class LKVOG(core.components.Component):
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
+        self.cc_full_descs_files[out_file] = cc_full_desc_files
         return cc_full_desc_files
