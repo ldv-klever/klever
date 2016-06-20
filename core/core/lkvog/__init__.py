@@ -110,8 +110,7 @@ class LKVOG(core.components.Component):
             if strategy_name == 'separate modules':
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': self.conf['Linux kernel']['modules']})
-
-            else:
+            elif strategy_name != 'manual':
                 if 'external modules' not in self.conf['Linux kernel']:
                     self.mqs['Linux kernel modules'].put({'build kernel': True})
 
