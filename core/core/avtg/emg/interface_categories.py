@@ -299,7 +299,9 @@ class CategoriesSpecification:
         while clean_flag:
             clean_flag = False
 
-            for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())]:
+            # Refine ordinary interfaces
+            for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())] + \
+                             [self.kernel_functions[name] for name in sorted(self.kernel_functions.keys())]:
                 if not interface.declaration.clean_declaration:
                     refined = refine_declaration(self.interfaces, interface.declaration)
 
