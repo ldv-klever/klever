@@ -3,6 +3,7 @@
 import os
 import re
 import shutil
+import glob
 from abc import abstractclassmethod, ABCMeta
 from xml.dom import minidom
 
@@ -130,6 +131,14 @@ class CommonStrategy(core.components.Component):
     def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
         pass
 
+    def get_verifier_log_file(self):
+        log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+        if len(log_files) != 1:
+            RuntimeError(
+                'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
+                    log_files))
+        return log_files[0]
+
     def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
         # Add assertion if it was specified.
@@ -163,6 +172,7 @@ class CommonStrategy(core.components.Component):
         self.create_auxiliary_report(verification_report_id, decision_results, assertion)
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
+        log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
             core.utils.report(self.logger,
                               'safe',
@@ -171,8 +181,8 @@ class CommonStrategy(core.components.Component):
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   # TODO: just the same file as parent log, looks strange.
-                                  'proof': 'cil.i.log',
-                                  'files': ['cil.i.log']
+                                  'proof': log_file,
+                                  'files': [log_file]
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
@@ -368,6 +378,7 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
+            log_file = self.get_verifier_log_file()
             core.utils.report(self.logger,
                               'unknown',
                               {
@@ -375,9 +386,9 @@ class CommonStrategy(core.components.Component):
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   # TODO: just the same file as parent log, looks strange.
-                                  'problem desc': 'cil.i.log' if decision_results['status'] not in (
+                                  'problem desc': log_file if decision_results['status'] not in (
                                       'CPU time exhausted', 'memory exhausted') else 'error.txt',
-                                  'files': ['cil.i.log' if decision_results['status'] not in (
+                                  'files': [log_file if decision_results['status'] not in (
                                       'CPU time exhausted', 'memory exhausted') else 'error.txt']
                               },
                               self.mqs['report files'],

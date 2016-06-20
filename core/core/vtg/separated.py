@@ -51,6 +51,7 @@ class SeparatedStrategy(CommonStrategy):
                 "memory size": 0,
                 "wall time": 0}
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+        log_file = self.get_verifier_log_file()
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -61,8 +62,8 @@ class SeparatedStrategy(CommonStrategy):
                               'attrs': [],
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
-                              'log': 'cil.i.log',
-                              'files': ['cil.i.log'] + (
+                              'log': log_file,
+                              'files': [log_file] + (
                                   ['benchmark.xml', self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
@@ -71,10 +72,11 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
-        if not self.resources_written and decision_results['status'] == 'unsafe':
+        if not self.resources_written and decision_results['status'] == 'unsafe' and self.mea:
             # Unsafe-incomplete.
             is_incomplete = True
-            with open('cil.i.log') as fp:
+            log_file = self.get_verifier_log_file()
+            with open(log_file) as fp:
                 for line in fp:
                     match = re.search(r'Verification result: FALSE', line)
                     if match:

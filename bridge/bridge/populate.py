@@ -6,7 +6,7 @@ from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import override
+from django.utils.translation import override, ungettext_lazy
 from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
@@ -14,9 +14,7 @@ from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
-from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
-from marks.ConvertTrace import ConvertTrace
-from marks.CompareTrace import CompareTrace
+from marks.tags import CreateTagsFromFile
 from service.models import Scheduler
 
 JOB_SETTINGS_FILE = 'settings.json'
@@ -51,11 +49,16 @@ class Population(object):
             self.__populate_jobs()
         self.__populate_default_jobs()
         self.__populate_unknown_marks()
+        self.__populate_tags()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
 
     def __populate_functions(self):
+        from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
+        from marks.ConvertTrace import ConvertTrace
+        from marks.CompareTrace import CompareTrace
+
         func_names = []
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
@@ -292,6 +295,31 @@ class Population(object):
                     )
                     ConnectMarkWithReports(mark)
                     self.changes['marks'] = True
+
+    def __populate_tags(self):
+        self.changes['tags'] = []
+        num_of_new = self.__create_tags('unsafe')
+        if num_of_new > 0:
+            self.changes['tags'].append(ungettext_lazy(
+                '%(count)d new unsafe tag uploaded.', '%(count)d new unsafe tags uploaded.', num_of_new
+            ) % {'count': num_of_new})
+        num_of_new = self.__create_tags('safe')
+        if num_of_new > 0:
+            self.changes['tags'].append(ungettext_lazy(
+                '%(count)d new safe tag uploaded.', '%(count)d new safe tags uploaded.', num_of_new
+            ) % {'count': num_of_new})
+
+    def __create_tags(self, tag_type):
+        self.ccc = 0
+        preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
+        if not os.path.isfile(preset_tags):
+            logger.error('The preset tags file "%s" was not found' % preset_tags)
+            return 0
+        with open(preset_tags, mode='rb') as fp:
+            res = CreateTagsFromFile(fp, tag_type, True)
+            if res.error is not None:
+                logger.error("Error while creating tags: %s" % res.error, stack_info=True)
+        return res.number_of_created
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}

@@ -131,6 +131,8 @@ $(document).ready(function () {
     $('.ETV_La').click(function (event) {
         event.preventDefault();
         $('.ETVSelectedLine').removeClass('ETVSelectedLine');
+        $('.ETV_LN_Note_Selected').removeClass('ETV_LN_Note_Selected');
+        $('.ETV_LN_Warning_Selected').removeClass('ETV_LN_Warning_Selected');
         if ($(this).next('span.ETV_File').length) {
             get_source_code(parseInt($(this).text()), $(this).next('span.ETV_File').text());
         }
@@ -291,5 +293,18 @@ $(document).ready(function () {
     });
     $('#etv_pause_play').click(function () {
         clearInterval(interval);
+    });
+
+    $('.ETV_LN_Note, .ETV_LN_Warning').click(function () {
+        var next_src_link = $(this).parent().next('span').find('.ETV_La').first();
+        if (next_src_link.length) {
+            next_src_link.click();
+        }
+        if ($(this).hasClass('ETV_LN_Note')) {
+            $(this).addClass('ETV_LN_Note_Selected');
+        }
+        else {
+            $(this).addClass('ETV_LN_Warning_Selected');
+        }
     });
 });

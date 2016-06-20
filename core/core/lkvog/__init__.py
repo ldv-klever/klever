@@ -7,7 +7,9 @@ import re
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
+from core.lkvog.strategies import advanced
 from core.lkvog.strategies import strategies_list
+from core.lkvog.strategies import strategy_utils
 import core.components
 import core.utils
 
@@ -15,15 +17,14 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
     context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
-    context.mqs['Linux kernel module deps'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
+    context.mqs['Linux kernel modules'] = multiprocessing.Queue()
+    context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
     context.mqs['Linux kernel attrs'].put(context.linux_kernel['attrs'])
-
-
-def after_build_linux_kernel(context):
-    context.mqs['Linux kernel module deps'].put(context.linux_kernel['module deps'])
 
 
 def after_get_linux_kernel_build_cmd_desc(context):
@@ -42,10 +43,13 @@ class LKVOG(core.components.Component):
         self.common_prj_attrs = {}
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
         self.linux_kernel_module_names_mq = multiprocessing.Queue()
+        self.linux_kernel_clusters_mq = multiprocessing.Queue()
         self.module = {}
         self.all_modules = {}
         self.verification_obj_desc = {}
-        self.checked_modules = []
+        self.all_clusters = set()
+        self.checked_modules = set()
+        self.cc_full_descs_files = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -74,44 +78,104 @@ class LKVOG(core.components.Component):
         self.linux_kernel_verification_objs_gen['attrs'].extend(
             [{'LKVOG strategy': [{'name': self.conf['LKVOG strategy']['name']}]}])
 
+    def get_modules_from_deps(self, subsystem, deps):
+        # Extract all modules in subsystem from dependencies.
+        ret = set()
+        for module in deps:
+            if module.startswith(subsystem):
+                ret.add(module)
+            for dep in deps[module]:
+                if dep.startswith(subsystem):
+                    ret.add(dep)
+        return ret
+
+    def is_part_of_subsystem(self, module, modules):
+        # Returns true if module is a part of subsystem that contains in modules.
+        for module2 in modules:
+            if module.id.startswith(module2):
+                return True
+        else:
+            return False
+
     def generate_all_verification_obj_descs(self):
-        self.logger.info('Generate all Linux kernel verification object decriptions')
-
         strategy_name = self.conf['LKVOG strategy']['name']
-        strategy = None
 
-        if strategy_name == 'closure':
-            self.module_deps = self.mqs['Linux kernel module deps'].get()
-            if 'cluster size' in self.conf["LKVOG strategy"]:
-                cluster_size = self.conf['LKVOG strategy']['cluster size']
+        module_deps_function = {}
+        module_sizes = {}
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            module_deps_function = self.mqs['Linux kernel module dependencies'].get()
+        if 'module sizes file' in self.conf['Linux kernel']:
+            module_sizes = self.mqs['Linux kernel module sizes'].get()
+
+        if 'module dependencies file' not in self.conf['Linux kernel']:
+            if strategy_name == 'separate modules':
+                self.mqs['Linux kernel modules'].put({'build kernel': False,
+                                                      'modules': self.conf['Linux kernel']['modules']})
+
             else:
-                cluster_size = 0
-            strategy = closure.Closure(self.logger, self.module_deps, cluster_size)
-        elif strategy_name == 'scotch':
-            self.module_deps = self.mqs['Linux kernel module deps'].get()
+                if 'external modules' not in self.conf['Linux kernel']:
+                    self.mqs['Linux kernel modules'].put({'build kernel': True})
 
-            scotch_dir_path = os.path.join(self.conf['main working directory'], 'scotch')
-            if not os.path.isdir(scotch_dir_path):
-                os.mkdir(scotch_dir_path)
+                else:
+                    self.mqs['Linux kernel modules'].put({'build kernel': True,
+                                                          'modules': self.conf['Linux kernel']['modules']})
+
+                module_deps_function = self.mqs['Linux kernel module dependencies'].get()
+                module_sizes = self.mqs['Linux kernel module sizes'].get()
+
+        self.mqs['Linux kernel module dependencies'].close()
+        self.mqs['Linux kernel module sizes'].close()
+
+        if strategy_name not in strategies_list:
+            raise NotImplementedError("Strategy {0} not implemented".format(strategy_name))
+
+        strategy_params = {'module_deps_function': module_deps_function,
+                           'work dir': os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                                    strategy_name)),
+                           'module_sizes': module_sizes}
+        strategy = strategies_list[strategy_name](self.logger, strategy_params, self.conf['LKVOG strategy'])
+
+        build_modules = set()
+        self.logger.debug("Initial list of modules to be built: {0}".format(self.conf['Linux kernel']['modules']))
+        for kernel_module in self.conf['Linux kernel']['modules']:
+            kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] \
+                else 'ext-modules/' + kernel_module
+            if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
+                # Invidiual module.
+                self.logger.debug('Use strategy for {0} module'.format(kernel_module))
+                clusters = strategy.divide(kernel_module)
+                self.all_clusters.update(clusters)
+                for cluster in clusters:
+                    if self.conf['LKVOG strategy'].get('draw graphs', False):
+                        cluster.draw(".")
+                    for cluster_module in cluster.modules:
+                        build_modules.add(cluster_module.id)
+                        self.checked_modules.add(cluster_module.id)
             else:
-                # Clear scotch directory
-                file_list = os.listdir(scotch_dir_path)
-                for file_name in file_list:
-                    os.remove(os.path.join(scotch_dir_path, file_name))
+                # Module is subsystem.
+                build_modules.add(kernel_module)
+                subsystem_modules = self.get_modules_from_deps(kernel_module, module_deps_function)
+                for module2 in subsystem_modules:
+                    clusters = strategy.divide(module2)
+                    self.all_clusters.update(clusters)
+                    for cluster in clusters:
+                        if self.conf['LKVOG strategy'].get('draw graphs', False):
+                            cluster.draw(".")
+                        for module3 in cluster.modules:
+                            self.checked_modules.add(module3.id)
+                            if not self.is_part_of_subsystem(module3, build_modules):
+                                build_modules.add(module3.id)
 
-            task_size = self.conf['LKVOG strategy']['cluster size']
-            balance_tolerance = self.conf['LKVOG strategy'].get('balance tolerance', 0.05)
-            scotch_bin_path = self.conf['LKVOG strategy']['scotch path']
-            strategy = scotch.Scotch(self.logger, self.module_deps, task_size, balance_tolerance, scotch_bin_path,
-                                    os.path.join(scotch_dir_path, 'graph_file'),
-                                    os.path.join(scotch_dir_path, 'scotch_log'),
-                                    os.path.join(scotch_dir_path, 'scotch_out'))
-        elif strategy_name == 'separate modules':
-            pass
+        self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
+
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
 
         else:
-            raise NotImplementedError("Strategy not implemented {0}".format(strategy_name))
+            self.mqs['Linux kernel module dependencies'].close()
+        self.logger.info('Generate all Linux kernel verification object decriptions')
 
+        cc_ready = set()
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
 
@@ -120,17 +184,47 @@ class LKVOG(core.components.Component):
                 self.linux_kernel_module_names_mq.close()
                 break
 
-            # Collect all modules for what we generate verification objects to avoid generation of the same verification
-            # object.
-            if strategy_name == 'separate modules':
-                if not self.module['name'] in self.all_modules:
-                    self.all_modules[self.module['name']] = True
-                    # TODO: specification requires to do this in parallel...
-                    self.generate_verification_obj_desc()
-            if strategy_name in strategies_list:
-                clusters = strategy.divide(self.module['name'])
-                for cluster in clusters:
+            match = False
+            if 'modules' in self.conf['Linux kernel']:
+                if 'all' in self.conf['Linux kernel']['modules']:
+                    match = True
+                else:
+                    for modules in build_modules:
+                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
+                                     self.module['name']):
+                            match = True
+                            break
+            else:
+                self.logger.warning(
+                    'Module {0} will not be verified since modules to be verified are not specified'.format(
+                        self.module['name']))
+            if not match:
+                continue
+            self.logger.debug('Recieved module {0}'.format(self.module['name']))
+            cc_ready.add(self.module['name'])
+
+            if not self.module['name'] in self.all_modules:
+                self.all_modules[self.module['name']] = True
+                module_clusters = []
+                if self.module['name'] in self.checked_modules:
+                    # Find clusters
+                    for cluster in self.all_clusters:
+                        if self.module['name'] in [module.id for module in cluster.modules]:
+                            for cluster_module in cluster.modules:
+                                if cluster_module.id not in cc_ready:
+                                    break
+                            else:
+                                module_clusters.append(cluster)
+                    # Remove clusters that will be checked.
+                    self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
+                                                   self.all_clusters))
+                else:
+                    self.checked_modules.add(strategy_utils.Module(self.module['name']))
+                    module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
+
+                for cluster in module_clusters:
                     self.cluster = cluster
+                    # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
 
     def generate_verification_obj_desc(self):
@@ -139,62 +233,38 @@ class LKVOG(core.components.Component):
 
         strategy = self.conf['LKVOG strategy']['name']
 
-        if strategy == 'separate modules':
-            self.verification_obj_desc['id'] = self.module['name']
-            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+        self.verification_obj_desc['id'] = self.cluster.root.id
 
-            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-            self.verification_obj_desc['grps'] = [
-                {'id': self.module['name'], 'cc full desc files': self.module['cc full desc files']}]
+        if len(self.cluster.modules) > 1:
+            self.verification_obj_desc['id'] += self.cluster.md5_hash
+
+        self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
+
+        self.verification_obj_desc['grps'] = []
+        self.verification_obj_desc['deps'] = {}
+        for module in self.cluster.modules:
+            self.verification_obj_desc['grps'].append({'id': module.id,
+                                                       'cc full desc files': self.__find_cc_full_desc_files(module.id)})
+            self.verification_obj_desc['deps'][module.id] = \
+                [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
+
+        self.logger.debug(
+            'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
+
+        self.logger.debug(
+            'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
+
+        if self.conf['keep intermediate files']:
+            verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+            if os.path.isfile(verification_obj_desc_file):
+                raise FileExistsError(
+                    'Linux kernel verification object description file "{0}" already exists'.format(
+                        verification_obj_desc_file))
             self.logger.debug(
-                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
-
-            self.verification_obj_desc['deps'] = {self.module['name']: []}
-            self.logger.debug(
-                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
-
-            if self.conf['keep intermediate files']:
-                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-                if os.path.isfile(verification_obj_desc_file):
-                    raise FileExistsError(
-                        'Linux kernel verification object description file "{0}" already exists'.format(
-                            verification_obj_desc_file))
-                self.logger.debug(
-                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                        self.module['name'], verification_obj_desc_file))
-                os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
-                with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-        elif strategy in strategies_list:
-            self.verification_obj_desc['id'] = 'linux/{0}'.format(self.cluster.root.id + str(hash(self.cluster)))
-            self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
-
-            self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-
-            self.verification_obj_desc['grps'] = []
-            self.verification_obj_desc['deps'] = {}
-            for module in self.cluster.modules:
-                self.verification_obj_desc['grps'].append({'id': module.id,
-                                                      'cc full desc files': self.__find_cc_full_desc_files(module.id)})
-                self.verification_obj_desc['deps'][module.id] = [predecessor.id for predecessor in module.predecessors]
-
-            self.logger.debug(
-                'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
-
-            self.logger.debug(
-                'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
-
-            if self.conf['keep intermediate files']:
-                verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-                if os.path.isfile(verification_obj_desc_file):
-                    raise FileExistsError(
-                        'Linux kernel verification object description file "{0}" already exists'.format(
-                            verification_obj_desc_file))
-                self.logger.debug(
-                    'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                        self.module['name'], verification_obj_desc_file))
-                with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file), 'w',
-                          encoding='ascii') as fp:
+                'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+                    self.module['name'], verification_obj_desc_file))
+            os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
+            with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
         else:
@@ -224,56 +294,44 @@ class LKVOG(core.components.Component):
                                                                                      if desc['out file']
                                                                                      else 'not specified')))
 
-        # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
-        # later when finding all CC full description files.
-        if desc['out file'] and desc['out file'] != '/dev/null':
-            # For instance, this is true for drivers/net/wireless/libertas/libertas.ko in Linux stable a533423.
-            if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
-                self.logger.warning(
-                    'During Linux kernel build output file "{0}" was overwritten'.format(desc['out file']))
-                # Propose new artificial name to avoid infinite recursion later.
-                out_file_root, out_file_ext = os.path.splitext(desc['out file'])
-                desc['out file'] = '{0}{1}{2}'.format(out_file_root,
-                                                      len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
-                                                      out_file_ext)
-
-            # Do not include assembler files into verification objects since we have no means to instrument and to
-            # analyse them.
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
-                r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
+        # Build map from Linux kernel build command output files to correpsonding descriptions.
+        # If more than one build command has the same output file their descriptions are added as list in chronological
+        # order (more early commands are processed more early and placed at the beginning of this list).
+        if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
+                                                                              desc['out file']] + [desc]
+        else:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
-            match = False
-            if 'modules' in self.conf['Linux kernel']:
-                if 'all' in self.conf['Linux kernel']['modules']:
-                    match = True
-                else:
-                    for modules in self.conf['Linux kernel']['modules']:
-                        if re.search(r'^{0}|{1}'.format(modules, os.path.join('ext-modules', modules)),
-                                     desc['out file']):
-                            match = True
-                            break
-            else:
-                self.logger.warning(
-                    'Module {0} will not be verified since modules to be verified are not specified'.format(
-                        desc['out file']))
-
-            if match:
-                self.linux_kernel_module_names_mq.put(desc['out file'])
+            self.linux_kernel_module_names_mq.put(desc['out file'])
 
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
+        if out_file in self.cc_full_descs_files:
+            self.logger.debug('CC full description files for "{0}" were already found'.format(out_file))
+            return self.cc_full_descs_files[out_file]
+
         cc_full_desc_files = []
 
-        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
+        # Get more older build commands more early if more than one build command has the same output file.
+        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
+
+        # Remove got build command description from map. It is assumed that each build command output file can be used
+        # as input file of another build command just once.
+        self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
-                cc_full_desc_files.append(out_file_desc['full desc file'])
+                # Do not include assembler files into verification objects since we have no means to instrument and to
+                # analyse them.
+                if not re.search(r'\.S$', out_file_desc['in files'][0], re.IGNORECASE):
+                    cc_full_desc_files.append(out_file_desc['full desc file'])
             else:
                 for in_file in out_file_desc['in files']:
-                    if not re.search(r'\.mod\.o$', in_file):
-                        cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
+                    cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
+        self.cc_full_descs_files[out_file] = cc_full_desc_files
+        
         return cc_full_desc_files

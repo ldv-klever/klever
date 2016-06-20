@@ -3,14 +3,12 @@
 import json
 import os
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
-class ASE(core.components.Component):
+class ASE(core.avtg.plugins.Plugin):
     def extract_argument_signatures(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         self.request_arg_signs()
 
         arg_signs = []
@@ -34,8 +32,6 @@ class ASE(core.components.Component):
                 if arg_signs else [{'id': '', 'text': ''}],
             'arg_signs': ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
         }
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     def request_arg_signs(self):
         self.logger.info('Request argument signatures')

@@ -25,6 +25,7 @@ REP_MARK_TITLES = {
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
+    'tags': _('Tags')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -229,9 +230,11 @@ class ReportTable(object):
 
         data = {}
 
-        columns = ['number', 'marks_number']
-        if self.verdict is None:
-            columns.append('report_verdict')
+        columns = ['number']
+        for col in self.view['columns']:
+            if self.verdict is not None and col == 'report_verdict':
+                continue
+            columns.append(col)
 
         if self.verdict is not None:
             leaf_filter = {list_types[self.type] + '__verdict': self.verdict}
@@ -308,6 +311,12 @@ class ReportTable(object):
                                 val = s[1]
                                 break
                         color = SAFE_COLOR[report.verdict]
+                elif col == 'tags':
+                    tags = []
+                    for t in report.tags.filter(number__gt=0).order_by('tag__tag'):
+                        tags.append(t.tag.tag)
+                    if len(tags) > 0:
+                        val = '; '.join(tags)
                 values_row.append({
                     'value': val,
                     'color': color,

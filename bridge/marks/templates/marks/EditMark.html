@@ -81,7 +81,7 @@
                 </table>
                 {% if reports.values|length %}
                 <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
-                <div>
+                <div style="overflow-x:auto;">
                     <table class="ui compact teal celled table" style="width:auto;">
                         <thead>
                             {% for column_row in reports.header %}
@@ -96,7 +96,7 @@
                             {% for row_data in reports.values %}
                                 <tr>
                                     {% for v in row_data %}
-                                        <td class="ui collapsing">
+                                        <td class="collapsing">
                                             {% if v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
@@ -124,7 +124,7 @@
                 {% endif %}
                 <div class="ui divider"></div>
                 <div id="mark_data_div">
-                    {% include 'marks/MarkAddData.html' with markdata=markdata %}
+                    {% include 'marks/MarkAddData.html' with markdata=markdata tags=tags %}
                 </div>
                 <br>
                 {% if can_freeze %}

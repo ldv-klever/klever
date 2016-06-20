@@ -2,6 +2,7 @@ import os
 import re
 import json
 import tarfile
+import tempfile
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -10,7 +11,7 @@ from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
 from bridge.utils import logger, file_get_or_create
-from jobs.models import JOBFILE_DIR
+from jobs.models import JOBFILE_DIR, RunHistory
 from jobs.utils import create_job, update_job, change_job_status
 from reports.UploadReport import UploadReportFiles
 from reports.models import *
@@ -74,15 +75,18 @@ class DownloadJob(object):
     def __init__(self, job):
         self.tarname = ''
         self.job = job
-        self.memory = BytesIO()
+        self.tempfile = tempfile.TemporaryFile()
         self.error = None
         self.__create_tar()
+        self.tempfile.flush()
+        self.size = self.tempfile.tell()
+        self.tempfile.seek(0)
 
     def __create_tar(self):
 
         files_in_tar = {}
         self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        jobtar_obj = tarfile.open(fileobj=self.tempfile, mode='w:gz')
 
         def write_file_str(file_name, file_content):
             file_content = file_content.encode('utf-8')
@@ -118,29 +122,33 @@ class DownloadJob(object):
         self.__add_unsafe_files(jobtar_obj)
         self.__add_unknown_files(jobtar_obj)
         self.__add_component_files(jobtar_obj)
+        run_history_data = self.__add_run_history_files(jobtar_obj)
         common_data = {
             'format': str(self.job.format),
+            'identifier': str(self.job.identifier),
             'type': str(self.job.type),
             'status': self.job.status,
             'filedata': json.dumps(files_in_tar),
-            'reports': ReportsData(self.job).reports
+            'reports': ReportsData(self.job).reports,
+            'run_history': json.dumps(run_history_data)
         }
         write_file_str('jobdata', json.dumps(common_data))
         jobtar_obj.close()
 
     def __add_unsafe_files(self, jobtar):
         for unsafe in ReportUnsafe.objects.filter(root__job=self.job):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in unsafe.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % unsafe.pk
-            tinfo = tarfile.TarInfo(os.path.join('Unsafes', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+            temptar = tempfile.TemporaryFile()
+            with tarfile.open(fileobj=temptar, mode='w:gz') as tarobj:
+                for f in unsafe.files.all():
+                    tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
+                tarobj.close()
+            temptar.flush()
+
+            tinfo = tarfile.TarInfo(os.path.join('Unsafes', '%s.tar.gz' % unsafe.pk))
+            tinfo.size = temptar.tell()
+            temptar.seek(0)
+            jobtar.addfile(tinfo, temptar)
 
     def __add_safe_files(self, jobtar):
         for safe in ReportSafe.objects.filter(root__job=self.job):
@@ -158,17 +166,34 @@ class DownloadJob(object):
 
     def __add_component_files(self, jobtar):
         for report in ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(log=None)):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in report.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % report.pk
-            tinfo = tarfile.TarInfo(os.path.join('Components', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+            temptar = tempfile.TemporaryFile()
+            with tarfile.open(fileobj=temptar, mode='w:gz') as tarobj:
+                for f in report.files.all():
+                    tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
+                tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
+                tarobj.close()
+            temptar.flush()
+
+            tinfo = tarfile.TarInfo(os.path.join('Components', '%s.tar.gz' % report.pk))
+            tinfo.size = temptar.tell()
+            temptar.seek(0)
+            jobtar.addfile(tinfo, temptar)
+
+    def __add_run_history_files(self, jobtar):
+        data = []
+        for rh in self.job.runhistory_set.order_by('date'):
+            jobtar.add(
+                os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
+                arcname=os.path.join('Configurations', "%s.json" % rh.pk)
+            )
+            data.append({
+                'id': rh.pk, 'status': rh.status,
+                'date': [
+                    rh.date.year, rh.date.month, rh.date.day, rh.date.hour,
+                    rh.date.minute, rh.date.second, rh.date.microsecond
+                ]
+            })
+        return data
 
 
 class ReportsData(object):
@@ -182,6 +207,10 @@ class ReportsData(object):
         def get_date(d):
             return [d.year, d.month, d.day, d.hour, d.minute, d.second, d.microsecond] if d is not None else None
 
+        data = None
+        if report.data is not None:
+            with report.data.file as fp:
+                data = fp.read().decode('utf8')
         return {
             'pk': report.pk,
             'parent': report.parent_id,
@@ -195,7 +224,7 @@ class ReportsData(object):
             } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
-            'data': report.data.file.read().decode('utf8') if report.data is not None else None,
+            'data': data,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
 
@@ -247,6 +276,7 @@ class UploadJob(object):
         files_in_db = {}
         versions_data = {}
         report_files = {}
+        run_history_files = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
                 if file_name == 'jobdata':
@@ -281,11 +311,24 @@ class UploadJob(object):
                     m = re.match('(\d+)\.tar\.gz', file_name)
                     if m is not None:
                         report_files[('component', int(m.group(1)))] = os.path.join(dir_path, file_name)
+                elif dir_path.endswith('Configurations'):
+                    try:
+                        run_history_files[int(file_name.replace('.json', ''))] = os.path.join(dir_path, file_name)
+                    except ValueError:
+                        return _("The job archive is corrupted")
 
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports', 'run_history']):
             return _("The job archive is corrupted")
         if int(jobdata['format']) != FORMAT:
             return _("The job format is not supported")
+
+        if 'identifier' in jobdata:
+            if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
+                if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
+                    return _("The job with identifier specified in the archive already exists")
+            else:
+                del jobdata['identifier']
+
         if jobdata['type'] != self.parent.type:
             return _("The job class does not equal to the parent class")
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
@@ -319,6 +362,7 @@ class UploadJob(object):
 
         job = create_job({
             'name': version_list[0]['name'],
+            'identifier': jobdata.get('identifier'),
             'author': self.user,
             'description': version_list[0]['description'],
             'parent': self.parent,
@@ -329,6 +373,24 @@ class UploadJob(object):
         })
         if not isinstance(job, Job):
             return job
+
+        try:
+            for rh in json.loads(jobdata['run_history']):
+                run_date = datetime(
+                    rh['date'][0], rh['date'][1], rh['date'][2],
+                    rh['date'][3], rh['date'][4], rh['date'][5], rh['date'][6], tzinfo=pytz.timezone('UTC')
+                )
+                if rh['status'] not in list(x[0] for x in JOB_STATUS):
+                    return _("The job archive is corrupted")
+                with open(run_history_files[rh['id']], mode='rb') as fp:
+                    RunHistory.objects.create(
+                        job=job, status=rh['status'], date=run_date,
+                        configuration=file_get_or_create(fp, 'config.json')[0]
+                    )
+        except Exception as e:
+            logger.exception("Error while parsing run history: %s" % e, stack_info=True)
+            job.delete()
+            return _("The job archive is corrupted")
 
         for version_data in version_list[1:]:
             updated_job = update_job({

@@ -236,8 +236,6 @@ def solve_task(conf):
         tar.add("decision results.json")
         for file in glob.glob("output/*"):
             tar.add(file)
-        for file in glob.glob(os.path.join("output", "benchmark*logfiles/*")):
-            tar.add(file, os.path.basename(file))
         if conf["upload input files of static verifiers"]:
             tar.add("benchmark.xml")
 

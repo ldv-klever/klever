@@ -107,7 +107,11 @@ class Job(core.utils.CallbacksCaller):
                 self.logger.debug('Sub-job indexes message queue was terminated')
                 break
 
-            self.sub_jobs[sub_job_index].__decide_sub_job()
+            try:
+                self.sub_jobs[sub_job_index].__decide_sub_job()
+            except SystemExit:
+                if not self.components_common_conf['ignore failed sub-jobs']:
+                    sys.exit(1)
 
     def __decide_sub_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))

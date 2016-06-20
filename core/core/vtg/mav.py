@@ -203,6 +203,7 @@ class MAV(CommonStrategy):
                 "CPU time": 0,
                 "memory size": 0,
                 "wall time": 0}
+        log_file = self.get_verifier_log_file()
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -213,8 +214,8 @@ class MAV(CommonStrategy):
                               'attrs': [],
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
-                              'log': 'cil.i.log',
-                              'files': ['cil.i.log'] + (
+                              'log': log_file,
+                              'files': [log_file] + (
                                   ['benchmark.xml', self.path_to_property_automata] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
@@ -223,10 +224,11 @@ class MAV(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           suffix)
-        if not self.resources_written_unsafe and decision_results['status'] == 'unsafe':
+        if not self.resources_written_unsafe and decision_results['status'] == 'unsafe' and self.mea:
             # Unsafe-incomplete.
             is_incomplete = False
-            with open('cil.i.log') as fp:
+            log_file = self.get_verifier_log_file()
+            with open(log_file) as fp:
                 for line in fp:
                     match = re.search(r'Assert \[(.+)\] has exhausted its', line)
                     if match:
@@ -339,7 +341,8 @@ class MAV(CommonStrategy):
                                         results[LCA] = 'unknown'
 
                 except FileNotFoundError:
-                    with open('cil.i.log', encoding='ascii') as fp:
+                    log_file = self.get_verifier_log_file()
+                    with open(log_file, encoding='ascii') as fp:
                         content = fp.readlines()
                     task_error = content
                     self.process_global_error(task_error)

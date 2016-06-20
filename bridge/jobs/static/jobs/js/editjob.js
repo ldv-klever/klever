@@ -855,7 +855,7 @@ $(document).ready(function () {
     });
 
     $("#copy_job_btn").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').val()});
+        $.redirectPost('/jobs/create/', {parent_id: $('#job_pk').val()});
     });
 
     $('#remove_job_btn').click(function () {
@@ -939,12 +939,30 @@ $(document).ready(function () {
                         return false;
                     }
                     if ('jobdata' in data) {
-                        var is_hidden = $('#resources-note').popup('is hidden');
+                        var is_hidden = $('#resources-note').popup('is hidden'), shown_tag_description_id;
                         $('#resources-note').popup('hide');
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup('hide');
+                            if (!$(this).popup('is hidden')) {
+                                shown_tag_description_id = $(this).attr('id').replace('tag_description_id_', '')
+                            }
+                        });
                         $('#job_data_div').html(data['jobdata']);
                         $('#resources-note').popup();
                         if (!is_hidden) {
                             $('#resources-note').popup('show');
+                        }
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup({
+                                html: $(this).attr('data-content'),
+                                hoverable: true
+                            });
+                        });
+                        if (shown_tag_description_id) {
+                            var tag_descr = $('#tag_description_id_' + shown_tag_description_id);
+                            if (tag_descr.length) {
+                                tag_descr.popup('show');
+                            }
                         }
                     }
                     var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);

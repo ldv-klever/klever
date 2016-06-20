@@ -25,6 +25,11 @@
                     <label for="marks_filter_checkbox__verdict">{% trans 'Verdict' %}</label>
                 </div>
                 <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="marks_filter_checkbox__tags"{% if 'tags' in tabledata.view.columns %} checked{% endif %}>
+                    <label for="marks_filter_checkbox__tags">{% trans 'Tags' %}</label>
+                </div>
+                <br>
             {% endif %}
                 <div class="ui checkbox">
                     <label for="marks_filter_checkbox__status">{% trans 'Status' %}</label>

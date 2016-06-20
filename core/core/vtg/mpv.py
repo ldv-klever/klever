@@ -164,6 +164,7 @@ class MPV(CommonStrategy):
         for assertion, automaton in self.property_automata.items():
             path_to_file = assertion + '.spc'
             files_to_send.append(path_to_file)
+        log_file = self.get_verifier_log_file()
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -174,8 +175,8 @@ class MPV(CommonStrategy):
                               'attrs': [],
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
-                              'log': 'cil.i.log',
-                              'files': ['cil.i.log'] + (
+                              'log': log_file,
+                              'files': [log_file] + (
                                   files_to_send + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
@@ -237,7 +238,8 @@ class MPV(CommonStrategy):
                 # Parse file with statistics.
                 results = {}
                 is_stats_found = False
-                with open('cil.i.log', encoding='ascii') as fp:
+                log_file = self.get_verifier_log_file()
+                with open(log_file, encoding='ascii') as fp:
                     for line in fp:
                         result = re.search(self.verifier_results_regexp, line)
                         if result:

@@ -35,8 +35,8 @@
             </div>
         {% if user.is_authenticated %}
             <a class="browse item">{% trans 'Menu' %}<i class="dropdown icon"></i></a>
-            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 50%;">
-                <div class="ui two column relaxed equeal height divided grid">
+            <div class="ui fluid inverted popup bottom left transition hidden" style="max-width: 70%;">
+                <div class="ui three column relaxed equeal height divided grid">
                     <div class="column">
                         <h3 class="ui purple header">{% trans 'Jobs' %}</h3>
                         <a class="item" href="{% url 'jobs:tree' %}">{% trans 'Jobs Tree' %}</a>
@@ -49,6 +49,11 @@
                         <a class="item" href="{% url 'marks:mark_list' 'unknown' %}">{% trans 'Unknowns' %}</a>
                         <a class="item" href="{% url 'marks:mark_list' 'safe' %}">{% trans 'Safes' %}</a>
                         <a class="item" id="show_upload_marks_popup">{% trans 'Upload' %}</a>
+                    </div>
+                    <div class="column">
+                        <h3 class="ui purple header">{% trans 'Tags' %}</h3>
+                        <a class="item" href="{% url 'marks:tags' 'unsafe' %}">{% trans 'Unsafe' %}</a>
+                        <a class="item" href="{% url 'marks:tags' 'safe' %}">{% trans 'Safe' %}</a>
                     </div>
                 </div>
             </div>

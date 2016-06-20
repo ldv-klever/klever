@@ -1,4 +1,5 @@
 import glob
+import json
 import os
 import sys
 import shutil
@@ -29,7 +30,10 @@ class Run:
         else:
             self.tool = "CPAchecker"
 
-        self.version = description["verifier"]["version"]
+        if "version" in description["verifier"]:
+            self.version = description["verifier"]["version"]
+        else:
+            self.version = None
 
         # Check priority
         if description["priority"] not in ["LOW", "IDLE"]:
@@ -54,12 +58,7 @@ class Run:
         # TODO: Implement options support not just forwarding
         self.options = []
         # Convert list of dictionaries to list
-        options = description["verifier"]["options"]
-        # TODO: like in scheduler/client/__init__.py
-        options.append({"-setprop": "parser.readLineDirectives=true"})
-        options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
-        options.append({"-heap": '{0}m'.format(round(3 * description["resource limits"]["memory size"] / (4 * 1000 ** 2)))})
-        for option in options:
+        for option in description["verifier"]["options"]:
             for name in option:
                 self.options.append(name)
                 self.options.append(option[name])
@@ -159,6 +158,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         # TODO: Add more exceptions handling to make code more reliable
+        with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
+                  encoding="ascii") as fp:
+            json.dump(description, fp, sort_keys=True, indent=4)
 
         # Prepare command to submit
         logging.debug("Prepare arguments of the task {}".format(identifier))
@@ -166,10 +168,11 @@ class Scheduler(schedulers.SchedulerExchange):
         run = Run(task_data_dir, description, user, password)
         # Expect branch:revision or revision
         branch, revision = None, None
-        if ":" in run.version:
+        if run.version and ":" in run.version:
             branch, revision = run.version.split(':')
-        else:
+        elif run.version:
             revision = run.version
+
         if not branch:
             logging.warning("Branch has not given for the task {}".format(identifier))
             branch = None
@@ -225,16 +228,12 @@ class Scheduler(schedulers.SchedulerExchange):
         os.makedirs(task_solution_dir, exist_ok=True)
         logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
-
-        # Move content of output directory to root directory (this is done to correspond to
-        # scheduler/client/__init__.py, but this may be wrong and we need to keep output directory as is).
-        for file in glob.glob(os.path.join(task_solution_dir, "output/*")):
-            shutil.move(file, task_solution_dir)
-
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
-        # Simulate BenchExec behaviour when one input file is provided (see scheduler/client/__init__.py)
-        shutil.move(os.path.join(task_solution_dir, "output.log"), os.path.join(task_solution_dir, "cil.i.log"))
+        # Simulate BenchExec behaviour when one input file is provided.
+        os.makedirs(os.path.join(task_solution_dir, "output", "benchmarklogfiles"))
+        shutil.move(os.path.join(task_solution_dir, "output.log"),
+                    os.path.join(task_solution_dir, "output", "benchmarklogfiles"))
         solution_description = os.path.join(task_solution_dir, "decision results.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:

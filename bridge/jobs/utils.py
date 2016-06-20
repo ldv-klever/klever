@@ -119,7 +119,6 @@ class JobAccess(object):
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        # TODO: can author decide the job?
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
@@ -461,8 +460,11 @@ def create_job(kwargs):
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
 
-    time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
-    newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    if 'identifier' in kwargs and kwargs['identifier'] is not None:
+        newjob.identifier = kwargs['identifier']
+    else:
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
@@ -790,7 +792,8 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instances']
+                    filedata['ignore other instances'],
+                    filedata['ignore failed sub-jobs']
                 ]
             ]
         except Exception as e:
@@ -833,7 +836,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 5:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 6:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False

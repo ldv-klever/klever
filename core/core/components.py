@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import re
 import signal
 import sys
 import time

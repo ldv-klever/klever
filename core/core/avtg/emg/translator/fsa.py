@@ -271,6 +271,8 @@ class Automaton:
                                    label.prior_signature, export=True)
                     if label.value:
                         var.value = label.value
+                    if label.file:
+                        var.file = label.file
 
                     if label.name not in self.__label_variables:
                         self.__label_variables[label.name] = {}
@@ -449,7 +451,7 @@ class Automaton:
                     if access.label.value and analysis.callback_name(access.label.value):
                         invoke = analysis.callback_name(access.label.value)
                         func_variable = func_variable.name
-                        file = translator.entry_file
+                        file = analysis.determine_original_file(access.label.value)
                         check = False
                     else:
                         if func_variable:
