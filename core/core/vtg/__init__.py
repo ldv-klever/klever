@@ -2,6 +2,7 @@
 
 import copy
 import importlib
+import json
 import multiprocessing
 import os
 
@@ -94,10 +95,19 @@ class VTG(core.components.Component):
 
         self.abstract_task_descs_num.value = self.mqs['abstract task descs num'].get()
 
+        self.mqs['abstract task descs num'].close()
+
         self.logger.debug('The total number of abstract verification task descriptions is "{0}"'.format(
             self.abstract_task_descs_num.value))
 
-        self.mqs['abstract task descs num'].close()
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(self.abstract_task_descs_num.value)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     def _generate_verification_tasks(self):
         while True:
