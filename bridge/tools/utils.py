@@ -1,37 +1,61 @@
 import os
 import json
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
 from bridge.utils import logger
+from jobs.models import JOBFILE_DIR, FileSystem, RunHistory
 from reports.models import *
 from marks.models import *
 from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 
 
 def clear_files():
-    from jobs.models import File, JOBFILE_DIR
-    files_in_the_system = []
+    files_in_db = []
     for f in File.objects.all():
-
-        if len(f.reportunsafe_set.all()) == 0 and len(f.reportsafe_set.all()) == 0 \
-                and len(f.reportunknown_set.all()) == 0 and len(f.markunsafe_set.all()) == 0 \
-                and len(f.filesystem_set.all()) == 0 and len(f.runhistory_set.all()) == 0 \
-                and len(f.reports1.all()) == 0 and len(f.reports2.all()) == 0 \
-                and len(f.errortraceconvertioncache_set.all()) == 0:
-            f.delete()
+        files_in_db.append({'id': f.pk, 'path': os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))})
+    files_in_use = []
+    for u in ReportUnsafe.objects.all():
+        if u.archive_id not in files_in_use:
+            files_in_use.append(u.archive_id)
+    for s in ReportSafe.objects.all():
+        if s.archive_id not in files_in_use:
+            files_in_use.append(s.archive_id)
+    for u in ReportUnknown.objects.all():
+        if u.archive_id not in files_in_use:
+            files_in_use.append(u.archive_id)
+    for u in MarkUnsafe.objects.all():
+        if u.error_trace_id not in files_in_use:
+            files_in_use.append(u.error_trace_id)
+    for f in FileSystem.objects.all():
+        if f.file_id is not None and f.file_id not in files_in_use:
+            files_in_use.append(f.file_id)
+    for f in RunHistory.objects.all():
+        if f.configuration_id not in files_in_use:
+            files_in_use.append(f.configuration_id)
+    for r in ReportComponent.objects.all():
+        if r.archive_id is not None and r.archive_id not in files_in_use:
+            files_in_use.append(r.archive_id)
+        if r.data_id is not None and r.data_id not in files_in_use:
+            files_in_use.append(r.data_id)
+    for f in ErrorTraceConvertionCache.objects.all():
+        if f.converted_id not in files_in_use:
+            files_in_use.append(f.converted_id)
+    File.objects.filter(~Q(id__in=files_in_use)).delete()
+    files_on_disk = []
+    files_directory = os.path.abspath(os.path.join(MEDIA_ROOT, JOBFILE_DIR))
+    for f in [os.path.join(files_directory, x) for x in os.listdir(files_directory)]:
+        if f in list(x['path'] for x in files_in_db):
+            files_on_disk.append(f)
         else:
-            file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
-            files_in_the_system.append(file_path)
-            if not(os.path.exists(file_path) and os.path.isfile(file_path)):
-                logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
-                f.delete()
-    files_directory = os.path.join(MEDIA_ROOT, JOBFILE_DIR)
-    if os.path.exists(files_directory):
-        for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
-            if f not in files_in_the_system:
-                os.remove(f)
+            os.remove(f)
+    empty_db_files = []
+    for f in files_in_db:
+        if f['id'] in files_in_use and f['path'] not in files_on_disk:
+            logger.error('Deleted from DB (file does not exists): %s' % f['path'], stack_info=True)
+            empty_db_files.append(f['id'])
+    File.objects.filter(id__in=empty_db_files).delete()
 
 
 def clear_service_files():
