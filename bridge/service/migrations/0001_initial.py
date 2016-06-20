@@ -17,8 +17,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Node',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('status', models.CharField(max_length=13, choices=[('USER_OCCUPIED', 'User occupied'), ('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')])),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('status', models.CharField(choices=[('USER_OCCUPIED', 'User occupied'), ('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')], max_length=13)),
                 ('hostname', models.CharField(max_length=128)),
             ],
             options={
@@ -28,7 +28,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='NodesConfiguration',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('cpu', models.CharField(max_length=128)),
                 ('cores', models.PositiveSmallIntegerField()),
                 ('ram', models.BigIntegerField()),
@@ -41,9 +41,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Scheduler',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('type', models.CharField(max_length=1, choices=[('0', 'Klever'), ('1', 'VerifierCloud')])),
-                ('status', models.CharField(max_length=12, default='AILING', choices=[('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')])),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('type', models.CharField(choices=[('0', 'Klever'), ('1', 'VerifierCloud')], max_length=1)),
+                ('status', models.CharField(choices=[('HEALTHY', 'Healthy'), ('AILING', 'Ailing'), ('DISCONNECTED', 'Disconnected')], default='AILING', max_length=12)),
             ],
             options={
                 'db_table': 'scheduler',
@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='SchedulerUser',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('login', models.CharField(max_length=128)),
                 ('password', models.CharField(max_length=128)),
                 ('user', models.OneToOneField(to=settings.AUTH_USER_MODEL)),
@@ -64,7 +64,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Solution',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('description', models.BinaryField()),
                 ('archname', models.CharField(max_length=256)),
                 ('archive', models.FileField(upload_to='Service')),
@@ -76,8 +76,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='SolvingProgress',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('priority', models.CharField(max_length=6, choices=[('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')])),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('priority', models.CharField(choices=[('URGENT', 'Urgent'), ('HIGH', 'High'), ('LOW', 'Low'), ('IDLE', 'Idle')], max_length=6)),
                 ('start_date', models.DateTimeField(null=True)),
                 ('finish_date', models.DateTimeField(null=True)),
                 ('tasks_total', models.PositiveIntegerField(default=0)),
@@ -87,7 +87,7 @@ class Migration(migrations.Migration):
                 ('tasks_error', models.PositiveIntegerField(default=0)),
                 ('tasks_cancelled', models.PositiveIntegerField(default=0)),
                 ('solutions', models.PositiveIntegerField(default=0)),
-                ('error', models.CharField(max_length=1024, null=True)),
+                ('error', models.CharField(null=True, max_length=1024)),
                 ('configuration', models.BinaryField()),
                 ('job', models.OneToOneField(to='jobs.Job')),
                 ('scheduler', models.ForeignKey(to='service.Scheduler')),
@@ -99,9 +99,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Task',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('status', models.CharField(max_length=10, default='PENDING', choices=[('PENDING', 'Pending'), ('PROCESSING', 'Processing'), ('FINISHED', 'Finished'), ('ERROR', 'Error'), ('CANCELLED', 'Cancelled')])),
-                ('error', models.CharField(max_length=1024, null=True)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('status', models.CharField(choices=[('PENDING', 'Pending'), ('PROCESSING', 'Processing'), ('FINISHED', 'Finished'), ('ERROR', 'Error'), ('CANCELLED', 'Cancelled')], default='PENDING', max_length=10)),
+                ('error', models.CharField(null=True, max_length=1024)),
                 ('description', models.BinaryField()),
                 ('archname', models.CharField(max_length=256)),
                 ('archive', models.FileField(upload_to='Service')),
@@ -114,7 +114,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='VerificationTool',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('name', models.CharField(max_length=128)),
                 ('version', models.CharField(max_length=128)),
                 ('scheduler', models.ForeignKey(to='service.Scheduler')),
@@ -126,7 +126,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Workload',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('jobs', models.PositiveIntegerField()),
                 ('tasks', models.PositiveIntegerField()),
                 ('cores', models.PositiveSmallIntegerField()),
@@ -152,6 +152,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='node',
             name='workload',
-            field=models.OneToOneField(to='service.Workload', on_delete=django.db.models.deletion.SET_NULL, null=True),
+            field=models.OneToOneField(on_delete=django.db.models.deletion.SET_NULL, to='service.Workload', null=True),
         ),
     ]

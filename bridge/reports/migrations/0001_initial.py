@@ -2,8 +2,8 @@
 from __future__ import unicode_literals
 
 from django.db import migrations, models
-import django.db.models.deletion
 from django.conf import settings
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Attr',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('value', models.CharField(max_length=255)),
             ],
             options={
@@ -27,8 +27,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='AttrName',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('name', models.CharField(max_length=63, unique=True)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('name', models.CharField(unique=True, max_length=63)),
             ],
             options={
                 'db_table': 'attr_name',
@@ -37,10 +37,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CompareJobsCache',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('attr_values', models.TextField()),
-                ('verdict1', models.CharField(max_length=1, choices=[('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'), ('3', 'Unknown'), ('4', 'Unmatched')])),
-                ('verdict2', models.CharField(max_length=1, choices=[('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'), ('3', 'Unknown'), ('4', 'Unmatched')])),
+                ('verdict1', models.CharField(choices=[('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'), ('3', 'Unknown'), ('4', 'Unmatched')], max_length=1)),
+                ('verdict2', models.CharField(choices=[('0', 'Total safe'), ('1', 'Found all unsafes'), ('2', 'Found not all unsafes'), ('3', 'Unknown'), ('4', 'Unmatched')], max_length=1)),
                 ('reports1', models.CharField(max_length=1000)),
                 ('reports2', models.CharField(max_length=1000)),
             ],
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='CompareJobsInfo',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('files_diff', models.TextField()),
             ],
             options={
@@ -61,8 +61,8 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Component',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('name', models.CharField(max_length=15, unique=True)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('name', models.CharField(unique=True, max_length=15)),
             ],
             options={
                 'db_table': 'component',
@@ -71,11 +71,11 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ComponentResource',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('cpu_time', models.BigIntegerField()),
                 ('wall_time', models.BigIntegerField()),
                 ('memory', models.BigIntegerField()),
-                ('component', models.ForeignKey(null=True, on_delete=django.db.models.deletion.PROTECT, to='reports.Component')),
+                ('component', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='reports.Component', null=True)),
             ],
             options={
                 'db_table': 'cache_report_component_resource',
@@ -84,9 +84,9 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ComponentUnknown',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('number', models.PositiveIntegerField(default=0)),
-                ('component', models.ForeignKey(to='reports.Component', on_delete=django.db.models.deletion.PROTECT)),
+                ('component', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='reports.Component')),
             ],
             options={
                 'db_table': 'cache_report_component_unknown',
@@ -95,7 +95,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Computer',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('description', models.TextField()),
             ],
             options={
@@ -103,21 +103,10 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-            name='ETVFiles',
-            fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('name', models.CharField(max_length=1024)),
-                ('file', models.ForeignKey(to='jobs.File')),
-            ],
-            options={
-                'db_table': 'etv_files',
-            },
-        ),
-        migrations.CreateModel(
             name='Report',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('identifier', models.CharField(max_length=255, unique=True)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
+                ('identifier', models.CharField(unique=True, max_length=255)),
             ],
             options={
                 'db_table': 'report',
@@ -126,7 +115,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportAttr',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('attr', models.ForeignKey(to='reports.Attr')),
             ],
             options={
@@ -136,29 +125,18 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportComponentLeaf',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
             ],
             options={
                 'db_table': 'cache_report_component_leaf',
             },
         ),
         migrations.CreateModel(
-            name='ReportFiles',
-            fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
-                ('name', models.CharField(max_length=1024)),
-                ('file', models.ForeignKey(to='jobs.File')),
-            ],
-            options={
-                'db_table': 'report_files',
-            },
-        ),
-        migrations.CreateModel(
             name='ReportRoot',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('job', models.OneToOneField(to='jobs.Job')),
-                ('user', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL)),
+                ('user', models.ForeignKey(on_delete=django.db.models.deletion.SET_NULL, to=settings.AUTH_USER_MODEL, null=True)),
             ],
             options={
                 'db_table': 'report_root',
@@ -167,7 +145,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='Verdict',
             fields=[
-                ('id', models.AutoField(primary_key=True, verbose_name='ID', auto_created=True, serialize=False)),
+                ('id', models.AutoField(verbose_name='ID', auto_created=True, serialize=False, primary_key=True)),
                 ('unsafe', models.PositiveIntegerField(default=0)),
                 ('unsafe_bug', models.PositiveIntegerField(default=0)),
                 ('unsafe_target_bug', models.PositiveIntegerField(default=0)),
@@ -190,16 +168,17 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportComponent',
             fields=[
-                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', primary_key=True, serialize=False, auto_created=True)),
+                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', auto_created=True, serialize=False, primary_key=True)),
                 ('cpu_time', models.BigIntegerField(null=True)),
                 ('wall_time', models.BigIntegerField(null=True)),
                 ('memory', models.BigIntegerField(null=True)),
                 ('start_date', models.DateTimeField()),
                 ('finish_date', models.DateTimeField(null=True)),
-                ('component', models.ForeignKey(to='reports.Component', on_delete=django.db.models.deletion.PROTECT)),
+                ('log', models.CharField(null=True, max_length=128)),
+                ('archive', models.ForeignKey(on_delete=django.db.models.deletion.SET_NULL, to='jobs.File', related_name='reports1', null=True)),
+                ('component', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='reports.Component')),
                 ('computer', models.ForeignKey(to='reports.Computer')),
-                ('data', models.ForeignKey(related_name='reports2', to='jobs.File', null=True)),
-                ('log', models.ForeignKey(related_name='reports1', to='jobs.File', on_delete=django.db.models.deletion.SET_NULL, null=True)),
+                ('data', models.ForeignKey(to='jobs.File', related_name='reports2', null=True)),
             ],
             options={
                 'db_table': 'report_component',
@@ -209,9 +188,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportSafe',
             fields=[
-                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', primary_key=True, serialize=False, auto_created=True)),
-                ('verdict', models.CharField(max_length=1, default='4', choices=[('0', 'Unknown'), ('1', 'Incorrect proof'), ('2', 'Missed target bug'), ('3', 'Incompatible marks'), ('4', 'Without marks')])),
-                ('proof', models.ForeignKey(to='jobs.File')),
+                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', auto_created=True, serialize=False, primary_key=True)),
+                ('proof', models.CharField(max_length=128)),
+                ('verdict', models.CharField(choices=[('0', 'Unknown'), ('1', 'Incorrect proof'), ('2', 'Missed target bug'), ('3', 'Incompatible marks'), ('4', 'Without marks')], default='4', max_length=1)),
+                ('archive', models.ForeignKey(to='jobs.File')),
             ],
             options={
                 'db_table': 'report_safe',
@@ -221,9 +201,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportUnknown',
             fields=[
-                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', primary_key=True, serialize=False, auto_created=True)),
-                ('component', models.ForeignKey(to='reports.Component', on_delete=django.db.models.deletion.PROTECT)),
-                ('problem_description', models.ForeignKey(to='jobs.File')),
+                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', auto_created=True, serialize=False, primary_key=True)),
+                ('problem_description', models.CharField(max_length=128)),
+                ('archive', models.ForeignKey(to='jobs.File')),
+                ('component', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='reports.Component')),
             ],
             options={
                 'db_table': 'report_unknown',
@@ -233,9 +214,10 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='ReportUnsafe',
             fields=[
-                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', primary_key=True, serialize=False, auto_created=True)),
-                ('verdict', models.CharField(max_length=1, default='5', choices=[('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive'), ('4', 'Incompatible marks'), ('5', 'Without marks')])),
-                ('error_trace', models.ForeignKey(to='jobs.File')),
+                ('report_ptr', models.OneToOneField(parent_link=True, to='reports.Report', auto_created=True, serialize=False, primary_key=True)),
+                ('error_trace', models.CharField(max_length=128)),
+                ('verdict', models.CharField(choices=[('0', 'Unknown'), ('1', 'Bug'), ('2', 'Target bug'), ('3', 'False positive'), ('4', 'Incompatible marks'), ('5', 'Without marks')], default='5', max_length=1)),
+                ('archive', models.ForeignKey(to='jobs.File')),
             ],
             options={
                 'db_table': 'report_unsafe',
@@ -245,12 +227,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='reportattr',
             name='report',
-            field=models.ForeignKey(related_name='attrs', to='reports.Report'),
+            field=models.ForeignKey(to='reports.Report', related_name='attrs'),
         ),
         migrations.AddField(
             model_name='report',
             name='parent',
-            field=models.ForeignKey(related_name='+', to='reports.Report', null=True),
+            field=models.ForeignKey(to='reports.Report', related_name='+', null=True),
         ),
         migrations.AddField(
             model_name='report',
@@ -260,12 +242,12 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='comparejobsinfo',
             name='root1',
-            field=models.ForeignKey(related_name='+', to='reports.ReportRoot'),
+            field=models.ForeignKey(to='reports.ReportRoot', related_name='+'),
         ),
         migrations.AddField(
             model_name='comparejobsinfo',
             name='root2',
-            field=models.ForeignKey(related_name='+', to='reports.ReportRoot'),
+            field=models.ForeignKey(to='reports.ReportRoot', related_name='+'),
         ),
         migrations.AddField(
             model_name='comparejobsinfo',
@@ -288,43 +270,33 @@ class Migration(migrations.Migration):
             field=models.OneToOneField(to='reports.ReportComponent'),
         ),
         migrations.AddField(
-            model_name='reportfiles',
-            name='report',
-            field=models.ForeignKey(related_name='files', to='reports.ReportComponent'),
-        ),
-        migrations.AddField(
             model_name='reportcomponentleaf',
             name='report',
-            field=models.ForeignKey(related_name='leaves', to='reports.ReportComponent'),
+            field=models.ForeignKey(to='reports.ReportComponent', related_name='leaves'),
         ),
         migrations.AddField(
             model_name='reportcomponentleaf',
             name='safe',
-            field=models.ForeignKey(related_name='leaves', to='reports.ReportSafe', null=True),
+            field=models.ForeignKey(to='reports.ReportSafe', related_name='leaves', null=True),
         ),
         migrations.AddField(
             model_name='reportcomponentleaf',
             name='unknown',
-            field=models.ForeignKey(related_name='leaves', to='reports.ReportUnknown', null=True),
+            field=models.ForeignKey(to='reports.ReportUnknown', related_name='leaves', null=True),
         ),
         migrations.AddField(
             model_name='reportcomponentleaf',
             name='unsafe',
-            field=models.ForeignKey(related_name='leaves', to='reports.ReportUnsafe', null=True),
-        ),
-        migrations.AddField(
-            model_name='etvfiles',
-            name='unsafe',
-            field=models.ForeignKey(related_name='files', to='reports.ReportUnsafe'),
+            field=models.ForeignKey(to='reports.ReportUnsafe', related_name='leaves', null=True),
         ),
         migrations.AddField(
             model_name='componentunknown',
             name='report',
-            field=models.ForeignKey(related_name='unknowns_cache', to='reports.ReportComponent'),
+            field=models.ForeignKey(to='reports.ReportComponent', related_name='unknowns_cache'),
         ),
         migrations.AddField(
             model_name='componentresource',
             name='report',
-            field=models.ForeignKey(related_name='resources_cache', to='reports.ReportComponent'),
+            field=models.ForeignKey(to='reports.ReportComponent', related_name='resources_cache'),
         ),
     ]
