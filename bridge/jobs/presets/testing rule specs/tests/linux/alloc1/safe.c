@@ -88,7 +88,7 @@ static void memory_allocation_nonatomic(void)
 static irqreturn_t my_func_irq(int irq, void *dev_id)
 {
 	memory_allocation();
-	memory_allocation();
+	//memory_allocation();
 	return IRQ_HANDLED;
 }
 
@@ -100,7 +100,7 @@ static int my_usb_probe(struct usb_interface *intf, const struct usb_device_id *
 	memory_allocation();
 	memory_allocation_nonatomic();
 	err = request_irq(err->irq, my_func_irq, IRQF_SHARED, err->name, err);
-	memory_allocation();
+	//memory_allocation();
 	memory_allocation_nonatomic();
 	memory_allocation();
 	return PTR_ERR(err);
@@ -114,11 +114,11 @@ static struct usb_driver my_usb_driver = {
 static int __init my_init(void)
 {
 	int ret_val = usb_register(&my_usb_driver);
-	memory_allocation();
-	memory_allocation_nonatomic();
-	memory_allocation();
-	memory_allocation();
-	memory_allocation_nonatomic();
+	//memory_allocation();
+	//memory_allocation_nonatomic();
+	//memory_allocation();
+	//memory_allocation();
+	//memory_allocation_nonatomic();
 	return ret_val;
 }
 
