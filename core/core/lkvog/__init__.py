@@ -51,6 +51,7 @@ class LKVOG(core.components.Component):
         self.all_clusters = set()
         self.checked_modules = set()
         self.loc = {}
+        self.cc_full_descs_files = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -329,6 +330,10 @@ class LKVOG(core.components.Component):
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
+        if out_file in self.cc_full_descs_files:
+            self.logger.debug('CC full description files for "{0}" were already found'.format(out_file))
+            return self.cc_full_descs_files[out_file]
+
         cc_full_desc_files = []
         # Get more older build commands more early if more than one build command has the same output file.
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
@@ -347,6 +352,8 @@ class LKVOG(core.components.Component):
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
+        self.cc_full_descs_files[out_file] = cc_full_desc_files
+        
         return cc_full_desc_files
 
     def __get_module_loc(self, cc_full_desc_files):
