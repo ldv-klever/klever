@@ -606,7 +606,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
         body.extend(
             [
-                "\t\tdefault: break;",
+                "\t\tdefault: ldv_stop();",
                 "\t}",
                 "}"
             ]
