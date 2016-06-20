@@ -355,4 +355,9 @@ $(document).ready(function () {
             hoverable: true
         });
     });
+    $('.simple-popup').each(function () {
+        $(this).popup({
+            text: $(this).attr('data-content')
+        });
+    });
 });
