@@ -1,15 +1,13 @@
 #include <verifier/common.h>
 #include <verifier/memory.h>
 #include <linux/ldv/common.h>
-#include <linux/device.h>
-#include <linux/kernel.h>
 #include <linux/types.h>
 
 /* LDV_COMMENT_CHANGE_STATE At the beginning nothing is allocated. */
 int ldv_alloc_count = 0;
 
 /* LDV_COMMENT_CHANGE_STATE Saved release function pointer. */
-void (*gadget_release_pointer)(struct device *_dev);
+//void (*gadget_release_pointer)(struct device *_dev);
 
 
 /* MODEL_FUNC_DEF Allocate a "memory". */
@@ -45,10 +43,10 @@ void ldv_memory_free(void)
 }
 
 /* MODEL_FUNC_DEF Free a "memory". */
-void ldv_save_gadget_release(void (*func)(struct device *_dev))
-{
-	gadget_release_pointer = func;
-}
+//void ldv_save_gadget_release(void (*func)(struct device *_dev))
+//{
+//	gadget_release_pointer = func;
+//}
 
 /* MODEL_FUNC_DEF All allocated memory should be freed at the end. */
 void ldv_check_final_state(void)

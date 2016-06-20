@@ -4,8 +4,6 @@ before: file("$this")
 #include <linux/ldv/common.h>
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
-#include <linux/kernel.h>
-#include <linux/types.h>
 
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);

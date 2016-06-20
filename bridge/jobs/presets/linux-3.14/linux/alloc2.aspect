@@ -3,9 +3,6 @@ before: file ("$this")
 extern void ldv_spin_lock(void);
 extern void ldv_spin_unlock(void);
 extern int ldv_spin_trylock(void);
-
-#include <linux/types.h>
-
 }
 
 before: execution(static inline void spin_lock(..)) || 
