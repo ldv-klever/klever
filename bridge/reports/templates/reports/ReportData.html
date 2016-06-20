@@ -75,7 +75,21 @@
         </tbody>
     </table>
 {% else %}
-    <p>{% trans 'Component' %}: {{ component }}</p>
-    <p>{% trans 'Class' %}: {{ type }}</p>
-    <p>{% trans 'Data' %}: "{{ data }}"</p>
+    <h5 class="ui brown header">{% trans 'Lines of code' %}</h5>
+    <table class="ui compact brown table">
+        <thead>
+            <tr>
+                <th>{% trans 'Module' %}</th>
+                <th>{% trans 'Lines of code' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for module, loc in data.items|sort_list %}
+                <tr>
+                    <td>{{ module }}</td>
+                    <td>{{ loc }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 {% endif %}

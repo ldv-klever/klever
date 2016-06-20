@@ -21,6 +21,7 @@ def before_launch_sub_job_components(context):
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
+    context.mqs['Linux kernel module loc'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
@@ -49,6 +50,7 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc = {}
         self.all_clusters = set()
         self.checked_modules = set()
+        self.loc = {}
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -62,6 +64,21 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
+
+        self.send_loc_report()
+
+    def send_loc_report(self):
+        loc = self.mqs['Linux kernel module loc'].get()
+        self.mqs['Linux kernel module loc'].close()
+        self.linux_kernel_verification_objs_gen['data'] = loc
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(self.linux_kernel_verification_objs_gen['data'])
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     main = generate_linux_kernel_verification_objects
 
@@ -225,6 +242,7 @@ class LKVOG(core.components.Component):
                     self.cluster = cluster
                     # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
+        self.mqs['Linux kernel module loc'].put(self.loc)
 
     def generate_verification_obj_desc(self):
         self.logger.info(
@@ -241,11 +259,14 @@ class LKVOG(core.components.Component):
 
         self.verification_obj_desc['grps'] = []
         self.verification_obj_desc['deps'] = {}
+        self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
+            cc_full_desc_files = self.__find_cc_full_desc_files(module.id)
             self.verification_obj_desc['grps'].append({'id': module.id,
-                                                       'cc full desc files': self.__find_cc_full_desc_files(module.id)})
+                                                       'cc full desc files': cc_full_desc_files})
             self.verification_obj_desc['deps'][module.id] = \
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
+            self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(cc_full_desc_files)
 
         self.logger.debug(
             'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
@@ -309,7 +330,6 @@ class LKVOG(core.components.Component):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
         cc_full_desc_files = []
-
         # Get more older build commands more early if more than one build command has the same output file.
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
 
@@ -328,3 +348,14 @@ class LKVOG(core.components.Component):
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
         return cc_full_desc_files
+
+    def __get_module_loc(self, cc_full_desc_files):
+        loc = 0
+        for cc_full_desc_file in cc_full_desc_files:
+            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
+                json_cc_full_desc_file = json.load(fp)
+                for file in json_cc_full_desc_file['in files']:
+                    # Simple file's line counter
+                    loc += sum(1 for line in open(os.path.join(self.conf['main working directory'], os.pardir,
+                                                               self.conf['Linux kernel']['source'], file)))
+        return loc
