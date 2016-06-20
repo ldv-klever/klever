@@ -14,7 +14,7 @@ from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 def clear_files():
     files_in_db = []
     for f in File.objects.all():
-        files_in_db.append({'id': f.pk, 'path': os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))})
+        files_in_db.append((f.pk, os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))))
     files_in_use = []
     for u in ReportUnsafe.objects.all():
         if u.archive_id not in files_in_use:
@@ -43,18 +43,26 @@ def clear_files():
         if f.converted_id not in files_in_use:
             files_in_use.append(f.converted_id)
     File.objects.filter(~Q(id__in=files_in_use)).delete()
+
     files_on_disk = []
     files_directory = os.path.abspath(os.path.join(MEDIA_ROOT, JOBFILE_DIR))
+    files_in_db_paths = []
+    for f in files_in_db:
+        if f[0] in files_in_use:
+            files_in_db_paths.append(f[1])
+
     for f in [os.path.join(files_directory, x) for x in os.listdir(files_directory)]:
-        if f in list(x['path'] for x in files_in_db):
+        if f in files_in_db_paths:
             files_on_disk.append(f)
         else:
             os.remove(f)
+
     empty_db_files = []
     for f in files_in_db:
-        if f['id'] in files_in_use and f['path'] not in files_on_disk:
-            logger.error('Deleted from DB (file does not exists): %s' % f['path'], stack_info=True)
+        if f[1] not in files_on_disk:
+            logger.error('Deleted from DB (file does not exists): %s' % f[1], stack_info=True)
             empty_db_files.append(f['id'])
+
     File.objects.filter(id__in=empty_db_files).delete()
 
 
