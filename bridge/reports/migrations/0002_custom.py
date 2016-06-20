@@ -22,21 +22,21 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='reportsafe',
             name='archive',
-            field=models.ForeignKey(default=1, to='jobs.File'),
+            field=models.ForeignKey(to='jobs.File', null=True),
             preserve_default=False,
         ),
 
         migrations.AddField(
             model_name='reportunknown',
             name='archive',
-            field=models.ForeignKey(default=1, to='jobs.File'),
+            field=models.ForeignKey(to='jobs.File', null=True),
             preserve_default=False,
         ),
 
         migrations.AddField(
             model_name='reportunsafe',
             name='archive',
-            field=models.ForeignKey(default=1, to='jobs.File'),
+            field=models.ForeignKey(to='jobs.File', null=True),
             preserve_default=False,
         )
     ]
