@@ -303,7 +303,7 @@ class ProcessModel:
                          format(process.name))
 
         if model and not category:
-            new.category = 'kernel model'
+            new.category = 'kernel models'
             self.model_processes.append(new)
         elif not model and category:
             new.category = category
