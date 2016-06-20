@@ -236,6 +236,8 @@ class Declaration:
         if type(self) is type(target):
             if self.identifier == target.identifier:
                 return True
+            elif self.identifier == 'void *' or target.identifier == 'void *':
+                return True
         return False
 
     def pointer_alias(self, alias):
