@@ -38,17 +38,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger = logger
         self.conf = conf
         self.task = avt
-        self.files = {}
-        self.aspects = {}
+        self.files = dict()
+        self.aspects = dict()
         self.entry_file = None
-        self.model_aspects = []
-        self._callback_fsa = []
-        self._structures = {}
-        self._model_fsa = []
+        self.model_aspects = list()
+        self.instance_maps = dict()
+        self._callback_fsa = list()
+        self._structures = dict()
+        self._model_fsa = list()
         self._entry_fsa = None
         self._nested_automata = False
         self._omit_all_states = False
-        self.__dump_automata = False
         self._omit_states = {
             'callback': True,
             'dispatch': True,
@@ -57,6 +57,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             'subprocess': False,
             'condition': False,
         }
+        self.__dump_automata = False
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
@@ -67,7 +68,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__external_allocated = dict()
         self.__allocate_external = False
 
-		# Read translation options
+        # Read translation options
         if "dump automata graphs" in self.conf["translation options"]:
             self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "translation options" not in self.conf:
@@ -299,7 +300,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Get map from accesses to implementations
         self.logger.info("Determine number of instances for process '{}' with category '{}'".
                          format(process.name, process.category))
-        maps = split_into_instances(analysis, process, self.__resource_new_insts)
+
+        if process.category not in self.instance_maps:
+            self.instance_maps[process.category] = dict()
+
+        if process.name in self.instance_maps[process.category]:
+            cached_map = self.instance_maps[process.category][process.name]
+        else:
+            cached_map = None
+        maps, cached_map = split_into_instances(analysis, process, self.__resource_new_insts, cached_map)
+        self.instance_maps[process.category][process.name] = cached_map
+
         self.logger.info("Going to generate {} instances for process '{}' with category '{}'".
                          format(len(maps), process.name, process.category))
         new_base_list = []

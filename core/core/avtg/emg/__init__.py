@@ -44,6 +44,11 @@ class EMG(core.avtg.plugins.Plugin):
         # Choose translator
         tr = self.__get_translator(self.abstract_task_desc)
 
+        # Get instance maps if possible
+        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
+        if 'EMG instances' in self.conf and vo_identifier in self.conf['EMG instances']:
+            tr.instance_maps = self.conf['EMG instances']['vo_identifier']
+
         # Find specifications
         self.logger.info("Determine which specifications are provided")
         interface_spec, module_interface_spec, event_categories_spec = self.__get_specs(self.logger, spec_dir)
@@ -71,6 +76,17 @@ class EMG(core.avtg.plugins.Plugin):
         self.logger.info("============== An intermediat model translation stage ==============")
         tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
+
+        # Send data to the server
+        self.logger.info("Send data on generated instances to server")
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(tr.instance_maps, sort_keys=True, indent=4)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     main = generate_environment
 
