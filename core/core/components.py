@@ -118,7 +118,6 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
 
                 self.logger.info('Terminate child resources message queue')
                 self.mqs['child resources'].put(None)
-                time.sleep(0.1)
 
                 all_child_resources = {}
                 while True:
