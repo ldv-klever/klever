@@ -23,8 +23,8 @@ Klever Bridge installation
 
    .. note:: Password can be omitted.
 
-#. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
-   **db_user**::
+#. Create a new MySQL/MariaDB database (**db_name**) with character set *utf8* and collation *utf8_bin*. Grant full
+   access on all its tables to **db_user**::
 
     MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8 COLLATE utf8_bin;
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
@@ -115,10 +115,14 @@ Update for development purposes
     $ python3 manage.py migrate
 
 #. If the last command failed it is recommended to do the following steps.
-#. Recreate the MySQL/MariaDB database::
+#. Delete the MySQL/MariaDB database::
 
     MariaDB [(none)]> DROP DATABASE `db_name`;
-    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+
+#. Create the MySQL/MariaDB database as during normal installation.
+
+   .. note:: The user and its access to this database remain the same from normal installation. You don't need to set up
+             them one more time.
 
 #. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
    not required).
