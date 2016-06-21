@@ -69,10 +69,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__allocate_external = False
 
         # Read translation options
-        if "dump automata graphs" in self.conf["translation options"]:
-            self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "translation options" not in self.conf:
             self.conf["translation options"] = {}
+        if "dump automata graphs" in self.conf["translation options"]:
+            self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "max instances number" in self.conf["translation options"]:
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
@@ -247,7 +247,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                              format(len(base_list), process.name, process.category))
 
             for instance in base_list:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, self.conf["translation options"], instance, self.__yeild_identifier())
                 self._callback_fsa.append(fsa)
 
             if self.__mem_aproaching:
@@ -263,13 +263,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
             processes = self._instanciate_processes(analysis, [process], process)
             for instance in processes:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, self.conf["translation options"], instance, self.__yeild_identifier())
                 self._model_fsa.append(fsa)
 
         # Generate state machine for init an exit
         # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
-        self._entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
+        self._entry_fsa = Automaton(self.logger, self.conf["translation options"], model.entry_process,
+                                    self.__yeild_identifier())
 
         # Generates base code blocks
         self.logger.info("Prepare code on each action of each automanon instance")

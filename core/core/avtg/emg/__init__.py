@@ -68,7 +68,7 @@ class EMG(core.avtg.plugins.Plugin):
         if 'intermediate model options' not in self.conf:
             self.conf['intermediate model options'] = {}
         model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes,
-                             self.__get_json_content(self.conf['intermediate model options'], "roles match file"))
+                             self.__get_json_content(self.conf['intermediate model options'], "map file"))
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 

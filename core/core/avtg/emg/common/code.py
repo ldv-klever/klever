@@ -31,17 +31,6 @@ class Variable:
 
         return declaration
 
-    def free_pointer(self, conf):
-        expr = None
-        if type(self.declaration) is Pointer and\
-                ((type(self.declaration.points) is Structure and conf['structures']) or
-                 (type(self.declaration.points) is Array and conf['arrays']) or
-                 (type(self.declaration.points) is Union and conf['unions']) or
-                 (type(self.declaration.points) is Function and conf['functions']) or
-                 (type(self.declaration.points) is Primitive and conf['primitives'])):
-            expr = "{}({})".format(FunctionModels.free_function_map["FREE"], self.name)
-        return expr
-
     def declare(self, extern=False):
         # Generate declaration
         expr = self.declaration.to_string(self.name)
@@ -104,6 +93,11 @@ class Aspect(FunctionDefinition):
 
 class FunctionModels:
 
+    def __init__(self, translation_conf=dict()):
+        self.use_sizeof = False
+        if 'allocate with sizeof' in translation_conf and translation_conf['allocate with sizeof']:
+            self.use_sizeof = True
+
     # todo: implement all models
     mem_function_map = {
         "ALLOC": "ldv_malloc",
@@ -125,29 +119,26 @@ class FunctionModels:
     simple_function_re = re.compile(simple_function_template.format('\w+'))
     access_re = re.compile('(%{}%)'.format(access_template))
 
-    @staticmethod
-    def init_pointer(signature):
-        #return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], signature.points.to_string(''))
-        return "{}(sizeof({}))".format(FunctionModels.mem_function_map["ALLOC"], '0')
+    def init_pointer(self, signature):
+        if self.use_sizeof:
+            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], signature.points.to_string(''))
+        else:
+            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], '0')
 
-    @staticmethod
-    def text_processor(automaton, statement):
-        # Replace model functions
-        mm = FunctionModels()
-
+    def text_processor(self, automaton, statement):
         # Replace function names
         stms = []
         matched = False
-        for fn in mm.simple_function_re.findall(statement):
+        for fn in self.simple_function_re.findall(statement):
             matched = True
 
             # Bracket is required to ignore CIF expressions like $res or $arg1
-            if fn in mm.mem_function_map or fn in mm.free_function_map:
-                access = mm.mem_function_re.search(statement).group(2)
-                if fn in mm.mem_function_map:
-                    replacement = mm._replace_mem_call
+            if fn in self.mem_function_map or fn in self.free_function_map:
+                access = self.mem_function_re.search(statement).group(2)
+                if fn in self.mem_function_map:
+                    replacement = self._replace_mem_call
                 else:
-                    replacement = mm._replace_free_call
+                    replacement = self._replace_free_call
 
                 accesses = automaton.process.resolve_access('%{}%'.format(access))
                 for access in accesses:
@@ -163,12 +154,12 @@ class FunctionModels:
                             var = automaton.determine_variable(access.label)
 
                         if type(var.declaration) is Pointer:
-                            mm.signature = var.declaration
-                            new = mm.mem_function_re.sub(replacement, statement)
+                            self.signature = var.declaration
+                            new = self.mem_function_re.sub(replacement, statement)
                             new = access.replace_with_variable(new, var)
                             stms.append(new)
-            elif fn in mm.irq_function_map:
-                statement = mm.simple_function_re.sub(mm.irq_function_map[fn] + '(', statement)
+            elif fn in self.irq_function_map:
+                statement = self.simple_function_re.sub(self.irq_function_map[fn] + '(', statement)
                 stms.append(statement)
             else:
                 raise NotImplementedError("Model function '${}' is not supported".format(fn))
@@ -185,8 +176,8 @@ class FunctionModels:
             while len(stm_set) > 0:
                 stm = stm_set.pop()
 
-                if mm.access_re.search(stm):
-                    expression = mm.access_re.search(stm).group(1)
+                if self.access_re.search(stm):
+                    expression = self.access_re.search(stm).group(1)
                     accesses = automaton.process.resolve_access(expression)
                     for access in accesses:
                         if access.interface:
@@ -209,10 +200,10 @@ class FunctionModels:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         if type(self.signature) is Pointer:
-            # todo: Implement proper paratmeters initialization (avoid providing sizeof until problem with incomplete
-            #       types is solved)
-            #return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
-            return "{}(sizeof({}))".format(self.mem_function_map[function], '0')
+            if self.use_sizeof:
+                return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
+            else:
+                return "{}(sizeof({}))".format(self.mem_function_map[function], '0')
         else:
             raise ValueError('This is not a pointer')
 
