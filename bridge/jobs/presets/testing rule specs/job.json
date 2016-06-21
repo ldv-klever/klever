@@ -6,6 +6,7 @@
       "build kernel": false
     },
     "LKVOG strategy": {"name": "separate modules"},
+    "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "VTG strategy": {
       "name": "all bug kinds merge",
