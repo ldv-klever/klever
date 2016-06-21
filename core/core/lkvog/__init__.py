@@ -267,8 +267,8 @@ class LKVOG(core.components.Component):
 
         if 'maximum verification object size' in self.conf \
                 and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:
-            self.logger.debug('Linux kernel verification object "{0}" reachs max size'
-                              .format(self.verification_obj_desc['id']))
+            self.logger.debug('Linux kernel verification object "{0}" is rejected since it exceeds maximum size'.format(
+                self.verification_obj_desc['id']))
             self.verification_obj_desc = None
             return
 
