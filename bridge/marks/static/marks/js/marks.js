@@ -340,11 +340,13 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
+        $(this).addClass('disabled');
         $.post(
             marks_ajax_url + 'save_mark/',
             {savedata: encodeData(collect_new_markdata())},
             function (data) {
                 if (data.error) {
+                    $(this).removeClass('disabled');
                     err_notify(data.error);
                 }
                 else if ('cache_id' in data) {

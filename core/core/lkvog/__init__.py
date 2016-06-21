@@ -21,7 +21,6 @@ def before_launch_sub_job_components(context):
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
-    context.mqs['Linux kernel module loc'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
@@ -51,6 +50,8 @@ class LKVOG(core.components.Component):
         self.all_clusters = set()
         self.checked_modules = set()
         self.loc = {}
+        self.cc_full_descs_files = {}
+        self.verification_obj_desc_file = None
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -65,17 +66,12 @@ class LKVOG(core.components.Component):
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
-        self.send_loc_report()
-
     def send_loc_report(self):
-        loc = self.mqs['Linux kernel module loc'].get()
-        self.mqs['Linux kernel module loc'].close()
-        self.linux_kernel_verification_objs_gen['data'] = loc
         core.utils.report(self.logger,
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(self.linux_kernel_verification_objs_gen['data'])
+                              'data': json.dumps(self.loc)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -242,14 +238,14 @@ class LKVOG(core.components.Component):
                     self.cluster = cluster
                     # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
-        self.mqs['Linux kernel module loc'].put(self.loc)
+
+        self.send_loc_report()
 
     def generate_verification_obj_desc(self):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
         self.verification_obj_desc = {}
-        strategy = self.conf['LKVOG strategy']['name']
 
         self.verification_obj_desc['id'] = self.cluster.root.id
 
@@ -269,8 +265,7 @@ class LKVOG(core.components.Component):
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
             self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(cc_full_desc_files)
 
-        if 'maximum verification object size' in self.conf \
-                and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:
+        if self.loc[self.verification_obj_desc['id']] > self.conf.get('maximum verification object size', 30000):
             self.logger.debug('Linux kernel verification object "{0}" reachs max size'
                               .format(self.verification_obj_desc['id']))
             self.verification_obj_desc = None
@@ -282,22 +277,15 @@ class LKVOG(core.components.Component):
         self.logger.debug(
             'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-        if self.conf['keep intermediate files']:
-            verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-            if os.path.isfile(verification_obj_desc_file):
-                raise FileExistsError(
-                    'Linux kernel verification object description file "{0}" already exists'.format(
-                        verification_obj_desc_file))
-            self.logger.debug(
-                'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                    self.module['name'], verification_obj_desc_file))
-            os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
-            with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
-        else:
-            raise NotImplementedError(
-                'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))
+        self.verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+        if os.path.isfile(self.verification_obj_desc_file):
+            raise FileExistsError('Linux kernel verification object description file "{0}" already exists'.format(
+                self.verification_obj_desc_file))
+        self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+            self.module['name'], self.verification_obj_desc_file))
+        os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
+        with open(self.verification_obj_desc_file, 'w', encoding='ascii') as fp:
+            json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
@@ -337,6 +325,10 @@ class LKVOG(core.components.Component):
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
+        if out_file in self.cc_full_descs_files:
+            self.logger.debug('CC full description files for "{0}" were already found'.format(out_file))
+            return self.cc_full_descs_files[out_file]
+
         cc_full_desc_files = []
         # Get more older build commands more early if more than one build command has the same output file.
         out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
@@ -355,15 +347,18 @@ class LKVOG(core.components.Component):
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
+        self.cc_full_descs_files[out_file] = cc_full_desc_files
+        
         return cc_full_desc_files
 
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
         for cc_full_desc_file in cc_full_desc_files:
             with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
-                json_cc_full_desc_file = json.load(fp)
-                for file in json_cc_full_desc_file['in files']:
-                    # Simple file's line counter
-                    loc += sum(1 for line in open(os.path.join(self.conf['main working directory'], os.pardir,
-                                                               self.conf['Linux kernel']['source'], file)))
+                cc_full_desc = json.load(fp)
+            for file in cc_full_desc['in files']:
+                # Simple file's line counter
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
+                          encoding='utf8', errors='ignore') as fp:
+                    loc += sum(1 for _ in fp)
         return loc

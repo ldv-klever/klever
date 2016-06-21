@@ -1,15 +1,14 @@
-import os
 import json
-import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
 from bridge.utils import logger, file_get_or_create
-from reports.models import *
-from reports.utils import save_attrs
+from bridge.vars import REPORT_FILES_ARCHIVE
 from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
+from reports.utils import save_attrs
+from reports.models import *
 
 
 class UploadReport(object):
@@ -244,23 +243,13 @@ class UploadReport(object):
             report.cpu_time = int(self.data['resources']['CPU time'])
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
-        uf = None
+
+        if self.archive is not None:
+            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         if 'log' in self.data:
-            try:
-                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
-            except Exception as e:
-                logger.exception("Files uploading failed: %s" % e, stack_info=True)
-                self.error = 'Files uploading failed'
-                return
-            if uf.log is None:
-                self.error = 'The report log was not found in archive'
-                return
-            report.log = uf.log
+            report.log = self.data['log']
 
         report.save()
-        if uf is not None:
-            for src_f in uf.other_files:
-                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
@@ -295,25 +284,16 @@ class UploadReport(object):
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
-        uf = None
+
+        if self.archive is not None:
+            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         if 'log' in self.data:
-            try:
-                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
-            except Exception as e:
-                logger.exception("Files uploading failed: %s" % e, stack_info=True)
-                self.error = 'Files uploading failed'
-                return
-            if uf.log is None:
-                self.error = 'The report log was not found in archive'
-                return
-            report.log = uf.log
+            report.log = self.data['log']
+
         if 'data' in self.data:
             report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
         report.finish_date = now()
         report.save()
-        if uf is not None:
-            for src_f in uf.other_files:
-                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
@@ -338,16 +318,10 @@ class UploadReport(object):
                 component=self.parent.component
             )
 
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The unknown report problem description was not found in the archive'
-            return
-        report.problem_description = uf.main_file
+        if self.archive is None:
+            self.error = 'Unknown report must contain archive with problem description'
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.problem_description = self.data['problem desc']
         report.save()
 
         self.__collect_attrs(report)
@@ -377,16 +351,10 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The safe report proof was not found in teh archive'
-            return
-        report.proof = uf.main_file
+        if self.archive is None:
+            self.error = 'Safe report must contain archive with proof'
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.proof = self.data['proof']
         report.save()
 
         self.__collect_attrs(report)
@@ -418,20 +386,11 @@ class UploadReport(object):
                 root=self.root
             )
 
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The unsafe error trace was not found in the archive'
-            return
-        report.error_trace = uf.main_file
+        if self.archive is None:
+            self.error = 'Unsafe report must contain archive with error trace and source code files'
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.error_trace = self.data['error trace']
         report.save()
-
-        for src_f in uf.other_files:
-            ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
@@ -520,31 +479,3 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
-
-
-class UploadReportFiles(object):
-    def __init__(self, archive, log=None, file_name=None, need_other=False):
-        self.log = None
-        self.main_file = None
-        self.need_other = need_other
-        self.other_files = []
-        self.__read_archive(archive, log, file_name)
-
-    def __read_archive(self, archive, logname, report_filename):
-        if archive is None:
-            return
-        inmemory = BytesIO(archive.read())
-        zipfile = tarfile.open(fileobj=inmemory, mode='r')
-        for f in zipfile.getmembers():
-            file_name = f.name
-            if f.isreg():
-                file_obj = zipfile.extractfile(f)
-                if logname is not None and file_name == logname:
-                    self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                elif report_filename is not None and file_name == report_filename:
-                    self.main_file = file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                elif self.need_other:
-                    self.other_files.append({
-                        'name': file_name,
-                        'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                    })

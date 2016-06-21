@@ -15,7 +15,7 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp
+from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
@@ -33,6 +33,7 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
+    problem_description = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -40,6 +41,11 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
+            afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
@@ -57,7 +63,8 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'can_edit': True
+        'can_edit': True,
+        'problem_description': problem_description
     })
 
 
@@ -95,19 +102,12 @@ def edit_mark(request, mark_type, mark_id):
             if m.version == mark.version:
                 title = _("Current version")
             else:
-                change_time = m.change_date.astimezone(
-                    pytz.timezone(request.user.extended.timezone)
-                )
+                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
                 title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                title += " (%s %s)" % (
-                    m.author.extended.last_name,
-                    m.author.extended.first_name,
-                )
+                if m.author is not None:
+                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
                 title += ': ' + m.comment
-            mark_versions.append({
-                'version': m.version,
-                'title': title
-            })
+            mark_versions.append({'version': m.version, 'title': title})
 
         return render(request, template, {
             'mark': mark,
@@ -465,17 +465,12 @@ def get_mark_versions(request):
         return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
-        mark_time = m.change_date.astimezone(
-            pytz.timezone(request.user.extended.timezone)
-        )
+        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (m.author.extended.last_name,
-                               m.author.extended.first_name)
+        if m.author is not None:
+            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
         title += ': ' + m.comment
-        mark_versions.append({
-            'version': m.version,
-            'title': title
-        })
+        mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
 
 

@@ -116,7 +116,7 @@
                     <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
                 </div>
             {% endif %}
-            {% if report.files.all|length > 0 %}
+            {% if report.archive %}
                 <div class="eight wide column right aligned">
                     <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
                 </div>
