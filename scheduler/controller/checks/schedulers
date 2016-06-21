@@ -2,7 +2,7 @@
 import os
 import json
 import sys
-# import consulate
+import consulate
 import subprocess
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
@@ -39,9 +39,9 @@ session.json_exchange("service/set_schedulers_status/", data)
 session.sign_out()
 
 # Submit scheduler status to kv storage for debug
-# session = consulate.Consul()
+session = consulate.Consul()
 try:
-    #session.kv["schedulers"] = json.dumps(status)
+    session.kv["schedulers"] = json.dumps(status)
     exit(0)
 except KeyError:
     print("Key-value storage is inaccessible.")
