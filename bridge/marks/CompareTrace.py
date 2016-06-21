@@ -104,4 +104,3 @@ If call stacks trees are identical returns 1 else returns 0.
         if err_trace_converted == pattern:
             return 1
         return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
-

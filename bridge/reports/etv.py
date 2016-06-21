@@ -716,4 +716,3 @@ class ErrorTraceCallstackTree(object):
                 new_level.append(f_data['name'])
             just_names.append(' '.join(sorted(str(x) for x in new_level)))
         return just_names
-

@@ -1,12 +1,10 @@
 import json
 from io import BytesIO
 from types import MethodType
-
 from django.core.exceptions import ObjectDoesNotExist
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create
 from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
 from marks.models import ErrorTraceConvertionCache
-
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
@@ -117,4 +115,3 @@ class GetConvertedErrorTrace(object):
             return self._parsed_trace
         with self.converted.file as fp:
             return json.loads(fp.read().decode('utf8'))
-
