@@ -100,7 +100,7 @@
                                             {% if v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
                                             {% endif %}
                                         </td>
                                     {% endfor %}

@@ -196,11 +196,9 @@ class GraphMLParser:
     def parse(self, graph):
         self.i = 0
         if isinstance(graph, str):
-            dom = minidom.parse(open(graph, 'r', encoding='utf8'))
-        elif isinstance(graph, bytes):
-            dom = minidom.parseString(graph.decode('utf8'))
+            dom = minidom.parseString(graph)
         else:
-            raise ValueError('Wrong argument: graph. File name or bytes were expected.')
+            raise ValueError('Wrong argument: graph. Decoded file content (utf8 string) were expected.')
         root = dom.getElementsByTagName("graphml")[0]
 
         # Get attributes' id, value and type

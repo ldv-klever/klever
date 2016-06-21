@@ -6,6 +6,7 @@
     "modules": ["drivers/net/usb/kaweth.ko"]
   },
   "LKVOG strategy": {"name": "separate modules"},
+  "maximum verification object size": 30000,
   "rule specifications DB": "rule specs.json",
   "rule specifications": ["linux:alloc2", "linux:mutex", "linux:module"],
   "VTG strategy": {

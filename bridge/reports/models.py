@@ -71,41 +71,26 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    archive = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    log = models.CharField(max_length=128, null=True)
     data = models.ForeignKey(File, null=True, related_name='reports2')
 
     class Meta:
         db_table = 'report_component'
 
 
-class ReportFiles(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'report_files'
-
-
 class ReportUnsafe(Report):
-    error_trace = models.ForeignKey(File)
+    archive = models.ForeignKey(File)
+    error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
 
 
-class ETVFiles(models.Model):
-    unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'etv_files'
-
-
 class ReportSafe(Report):
-    proof = models.ForeignKey(File)
+    archive = models.ForeignKey(File)
+    proof = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
@@ -114,7 +99,8 @@ class ReportSafe(Report):
 
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    problem_description = models.ForeignKey(File)
+    archive = models.ForeignKey(File)
+    problem_description = models.CharField(max_length=128)
 
     class Meta:
         db_table = 'report_unknown'
