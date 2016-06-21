@@ -54,8 +54,8 @@ class ProcessModel:
 
         if len(analysis.inits) == 0:
             raise RuntimeError('Module does not have Init function')
-		
-		# Generate init subprocess
+
+        # Generate init subprocess
         for filename, init_name in analysis.inits:
             # todo: Add none instead of particular name (relevant to #6571)
             init_label = Label('init_{}'.format(init_name))

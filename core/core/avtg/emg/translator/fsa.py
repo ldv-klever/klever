@@ -672,7 +672,7 @@ class Automaton:
                               "'{}'".format(state.action.name, self.identifier, self.process.name,
                                             self.process.category))
             # Generate dispatch function
-            automata_peers = {}
+            automata_peers = dict()
             if len(state.action.peers) > 0:
                 # Do call only if model which can be called will not hang
                 translator.extract_relevant_automata(automata_peers, state.action.peers, Receive)

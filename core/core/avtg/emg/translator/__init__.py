@@ -178,7 +178,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         for peer in peers:
             relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
-                                 if automaton.process.name == peer["process"].name]
+                                 if automaton.process.identifier == peer["process"].identifier]
             for automaton in relevant_automata:
                 if automaton.identifier not in automata_peers:
                     automata_peers[automaton.identifier] = {
