@@ -50,6 +50,7 @@ class LKVOG(core.components.Component):
         self.all_clusters = set()
         self.checked_modules = set()
         self.cc_full_descs_files = {}
+        self.verification_obj_desc_file = None
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -231,8 +232,6 @@ class LKVOG(core.components.Component):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
-        strategy = self.conf['LKVOG strategy']['name']
-
         self.verification_obj_desc['id'] = self.cluster.root.id
 
         if len(self.cluster.modules) > 1:
@@ -254,18 +253,15 @@ class LKVOG(core.components.Component):
         self.logger.debug(
             'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-        if self.conf['keep intermediate files']:
-            verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-            if os.path.isfile(verification_obj_desc_file):
-                raise FileExistsError(
-                    'Linux kernel verification object description file "{0}" already exists'.format(
-                        verification_obj_desc_file))
-            self.logger.debug(
-                'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                    self.module['name'], verification_obj_desc_file))
-            os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
-            with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+        self.verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+        if os.path.isfile(self.verification_obj_desc_file):
+            raise FileExistsError('Linux kernel verification object description file "{0}" already exists'.format(
+                self.verification_obj_desc_file))
+        self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+            self.module['name'], self.verification_obj_desc_file))
+        os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
+        with open(self.verification_obj_desc_file, 'w', encoding='ascii') as fp:
+            json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')

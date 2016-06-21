@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import copy
 import importlib
 import json
 import multiprocessing
@@ -12,7 +11,7 @@ import core.utils
 
 def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['abstract task descs and nums'] = multiprocessing.Queue()
+    context.mqs['abstract task desc files and nums'] = multiprocessing.Queue()
     context.mqs['abstract task descs num'] = multiprocessing.Queue()
 
 
@@ -21,10 +20,9 @@ def after_set_common_prj_attrs(context):
 
 
 def after_generate_abstact_verification_task_desc(context):
-    # We need to copy abstrtact verification task description since it may be accidently overwritten by AVTG.
-    if context.abstract_task_desc:
-        context.mqs['abstract task descs and nums'].put({
-            'desc': copy.deepcopy(context.abstract_task_desc),
+    if context.abstract_task_desc_file:
+        context.mqs['abstract task desc files and nums'].put({
+            'desc file': os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory']),
             'num': context.abstract_task_desc_num
         })
 
@@ -32,7 +30,7 @@ def after_generate_abstact_verification_task_desc(context):
 def after_generate_all_abstract_verification_task_descs(context):
     context.logger.info('Terminate abstract verification task descriptions message queue')
     for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
-        context.mqs['abstract task descs and nums'].put(None)
+        context.mqs['abstract task desc files and nums'].put(None)
     context.mqs['abstract task descs num'].put(context.abstract_task_desc_num)
 
 
@@ -88,7 +86,8 @@ class VTG(core.components.Component):
 
         self.launch_subcomponents(*subcomponents)
 
-        self.mqs['abstract task descs and nums'].close()
+        self.logger.info('Terminate abstract verification task description files and numbers message queue')
+        self.mqs['abstract task desc files and nums'].close()
 
     def get_abstract_verification_task_descs_num(self):
         self.logger.info('Get the total number of abstract verification task descriptions')
@@ -111,19 +110,23 @@ class VTG(core.components.Component):
 
     def _generate_verification_tasks(self):
         while True:
-            abstract_task_desc_and_num = self.mqs['abstract task descs and nums'].get()
+            abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
 
-            if abstract_task_desc_and_num is None:
+            if abstract_task_desc_file_and_num is None:
                 self.logger.debug('Abstract verification task descriptions message queue was terminated')
                 break
 
-            abstract_task_desc = abstract_task_desc_and_num['desc']
+            abstract_task_desc_file = abstract_task_desc_file_and_num['desc file']
+
+            with open(os.path.join(self.conf['main working directory'], abstract_task_desc_file),
+                      encoding='ascii') as fp:
+                abstract_task_desc = json.load(fp)
 
             # Print progress in form of "the number of already generated abstract verification task descriptions/the
             # number of all abstract verification task descriptions". The latter may be omitted for early abstract
             # verification task descriptions because of it isn't known until the end of AVTG operation.
             self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
-                    abstract_task_desc['id'], abstract_task_desc_and_num['num'],
+                    abstract_task_desc['id'], abstract_task_desc_file_and_num['num'],
                     '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
