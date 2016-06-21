@@ -67,12 +67,11 @@ class LKVOG(core.components.Component):
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
     def send_loc_report(self):
-        self.linux_kernel_verification_objs_gen['data'] = self.loc
         core.utils.report(self.logger,
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(self.linux_kernel_verification_objs_gen['data'])
+                              'data': json.dumps(self.loc)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -348,11 +347,10 @@ class LKVOG(core.components.Component):
         loc = 0
         for cc_full_desc_file in cc_full_desc_files:
             with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
-                json_cc_full_desc_file = json.load(fp)
-                for file in json_cc_full_desc_file['in files']:
-                    # Simple file's line counter
-                    with open(os.path.join(self.conf['main working directory'], os.pardir,
-                                           self.conf['Linux kernel']['source'], file),
-                              encoding='utf8', errors='ignore') as f:
-                        loc += sum(1 for _ in f)
+                cc_full_desc = json.load(fp)
+            for file in cc_full_desc['in files']:
+                # Simple file's line counter
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
+                          encoding='utf8', errors='ignore') as fp:
+                    loc += sum(1 for _ in fp)
         return loc
