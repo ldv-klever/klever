@@ -5,7 +5,6 @@ import importlib
 import json
 import multiprocessing
 import os
-import queue
 
 import core.components
 import core.utils
@@ -13,7 +12,7 @@ import core.utils
 
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['verification obj descs'] = multiprocessing.Queue()
+    context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
@@ -31,13 +30,14 @@ def after_set_shadow_src_tree(context):
 
 
 def after_generate_verification_obj_desc(context):
-    # We need to copy verification object description since it may be accidently overwritten by LKVOG.
-    context.mqs['verification obj descs'].put(copy.deepcopy(context.verification_obj_desc))
+    if context.verification_obj_desc:
+        context.mqs['verification obj desc files'].put(
+            os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
 
 
 def after_generate_all_verification_obj_descs(context):
-    context.logger.info('Terminate verification object descriptions message queue')
-    context.mqs['verification obj descs'].put(None)
+    context.logger.info('Terminate verification object description files message queue')
+    context.mqs['verification obj desc files'].put(None)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -227,7 +227,7 @@ class AVTG(core.components.Component):
         # TODO: get rid of these variables.
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
-        self.abstract_task_desc = None
+        self.abstract_task_desc_file = None
         self.abstract_task_desc_num = 0
 
         # TODO: combine extracting and reporting of attributes.
@@ -277,12 +277,16 @@ class AVTG(core.components.Component):
         self.logger.info('Generate all abstract verification task decriptions')
 
         while True:
-            verification_obj_desc = self.mqs['verification obj descs'].get()
+            verification_obj_desc_file = self.mqs['verification obj desc files'].get()
 
-            if verification_obj_desc is None:
+            if verification_obj_desc_file is None:
                 self.logger.debug('Verification object descriptions message queue was terminated')
-                self.mqs['verification obj descs'].close()
+                self.mqs['verification obj desc files'].close()
                 break
+
+            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+                      encoding='ascii') as fp:
+                verification_obj_desc = json.load(fp)
 
             if not self.rule_spec_descs:
                 self.logger.warning(
@@ -385,28 +389,24 @@ class AVTG(core.components.Component):
                         json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
             # Dump final abstract verification task description that equals to abstract verification task description
-            # received from last plugin. But corresponding file will be put not to plugin working directory - it will
-            # be put near initial abstract verification task description.
-            if self.conf['keep intermediate files']:
-                final_abstract_task_desc_file = os.path.join(self.plugins_work_dir,
-                                                             'final abstract task.json')
-                if os.path.isfile(final_abstract_task_desc_file):
-                    raise FileExistsError(
-                        'Final abstract verification task description file "{0}" already exists'.format(
-                            final_abstract_task_desc_file))
-                self.logger.debug('Create final abstract verification task description file "{0}"'.format(
+            # received from last plugin.
+            final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
+            if os.path.isfile(final_abstract_task_desc_file):
+                raise FileExistsError('Final abstract verification task description file "{0}" already exists'.format(
                     final_abstract_task_desc_file))
-                with open(final_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
+            self.logger.debug(
+                'Create final abstract verification task description file "{0}"'.format(final_abstract_task_desc_file))
+            with open(final_abstract_task_desc_file, 'w', encoding='ascii') as fp:
+                json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
-            # VTG will consume this abstract verification task description.
-            self.abstract_task_desc = cur_abstract_task_desc
+            # VTG will consume this abstract verification task description file.
+            self.abstract_task_desc_file = final_abstract_task_desc_file
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1
         # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
-            self.abstract_task_desc = None
+            self.abstract_task_desc_file = None
         finally:
             plugin_mqs['abstract task description'].close()

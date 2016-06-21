@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
-from bridge.utils import KleverTestCase
+from bridge.utils import KleverTestCase, ArchiveFileContent
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -848,10 +848,12 @@ class TestMarks(KleverTestCase):
 
         # Get report
         unknown = None
+
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            with u.problem_description.file as fp:
-                if fp.read() == b"ValueError: got wrong attribute: 'rule'.":
-                    unknown = u
+            afc = ArchiveFileContent(u.archive, file_name=u.problem_description)
+            self.assertIsNone(afc.error)
+            if afc.content == "ValueError: got wrong attribute: 'rule'.":
+                unknown = u
         parent = ReportComponent.objects.get(pk=unknown.parent_id)
         if unknown is None:
             self.fail("Unknown with needed problem description was not found in test job decision")

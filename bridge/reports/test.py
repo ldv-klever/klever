@@ -8,7 +8,7 @@ from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES
-from bridge.utils import KleverTestCase
+from bridge.utils import KleverTestCase, ArchiveFileContent
 from reports.models import *
 
 
@@ -229,13 +229,19 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
         unsafe = ReportUnsafe.objects.all()[0]
-        response = self.client.post('/reports/ajax/get_source/', {
-            'report_id': unsafe.pk,
-            'file_name': unsafe.files.all()[0].name
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        # TODO:
+        # Next function get random file from archive, but if this file is error trace
+        # then request to get source code is not tested.
+        afc = ArchiveFileContent(unsafe.archive)
+        self.assertEqual(afc.error, None)
+        if afc._name != unsafe.error_trace:
+            response = self.client.post('/reports/ajax/get_source/', {
+                'report_id': unsafe.pk, 'file_name': afc._name
+            })
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response['Content-Type'], 'application/json')
+            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/reports/logcontent/%s/' % main_report.pk)
         self.assertEqual(response.status_code, 200)
@@ -330,9 +336,6 @@ class TestReports(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         self.assertEqual(len(ReportComponent.objects.filter(
             Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
-        )), 1)
-        self.assertEqual(len(ReportFiles.objects.filter(
-            report__identifier=self.job.identifier + r_id, name='test.txt'
         )), 1)
 
     def __upload_attrs_report(self, r_id, attrs):

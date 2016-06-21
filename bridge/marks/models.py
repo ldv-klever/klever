@@ -138,6 +138,7 @@ class MarkUnsafeReport(models.Model):
     report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
     result = models.FloatField()
     broken = models.BooleanField(default=False)
+    error = models.TextField(null=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -276,3 +277,12 @@ class MarkAssociationsChanges(models.Model):
 
     class Meta:
         db_table = 'cache_mark_associations_changes'
+
+
+class ErrorTraceConvertionCache(models.Model):
+    unsafe = models.ForeignKey(ReportUnsafe)
+    function = models.ForeignKey(MarkUnsafeConvert)
+    converted = models.ForeignKey(File)
+
+    class Meta:
+        db_table = 'cache_error_trace_converted'
