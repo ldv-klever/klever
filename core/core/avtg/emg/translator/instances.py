@@ -34,7 +34,7 @@ def split_into_instances(analysis, process, resource_new_insts, simplified_map=N
 
     # If maps are predefined try to use them
     maps = []
-    if simplified_map:
+    if type(simplified_map) is list:
         for m, cv in simplified_map:
             instance_map = dict()
             used_values = set()
@@ -145,15 +145,17 @@ def split_into_instances(analysis, process, resource_new_insts, simplified_map=N
                 maps.extend(intf_additional_maps)
 
         # Prepare simplified map with values instead of Implementation objects
-        simplified_map = dict()
+        simplified_map = list()
         for m, cv in maps:
+            instance_desc = [dict(), list(cv)]
             for expression in m:
-                simplified_map[expression] = dict()
+                instance_desc[0][expression] = dict()
                 for interface in m[expression]:
                     if m[expression][interface]:
-                        simplified_map[expression][interface] = m[expression][interface].value
+                        instance_desc[0][expression][interface] = m[expression][interface].value
                     else:
-                        simplified_map[expression][interface] = m[expression][interface]
+                        instance_desc[0][expression][interface] = m[expression][interface]
+            simplified_map.append(instance_desc)
 
     return [m for m, cv in maps], simplified_map
 
