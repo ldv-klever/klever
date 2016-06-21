@@ -156,14 +156,7 @@ def solve_task(conf):
         "memlimit": str(conf["resource limits"]["memory size"]) + "B",
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-    for opt in conf["verifier"]["options"] + [
-        {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "cpa.arg.errorPath.graphml=witness.%d.graphml"}
-    ] + ([] if "-heap" in [list(opt.keys())[0] for opt in conf["verifier"]["options"]] else [
-        # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
-        # general memory size limit.
-        {"-heap": '{0}m'.format(round(13 * conf["resource limits"]["memory size"] / (15 * 1000 ** 2)))}
-    ]):
+    for opt in conf["verifier"]["options"]:
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
     # Property file may not be specified.
