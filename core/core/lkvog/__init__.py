@@ -93,12 +93,12 @@ class LKVOG(core.components.Component):
     def get_modules_from_deps(self, subsystem, deps):
         # Extract all modules in subsystem from dependencies.
         ret = set()
-        for module in deps:
-            if module.startswith(subsystem):
-                ret.add(module)
-            for dep in deps[module]:
-                if dep.startswith(subsystem):
-                    ret.add(dep)
+        for module_pred, _, module_succ in deps:
+            if module_pred.startswith(subsystem):
+                ret.add(module_pred)
+            if module_succ.startswith(subsystem):
+                ret.add(module_succ)
+
         return ret
 
     def is_part_of_subsystem(self, module, modules):
@@ -179,7 +179,7 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
-        if 'module dependencies file' in self.conf['Linux kernel']:
+        if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
 
         else:
