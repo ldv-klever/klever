@@ -207,29 +207,34 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
 
 
 # This function automatically untites all rule specifications and creates new rule specification.
-def unite_rule_specifications(conf, logger, raw_rule_spec_descs):
-    logger.info("Uniting all rule specifications")
+def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
+    logger.info('Unite all rule specifications')
+
     rule_specifications = conf['rule specifications']
     prefix = os.path.commonprefix(rule_specifications)
     new_rule_name_id = prefix + ":" + 'united'
-    logger.info("United rule specification was given the following name '{0}'".
-                format(new_rule_name_id))
+    logger.info('United rule specification was given the following name "{0}"'.format(new_rule_name_id))
+
     template = 'Linux kernel modules'
+
     for rule_specification in rule_specifications:
         model = raw_rule_spec_descs['rule specifications'][rule_specification]
         if model['template'] == 'Argument signatures for Linux kernel modules':
             template = 'Argument signatures for Linux kernel modules'
             break
+
     if 'common aspect' in conf:
-        common_aspect = conf['common aspect']
         new_rule_spec_desc = {
-            "template": template,
-            "rule specifications": rule_specifications,
-            "RSG": {"common aspect": common_aspect}}
+            'template': template,
+            'rule specifications': rule_specifications,
+            'RSG': {'common aspect': conf['common aspect']}
+        }
     else:
         new_rule_spec_desc = {
-            "template": template,
-            "rule specifications": rule_specifications}
+            'template': template,
+            'rule specifications': rule_specifications
+        }
+
     raw_rule_spec_descs['rule specifications'][new_rule_name_id] = new_rule_spec_desc
     conf['rule specifications'] = [new_rule_name_id]
 
@@ -250,7 +255,7 @@ def _extract_rule_spec_descs(conf, logger):
     rule_spec_descs = []
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
-        unite_rule_specifications(conf, logger, raw_rule_spec_descs)
+        _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
     else:
         # TODO: somehow common aspect may affect Single strategies!
         if conf.__contains__('common aspect'):
