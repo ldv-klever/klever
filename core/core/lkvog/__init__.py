@@ -21,7 +21,6 @@ def before_launch_sub_job_components(context):
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
     context.mqs['Linux kernel additional modules'] = multiprocessing.Queue()
-    context.mqs['Linux kernel module loc'] = multiprocessing.Queue()
 
 
 def after_set_linux_kernel_attrs(context):
@@ -66,12 +65,8 @@ class LKVOG(core.components.Component):
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
-        self.send_loc_report()
-
     def send_loc_report(self):
-        loc = self.mqs['Linux kernel module loc'].get()
-        self.mqs['Linux kernel module loc'].close()
-        self.linux_kernel_verification_objs_gen['data'] = loc
+        self.linux_kernel_verification_objs_gen['data'] = self.loc
         core.utils.report(self.logger,
                           'data',
                           {
@@ -243,7 +238,8 @@ class LKVOG(core.components.Component):
                     self.cluster = cluster
                     # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
-        self.mqs['Linux kernel module loc'].put(self.loc)
+
+        self.send_loc_report()
 
     def generate_verification_obj_desc(self):
         self.logger.info(
@@ -363,6 +359,8 @@ class LKVOG(core.components.Component):
                 json_cc_full_desc_file = json.load(fp)
                 for file in json_cc_full_desc_file['in files']:
                     # Simple file's line counter
-                    loc += sum(1 for line in open(os.path.join(self.conf['main working directory'], os.pardir,
-                                                               self.conf['Linux kernel']['source'], file)))
+                    with open(os.path.join(self.conf['main working directory'], os.pardir,
+                                           self.conf['Linux kernel']['source'], file),
+                              encoding='utf8', errors='ignore') as f:
+                        loc += sum(1 for _ in f)
         return loc
