@@ -267,10 +267,6 @@ class LKVOG(core.components.Component):
             with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
                     json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
-        else:
-            raise NotImplementedError(
-                'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))
-
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
