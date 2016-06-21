@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import core.avtg.plugins
 import core.utils
@@ -14,6 +15,8 @@ class EMG(core.avtg.plugins.Plugin):
     """
     EMG plugin for environment model generation.
     """
+
+    specification_extension_re = re.compile('.json$')
 
     ####################################################################################################################
     # PUBLIC METHODS
@@ -161,7 +164,7 @@ class EMG(core.avtg.plugins.Plugin):
                               format(len(files)))
 
         for file in files:
-            if '.json' in file:
+            if self.specification_extension_re.search(file):
                 logger.info("Import content of specification file {}".format(file))
                 with open(file, encoding="ascii") as fh:
                     spec = json.loads(fh.read())
