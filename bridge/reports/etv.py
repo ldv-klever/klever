@@ -1,8 +1,7 @@
 import re
-import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import logger
+from bridge.utils import logger, ArchiveFileContent
 from reports.models import ReportUnsafe
 from reports.graphml_parser import GraphMLParser
 
@@ -23,23 +22,20 @@ KEY1_WORDS = [
 ]
 
 KEY2_WORDS = [
-    '__based', 'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'new',
-    'this', 'break', 'inline', 'explicit', 'template', 'bool', 'for', 'private',
-    'default', 'else', 'const', '__pascal', 'delete', 'class', 'continue', 'do',
-    '__fastcall', 'union', 'extern', '__cdecl', 'friend', '__inline', 'int',
-    '__virtual_inheritance', 'void', 'case', '__multiple_inheritance', 'enum',
-    'short', 'operator', '__asm', 'float', 'struct', 'cout', 'public', 'auto',
-    'long', 'goto', '__single_inheritance', 'volatile', 'throw', 'namespace',
-    'protected', 'virtual', 'return', 'signed', 'register', 'while', 'try',
-    'switch', 'char', 'catch', 'cerr', 'cin'
+    '__based', 'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'new', 'this', 'break', 'inline', 'explicit',
+    'template', 'bool', 'for', 'private', 'default', 'else', 'const', '__pascal', 'delete', 'switch', 'continue', 'do',
+    '__fastcall', 'union', 'extern', '__cdecl', 'friend', '__inline', 'int', '__virtual_inheritance', 'void', 'case',
+    '__multiple_inheritance', 'enum', 'short', 'operator', '__asm', 'float', 'struct', 'cout', 'public', 'auto', 'long',
+    'goto', '__single_inheritance', 'volatile', 'throw', 'namespace', 'protected', 'virtual', 'return', 'signed',
+    'register', 'while', 'try', 'char', 'catch', 'cerr', 'cin'
 ]
 
 
 class GetETV(object):
-    def __init__(self, graphml_file, include_assumptions=True):
+    def __init__(self, error_trace, include_assumptions=True):
         self.error = None
 
-        self.g = self.__parse_graph(graphml_file)
+        self.g = self.__parse_graph(error_trace)
         if self.error is not None:
             return
 
@@ -71,9 +67,9 @@ class GetETV(object):
                 attrs.append([a.name, a.value])
         return attrs
 
-    def __parse_graph(self, graphml_file):
+    def __parse_graph(self, error_trace):
         try:
-            return GraphMLParser().parse(graphml_file)
+            return GraphMLParser().parse(error_trace)
         except Exception as e:
             logger.exception(e, stack_info=True)
             self.error = 'The error trace has incorrect format'
@@ -388,14 +384,12 @@ class GetSource(object):
         data = ''
         if file_name.startswith('/'):
             file_name = file_name[1:]
-        try:
-            src = self.report.files.get(name=file_name)
-        except ObjectDoesNotExist:
-            self.error = _("Could not find the source file")
-            return
+        afc = ArchiveFileContent(self.report.archive, file_name=file_name)
+        if afc.error is not None:
+            self.error = afc.error
+            return None
         cnt = 1
-        with src.file.file as fp:
-            lines = fp.read().decode('utf8').split('\n')
+        lines = afc.content.split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
@@ -519,7 +513,7 @@ def is_tag(tag, name):
 # Returns string in case success or raise ValueError
 def error_trace_callstack(error_trace):
     try:
-        graph = GraphMLParser().parse(error_trace.encode('utf8'))
+        graph = GraphMLParser().parse(error_trace)
     except Exception as e:
         logger.exception(e, stack_info=True)
         raise ValueError('The error trace has incorrect format')
@@ -566,18 +560,18 @@ def error_trace_callstack(error_trace):
             call_stack2.pop()
         if 'warning' in n.attr:
             break
-    return json.dumps([call_stack1, call_stack2])
+    return [call_stack1, call_stack2]
 
 
 class ErrorTraceCallstackTree(object):
     def __init__(self, error_trace):
         self._error_trace = error_trace
         self._edge_trace1, self._edge_trace2 = self.__get_edge_traces()
-        self.trace = json.dumps([self.__get_tree(self._edge_trace1), self.__get_tree(self._edge_trace2)])
+        self.trace = [self.__get_tree(self._edge_trace1), self.__get_tree(self._edge_trace2)]
 
     def __get_edge_traces(self):
         try:
-            graph = GraphMLParser().parse(self._error_trace.encode('utf8'))
+            graph = GraphMLParser().parse(self._error_trace)
         except Exception as e:
             logger.exception(e, stack_info=True)
             raise ValueError('The error trace has incorrect format')
@@ -656,4 +650,4 @@ class ErrorTraceCallstackTree(object):
             for f_data in level:
                 new_level.append(f_data['name'])
             just_names.append(' '.join(sorted(str(x) for x in new_level)))
-        return json.dumps(just_names)
+        return just_names

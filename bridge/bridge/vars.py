@@ -117,7 +117,7 @@ JOB_DEF_VIEW = {
     },
 }
 
-VIEW_TYPES = {
+VIEW_TYPES = (
     ('1', 'job tree'),
     ('2', 'job view'),
     ('3', 'component children list'),
@@ -127,7 +127,7 @@ VIEW_TYPES = {
     ('7', 'unsafe marks'),
     ('8', 'safe marks'),
     ('9', 'unknown marks')
-}
+)
 
 MARK_TYPE = (
     ('0', _('Created')),
@@ -422,3 +422,5 @@ START_JOB_DEFAULT_MODES = {
     'development': _('Development'),
     'paranoid development': _('Paranoid development')
 }
+
+REPORT_FILES_ARCHIVE = 'data.tar.gz'

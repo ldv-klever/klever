@@ -29,9 +29,7 @@ def file_delete(**kwargs):
 
 class JobBase(models.Model):
     name = models.CharField(max_length=150)
-    change_author = models.ForeignKey(User, blank=True, null=True,
-                                      on_delete=models.SET_NULL,
-                                      related_name="%(class)s")
+    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
 
     class Meta:
         abstract = True
