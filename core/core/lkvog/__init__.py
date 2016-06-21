@@ -66,16 +66,6 @@ class LKVOG(core.components.Component):
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
 
-    def send_loc_report(self):
-        core.utils.report(self.logger,
-                          'data',
-                          {
-                              'id': self.id,
-                              'data': json.dumps(self.loc)
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
-
     main = generate_linux_kernel_verification_objects
 
     def set_common_prj_attrs(self):
@@ -321,6 +311,16 @@ class LKVOG(core.components.Component):
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
+
+    def send_loc_report(self):
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(self.loc)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
