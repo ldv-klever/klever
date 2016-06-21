@@ -719,7 +719,11 @@ class ProcessModel:
 
         # Generate models
         for match in suits:
+            existing_process = [p for p in self.model_processes if p.name == match['function'].identifier]
+            if len(existing_process) > 0:
+                return False
             new = Process(match['function'].identifier)
+
             # Generate labels
             expressions = []
             for interface in match['parameters']:
