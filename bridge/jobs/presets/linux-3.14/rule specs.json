@@ -22,9 +22,10 @@
             "callstack deep search": 3,
             "intermediate model options": {
               "ignore missed callbacks": true,
-              "roles match file": "linux/emg/roles match.json"
+              "map file": "linux/emg/roles match.json"
             },
             "translation options": {
+              "dump automata graphs": false,
               "terminate approaching to memory usage": 300000000,
               "direct control function calls": true,
               "omit all states": false,
@@ -45,12 +46,13 @@
                 "primitives": false
               },
               "pointer free": {
-                "structures": false,
-                "arrays": false,
+                "structures": true,
+                "arrays": true,
                 "functions": false,
                 "unions": false,
                 "primitives": false
-              }
+              },
+              "allocate with sizeof": true
             },
             "additional aspects": ["linux/emg/emg.aspect"]
           }
