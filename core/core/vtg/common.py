@@ -447,8 +447,7 @@ class CommonStrategy(core.components.Component):
             {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def check_for_mpv(self):
-        if 'RSG strategy' in self.conf['abstract task desc']['AVTG'] \
-                and self.conf['abstract task desc']['AVTG']['RSG strategy'] == 'property automaton':
+        if 'RSG strategy' in self.conf and self.conf['RSG strategy'] == 'property automaton':
             self.mpv = True
             self.logger.info('Using property automata as specifications')
 

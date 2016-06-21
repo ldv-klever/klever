@@ -23,8 +23,7 @@ class SeparatedStrategy(CommonStrategy):
     resources_written = False
 
     def perform_sanity_checks(self):
-        if 'unite rule specifications' in self.conf['abstract task desc']['AVTG'] \
-                and self.conf['abstract task desc']['AVTG']['unite rule specifications']:
+        if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
             raise AttributeError("Current VTG strategy does not support united bug types")
 
     def perform_preprocess_actions(self):

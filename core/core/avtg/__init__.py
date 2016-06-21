@@ -444,14 +444,6 @@ class AVTG(core.components.Component):
                 p.join()
 
                 cur_abstract_task_desc = plugin_mqs['abstract task description'].get()
-
-                # Set AVTG options, that are relevant to VTG.
-                cur_abstract_task_desc['AVTG'] = {}
-                if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
-                    cur_abstract_task_desc['AVTG']['unite rule specifications'] = True
-                if 'RSG strategy' in self.conf:
-                    cur_abstract_task_desc['AVTG']['RSG strategy'] = self.conf['RSG strategy']
-
                 # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
                 # anything before.
                 if self.conf['keep intermediate files']:
