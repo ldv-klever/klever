@@ -6,7 +6,7 @@
 #include <linux/mmc/card.h>
 #include <linux/wait.h>
 
-/*This test verifies that an error is raised when an sdio_func is claimed but wasn't released again before the end*/
+/* This test verifies that an error is raised when an sdio_func is claimed but wasn't released again before the end. */
 int __init my_init(void)
 {
 	struct mmc_host* test_host = mmc_alloc_host(0, 0);
@@ -34,10 +34,4 @@ int __init my_init(void)
 	return 0;
 }
 
-void __exit my_exit(void)
-{
-	return;
-}
-
 module_init(my_init);
-module_exit(my_exit);

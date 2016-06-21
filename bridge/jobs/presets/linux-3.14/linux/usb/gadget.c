@@ -21,8 +21,7 @@ void *ldv_create_class(void)
 	is_got = ldv_undef_ptr();
 
 	/* ASSERT Get blk request just in case when an error did not happen */
-	if (!ldv_is_err(is_got))
-	{
+	if (!ldv_is_err(is_got)) {
 		/* ASSERT Registring usb gadget class is only allowed if usb gadget is not registered */
 		ldv_assert("linux:usb:gadget:class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
@@ -40,8 +39,7 @@ int ldv_register_class(void)
 	is_reg = ldv_undef_int_nonpositive();
 
 	/* ASSERT Get blk request just in case when an error did not happen */
-	if (!is_reg)
-	{
+	if (!is_reg) {
 		/* ASSERT Registering usb gadget class is only allowed if usb gadget is not registered */
 		ldv_assert("linux:usb:gadget:class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
@@ -66,12 +64,10 @@ int ldv_register_chrdev(int major)
 	is_reg = ldv_undef_int_nonpositive();
 
 	/* ASSERT Register chrdev just in case when an error did not happen */
-	if (!is_reg)
-	{
+	if (!is_reg) {
 		/* ASSERT Usb gadget should be unregistered at this point */
 		ldv_assert("linux:usb:gadget:chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
-		if (major == 0)
-		{
+		if (major == 0) {
 			/* OTHER Function returns allocated major number */
 			is_reg = ldv_undef_int();
 			ldv_assume (is_reg > 0);
@@ -91,8 +87,7 @@ int ldv_register_chrdev_region(void)
 	is_reg = ldv_undef_int_nonpositive();
 
 	/* ASSERT Register chrdev just in case when an error did not happen */
-	if (!is_reg)
-	{
+	if (!is_reg) {
 		/* ASSERT Usb gadget should be unregistered at this point */
 		ldv_assert("linux:usb:gadget:chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
@@ -117,8 +112,7 @@ int ldv_register_usb_gadget(void)
 	is_reg = ldv_undef_int_nonpositive();
 
 	/* ASSERT Register usb gadget just in case when an error did not happen */
-	if (!is_reg)
-	{
+	if (!is_reg) {
 		/* ASSERT Gadget should not be registered at this point */
 		ldv_assert("linux:usb:gadget:double usb gadget registration", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 		/* CHANGE_STATE Register usb gadget */

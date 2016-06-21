@@ -13,26 +13,22 @@ static int __init my_init(void)
 	spin_unlock(lock_2);
 	spin_unlock(lock_1);
 
-	if (spin_trylock(lock_1))
-	{
+	if (spin_trylock(lock_1)) {
 		spin_unlock(lock_1);
 	}
 
 	spin_lock(lock_1);
-	if (spin_is_locked(lock_1))
-	{
+	if (spin_is_locked(lock_1)) {
 		spin_unlock(lock_1);
 	}
 
 	spin_lock(lock_1);
-	if (!spin_can_lock(lock_1))
-	{
+	if (!spin_can_lock(lock_1)) {
 		spin_unlock(lock_1);
 	}
 
 	atomic_t *atomic;
-	if (atomic_dec_and_lock(atomic, lock_1))
-	{
+	if (atomic_dec_and_lock(atomic, lock_1)) {
 		spin_unlock(lock_1);
 	}
 

@@ -7,7 +7,7 @@
 /* There are 2 possible states. */
 enum {
 	LDV_SPIN_UNLOCKED = LDV_ZERO_STATE, /* Spinlock is not acquired. */
-	LDV_SPIN_LOCKED					 /* Spinlock is acquired. */
+	LDV_SPIN_LOCKED                     /* Spinlock is acquired. */
 };
 
 /* CHANGE_STATE Spinlock is not acquired at the beginning */
@@ -27,7 +27,7 @@ void ldv_check_alloc_nonatomic(void)
 	ldv_assert("linux:alloc:spin lock:nonatomic", ldv_spin == LDV_SPIN_UNLOCKED);
 }
 
-//TODO: merge it with linux:spinlock:as
+/* TODO: merge it with linux:spinlock:as. */
 
 /* MODEL_FUNC_DEF Acquire spinlock */
 void ldv_spin_lock(void)

@@ -153,8 +153,7 @@ static int __init my_init(void)
 	memory_allocation_2();
 	usb_unlock_device(udev);
 
-	if (usb_trylock_device(udev))
-	{
+	if (usb_trylock_device(udev)) {
 		memory_allocation_1();
 		memory_allocation_2();
 		usb_unlock_device(udev);
@@ -166,8 +165,7 @@ static int __init my_init(void)
 	memory_allocation_2();
 	memory_allocation_nonatomic();
 
-	if (!usb_lock_device_for_reset(udev, iface))
-	{
+	if (!usb_lock_device_for_reset(udev, iface)) {
 		memory_allocation_1();
 		memory_allocation_2();
 		usb_unlock_device(udev);

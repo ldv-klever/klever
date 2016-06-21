@@ -24,15 +24,13 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 	/* ASSERT Mutex{{ arg_sign.text }} must be unlocked */
 	ldv_assert("linux:mutex::one thread:double lock", !ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
 	/* OTHER Nondeterministically lock mutex{{ arg_sign.text }} */
-	if (ldv_undef_int())
-	{
+	if (ldv_undef_int()) {
 		/* CHANGE_STATE Lock mutex{{ arg_sign.text }} */
-	    ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
+		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 		/* RETURN Successfully locked mutex{{ arg_sign.text }} */
 		return 0;
 	}
-	else
-	{
+	else {
 		/* RETURN Could not lock mutex{{ arg_sign.text }} */
 		return -EINTR;
 	}
@@ -42,19 +40,16 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
 	/* OTHER Whether mutex{{ arg_sign.text }} was locked in this thread */
-	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
-	{
+	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock)) {
 		/* RETURN Mutex{{ arg_sign.text }} was locked in this thread */
 		return 1;
 	}
 	/* OTHER Nondeterministically decide whether mutex{{ arg_sign.text }} was locked in another thread */
-	else if (ldv_undef_int())
-	{
-	    /* RETURN Mutex{{ arg_sign.text }} was locked in another thread */
-	    return 1;
+	else if (ldv_undef_int()) {
+		/* RETURN Mutex{{ arg_sign.text }} was locked in another thread */
+		return 1;
 	}
-	else
-	{
+	else {
 		/* RETURN Mutex{{ arg_sign.text }} was not acquired in this or another thread */
 		return 0;
 	}
@@ -67,15 +62,13 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 	ldv_assert("linux:mutex::one thread:double lock try", !ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock));
 
 	/* OTHER Whether mutex{{ arg_sign.text }} was locked */
-	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock))
-	{
+	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {
 		/* RETURN Mutex{{ arg_sign.text }} was locked */
 		return 0;
 	}
-	else
-	{
+	else {
 		/* CHANGE_STATE Lock mutex{{ arg_sign.text }} */
-	    ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
+		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 		/* RETURN Successfully locked mutex{{ arg_sign.text }} */
 		return 1;
 	}
@@ -88,13 +81,11 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 	cnt->counter--;
 
 	/* OTHER Whether counter becomes zero */
-	if (cnt->counter)
-	{
+	if (cnt->counter) {
 		/* RETURN Do not lock mutex{{ arg_sign.text }} since counter is greater than zero */
 		return 0;
 	}
-	else
-	{
+	else {
 		ldv_mutex_lock{{ arg_sign.id }}(lock);
 		/* RETURN Successfully locked mutex{{ arg_sign.text }} */
 		return 1;

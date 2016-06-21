@@ -1,8 +1,6 @@
 before: file ("$this")
 {
-
 #include <linux/types.h>
-
 
 struct mutex;
 
@@ -74,14 +72,12 @@ around: call(void mutex_unlock(struct mutex *))
 
 around: call(static inline int kref_put_mutex(..))
 {
-	if ($arg_value2)
-	{
+	if ($arg_value2) {
 		ldv_mutex_lock{{ arg_signs[3] }}($arg3);
 		$arg_value2($arg1);
 		return 1;
 	}
-	else
-	{
+	else {
 		return 0;
 	}
 }

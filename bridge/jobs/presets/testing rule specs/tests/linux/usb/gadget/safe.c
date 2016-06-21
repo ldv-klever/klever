@@ -14,49 +14,39 @@ static int __init init(void)
 	struct usb_gadget_driver *cur_driver;
 
 	cur_class = class_create(cur_module, "test");
-	if (IS_ERR(cur_class))
-	{
+	if (IS_ERR(cur_class)) {
 		return -10;
 	}
 	class_destroy(cur_class);
 
-	if (class_register(cur_class) == 0)
-	{
+	if (class_register(cur_class) == 0) {
 		class_destroy(cur_class);
 	}
 
-	if (!alloc_chrdev_region(dev, baseminor, count, "test__"))
-	{
+	if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
 		unregister_chrdev_region(dev, count);
 	}
 
-	if (!register_chrdev_region(dev, count, "__test"))
-	{
+	if (!register_chrdev_region(dev, count, "__test")) {
 		unregister_chrdev_region(dev, count);
 	}
 
-	if (!register_chrdev(2, "test", fops))
-	{
+	if (!register_chrdev(2, "test", fops)) {
 		unregister_chrdev_region(dev, count);
 	}
 
-	if (register_chrdev(0, "test", fops) > 0)
-	{
+	if (register_chrdev(0, "test", fops) > 0) {
 		unregister_chrdev_region(dev, count);
 	}
 
-	if (!usb_gadget_probe_driver(cur_driver))
-	{
+	if (!usb_gadget_probe_driver(cur_driver)) {
 		usb_gadget_unregister_driver(cur_driver);
 	}
 
 	// All at once.
-	if (class_register(cur_class) == 0)
-	{
-		if (!alloc_chrdev_region(dev, baseminor, count, "test__"))
-		{
-			if (!usb_gadget_probe_driver(cur_driver))
-			{
+	if (class_register(cur_class) == 0) {
+		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
+			if (!usb_gadget_probe_driver(cur_driver)) {
 				usb_gadget_unregister_driver(cur_driver);
 			}
 			unregister_chrdev_region(dev, count);

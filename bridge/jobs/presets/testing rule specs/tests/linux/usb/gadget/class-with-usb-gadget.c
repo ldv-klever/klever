@@ -6,18 +6,12 @@
 
 static int __init init(void)
 {
-	struct module *cur_module;
 	struct class *cur_class;
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
 	struct usb_gadget_driver *cur_driver;
 
 	// All at once.
-	if (!usb_gadget_probe_driver(cur_driver))
-	{
-		if (class_register(cur_class) == 0)
-		{
+	if (!usb_gadget_probe_driver(cur_driver)) {
+		if (class_register(cur_class) == 0) {
 			class_destroy(cur_class);
 		}
 		usb_gadget_unregister_driver(cur_driver);

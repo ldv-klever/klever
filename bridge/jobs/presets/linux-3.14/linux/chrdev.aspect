@@ -6,7 +6,7 @@ void ldv_unregister_chrdev_region(void);
 }
 
 after: call(int alloc_chrdev_region(..)) ||
-	   call(int register_chrdev_region(..))
+       call(int register_chrdev_region(..))
 {
 	return ldv_register_chrdev_region();
 }
@@ -17,7 +17,7 @@ after: execution(static inline int register_chrdev(unsigned int major, ..))
 }
 
 after: call(void unregister_chrdev_region(..)) ||
-	   execution(static inline void unregister_chrdev(..))
+       execution(static inline void unregister_chrdev(..))
 {
 	ldv_unregister_chrdev_region();
 }

@@ -47,15 +47,13 @@ void ldv_write_unlock(rwlock_t *lock)
 int ldv_read_trylock(rwlock_t *lock)
 {
 	/* OTHER Nondeterministically acquire read lock if write lock is not acquired */
-	if (ldv_wlock == 1 && ldv_undef_int())
-	{
+	if (ldv_wlock == 1 && ldv_undef_int()) {
 		/* CHANGE_STATE Acquire read lock */
 		ldv_rlock += 1;
 		/* RETURN Read lock was acquired */
 		return 1;
 	}
-	else
-	{
+	else {
 		/* RETURN Read lock was not acquired */
 		return 0;
 	}
@@ -65,15 +63,13 @@ int ldv_read_trylock(rwlock_t *lock)
 int ldv_write_trylock(rwlock_t *lock)
 {
 	/* OTHER Nondeterministically acquire write lock if it is not acquired */
-	if (ldv_wlock == 1 && ldv_undef_int())
-	{
+	if (ldv_wlock == 1 && ldv_undef_int()) {
 		/* CHANGE_STATE Acquire write lock */
 		ldv_wlock = 2;
 		/* RETURN Write lock was not acquired */
 		return 1;
 	}
-	else 
-	{
+	else {
 		/* RETURN Write lock was not acquired */
 		return 0;
 	}

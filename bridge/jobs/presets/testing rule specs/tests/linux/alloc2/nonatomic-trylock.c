@@ -42,8 +42,7 @@ static void memory_allocation_nonatomic(void)
 static int __init my_init(void)
 {
 	spinlock_t *lock;
-	if (spin_trylock(lock))
-	{
+	if (spin_trylock(lock)) {
 		memory_allocation_nonatomic();
 		spin_unlock(lock);
 	}

@@ -73,7 +73,8 @@ around: call(struct mem_ctl_info *edac_mc_alloc(..))
 	return res;
 }
 
-pointcut ZALLOC_UNKNOWN_SIZE: call(struct mmc_host *mmc_alloc_host(..))
+pointcut ZALLOC_UNKNOWN_SIZE:
+	call(struct mmc_host *mmc_alloc_host(..))
 	|| call(static inline struct mii_bus *mdiobus_alloc(..))
 	|| call(struct net_device *alloc_etherdev_mqs(..))
 	|| call(struct net_device *alloc_netdev_mqs(..))
@@ -86,8 +87,8 @@ pointcut ZALLOC_UNKNOWN_SIZE: call(struct mmc_host *mmc_alloc_host(..))
 	|| call(struct net_device *alloc_fcdev(..))
 	|| call(struct net_device *alloc_fddidev(..))
 	|| call(struct net_device *alloc_hippi_dev(..))
-	//The next one causes many false alarms
-	//|| call(struct input_dev *input_allocate_device(..))
+	// The next one causes many false alarms.
+	// || call(struct input_dev *input_allocate_device(..))
 	|| call(struct mmc_host *mmc_alloc_host(..))
 	|| call(struct mite_struct *mite_alloc(..))
 	|| call(static struct rotary_encoder_platform_data *rotary_encoder_parse_dt(..))
@@ -96,30 +97,33 @@ pointcut ZALLOC_UNKNOWN_SIZE: call(struct mmc_host *mmc_alloc_host(..))
 
 around: ZALLOC_UNKNOWN_SIZE
 {
-	//We don't know the size
+	// We don't know the size.
 	void *res = ldv_zalloc(1);
 	ldv_after_alloc(res);
 	return res;
 }
 
 
-pointcut ALLOC_UNKNOWN_SIZE: call(char *kstrdup(..))
+pointcut ALLOC_UNKNOWN_SIZE:
+	call(char *kstrdup(..))
 	|| call(char *kasprintf(..))
-	//This function allocs a buffer through function fb_do_probe_ddc_edid()
+	// This function allocs a buffer through function fb_do_probe_ddc_edid().
 	|| call(unsigned char *fb_ddc_read(..))
-	/*Be careful! Sometimes the internal macros is expanded to kmalloc, sometimes - to kzalloc.
-	May be there will be a need in more precise model */
+	/* Be careful! Sometimes the internal macros is expanded to kmalloc,
+	 * sometimes - to kzalloc. May be there will be a need in more precise model.
+         */
 	|| call(union acpi_object *acpi_evaluate_dsm(..))
-	//Calls kmalloc
+	// Calls kmalloc.
 	|| call(struct edid *drm_get_edid(..))
-	//Calls kzalloc and set the result to the first argument, not to return value
+	// Calls kzalloc and set the result to the first argument, not to return value.
 	|| call(int au8522_get_state(..))
-	//Calls kmalloc and set the result to the second argument
+	// Calls kmalloc and set the result to the second argument.
 	|| call(acpi_status acpi_get_object_info(..))
-	/*Calls kzalloc and set the result to the third argument
-	Now it doesn't work - the third argument is an adress*/
+	/* Calls kzalloc and set the result to the third argument.
+	 * Now it doesn't work - the third argument is an adress.
+     */
 	|| call(size_t pcmcia_get_tuple(..))
-	//Calls kmalloc
+	// Calls kmalloc.
 	|| call(unsigned char *scsi_bios_ptable(..))
 	|| call(u8 *hid_alloc_report_buf(..))
 	|| call(char *match_strdup(..))
@@ -127,7 +131,7 @@ pointcut ALLOC_UNKNOWN_SIZE: call(char *kstrdup(..))
 
 around: ALLOC_UNKNOWN_SIZE
 {
-	//We don't know the size
+	// We don't know the size.
 	void *res = ldv_malloc(1);
 	ldv_after_alloc(res);
 	return res;
@@ -135,21 +139,22 @@ around: ALLOC_UNKNOWN_SIZE
 
 around: call(static inline void *devm_kzalloc(..))
 {
-	//Memory allocated with this function is automatically freed on driver detach
+	// Memory allocated with this function is automatically freed on driver detach.
 	void *res = ldv_zalloc($arg2);
 	return res;
 }
 
 around: call(struct iio_dev *devm_iio_device_alloc(..))
 {
-	//calls kzalloc, be careful!
-	//Memory allocated with this function is automatically freed on driver detach
+	// Calls kzalloc, be careful!
+	// Memory allocated with this function is automatically freed on driver detach.
 	void *res = ldv_zalloc($arg2);
 	return res;
 }
 
-//Next functions can't return positive value (only zero or negative code of error)
-pointcut NONPOSITIVE: call(int mantis_dvb_init(..))
+// Next functions can't return positive value (only zero or negative code of error).
+pointcut NONPOSITIVE:
+	call(int mantis_dvb_init(..))
 	|| call(int dvb_register_frontend(..))
 	|| call(int tty_register_ldisc(..))
 	|| call(int ide_pci_init_one(..))
@@ -173,7 +178,8 @@ after: NONPOSITIVE
 	return ldv_undef_int_nonpositive();
 }
 
-pointcut ZERO_RETURN: call(int nonseekable_open(..))
+pointcut ZERO_RETURN:
+	call(int nonseekable_open(..))
 	|| call(int mantis_uart_init(..))
 
 after: ZERO_RETURN
@@ -181,36 +187,34 @@ after: ZERO_RETURN
 	return 0;
 }
 
-pointcut FREE: call(void kfree(..))
+pointcut FREE:
+	call(void kfree(..))
 	|| call(void kzfree(..))
-	//This function contains only kfree()
+	// This function contains only kfree().
 	|| call(void fb_destroy_modedb(..))
-	//Calls only kfree
+	// Calls only kfree.
 	|| call(int del_mtd_blktrans_dev(..))
-	//Uses put_device and promises to free it
+	// Uses put_device and promises to free it.
 	|| call(void free_netdev(..))
 	|| call(void free_candev(..))
-	//Calls put_device
+	// Calls put_device.
 	|| call(void mmc_free_host(..))
 	|| call(void serio_unregister_port(..))
 	|| call(void mdiobus_free(..))
-	//|| call(void input_free_device(..))
+	// || call(void input_free_device(..))
 	|| call(void edac_mc_free(..))
 
 after: FREE
 {
-	if ($arg1 != 0)
-	{
+	if ($arg1 != 0) {
 		ldv_memory_free();
 	}
 }
 
 around: call(void framebuffer_release(..))
 {
-	if ($arg1 != 0)
-	{
-		if ($arg1->apertures != 0)
-		{
+	if ($arg1 != 0) {
+		if ($arg1->apertures != 0) {
 			ldv_memory_free();
 		}
 		ldv_memory_free();
@@ -219,19 +223,12 @@ around: call(void framebuffer_release(..))
 
 around: call(void rsi_91x_deinit(..))
 {
-	if ($arg1->rsi_dev != 0)
-	{
+	if ($arg1->rsi_dev != 0) {
 		ldv_memory_free();
 	}
-	if ($arg1 != 0)
-	{
+	if ($arg1 != 0) {
 		ldv_memory_free();
 	}
-}
-
-after: call(void usb_add_gadget_udc_release(..))
-{
-	ldv_save_gadget_release($arg3);
 }
 
 // Workaround to find exactly the bug described in commit c0cc359.

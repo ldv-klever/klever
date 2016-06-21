@@ -1,7 +1,7 @@
 #include <linux/gfp.h>
 #include <linux/ldv/common.h>
-#include <verifier/common.h>
 #include <linux/ldv/irq.h>
+#include <verifier/common.h>
 
 /* MODEL_FUNC_DEF Check that correct flag was used in context of interrupt */
 void ldv_check_alloc_flags(gfp_t flags) 

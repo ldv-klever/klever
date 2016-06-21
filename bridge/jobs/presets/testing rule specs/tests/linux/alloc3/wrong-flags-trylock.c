@@ -101,8 +101,8 @@ static void memory_allocation(void)
 static int __init my_init(void)
 {
 	struct usb_device *udev;
-	if (usb_trylock_device(udev))
-	{
+
+	if (usb_trylock_device(udev)) {
 		memory_allocation();
 		usb_unlock_device(udev);
 	}

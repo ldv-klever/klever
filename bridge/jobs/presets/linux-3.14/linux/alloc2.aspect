@@ -6,8 +6,8 @@ extern int ldv_spin_trylock(void);
 }
 
 before: execution(static inline void spin_lock(..)) || 
-		execution(static inline void spin_lock_bh(..)) ||
-		execution(static inline void spin_lock_irq(..))
+        execution(static inline void spin_lock_bh(..)) ||
+        execution(static inline void spin_lock_irq(..))
 {
 	ldv_spin_lock();
 }
@@ -33,20 +33,20 @@ around: define(spin_lock_irqsave_nested(lock, flags, subclass))
 }
 
 /* Unfortunately aspectator doesn't process this correctly.
-around: define(spin_lock_irqsave(lock, flags)) || 
-		define(spin_lock_nested(lock, subclass)) || 
-		define(spin_lock_nest_lock(lock, nest_lock)) ||
-		define(spin_lock_irqsave_nested(lock, flags, subclass))
+around: define(spin_lock_irqsave(lock, flags)) ||
+        define(spin_lock_nested(lock, subclass)) ||
+        define(spin_lock_nest_lock(lock, nest_lock)) ||
+        define(spin_lock_irqsave_nested(lock, flags, subclass))
 {
 ldv_spin_lock()
 }
 */
 
-before: execution(static inline void spin_unlock(..)) || 
-		execution(static inline void spin_unlock_bh(..)) || 
-		execution(static inline void spin_unlock_irq(..)) || 
-		execution(static inline void spin_unlock_irqrestore(..)) || 
-		define(spin_unlock_irqrestore(lock,flags))
+before: execution(static inline void spin_unlock(..)) ||
+        execution(static inline void spin_unlock_bh(..)) ||
+        execution(static inline void spin_unlock_irq(..)) ||
+        execution(static inline void spin_unlock_irqrestore(..)) ||
+        define(spin_unlock_irqrestore(lock,flags))
 {
 	ldv_spin_unlock();
 }
@@ -54,9 +54,9 @@ before: execution(static inline void spin_unlock(..)) ||
 /* Call model function after original functions to ensure that non 0 will be
  * returned on successfull spin locking and v.v. Also use direct return
  * statement for this purpose. */
-after: execution(static inline int spin_trylock(..)) || 
-	   execution(static inline int spin_trylock_bh(..)) || 
-	   execution(static inline int spin_trylock_irq(..))
+after: execution(static inline int spin_trylock(..)) ||
+       execution(static inline int spin_trylock_bh(..)) ||
+       execution(static inline int spin_trylock_irq(..))
 {
 	return ldv_spin_trylock();
 }

@@ -17,15 +17,13 @@ int ldv_usb_register(void)
 	int nondet;
 
 	/* OTHER Nondeterministically report error */
-	if (nondet < 0)
-	{
+	if (nondet < 0) {
 		/* CHANGE_STATE Error occured */
 		ldv_probe_state = LDV_PROBE_ERROR;
 		/* RETURN Return error code */
 		return nondet;
 	}
-	else
-	{
+	else {
 		/* RETURN Assume no error occured */
 		return 0;
 	}
@@ -34,8 +32,7 @@ int ldv_usb_register(void)
 /* MODEL_FUNC_DEF Check that error code was properly propagated in probe() */
 void ldv_check_return_value_probe(int retval)
 {
-	if (ldv_probe_state == LDV_PROBE_ERROR)
-	{
+	if (ldv_probe_state == LDV_PROBE_ERROR) {
 		/* ASSERT Errors of usb_register() should be properly propagated */
 		ldv_assert("linux:usb:register:wrong return value", retval != 0);
 	}

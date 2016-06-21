@@ -5,7 +5,6 @@ struct usb_device;
 struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
 void ldv_usb_put_dev(struct usb_device *dev);
 void ldv_check_return_value_probe(int retval);
-
 }
 
 around: call(struct usb_device *usb_get_dev(..))

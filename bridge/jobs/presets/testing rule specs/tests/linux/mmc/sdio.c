@@ -8,7 +8,7 @@
 #include <linux/slab.h>
 irqreturn_t handler(void){return IRQ_HANDLED;}
 
-/*This tests that sdio_f0_readb can't be done without sdio_func being already claimed before*/
+/* This tests that sdio_f0_readb can't be done without sdio_func being already claimed before. */
 int __init my_init(void)
 {
 	int* err_ret = kmalloc(sizeof(int), 0);
@@ -34,13 +34,8 @@ int __init my_init(void)
 	test_func1.device = 2;
 
 	sdio_f0_readb(&test_func, 0, err_ret);
+
 	return 0;
 }
 
-void __exit my_exit(void)
-{
-	return;
-}
-
 module_init(my_init);
-module_exit(my_exit);

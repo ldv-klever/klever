@@ -9,12 +9,11 @@ static int __init init(void)
 	udev_1 = usb_get_dev(udev_1);
 	udev_2 = usb_get_dev(udev_2);
 
-	if (udev_1)
-	{
+	if (udev_1) {
 		usb_put_dev(udev_1);
 	}
-	if (udev_2)
-	{
+
+	if (udev_2) {
 		usb_put_dev(udev_2);
 	}
 

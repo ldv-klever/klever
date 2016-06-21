@@ -33,8 +33,7 @@ static void memory_allocation_nonatomic(void)
 static int __init my_init(void)
 {
 	struct usb_device *udev;
-	if (usb_trylock_device(udev))
-	{
+	if (usb_trylock_device(udev)) {
 		memory_allocation_nonatomic();
 		usb_unlock_device(udev);
 	}

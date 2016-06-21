@@ -16,7 +16,7 @@ ldv_register_class()
 }
 
 after: call(void class_destroy(..)) ||
-	   call(void class_unregister(..))
+       call(void class_unregister(..))
 {
 	ldv_unregister_class();
 }

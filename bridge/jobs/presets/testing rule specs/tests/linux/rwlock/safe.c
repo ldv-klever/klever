@@ -1,5 +1,4 @@
 #include <linux/module.h>
-#include <linux/mutex.h>
 #include <linux/spinlock.h>
 
 static int __init init(void)
@@ -34,10 +33,8 @@ static int __init init(void)
 	write_lock_irqsave(rwlock_3, flags);
 	write_unlock_irqrestore(rwlock_3, flags);
 
-	if (read_trylock(rwlock_1))
-	{
-		if (write_trylock(rwlock_1))
-		{
+	if (read_trylock(rwlock_1)) {
+		if (write_trylock(rwlock_1)) {
 			write_unlock(rwlock_1);
 		}
 		read_unlock(rwlock_1);

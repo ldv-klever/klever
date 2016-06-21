@@ -6,19 +6,19 @@
 
 
 static int usb_ldv_dummy_probe(struct usb_interface *interface,
-				const struct usb_device_id *id);
+                               const struct usb_device_id *id);
 
 static void usb_ldv_dummy_disconnect(struct usb_interface *interface);
 
 static const struct usb_device_id id_table[] = {
-	{ }					 /* Terminating entry */
+	{ } /* Terminating entry */
 };
 
 static const struct usb_driver ldv_dummy_driver = {
-	.name =		 "probe_retval_check",
-	.probe =		usb_ldv_dummy_probe,
-	.disconnect =   usb_ldv_dummy_disconnect,
-	.id_table =	 id_table,
+	.name =       "probe_retval_check",
+	.probe =      usb_ldv_dummy_probe,
+	.disconnect = usb_ldv_dummy_disconnect,
+	.id_table =   id_table,
 };
 
 static int __init init(void)
@@ -30,7 +30,7 @@ static int __init init(void)
  * produce their calls. So corresponding test case functions are called too.
  */
 static int usb_ldv_dummy_probe(struct usb_interface *interface,
-				const struct usb_device_id *id)
+                               const struct usb_device_id *id)
 {
 	struct usb_driver *dummy_driver;
 	struct net_device *dummy_net_device;
@@ -52,6 +52,3 @@ static void usb_ldv_dummy_disconnect(struct usb_interface *interface)
 }
 
 module_init(init);
-
-MODULE_LICENSE("Apache 2.0");
-MODULE_AUTHOR("LDV Project, Mordan Vitaly <mordan@ispras.ru>");

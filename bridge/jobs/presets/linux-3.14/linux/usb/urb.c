@@ -3,6 +3,7 @@
 
 
 struct urb;
+
 /* LDV_COMMENT_CHANGE_STATE Initialize allocated urb counter to zero. */
 int ldv_urb_state = 0;
 
@@ -12,7 +13,7 @@ struct urb *ldv_usb_alloc_urb(void)
 	/* OTHER Choose an arbitrary memory location. */
 	void *arbitrary_memory = ldv_undef_ptr();
 	/* OTHER If memory is not available. */
-	if(!arbitrary_memory) {
+	if (!arbitrary_memory) {
 		/* RETURN Failed to allocate memory. */
 		return arbitrary_memory;
 	}
@@ -24,7 +25,7 @@ struct urb *ldv_usb_alloc_urb(void)
 
 /* MODEL_FUNC_DEF Releases memory of urb request. */
 void ldv_usb_free_urb(struct urb *urb) {
-	if (urb){
+	if (urb) {
 		/* ASSERT The memory must be allocated before. */
 		ldv_assert("linux:usb:urb:less initial decrement", ldv_urb_state>=1);
 		/* CHANGE_STATE Decrease allocated counter. */

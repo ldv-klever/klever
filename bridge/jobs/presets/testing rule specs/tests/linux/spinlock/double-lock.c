@@ -4,12 +4,12 @@
 
 static int __init my_init(void)
 {
-	spinlock_t *lock_1;
+	spinlock_t *lock;
 
-	spin_lock(lock_1);
-	spin_lock(lock_1);
-	spin_unlock(lock_1);
-	spin_unlock(lock_1);
+	spin_lock(lock);
+	spin_lock(lock);
+	spin_unlock(lock);
+	spin_unlock(lock);
 
 	return 0;
 }

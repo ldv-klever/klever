@@ -8,7 +8,7 @@
 #include <linux/slab.h>
 irqreturn_t handler(void){return IRQ_HANDLED;}
 
-/*this is a safe test for rule 0150 to verify that the implementation is working correctly and it supports multiple nested claims*/
+/* This is a safe test for rule 0150 to verify that the implementation is working correctly and it supports multiple nested claims. */
 int __init my_init(void)
 {
 	int* err_ret = kmalloc(sizeof(int), 0);
@@ -57,13 +57,8 @@ int __init my_init(void)
 
 	sdio_claim_host(&test_func1);
 	sdio_release_host(&test_func1);
+
 	return 0;
 }
 
-void __exit my_exit(void)
-{
-	return;
-}
-
 module_init(my_init);
-module_exit(my_exit);

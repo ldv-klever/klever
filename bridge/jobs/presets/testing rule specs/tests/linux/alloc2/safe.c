@@ -153,8 +153,7 @@ static int __init my_init(void)
 	memory_allocation_2();
 	spin_unlock(lock);
 
-	if (spin_trylock(lock))
-	{
+	if (spin_trylock(lock)) {
 		memory_allocation_1();
 		memory_allocation_2();
 		spin_unlock(lock);

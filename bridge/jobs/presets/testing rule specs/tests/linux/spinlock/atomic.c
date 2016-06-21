@@ -11,7 +11,6 @@ static int __init my_init(void)
 	atomic_dec_and_lock(atomic, lock_1);
 	spin_unlock(lock_1);
 
-
 	return 0;
 }
 

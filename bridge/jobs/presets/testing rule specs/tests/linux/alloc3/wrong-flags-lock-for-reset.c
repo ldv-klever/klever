@@ -102,8 +102,8 @@ static int __init my_init(void)
 {
 	struct usb_device *udev;
 	struct usb_interface *iface;
-	if (!usb_lock_device_for_reset(udev, iface))
-	{
+
+	if (!usb_lock_device_for_reset(udev, iface)) {
 		memory_allocation();
 		usb_unlock_device(udev);
 	}

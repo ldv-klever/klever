@@ -8,8 +8,7 @@ static int __init init(void)
 {
 	struct usb_gadget_driver *cur_driver;
 
-	if (usb_gadget_probe_driver(cur_driver))
-	{
+	if (usb_gadget_probe_driver(cur_driver)) {
 		usb_gadget_unregister_driver(cur_driver);
 	}
 

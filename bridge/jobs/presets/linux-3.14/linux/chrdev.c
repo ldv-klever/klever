@@ -1,5 +1,5 @@
-#include <verifier/common.h>
 #include <linux/ldv/common.h>
+#include <verifier/common.h>
 
 /* There are 2 possible states of char device region registration. */
 enum

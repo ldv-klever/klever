@@ -35,13 +35,11 @@ int ldv_spin_trylock{{ arg_sign.id }}(void)
 	is_spin_held_by_another_thread = ldv_undef_int();
 
 	/* OTHER Nondeterministically lock spinlock{{ arg_sign.text }} */
-	if (is_spin_held_by_another_thread)
-	{
+	if (is_spin_held_by_another_thread) {
 		/* RETURN Spinlock{{ arg_sign.text }} was not locked. Finish with fail */
 		return 0;
 	}
-	else
-	{
+	else {
 		/* CHANGE_STATE Lock spinlock{{ arg_sign.text }} */
 		ldv_spin{{ arg_sign.id }} = 2;
 		/* RETURN Finish with success */
@@ -65,13 +63,11 @@ int ldv_spin_is_locked{{ arg_sign.id }}(void)
 	is_spin_held_by_another_thread = ldv_undef_int();
 
 	/* OTHER Nondeterministically understand whether spinlock{{ arg_sign.text }} was locked */
-	if(ldv_spin{{ arg_sign.id }} == 1 && !is_spin_held_by_another_thread)
-	{
+	if(ldv_spin{{ arg_sign.id }} == 1 && !is_spin_held_by_another_thread) {
 		/* RETURN Spinlock{{ arg_sign.text }} is not locked */
 		return 0;
 	}
-	else
-	{
+	else {
 		/* RETURN Spinlock{{ arg_sign.text }} was locked */
 		return 1;
 	}
@@ -93,13 +89,11 @@ int ldv_spin_is_contended{{ arg_sign.id }}(void)
 	is_spin_contended = ldv_undef_int();
 
 	/* OTHER Nondeterministically understand whether spinlock{{ arg_sign.text }} is contended */
-	if(is_spin_contended)
-	{
+	if(is_spin_contended) {
 		/* RETURN Spinlock{{ arg_sign.text }} is contended */
 		return 0;
 	}
-	else
-	{
+	else {
 		/* RETURN Spinlock{{ arg_sign.text }} is not contended */
 		return 1;
 	}
@@ -117,8 +111,7 @@ int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
 	atomic_value_after_dec = ldv_undef_int();
 
 	/* OTHER Atomic decrement result is zero */
-	if (atomic_value_after_dec == 0)
-	{
+	if (atomic_value_after_dec == 0) {
 		/* CHANGE_STATE Lock spinlock{{ arg_sign.text }} */
 		ldv_spin{{ arg_sign.id }} = 2;
 		/* RETURN Finish with success */

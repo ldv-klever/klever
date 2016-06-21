@@ -10,8 +10,7 @@ static int __init init(void)
 	const struct file_operations *fops;
 	unsigned int baseminor, count;
 
-	if (!register_chrdev(count, "test", fops))
-	{
+	if (!register_chrdev(count, "test", fops)) {
 		unregister_chrdev_region(dev, count);
 	}
 

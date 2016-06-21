@@ -7,7 +7,7 @@
 static int __init init(void)
 {
 	dev_t *dev;
-	unsigned int baseminor, count;
+	unsigned int count;
 
 	unregister_chrdev_region(dev, count);
 

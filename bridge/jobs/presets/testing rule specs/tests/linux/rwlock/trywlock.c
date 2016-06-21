@@ -1,5 +1,4 @@
 #include <linux/module.h>
-#include <linux/mutex.h>
 #include <linux/spinlock.h>
 
 static int __init init(void)
