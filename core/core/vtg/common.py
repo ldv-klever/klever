@@ -292,68 +292,113 @@ class CommonStrategy(core.components.Component):
                             ignore_edges_of_func = None
                 if cur_src_edge[0] == entry_node_id:
                     break
-            for edge in graph.getElementsByTagName('edge'):
-                src_file, src_line, func_name = (None, None, None)
 
-                for data in edge.getElementsByTagName('data'):
-                    if data.getAttribute('key') == 'originfile':
-                        # Internal automaton variables do not have a source file.
-                        if data.firstChild:
-                            src_file = data.firstChild.data
-                    elif data.getAttribute('key') == 'startline':
-                        src_line = int(data.firstChild.data)
-                    elif data.getAttribute('key') == 'enterFunction':
-                        func_name = data.firstChild.data
+                # Two stages are required since for marking edges with warnings we need to know whether there
+                # notes at violation path below.
+                for stage in ('notes', 'warns'):
+                    for edge in graph.getElementsByTagName('edge'):
+                        src_file, src_line, func_name = (None, None, None)
 
-                if not src_file:
-                    src_file = default_src_file
+                        for data in edge.getElementsByTagName('data'):
+                            if data.getAttribute('key') == 'originfile':
+                                src_file = data.firstChild.data
+                            elif data.getAttribute('key') == 'startline':
+                                src_line = int(data.firstChild.data)
+                            elif data.getAttribute('key') == 'enterFunction':
+                                func_name = data.firstChild.data
 
-                if src_file and src_line:
-                    if src_file in notes and src_line in notes[src_file]:
-                        self.logger.debug(
-                            'Add note "{0}" from "{1}:{2}"'.format(notes[src_file][src_line], src_file, src_line))
-                        note = dom.createElement('data')
-                        txt = dom.createTextNode(notes[src_file][src_line])
-                        note.appendChild(txt)
-                        note.setAttribute('key', 'note')
-                        edge.appendChild(note)
+                        if not src_file:
+                            src_file = default_src_file
 
-                    if func_name and func_name in notes:
-                        self.logger.debug('Add note "{0}" for call of model function "{1}" from "{2}"'.format(
-                            notes[func_name], func_name, src_file))
-                        note = dom.createElement('data')
-                        txt = dom.createTextNode(notes[func_name])
-                        note.appendChild(txt)
-                        note.setAttribute('key', 'note')
-                        edge.appendChild(note)
+                        if src_file and src_line:
+                            if stage == 'notes' and src_file in notes and src_line in notes[src_file]:
+                                self.logger.debug(
+                                    'Add note "{0}" from "{1}:{2}"'.format(notes[src_file][src_line], src_file,
+                                                                           src_line))
+                                note = dom.createElement('data')
+                                txt = dom.createTextNode(notes[src_file][src_line])
+                                note.appendChild(txt)
+                                note.setAttribute('key', 'note')
+                                edge.appendChild(note)
 
-                    if src_file in warns and src_line in warns[src_file] and edge.getAttribute(
-                            'target') == violation_node_id:
-                        self.logger.debug(
-                            'Add warning "{0}" from "{1}:{2}"'.format(warns[src_file][src_line], src_file, src_line))
-                        warn = dom.createElement('data')
-                        txt = dom.createTextNode(warns[src_file][src_line])
-                        warn.appendChild(txt)
-                        warn.setAttribute('key', 'warning')
-                        # Add warning either to edge itself or to first edge that enters function and has note
-                        # at violation path. If don't do the latter warning will be hidden by error trace
-                        # visualizer.
-                        warn_edge = edge
-                        for cur_src_edge in violation_edges:
-                            is_func_entry = False
-                            for data in cur_src_edge.getElementsByTagName('data'):
-                                if data.getAttribute('key') == 'enterFunction':
-                                    is_func_entry = True
-                            if is_func_entry:
-                                for data in cur_src_edge.getElementsByTagName('data'):
-                                    if data.getAttribute('key') == 'note':
-                                        warn_edge = cur_src_edge
-                        # Remove note from node for what we are going to add warning if so. Otherwise error
-                        # trace visualizer will be confused.
-                        for data in warn_edge.getElementsByTagName('data'):
-                            if data.getAttribute('key') == 'note':
-                                warn_edge.removeChild(data)
-                        warn_edge.appendChild(warn)
+                            if stage == 'notes' and func_name and func_name in notes:
+                                self.logger.debug(
+                                    'Add note "{0}" for call of model function "{1}" from "{2}"'.format(
+                                        notes[func_name], func_name, src_file))
+                                note = dom.createElement('data')
+                                txt = dom.createTextNode(notes[func_name])
+                                note.appendChild(txt)
+                                note.setAttribute('key', 'note')
+                                edge.appendChild(note)
+
+                            if stage == 'warns' and src_file in warns and src_line in warns[src_file]:
+                                # Add warning just if there are no more edges with notes at violation path
+                                # below.
+                                track_notes = False
+                                note_found = False
+                                for violation_edge in reversed(violation_edges):
+                                    if track_notes:
+                                        for data in violation_edge.getElementsByTagName('data'):
+                                            if data.getAttribute('key') == 'note':
+                                                note_found = True
+                                                break
+                                    if note_found:
+                                        break
+                                    if violation_edge == edge:
+                                        track_notes = True
+
+                                if not note_found:
+                                    self.logger.debug(
+                                        'Add warning "{0}" from "{1}:{2}"'.format(warns[src_file][src_line],
+                                                                                  src_file, src_line))
+
+                                    warn = dom.createElement('data')
+                                    txt = dom.createTextNode(warns[src_file][src_line])
+                                    warn.appendChild(txt)
+                                    warn.setAttribute('key', 'warning')
+                                    if track_notes:
+                                        for data in violation_edge.getElementsByTagName('data'):
+                                            if data.getAttribute('key') == 'note':
+                                                note_found = True
+                                                break
+                                    if note_found:
+                                        break
+                                    if violation_edge == edge:
+                                        track_notes = True
+
+                                if not note_found:
+                                    self.logger.debug(
+                                        'Add warning "{0}" from "{1}:{2}"'.format(warns[src_file][src_line],
+                                                                                  src_file, src_line))
+
+                                    warn = dom.createElement('data')
+                                    txt = dom.createTextNode(warns[src_file][src_line])
+                                    warn.appendChild(txt)
+                                    warn.setAttribute('key', 'warning')
+
+                                    # Add warning either to edge itself or to first edge that enters function
+                                    # and has note at violation path. If don't do the latter warning will be
+                                    # hidden by error trace visualizer.
+                                    warn_edge = edge
+                                    for cur_src_edge in violation_edges:
+                                        is_func_entry = False
+                                        for data in cur_src_edge.getElementsByTagName('data'):
+                                            if data.getAttribute('key') == 'enterFunction':
+                                                is_func_entry = True
+                                        if is_func_entry:
+                                            for data in cur_src_edge.getElementsByTagName('data'):
+                                                if data.getAttribute('key') == 'note':
+                                                    warn_edge = cur_src_edge
+
+                                    # Remove note from node for what we are going to add warning if so.
+                                    # Otherwise error trace visualizer will be confused.
+                                    for data in warn_edge.getElementsByTagName('data'):
+                                         if data.getAttribute('key') == 'note':
+                                            warn_edge.removeChild(data)
+                                    warn_edge.appendChild(warn)
+
+                                    # Remove added warning to avoid its addition one more time.
+                                    del warns[src_file][src_line]
 
             self.logger.info('Create processed error trace file "{0}"'.format(path_to_processed_witness))
             with open(path_to_processed_witness, 'w', encoding='utf8') as fp:
