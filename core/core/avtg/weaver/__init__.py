@@ -62,35 +62,32 @@ class Weaver(core.avtg.plugins.Plugin):
                 stdout = core.utils.execute(self.logger,
                                             ('aspectator', '-print-file-name=include'),
                                             collect_all_stdout=True)
-                core.utils.execute(self.logger,
-                                   tuple(['cif',
-                                          '--in', cc_full_desc['in files'][0],
-                                          '--aspect', os.path.relpath(aspect,
-                                                                      os.path.join(self.conf['main working directory'],
-                                                                                   cc_full_desc['cwd'])),
-                                          '--out', os.path.relpath(cc_full_desc['out file'],
-                                                                   os.path.join(self.conf['main working directory'],
-                                                                                cc_full_desc['cwd'])),
-                                          '--back-end', 'src',
-                                          '--debug', 'DEBUG'] +
-                                         (['--keep'] if self.conf['keep intermediate files'] else []) +
-                                         ['--'] +
-                                         [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
-                                         [
-                                             '-isystem{0}'.format(stdout[0]),
-                                             # Besides header files specific for rule specifications will be searched
-                                             # for.
-                                             "-I{0}".format(os.path.relpath(os.path.dirname(
-                                                 core.utils.find_file_or_dir(self.logger,
-                                                                             self.conf['main working directory'],
-                                                                             self.conf['rule specifications DB'])),
-                                                                            os.path.join(
-                                                                                self.conf['main working directory'],
-                                                                                cc_full_desc['cwd'])))
-                                         ]
-                                         ),
-                                   cwd=os.path.relpath(os.path.join(self.conf['main working directory'],
-                                                                    cc_full_desc['cwd'])))
+                core.utils.execute(
+                    self.logger,
+                    tuple([
+                              'cif',
+                              '--in', cc_full_desc['in files'][0],
+                              '--aspect', os.path.relpath(aspect,
+                                                          os.path.join(self.conf['main working directory'],
+                                                                       cc_full_desc['cwd'])),
+                              # Besides header files specific for rule specifications will be searched for.
+                              '--general-opts', "-I{0}".format(
+                                  os.path.relpath(
+                                      os.path.dirname(core.utils.find_file_or_dir(self.logger,
+                                                                                  self.conf['main working directory'],
+                                                                                  self.conf['rule specifications DB'])),
+                                      os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))),
+                              '--out', os.path.relpath(cc_full_desc['out file'],
+                                                       os.path.join(self.conf['main working directory'],
+                                                                    cc_full_desc['cwd'])),
+                              '--back-end', 'src',
+                              '--debug', 'DEBUG'
+                          ] +
+                          (['--keep'] if self.conf['keep intermediate files'] else []) +
+                          ['--'] +
+                          [opt.replace('"', '\\"') for opt in cc_full_desc['opts']] +
+                          ['-isystem{0}'.format(stdout[0])]),
+                    cwd=os.path.relpath(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])))
                 self.logger.debug('C file "{0}" was weaved in'.format(cc_full_desc['in files'][0]))
 
                 # In addition preprocess output files since CIF outputs a bit unpreprocessed files.
