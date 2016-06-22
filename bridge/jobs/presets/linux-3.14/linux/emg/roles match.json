@@ -1,0 +1,34 @@
+{
+  "roles map": {
+    "probe": [
+      "probe",
+      "acquire",
+      "open",
+      "bind",
+      "start",
+      "attach",
+      "create",
+      "add",
+      "enable",
+      "run",
+      "ctr"
+    ],
+    "release": [
+      "release",
+      "disconnect",
+      "remove",
+      "close",
+      "shutdown",
+      "stop",
+      "detach",
+      "free",
+      "disable",
+      "exit",
+      "dtr"
+    ]
+  },
+  "functions map": {
+    "registration": ["register"],
+    "deregistration": ["unregister", "deregister"]
+  }
+}

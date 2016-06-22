@@ -201,7 +201,7 @@ class State:
 
 class Automaton:
 
-    def __init__(self, logger, process, identifier):
+    def __init__(self, logger, translation_conf, process, identifier):
         # Set default values
         self.control_function = None
         self.state_blocks = {}
@@ -210,6 +210,9 @@ class Automaton:
         self.__state_variable = None
         self.__thread_variable = None
         self.__label_variables = {}
+        self.__file = None
+        self.conf = translation_conf
+        self.translation_models = FunctionModels(self.conf)
 
         # Set given values
         self.logger = logger
@@ -223,6 +226,42 @@ class Automaton:
         self.variables()
 
     @property
+    def file(self):
+        if self.__file:
+            return self.__file
+        files = set()
+
+        # Try to determine base values
+        base_values = set()
+        change = True
+        while change:
+            change = False
+
+            for expr in self.process.allowed_implementations:
+                for impl in (impl for impl in self.process.allowed_implementations[expr].values() if impl):
+                    if impl.base_value and impl.base_value not in base_values:
+                        base_values.add(impl.base_value)
+                        change = True
+                    elif not impl.base_value and impl.value not in base_values:
+                        base_values.add(impl.value)
+                        change = True
+
+                    if impl.value in base_values and impl.file not in files:
+                        files.add(impl.file)
+                        change = True
+
+        # If no base values then try to find callback call files
+        files.update(set([s.code['file'] for s in self.fsa.states if s.code and 'file' in s.code]))
+
+        if len(files) > 0:
+            chosen_one = sorted(list(files))[0]
+            self.__file = chosen_one
+        else:
+            self.__file = None
+
+        return self.__file
+
+    @property
     def state_variable(self):
         if not self.__state_variable:
             var = Variable('ldv_statevar_{}'.format(self.identifier),  None, 'int a', True)
@@ -231,10 +270,13 @@ class Automaton:
 
         return self.__state_variable
 
-    @property
-    def thread_variable(self):
+    def thread_variable(self, number=1):
         if not self.__thread_variable:
-            var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread a', True)
+            if number > 1:
+                var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread_set a', True)
+                var.value = '{' + '.number = {}'.format(number) + '}'
+            else:
+                var = Variable('ldv_thread_{}'.format(self.identifier),  None, 'struct ldv_thread a', True)
             var.use += 1
             self.__thread_variable = var
 
@@ -478,12 +520,12 @@ class Automaton:
                             "/* Callback pre-call */"
                         ]
                         new_case['pre_call'].extend(
-                            FunctionModels.text_processor(self.process, '$SWITCH_TO_IRQ_CONTEXT();'))
+                            self.translation_models.text_processor(self.process, '$SWITCH_TO_IRQ_CONTEXT();'))
                         new_case['post_call'] = [
                             "/* Callback post-call */"
                         ]
                         new_case['post_call'].extend(
-                            FunctionModels.text_processor(self.process, '$SWITCH_TO_PROCESS_CONTEXT();'))
+                            self.translation_models.text_processor(self.process, '$SWITCH_TO_PROCESS_CONTEXT();'))
                     callbacks.append([st, new_case, signature, invoke, file, check, func_variable])
 
             if len(callbacks) > 0:
@@ -584,13 +626,13 @@ class Automaton:
                     # Add additional condition
                     if state.action.condition and len(state.action.condition) > 0:
                         for statement in state.action.condition:
-                            cn = FunctionModels.text_processor(self, statement)
+                            cn = self.translation_models.text_processor(self, statement)
                             base_case["guard"].extend(cn)
 
                     if st.action.pre_call and len(st.action.pre_call) > 0:
                         pre_call = []
                         for statement in st.action.pre_call:
-                            pre_call.extend(FunctionModels.text_processor(self, statement))
+                            pre_call.extend(self.translation_models.text_processor(self, statement))
 
                         if 'pre_call' not in case:
                             case['pre_call'] = ['/* Callback pre-call */'] + pre_call
@@ -601,7 +643,7 @@ class Automaton:
                     if st.action.post_call and len(st.action.post_call) > 0:
                         post_call = []
                         for statement in st.action.post_call:
-                            post_call.extend(FunctionModels.text_processor(self, statement))
+                            post_call.extend(self.translation_models.text_processor(self, statement))
 
                         if 'post_call' not in case:
                             case['post_call'] = ['/* Callback post-call */'] + post_call
@@ -630,7 +672,7 @@ class Automaton:
                               "'{}'".format(state.action.name, self.identifier, self.process.name,
                                             self.process.category))
             # Generate dispatch function
-            automata_peers = {}
+            automata_peers = dict()
             if len(state.action.peers) > 0:
                 # Do call only if model which can be called will not hang
                 translator.extract_relevant_automata(automata_peers, state.action.peers, Receive)
@@ -642,7 +684,7 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = FunctionModels.text_processor(self, statement)
+                    cn = self.translation_models.text_processor(self, statement)
                     base_case["guard"].extend(cn)
 
             base_case['relevant automata'] = automata_peers
@@ -668,7 +710,7 @@ class Automaton:
                 base_case["receive guard"] = []
                 if state.action.condition and len(state.action.condition) > 0:
                     for statement in state.action.condition:
-                        cn = FunctionModels.text_processor(self, statement)
+                        cn = self.translation_models.text_processor(self, statement)
                         base_case["receive guard"].extend(cn)
             else:
                 # Generate comment
@@ -687,12 +729,12 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = FunctionModels.text_processor(self, statement)
+                    cn = self.translation_models.text_processor(self, statement)
                     base_case["guard"].extend(cn)
 
             if state.action.statements:
                 for statement in state.action.statements:
-                    base_case["body"].extend(FunctionModels.text_processor(self, statement))
+                    base_case["body"].extend(self.translation_models.text_processor(self, statement))
             state.code = base_case
         elif type(state.action) is Subprocess:
             self.logger.debug("Prepare code for subprocess '{}' in automaton '{}' for process '{}' of category "
@@ -704,13 +746,13 @@ class Automaton:
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = FunctionModels.text_processor(self, statement)
+                    cn = self.translation_models.text_processor(self, statement)
                     base_case["guard"].extend(cn)
 
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
                 for statement in state.action.condition:
-                    cn = FunctionModels.text_processor(self, statement)
+                    cn = self.translation_models.text_processor(self, statement)
                     base_case["guard"].extend(cn)
 
             state.code = base_case

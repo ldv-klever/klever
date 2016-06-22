@@ -7,5 +7,6 @@
 extern void *ldv_malloc(size_t size);
 extern void *ldv_calloc(size_t nmemb, size_t size);
 extern void ldv_free(void *s);
+extern void *external_allocated_data(void);
 
 #endif /* __VERIFIER_MEMORY_H */

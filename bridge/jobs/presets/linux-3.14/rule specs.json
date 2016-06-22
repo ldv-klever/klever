@@ -21,12 +21,14 @@
             "translator": "default",
             "callstack deep search": 3,
             "intermediate model options": {
-              "ignore missed callbacks": true
+              "ignore missed callbacks": true,
+              "map file": "linux/emg/roles match.json"
             },
             "translation options": {
+              "dump automata graphs": false,
               "direct control function calls": true,
-              "omit all states": false,
-              "nested automata": false,
+              "omit all states": true,
+              "nested automata": true,
               "omit parallel composition": {
                 "dispatch": false,
                 "receive": false,
@@ -34,7 +36,7 @@
                 "condition": true
               },
               "instance modifier": 1,
-              "max instances number": 300,
+              "max instances number": 60,
               "pointer initialization": {
                 "structures": true,
                 "arrays": true,
@@ -43,12 +45,14 @@
                 "primitives": false
               },
               "pointer free": {
-                "structures": false,
-                "arrays": false,
+                "structures": true,
+                "arrays": true,
                 "functions": false,
                 "unions": false,
                 "primitives": false
-              }
+              },
+              "allocate with sizeof": false,
+              "allocate external": false
             },
             "additional aspects": ["linux/emg/emg.aspect"]
           }
@@ -102,6 +106,15 @@
     "empty": {
       "description": "...",
       "template": "Empty"
+    },
+    "linux:emg:test": {
+      "description": "Rule specification intended for testing environment model specifications.",
+      "bug kinds": [],
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": ["linux/emg/test_model.c"],
+        "aspects": []
+      }
     },
     "linux:alloc1": {
       "aliases": ["10"],

@@ -4,7 +4,7 @@ import re
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
-    setup_collection, import_signature, import_typedefs, extract_name, check_null
+    setup_collection, import_declaration, import_typedefs, extract_name, check_null
 from core.avtg.emg import tarjan
 
 
@@ -105,6 +105,43 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             relevant = self._kernel_function_calls_cache[function]
 
         return sorted(relevant)
+
+    def find_relevant_function(self, parameter_interfaces):
+        """
+        Get a list of options of function parameters (interfaces) and tries to find a kernel function which would
+        has a prameter from each provided set in its parameters.
+
+        :param interface: List with lists of Interface objects.
+        :return: List with dictionaries:
+                 {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
+        """
+        matches = []
+        for function in self.kernel_functions.values():
+            match = {
+                "function": function,
+                "parameters": []
+            }
+            if len(parameter_interfaces) > 0:
+                # Match parameters
+                params = []
+                suits = 0
+                for index in range(len((parameter_interfaces))):
+                    found = 0
+                    for param in (p for p in function.param_interfaces[index:] if p):
+                        for option in parameter_interfaces[index]:
+                            if option.identifier == param.identifier:
+                                found = param
+                                break
+                        if found:
+                            break
+                    if found:
+                        suits += 1
+                        params.append(param)
+                if suits == len(parameter_interfaces):
+                    match["parameters"] = params
+                    matches.append(match)
+
+        return matches
 
     @staticmethod
     def callback_name(call):
@@ -250,7 +287,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 if not variable_name:
                     raise ValueError('Global variable without a name')
 
-                signature = import_signature(variable['declaration'])
+                signature = import_declaration(variable['declaration'])
                 if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
                     entity = {
                         "path": variable['path'],
@@ -274,7 +311,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.logger.info("Import types from kernel functions")
             for function in sorted(analysis['kernel functions'].keys()):
                 self.logger.debug("Parse signature of function {}".format(function))
-                declaration = import_signature(analysis['kernel functions'][function]['signature'])
+                declaration = import_declaration(analysis['kernel functions'][function]['signature'])
 
                 if function in self.kernel_functions:
                     self.__set_declaration(self.kernel_functions[function], declaration)
@@ -300,7 +337,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 for path in sorted(module_function["files"].keys()):
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
-                        {'declaration': import_signature(module_function["files"][path]["signature"])}
+                        {'declaration': import_declaration(module_function["files"][path]["signature"])}
 
                     if "called at" in module_function["files"][path]:
                         modules_functions[function][path]["called at"] = \
@@ -316,8 +353,10 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                 for index in [index for index in range(len(call))
                                               if call[index] and
                                               check_null(kf.declaration, call[index])]:
-                                    kf.declaration.parameters[index].\
+                                    new = kf.declaration.parameters[index].\
                                         add_implementation(call[index], path, None, None, [])
+                                    if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
+                                        new.fixed_interface = kf.param_interfaces[index].identifier
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in sorted(self.kernel_functions.keys()):
@@ -376,7 +415,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         field = extract_name(entry['field'])
                         # Ignore actually unions and structures without a name
                         if field:
-                            e_bt = import_signature(entry['field'], None, bt)
+                            e_bt = import_declaration(entry['field'], None, bt)
                             new_sequence = list(entity["root sequence"])
                             new_sequence.append(field)
 

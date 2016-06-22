@@ -181,6 +181,8 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
+        if self.name == 'gcc':
+            self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
         exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
