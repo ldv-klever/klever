@@ -1,5 +1,6 @@
 import mimetypes
-from io import BytesIO
+import tempfile
+import tarfile
 from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
@@ -574,8 +575,7 @@ def download_job(request, job_id):
         )
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
-    jobtar.memory.seek(0)
-    response.write(jobtar.memory.read())
+    response.write(jobtar.tempfile.read())
     return response
 
 
@@ -586,27 +586,28 @@ def download_jobs(request):
         return HttpResponseRedirect(
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
-    import tarfile
-    arch_mem = BytesIO()
-    jobs_archive = tarfile.open(fileobj=arch_mem, mode='w:gz')
-    for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
-        if not JobAccess(request.user, job).can_download():
-            return HttpResponseRedirect(reverse('error', args=[401]))
-        jobtar = DownloadJob(job)
-        if jobtar.error is not None:
-            return HttpResponseRedirect(
-                reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-            )
-        jobtar.memory.seek(0)
-        tarname = 'Job-%s.tar.gz' % job.identifier[:10]
-        tinfo = tarfile.TarInfo(tarname)
-        tinfo.size = jobtar.memory.getbuffer().nbytes
-        jobs_archive.addfile(tinfo, jobtar.memory)
-    jobs_archive.close()
-    arch_mem.seek(0)
+    arch_tmp = tempfile.TemporaryFile()
+    with tarfile.open(fileobj=arch_tmp, mode='w:gz') as jobs_archive:
+        for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
+            if not JobAccess(request.user, job).can_download():
+                return HttpResponseRedirect(
+                    reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
+                )
+            jobtar = DownloadJob(job)
+            if jobtar.error is not None:
+                return HttpResponseRedirect(
+                    reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
+                )
+            tarname = 'Job-%s.tar.gz' % job.identifier[:10]
+            tinfo = tarfile.TarInfo(tarname)
+            tinfo.size = jobtar.size
+            jobs_archive.addfile(tinfo, jobtar.tempfile)
+        jobs_archive.close()
+    arch_tmp.flush()
+    arch_tmp.seek(0)
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=KleverJobs.tar.gz"
-    response.write(arch_mem.read())
+    response.write(arch_tmp.read())
     return response
 
 

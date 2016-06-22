@@ -72,8 +72,7 @@ class LKBCE(core.components.Component):
                 os.remove(self.linux_kernel['build cmd descs file'])
 
     def extract_module_deps_and_sizes(self):
-        if 'all' in self.linux_kernel['modules'] \
-                or self.linux_kernel['build kernel']:
+        if self.linux_kernel['build kernel']:
             if 'module dependencies file' not in self.conf['Linux kernel']:
                 self.extract_all_linux_kernel_mod_deps_function()
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
@@ -426,6 +425,8 @@ class LKBCE(core.components.Component):
                     if line == '\n':
                         self.logger.debug('Linux kernel build command decscriptions "message queue" was terminated')
                         return
+                    elif line == 'KLEVER FATAL ERROR\n':
+                        raise RuntimeError('Build command wrapper(s) failed')
                     else:
                         self.linux_kernel['build cmd desc file'] = line.rstrip()
                         self.get_linux_kernel_build_cmd_desc()

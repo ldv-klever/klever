@@ -705,10 +705,8 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     author = j['job'].change_author
                     if author is not None:
-                        name = author.extended.last_name + ' ' + \
-                            author.extended.first_name
-                        author_href = reverse('users:show_profile',
-                                              args=[author.pk])
+                        name = author.extended.last_name + ' ' + author.extended.first_name
+                        author_href = reverse('users:show_profile', args=[author.pk])
                         values_data[j['pk']]['author'] = (name, author_href)
 
         def collect_jobs_data():

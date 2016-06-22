@@ -4,4 +4,4 @@ import sys
 
 from core.lkbce.wrappers.common import Command
 
-exit(Command(sys.argv).launch())
+sys.exit(Command(sys.argv).launch())

@@ -5,7 +5,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
-from bridge.utils import KleverTestCase
+from bridge.utils import KleverTestCase, ArchiveFileContent
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -39,6 +39,7 @@ class TestMarks(KleverTestCase):
         self.unsafe_archive = 'test_unsafemark.tar.gz'
         self.unknown_archive = 'test_unknownmark.tar.gz'
         self.test_tagsfile = 'test_tags.json'
+        self.all_marks_arch = 'All-marks.tar.gz'
 
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
@@ -387,7 +388,14 @@ class TestMarks(KleverTestCase):
         response = self.client.get(reverse('reports:list_verdict', args=[root_comp.pk, 'safes', SAFE_VERDICTS[2][0]]))
         self.assertEqual(response.status_code, 200)
 
-        # Delete all marks
+        # Download all marks
+        response = self.client.get('/marks/download-all/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response['Content-Type'], 'application/json')
+        with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
+            fp.write(response.content)
+
+        # Delete all safe marks
         self.assertEqual(response.status_code, 200)
         response = self.client.post('/marks/ajax/delete/', {
             'type': 'safe', 'ids': json.dumps(list(x.pk for x in MarkSafe.objects.all()))
@@ -402,6 +410,16 @@ class TestMarks(KleverTestCase):
             len(ReportSafe.objects.all())
         )
         self.assertEqual(len(MarkSafeReport.objects.all()), 0)
+
+        # Upload all marks
+        with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='rb') as fp:
+            response = self.client.post('/marks/upload-all/', {'delete': 1, 'file': fp})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['fail']), 0)
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['safe']), 1)
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['unsafe']), 0)
 
     def test_unsafe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
@@ -791,9 +809,16 @@ class TestMarks(KleverTestCase):
         response = self.client.get(
             reverse('reports:list_verdict', args=[root_comp.pk, 'unsafes', UNSAFE_VERDICTS[2][0]])
         )
-
-        # Delete all marks
         self.assertEqual(response.status_code, 200)
+
+        # Download all marks
+        response = self.client.get('/marks/download-all/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(response['Content-Type'], 'application/json')
+        with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
+            fp.write(response.content)
+
+        # Delete all unsafe marks
         response = self.client.post('/marks/ajax/delete/', {
             'type': 'unsafe', 'ids': json.dumps(list(x.pk for x in MarkUnsafe.objects.all()))
         })
@@ -808,15 +833,27 @@ class TestMarks(KleverTestCase):
         )
         self.assertEqual(len(MarkUnsafeReport.objects.all()), 0)
 
+        # Upload all marks
+        with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='rb') as fp:
+            response = self.client.post('/marks/upload-all/', {'delete': 1, 'file': fp})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['fail']), 0)
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['safe']), 0)
+        self.assertEqual(int(json.loads(str(response.content, encoding='utf8'))['unsafe']), 1)
+
     def test_unknown(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
         # Get report
         unknown = None
+
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            with u.problem_description.file as fp:
-                if fp.read() == b"ValueError: got wrong attribute: 'rule'.":
-                    unknown = u
+            afc = ArchiveFileContent(u.archive, file_name=u.problem_description)
+            self.assertIsNone(afc.error)
+            if afc.content == "ValueError: got wrong attribute: 'rule'.":
+                unknown = u
         parent = ReportComponent.objects.get(pk=unknown.parent_id)
         if unknown is None:
             self.fail("Unknown with needed problem description was not found in test job decision")
@@ -1091,4 +1128,6 @@ class TestMarks(KleverTestCase):
             os.remove(os.path.join(MEDIA_ROOT, self.unknown_archive))
         if os.path.exists(os.path.join(MEDIA_ROOT, self.test_tagsfile)):
             os.remove(os.path.join(MEDIA_ROOT, self.test_tagsfile))
+        if os.path.exists(os.path.join(MEDIA_ROOT, self.all_marks_arch)):
+            os.remove(os.path.join(MEDIA_ROOT, self.all_marks_arch))
         super(TestMarks, self).tearDown()

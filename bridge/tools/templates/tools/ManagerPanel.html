@@ -59,6 +59,8 @@
             <div class="five wide column">
                 <div class="ui vertical buttons">
                     <a class="ui violet button" href="{% url 'service:test' %}">Test service requests</a>
+                    <a href="{% url 'marks:download_all' %}" class="ui green button">{% trans 'Download all marks' %}</a>
+                    <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                     <button id="clear_system" class="ui red button">{% trans 'Remove unused files and DB rows' %}</button>
                 </div>
             </div>
@@ -106,6 +108,42 @@
                 </div>
                 <br><br>
                 <button id="recalc_all" class="ui red button">{% trans 'All caches' %}</button>
+            </div>
+        </div>
+        <div id="upload_all_marks_popup" class="ui modal">
+            <div class="header">{% trans 'Upload marks' %}</div>
+            <div class="content">
+                <div class="ui checkbox">
+                    <input id="delete_marks_before_upload" type="checkbox">
+                    <label for="delete_marks_before_upload">{% trans 'Delete all marks before upload' %}</label>
+                </div>
+                <br><br>
+                <div class="ui grid">
+                    <div class="row">
+                        <div class="four wide column right aligned">
+                            <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_all_marks_file_input" type="file"></span>
+                        </div>
+                        <div class="twelve wide column">
+                            <span id="upload_all_marks_filename" class="italic"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_all_marks_start" type="button" class="ui positive left button">{% trans 'Upload' %}</button>
+                <button id="upload_all_marks_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
+            </div>
+        </div>
+        <div id="uploaded_marks_modal" class="ui modal">
+            <div class="header">{% trans 'Uploaded marks' %}</div>
+            <div class="content">
+                <h5 class="ui orange header">{% trans 'Unsafe' %}: <span id="num_uploaded_unsafe_marks"></span></h5>
+                <h5 class="ui green header">{% trans 'Safe' %}: <span id="num_uploaded_safe_marks"></span></h5>
+                <h5 class="ui red header">{% trans 'Unknown' %}: <span id="num_uploaded_unknown_marks"></span></h5>
+                <h5 class="ui purple header">{% trans 'Failed' %}: <span id="num_uploaded_fail_marks"></span></h5>
+            </div>
+            <div class="actions">
+                <button id="uploaded_marks_close" type="button" class="ui blue button">{% trans 'OK' %}</button>
             </div>
         </div>
     {% endif %}

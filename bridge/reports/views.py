@@ -1,3 +1,4 @@
+from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
@@ -6,7 +7,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, logger
+from bridge.utils import unparallel_group, logger, ArchiveFileContent
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -244,17 +245,26 @@ def report_leaf(request, leaf_type, report_id):
     main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        with report.error_trace.file as fp:
-            etv = GetETV(fp.read(), request.user.extended.assumptions)
+        afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
+        if afc.error is not None:
+            logger.error(afc.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        etv = GetETV(afc.content, request.user.extended.assumptions)
         if etv.error is not None:
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
-        with report.proof.file as fp:
-            main_file_content = fp.read()
+        afc = ArchiveFileContent(report.archive, file_name=report.proof)
+        if afc.error is not None:
+            logger.error(afc.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        main_file_content = afc.content
     elif leaf_type == 'unknown':
-        with report.problem_description.file as fp:
-            main_file_content = fp.read()
+        afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+        if afc.error is not None:
+            logger.error(afc.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        main_file_content = afc.content
     try:
         return render(
             request, template,
@@ -287,20 +297,18 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    with report.error_trace.file as fp:
-        etv = GetETV(fp.read(), request.user.extended.assumptions)
+    afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
+    if afc.error is not None:
+        logger.error(afc.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    etv = GetETV(afc.content, request.user.extended.assumptions)
     if etv.error is not None:
         logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
     try:
-        return render(
-            request, 'reports/etv_fullscreen.html',
-            {
-                'report': report,
-                'etv': etv,
-                'include_assumptions': request.user.extended.assumptions
-            }
-        )
+        return render(request, 'reports/etv_fullscreen.html', {
+            'report': report, 'etv': etv, 'include_assumptions': request.user.extended.assumptions
+        })
     except Exception as e:
         logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -354,9 +362,18 @@ def get_component_log(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    logname = report.component.name + '.log'
-    response = StreamingHttpResponse(FileWrapper(report.log.file, 8192), content_type='text/plain')
-    response['Content-Length'] = len(report.log.file)
+    logname = '%s-log.txt' % report.component.name
+
+    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
+    if afc.error is not None:
+        logger.error(afc.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    file_inmem = BytesIO(afc.content.encode('utf8'))
+    file_inmem.seek(0, 2)
+    size = file_inmem.tell()
+    file_inmem.seek(0)
+    response = StreamingHttpResponse(FileWrapper(file_inmem, 8192), content_type='text/plain')
+    response['Content-Length'] = size
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
@@ -374,10 +391,10 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    if len(report.log.file) > 10000:
-        return HttpResponse(_('The component log is huge and can not be showed but you can download it'))
-    with report.log.file as fp:
-        return HttpResponse(fp.read().decode('utf8'))
+    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
+    if afc.error is not None:
+        return HttpResponse(str(afc.error))
+    return HttpResponse(afc.content)
 
 
 @login_required
@@ -397,9 +414,7 @@ def get_source_code(request):
     if len(filename) > 50:
         filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
-        'content': result.data,
-        'name': filename,
-        'fullname': request.POST['file_name']
+        'content': result.data, 'name': filename, 'fullname': request.POST['file_name']
     })
 
 
@@ -495,8 +510,11 @@ def download_report_files(request, report_id):
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
-    res = GetReportFiles(report)
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename="%s"' % res.tarname
-    response.write(res.memory.read())
-    return response
+    if report.archive is None:
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+    with report.archive.file as fp:
+        response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
+        response['Content-Length'] = len(fp)
+        response['Content-Disposition'] = 'attachment; filename="%s files.tar.gz"' % report.component.name
+        return response

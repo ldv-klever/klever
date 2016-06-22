@@ -15,10 +15,11 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel
+from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, DeleteMark
+from marks.utils import NewMark, MarkAccess, DeleteMark
+from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -32,6 +33,7 @@ def value_type(value):
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
+    problem_description = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -39,6 +41,11 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
+            afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
@@ -56,7 +63,8 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'can_edit': True
+        'can_edit': True,
+        'problem_description': problem_description
     })
 
 
@@ -94,19 +102,12 @@ def edit_mark(request, mark_type, mark_id):
             if m.version == mark.version:
                 title = _("Current version")
             else:
-                change_time = m.change_date.astimezone(
-                    pytz.timezone(request.user.extended.timezone)
-                )
+                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
                 title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                title += " (%s %s)" % (
-                    m.author.extended.last_name,
-                    m.author.extended.first_name,
-                )
+                if m.author is not None:
+                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
                 title += ': ' + m.comment
-            mark_versions.append({
-                'version': m.version,
-                'title': title
-            })
+            mark_versions.append({'version': m.version, 'title': title})
 
         return render(request, template, {
             'mark': mark,
@@ -323,9 +324,8 @@ def download_mark(request, mark_type, mark_id):
     mark_tar = CreateMarkTar(mark)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.marktar_name
-    mark_tar.memory.seek(0)
-    response.write(mark_tar.memory.read())
+    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.name
+    response.write(mark_tar.tempfile.read())
     return response
 
 
@@ -465,17 +465,12 @@ def get_mark_versions(request):
         return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
-        mark_time = m.change_date.astimezone(
-            pytz.timezone(request.user.extended.timezone)
-        )
+        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (m.author.extended.last_name,
-                               m.author.extended.first_name)
+        if m.author is not None:
+            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
         title += ': ' + m.comment
-        mark_versions.append({
-            'version': m.version,
-            'title': title
-        })
+        mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
 
 
@@ -648,3 +643,45 @@ def upload_tags(request):
     if res.error is not None:
         return JsonResponse({'error': str(res.error)})
     return JsonResponse({})
+
+
+@unparallel_group(['mark'])
+def download_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to download all marks"})
+    arch = AllMarksTar()
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
+    response.write(arch.tempfile.read())
+
+    return response
+
+
+@unparallel_group(['mark'])
+def upload_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to upload marks"})
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    delete_all_marks = False
+    if int(request.POST.get('delete', 0)) == 1:
+        delete_all_marks = True
+
+    if len(request.FILES.getlist('file')) == 0:
+        return JsonResponse({'error': 'Archive with marks expected'})
+    try:
+        marks_dir = extract_tar_temp(request.FILES.getlist('file')[0])
+    except Exception as e:
+        logger.exception("Archive extraction failed" % e, stack_info=True)
+        return JsonResponse({'error': 'Archive extraction failed'})
+
+    res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
+    if res.error is not None:
+        return JsonResponse({'error': res.error})
+    return JsonResponse(res.numbers)

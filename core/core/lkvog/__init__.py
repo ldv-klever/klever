@@ -49,6 +49,9 @@ class LKVOG(core.components.Component):
         self.verification_obj_desc = {}
         self.all_clusters = set()
         self.checked_modules = set()
+        self.loc = {}
+        self.cc_full_descs_files = {}
+        self.verification_obj_desc_file = None
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -62,6 +65,16 @@ class LKVOG(core.components.Component):
                           self.conf['main working directory'])
         self.launch_subcomponents(('ALKBCDP', self.process_all_linux_kernel_build_cmd_descs),
                                   ('AVODG', self.generate_all_verification_obj_descs))
+
+    def send_loc_report(self):
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(self.loc)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     main = generate_linux_kernel_verification_objects
 
@@ -226,11 +239,13 @@ class LKVOG(core.components.Component):
                     # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
 
+        self.send_loc_report()
+
     def generate_verification_obj_desc(self):
         self.logger.info(
             'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
 
-        strategy = self.conf['LKVOG strategy']['name']
+        self.verification_obj_desc = {}
 
         self.verification_obj_desc['id'] = self.cluster.root.id
 
@@ -239,15 +254,23 @@ class LKVOG(core.components.Component):
 
         self.logger.debug('Linux kernel verification object id is "{0}"'.format(self.verification_obj_desc['id']))
 
-        self.module['cc full desc files'] = self.__find_cc_full_desc_files(self.module['name'])
-
         self.verification_obj_desc['grps'] = []
         self.verification_obj_desc['deps'] = {}
+        self.loc[self.verification_obj_desc['id']] = 0
         for module in self.cluster.modules:
+            cc_full_desc_files = self.__find_cc_full_desc_files(module.id)
             self.verification_obj_desc['grps'].append({'id': module.id,
-                                                       'cc full desc files': self.__find_cc_full_desc_files(module.id)})
+                                                       'cc full desc files': cc_full_desc_files})
             self.verification_obj_desc['deps'][module.id] = \
                 [predecessor.id for predecessor in module.predecessors if predecessor in self.cluster.modules]
+            self.loc[self.verification_obj_desc['id']] += self.__get_module_loc(cc_full_desc_files)
+
+        if 'maximum verification object size' in self.conf \
+                and self.loc[self.verification_obj_desc['id']] > self.conf['maximum verification object size']:
+            self.logger.debug('Linux kernel verification object "{0}" is rejected since it exceeds maximum size'.format(
+                self.verification_obj_desc['id']))
+            self.verification_obj_desc = None
+            return
 
         self.logger.debug(
             'Linux kernel verification object groups are "{0}"'.format(self.verification_obj_desc['grps']))
@@ -255,22 +278,15 @@ class LKVOG(core.components.Component):
         self.logger.debug(
             'Linux kernel verification object dependencies are "{0}"'.format(self.verification_obj_desc['deps']))
 
-        if self.conf['keep intermediate files']:
-            verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
-            if os.path.isfile(verification_obj_desc_file):
-                raise FileExistsError(
-                    'Linux kernel verification object description file "{0}" already exists'.format(
-                        verification_obj_desc_file))
-            self.logger.debug(
-                'Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-                    self.module['name'], verification_obj_desc_file))
-            os.makedirs(os.path.dirname(verification_obj_desc_file), exist_ok=True)
-            with open(verification_obj_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
-
-        else:
-            raise NotImplementedError(
-                'Linux kernel verification object generation strategy "{0}" is not supported'.format(strategy))
+        self.verification_obj_desc_file = '{0}.json'.format(self.verification_obj_desc['id'])
+        if os.path.isfile(self.verification_obj_desc_file):
+            raise FileExistsError('Linux kernel verification object description file "{0}" already exists'.format(
+                self.verification_obj_desc_file))
+        self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
+            self.module['name'], self.verification_obj_desc_file))
+        os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
+        with open(self.verification_obj_desc_file, 'w', encoding='ascii') as fp:
+            json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
 
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
@@ -295,23 +311,14 @@ class LKVOG(core.components.Component):
                                                                                      if desc['out file']
                                                                                      else 'not specified')))
 
-        # Build map from Linux kernel build command output files to correpsonding descriptions. This map will be used
-        # later when finding all CC full description files.
-        if desc['out file'] and desc['out file'] != '/dev/null':
-            # For instance, this is true for drivers/net/wireless/libertas/libertas.ko in Linux stable a533423.
-            if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
-                self.logger.warning(
-                    'During Linux kernel build output file "{0}" was overwritten'.format(desc['out file']))
-                # Propose new artificial name to avoid infinite recursion later.
-                out_file_root, out_file_ext = os.path.splitext(desc['out file'])
-                desc['out file'] = '{0}{1}{2}'.format(out_file_root,
-                                                      len(self.linux_kernel_build_cmd_out_file_desc[desc['out file']]),
-                                                      out_file_ext)
-
-            # Do not include assembler files into verification objects since we have no means to instrument and to
-            # analyse them.
-            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = None if desc['type'] == 'CC' and re.search(
-                r'\.S$', desc['in files'][0], re.IGNORECASE) else desc
+        # Build map from Linux kernel build command output files to correpsonding descriptions.
+        # If more than one build command has the same output file their descriptions are added as list in chronological
+        # order (more early commands are processed more early and placed at the beginning of this list).
+        if desc['out file'] in self.linux_kernel_build_cmd_out_file_desc:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = self.linux_kernel_build_cmd_out_file_desc[
+                                                                              desc['out file']] + [desc]
+        else:
+            self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
         if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
@@ -319,15 +326,40 @@ class LKVOG(core.components.Component):
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
 
-        cc_full_desc_files = []
+        if out_file in self.cc_full_descs_files:
+            self.logger.debug('CC full description files for "{0}" were already found'.format(out_file))
+            return self.cc_full_descs_files[out_file]
 
-        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file]
+        cc_full_desc_files = []
+        # Get more older build commands more early if more than one build command has the same output file.
+        out_file_desc = self.linux_kernel_build_cmd_out_file_desc[out_file][-1]
+
+        # Remove got build command description from map. It is assumed that each build command output file can be used
+        # as input file of another build command just once.
+        self.linux_kernel_build_cmd_out_file_desc[out_file] = self.linux_kernel_build_cmd_out_file_desc[out_file][:-1]
 
         if out_file_desc:
             if out_file_desc['type'] == 'CC':
-                cc_full_desc_files.append(out_file_desc['full desc file'])
+                # Do not include assembler files into verification objects since we have no means to instrument and to
+                # analyse them.
+                if not re.search(r'\.S$', out_file_desc['in files'][0], re.IGNORECASE):
+                    cc_full_desc_files.append(out_file_desc['full desc file'])
             else:
                 for in_file in out_file_desc['in files']:
                     cc_full_desc_files.extend(self.__find_cc_full_desc_files(in_file))
 
+        self.cc_full_descs_files[out_file] = cc_full_desc_files
+        
         return cc_full_desc_files
+
+    def __get_module_loc(self, cc_full_desc_files):
+        loc = 0
+        for cc_full_desc_file in cc_full_desc_files:
+            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
+                cc_full_desc = json.load(fp)
+            for file in cc_full_desc['in files']:
+                # Simple file's line counter
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc['cwd'], file),
+                          encoding='utf8', errors='ignore') as fp:
+                    loc += sum(1 for _ in fp)
+        return loc

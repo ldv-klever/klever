@@ -122,13 +122,13 @@ def file_get_or_create(fp, filename, check_size=False):
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
 def extract_tar_temp(archive):
-    fp = tempfile.NamedTemporaryFile()
-    for chunk in archive.chunks():
-        fp.write(chunk)
-    fp.seek(0)
-    tar = tarfile.open(fileobj=fp, mode='r:gz')
-    tmp_dir_name = tempfile.TemporaryDirectory()
-    tar.extractall(tmp_dir_name.name)
+    with tempfile.NamedTemporaryFile() as fp:
+        for chunk in archive.chunks():
+            fp.write(chunk)
+        fp.seek(0)
+        with tarfile.open(fileobj=fp, mode='r:gz') as tar:
+            tmp_dir_name = tempfile.TemporaryDirectory()
+            tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
 
 
@@ -162,3 +162,36 @@ class KleverTestCase(TestCase):
             shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
         except PermissionError:
             pass
+
+
+# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
+class ArchiveFileContent(object):
+    def __init__(self, file_model, file_name=None, max_size=None):
+        self._file = file_model
+        self._max_size = max_size
+        self._name = file_name
+        self.error = None
+        try:
+            self.content = self.__extract_file_content()
+        except Exception as e:
+            logger.exception("Error while extracting file from archive: %s" % e)
+            self.error = 'Unknown error'
+
+    def __extract_file_content(self):
+        with File.objects.get(pk=self._file.pk).file as fp:
+            with tarfile.open(fileobj=fp, mode='r:gz') as arch:
+                for f in arch.getmembers():
+                    if f.isreg():
+                        if self._name is not None and f.name != self._name:
+                            continue
+                        if self._max_size is not None:
+                            fp.seek(0, 2)
+                            if fp.tell() > self._max_size:
+                                self.error = _('The component log is huge and '
+                                               'can not be showed but you can download it')
+                                return None
+                            fp.seek(0)
+                        self._name = f.name
+                        return arch.extractfile(f).read().decode('utf8')
+        self.error = _('Needed file was not found')
+        return None
