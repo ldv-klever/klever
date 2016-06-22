@@ -272,7 +272,7 @@ class LKVOG(core.components.Component):
             return
         elif 'minimum verification object size' in self.conf \
                 and self.loc[self.verification_obj_desc['id']] < self.conf['minimum verification object size']:
-            self.logger.debug('Linux kernel verification object "{0}" is rejected since it less than minimum size'
+            self.logger.debug('Linux kernel verification object "{0}" is rejected since it is less than minimum size'
                               .format(self.verification_obj_desc['id']))
             self.verification_obj_desc = None
             return
