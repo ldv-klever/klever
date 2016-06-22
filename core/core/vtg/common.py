@@ -205,7 +205,7 @@ class CommonStrategy(core.components.Component):
             for key in graphml.getElementsByTagName('key'):
                 if key.getAttribute('id') == 'originfile':
                     default = key.getElementsByTagName('default')[0]
-                    default_src_file = self.__normalize_path(default.firstChild)
+                    default_src_file = default.firstChild
                     src_files.add(default_src_file)
             graph = graphml.getElementsByTagName('graph')[0]
             for edge in graph.getElementsByTagName('edge'):
@@ -213,7 +213,7 @@ class CommonStrategy(core.components.Component):
                     if data.getAttribute('key') == 'originfile':
                         # Internal automaton variables do not have a source file.
                         if data.firstChild:
-                            src_files.add(self.__normalize_path(data.firstChild))
+                            src_files.add(data.firstChild)
 
             self.logger.debug('Extract notes and warnings from source files referred by error trace')
             notes = {}
@@ -469,21 +469,9 @@ class CommonStrategy(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
                     round(3 * self.conf['VTG strategy']['resource limits']['memory size'] / (4 * 1000 ** 2)))})
 
-
     def add_option_for_entry_point(self):
         if 'entry points' in self.conf['abstract task desc']:
             if len(self.conf['abstract task desc']['entry points']) > 1:
                 raise NotImplementedError('Several entry points are not supported')
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-entryfunction': self.conf['abstract task desc']['entry points'][0]})
-
-    def __normalize_path(self, path):
-        # Each file is specified via absolute path or path relative to source tree root or it is placed to current
-        # working directory. Make all paths relative to source tree root.
-        if os.path.isabs(path.data) or os.path.isfile(path.data):
-            path.data = os.path.relpath(path.data, os.path.realpath(self.conf['source tree root']))
-
-        if not os.path.isfile(os.path.join(self.conf['source tree root'], path.data)):
-            raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
-
-        return path.data

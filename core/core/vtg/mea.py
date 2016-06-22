@@ -123,13 +123,13 @@ class MEA:
         for key in graphml.getElementsByTagName('key'):
             if key.getAttribute('id') == 'originfile':
                 default = key.getElementsByTagName('default')[0]
-                default_src_file = self.__normalize_path(default.firstChild)
+                default_src_file = default.firstChild
                 src_files.add(default_src_file)
         for edge in graph.getElementsByTagName('edge'):
             for data in edge.getElementsByTagName('data'):
                 if data.getAttribute('key') == 'originfile':
                     if data.firstChild:
-                        src_files.add(self.__normalize_path(data.firstChild))
+                        src_files.add(data.firstChild)
 
         for src_file in src_files:
             with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:
@@ -240,14 +240,3 @@ class MEA:
         stored_error_traces_for_bug_kind.append(new_error_trace)
         self.stored_error_traces[bug_kind] = stored_error_traces_for_bug_kind
         return True
-
-    def __normalize_path(self, path):
-        # Each file is specified via absolute path or path relative to source tree root or it is placed to current
-        # working directory. Make all paths relative to source tree root.
-        if os.path.isabs(path.data) or os.path.isfile(path.data):
-            path.data = os.path.relpath(path.data, os.path.realpath(self.conf['source tree root']))
-
-        if not os.path.isfile(os.path.join(self.conf['source tree root'], path.data)):
-            raise FileNotFoundError('File "{0}" referred by error trace does not exist'.format(path.data))
-
-        return path.data
