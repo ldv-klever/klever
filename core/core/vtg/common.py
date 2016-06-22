@@ -93,6 +93,8 @@ class CommonStrategy(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
+                if not self.conf['keep intermediate files']:
+                    os.remove(os.path.join(self.conf['main working directory'], extra_c_file['C file']))
                 extra_c_file['C file'] = trimmed_c_file
 
             cil_out_file = os.path.relpath('cil.i', os.path.realpath(self.conf['source tree root']))
@@ -119,6 +121,9 @@ class CommonStrategy(core.components.Component):
                                tuple(extra_c_file['C file']
                                      for extra_c_file in self.conf['abstract task desc']['extra C files']),
                                cwd=self.conf['source tree root'])
+            if not self.conf['keep intermediate files']:
+                for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                    os.remove(extra_c_file['C file'])
 
             self.task_desc['files'].append(cil_out_file)
 
