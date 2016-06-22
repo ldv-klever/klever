@@ -1069,42 +1069,44 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     for stm in code:
                         f_code.append('\t' * tab + stm)
 
+            # Determine that this state is the last (in switch or even in the process)
             last_action = False
-            closed_condition = True
-            while closed_condition:
-                last_action = False
-                closed_condition = False
-                if len(conditional_stack) > 0:
-                    if len(state.successors) == 0:
+            if len(state.successors) == 0:
+                last_action = True
+            elif type(state.action) is Subprocess:
+                last_action = True
+            else:
+                for succ in state.successors:
+                    trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
+                    if trivial_predecessors > 1:
                         last_action = True
-                    elif type(state.action) is Subprocess:
-                        last_action = True
-                    else:
-                        for succ in state.successors:
-                            trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
-                            if trivial_predecessors > 1:
-                                last_action = True
-                                break
+                        break
 
-                    if last_action and conditional_stack[-1]['cases left'] == 0 and \
-                            conditional_stack[-1]['condition'] == 'switch':
-                        f_code.append('\t' * tab + 'break;')
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        f_code.append('\t' * tab + 'default: ldv_stop();')
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        conditional_stack.pop()
-                        closed_condition = True
-                    elif last_action and conditional_stack[-1]['cases left'] == 0 and \
-                            conditional_stack[-1]['condition'] == 'if':
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        conditional_stack.pop()
-                        closed_condition = True
+            closed_condition_flag = True
+            at_least_one_closed = False
+            while closed_condition_flag and len(conditional_stack) > 0:
+                closed_condition_flag = False
+                if last_action and conditional_stack[-1]['cases left'] == 0 and \
+                        conditional_stack[-1]['condition'] == 'switch':
+                    f_code.append('\t' * tab + 'break;')
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    f_code.append('\t' * tab + 'default: ldv_stop();')
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    conditional_stack.pop()
+                    closed_condition_flag = True
+                    at_least_one_closed = True
+                elif last_action and conditional_stack[-1]['cases left'] == 0 and \
+                        conditional_stack[-1]['condition'] == 'if':
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                    conditional_stack.pop()
+                    closed_condition_flag = True
+                    at_least_one_closed = True
 
             if (type(state.action) is not Subprocess or len(state.code['guard']) > 0) and \
-                    (not last_action or (last_action and closed_condition)):
+                    (not last_action or (last_action and at_least_one_closed)):
                 if len(state.successors) == 1:
                     if list(state.successors)[0] not in state_stack and \
                                     list(state.successors)[0] not in processed_states:
