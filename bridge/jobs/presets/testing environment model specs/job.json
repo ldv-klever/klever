@@ -10,7 +10,7 @@
     },
     "VTG strategy": {
       "merge source files": true,
-      "name": "all bug kinds merge",
+      "name": "single bug type",
       "resource limits": {
         "wall time": 1000000,
         "CPU time": 900000,
