@@ -1,5 +1,7 @@
 #include <linux/ldv/common.h>
+#include <linux/ldv/err.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 /* There are 2 possible states of class structure registration. */
 enum

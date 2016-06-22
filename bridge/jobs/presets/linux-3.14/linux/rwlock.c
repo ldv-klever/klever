@@ -1,6 +1,7 @@
 #include <linux/spinlock.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 /* CHANGE_STATE Read lock is not aquired at the beginning */
 int ldv_rlock = 1;
