@@ -63,9 +63,8 @@ def get_common_parameter(action, process, position):
 
     if len(interfaces) == 0:
         raise RuntimeError('Need at least one common interface to send a signal')
-    elif len(interfaces) > 1:
-        raise NotImplementedError('Cannot have several common interfaces for signal transmission')
     else:
+        # Todo how to choose between several ones?
         return list(interfaces)[0]
 
     return interfaces

@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import core.avtg.plugins
 import core.utils
@@ -14,6 +15,8 @@ class EMG(core.avtg.plugins.Plugin):
     """
     EMG plugin for environment model generation.
     """
+
+    specification_extension_re = re.compile('.json$')
 
     ####################################################################################################################
     # PUBLIC METHODS
@@ -36,14 +39,18 @@ class EMG(core.avtg.plugins.Plugin):
 
         self.logger.info("Expect directory with specifications provided via configuration property "
                          "'specifications directory'")
-        spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                               self.conf["specifications directory"])
+        spec_dir = self.__get_path(self.conf, "specifications directory")
 
         self.logger.info("Import results of source analysis from SA plugin")
         analysis = self.__get_analysis(self.abstract_task_desc)
 
         # Choose translator
         tr = self.__get_translator(self.abstract_task_desc)
+
+        # Get instance maps if possible
+        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
+        if 'EMG instances' in self.conf and vo_identifier in self.conf['EMG instances']:
+            tr.instance_maps = self.conf['EMG instances'][vo_identifier]
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -63,7 +70,8 @@ class EMG(core.avtg.plugins.Plugin):
 
         if 'intermediate model options' not in self.conf:
             self.conf['intermediate model options'] = {}
-        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes)
+        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes,
+                             self.__get_json_content(self.conf['intermediate model options'], "map file"))
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
@@ -71,6 +79,17 @@ class EMG(core.avtg.plugins.Plugin):
         self.logger.info("============== An intermediat model translation stage ==============")
         tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
+
+        # Send data to the server
+        self.logger.info("Send data on generated instances to server")
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(tr.instance_maps, sort_keys=True, indent=4)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     main = generate_environment
 
@@ -145,7 +164,7 @@ class EMG(core.avtg.plugins.Plugin):
                               format(len(files)))
 
         for file in files:
-            if '.json' in file:
+            if self.specification_extension_re.search(file):
                 logger.info("Import content of specification file {}".format(file))
                 with open(file, encoding="ascii") as fh:
                     spec = json.loads(fh.read())
@@ -169,5 +188,21 @@ class EMG(core.avtg.plugins.Plugin):
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         return interface_spec, module_interface_spec, event_categories_spec
+
+    def __get_path(self, conf, prop):
+        if prop in conf:
+            spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], conf[prop])
+            return spec_dir
+        else:
+            return None
+
+    def __get_json_content(self, conf, prop):
+        file = self.__get_path(conf, prop)
+        if file:
+            with open(file, encoding="ascii") as fh:
+                content = json.loads(fh.read())
+            return content
+        else:
+            return None
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

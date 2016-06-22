@@ -46,6 +46,7 @@ To run Klever Core you need:
   * `graphviz <https://pypi.python.org/pypi/graphviz>`_.
   * `requests <https://pypi.python.org/pypi/requests/>`_.
   * `setuptools_scm <https://pypi.python.org/pypi/setuptools_scm/>`_.
+  * `pympler <https://pypi.python.org/pypi/Pympler>`_.
 
 * `GNU make <https://www.gnu.org/software/make/>`_.
 * `GNU bc <https://www.gnu.org/software/bc/>`_.
