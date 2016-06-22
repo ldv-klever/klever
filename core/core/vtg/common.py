@@ -293,6 +293,7 @@ class CommonStrategy(core.components.Component):
                 if cur_src_edge[0] == entry_node_id:
                     break
 
+                warn_edges = []
                 # Two stages are required since for marking edges with warnings we need to know whether there
                 # notes at violation path below.
                 for stage in ('notes', 'warns'):
@@ -390,15 +391,18 @@ class CommonStrategy(core.components.Component):
                                                 if data.getAttribute('key') == 'note':
                                                     warn_edge = cur_src_edge
 
-                                    # Remove note from node for what we are going to add warning if so.
-                                    # Otherwise error trace visualizer will be confused.
-                                    for data in warn_edge.getElementsByTagName('data'):
-                                         if data.getAttribute('key') == 'note':
-                                            warn_edge.removeChild(data)
                                     warn_edge.appendChild(warn)
+                                    warn_edges.append(warn_edge)
 
                                     # Remove added warning to avoid its addition one more time.
                                     del warns[src_file][src_line]
+
+                # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be
+                # confused.
+                for warn_edge in warn_edges:
+                    for data in warn_edge.getElementsByTagName('data'):
+                        if data.getAttribute('key') == 'note':
+                            warn_edge.removeChild(data)
 
             self.logger.info('Create processed error trace file "{0}"'.format(path_to_processed_witness))
             with open(path_to_processed_witness, 'w', encoding='utf8') as fp:
