@@ -26,7 +26,6 @@
             },
             "translation options": {
               "dump automata graphs": false,
-              "terminate approaching to memory usage": 300000000,
               "direct control function calls": true,
               "omit all states": false,
               "nested automata": false,
