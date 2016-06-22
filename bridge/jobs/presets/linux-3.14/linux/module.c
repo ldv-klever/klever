@@ -1,5 +1,6 @@
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 /* Module reference counter that shouldn't go lower its initial state. We do not distinguish different modules. */
 /* CHANGE_STATE Set module reference counter initial value at the beginning */	
@@ -9,8 +10,7 @@ int ldv_module_refcounter = 1;
 void ldv_module_get(struct module *module)
 {
 	/* OTHER Do nothing if module pointer is NULL */
-	if (module)
-	{
+	if (module) {
 		/* CHANGE_STATE Increment module reference counter */
 		ldv_module_refcounter++;
 	}
@@ -20,18 +20,15 @@ void ldv_module_get(struct module *module)
 int ldv_try_module_get(struct module *module)
 {
 	/* OTHER Do nothing if module pointer is NULL */
-	if (module)
-	{
+	if (module) {
 		/* OTHER Nondeterministically increment module reference counter */
-		if (ldv_undef_int() == 1)
-		{
+		if (ldv_undef_int() == 1) {
 			/* CHANGE_STATE Increment module reference counter */
 			ldv_module_refcounter++;
 			/* RETURN Successfully incremented module reference counter */
 			return 1;
 		}
-		else
-		{
+		else {
 			/* RETURN Could not increment module reference counter */
 			return 0;
 		}
@@ -42,8 +39,7 @@ int ldv_try_module_get(struct module *module)
 void ldv_module_put(struct module *module)
 {
 	/* OTHER Do nothing if module pointer is NULL */
-	if (module)
-	{
+	if (module) {
 		/* ASSERT Decremented module reference counter should be greater than its initial state */
 		ldv_assert("linux:module:resource:less initial decrement", ldv_module_refcounter > 1);
 		/* CHANGE_STATE Decrement module reference counter */

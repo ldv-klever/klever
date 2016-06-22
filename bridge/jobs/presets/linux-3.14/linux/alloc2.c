@@ -1,6 +1,7 @@
 #include <linux/types.h>
 #include <linux/ldv/gfp.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 #define LDV_ZERO_STATE 0
 

@@ -1,5 +1,6 @@
 #include <linux/gfp.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 /* CHANGE_STATE USB lock is not acquired at the beginning */
 int ldv_lock = 1;

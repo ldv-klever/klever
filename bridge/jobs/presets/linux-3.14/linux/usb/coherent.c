@@ -1,5 +1,6 @@
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 
 /* CHANGE_STATE Initialize allocated coherent counter to zero. */
