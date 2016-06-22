@@ -40,7 +40,7 @@
         "Git repository": {"commit": "e4c7f259c5be~"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe"
     },
     {
@@ -57,7 +57,7 @@
         "Git repository": {"commit": "e4c7f259c5be"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe",
       "comment": "Non-target bug"
     },
@@ -93,7 +93,7 @@
         "Git repository": {"commit": "448356262f56~"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
       "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
     },
@@ -102,7 +102,7 @@
         "Git repository": {"commit": "7ce77510c9c7~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
       "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
     },
@@ -156,7 +156,7 @@
         "Git repository": {"commit": "511f1df2f2d1~"},
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
       "comment": "[Bug in kernel] Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
     },
@@ -217,7 +217,7 @@
         "Git repository": {"commit": "448356262f56"},
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe"
     },
     {
@@ -225,7 +225,7 @@
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe"
     },
     {
@@ -273,7 +273,7 @@
         "Git repository": {"commit": "511f1df2f2d1"},
         "modules": ["drivers/net/ppp/ppp_generic.ko"]
       },
-      "rule specifications": ["linux:alloc2"],
+      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe"
     },
     {
