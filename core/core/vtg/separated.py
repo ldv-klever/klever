@@ -143,7 +143,7 @@ class SeparatedStrategy(CommonStrategy):
             if os.path.isfile(self.automaton_file):
                 tar.add(self.automaton_file)
             for file in self.task_desc['files']:
-                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+                tar.add(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     @abstractclassmethod

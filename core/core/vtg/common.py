@@ -48,7 +48,6 @@ class CommonStrategy(core.components.Component):
 
     # This function executes VTG strategy.
     def execute(self):
-        self.conf['source tree root'] = self.conf['main working directory']
         self.set_common_options()
         self.check_for_mpv()
         self.perform_sanity_checks()
@@ -84,10 +83,9 @@ class CommonStrategy(core.components.Component):
             self.logger.debug('Ignore asm goto expressions')
 
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(extra_c_file['C file'])[0])
-                with open(os.path.join(self.conf['source tree root'], extra_c_file['C file']),
-                          encoding='ascii') as fp_in, open(os.path.join(self.conf['source tree root'], trimmed_c_file),
-                                                           'w', encoding='ascii') as fp_out:
+                trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
+                with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
+                          encoding='ascii') as fp_in, open(trimmed_c_file, 'w', encoding='ascii') as fp_out:
                     # Specify original location to avoid references to *.trimmed.i files in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
                     # Each such expression occupies individual line, so just get rid of them.
@@ -96,8 +94,6 @@ class CommonStrategy(core.components.Component):
                 if not self.conf['keep intermediate files']:
                     os.remove(os.path.join(self.conf['main working directory'], extra_c_file['C file']))
                 extra_c_file['C file'] = trimmed_c_file
-
-            cil_out_file = os.path.relpath('cil.i', os.path.realpath(self.conf['source tree root']))
 
             core.utils.execute(self.logger,
                                (
@@ -116,16 +112,15 @@ class CommonStrategy(core.components.Component):
                                    # Don't transform structure fields into variables or arrays.
                                    '--no-split-structs',
                                    '--rmUnusedInlines',
-                                   '--out', cil_out_file,
+                                   '--out', 'cil.i',
                                ) +
                                tuple(extra_c_file['C file']
-                                     for extra_c_file in self.conf['abstract task desc']['extra C files']),
-                               cwd=self.conf['source tree root'])
+                                     for extra_c_file in self.conf['abstract task desc']['extra C files']))
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     os.remove(extra_c_file['C file'])
 
-            self.task_desc['files'].append(cil_out_file)
+            self.task_desc['files'].append('cil.i')
 
             self.logger.debug('Merged source files was outputted to "cil.i"')
         else:
