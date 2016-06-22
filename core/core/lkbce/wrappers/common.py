@@ -181,7 +181,7 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
-        if 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ and self.name == 'gcc':
+        if self.name == 'gcc':
             self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
         exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
 
