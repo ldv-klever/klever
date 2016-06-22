@@ -31,7 +31,7 @@ class Module:
 
     @property
     def md5_hash(self):
-        return md5(self.id.encode('utf-8').hexdigest())
+        return md5(self.id.encode('utf-8').hexdigest())[:12]
 
 
 class Cluster:
@@ -65,7 +65,7 @@ class Cluster:
 
     @property
     def md5_hash(self):
-        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()
+        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()[:12]
 
     @property
     def size(self):
@@ -94,7 +94,7 @@ class Graph:
 
     @property
     def md5_hash(self):
-        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()
+        return md5("".join([module.id for module in self.modules]).encode('utf-8')).hexdigest()[:12]
 
     @property
     def size(self):
