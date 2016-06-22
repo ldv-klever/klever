@@ -49,6 +49,7 @@ class CommonStrategy(core.components.Component):
     # This function executes VTG strategy.
     def execute(self):
         self.conf['source tree root'] = self.conf['main working directory']
+        self.set_common_options()
         self.check_for_mpv()
         self.perform_sanity_checks()
         self.perform_preprocess_actions()
@@ -450,6 +451,24 @@ class CommonStrategy(core.components.Component):
         if 'RSG strategy' in self.conf and self.conf['RSG strategy'] == 'property automaton':
             self.mpv = True
             self.logger.info('Using property automata as specifications')
+
+    def set_common_options(self):
+        if self.task_desc['verifier']['name'] == 'CPAchecker':
+            if 'options' not in self.task_desc['verifier']:
+                self.task_desc['verifier']['options'] = []
+
+            # To refer to original source files rather than to CIL ones.
+            self.task_desc['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
+
+            # To allow to output multiple error traces if other options (configuration) will need this.
+            self.task_desc['verifier']['options'].append({'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+
+            # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
+            # general memory size limit if users don't specify their own sizes.
+            if '-heap' not in [list(opt.keys())[0] for opt in self.task_desc['verifier']['options']]:
+                self.task_desc['verifier']['options'].append({'-heap': '{0}m'.format(
+                    round(3 * self.task_desc['resource limits']['memory size'] / (4 * 1000 ** 2)))})
+
 
     def add_option_for_entry_point(self):
         if 'entry points' in self.conf['abstract task desc']:
