@@ -1,3 +1,5 @@
+@include <linux/alloc.aspect>
+
 before: file ("$this")
 {
 extern void ldv_usb_lock_device(void);

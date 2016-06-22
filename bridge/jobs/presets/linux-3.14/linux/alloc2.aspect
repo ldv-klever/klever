@@ -1,3 +1,5 @@
+@include <linux/alloc.aspect>
+
 before: file ("$this")
 {
 extern void ldv_spin_lock(void);
