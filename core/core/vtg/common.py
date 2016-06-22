@@ -453,21 +453,21 @@ class CommonStrategy(core.components.Component):
             self.logger.info('Using property automata as specifications')
 
     def set_common_options(self):
-        if self.task_desc['verifier']['name'] == 'CPAchecker':
-            if 'options' not in self.task_desc['verifier']:
-                self.task_desc['verifier']['options'] = []
+        if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':
+            if 'options' not in self.conf['VTG strategy']['verifier']:
+                self.conf['VTG strategy']['verifier']['options'] = []
 
             # To refer to original source files rather than to CIL ones.
-            self.task_desc['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
+            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
 
             # To allow to output multiple error traces if other options (configuration) will need this.
-            self.task_desc['verifier']['options'].append({'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
 
             # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
             # general memory size limit if users don't specify their own sizes.
-            if '-heap' not in [list(opt.keys())[0] for opt in self.task_desc['verifier']['options']]:
-                self.task_desc['verifier']['options'].append({'-heap': '{0}m'.format(
-                    round(3 * self.task_desc['resource limits']['memory size'] / (4 * 1000 ** 2)))})
+            if '-heap' not in [list(opt.keys())[0] for opt in self.conf['VTG strategy']['verifier']['options']]:
+                self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
+                    round(3 * self.conf['VTG strategy']['resource limits']['memory size'] / (4 * 1000 ** 2)))})
 
 
     def add_option_for_entry_point(self):
