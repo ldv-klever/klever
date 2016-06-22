@@ -113,13 +113,14 @@ class RSG(core.avtg.plugins.Plugin):
                     re.sub(r'\W', '_', model['rule specification identifier'])))
                 with open(os.path.join(self.conf['source tree root'], model_c_file), encoding='ascii') as fp_in, \
                         open(preprocessed_model_c_file, 'w', encoding='ascii') as fp_out:
-                    # Specify original location to avoid references to generated C files in error traces.
-                    fp_out.write('# 1 "{0}"\n'.format(model_c_file))
+                    # Specify original location to avoid references to generated C files in error traces. Absolute file
+                    # path here and below is required to get absolute path references in error traces.
+                    fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
                                             re.sub(r'ldv_(?!assert|assume|undef|set|map)', rule_spec_prefix, line)))
                 model['prefix preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
-                                                                    os.path.realpath(self.conf['source tree root']))
+                                                                      os.path.realpath(self.conf['source tree root']))
                 self.logger.debug(
                     'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
                     format(preprocessed_model_c_file))
@@ -130,7 +131,7 @@ class RSG(core.avtg.plugins.Plugin):
                 with open(os.path.join(self.conf['source tree root'], aspect), encoding='ascii') as fp_in, \
                         open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
                     # Specify original location to avoid references to generated aspects in error traces.
-                    fp_out.write('# 1 "{0}"\n'.format(aspect))
+                    fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(aspect)))
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(), re.sub(r'ldv_', rule_spec_prefix, line)))
                 self.logger.debug(
@@ -186,7 +187,7 @@ class RSG(core.avtg.plugins.Plugin):
                     for bug_kind in bug_kinds:
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
-                    fp.write('# 1 "{0}"\n'.format(model_c_file))
+                    fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
                     for line in lines:
                         fp.write(line)
                 model['bug kinds preprocessed C file'] = preprocessed_model_c_file

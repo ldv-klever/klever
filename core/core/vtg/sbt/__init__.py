@@ -46,6 +46,6 @@ class SBT(SeparatedStrategy):
                 fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
                     re.sub(r'\W', '_', bug_kind)))
 
-        # Add bug kind functions file to other abstract verification task files.
-        self.conf['abstract task desc']['extra C files'].append(
-            {'C file': os.path.relpath('bug kind funcs.c', os.path.realpath(self.conf['source tree root']))})
+        # Add bug kind functions file to other abstract verification task files. Absolute file path is required to get
+        # absolute path references in error traces.
+        self.conf['abstract task desc']['extra C files'].append({'C file': os.path.abspath('bug kind funcs.c')})
