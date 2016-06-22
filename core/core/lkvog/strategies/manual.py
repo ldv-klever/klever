@@ -5,17 +5,24 @@ from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 class Manual(AbstractStrategy):
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
-        self.groups = []
-        for group in params['groups']:
-            self.groups.append([Module(group[0])])
-            for module in group[1:]:
-                self.groups[-1].append(Module(module))
-                for pred in self.groups[-1][:-1]:
-                    self.groups[-1][-1].add_predecessor(pred)
+        self.groups = params.get('groups', {})
 
     def divide(self, module_name):
         ret = []
-        for group in self.groups:
-            if module_name in [module.id for module in group]:
-                ret.append(Graph(group))
+
+        if module_name in self.groups:
+            for group in self.groups[module_name]:
+                group_modules = []
+                for module in group:
+                    group_modules.append(Module(module))
+                    for pred_module in group_modules[:-1]:
+                        pred_module.add_successor(group_modules[-1])
+                # Make module_name to root of the Graph
+                root_module_pos = [module.id for module in group_modules].index(module_name)
+                group_modules[0], group_modules[root_module_pos] = group_modules[root_module_pos], group_modules[0]
+
+                ret.append(Graph(group_modules))
+        else:
+            ret.append(Graph([Module(module_name)]))
+
         return ret
