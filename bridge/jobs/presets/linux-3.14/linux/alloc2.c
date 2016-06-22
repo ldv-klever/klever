@@ -1,10 +1,9 @@
 #include <linux/types.h>
 #include <linux/ldv/gfp.h>
 #include <verifier/common.h>
+#include <verifier/nondet.h>
 
 #define LDV_ZERO_STATE 0
-
-extern struct page *ldv_some_page(void);
 
 /* There are 2 possible states. */
 enum {
@@ -19,24 +18,17 @@ int ldv_spin = LDV_SPIN_UNLOCKED;
 void ldv_check_alloc_flags(gfp_t flags)
 {
 	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
+	ldv_assert("linux:alloc:spin lock:wrong flags", ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
 }
 
 /* MODEL_FUNC_DEF Check that spinlock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
 	/* ASSERT Spinlock should not be acquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED);
+	ldv_assert("linux:alloc:spin lock:nonatomic", ldv_spin == LDV_SPIN_UNLOCKED);
 }
 
-/* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired and return some page */
-struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags)
-{
-	/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock is aquired */
-	ldv_assert(ldv_spin == LDV_SPIN_UNLOCKED || CHECK_WAIT_FLAGS(flags));
-	/* RETURN Some page (maybe NULL) */
-	return ldv_some_page();
-}
+/* TODO: merge it with linux:spinlock:as. */
 
 /* MODEL_FUNC_DEF Acquire spinlock */
 void ldv_spin_lock(void)

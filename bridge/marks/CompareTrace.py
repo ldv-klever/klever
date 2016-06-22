@@ -1,5 +1,7 @@
 import json
 from types import MethodType
+
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
 from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
 
@@ -78,6 +80,16 @@ If call stacks are identical returns 1 else returns 0.
         if err_trace_converted == pattern:
             return 1
         return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
+
+    def model_functions_compare(self):
+        """
+If model functions are identical returns 1 else returns 0.
+        """
+        err_trace1 = error_trace_model_functions(self.error_trace)
+        err_trace2 = self.pattern_error_trace
+        if err_trace1 == err_trace2:
+            return 1
+        return 0
 
     def callstack_tree_compare(self):
         """

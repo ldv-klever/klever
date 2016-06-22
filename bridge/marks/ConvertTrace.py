@@ -3,7 +3,7 @@ from io import BytesIO
 from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
 from marks.models import ErrorTraceConvertionCache
 
 # To create new funciton:
@@ -53,6 +53,12 @@ This function is extracting the error trace call stack to first warning.
 Return list of lists of function names in json format.
         """
         return error_trace_callstack(self.error_trace)
+
+    def model_functions(self):
+        """
+This function is extracting model functions tree in specific format.
+        """
+        return error_trace_model_functions(self.error_trace)
 
     def call_stack_tree(self):
         """

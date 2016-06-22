@@ -179,8 +179,11 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["common"]["working directory"] = task_work_dir
         with open(os.path.join(task_work_dir, "task.json"), "w", encoding="ascii") as fp:
             json.dump(desc, fp, sort_keys=True, indent=4)
-        for name in ("resource limits", "verifier", "property file", "files", "upload input files of static verifiers"):
+        for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
             client_conf[name] = desc[name]
+        # Property file may not be specified.
+        if "property file" in desc:
+            client_conf["property file"] = desc["property file"]
         with open(os.path.join(task_work_dir, 'client.json'), 'w', encoding="ascii") as fp:
             json.dump(client_conf, fp, sort_keys=True, indent=4)
 

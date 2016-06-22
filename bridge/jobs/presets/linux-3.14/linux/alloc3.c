@@ -1,7 +1,6 @@
 #include <linux/gfp.h>
 #include <verifier/common.h>
-
-struct page *ldv_some_page(void);
+#include <verifier/nondet.h>
 
 /* CHANGE_STATE USB lock is not acquired at the beginning */
 int ldv_lock = 1;
@@ -12,31 +11,15 @@ void ldv_check_alloc_flags(gfp_t flags)
 	if (ldv_lock == 2)
 	{
 		/* ASSERT GFP_NOIO or GFP_ATOMIC flag should be used when USB lock is aquired */
-		ldv_assert(flags == GFP_NOIO || flags == GFP_ATOMIC);
+		ldv_assert("linux:alloc:usb lock:wrong flags", flags == GFP_NOIO || flags == GFP_ATOMIC);
 	}
 }
 
 /* MODEL_FUNC_DEF Check that USB lock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
-	if (ldv_lock == 2)
-	{
-		/* ASSERT USB lock should not be acquired */
-		ldv_assert(0);
-	}
-}
-
-/* MODEL_FUNC_DEF Check that correct flag was used when USB lock is aquired and return some page */
-struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags)
-{
-	if (ldv_lock == 2)
-	{
-		/* ASSERT GFP_NOIO or GFP_ATOMIC flag should be used when USB lock is aquired */
-		ldv_assert(flags == GFP_NOIO || flags == GFP_ATOMIC);
-	}
-	
-	/* RETURN Some page (maybe NULL) */
-	return ldv_some_page();
+	/* ASSERT USB lock should not be acquired */
+	ldv_assert("linux:alloc:usb lock:nonatomic", ldv_lock == 1);
 }
 
 /* MODEL_FUNC_DEF Acquire USB lock */
