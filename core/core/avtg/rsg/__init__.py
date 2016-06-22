@@ -98,6 +98,7 @@ class RSG(core.avtg.plugins.Plugin):
 
             aspect = '{}.aspect'.format(os.path.splitext(model_c_file)[0])
             if not os.path.isfile(aspect):
+                model['prefix preprocessed C file'] = model_c_file
                 continue
             self.logger.debug('Get aspect "{0}"'.format(aspect))
 
