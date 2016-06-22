@@ -52,7 +52,7 @@
                 "primitives": false
               },
               "allocate with sizeof": false,
-              "allocate external": true
+              "allocate external": false
             },
             "additional aspects": ["linux/emg/emg.aspect"]
           }
