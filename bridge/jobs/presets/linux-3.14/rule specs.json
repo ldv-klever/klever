@@ -110,7 +110,7 @@
     "linux:emg:test": {
       "description": "Rule specification intended for testing environment model specifications.",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/emg/test_model.c": {}}}
+      "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
     },
     "linux:alloc:irq": {
       "aliases": ["10"],

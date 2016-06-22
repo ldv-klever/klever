@@ -10,7 +10,7 @@ void ldv_invoke_reached(void);
 /* Call if callbacks registration function has been successfully called */
 void ldv_deregister(void);
 
-/* Call if callbacks deregistration function has been successfully called*/
+/* Call if callbacks deregistration function has been successfully called */
 void ldv_register(void);
 
 /* More resources are allocated */
