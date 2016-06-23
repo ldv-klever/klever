@@ -86,7 +86,7 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] Support of modules leading to many process instances <a href='http://forge.ispras.ru/issues/7110'>Bug #7110</a>"
+      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7281'>Bug #7281</a>"
     },
     {
       "Linux kernel": {
