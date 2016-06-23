@@ -140,7 +140,7 @@
     },
     "linux:empty": {
       "description": "...",
-      "template": "Common for Linux kernel modules"
+      "template": "Linux kernel modules"
     },
     "linux:emg:test": {
       "description": "Rule specification intended for testing environment model specifications.",
