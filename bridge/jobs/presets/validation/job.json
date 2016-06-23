@@ -167,7 +167,7 @@
       },
       "rule specifications": ["linux:mutex:as"],
       "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it, but it also takes quite much time."
+      "comment": "[Environment model] Heuristic roles assignment (<a href='https://forge.ispras.ru/issues/6693'>feature #6693</a>)"
     },
     {
       "Linux kernel": {
