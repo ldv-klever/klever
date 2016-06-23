@@ -33,9 +33,8 @@ static int usb_ldv_dummy_probe(struct usb_interface *interface,
                                const struct usb_device_id *id)
 {
 	struct usb_driver *dummy_driver;
-	struct net_device *dummy_net_device;
 
-	usb_register(dummy_driver);
+	int res = usb_register(dummy_driver);
 	return 0;
 
 }
