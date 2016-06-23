@@ -205,10 +205,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         if function.rv_interface:
             relevant.append(function.rv_interface)
-        else:
-            for parameter in function.param_interfaces:
-                if parameter:
-                    relevant.append(parameter)
+        for parameter in function.param_interfaces:
+            if parameter:
+                relevant.append(parameter)
 
         return relevant
 
@@ -459,6 +458,21 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             for parameter in [p for p in signature.points.parameters if type(p) is not str]:
                 self.__add_interface_candidate(parameter, 'resources', category)
 
+    def __not_violate_specification(self, declaration1, declaration2):
+        intf1 = self.resolve_interface_weakly(declaration1, None, False)
+        intf2 = self.resolve_interface_weakly(declaration2, None, False)
+
+        if intf1 and intf2:
+            categories1 = set([intf.category for intf in intf1])
+            categories2 = set([intf.category for intf in intf2])
+
+            if len(categories1.symmetric_difference(categories2)) == 0:
+                return True
+            else:
+                return False
+        else:
+            return True
+
     def __extract_categories(self):
         structures = [self.types[name] for name in sorted(self.types.keys()) if type(self.types[name]) is Structure and
                       len([self.types[name].fields[nm] for nm in sorted(self.types[name].fields.keys())
@@ -482,13 +496,15 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     for field in sorted(tp.fields.keys()):
                         if type(tp.fields[field]) is Pointer and \
                                 (type(tp.fields[field].points) is Array or
-                                 type(tp.fields[field].points) is Structure):
+                                 type(tp.fields[field].points) is Structure) and \
+                                self.__not_violate_specification(tp.fields[field].points, tp):
                             self.__add_to_processing(tp.fields[field].points, to_process, category)
                             c_flag = True
                         if type(tp.fields[field]) is Pointer and type(tp.fields[field].points) is Function:
                             self.__add_callback(tp.fields[field], category, field)
                             c_flag = True
-                        elif type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure:
+                        elif (type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure) and \
+                                self.__not_violate_specification(tp.fields[field], tp):
                             self.__add_to_processing(tp.fields[field], to_process, category)
                             c_flag = True
 
@@ -499,24 +515,26 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 elif type(tp) is Array:
                     if type(tp.element) is Pointer and \
                             (type(tp.element.points) is Array or
-                             type(tp.element.points) is Structure):
+                             type(tp.element.points) is Structure) and \
+                            self.__not_violate_specification(tp.element.points, tp):
                         self.__add_to_processing(tp.element.points, to_process, category)
                         self.__add_interface_candidate(tp, 'containers', category)
                     elif type(tp.element) is Pointer and type(tp.element) is Function:
                         self.__add_callback(tp.element, category)
                         self.__add_interface_candidate(tp, 'containers', category)
-                    elif type(tp.element) is Array or type(tp.element) is Structure:
+                    elif (type(tp.element) is Array or type(tp.element) is Structure) and \
+                            self.__not_violate_specification(tp.element, tp):
                         self.__add_to_processing(tp.element, to_process, category)
                         self.__add_interface_candidate(tp, 'containers', category)
                 if (type(tp) is Array or type(tp) is Structure) and len(tp.parents) > 0:
                     for parent in tp.parents:
-                        if type(parent) is Structure or \
-                           type(parent) is Array:
+                        if (type(parent) is Structure or
+                            type(parent) is Array) and self.__not_violate_specification(parent, tp):
                             self.__add_to_processing(parent, to_process, category)
                         elif type(parent) is Pointer and len(parent.parents) > 0:
                             for ancestor in parent.parents:
-                                if type(ancestor) is Structure or \
-                                   type(ancestor) is Array:
+                                if (type(ancestor) is Structure or
+                                    type(ancestor) is Array) and self.__not_violate_specification(ancestor, tp):
                                     self.__add_to_processing(ancestor, to_process, category)
 
             if len(category['callbacks']) > 0:
