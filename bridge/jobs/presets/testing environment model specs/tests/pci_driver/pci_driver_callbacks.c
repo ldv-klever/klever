@@ -4,7 +4,6 @@
 #include <verifier/nondet.h>
 
 int flip_a_coin;
-int suspend = 0;
 
 static int ldv_probe(struct pci_dev *dev, const struct pci_device_id *id)
 {
