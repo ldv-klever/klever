@@ -25,7 +25,7 @@
               "map file": "linux/emg/roles match.json"
             },
             "translation options": {
-              "dump automata graphs": false,
+              "dump automata graphs": true,
               "direct control function calls": true,
               "omit all states": true,
               "nested automata": true,
