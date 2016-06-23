@@ -76,8 +76,7 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] <a href='http://forge.ispras.ru/issues/7141'>Bug #7141</a>"
+      "ideal verdict": "unsafe"
     },
     {
       "Linux kernel": {
