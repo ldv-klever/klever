@@ -44,7 +44,7 @@ class GetETV(object):
             return
 
         if len(self.traces) == 0:
-            self.error = 'Wrong error trace file format - no taces got'
+            self.error = 'Wrong error trace file format - no traces got'
             return
         elif len(self.traces) > 2:
             self.error = 'Error trace with more than one threads are not supported'
