@@ -604,7 +604,7 @@ class Implementation:
         self.value = value
         self.file = file
         self.sequence = sequence
-        self.identifier = str([value, file, base_value])
+        self.identifier = str([value, file, base_value, sequence])
         self.fixed_interface = None
         self.__declaration = declaration
 
