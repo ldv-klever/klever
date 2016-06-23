@@ -311,13 +311,18 @@ class ProcessModel:
         else:
             raise ValueError('Provide either model or category arguments but not simultaneously')
 
+        self.logger.debug("Set interfaces for given labels")
         if label_map:
-            self.logger.debug("Set interfaces for given labels")
             for label in sorted(label_map["matched labels"].keys()):
                 for interface in [analysis.interfaces[name] for name
                                   in sorted(label_map["matched labels"][label])
                                   if name in analysis.interfaces]:
                     self.__assign_label_interface(new.labels[label], interface)
+        else:
+            for label in new.labels.values():
+                for interface in label.interfaces:
+                    if not label.get_declaration(interface):
+                        self.__assign_label_interface(label, analysis.interfaces[interface])
 
         if peer:
             self.logger.debug("Match signals with signals of process {} with identifier {}".
