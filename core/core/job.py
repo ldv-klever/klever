@@ -116,35 +116,99 @@ class Job(core.utils.CallbacksCaller):
     def __decide_sub_job(self):
         self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
-        # Specify callbacks to collect verification statuses from VTG. They will be used to
-        # calculate validation and testing results.
-        if 'ideal verdict' in self.components_common_conf:
-            def before_launch_sub_job_components(context):
-                context.mqs['verification statuses'] = multiprocessing.Queue()
+        # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
+        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
+        if self.name:
+            os.makedirs(self.work_dir)
 
-            def after_decide_verification_task(context):
-                context.mqs['verification statuses'].put(context.verification_status)
+        # Do not produce any reports until changing directory. Otherwise there can be races between various sub-jobs.
+        with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
+            try:
+                if self.name:
+                    core.utils.report(self.logger,
+                                      'start',
+                                      {
+                                          'id': self.id,
+                                          'parent id': self.parent['id'],
+                                          'name': 'Sub-job',
+                                          'attrs': [{'name': self.name}],
+                                      },
+                                      self.mqs['report files'],
+                                      self.components_common_conf['main working directory'])
 
-            def after_generate_all_verification_tasks(context):
-                context.logger.info('Terminate verification statuses message queue')
-                context.mqs['verification statuses'].put(None)
+                # Specify callbacks to collect verification statuses from VTG. They will be used to
+                # calculate validation and testing results.
+                if 'ideal verdict' in self.components_common_conf:
+                    def before_launch_sub_job_components(context):
+                        context.mqs['verification statuses'] = multiprocessing.Queue()
 
-            core.utils.set_component_callbacks(self.logger, type(self),
-                                               (
-                                                   before_launch_sub_job_components,
-                                                   after_decide_verification_task,
-                                                   after_generate_all_verification_tasks
-                                               ))
+                    def after_decide_verification_task(context):
+                        context.mqs['verification statuses'].put(context.verification_status)
 
-        self.get_sub_job_components()
+                    def after_generate_all_verification_tasks(context):
+                        context.logger.info('Terminate verification statuses message queue')
+                        context.mqs['verification statuses'].put(None)
 
-        self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                            self.components_common_conf)
+                    core.utils.set_component_callbacks(self.logger, type(self),
+                                                       (
+                                                           before_launch_sub_job_components,
+                                                           after_decide_verification_task,
+                                                           after_generate_all_verification_tasks
+                                                       ))
 
-        try:
-            self.launch_sub_job_components()
-        finally:
-            core.utils.remove_component_callbacks(self.logger, type(self))
+                self.get_sub_job_components()
+
+                self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
+                                                                    self.components_common_conf)
+
+                self.launch_sub_job_components()
+            except Exception:
+                if self.name:
+                    if self.mqs:
+                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                            traceback.print_exc(file=fp)
+
+                        if os.path.isfile('problem desc.txt'):
+                            core.utils.report(self.logger,
+                                              'unknown',
+                                              {
+                                                  'id': self.id + '/unknown',
+                                                  'parent id': self.id,
+                                                  'problem desc': 'problem desc.txt',
+                                                  'files': ['problem desc.txt']
+                                              },
+                                              self.mqs['report files'],
+                                              self.components_common_conf['main working directory'])
+
+                    if self.logger:
+                        self.logger.exception('Catch exception')
+                    else:
+                        traceback.print_exc()
+
+                self.logger.error(
+                    'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
+
+                # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there will
+                # be used for sub-jobs as well one day.
+                sys.exit(1)
+            finally:
+                core.utils.remove_component_callbacks(self.logger, type(self))
+
+                if self.name:
+                    # Create empty log required just for finish report below.
+                    with open('log', 'w', encoding='ascii'):
+                        pass
+
+                    core.utils.report(self.logger,
+                                      'finish',
+                                      {
+                                          'id': self.id,
+                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                          'log': 'log',
+                                          'files': ['log']
+                                      },
+                                      self.mqs['report files'],
+                                      self.components_common_conf['main working directory'])
 
     def get_class(self):
         self.logger.info('Get job class')
@@ -246,103 +310,42 @@ class Job(core.utils.CallbacksCaller):
     def launch_sub_job_components(self):
         self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
-        # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
-        # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
-        if self.name:
-            os.makedirs(self.work_dir)
+        try:
+            for component in self.components:
+                p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
+                              self.locks, separate_from_parent=True)
+                p.start()
+                self.component_processes.append(p)
 
-        with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
-            if self.name:
-                core.utils.report(self.logger,
-                                  'start',
-                                  {
-                                      'id': self.id,
-                                      'parent id': self.parent['id'],
-                                      'name': 'Sub-job',
-                                      'attrs': [{'name': self.name}],
-                                  },
-                                  self.mqs['report files'],
-                                  self.components_common_conf['main working directory'])
+            # Every second check whether some component died. Otherwise even if some non-first component will die we
+            # will wait for all components that preceed that failed component prior to notice that something went
+            # wrong. Treat process that upload reports as component that may fail.
+            while True:
+                # The number of components that are still operating.
+                operating_components_num = 0
 
-            try:
-                for component in self.components:
-                    p = component(self.components_common_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                  self.locks, separate_from_parent=True)
-                    p.start()
-                    self.component_processes.append(p)
-
-                # Every second check whether some component died. Otherwise even if some non-first component will die we
-                # will wait for all components that preceed that failed component prior to notice that something went
-                # wrong. Treat process that upload reports as component that may fail.
-                while True:
-                    # The number of components that are still operating.
-                    operating_components_num = 0
-
-                    for p in self.component_processes:
-                        p.join(1.0 / len(self.component_processes))
-                        operating_components_num += p.is_alive()
-
-                    if not operating_components_num:
-                        break
-
-                    if self.uploading_reports_process.exitcode:
-                        raise RuntimeError('Uploading reports failed')
-            except Exception:
                 for p in self.component_processes:
-                    # Do not terminate components that already exitted.
-                    if p.is_alive():
-                        p.stop()
+                    p.join(1.0 / len(self.component_processes))
+                    operating_components_num += p.is_alive()
 
-                if self.name:
-                    if self.mqs:
-                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
-                            traceback.print_exc(file=fp)
+                if not operating_components_num:
+                    break
 
-                        if os.path.isfile('problem desc.txt'):
-                            core.utils.report(self.logger,
-                                              'unknown',
-                                              {
-                                                  'id': self.id + '/unknown',
-                                                  'parent id': self.id,
-                                                  'problem desc': 'problem desc.txt',
-                                                  'files': ['problem desc.txt']
-                                              },
-                                              self.mqs['report files'],
-                                              self.components_common_conf['main working directory'])
+                if self.uploading_reports_process.exitcode:
+                    raise RuntimeError('Uploading reports failed')
+        except Exception:
+            for p in self.component_processes:
+                # Do not terminate components that already exitted.
+                if p.is_alive():
+                    p.stop()
 
-                    if self.logger:
-                        self.logger.exception('Catch exception')
-                    else:
-                        traceback.print_exc()
+            if 'verification statuses' in self.mqs:
+                self.logger.info('Forcibly terminate verification statuses message queue')
+                self.mqs['verification statuses'].put(None)
 
-                    if 'verification statuses' in self.mqs:
-                        self.logger.info('Forcibly terminate verification statuses message queue')
-                        self.mqs['verification statuses'].put(None)
-
-                self.logger.error(
-                    'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
-
-                # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there will
-                # be used for sub-jobs as well one day.
-                sys.exit(1)
-            finally:
-                self.report_results()
-
-                if self.name:
-                    # Create empty log required just for finish report below.
-                    with open('log', 'w', encoding='ascii'):
-                        pass
-
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'log': 'log',
-                                          'files': ['log']
-                                      },
-                                      self.mqs['report files'],
-                                      self.components_common_conf['main working directory'])
+            raise
+        finally:
+            self.report_results()
 
     def report_results(self):
         if 'ideal verdict' in self.components_common_conf:
