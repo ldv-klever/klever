@@ -31,24 +31,6 @@
     },
     "rule specifications DB": "rule specs.json"
   },
-  "Sub-jobsX": [
-    {
-      "Linux kernel": {
-        "external modules": "tests/platform_driver",
-        "modules": ["platform_driver_with_pm_callbacks.ko"]
-      },
-      "ideal verdict": "safe",
-      "rule specifications": ["linux:emg:test"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/platform_driver",
-        "modules": ["platform_driver_with_pm_invoke.ko"]
-      },
-      "ideal verdict": "unsafe",
-      "rule specifications": ["linux:emg:test"]
-    }
-  ],
   "Sub-jobs": [
     {
       "Linux kernel": {
