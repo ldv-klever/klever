@@ -153,15 +153,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "511f1df2f2d1~"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "unsafe",
-      "comment": "[Bug in kernel] Bug is in calling bpf_prog_create() that allocates memory with GFP_KERNEL with acquired spinlock. But bpf_prog_create() is defined in kernel."
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
@@ -266,14 +257,6 @@
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
       "rule specifications": ["linux:spinlock:as"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "511f1df2f2d1"},
-        "modules": ["drivers/net/ppp/ppp_generic.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "safe"
     },
     {
