@@ -157,8 +157,7 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "Too complex module and too complex environment model. Target bug can be found with very simplified environment model with the only instance leading to it."
+      "ideal verdict": "unsafe"
     },
     {
       "Linux kernel": {
