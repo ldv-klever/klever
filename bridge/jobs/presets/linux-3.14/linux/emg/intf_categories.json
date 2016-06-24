@@ -41,15 +41,15 @@
       "header": "include/linux/netdevice.h"
     },
     "mod_timer": {
-      "signature": "$ mod_timer(*%timer.timer_list%, %timer.data%)",
+      "signature": "$ mod_timer(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "mod_timer_pinned": {
-      "signature": "int mod_timer_pinned(*%timer.timer_list%, %timer.data%)",
+      "signature": "int mod_timer_pinned(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "mod_timer_pending": {
-      "signature": "int mod_timer_pending(*%timer.timer_list%, %timer.data%)",
+      "signature": "int mod_timer_pending(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "del_timer": {
