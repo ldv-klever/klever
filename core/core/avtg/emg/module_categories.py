@@ -414,7 +414,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         field = extract_name(entry['field'])
                         # Ignore actually unions and structures without a name
                         if field:
-                            e_bt = import_declaration(entry['field'], None, bt)
+                            e_bt = import_declaration(entry['field'], None)
+                            e_bt.add_parent(bt)
                             new_sequence = list(entity["root sequence"])
                             new_sequence.append(field)
 
