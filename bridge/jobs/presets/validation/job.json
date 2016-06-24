@@ -67,8 +67,13 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock"],
+      "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
+      ]}},
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] <a href='http://forge.ispras.ru/issues/7133'>Bug #7133</a>"
+      "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
     },
     {
       "Linux kernel": {
@@ -182,7 +187,12 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdict": "safe",
+      "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
+      ]}}
     },
     {
       "Linux kernel": {
