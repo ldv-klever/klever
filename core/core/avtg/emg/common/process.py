@@ -125,9 +125,11 @@ class Access:
                         else:
                             expression += '.{}'.format(field)
                     else:
-                        raise ValueError('Cannot build access from given variable')
+                        raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                                         format(self.expression))
                 else:
-                    raise ValueError('CAnnot build access from given variable')
+                    raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                                     format(self.expression))
 
                 previous = tmp
 
