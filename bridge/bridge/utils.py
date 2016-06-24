@@ -184,14 +184,15 @@ class ArchiveFileContent(object):
                     if f.isreg():
                         if self._name is not None and f.name != self._name:
                             continue
+                        file_extracted = arch.extractfile(f)
                         if self._max_size is not None:
-                            fp.seek(0, 2)
-                            if fp.tell() > self._max_size:
+                            file_extracted.seek(0, 2)
+                            if file_extracted.tell() > self._max_size:
                                 self.error = _('The component log is huge and '
                                                'can not be showed but you can download it')
                                 return None
-                            fp.seek(0)
+                            file_extracted.seek(0)
                         self._name = f.name
-                        return arch.extractfile(f).read().decode('utf8')
+                        return file_extracted.read().decode('utf8')
         self.error = _('Needed file was not found')
         return None
