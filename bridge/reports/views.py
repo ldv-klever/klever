@@ -364,7 +364,7 @@ def get_component_log(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = '%s-log.txt' % report.component.name
 
-    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
+    afc = ArchiveFileContent(report.archive, file_name=report.log)
     if afc.error is not None:
         logger.error(afc.error)
         return HttpResponseRedirect(reverse('error', args=[500]))

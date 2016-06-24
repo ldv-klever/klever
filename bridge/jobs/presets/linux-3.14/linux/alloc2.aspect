@@ -1,101 +1,10 @@
-before: file ("$this")
-{
-extern void ldv_spin_lock(void);
-extern void ldv_spin_unlock(void);
-extern int ldv_spin_trylock(void);
-}
-
-/* Functions which has parameter of type gfp_t. */
-pointcut ALLOC: call(unsigned long __get_free_pages(.., gfp_t flags, ..)) ||
-                execution(static inline struct page *alloc_pages(.., gfp_t flags, ..)) ||
-                call(struct page *alloc_page_vma(.., gfp_t flags, ..)) ||
-                execution(static inline void *kmalloc(.., gfp_t flags, ..)) ||
-                execution(static inline struct sk_buff *alloc_skb(.., gfp_t flags, ..)) ||
-                execution(static inline struct sk_buff *alloc_skb_fclone(.., gfp_t flags, ..)) ||
-                call(struct sk_buff *skb_copy(.., gfp_t flags, ..)) ||
-                execution(static inline struct sk_buff *skb_share_check(.., gfp_t flags, ..)) ||
-                call(struct sk_buff *skb_clone(.., gfp_t flags, ..)) ||
-                execution(static inline struct sk_buff *skb_unshare(.., gfp_t flags, ..)) ||
-                /* __dev_alloc_skb() calls alloc_skb() so we don't need to instrument it. */
-                execution(static inline struct page *__netdev_alloc_page(.., gfp_t flags, ..)) ||
-                call(int usb_submit_urb(.., gfp_t flags, ..)) ||
-                call(struct urb *usb_alloc_urb(.., gfp_t flags, ..)) ||
-                /* This is rather optional for SLAB memory subsystem, just for SLUB. */
-                execution(static inline void *kmalloc_node(.., gfp_t flags, ..))
-                /* This function isn't static inline and has no body to be instrumented among related to a driver files. So instrument calls to it. */ ||
-                call(void *kmem_cache_alloc(.., gfp_t flags, ..)) ||
-                call(void *mempool_alloc(.., gfp_t flags, ..)) ||
-                call(void *dma_pool_alloc(.., gfp_t flags, ..)) ||
-                execution(static inline void *kcalloc(.., gfp_t flags, ..)) ||
-                call(void * krealloc(.., gfp_t flags, ..)) ||
-                call(struct sk_buff *__netdev_alloc_skb(.., gfp_t flags, ..)) ||
-                call(void *usb_alloc_coherent(.., gfp_t flags, ..)) ||
-                call(int mempool_resize(.., gfp_t flags, ..)) ||
-                call(int pskb_expand_head(.., gfp_t flags, ..)) ||
-                call(struct sk_buff *skb_copy_expand(.., gfp_t flags, ..)) ||
-                execution(static inline void *dma_zalloc_coherent(.., gfp_t flags, ..)) ||
-                execution(static inline void *dma_alloc_coherent(.., gfp_t flags, ..))
-
-/* Separately weave *zalloc*() bacause it should not call kmalloc() in the body. */
-pointcut ALLOC_AROUND: execution(static inline void *kzalloc(.., gfp_t flags, ..)) ||
-                       execution(static inline void *kzalloc_node(.., gfp_t flags, ..)) ||
-                       execution(static inline void *kmem_cache_zalloc(.., gfp_t flags, ..))
-
-/* Functions without parameter of type gfp_t. Implicit flag GFP_KERNEL. */
-pointcut ALLOC_WITHOUT: call(void *vmalloc(..)) ||
-                        call(void *vzalloc(..)) ||
-                        call(void *vmalloc_user(..)) ||
-                        call(void *vmalloc_node(..)) ||
-                        call(void *vzalloc_node(..)) ||
-                        call(void *vmalloc_exec(..)) ||
-                        call(void *vmalloc_32(..)) ||
-                        call(void *vmalloc_32_user(..))
-
-pointcut alloc_pages: define(alloc_pages(gfp_mask, order))
-
-pointcut alloc_page_vma: define(alloc_page_vma(gfp_mask, vma, addr))
-
-around: ALLOC
-{
-	ldv_check_alloc_flags(flags);
-	return ldv_undef_ptr();
-}
-
-around: ALLOC_AROUND
-{
-	ldv_check_alloc_flags(flags);
-	return ldv_undef_ptr();
-}
-
-around: ALLOC_WITHOUT
-{
-	ldv_check_alloc_nonatomic();
-	return ldv_undef_ptr();
-}
-
-around: alloc_pages
-{
-	ldv_check_alloc_flags_and_return_some_page(gfp_mask)
-}
-
-around: alloc_page_vma
-{
-	ldv_check_alloc_flags_and_return_some_page(gfp_mask)
-}
+@include <linux/alloc.aspect>
 
 before: file ("$this")
 {
 extern void ldv_spin_lock(void);
 extern void ldv_spin_unlock(void);
 extern int ldv_spin_trylock(void);
-
-#include <linux/types.h>
-
-extern void *ldv_undefined_pointer(void);
-extern void ldv_check_alloc_flags(gfp_t flags);
-extern void ldv_check_alloc_nonatomic(void);
-/* Returns an arbitrary page in addition to checking flags */
-extern struct page *ldv_check_alloc_flags_and_return_some_page(gfp_t flags);
 }
 
 before: execution(static inline void spin_lock(..)) || 
@@ -126,8 +35,8 @@ around: define(spin_lock_irqsave_nested(lock, flags, subclass))
 }
 
 /* Unfortunately aspectator doesn't process this correctly.
-around: define(spin_lock_irqsave(lock, flags)) || 
-        define(spin_lock_nested(lock, subclass)) || 
+around: define(spin_lock_irqsave(lock, flags)) ||
+        define(spin_lock_nested(lock, subclass)) ||
         define(spin_lock_nest_lock(lock, nest_lock)) ||
         define(spin_lock_irqsave_nested(lock, flags, subclass))
 {
@@ -135,10 +44,10 @@ ldv_spin_lock()
 }
 */
 
-before: execution(static inline void spin_unlock(..)) || 
-        execution(static inline void spin_unlock_bh(..)) || 
-        execution(static inline void spin_unlock_irq(..)) || 
-        execution(static inline void spin_unlock_irqrestore(..)) || 
+before: execution(static inline void spin_unlock(..)) ||
+        execution(static inline void spin_unlock_bh(..)) ||
+        execution(static inline void spin_unlock_irq(..)) ||
+        execution(static inline void spin_unlock_irqrestore(..)) ||
         define(spin_unlock_irqrestore(lock,flags))
 {
 	ldv_spin_unlock();
@@ -147,8 +56,8 @@ before: execution(static inline void spin_unlock(..)) ||
 /* Call model function after original functions to ensure that non 0 will be
  * returned on successfull spin locking and v.v. Also use direct return
  * statement for this purpose. */
-after: execution(static inline int spin_trylock(..)) || 
-       execution(static inline int spin_trylock_bh(..)) || 
+after: execution(static inline int spin_trylock(..)) ||
+       execution(static inline int spin_trylock_bh(..)) ||
        execution(static inline int spin_trylock_irq(..))
 {
 	return ldv_spin_trylock();

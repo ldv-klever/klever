@@ -8,8 +8,10 @@
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
     "VTG strategy": {
-      "name": "all bug kinds merge",
+      "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",
@@ -32,7 +34,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-lock.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -40,7 +42,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-unlock.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -48,7 +50,7 @@
         "external modules": "tests/linux/mutex",
         "modules": ["double-unlock-2.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
     },
     {
@@ -56,15 +58,591 @@
         "external modules": "tests/linux/mutex",
         "modules": ["locked-at-exit.ko"]
       },
-      "rule specifications": ["linux:mutex:as"],
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mutex",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
         "external modules": "tests/linux/usb/gadget",
         "modules": ["created-at-exit.ko"]
       },
+      "rule specifications": ["linux:class"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-at-exit.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-at-exit-2.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["chrdev-with-usb-gadget.ko"]
+      },
       "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["class-with-usb-gadget.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["class-registered-at-exit.ko"]
+      },
+      "rule specifications": ["linux:class"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["usb-gadget-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-usb-gadget.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-class.ko"]
+      },
+      "rule specifications": ["linux:class"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["unregister-chrdev.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:gadget"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:class"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["double-put.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["get-without-put.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["put-and-exit.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["refcount.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["tryget.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/module",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["rlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["wlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["runlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["wunlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["rlock-after-wlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["tryrlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["trywlock.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rwlock",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["netdev.ko"]
+      },
+      "rule specifications": ["linux:netdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["register.ko"]
+      },
+      "rule specifications": ["linux:usb:register"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:register"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:netdev"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["claim.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["memcpy.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["release.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio-2.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["sdio-3.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/mmc",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["wrong-flags.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["nonatomic.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc1",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["wrong-flags-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["wrong-flags-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["nonatomic-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["nonatomic-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc2",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-lock-for-reset.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["wrong-flags-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-lock.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-lock-for-reset.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["nonatomic-trylock.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc3",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["atomic.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["double-lock.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["double-unlock.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["double-unlock-2.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["is-locked.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["trylock.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/spinlock",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/dev",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:dev"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["alloc-without-free.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["free-without-alloc.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/alloc4",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:resource"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/urb",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:urb"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["more-at-exit.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb/coherent",
+        "modules": ["less-decrement.ko"]
+      },
+      "rule specifications": ["linux:usb:coherent"],
       "ideal verdict": "unsafe"
     }
   ]

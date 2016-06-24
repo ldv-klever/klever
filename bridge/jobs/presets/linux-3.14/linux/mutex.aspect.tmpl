@@ -1,36 +1,33 @@
 before: file ("$this")
 {
-#include <linux/mutex.h>
+#include <linux/types.h>
 
-struct usb_device;
-extern void __ldv_usb_lock_device(struct usb_device *udev);
-extern void __ldv_usb_unlock_device(struct usb_device *udev);
-extern int __ldv_usb_trylock_device(struct usb_device *udev);
+struct mutex;
 
+extern void mutex_lock(struct mutex *lock);
+extern void mutex_lock_nested(struct mutex *, unsigned int);
 extern int mutex_lock_interruptible(struct mutex *lock);
 extern int mutex_lock_killable(struct mutex *lock);
-extern void mutex_lock(struct mutex *lock);
 
-// for arg_sign in arg_signs
-extern int ldv_mutex_lock_interruptible{{ arg_sign.id }}(struct mutex *lock);
-extern int ldv_mutex_lock_killable{{ arg_sign.id }}(struct mutex *lock);
+// for arg_sign in mutex_arg_signs
+extern int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock);
 extern void ldv_mutex_lock_nested{{ arg_sign.id }}(struct mutex *lock, unsigned int subclass);
 extern void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock);
 extern int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock);
 extern int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *lock);
 extern int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock);
 extern void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock);
-
-extern void ldv_usb_lock_device{{ arg_sign.id }}(void);
-extern void ldv_usb_unlock_device{{ arg_sign.id }}(void);
-extern int ldv_usb_trylock_device{{ arg_sign.id }}(void);
-extern int ldv_usb_lock_device_for_reset{{ arg_sign.id }}(void);
 // endfor
 }
 
 around: define(mutex_lock_interruptible(lock))
 {
 mutex_lock_interruptible(lock)
+}
+
+around: define(mutex_lock_nested(lock, subclass))
+{
+mutex_lock_nested(lock, subclass)
 }
 
 around: define(mutex_lock_killable(lock))
@@ -43,100 +40,44 @@ around: define(mutex_lock(lock))
 mutex_lock(lock)
 }
 
-after: call(int mutex_lock_interruptible(struct mutex *))
+around: call(void mutex_lock(struct mutex *)) || call(void mutex_lock_nested(struct mutex *, unsigned int))
 {
-	return ldv_mutex_lock_interruptible_$arg_sign1($arg1);
+	ldv_mutex_lock{{ arg_signs[1] }}($arg1);
 }
 
-after: call(int mutex_lock_killable(struct mutex *))
+around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_lock_killable(struct mutex *))
 {
-	return ldv_mutex_lock_killable_$arg_sign1($arg1);
+	return ldv_mutex_lock_interruptible_or_killable{{ arg_signs[1] }}($arg1);
 }
 
-/* mutex_lock_nested() is treated like mutex_lock(). This model is required
- * because of mutex_lock_nested() is a function if CONFIG_DEBUG_LOCK_ALLOC is
- * true (see #3324 and #785 for details).
- */
-before: call(void mutex_lock_nested(struct mutex *, unsigned int))
+around: call(static inline int mutex_is_locked(struct mutex *))
 {
-	ldv_mutex_lock_$arg_sign1($arg1);
+	return ldv_mutex_is_locked{{ arg_signs[1] }}($arg1);
 }
 
-before: call(void mutex_lock(struct mutex *))
+around: call(int mutex_trylock(struct mutex *))
 {
-	ldv_mutex_lock_$arg_sign1($arg1);
+	return ldv_mutex_trylock{{ arg_signs[1] }}($arg1);
 }
 
-after: call(int mutex_trylock(struct mutex *))
+around: call(int atomic_dec_and_mutex_lock(atomic_t *, struct mutex *))
 {
-	return ldv_mutex_trylock_$arg_sign1($arg1);
-}
-
-after: call(int atomic_dec_and_mutex_lock(..))
-{
-	return ldv_atomic_dec_and_mutex_lock_$arg_sign2($arg1, $arg2);
-}
-
-after: call(static inline int mutex_is_locked(struct mutex *))
-{
-	return ldv_mutex_is_locked_$arg_sign1($arg1);
-}
-
-before: call(void mutex_unlock(struct mutex *))
-{
-	ldv_mutex_unlock_$arg_sign1($arg1);
-}
-
-around: call(static inline int kref_put_mutex(..))
-{
-	if ($arg_value2)
-	{
-		ldv_mutex_lock_$arg_sign3($arg3);
-		$arg_value2($arg1);
-		return 1;
-	}
-	else
-	{
-		return 0;
-	}
-}
-
-around: call(int usb_lock_device_for_reset(..))
-{
-	return ldv_usb_lock_device_for_reset_$arg_sign1();
-}
-
-around: define(usb_lock_device(udev))
-{
-	__ldv_usb_lock_device(udev)
-}
-
-around: define(usb_unlock_device(udev))
-{
-	__ldv_usb_unlock_device(udev)
-}
-
-around: define(usb_trylock_device(udev))
-{
-	__ldv_usb_trylock_device(udev)
-}
-
-after: call(void __ldv_usb_lock_device(..))
-{
-	ldv_usb_lock_device_$arg_sign1();
-}
-
-after: call(void __ldv_usb_unlock_device(..))
-{
-	ldv_usb_unlock_device_$arg_sign1();
-}
-
-after: call(int __ldv_usb_trylock_device(..))
-{
-	return ldv_usb_trylock_device_$arg_sign1();
+	return ldv_atomic_dec_and_mutex_lock{{ arg_signs[2] }}($arg1, $arg2);
 }
 
 around: call(void mutex_unlock(struct mutex *))
 {
-	ldv_mutex_release_$arg_sign1($arg1);
+	ldv_mutex_unlock{{ arg_signs[1] }}($arg1);
+}
+
+around: call(static inline int kref_put_mutex(..))
+{
+	if ($arg_value2) {
+		ldv_mutex_lock{{ arg_signs[3] }}($arg3);
+		$arg_value2($arg1);
+		return 1;
+	}
+	else {
+		return 0;
+	}
 }

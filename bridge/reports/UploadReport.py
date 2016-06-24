@@ -51,7 +51,7 @@ class UploadReport(object):
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
                     or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                return 'Resources has wrong format: %s' % json.dumps(data['resources'])
+                return 'Resources have wrong format: %s' % json.dumps(data['resources'])
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
@@ -280,6 +280,7 @@ class UploadReport(object):
             return
         if report.finish_date is not None:
             self.error = 'The component is finished already (there was finish report earlier)'
+            return
 
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
@@ -320,6 +321,7 @@ class UploadReport(object):
 
         if self.archive is None:
             self.error = 'Unknown report must contain archive with problem description'
+            return
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.problem_description = self.data['problem desc']
         report.save()
@@ -353,6 +355,7 @@ class UploadReport(object):
 
         if self.archive is None:
             self.error = 'Safe report must contain archive with proof'
+            return
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.proof = self.data['proof']
         report.save()
@@ -388,6 +391,7 @@ class UploadReport(object):
 
         if self.archive is None:
             self.error = 'Unsafe report must contain archive with error trace and source code files'
+            return
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.error_trace = self.data['error trace']
         report.save()
