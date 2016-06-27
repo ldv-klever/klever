@@ -189,9 +189,11 @@ class Job(core.utils.CallbacksCaller):
                     self.logger.error(
                         'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
 
-                # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there will
-                # be used for sub-jobs as well one day.
-                sys.exit(1)
+                    # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there
+                    # will be used for sub-jobs as well one day.
+                    sys.exit(1)
+                else:
+                    raise
             finally:
                 core.utils.remove_component_callbacks(self.logger, type(self))
 
