@@ -122,7 +122,7 @@
       "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [["drivers/w1/wire.ko", "drivers/w1/masters/ds2482.ko"]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "[Multimodule] Target bug is in __w1_remove_master_device() that is called when all devices added by means of w1_add_master_device() are deregistered. But w1_add_master_device() is called just from other modules."
+      "comment": "???"
     },
     {
       "Linux kernel": {
@@ -132,7 +132,7 @@
       "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [["drivers/leds/leds-lp55xx-common.ko", "drivers/leds/leds-lp5521.ko"]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5521_firmware_loaded()."
+      "comment": "???"
     },
     {
       "Linux kernel": {
@@ -142,7 +142,7 @@
       "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [["drivers/leds/leds-lp55xx-common.ko", "drivers/leds/leds-lp5523.ko"]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with leds-lp55xx-common.ko. That module defines lp55xx_firmware_loaded() that calls module specific function with target bug lp5523_firmware_loaded()."
+      "comment": "???"
     },
     {
       "Linux kernel": {
@@ -152,7 +152,7 @@
       "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [["sound/pci/emu10k1/snd-emu10k1.ko", "sound/pci/emu10k1/snd-emu10k1-synth.ko"]]}},
       "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe",
-      "comment": "[Multimodule] Target bug can be detected just if this module will be analysed together with snd-emu10k1.ko. That module defines snd_emu10k1_voice_alloc() that can call snd_emu10k1_synth_get_voice() acquiring the same spinlock as snd_emu10k1_voice_alloc() already acquired"
+      "comment": "???"
     },
     {
       "Linux kernel": {
