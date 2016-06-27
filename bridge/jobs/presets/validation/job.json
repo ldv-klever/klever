@@ -124,7 +124,10 @@
         "Git repository": {"commit": "063579d4c3ed~"},
         "modules": ["drivers/w1/wire.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [["drivers/w1/wire.ko", "drivers/w1/masters/ds2482.ko"]]}},
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [[
+        "drivers/w1/wire.ko",
+        "drivers/w1/masters/ds2482.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
       "comment": "???"
@@ -134,7 +137,10 @@
         "Git repository": {"commit": "ac4de081312a~"},
         "modules": ["drivers/leds/leds-lp5521.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [["drivers/leds/leds-lp55xx-common.ko", "drivers/leds/leds-lp5521.ko"]]}},
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5521.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
       "comment": "???"
@@ -144,7 +150,10 @@
         "Git repository": {"commit": "ac4de081312a~"},
         "modules": ["drivers/leds/leds-lp5523.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [["drivers/leds/leds-lp55xx-common.ko", "drivers/leds/leds-lp5523.ko"]]}},
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5523.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
       "comment": "???"
@@ -154,7 +163,10 @@
         "Git repository": {"commit": "9aaf9678ea3e~"},
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [["sound/pci/emu10k1/snd-emu10k1.ko", "sound/pci/emu10k1/snd-emu10k1-synth.ko"]]}},
+      "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [[
+        "sound/pci/emu10k1/snd-emu10k1.ko",
+        "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+      ]]}},
       "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe",
       "comment": "???"
@@ -244,6 +256,10 @@
         "Git repository": {"commit": "063579d4c3ed"},
         "modules": ["drivers/w1/wire.ko"]
       },
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/w1/wire.ko": [[
+        "drivers/w1/wire.ko",
+        "drivers/w1/masters/ds2482.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "safe"
     },
@@ -252,6 +268,10 @@
         "Git repository": {"commit": "ac4de081312a"},
         "modules": ["drivers/leds/leds-lp5521.ko"]
       },
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5521.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "safe"
     },
@@ -260,6 +280,10 @@
         "Git repository": {"commit": "ac4de081312a"},
         "modules": ["drivers/leds/leds-lp5523.ko"]
       },
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5523.ko"
+      ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "safe"
     },
@@ -268,6 +292,10 @@
         "Git repository": {"commit": "9aaf9678ea3e"},
         "modules": ["sound/pci/emu10k1/snd-emu10k1-synth.ko"]
       },
+      "LKVOG strategy": {"name": "manual", "groups": {"sound/pci/emu10k1/snd-emu10k1-synth.ko": [[
+        "sound/pci/emu10k1/snd-emu10k1.ko",
+        "sound/pci/emu10k1/snd-emu10k1-synth.ko"
+      ]]}},
       "rule specifications": ["linux:spinlock"],
       "ideal verdict": "safe"
     },
