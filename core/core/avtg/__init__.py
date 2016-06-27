@@ -75,9 +75,6 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
 
     # Get raw rule specification description.
-    if 'rule specifications' not in raw_rule_spec_descs:
-        raise KeyError(
-            'Rule specifications DB has not mandatory attribute "rule specifications"')
     if rule_spec_id in raw_rule_spec_descs['rule specifications']:
         rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
     else:
@@ -252,10 +249,26 @@ def _extract_rule_spec_descs(conf, logger):
               encoding='ascii') as fp:
         raw_rule_spec_descs = json.load(fp)
 
-    rule_spec_descs = []
+    if 'rule specifications' not in raw_rule_spec_descs:
+        raise KeyError('Rule specifications DB has not mandatory attribute "rule specifications"')
+
+    if 'all' in conf['rule specifications']:
+        if not len(conf['rule specifications']) == 1:
+            raise ValueError(
+                'You can not specify "all" rule specifications together with some other rule specifications')
+
+        # Add all rule specification identifiers from DB.
+        conf['rule specifications'] = sorted(raw_rule_spec_descs['rule specifications'].keys())
+
+        # Remove all empty rule specifications since they are intended for development.
+        for rule_spec_id in conf['rule specifications']:
+            if rule_spec_id.find('empty') != -1:
+                conf['rule specifications'].remove(rule_spec_id)
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
         _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
+
+    rule_spec_descs = []
 
     for rule_spec_id in conf['rule specifications']:
         rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
