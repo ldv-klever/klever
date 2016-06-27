@@ -262,7 +262,7 @@ def _extract_rule_spec_descs(conf, logger):
 
         # Remove all empty rule specifications since they are intended for development.
         for rule_spec_id in conf['rule specifications']:
-            if rule_spec_id.find('empty') != -1:
+            if rule_spec_id.find('empty') != -1 or rule_spec_id.find('test') != -1:
                 conf['rule specifications'].remove(rule_spec_id)
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
