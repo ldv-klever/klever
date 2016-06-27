@@ -32,8 +32,9 @@
         "Git repository": {"commit": "bcb4a75bde38~"},
         "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "unsafe",
+      "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
     },
     {
       "Linux kernel": {
@@ -48,9 +49,8 @@
         "Git repository": {"commit": "bcb4a75bde38"},
         "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:usb:gadget"],
-      "ideal verdict": "safe",
-      "comment": "Non-target bug"
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
