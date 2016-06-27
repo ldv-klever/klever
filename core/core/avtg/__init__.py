@@ -256,10 +256,6 @@ def _extract_rule_spec_descs(conf, logger):
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
         _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
-    else:
-        # TODO: somehow common aspect may affect Single strategies!
-        if conf.__contains__('common aspect'):
-            conf.__delitem__('common aspect')
 
     for rule_spec_id in conf['rule specifications']:
         rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
