@@ -470,9 +470,11 @@ class CommonStrategy(core.components.Component):
     def create_mea(self):
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
             self.mea = MEA(self.conf, self.logger)
-        # Very useful option for all strategies.
-        self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+        # Do not set this very useful option until it will be fully supported by all analyses
+        # (https://forge.ispras.ru/issues/7342).
+        # # Very useful option for all strategies.
+        # self.conf['VTG strategy']['verifier']['options'].append(
+        #     {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def check_for_mpv(self):
         if 'RSG strategy' in self.conf and self.conf['RSG strategy'] == 'property automaton':
