@@ -998,6 +998,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             new.code = cd
             state_stack.append(new)
             new.code['final block'] = self._action_base_block(analysis, automaton, new)
+        elif len(initial_states) == 1:
+            state_stack.append(list(initial_states)[0])
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
