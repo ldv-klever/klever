@@ -114,7 +114,8 @@ class Job(core.utils.CallbacksCaller):
                     sys.exit(1)
 
     def __decide_sub_job(self):
-        self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
+        if self.name:
+            self.logger.info('Decide sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
 
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
@@ -185,8 +186,8 @@ class Job(core.utils.CallbacksCaller):
                     else:
                         traceback.print_exc()
 
-                self.logger.error(
-                    'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
+                    self.logger.error(
+                        'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
 
                 # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there will
                 # be used for sub-jobs as well one day.
