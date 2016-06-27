@@ -192,12 +192,7 @@ class CommonStrategy(core.components.Component):
             path_to_processed_witness = path_to_witness + ".processed"
             with open(path_to_witness, encoding='ascii') as fp:
                 # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
-                # TODO: If error trace was not printed in time, this will fail.
-                try:
-                    dom = minidom.parse(fp)
-                except:
-                    self.logger.warning('{0} cannot be parsed, skipping it'.format(path_to_witness))
-                    return False
+                dom = minidom.parse(fp)
 
             graphml = dom.getElementsByTagName('graphml')[0]
 
