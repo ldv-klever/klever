@@ -90,7 +90,7 @@
       },
       "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7281'>Bug #7281</a>"
+      "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
     },
     {
       "Linux kernel": {
@@ -99,7 +99,7 @@
       },
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>"
+      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
     },
     {
       "Linux kernel": {
@@ -108,7 +108,7 @@
       },
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>"
+      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
     },
     {
       "Linux kernel": {
