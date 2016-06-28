@@ -29,12 +29,27 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
-        "modules": ["drivers/hid/hid.ko"]
+        "Git repository": {"commit": "5c256d215753~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
-      "rule specifications": ["linux:chrdev"],
-      "ideal verdict": "unsafe",
-      "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "214c97a12f1f"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
     },
     {
       "Linux kernel": {
@@ -46,10 +61,26 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38"},
-        "modules": ["drivers/hid/hid.ko"]
+        "Git repository": {"commit": "5c256d215753"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
-      "rule specifications": ["linux:chrdev"],
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "60b35930067d"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "214c97a12f1f~"},
+        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "safe"
     },
     {
@@ -63,34 +94,47 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c~"},
-        "modules": ["net/tipc/tipc.ko"]
+        "Git repository": {"commit": "bcb4a75bde38~"},
+        "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:spinlock"],
-      "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
-        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
-      ]}},
+      "rule specifications": ["linux:chrdev"],
       "ideal verdict": "unsafe",
-      "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+      "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+        "Git repository": {"commit": "790cc82a2b2b~"},
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "unsafe",
+      "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "44f694330e1e~"},
-        "modules": ["net/sunrpc/sunrpc.ko"]
+        "Git repository": {"commit": "ac4de081312a~"},
+        "modules": ["drivers/leds/leds-lp5521.ko"]
       },
-      "rule specifications": ["linux:module"],
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5521.ko"
+      ]]}},
+      "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
+      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a~"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
+      },
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5523.ko"
+      ]]}},
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe",
+      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
     },
     {
       "Linux kernel": {
@@ -112,15 +156,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "790cc82a2b2b~"},
-        "modules": ["drivers/input/misc/arizona-haptics.ko"]
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed~"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -134,29 +169,35 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "modules": ["drivers/leds/leds-lp5521.ko"]
+        "Git repository": {"commit": "ae3f34854485~"},
+        "modules": ["fs/nfs/nfs.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5521.ko"
-      ]]}},
-      "rule specifications": ["linux:mutex"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe",
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a~"},
-        "modules": ["drivers/leds/leds-lp5523.ko"]
+        "Git repository": {"commit": "44f694330e1e~"},
+        "modules": ["net/sunrpc/sunrpc.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5523.ko"
-      ]]}},
-      "rule specifications": ["linux:mutex"],
+      "rule specifications": ["linux:module"],
       "ideal verdict": "unsafe",
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c~"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
+      ]}},
+      "ideal verdict": "unsafe",
+      "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
     },
     {
       "Linux kernel": {
@@ -173,59 +214,43 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+        "Git repository": {"commit": "bcb4a75bde38"},
+        "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "214c97a12f1f"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485~"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
-      "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe",
-      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "21a018a58f3c"},
-        "modules": ["net/tipc/tipc.ko"]
-      },
-      "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe",
-      "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
-        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
-      ]}},
-      "comment": "See comment for unsafe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "60b35930067d"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
+        "Git repository": {"commit": "790cc82a2b2b"},
+        "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "44f694330e1e"},
-        "modules": ["net/sunrpc/sunrpc.ko"]
+        "Git repository": {"commit": "ac4de081312a"},
+        "modules": ["drivers/leds/leds-lp5521.ko"]
       },
-      "rule specifications": ["linux:module"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5521.ko"
+      ]]}},
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "ac4de081312a"},
+        "modules": ["drivers/leds/leds-lp5523.ko"]
+      },
+      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
+        "drivers/leds/leds-lp55xx-common.ko",
+        "drivers/leds/leds-lp5523.ko"
+      ]]}},
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
@@ -245,14 +270,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "790cc82a2b2b"},
-        "modules": ["drivers/input/misc/arizona-haptics.ko"]
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "063579d4c3ed"},
         "modules": ["drivers/w1/wire.ko"]
       },
@@ -265,27 +282,34 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "modules": ["drivers/leds/leds-lp5521.ko"]
+        "Git repository": {"commit": "ae3f34854485"},
+        "modules": ["fs/nfs/nfs.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5521.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5521.ko"
-      ]]}},
-      "rule specifications": ["linux:mutex"],
+      "rule specifications": ["linux:spinlock"],
       "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "ac4de081312a"},
-        "modules": ["drivers/leds/leds-lp5523.ko"]
+        "Git repository": {"commit": "44f694330e1e"},
+        "modules": ["net/sunrpc/sunrpc.ko"]
       },
-      "LKVOG strategy": {"name": "manual", "groups": {"drivers/leds/leds-lp5523.ko": [[
-        "drivers/leds/leds-lp55xx-common.ko",
-        "drivers/leds/leds-lp5523.ko"
-      ]]}},
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:module"],
+      "ideal verdict": "safe",
+      "comment": "See comment for unsafe"
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "21a018a58f3c"},
+        "modules": ["net/tipc/tipc.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "safe",
+      "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
+      ]}},
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
@@ -296,30 +320,6 @@
         "sound/pci/emu10k1/snd-emu10k1.ko",
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
-      "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "214c97a12f1f~"},
-        "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "ae3f34854485"},
-        "modules": ["fs/nfs/nfs.ko"]
-      },
       "rule specifications": ["linux:spinlock"],
       "ideal verdict": "safe"
     }
