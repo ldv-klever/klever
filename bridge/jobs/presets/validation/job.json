@@ -185,8 +185,7 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Heuristic roles assignment (<a href='https://forge.ispras.ru/issues/6693'>feature #6693</a>)"
+      "ideal verdict": "unsafe"
     },
     {
       "Linux kernel": {
