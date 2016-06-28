@@ -181,7 +181,6 @@ class LKVOG(core.components.Component):
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
             self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
-
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
@@ -191,7 +190,7 @@ class LKVOG(core.components.Component):
             self.module['name'] = self.linux_kernel_module_names_mq.get()
 
             if self.module['name'] is None:
-                self.logger.debug('Linux kernel module names was terminated')
+                self.logger.debug('Linux kernel module names message queue was terminated')
                 self.linux_kernel_module_names_mq.close()
                 break
 
