@@ -169,7 +169,7 @@
       ]]}},
       "rule specifications": ["linux:spinlock"],
       "ideal verdict": "unsafe",
-      "comment": "???"
+      "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
     },
     {
       "Linux kernel": {
