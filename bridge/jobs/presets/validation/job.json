@@ -207,7 +207,8 @@
         {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
-      ]}}
+      ]}},
+      "comment": "See comment for unsafe"
     },
     {
       "Linux kernel": {
