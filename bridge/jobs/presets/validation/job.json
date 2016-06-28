@@ -143,7 +143,7 @@
       ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "???"
+      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
     },
     {
       "Linux kernel": {
@@ -156,7 +156,7 @@
       ]]}},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe",
-      "comment": "???"
+      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
     },
     {
       "Linux kernel": {
