@@ -99,7 +99,7 @@
       },
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
+      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>"
     },
     {
       "Linux kernel": {
@@ -108,7 +108,7 @@
       },
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdict": "unsafe",
-      "comment": "[Environment model] Interrupt callback invocations support (<a href='https://forge.ispras.ru/issues/6575'>feature #6575</a>)"
+      "comment": "[Environment model] <a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>"
     },
     {
       "Linux kernel": {
