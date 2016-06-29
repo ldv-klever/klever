@@ -28,7 +28,7 @@ class ASE(core.avtg.plugins.Plugin):
         # * more nice text representation for notes to be shown to users.
         self.abstract_task_desc['template context'] = {
             self.conf['argument signatures list']:
-                [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in arg_signs]
+                [{'id': '_{0}'.format(arg_sign), 'text': ' "{0}"'.format(arg_sign)} for arg_sign in sorted(arg_signs)]
                 if arg_signs else [{'id': '', 'text': ''}],
             'arg_signs': ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
         }
