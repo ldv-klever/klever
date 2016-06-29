@@ -86,13 +86,6 @@ class RSG(core.avtg.plugins.Plugin):
 
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
-        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
-        if 'common aspect' in self.conf:
-            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                        self.conf['common aspect'])
-            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
-            aspects.append(common_aspect)
-
         for model_c_file in models:
             model = models[model_c_file]
 
@@ -141,6 +134,16 @@ class RSG(core.avtg.plugins.Plugin):
             else:
                 model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
+
+        # Sort aspects to apply them in the deterministic order.
+        aspects.sort()
+
+        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
+        if 'common aspect' in self.conf:
+            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['common aspect'])
+            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
+            aspects.insert(0, common_aspect)
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
