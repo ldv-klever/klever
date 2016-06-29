@@ -198,7 +198,7 @@ class RSG(core.avtg.plugins.Plugin):
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
-        for model_c_file in models:
+        for model_c_file in sorted(models):
             model = models[model_c_file]
 
             suffix = ''
