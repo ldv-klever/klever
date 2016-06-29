@@ -458,8 +458,9 @@ class CommonStrategy(core.components.Component):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'bug kinds' in extra_c_file:
                 for bug_kind in extra_c_file['bug kinds']:
-                    if not bug_kinds.__contains__(bug_kind):
+                    if bug_kind not in bug_kinds:
                         bug_kinds.append(bug_kind)
+        bug_kinds.sort()
         return bug_kinds
 
     def create_mea(self):

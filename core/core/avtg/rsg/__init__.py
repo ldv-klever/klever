@@ -184,7 +184,7 @@ class RSG(core.avtg.plugins.Plugin):
                 with open(preprocessed_model_c_file, 'w', encoding='ascii') as fp:
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
                     # defined later somehow by VTG.
-                    for bug_kind in bug_kinds:
+                    for bug_kind in sorted(bug_kinds):
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
