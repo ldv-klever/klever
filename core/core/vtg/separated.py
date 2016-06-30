@@ -63,7 +63,8 @@ class SeparatedStrategy(CommonStrategy):
                               'resources': decision_results['resources'],
                               'log': log_file,
                               'files': [log_file] + (
-                                  ['benchmark.xml', self.automaton_file] + self.task_desc['files']
+                                  (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
+                                  [self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
