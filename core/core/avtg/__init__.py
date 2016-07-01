@@ -261,9 +261,12 @@ def _extract_rule_spec_descs(conf, logger):
         conf['rule specifications'] = sorted(raw_rule_spec_descs['rule specifications'].keys())
 
         # Remove all empty rule specifications since they are intended for development.
+        rule_specs = []
         for rule_spec_id in conf['rule specifications']:
-            if rule_spec_id.find('empty') != -1 or rule_spec_id.find('test') != -1:
-                conf['rule specifications'].remove(rule_spec_id)
+            if rule_spec_id.find('empty') == -1 and rule_spec_id.find('test') == -1:
+                rule_specs.append(rule_spec_id)
+        conf['rule specifications'] = rule_specs
+        logger.debug('Following rule specifications will be checked "{0}"'.format(conf['rule specifications']))
 
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
         _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
