@@ -91,8 +91,6 @@ class CommonStrategy(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                if not self.conf['keep intermediate files']:
-                    os.remove(os.path.join(self.conf['main working directory'], extra_c_file['C file']))
                 extra_c_file['C file'] = trimmed_c_file
 
             core.utils.execute(self.logger,
