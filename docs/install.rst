@@ -30,6 +30,12 @@ Klever Bridge installation
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
 
+#. Create :file:`bridge/bridge/settings.py`:
+
+   .. code-block:: python
+
+      from bridge.development import *
+
 #. Create :file:`bridge/bridge/db.json`:
 
    .. code-block:: json
@@ -90,9 +96,11 @@ Adapt them for your Linux distribution by yourself.
    $ echo "Listen 8998" > /etc/apache2/conf-enabled/bridge.conf
 
 #. Copy directory :file:`bridge` to directory :file:`/var/www/bridge`.
-#. Replace content of file :file:`/var/www/bridge/bridge/settings.py` with *from bridge.production import **::
+#. Create :file:`/var/www/bridge/bridge/settings.py`:
 
-    $ echo "from bridge.production import *" > /var/www/bridge/bridge/settings.py
+   .. code-block:: python
+
+      from bridge.production import *
 
 #. Execute the following manage.py task::
 
