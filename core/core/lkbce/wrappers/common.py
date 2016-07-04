@@ -17,7 +17,7 @@ class Command:
     # The rest options are CC/LD input files.
     OPTS = {
         'gcc': {
-            'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x'),
+            'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x', 'idirafter'),
             'opts discarding in files': ('print-file-name', 'v'),
             'opts discarding out file': ('E', 'print-file-name', 'v')
         },
@@ -293,7 +293,12 @@ class Command:
         # case in general.
         if self.name != 'gcc':
             self.type = self.name.upper()
-        elif len(self.in_files) == 1:
-            self.type = 'CC'
-        else:
+        elif len(self.in_files) > 1:
             self.type = 'LD'
+        else:
+            for in_file in self.in_files:
+                if not in_file.endswith('.o'):
+                    self.type = 'CC'
+                    break
+            else:
+                self.type = 'LD'
