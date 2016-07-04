@@ -45,7 +45,7 @@ class LKVOG(core.components.Component):
         self.linux_kernel_module_names_mq = multiprocessing.Queue()
         self.linux_kernel_clusters_mq = multiprocessing.Queue()
         self.module = {}
-        self.all_modules = {}
+        self.all_modules = set()
         self.verification_obj_desc = {}
         self.all_clusters = set()
         self.checked_modules = set()
@@ -214,7 +214,7 @@ class LKVOG(core.components.Component):
             cc_ready.add(self.module['name'])
 
             if not self.module['name'] in self.all_modules:
-                self.all_modules[self.module['name']] = True
+                self.all_modules.add(self.module['name'])
                 module_clusters = []
                 if self.module['name'] in self.checked_modules:
                     # Find clusters
@@ -236,6 +236,12 @@ class LKVOG(core.components.Component):
                     self.cluster = cluster
                     # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
+
+        if self.all_clusters:
+            not_builded = set()
+            for cluster in self.all_clusters:
+                not_builded |= set([module.id for module in cluster.modules]) - self.all_modules
+            raise RuntimeError('Can not build following modules: {0}'.format(not_builded))
 
         self.send_loc_report()
 
