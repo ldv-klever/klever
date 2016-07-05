@@ -140,10 +140,14 @@ class Advanced(AbstractStrategy):
 
     def export_provided_weight(self, module, unused):
         # Count functions, that successor provides
+        if not self.priority_on_export_function:
+            return 0
         return len(module.export_functions)
 
     def call_provided_weight(self, module, unused):
         # Count functions, that predecessor provides
+        if not self.priority_on_calls:
+            return 0
         return len(module.call_functions)
 
     def remoteness_weight(self, module1, module2):
