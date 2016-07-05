@@ -9,20 +9,32 @@ class Manual(AbstractStrategy):
 
     def divide(self, module_name):
         ret = []
+        if module_name.startswith('ext-modules/'):
+            is_external = True
+            module_name = module_name[12:]
+        else:
+            is_external = False
 
         if module_name in self.groups:
             for group in self.groups[module_name]:
                 group_modules = []
                 for module in group:
-                    group_modules.append(Module(module))
+                    if is_external:
+                        group_modules.append(Module('ext-modules/' + module))
+                    else:
+                        group_modules.append(Module(module))
                     for pred_module in group_modules[:-1]:
                         pred_module.add_successor(group_modules[-1])
                 # Make module_name to root of the Graph
-                root_module_pos = [module.id for module in group_modules].index(module_name)
+                root_module_pos = [module.id for module in group_modules].index(module_name if not is_external
+                                                                                else 'ext-modules/' + module_name)
                 group_modules[0], group_modules[root_module_pos] = group_modules[root_module_pos], group_modules[0]
 
                 ret.append(Graph(group_modules))
         else:
-            ret.append(Graph([Module(module_name)]))
+            if is_external:
+                ret.append(Graph([Module('ext-modules/' + module_name)]))
+            else:
+                ret.append(Graph([Module(module_name)]))
 
         return ret

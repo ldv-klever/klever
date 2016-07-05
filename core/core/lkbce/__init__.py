@@ -86,14 +86,21 @@ class LKBCE(core.components.Component):
         self.mqs['Linux kernel modules'].close()
         self.linux_kernel['modules'] = linux_kernel_modules.get('modules', [])
         self.linux_kernel['build kernel'] = linux_kernel_modules.get('build kernel', False)
+        if 'external modules' in self.conf['Linux kernel'] and not self.linux_kernel['build kernel']:
+            self.linux_kernel['modules'] = [module if not module.startswith('ext-modules/') else module[12:]
+                                            for module in self.linux_kernel['modules']]
 
     def extract_module_files(self):
         if 'module dependencies file' in self.conf['Linux kernel']:
-            with open(self.conf['Linux kernel']['module dependencies file']) as fp:
+            dependencies_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
+                                               self.conf['Linux kernel']['module dependencies file'])
+            with open(dependencies_file) as fp:
                 self.parse_linux_kernel_mod_function_deps(fp, True)
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
         if 'module sizes file' in self.conf['Linux kernel']:
-            with open(self.conf['Linux kernel']['module sizes file']) as fp:
+            sizes_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
+                                                     self.conf['Linux kernel']['module sizes file'])
+            with open(sizes_file) as fp:
                 self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands
