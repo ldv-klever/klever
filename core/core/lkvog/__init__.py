@@ -180,7 +180,8 @@ class LKVOG(core.components.Component):
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
-            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules': list(build_modules)})
+            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules':
+                [module if not module.startswith('ext-modules/') else module[12:] for module in build_modules]})
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
