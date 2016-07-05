@@ -63,7 +63,8 @@ class SeparatedStrategy(CommonStrategy):
                               'resources': decision_results['resources'],
                               'log': log_file,
                               'files': [log_file] + (
-                                  ['benchmark.xml', self.automaton_file] + self.task_desc['files']
+                                  (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
+                                  [self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
@@ -140,7 +141,7 @@ class SeparatedStrategy(CommonStrategy):
         self.logger.info('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
-            if os.path.isfile(self.automaton_file):
+            if self.automaton_file:
                 tar.add(self.automaton_file)
             for file in self.task_desc['files']:
                 tar.add(file)
@@ -171,7 +172,7 @@ class SeparatedStrategy(CommonStrategy):
         self.logger.info('Decide verification task')
         self.verification_status = None
 
-        if not os.path.isfile(self.automaton_file):
+        if not self.automaton_file:
             self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
             return
 

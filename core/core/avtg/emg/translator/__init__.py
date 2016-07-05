@@ -5,7 +5,7 @@ from pympler import asizeof
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.signature import Function, Pointer, import_declaration
+from core.avtg.emg.common.signature import Function, Pointer, Primitive, import_declaration
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
@@ -429,7 +429,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
         elif not extern:
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
-            if variable.value and type(variable) is Pointer and type(variable.points) is Function:
+            if variable.value and \
+                    ((type(variable.declaration) is Pointer and type(variable.declaration.points) is Function) or
+                     type(variable.declaration) is Primitive):
                 self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
             elif not variable.value and type(variable.declaration) is Pointer:
                 if file not in self.__external_allocated:
@@ -996,6 +998,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             new.code = cd
             state_stack.append(new)
             new.code['final block'] = self._action_base_block(analysis, automaton, new)
+        elif len(initial_states) == 1:
+            state_stack.append(list(initial_states)[0])
         else:
             state_stack.append(list(automaton.fsa.initial_states)[0])
 
@@ -1084,6 +1088,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
             closed_condition_flag = True
             at_least_one_closed = False
+            merged_branches = 0
             while closed_condition_flag and len(conditional_stack) > 0:
                 closed_condition_flag = False
                 if last_action and conditional_stack[-1]['cases left'] == 0 and \
@@ -1094,16 +1099,23 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     f_code.append('\t' * tab + 'default: ldv_stop();')
                     tab -= 1
                     f_code.append('\t' * tab + '}')
-                    conditional_stack.pop()
+                    cnd = conditional_stack.pop()
                     closed_condition_flag = True
-                    at_least_one_closed = True
                 elif last_action and conditional_stack[-1]['cases left'] == 0 and \
                         conditional_stack[-1]['condition'] == 'if':
                     tab -= 1
                     f_code.append('\t' * tab + '}')
-                    conditional_stack.pop()
+                    cnd = conditional_stack.pop()
                     closed_condition_flag = True
+
+                if closed_condition_flag:
                     at_least_one_closed = True
+
+                    if len(state.successors) > 0:
+                        merged_branches += cnd['counter']
+                        expected_merge = max([len(st.predecessors) for st in state.successors])
+                        if expected_merge == merged_branches:
+                            closed_condition_flag = False
 
             if (type(state.action) is not Subprocess or len(state.code['guard']) > 0) and \
                     (not last_action or (last_action and at_least_one_closed)):
@@ -1169,6 +1181,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         for var in automaton.variables():
             if type(var.declaration) is Pointer and self.__allocate_external:
                 definition = var.declare() + " = external_allocated_data();"
+            elif type(var.declaration) is Primitive and var.value:
+                definition = var.declare_with_init() + ";"
             else:
                 definition = var.declare() + ";"
             v_code.append(definition)

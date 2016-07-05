@@ -770,6 +770,22 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/se_subsystem_api",
+        "modules": ["se_callbacks.ko"]
+      },
+      "ideal verdict": "safe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/se_subsystem_api",
+        "modules": ["se_invoke.ko"]
+      },
+      "ideal verdict": "unsafe",
+      "rule specifications": ["linux:emg:test"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/target_type",
         "modules": ["dm_register_target.ko"]
       },

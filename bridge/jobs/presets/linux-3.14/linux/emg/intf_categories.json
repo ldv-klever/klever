@@ -41,15 +41,15 @@
       "header": "include/linux/netdevice.h"
     },
     "mod_timer": {
-      "signature": "$ mod_timer(*%timer.timer_list%, %timer.data%)",
+      "signature": "$ mod_timer(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "mod_timer_pinned": {
-      "signature": "int mod_timer_pinned(*%timer.timer_list%, %timer.data%)",
+      "signature": "int mod_timer_pinned(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "mod_timer_pending": {
-      "signature": "int mod_timer_pending(*%timer.timer_list%, %timer.data%)",
+      "signature": "int mod_timer_pending(*%timer.timer_list%, $)",
       "header": "include/linux/timer.h"
     },
     "del_timer": {
@@ -71,6 +71,22 @@
     "request_irq": {
       "signature": "int request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
       "header": "include/linux/interrupt.h"
+    },
+    "seq_open_private": {
+      "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
+      "header": "include/linux/seq_file.h"
+    },
+    "seq_release_private": {
+      "signature": "int seq_release_private($, %seq_operations.file%)",
+      "header": "include/linux/seq_file.h"
+    },
+    "seq_open": {
+      "signature": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
+      "header": "include/linux/seq_file.h"
+    },
+    "seq_release": {
+      "signature": "int seq_release($, %seq_operations.file%)",
+      "header": "include/linux/seq_file.h"
     },
     "devm_request_threaded_irq": {
       "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
@@ -206,14 +222,117 @@
       "containers": {
         "device_driver": {
           "signature": "struct device_driver driver",
-          "header": "include/linux/device.h",
-          "fields": {
-            "pm": "*%device_driver.dev_pm_ops%"
-          }
-        },
+          "header": "include/linux/device.h"
+        }
+      }
+    },
+    "pm": {
+      "containers": {
         "dev_pm_ops": {
-          "signature": "struct dev_pm_ops ops",
-          "header": "include/linux/pm.h"
+          "signature": "struct dev_pm_ops",
+          "header": "include/linux/linux/pm.h",
+          "fields": {
+            "prepare": "%pm.prepare%",
+            "complete": "%pm.complete%",
+            "suspend": "%pm.suspend%",
+            "resume": "%pm.resume%",
+            "freeze": "%pm.freeze%",
+            "thaw": "%pm.thaw%",
+            "poweroff": "%pm.poweroff%",
+            "restore": "%pm.restore%",
+            "suspend_late": "%pm.suspend_late%",
+            "resume_early": "%pm.resume_early%",
+            "freeze_late": "%pm.freeze_late%",
+            "thaw_early": "%pm.thaw_early%",
+            "poweroff_late": "%pm.poweroff_late%",
+            "restore_early": "%pm.restore_early%",
+            "suspend_noirq": "%pm.suspend_noirq%",
+            "resume_noirq": "%pm.resume_noirq%",
+            "freeze_noirq": "%pm.freeze_noirq%",
+            "thaw_noirq": "%pm.thaw_noirq%",
+            "poweroff_noirq": "%pm.poweroff_noirq%",
+            "restore_noirq": "%pm.restore_noirq%",
+            "runtime_suspend": "%pm.runtime_suspend%",
+            "runtime_resume": "%pm.runtime_resume%",
+            "runtime_idle": "%pm.runtime_idle%"
+          }
+        }
+      },
+      "resources": {
+        "device": {
+          "signature": "struct device *dev",
+          "implemented in kernel": true
+        }
+      },
+      "callbacks": {
+        "prepare": {
+            "signature": "int (*prepare)(%pm.device%)"
+        },
+        "complete": {
+            "signature": "void (*complete)(%pm.device%)"
+        },
+        "suspend": {
+            "signature": "int (*suspend)(%pm.device%)"
+        },
+        "resume": {
+            "signature": "int (*resume)(%pm.device%)"
+        },
+        "freeze": {
+            "signature": "int (*freeze)(%pm.device%)"
+        },
+        "thaw": {
+            "signature": "int (*thaw)(%pm.device%)"
+        },
+        "poweroff": {
+            "signature": "int (*poweroff)(%pm.device%)"
+        },
+        "restore": {
+            "signature": "int (*restore)(%pm.device%)"
+        },
+        "suspend_late": {
+            "signature": "int (*suspend_late)(%pm.device%)"
+        },
+        "resume_early": {
+            "signature": "int (*resume_early)(%pm.device%)"
+        },
+        "freeze_late": {
+            "signature": "int (*freeze_late)(%pm.device%)"
+        },
+        "thaw_early": {
+            "signature": "int (*thaw_early)(%pm.device%)"
+        },
+        "poweroff_late": {
+            "signature": "int (*poweroff_late)(%pm.device%)"
+        },
+        "restore_early": {
+            "signature": "int (*restore_early)(%pm.device%)"
+        },
+        "suspend_noirq": {
+            "signature": "int (*suspend_noirq)(%pm.device%)"
+        },
+        "resume_noirq": {
+            "signature": "int (*resume_noirq)(%pm.device%)"
+        },
+        "freeze_noirq": {
+            "signature": "int (*freeze_noirq)(%pm.device%)"
+        },
+        "thaw_noirq": {
+            "signature": "int (*thaw_noirq)(%pm.device%)"
+        },
+        "poweroff_noirq": {
+            "signature": "int (*poweroff_noirq)(%pm.device%)"
+        },
+        "restore_noirq": {
+            "signature": "int (*restore_noirq)(%pm.device%)"
+        },
+        "runtime_suspend": {
+            "signature": "int (*runtime_suspend)(%pm.device%)"
+        },
+        "runtime_resume": {
+            "signature": "int (*runtime_resume)(%pm.device%)"
+        },
+        "runtime_idle": {
+            "signature": "int (*runtime_idle)(%pm.device%)"
         }
       }
     },
@@ -324,8 +443,8 @@
           "signature": "struct se_subsystem_api ops",
           "header": "include/target/target_core_backend.h",
           "fields": {
-            "alloc_device": "%se_subsystem.probe%",
-            "free_device": "%se_subsystem.release%",
+            "alloc_device": "%se_subsystem.alloc%",
+            "free_device": "%se_subsystem.free%",
             "attach_hba": "%se_subsystem.attach_hba%",
             "detach_hba": "%se_subsystem.detach_hba%"
           }
@@ -340,17 +459,53 @@
         }
       },
       "callbacks": {
-        "probe": {
-          "signature": "%se_subsystem.se_device% (*probe)(%se_subsystem.se_hba%, $)"
+        "alloc": {
+          "signature": "%se_subsystem.se_device% (*alloc)(%se_subsystem.se_hba%, $)"
         },
-        "release": {
-          "signature": "void (*release)(%se_subsystem.se_device%)"
+        "free": {
+          "signature": "void (*free)(%se_subsystem.se_device%)"
         },
         "attach_hba": {
           "signature": "int (*attach_hba)(%se_subsystem.se_hba%, $)"
         },
         "detach_hba": {
           "signature": "void (*detach_hba)(%se_subsystem.se_hba%)"
+        }
+      }
+    },
+    "seq_operations": {
+      "containers": {
+        "seq_operations": {
+          "signature": "struct seq_operations ops",
+          "header": "include/linux/seq_file.h",
+          "fields": {
+            "start": "%seq_operations.start%",
+            "stop": "%seq_operations.stop%",
+            "next": "%seq_operations.next%",
+            "show": "%seq_operations.show%"
+          }
+        }
+      },
+      "resources": {
+        "seq_file": {
+          "signature": "struct seq_file *file"
+        },
+        "file": {
+          "signature": "struct file *file"
+        }
+      },
+      "callbacks": {
+        "start": {
+          "signature": "void * (*start)(%seq_operations.seq_file%, $)"
+        },
+        "stop": {
+          "signature": "void (*stop)(%seq_operations.seq_file%, $)"
+        },
+        "next": {
+          "signature": "void * (*next)(%seq_operations.seq_file%, $, $)"
+        },
+        "show": {
+          "signature": "int (*show)(%seq_operations.seq_file%, $)"
         }
       }
     },

@@ -9,13 +9,13 @@ struct inode *inode;
 
 static void *ldv_start_callback(struct seq_file *file, loff_t *pos)
 {
-	ldv_invoke_callback();
-    return 0;
+    ldv_invoke_callback();
+    return (void *) file;
 }
 
 static void ldv_stop_callback(struct seq_file *file, void *iter_ptr)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
 }
 
 static const struct seq_operations ldv_ops = {

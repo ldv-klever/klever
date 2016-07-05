@@ -192,7 +192,7 @@ class LKVOG(core.components.Component):
             self.module['name'] = self.linux_kernel_module_names_mq.get()
 
             if self.module['name'] is None:
-                self.logger.debug('Linux kernel module names was terminated')
+                self.logger.debug('Linux kernel module names message queue was terminated')
                 self.linux_kernel_module_names_mq.close()
                 break
 

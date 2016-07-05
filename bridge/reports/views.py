@@ -31,6 +31,11 @@ def sort_list(l):
     return sorted(l)
 
 
+@register.filter
+def sort_bugs_list(l):
+    return sorted(l, key=lambda bug: bug[12:].lstrip('~'))
+
+
 @login_required
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)

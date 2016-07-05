@@ -9,13 +9,9 @@ struct inode *inode;
 
 static void *ldv_start_callback(struct seq_file *file, loff_t *pos)
 {
-	int res;
-
     ldv_invoke_callback();
-    res = ldv_undef_int();
-    if (!res)
-        ldv_probe_up();
-    return res;
+    ldv_probe_up();
+    return (void *) file;
 }
 
 static void ldv_stop_callback(struct seq_file *file, void *iter_ptr)

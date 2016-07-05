@@ -86,13 +86,6 @@ class RSG(core.avtg.plugins.Plugin):
 
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
-        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
-        if 'common aspect' in self.conf:
-            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                        self.conf['common aspect'])
-            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
-            aspects.append(common_aspect)
-
         for model_c_file in models:
             model = models[model_c_file]
 
@@ -142,6 +135,16 @@ class RSG(core.avtg.plugins.Plugin):
                 model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
 
+        # Sort aspects to apply them in the deterministic order.
+        aspects.sort()
+
+        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
+        if 'common aspect' in self.conf:
+            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                        self.conf['common aspect'])
+            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
+            aspects.insert(0, common_aspect)
+
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
@@ -184,7 +187,7 @@ class RSG(core.avtg.plugins.Plugin):
                 with open(preprocessed_model_c_file, 'w', encoding='ascii') as fp:
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
                     # defined later somehow by VTG.
-                    for bug_kind in bug_kinds:
+                    for bug_kind in sorted(bug_kinds):
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
@@ -198,7 +201,7 @@ class RSG(core.avtg.plugins.Plugin):
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
-        for model_c_file in models:
+        for model_c_file in sorted(models):
             model = models[model_c_file]
 
             suffix = ''
