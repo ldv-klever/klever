@@ -1,0 +1,5 @@
+extra/big_module.ko needs "export_err": extra/init.ko
+extra/small_module.ko needs "export_err": extra/init.ko
+extra/big_module.ko needs "export_err": extra/init2.ko
+extra/small_module.ko needs "export_err": extra/init2.ko
+extra/for_big.ko needs "some_ex": extra/big_module.ko
