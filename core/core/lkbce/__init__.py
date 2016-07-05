@@ -156,7 +156,7 @@ class LKBCE(core.components.Component):
                 if 'build kernel' not in self.linux_kernel or not self.linux_kernel['build kernel']:
                     for modules_set in self.linux_kernel['modules']:
                         # Module sets ending with .ko imply individual modules.
-                        if re.search(r'\.ko$', modules_set):
+                        if re.search(r'\.k?o$', modules_set):
                             build_targets.append(('M=ext-modules', modules_set)
                                                  if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
                         # Otherwise it is directory that can contain modules.

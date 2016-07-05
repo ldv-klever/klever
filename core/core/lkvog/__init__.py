@@ -151,7 +151,7 @@ class LKVOG(core.components.Component):
         for kernel_module in self.conf['Linux kernel']['modules']:
             kernel_module = kernel_module if 'external modules' not in self.conf['Linux kernel'] \
                 else 'ext-modules/' + kernel_module
-            if re.search(r'\.ko$', kernel_module) or kernel_module == 'all':
+            if re.search(r'\.k?o$', kernel_module) or kernel_module == 'all':
                 # Invidiual module.
                 self.logger.debug('Use strategy for {0} module'.format(kernel_module))
                 clusters = strategy.divide(kernel_module)
@@ -330,7 +330,7 @@ class LKVOG(core.components.Component):
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
-        if desc['type'] == 'LD' and re.search(r'\.ko$', desc['out file']):
+        if desc['type'] == 'LD' and re.search(r'\.k?o$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
 
     def __find_cc_full_desc_files(self, out_file):
