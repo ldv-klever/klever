@@ -246,7 +246,7 @@ def _extract_rule_spec_descs(conf, logger):
 
     # Read rule specification descriptions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
-              encoding='ascii') as fp:
+              encoding='utf8') as fp:
         raw_rule_spec_descs = json.load(fp)
 
     if 'rule specifications' not in raw_rule_spec_descs:
