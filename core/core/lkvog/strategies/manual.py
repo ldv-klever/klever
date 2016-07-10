@@ -9,6 +9,12 @@ class Manual(AbstractStrategy):
 
     def divide(self, module_name):
         ret = []
+
+        if module_name == 'all':
+            for module in self.groups.keys():
+                ret.extend(self.divide(module))
+            return ret
+
         if module_name.startswith('ext-modules/'):
             is_external = True
             module_name = module_name[12:]
