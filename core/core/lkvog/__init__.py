@@ -112,6 +112,9 @@ class LKVOG(core.components.Component):
     def generate_all_verification_obj_descs(self):
         strategy_name = self.conf['LKVOG strategy']['name']
 
+        if 'all' in self.conf['Linux kernel']['modules'] and not len(self.conf['Linux kernel']['modules']) == 1:
+            raise ValueError('You can not specify "all" modules together with some other modules')
+
         module_deps_function = {}
         module_sizes = {}
         if 'module dependencies file' in self.conf['Linux kernel']:
@@ -180,7 +183,10 @@ class LKVOG(core.components.Component):
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
             if 'all' in self.conf['Linux kernel']['modules']:
-                self.mqs['Linux kernel modules'].put({'build kernel': True, 'modules': []})
+                build_modules = [module for module in build_modules if module.endswith('.o')]
+                build_modules.append('all')
+                self.mqs['Linux kernel modules'].put({'build kernel': False,
+                                                      'modules': build_modules})
             else:
                 self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules':
                     [module if not module.startswith('ext-modules/') else module[12:] for module in build_modules]})
@@ -234,6 +240,7 @@ class LKVOG(core.components.Component):
                                                    self.all_clusters))
                 else:
                     if self.module['name'].endswith('.o'):
+                        self.logger.debug('Module {0} skipped'.format(self.module['name']))
                         continue
                     self.all_modules.add(self.module['name'])
                     self.checked_modules.add(strategy_utils.Module(self.module['name']))
