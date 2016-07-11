@@ -85,6 +85,7 @@ def __import_process(name, dic):
 
     for subprocess_name in process.actions:
         regexes = generate_regex_set(subprocess_name)
+        matched = False
 
         for regex in regexes:
             for string in process_strings:
@@ -97,7 +98,12 @@ def __import_process(name, dic):
                     else:
                         act = process_type(subprocess_name)
                     process.actions[subprocess_name] = act
+                    matched = True
                     break
+
+        if not matched:
+            raise ValueError("Action '{}' is not used in process description '{}'".
+                             format(subprocess_name, name))
 
         # Values from dictionary
         if 'callback' in dic['actions'][subprocess_name]:

@@ -91,8 +91,6 @@ class CommonStrategy(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                if not self.conf['keep intermediate files']:
-                    os.remove(os.path.join(self.conf['main working directory'], extra_c_file['C file']))
                 extra_c_file['C file'] = trimmed_c_file
 
             core.utils.execute(self.logger,
@@ -192,12 +190,7 @@ class CommonStrategy(core.components.Component):
             path_to_processed_witness = path_to_witness + ".processed"
             with open(path_to_witness, encoding='ascii') as fp:
                 # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
-                # TODO: If error trace was not printed in time, this will fail.
-                try:
-                    dom = minidom.parse(fp)
-                except:
-                    self.logger.warning('{0} cannot be parsed, skipping it'.format(path_to_witness))
-                    return False
+                dom = minidom.parse(fp)
 
             graphml = dom.getElementsByTagName('graphml')[0]
 
@@ -463,16 +456,19 @@ class CommonStrategy(core.components.Component):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'bug kinds' in extra_c_file:
                 for bug_kind in extra_c_file['bug kinds']:
-                    if not bug_kinds.__contains__(bug_kind):
+                    if bug_kind not in bug_kinds:
                         bug_kinds.append(bug_kind)
+        bug_kinds.sort()
         return bug_kinds
 
     def create_mea(self):
         if 'mea' in self.conf['VTG strategy']['verifier'] and self.conf['VTG strategy']['verifier']['mea']:
             self.mea = MEA(self.conf, self.logger)
-        # Very useful option for all strategies.
-        self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+        # Do not set this very useful option until it will be fully supported by all analyses
+        # (https://forge.ispras.ru/issues/7342).
+        # # Very useful option for all strategies.
+        # self.conf['VTG strategy']['verifier']['options'].append(
+        #     {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
     def check_for_mpv(self):
         if 'RSG strategy' in self.conf and self.conf['RSG strategy'] == 'property automaton':

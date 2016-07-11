@@ -11,6 +11,21 @@ __typedefs = {}
 __noname_identifier = 0
 
 
+def setup_collection(collection, typedefs):
+    global __type_collection
+    global __typedefs
+
+    __type_collection = collection
+    __typedefs = typedefs
+
+
+def new_identifier():
+    global __noname_identifier
+
+    __noname_identifier += 1
+    return __noname_identifier
+
+
 def check_null(declaration, value):
     check = re.compile('[\s]*[(]?[\s]*0[\s]*[)]?[\s]*')
     if (type(declaration) is Function or (type(declaration) is Pointer and type(declaration.points) is Function)) and \
@@ -42,7 +57,7 @@ def import_typedefs(tds):
         __typedefs[name] = ast
 
 
-def import_declaration(signature, ast=None, parent=None):
+def import_declaration(signature, ast=None):
     global __type_collection
     global __typedefs
 
@@ -54,54 +69,52 @@ def import_declaration(signature, ast=None, parent=None):
 
     if 'declarator' not in ast or ('declarator' in ast and len(ast['declarator']) == 0):
         if 'specifiers' in ast and 'category' in ast['specifiers'] and 'identifier' in ast['specifiers']:
-            ret = InterfaceReference(ast, parent)
+            ret = InterfaceReference(ast)
         elif 'specifiers' in ast and ast['specifiers'] == '$':
-            ret = UndefinedReference(ast, parent)
+            ret = UndefinedReference(ast)
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'typedef' and \
                 ast['specifiers']['type specifier']['name'] in __typedefs:
             ret = import_declaration(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'structure':
-            ret = Structure(ast, parent)
+            ret = Structure(ast)
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'enum':
-            ret = Enum(ast, parent)
+            ret = Enum(ast)
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'union':
-            ret = Union(ast, parent)
+            ret = Union(ast)
         else:
-            ret = Primitive(ast, parent)
+            ret = Primitive(ast)
     else:
         if len(ast['declarator']) == 1 and \
                 ('pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] == 0) and \
                 ('arrays' not in ast['declarator'][-1] or len(ast['declarator'][-1]['arrays']) == 0):
             if 'specifiers' not in ast:
-                ret = Function(ast, parent)
+                ret = Function(ast)
             else:
                 if ast['specifiers']['type specifier']['class'] == 'structure':
-                    ret = Structure(ast, parent)
+                    ret = Structure(ast)
                 elif ast['specifiers']['type specifier']['class'] == 'enum':
-                    ret = Enum(ast, parent)
+                    ret = Enum(ast)
                 elif ast['specifiers']['type specifier']['class'] == 'union':
-                    ret = Union(ast, parent)
+                    ret = Union(ast)
                 elif ast['specifiers']['type specifier']['class'] == 'typedef' and \
                         ast['specifiers']['type specifier']['name'] in __typedefs:
                     ret = import_declaration(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
                 else:
-                    ret = Primitive(ast, parent)
+                    ret = Primitive(ast)
         elif 'arrays' in ast['declarator'][-1] and len(ast['declarator'][-1]['arrays']) > 0:
-            ret = Array(ast, parent)
+            ret = Array(ast)
         elif 'pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] > 0:
-            ret = Pointer(ast, parent)
+            ret = Pointer(ast)
         else:
             raise NotImplementedError
 
     if ret.identifier not in __type_collection:
         __type_collection[ret.identifier] = ret
     else:
-        if parent and parent not in __type_collection[ret.identifier].parents:
-            __type_collection[ret.identifier].parents.append(parent)
         ret = __type_collection[ret.identifier]
     return ret
 
@@ -183,20 +196,16 @@ def _take_pointer(exp, tp):
         exp = '*' + exp
     return exp
 
-
-def setup_collection(collection, typedefs):
+def _add_parent(declaration, parent):
     global __type_collection
-    global __typedefs
 
-    __type_collection = collection
-    __typedefs = typedefs
+    if parent.identifier in __type_collection:
+        parent = __type_collection[parent.identifier]
+    else:
+        __type_collection[parent.identifier] = parent
 
-
-def new_identifier():
-    global __noname_identifier
-
-    __noname_identifier += 1
-    return __noname_identifier
+    if parent.identifier not in (p.identifier for p in declaration.parents):
+        declaration.parents.append(parent)
 
 
 class Declaration:
@@ -221,16 +230,14 @@ class Declaration:
     def pretty_name(self):
         raise NotImplementedError
 
-    def common_initialization(self, ast, parent):
+    def common_initialization(self, ast):
         self._ast = ast
         self.implementations = {}
         self.path = None
         self.parents = []
-        self.add_parent(parent)
 
     def add_parent(self, parent):
-        if parent and parent not in self.parents:
-            self.parents.append(parent)
+        _add_parent(self, parent)
 
     def compare(self, target):
         if type(self) is type(target):
@@ -263,8 +270,8 @@ class Declaration:
 
 class Primitive(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
 
     @property
     def clean_declaration(self):
@@ -284,8 +291,8 @@ class Primitive(Declaration):
 
 class Enum(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
 
     @property
     def name(self):
@@ -308,8 +315,8 @@ class Enum(Declaration):
 
 class Function(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
         self.return_value = None
         self.parameters = []
 
@@ -368,8 +375,8 @@ class Function(Declaration):
 
 class Structure(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -419,8 +426,8 @@ class Structure(Declaration):
 
 class Union(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
         self.fields = {}
 
         if 'fields' in self._ast['specifiers']['type specifier']:
@@ -473,14 +480,15 @@ class Union(Declaration):
 
 class Array(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
         self.element = None
 
         array = ast['declarator'][-1]['arrays'].pop()
         self.size = array['size']
         ast = _reduce_level(ast)
-        self.element = import_declaration(None, ast, self)
+        self.element = import_declaration(None, ast)
+        self.element.add_parent(self)
 
     @property
     def clean_declaration(self):
@@ -513,12 +521,13 @@ class Array(Declaration):
 
 class Pointer(Declaration):
 
-    def __init__(self, ast, parent):
-        self.common_initialization(ast, parent)
+    def __init__(self, ast):
+        self.common_initialization(ast)
 
         ast['declarator'][-1]['pointer'] -= 1
         ast = _reduce_level(ast)
-        self.points = import_declaration(None, ast, self)
+        self.points = import_declaration(None, ast)
+        self.points.add_parent(self)
 
     @property
     def clean_declaration(self):
@@ -536,11 +545,10 @@ class Pointer(Declaration):
 
 class InterfaceReference(Declaration):
 
-    def __init__(self, ast, parent):
+    def __init__(self, ast):
         self._ast = ast
         self._identifier = None
         self.parents = []
-        self.add_parent(parent)
 
     @property
     def clean_declaration(self):
@@ -576,10 +584,9 @@ class InterfaceReference(Declaration):
 
 class UndefinedReference(Declaration):
 
-    def __init__(self, ast, parent):
+    def __init__(self, ast):
         self._ast = ast
         self.parents = []
-        self.add_parent(parent)
 
     @property
     def clean_declaration(self):
@@ -604,7 +611,7 @@ class Implementation:
         self.value = value
         self.file = file
         self.sequence = sequence
-        self.identifier = str([value, file, base_value])
+        self.identifier = str([value, file, base_value, sequence])
         self.fixed_interface = None
         self.__declaration = declaration
 

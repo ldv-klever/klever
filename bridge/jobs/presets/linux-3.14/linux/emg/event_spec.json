@@ -291,12 +291,12 @@
         }
       }
     },
-    "mod_timer,mod_timer_pinned,mod_timer_pending": {
+    "mod_timer, mod_timer_pinned, mod_timer_pending": {
       "labels": {
         "timer_list": {
           "container": true,
           "parameter": true,
-          "interface": ["timer.platform_driver"]
+          "interface": ["timer.timer_list"]
         }
       },
       "process": "<assign>.[instance_register] | <none>",
@@ -353,6 +353,61 @@
             "%data% = $arg3",
             "%timer_list.data%=%data%;",
             "%timer_list.function%=%function%;"
+          ]
+        }
+      }
+    },
+    "seq_open, seq_open_private": {
+      "labels": {
+        "file": {
+          "parameter": true,
+          "resource": true,
+          "interface": ["seq_operations.file"]
+        },
+        "ops": {
+          "container": true,
+          "parameter": true,
+          "interface": ["seq_operations.seq_operations"]
+        },
+        "seq_file": {
+          "resource": true,
+          "interface": ["seq_operations.seq_file"]
+        }
+      },
+      "process": "<assign>.[register]",
+      "actions": {
+        "register": {
+          "parameters": ["%seq_file%", "%ops%"]
+        },
+        "assign": {
+          "statements": [
+            "%seq_file% = $ALLOC(%seq_file%);",
+            "/* todo: file->private_data = seq_file; */"
+          ]
+        }
+      }
+    },
+    "seq_release, seq_release_private": {
+      "labels": {
+        "file": {
+          "parameter": true,
+          "resource": true,
+          "interface": ["seq_operations.file"]
+        },
+        "seq_file": {
+          "resource": true,
+          "interface": ["seq_operations.seq_file"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "deregister": {
+          "parameters": ["%seq_file%"]
+        },
+        "assign": {
+          "statements": [
+            "/* todo: seq_file = file->private_data; */",
+            "/* todo: FREE(seq_file); */"
           ]
         }
       }
@@ -622,7 +677,7 @@
         "null": {}
       }
     },
-    "platform_instance": {
+    "base_instance": {
       "labels": {
         "container": {
           "container": true
@@ -720,25 +775,14 @@
         }
       }
     },
-    "transport_instance": {
+    "platform_instance": {
       "labels": {
-        "se_subsystem_api": {
+        "container": {
           "container": true,
-          "interface": ["se_subsystem.se_subsystem_api"]
+          "interface": ["platform.platform_driver"]
         },
-        "se_hba": {
-          "interface": ["se_subsystem.se_hba"]
-        },
-        "se_device": {
-          "interface": ["se_subsystem.se_device"]
-        },
-        "attach_hba": {
-          "callback": true,
-          "interface": ["se_subsystem.attach_hba"]
-        },
-        "detach_hba": {
-          "callback": true,
-          "interface": ["se_subsystem.detach_hba"]
+        "resource": {
+          "resource": true
         },
         "callback": {
           "callback": true
@@ -748,10 +792,217 @@
           "value": "1"
         }
       },
-      "process": "(!register).<init>.[probe].<post_probe>.{call}",
+      "process": "(!register).<init>.[probe].{call}",
       "actions": {
         "call": {
-          "process": "<positive_probe>.[callback].{call} | [attach_hba].[detach_hba].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | [probe].<post_probe>.{call})"
+          "process": "[callback].{call} | <positive_probe>.([pm_register].[pm_deregister] | <none>).[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ],
+          "callback return value": "%probed%",
+          "post-call": [
+            "%probed% = ldv_post_probe(%probed%);"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "after_release": {
+          "statements": [
+            "%probed% = 1;"
+          ]
+        },
+        "positive_probe": {
+          "condition": ["%probed% == 0"]
+        },
+        "negative_probe": {
+          "condition": ["%probed% != 0"]
+        },
+        "none": {
+          "statements": []
+        },
+        "pm_register": {
+          "parameters": []
+        },
+        "pm_deregister": {
+          "parameters": []
+        }
+      }
+    },
+    "pm_ops_instance": {
+      "labels": {
+        "pm_ops": {
+          "container": true,
+          "interface": ["pm.dev_pm_ops"]
+        },
+        "device": {
+          "resource": true,
+          "interface": ["pm.device"]
+        }
+      },
+      "process": "(!pm_register).{do}",
+      "actions": {
+        "do": {
+          "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | [suspend_late].[resume_early]).[resume] | [freeze].([freeze_late].[thaw_early] | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_late].[restore_early] | [poweroff_noirq].[restore_noirq]).[restore]).[complete].{do} | (pm_deregister)"
+        },
+        "pm_register": {
+          "parameters": []
+        },
+        "pm_deregister": {
+          "parameters": []
+        },
+        "prepare": {
+            "callback": "%pm_ops.prepare%",
+            "parameters": ["%device%"]
+        },
+        "complete": {
+            "callback": "%pm_ops.complete%",
+            "parameters": ["%device%"]
+        },
+        "suspend": {
+            "callback": "%pm_ops.suspend%",
+            "parameters": ["%device%"]
+        },
+        "resume": {
+            "callback": "%pm_ops.resume%",
+            "parameters": ["%device%"]
+        },
+        "freeze": {
+            "callback": "%pm_ops.freeze%",
+            "parameters": ["%device%"]
+        },
+        "thaw": {
+            "callback": "%pm_ops.thaw%",
+            "parameters": ["%device%"]
+        },
+        "poweroff": {
+            "callback": "%pm_ops.poweroff%",
+            "parameters": ["%device%"]
+        },
+        "restore": {
+            "callback": "%pm_ops.restore%",
+            "parameters": ["%device%"]
+        },
+        "suspend_late": {
+            "callback": "%pm_ops.suspend_late%",
+            "parameters": ["%device%"]
+        },
+        "resume_early": {
+            "callback": "%pm_ops.resume_early%",
+            "parameters": ["%device%"]
+        },
+        "freeze_late": {
+            "callback": "%pm_ops.freeze_late%",
+            "parameters": ["%device%"]
+        },
+        "thaw_early": {
+            "callback": "%pm_ops.thaw_early%",
+            "parameters": ["%device%"]
+        },
+        "poweroff_late": {
+            "callback": "%pm_ops.poweroff_late%",
+            "parameters": ["%device%"]
+        },
+        "restore_early": {
+            "callback": "%pm_ops.restore_early%",
+            "parameters": ["%device%"]
+        },
+        "suspend_noirq": {
+            "callback": "%pm_ops.suspend_noirq%",
+            "parameters": ["%device%"]
+        },
+        "resume_noirq": {
+            "callback": "%pm_ops.resume_noirq%",
+            "parameters": ["%device%"]
+        },
+        "freeze_noirq": {
+            "callback": "%pm_ops.freeze_noirq%",
+            "parameters": ["%device%"]
+        },
+        "thaw_noirq": {
+            "callback": "%pm_ops.thaw_noirq%",
+            "parameters": ["%device%"]
+        },
+        "poweroff_noirq": {
+            "callback": "%pm_ops.poweroff_noirq%",
+            "parameters": ["%device%"]
+        },
+        "restore_noirq": {
+            "callback": "%pm_ops.restore_noirq%",
+            "parameters": ["%device%"]
+        },
+        "runtime_suspend": {
+            "callback": "%pm_ops.runtime_suspend%",
+            "parameters": ["%device%"]
+        },
+        "runtime_resume": {
+            "callback": "%pm_ops.runtime_resume%",
+            "parameters": ["%device%"]
+        },
+        "runtime_idle": {
+            "callback": "%pm_ops.runtime_idle%",
+            "parameters": ["%device%"]
+        }
+      }
+    },
+    "transport_instance": {
+      "labels": {
+        "se_subsystem_api": {
+          "container": true,
+          "interface": ["se_subsystem.se_subsystem_api"]
+        },
+        "se_hba": {
+          "resource": true,
+          "interface": ["se_subsystem.se_hba"]
+        },
+        "se_device": {
+          "interface": ["se_subsystem.se_device"]
+        },
+        "callback": {
+          "resource": true,
+          "callback": true
+        },
+        "allocated": {
+          "signature": "int a",
+          "value": "0"
+        }
+      },
+      "process": "(!register).<init>.[alloc].<post_alloc>.{call}",
+      "actions": {
+        "call": {
+          "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [alloc].<post_alloc>.{call})"
         },
         "register": {
           "parameters": [
@@ -767,27 +1018,27 @@
           "callback": "%callback%",
           "parameters": ["%se_hba%", "%se_device%"]
         },
-        "release": {
-          "callback": "%se_subsystem_api.release%",
+        "se_free": {
+          "callback": "%se_subsystem_api.free%",
           "parameters": [
             "%se_device%"
           ]
         },
-        "probe": {
-          "callback": "%se_subsystem_api.probe%",
+        "alloc": {
+          "callback": "%se_subsystem_api.alloc%",
           "parameters": [
             "%se_hba%"
           ],
           "callback return value": "%se_device%"
         },
         "attach_hba": {
-          "callback": "%attach_hba%",
+          "callback": "%se_subsystem_api.attach_hba%",
           "parameters": [
             "%se_hba%"
           ]
         },
         "detach_hba": {
-          "callback": "%detach_hba%",
+          "callback": "%se_subsystem_api.detach_hba%",
           "parameters": [
             "%se_hba%"
           ]
@@ -802,22 +1053,22 @@
             "$FREE(%se_hba%);"
           ]
         },
-        "after_release": {
+        "after_free": {
           "statements": [
-            "%probed% = 1;"
+            "%allocated% = 0;"
           ]
         },
-        "post_probe": {
+        "post_alloc": {
           "statements": [
             "if (%se_device%)",
-            " %probed% = 0;"
+            " %allocated% = 1;"
           ]
         },
-        "positive_probe": {
-          "condition": ["%probed% == 0"]
+        "positive_alloc": {
+          "condition": ["%allocated% == 1"]
         },
-        "negative_probe": {
-          "condition": ["%probed% != 0"]
+        "negative_alloc": {
+          "condition": ["%allocated% != 1"]
         }
       }
     },
@@ -974,6 +1225,70 @@
           "statements": [
             "$FREE(%resource%);"
           ]
+        }
+      }
+    },
+    "seq_instance": {
+      "labels": {
+        "ops": {
+          "container": true,
+          "interface": ["seq_operations.seq_operations"]
+        },
+        "seq_file": {
+          "resource": true,
+          "interface": ["seq_operations.seq_file"]
+        },
+        "started": {
+          "signature": "int a",
+          "value": "0"
+        }
+      },
+      "process": "(!register).{do}",
+      "actions": {
+        "do": {
+          "process": "<started>.([stop].<post_stop> | [show] | [next]).{do} | <not_started>.([start].<post_start>.{do} | (deregister))"
+        },
+        "deregister": {
+          "parameters": ["%seq_file%"]
+        },
+        "register": {
+          "parameters": ["%seq_file%", "%ops%"]
+        },
+        "post_start": {
+          "statements": [
+            "%started% = 1;"
+          ]
+        },
+        "post_stop": {
+          "statements": [
+            "%started% = 0;"
+          ]
+        },
+        "started": {
+          "condition": [
+            "%started% == 1"
+          ]
+        },
+        "not_started": {
+          "condition": [
+            "%started% == 0"
+          ]
+        },
+        "start": {
+          "callback": "%ops.start%",
+          "parameters": ["%seq_file%"]
+        },
+        "stop": {
+          "callback": "%ops.stop%",
+          "parameters": ["%seq_file%"]
+        },
+        "show": {
+          "callback": "%ops.show%",
+          "parameters": ["%seq_file%"]
+        },
+        "next": {
+          "callback": "%ops.next%",
+          "parameters": ["%seq_file%"]
         }
       }
     },

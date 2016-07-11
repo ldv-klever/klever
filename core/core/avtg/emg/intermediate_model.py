@@ -296,28 +296,41 @@ class ProcessModel:
         self.logger.info("Add process {} to the model".format(process.name))
         self.logger.debug("Make copy of process {} before adding it to the model".format(process.name))
         new = copy.deepcopy(process)
+        if not category:
+            new.category = 'kernel models'
+        else:
+            new.category = category
 
         # todo: Assign category for each new process not even for that which have callbacks (issue #6564)
         new.identifier = len(self.model_processes) + len(self.event_processes) + 1
         self.logger.info("Finally add process {} to the model".
                          format(process.name))
 
-        if model and not category:
-            new.category = 'kernel models'
-            self.model_processes.append(new)
-        elif not model and category:
-            new.category = category
-            self.event_processes.append(new)
-        else:
-            raise ValueError('Provide either model or category arguments but not simultaneously')
-
+        self.logger.debug("Set interfaces for given labels")
         if label_map:
-            self.logger.debug("Set interfaces for given labels")
             for label in sorted(label_map["matched labels"].keys()):
                 for interface in [analysis.interfaces[name] for name
                                   in sorted(label_map["matched labels"][label])
                                   if name in analysis.interfaces]:
                     self.__assign_label_interface(new.labels[label], interface)
+        else:
+            for label in new.labels.values():
+                for interface in label.interfaces:
+                    if not label.get_declaration(interface):
+                        try:
+                            self.__assign_label_interface(label, analysis.interfaces[interface])
+                        except KeyError:
+                            self.logger.warning("Process '{}' for category '{}' cannot be added, since it contains"
+                                                "unknown interfaces for this verification object".
+                                                format(new.name, new.category))
+                            return None
+
+        if model and not category:
+            self.model_processes.append(new)
+        elif not model and category:
+            self.event_processes.append(new)
+        else:
+            raise ValueError('Provide either model or category arguments but not simultaneously')
 
         if peer:
             self.logger.debug("Match signals with signals of process {} with identifier {}".
@@ -600,8 +613,9 @@ class ProcessModel:
                 self.logger.debug("Establish signal references between process {} with category {} and process {} with "
                                   "category {}".
                                   format(process.name, process.category, candidate.name, candidate.category))
-                new = self.__add_process(analysis, candidate, process.category, model=False, label_map=None, peer=process)
-                if len(new.unmatched_receives) > 0 or len(new.unmatched_dispatches) > 0:
+                new = self.__add_process(analysis, candidate, process.category, model=False, label_map=None,
+                                         peer=process)
+                if new and (len(new.unmatched_receives) > 0 or len(new.unmatched_dispatches) > 0):
                     self.__establish_signal_peers(analysis, new)
 
         if len(process.unmatched_receives) > 0:
