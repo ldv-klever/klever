@@ -49,8 +49,12 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Get instance maps if possible
         vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
-        if 'EMG instances' in self.conf and vo_identifier in self.conf['EMG instances']:
-            tr.instance_maps = self.conf['EMG instances'][vo_identifier]
+        if 'EMG instances' in self.conf:
+            with open(core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
+                                                  self.conf['EMG instances']), encoding='ascii') as fp:
+                emg_instances = json.load(fp)
+            if vo_identifier in emg_instances:
+                tr.instance_maps = emg_instances[vo_identifier]
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -86,7 +90,10 @@ class EMG(core.avtg.plugins.Plugin):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(tr.instance_maps, sort_keys=True, indent=4)
+                              'data': json.dumps(
+                                  {self.abstract_task_desc['attrs'][0]['verification object']: tr.instance_maps},
+                                  sort_keys=True, indent=4
+                              )
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])

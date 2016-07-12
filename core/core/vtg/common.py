@@ -480,17 +480,39 @@ class CommonStrategy(core.components.Component):
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
 
+            if 'value analysis' in self.conf['VTG strategy']:
+                self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
+            elif 'caching' in self.conf['VTG strategy']:
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam': ''}]
+            elif 'recursion support' in self.conf['VTG strategy']:
+                self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
+
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
 
             # To allow to output multiple error traces if other options (configuration) will need this.
-            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
 
             # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
             # general memory size limit if users don't specify their own sizes.
             if '-heap' not in [list(opt.keys())[0] for opt in self.conf['VTG strategy']['verifier']['options']]:
                 self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
                     round(3 * self.conf['VTG strategy']['resource limits']['memory size'] / (4 * 1000 ** 2)))})
+
+            if 'bit precision analysis' in self.conf['VTG strategy']:
+                self.conf['VTG strategy']['verifier']['options'].extend([
+                    {'-setprop': 'cpa.predicate.encodeBitvectorAs=BITVECTOR'},
+                    {'-setprop': 'solver.solver=MATHSAT5'}
+                ])
+
+            if 'graph traversal algorithm' in self.conf['VTG strategy'] \
+                    and self.conf['VTG strategy']['graph traversal algorithm'] != 'Default':
+                algo_map = {'Depth-first search': 'DFS', 'Breadth-first search': 'BFS', 'Random': 'RAND'}
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'analysis.traversal.order={0}'.format(
+                        algo_map[self.conf['VTG strategy']['graph traversal algorithm']])}
+                )
 
     def add_option_for_entry_point(self):
         if 'entry points' in self.conf['abstract task desc']:
