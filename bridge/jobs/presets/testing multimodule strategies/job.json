@@ -234,6 +234,16 @@
       "LKVOG strategy": {"name": "advanced", "cluster size": 2},
       "rule specifications": ["linux:mutex"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/kernel_library/",
+        "modules": ["manual/init.o"]
+      },
+      "LKVOG strategy": {"name": "manual", "cluster size": 2, "groups": {"manual/init.o": 
+									[["manual/init.o", "manual/external.ko"]]}},
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
     }
     ]
 }
