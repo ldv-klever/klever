@@ -91,7 +91,7 @@ class CommonStrategy(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                extra_c_file['C file'] = trimmed_c_file
+                extra_c_file['new C file'] = trimmed_c_file
 
             core.utils.execute(self.logger,
                                (
@@ -112,11 +112,11 @@ class CommonStrategy(core.components.Component):
                                    '--rmUnusedInlines',
                                    '--out', 'cil.i',
                                ) +
-                               tuple(extra_c_file['C file']
+                               tuple(extra_c_file['new C file']
                                      for extra_c_file in self.conf['abstract task desc']['extra C files']))
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    os.remove(extra_c_file['C file'])
+                    os.remove(extra_c_file['new C file'])
 
             self.task_desc['files'].append('cil.i')
 
