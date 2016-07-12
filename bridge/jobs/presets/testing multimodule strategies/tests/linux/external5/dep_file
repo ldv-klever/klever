@@ -1,6 +1,0 @@
-extra/external1.ko needs "bad_export": extra/init1.ko
-extra/external1.ko needs "bad_export": extra/init2.ko
-extra/init1.ko needs "bad_export": extra/dummy_module.ko
-extra/external2.ko needs "bad_export": extra/init1.ko
-extra/external2.ko needs "bad_export": extra/init2.ko
-extra/init2.ko needs "bad_export": extra/dummy_module.ko
