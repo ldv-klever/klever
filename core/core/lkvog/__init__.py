@@ -344,7 +344,7 @@ class LKVOG(core.components.Component):
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
-        if desc['type'] == 'LD' and re.search(r'\.k?o$', desc['out file']):
+        if re.search(r'\.k?o$', desc['out file']):
             self.linux_kernel_module_names_mq.put(desc['out file'])
 
     def __find_cc_full_desc_files(self, out_file):
