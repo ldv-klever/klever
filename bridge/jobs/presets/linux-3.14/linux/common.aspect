@@ -1,0 +1,172 @@
+before: file("$this")
+{
+#include <verifier/common.h>
+
+void ldv_linux_mutex_check_final_state(void);
+void ldv_linux_spinlock_check_final_state(void);
+void ldv_linux_usb_dev_check_final_state(void);
+void ldv_linux_module_check_final_state(void);
+void ldv_linux_usb_urb_check_final_state(void);
+void ldv_linux_usb_coherent_check_final_state(void);
+void ldv_linux_rwlock_check_final_state(void);
+// void ldv_linux_mmc_sdio_func_check_final_state(void);
+void ldv_linux_class_check_final_state(void);
+void ldv_linux_chrdev_check_final_state(void);
+void ldv_linux_usb_gadget_check_final_state(void);
+
+void ldv_linux_usb_dev_check_return_value_probe(int retval);
+void ldv_linux_usb_register_check_return_value_probe(int retval);
+void ldv_linux_netdev_check_return_value_probe(int retval);
+
+#include <linux/types.h>
+
+void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
+void ldv_linux_alloc_spin_lock_check_alloc_flags(gfp_t flags);
+void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
+
+void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
+void ldv_linux_alloc_spin_lock_check_alloc_nonatomic(void);
+void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
+
+void ldv_linux_mutex_initialize(void);
+void ldv_linux_spinlock_initialize(void);
+void ldv_linux_usb_dev_initialize(void);
+
+struct urb;
+void *ldv_linux_usb_coherent_usb_alloc_coherent(void);
+struct urb *ldv_linux_usb_urb_usb_alloc_urb(void);
+
+/*106-107-108*/
+
+void *ldv_linux_usb_gadget_create_class(void);
+void *ldv_linux_class_create_class(void);
+int ldv_linux_usb_gadget_register_class(void);
+int ldv_linux_class_register_class(void);
+
+
+void *ldv_create_class(void)
+{
+	void *res1 = ldv_linux_usb_gadget_create_class();
+	void *res2 = ldv_linux_class_create_class();
+	ldv_assume(res1 == res2);
+	return res1;
+}
+
+int ldv_register_class(void)
+{
+	int res1 = ldv_linux_usb_gadget_register_class();
+	int res2 = ldv_linux_class_register_class();
+	ldv_assume(res1 == res2);
+	return res1;
+}
+
+}
+
+around: call(void ldv_check_final_state(void))
+{
+	ldv_linux_mutex_check_final_state();
+	ldv_linux_spinlock_check_final_state();
+	ldv_linux_usb_dev_check_final_state();
+	ldv_linux_module_check_final_state();
+	ldv_linux_usb_urb_check_final_state();
+	ldv_linux_usb_coherent_check_final_state();
+	ldv_linux_rwlock_check_final_state();
+//	ldv_linux_mmc_sdio_func_check_final_state();
+	ldv_linux_class_check_final_state();
+	ldv_linux_chrdev_check_final_state();
+	ldv_linux_usb_gadget_check_final_state();
+}
+
+around: call(void ldv_check_return_value_probe(int retval))
+{
+	ldv_linux_usb_dev_check_return_value_probe(retval);
+	ldv_linux_usb_register_check_return_value_probe(retval);
+	ldv_linux_netdev_check_return_value_probe(retval);
+}
+
+around: call(void ldv_check_alloc_flags(gfp_t flags))
+{
+	ldv_linux_alloc_irq_check_alloc_flags(flags);
+	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
+	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+}
+
+around: call(void ldv_check_alloc_nonatomic(void))
+{
+	ldv_linux_alloc_irq_check_alloc_nonatomic();
+	ldv_linux_alloc_spin_lock_check_alloc_nonatomic();
+	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
+}
+
+/*68-69 inside 10-43-77*/
+
+around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
+{
+	struct urb *res = ldv_linux_usb_urb_usb_alloc_urb();
+	ldv_assume(!ldv_is_err(res));
+	ldv_linux_alloc_irq_check_alloc_flags(flags);
+	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
+	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+	return res;
+}
+
+around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
+{
+	void *res = ldv_linux_usb_coherent_usb_alloc_coherent();
+	ldv_assume(!ldv_is_err(res));
+	ldv_linux_alloc_irq_check_alloc_flags(flags);
+	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
+	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+	return res;
+}
+
+/*106-107-108*/
+
+around: define(class_create(owner, name))
+{
+ldv_create_class()
+}
+
+around: define(class_register(class))
+{
+ldv_register_class()
+}
+
+after: call(void class_destroy(..)) ||
+       call(void class_unregister(..))
+{
+	ldv_linux_usb_gadget_unregister_class();
+	ldv_linux_class_unregister_class();
+}
+
+after: call(int alloc_chrdev_region(..)) ||
+       call(int register_chrdev_region(..))
+{
+	int res1 = ldv_linux_usb_gadget_register_chrdev_region();
+	int res2 = ldv_linux_chrdev_register_chrdev_region();
+	ldv_assume(res1 == res2);
+	return res1;
+}
+
+after: execution(static inline int register_chrdev(unsigned int major, ..))
+{
+	int res1 = ldv_linux_usb_gadget_register_chrdev(major);
+	int res2 = ldv_linux_chrdev_register_chrdev(major);
+	ldv_assume(res1 == res2);
+	return res1;
+}
+
+after: call(void unregister_chrdev_region(..)) ||
+       execution(static inline void unregister_chrdev(..))
+{
+	ldv_linux_usb_gadget_unregister_chrdev_region();
+	ldv_linux_chrdev_unregister_chrdev_region();
+}
+
+
+around: call(void ldv_initialize(void))
+{
+	ldv_linux_mutex_initialize();
+	ldv_linux_spinlock_initialize();
+	ldv_linux_usb_dev_initialize();
+}
