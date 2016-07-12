@@ -182,7 +182,6 @@ class LKVOG(core.components.Component):
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
-
             if 'all' in self.conf['Linux kernel']['modules']:
                 build_modules = [module for module in build_modules if module.endswith('.o')]
                 build_modules.append('all')
