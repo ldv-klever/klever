@@ -35,12 +35,12 @@ class LKBCE(core.components.Component):
             self.fetch_linux_kernel_work_src_tree()
             self.make_canonical_linux_kernel_work_src_tree()
             self.set_shadow_src_tree()
+            self.check_preparation_for_building_external_modules()
+            self.clean_linux_kernel_work_src_tree()
             # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it
             # affect value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather
             # than configuration target.
-            self.clean_linux_kernel_work_src_tree()
             self.get_linux_kernel_conf()
-            self.check_preparation_for_building_external_modules()
             self.set_linux_kernel_attrs()
             self.set_hdr_arch()
             core.utils.report(self.logger,
