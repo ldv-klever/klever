@@ -248,7 +248,6 @@ class LKVOG(core.components.Component):
 
                 for cluster in module_clusters:
                     self.cluster = cluster
-                    # TODO: specification requires to do this in parallel...
                     self.generate_verification_obj_desc()
 
         if self.all_clusters:
