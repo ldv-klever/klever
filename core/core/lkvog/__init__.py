@@ -112,6 +112,9 @@ class LKVOG(core.components.Component):
     def generate_all_verification_obj_descs(self):
         strategy_name = self.conf['LKVOG strategy']['name']
 
+        if 'all' in self.conf['Linux kernel']['modules'] and not len(self.conf['Linux kernel']['modules']) == 1:
+            raise ValueError('You can not specify "all" modules together with some other modules')
+
         module_deps_function = {}
         module_sizes = {}
         if 'module dependencies file' in self.conf['Linux kernel']:
@@ -176,17 +179,23 @@ class LKVOG(core.components.Component):
                             self.checked_modules.add(module3.id)
                             if not self.is_part_of_subsystem(module3, build_modules):
                                 build_modules.add(module3.id)
-
         self.logger.debug('Final list of modules to be build: {0}'.format(build_modules))
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
-            self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules':
-                [module if not module.startswith('ext-modules/') else module[12:] for module in build_modules]})
 
+            if 'all' in self.conf['Linux kernel']['modules']:
+                build_modules = [module for module in build_modules if module.endswith('.o')]
+                build_modules.append('all')
+                self.mqs['Linux kernel modules'].put({'build kernel': False,
+                                                      'modules': build_modules})
+            else:
+                self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules':
+                    [module if not module.startswith('ext-modules/') else module[12:] for module in build_modules]})
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
 
+        self.all_clusters = set([cluster for cluster in self.all_clusters if 'all' not in [module.id for module in cluster.modules]])
         cc_ready = set()
         while True:
             self.module['name'] = self.linux_kernel_module_names_mq.get()
@@ -216,9 +225,9 @@ class LKVOG(core.components.Component):
             cc_ready.add(self.module['name'])
 
             if not self.module['name'] in self.all_modules:
-                self.all_modules.add(self.module['name'])
                 module_clusters = []
                 if self.module['name'] in self.checked_modules:
+                    self.all_modules.add(self.module['name'])
                     # Find clusters
                     for cluster in self.all_clusters:
                         if self.module['name'] in [module.id for module in cluster.modules]:
@@ -231,6 +240,10 @@ class LKVOG(core.components.Component):
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
                 else:
+                    if self.module['name'].endswith('.o'):
+                        self.logger.debug('Module {0} skipped'.format(self.module['name']))
+                        continue
+                    self.all_modules.add(self.module['name'])
                     self.checked_modules.add(strategy_utils.Module(self.module['name']))
                     module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
 
