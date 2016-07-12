@@ -30,7 +30,7 @@ class Scheduler(schedulers.SchedulerExchange):
     __reserved_disk_memory = 0
     __running_tasks = 0
     __running_jobs = 0
-    __reserved = {}
+    __reserved = {"jobs": {}, "tasks": {}}
 
     def launch(self):
         """Start scheduler loop."""
@@ -84,7 +84,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
 
-    def __try_to_schedule(self, identifier, limits):
+    def __try_to_schedule(self, task_or_job, identifier, limits):
         """
         Try to find slot to scheduler task or job with provided limits.
         :param identifier: Identifier of the task or job.
@@ -93,9 +93,11 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         # TODO: Check disk space also
         if limits["memory size"] <= (self.__ram_memory - self.__reserved_ram_memory):
-            self.__reserved[identifier] = limits
+            if task_or_job == "task":
+                self.__reserved["tasks"][identifier] = limits
+            else:
+                self.__reserved["jobs"][identifier] = limits
             self.__reserved_ram_memory += limits["memory size"]
-            self.__reserved[identifier] = limits
             return True
         else:
             return False
@@ -118,7 +120,7 @@ class Scheduler(schedulers.SchedulerExchange):
             # Sort to get high priority tasks at the beginning
             pending_tasks = sorted(pending_tasks, key=sorter)
             for task in pending_tasks:
-                if self.__try_to_schedule(task["id"], task["description"]["resource limits"]):
+                if self.__try_to_schedule("task", task["id"], task["description"]["resource limits"]):
                     new_tasks.append(task["id"])
                     self.__running_tasks += 1
 
@@ -126,7 +128,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if len(pending_jobs) > 0:
             # Sort to get high priority tasks at the beginning
             for job in [job for job in pending_jobs if job["id"] not in self.__reserved]:
-                if self.__try_to_schedule(job["id"], job["configuration"]["resource limits"]):
+                if self.__try_to_schedule("job", job["id"], job["configuration"]["resource limits"]):
                     new_jobs.append(job["id"])
                     self.__running_jobs += 1
 
@@ -209,13 +211,13 @@ class Scheduler(schedulers.SchedulerExchange):
         del klever_core_conf["resource limits"]
         klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         klever_core_conf["working directory"] = "klever-core-work-dir"
-        self.__reserved[identifier]["configuration"] = klever_core_conf
+        self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
 
         client_conf = self.__job_conf_prototype.copy()
         job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
         logging.debug("Use working directory {} for job {}".format(job_work_dir, identifier))
         client_conf["common"]["working directory"] = job_work_dir
-        client_conf["Klever Core conf"] = self.__reserved[identifier]["configuration"]
+        client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
         client_conf["resource limits"] = configuration["resource limits"]
 
         # Prepare command
@@ -232,9 +234,9 @@ class Scheduler(schedulers.SchedulerExchange):
     def process_task_result(self, identifier, future):
         # TODO: merge with process_job_result().
         # Job finished and resources should be marked as released
-        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__reserved_ram_memory -= self.__reserved["tasks"][identifier]["memory size"]
         self.__running_tasks -= 1
-        del self.__reserved[identifier]
+        del self.__reserved["tasks"][identifier]
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
@@ -263,9 +265,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         # Job finished and resources should be marked as released
-        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__reserved_ram_memory -= self.__reserved["jobs"][identifier]["memory size"]
         self.__running_jobs -= 1
-        del self.__reserved[identifier]
+        del self.__reserved["jobs"][identifier]
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
@@ -291,9 +293,9 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).cancel_task(identifier)
 
         logging.debug("Mark resources reserved for task {} as free".format(identifier))
-        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__reserved_ram_memory -= self.__reserved["tasks"][identifier]["memory size"]
         self.__running_tasks -= 1
-        del self.__reserved[identifier]
+        del self.__reserved["tasks"][identifier]
 
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             return
@@ -309,9 +311,9 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).cancel_job(identifier)
 
         logging.debug("Mark resources reserved for job {} as free".format(identifier))
-        self.__reserved_ram_memory -= self.__reserved[identifier]["memory size"]
+        self.__reserved_ram_memory -= self.__reserved["jobs"][identifier]["memory size"]
         self.__running_jobs -= 1
-        del self.__reserved[identifier]
+        del self.__reserved["jobs"][identifier]
 
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
             return

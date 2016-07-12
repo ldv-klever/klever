@@ -41,6 +41,10 @@ class LKBCE(core.components.Component):
             self.get_linux_kernel_conf()
             self.check_preparation_for_building_external_modules()
             self.clean_linux_kernel_work_src_tree()
+            # We need to copy Linux kernel configuration file if so after clean up since it can be removed there if it
+            # has name ".config".
+            if 'conf file' in self.linux_kernel:
+                shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             self.set_linux_kernel_attrs()
             self.set_hdr_arch()
             core.utils.report(self.logger,
@@ -86,14 +90,21 @@ class LKBCE(core.components.Component):
         self.mqs['Linux kernel modules'].close()
         self.linux_kernel['modules'] = linux_kernel_modules.get('modules', [])
         self.linux_kernel['build kernel'] = linux_kernel_modules.get('build kernel', False)
+        if 'external modules' in self.conf['Linux kernel'] and not self.linux_kernel['build kernel']:
+            self.linux_kernel['modules'] = [module if not module.startswith('ext-modules/') else module[12:]
+                                            for module in self.linux_kernel['modules']]
 
     def extract_module_files(self):
         if 'module dependencies file' in self.conf['Linux kernel']:
-            with open(self.conf['Linux kernel']['module dependencies file']) as fp:
+            dependencies_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
+                                               self.conf['Linux kernel']['module dependencies file'])
+            with open(dependencies_file) as fp:
                 self.parse_linux_kernel_mod_function_deps(fp, True)
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
         if 'module sizes file' in self.conf['Linux kernel']:
-            with open(self.conf['Linux kernel']['module sizes file']) as fp:
+            sizes_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
+                                                     self.conf['Linux kernel']['module sizes file'])
+            with open(sizes_file) as fp:
                 self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands
@@ -139,41 +150,38 @@ class LKBCE(core.components.Component):
         if self.linux_kernel['modules']:
             # Specially process building of all modules.
             if 'all' in self.linux_kernel['modules']:
-                if not len(self.linux_kernel['modules']) == 1:
-                    raise ValueError('You can not specify "all" modules together with some other modules')
-
                 build_targets.append(('M=ext-modules', 'modules')
                                      if 'external modules' in self.conf['Linux kernel'] else ('modules',))
-            else:
-                # Check that module sets aren't intersect explicitly.
-                for i, modules1 in enumerate(self.linux_kernel['modules']):
-                    for j, modules2 in enumerate(self.linux_kernel['modules']):
-                        if i != j and modules1.startswith(modules2):
+                self.linux_kernel['modules'] = [module for module in self.linux_kernel['modules'] if module != 'all']
+            # Check that module sets aren't intersect explicitly.
+            for i, modules1 in enumerate(self.linux_kernel['modules']):
+                for j, modules2 in enumerate(self.linux_kernel['modules']):
+                    if i != j and modules1.startswith(modules2):
+                        raise ValueError(
+                            'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+
+            # Examine module sets.
+            if 'build kernel' not in self.linux_kernel or not self.linux_kernel['build kernel']:
+                for modules_set in self.linux_kernel['modules']:
+                    # Module sets ending with .ko imply individual modules.
+                    if re.search(r'\.k?o$', modules_set):
+                        build_targets.append(('M=ext-modules', modules_set)
+                                             if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
+                    # Otherwise it is directory that can contain modules.
+                    else:
+                        # Add "modules_prepare" target once.
+                        if not build_targets or build_targets[0] != ('modules_prepare',):
+                            build_targets.insert(0, ('modules_prepare',))
+
+                        modules_dir = os.path.join('ext-modules', modules_set) \
+                            if 'external modules' in self.conf['Linux kernel'] else modules_set
+
+                        if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_dir)):
                             raise ValueError(
-                                'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
+                                'There is not directory "{0}" inside "{1}"'.format(modules_dir,
+                                                                                   self.linux_kernel['work src tree']))
 
-                # Examine module sets.
-                if 'build kernel' not in self.linux_kernel or not self.linux_kernel['build kernel']:
-                    for modules_set in self.linux_kernel['modules']:
-                        # Module sets ending with .ko imply individual modules.
-                        if re.search(r'\.ko$', modules_set):
-                            build_targets.append(('M=ext-modules', modules_set)
-                                                 if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
-                        # Otherwise it is directory that can contain modules.
-                        else:
-                            # Add "modules_prepare" target once.
-                            if not build_targets or build_targets[0] != ('modules_prepare',):
-                                build_targets.insert(0, ('modules_prepare',))
-
-                            modules_dir = os.path.join('ext-modules', modules_set) \
-                                if 'external modules' in self.conf['Linux kernel'] else modules_set
-
-                            if not os.path.isdir(os.path.join(self.linux_kernel['work src tree'], modules_dir)):
-                                raise ValueError(
-                                    'There is not directory "{0}" inside "{1}"'.format(modules_dir,
-                                                                                       self.linux_kernel['work src tree']))
-
-                            build_targets.append(('M=' + modules_dir, 'modules'))
+                        build_targets.append(('M=' + modules_dir, 'modules'))
         elif not self.linux_kernel['build kernel']:
             self.logger.warning('Nothing will be verified since modules are not specified')
 
@@ -302,7 +310,6 @@ class LKBCE(core.components.Component):
                                                                          self.conf['main working directory'],
                                                                          self.conf['Linux kernel']['configuration'])
             self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
-            shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
             with open(self.linux_kernel['conf file'], 'rb') as fp:
                 self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
