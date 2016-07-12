@@ -38,9 +38,13 @@ class LKBCE(core.components.Component):
             # Determine Linux kernel configuration just after Linux kernel working source tree is prepared since it
             # affect value of KCONFIG_CONFIG specified for various make targets if provided configuration file rather
             # than configuration target.
-            self.clean_linux_kernel_work_src_tree()
             self.get_linux_kernel_conf()
             self.check_preparation_for_building_external_modules()
+            self.clean_linux_kernel_work_src_tree()
+            # We need to copy Linux kernel configuration file if so after clean up since it can be removed there if it
+            # has name ".config".
+            if 'conf file' in self.linux_kernel:
+                shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             self.set_linux_kernel_attrs()
             self.set_hdr_arch()
             core.utils.report(self.logger,
@@ -306,7 +310,6 @@ class LKBCE(core.components.Component):
                                                                          self.conf['main working directory'],
                                                                          self.conf['Linux kernel']['configuration'])
             self.logger.debug('Linux kernel configuration file is "{0}"'.format(self.linux_kernel['conf file']))
-            shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             # Use configuration file SHA1 digest as value of Linux kernel:Configuration attribute.
             with open(self.linux_kernel['conf file'], 'rb') as fp:
                 self.linux_kernel['conf'] = hashlib.sha1(fp.read()).hexdigest()[:7]
