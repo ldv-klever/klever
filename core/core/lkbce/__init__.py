@@ -156,7 +156,7 @@ class LKBCE(core.components.Component):
                         raise ValueError(
                             'Module set "{0}" is subset of module set "{1}"'.format(modules1, modules2))
 
-                # Examine module sets.
+            # Examine module sets.
             if 'build kernel' not in self.linux_kernel or not self.linux_kernel['build kernel']:
                 for modules_set in self.linux_kernel['modules']:
                     # Module sets ending with .ko imply individual modules.
