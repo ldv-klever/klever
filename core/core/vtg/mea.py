@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-import os
 import re
 import time
 from xml.dom import minidom
@@ -132,7 +131,7 @@ class MEA:
                         src_files.add(data.firstChild)
 
         for src_file in src_files:
-            with open(os.path.join(self.conf['source tree root'], src_file), encoding='utf8') as fp:
+            with open(src_file, encoding='utf8') as fp:
                 i = 0
                 last_seen_model_function = None
                 for line in fp:

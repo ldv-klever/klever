@@ -50,9 +50,9 @@ class MAV(CommonStrategy):
         if self.mpv:
             # MPV strategies should be used for property automata.
             raise AttributeError("MAV-strategies do not support property automata")
-        #if 'unite rule specifications' not in self.conf['abstract task desc']['AVTG'] \
-        #        or not self.conf['abstract task desc']['AVTG']['unite rule specifications']:
-        #    raise AttributeError("Current VTG strategy supports only united bug types")
+        if 'unite rule specifications' not in self.conf \
+            or not self.conf['unite rule specifications']:
+            raise AttributeError("Current VTG strategy supports only united bug types")
 
     def perform_preprocess_actions(self):
         self.logger.info('Starting Multi-Aspect Verification')
