@@ -2,7 +2,6 @@
 
 import os
 import re
-import shutil
 import glob
 from abc import abstractclassmethod, ABCMeta
 from xml.dom import minidom
@@ -54,6 +53,7 @@ class CommonStrategy(core.components.Component):
         self.perform_preprocess_actions()
         self.main_cycle()
         self.perform_postprocess_actions()
+        self.perform_general_postprocess_actions()
 
     main = execute
 
@@ -124,6 +124,13 @@ class CommonStrategy(core.components.Component):
         else:
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 self.task_desc['files'].append(extra_c_file['C file'])
+
+    def perform_general_postprocess_actions(self):
+        # Remove all extra C files.
+        if not self.conf['keep intermediate files']:
+            for extra_c_files in self.conf['abstract task desc']['extra C files']:
+                for extra_c_file in extra_c_files:
+                    os.remove(extra_c_file)
 
     # This function creates 'verification' report, which is required for each verdict.
     @abstractclassmethod
