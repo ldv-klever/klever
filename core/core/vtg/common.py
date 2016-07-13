@@ -128,9 +128,9 @@ class CommonStrategy(core.components.Component):
     def perform_general_postprocess_actions(self):
         # Remove all extra C files.
         if not self.conf['keep intermediate files']:
-            for extra_c_files in self.conf['abstract task desc']['extra C files']:
-                for extra_c_file in extra_c_files:
-                    os.remove(extra_c_file)
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if os.path.isfile(extra_c_file['C file']):
+                    os.remove(extra_c_file['C file'])
 
     # This function creates 'verification' report, which is required for each verdict.
     @abstractclassmethod
