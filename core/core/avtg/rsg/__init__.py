@@ -12,7 +12,6 @@ import core.utils
 class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
-        self.conf['source tree root'] = self.conf['main working directory']
 
         if 'files' in self.abstract_task_desc:
             self.logger.info('Get generated aspects and models specified in abstract task description')
