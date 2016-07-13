@@ -75,7 +75,7 @@ class RSG(core.avtg.plugins.Plugin):
                 self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
                 models[common_model_c_file_realpath] = self.conf['common models'][common_model_c_file]
 
-        self.logger.info(models)
+        self.logger.debug('Resulting models are: {0}'.format(models))
 
         if not models:
             self.logger.warning('No models are specified')
