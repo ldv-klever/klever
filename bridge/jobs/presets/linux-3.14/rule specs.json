@@ -152,11 +152,11 @@
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {
+        "linux/ldv/irq.c": {},
         "linux/alloc1.c": {"bug kinds": [
           "linux:alloc:irq:wrong flags",
           "linux:alloc:irq:nonatomic"
-        ]},
-        "linux/ldv/irq.c": {}
+        ]}
       }}
     },
     "linux:alloc:spin lock": {
