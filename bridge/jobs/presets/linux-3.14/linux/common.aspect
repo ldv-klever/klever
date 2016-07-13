@@ -43,6 +43,13 @@ void *ldv_linux_class_create_class(void);
 int ldv_linux_usb_gadget_register_class(void);
 int ldv_linux_class_register_class(void);
 
+int ldv_linux_usb_gadget_register_chrdev(int major);
+int ldv_linux_chrdev_register_chrdev(int major);
+int ldv_linux_usb_gadget_register_chrdev_region(void);
+int ldv_linux_chrdev_register_chrdev_region(void);
+
+void ldv_linux_usb_gadget_unregister_chrdev_region(void);
+void ldv_linux_chrdev_unregister_chrdev_region(void);
 
 void *ldv_create_class(void)
 {
