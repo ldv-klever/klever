@@ -118,17 +118,18 @@ class MEA:
     def get_model_functions(self, graphml, bug_kind=None):
         self.model_functions = set()
         src_files = set()
-        graph = graphml.getElementsByTagName('graph')[0]
         for key in graphml.getElementsByTagName('key'):
             if key.getAttribute('id') == 'originfile':
                 default = key.getElementsByTagName('default')[0]
-                default_src_file = default.firstChild
+                default_src_file = default.firstChild.data
                 src_files.add(default_src_file)
+        graph = graphml.getElementsByTagName('graph')[0]
         for edge in graph.getElementsByTagName('edge'):
             for data in edge.getElementsByTagName('data'):
                 if data.getAttribute('key') == 'originfile':
+                    # Internal automaton variables do not have a source file.
                     if data.firstChild:
-                        src_files.add(data.firstChild)
+                        src_files.add(data.firstChild.data)
 
         for src_file in src_files:
             with open(src_file, encoding='utf8') as fp:
