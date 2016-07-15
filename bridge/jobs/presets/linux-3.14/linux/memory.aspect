@@ -10,7 +10,6 @@ before: file("$this")
 void ldv_after_alloc(void *res);
 void* ldv_nonzero_alloc(size_t size);
 void ldv_memory_free(void);
-void ldv_save_gadget_release(void (*func)(struct device *_dev));
 }
 
 around: define(_THIS_IP_)
@@ -21,21 +20,21 @@ around: define(_THIS_IP_)
 //This function makes kzalloc()!
 around: call(struct fb_info *framebuffer_alloc(..))
 {
-	void *res = ldv_zalloc(sizeof(struct fb_info) + $arg1);
+	void *res = ldv_verifier_zalloc(sizeof(struct fb_info) + $arg1);
 	ldv_after_alloc(res);
 	return res;
 }
 
 around: call(void *kmemdup(..))
 {
-	void *res = ldv_malloc($arg2);
+	void *res = ldv_verifier_malloc($arg2);
 	ldv_after_alloc(res);
 	return res;
 }
 
 around: call(int wl1271_acx_init_mem_config(..))
 {
-	void* res = ldv_malloc(1);
+	void* res = ldv_verifier_malloc(1);
 	ldv_after_alloc(res);
 	if (res != 0) {
 		$arg1->target_mem_map = res;
@@ -63,14 +62,14 @@ around: call(struct address_space *balloon_mapping_alloc(..))
 
 around: call(struct rsi_hw *rsi_91x_init(..))
 {
-	void *res = ldv_zalloc(sizeof(struct rsi_hw));
+	void *res = ldv_verifier_zalloc(sizeof(struct rsi_hw));
 	ldv_after_alloc(res);
 	return res;
 }
 
 around: call(struct mem_ctl_info *edac_mc_alloc(..))
 {
-	void *res = ldv_zalloc($arg4);
+	void *res = ldv_verifier_zalloc($arg4);
 	ldv_after_alloc(res);
 	return res;
 }
@@ -100,7 +99,7 @@ pointcut ZALLOC_UNKNOWN_SIZE:
 around: ZALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
-	void *res = ldv_zalloc(1);
+	void *res = ldv_verifier_zalloc(1);
 	ldv_after_alloc(res);
 	return res;
 }
@@ -134,7 +133,7 @@ pointcut ALLOC_UNKNOWN_SIZE:
 around: ALLOC_UNKNOWN_SIZE
 {
 	// We don't know the size.
-	void *res = ldv_malloc(1);
+	void *res = ldv_verifier_malloc(1);
 	ldv_after_alloc(res);
 	return res;
 }
@@ -142,7 +141,7 @@ around: ALLOC_UNKNOWN_SIZE
 around: call(static inline void *devm_kzalloc(..))
 {
 	// Memory allocated with this function is automatically freed on driver detach.
-	void *res = ldv_zalloc($arg2);
+	void *res = ldv_verifier_zalloc($arg2);
 	return res;
 }
 
@@ -150,7 +149,7 @@ around: call(struct iio_dev *devm_iio_device_alloc(..))
 {
 	// Calls kzalloc, be careful!
 	// Memory allocated with this function is automatically freed on driver detach.
-	void *res = ldv_zalloc($arg2);
+	void *res = ldv_verifier_zalloc($arg2);
 	return res;
 }
 

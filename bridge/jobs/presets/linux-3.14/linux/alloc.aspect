@@ -13,10 +13,8 @@ extern void ldv_after_alloc(void *res);
 
 void *ldv_alloc_macro(gfp_t flags)
 {
-	void *res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_verifier_malloc(1);
 }
 }
 
@@ -74,50 +72,42 @@ pointcut alloc_macro: define(alloc_pages(gfp_mask, order)) ||
 
 around: ALLOC
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_verifier_malloc(1);
 }
 
 around: ALLOC_KNOWN_SIZE
 {
-	void* res = ldv_malloc(size);
 	ldv_check_alloc_flags(flags);
+	void *res = ldv_verifier_malloc(1);
 	ldv_after_alloc(res);
 	return res;
 }
 
-around: ALLOC_RETURN_INT //TODO here
+around: ALLOC_RETURN_INT
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return (unsigned int) res;
+	return (unsigned int) ldv_verifier_malloc(1);
 }
 
 around: ZALLOC_KNOWN_SIZE
 {
-	void* res = ldv_zalloc(size);
 	ldv_check_alloc_flags(flags);
+	void *res = ldv_verifier_zalloc(1);
 	ldv_after_alloc(res);
 	return res;
 }
 
 around: ZALLOC_AUX
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_verifier_zalloc(1);
 }
 
 around: ALLOC_WITHOUT
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_nonatomic();
-	return res;
+	return ldv_verifier_malloc(1);
 }
 
 around: alloc_macro
