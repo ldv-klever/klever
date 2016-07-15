@@ -145,6 +145,13 @@ class CommonStrategy(core.components.Component):
                     log_files))
         return log_files[0]
 
+    def clear_safe_logs(self, log_file):
+        if 'upload safe proofs' not in self.conf['VTG strategy'] or \
+                not self.conf['VTG strategy']['upload safe proofs']:
+            log_file = "empty"
+            open(log_file, 'w')
+        return log_file
+
     def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
         # Add assertion if it was specified.
@@ -180,10 +187,7 @@ class CommonStrategy(core.components.Component):
 
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
-            if 'upload safe proofs' not in self.conf['VTG strategy'] or \
-                    not self.conf['VTG strategy']['upload safe proofs']:
-                log_file = "empty"
-                open(log_file, 'w')
+            log_file = self.clear_safe_logs(log_file)
 
             core.utils.report(self.logger,
                               'safe',

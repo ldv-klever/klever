@@ -204,6 +204,8 @@ class MAV(CommonStrategy):
                 "memory size": 0,
                 "wall time": 0}
         log_file = self.get_verifier_log_file()
+        if decision_results['status'] == 'safe':
+            log_file = self.clear_safe_logs(log_file)
         core.utils.report(self.logger,
                           'verification',
                           {
