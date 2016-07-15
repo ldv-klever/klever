@@ -180,6 +180,11 @@ class CommonStrategy(core.components.Component):
 
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
+            if 'upload safe proofs' not in self.conf['VTG strategy'] or \
+                    not self.conf['VTG strategy']['upload safe proofs']:
+                log_file = "empty"
+                open(log_file, 'w')
+
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -406,7 +411,6 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
-            log_file = self.get_verifier_log_file()
             core.utils.report(self.logger,
                               'unknown',
                               {
