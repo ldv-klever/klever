@@ -61,7 +61,7 @@ before: call(static inline void spin_lock(..)) ||
         call(static inline void spin_lock_irq(..)) ||
         call(void __ldv_spin_lock(..))
 {
-	ldv_spin_lock_$arg_sign1();
+	ldv_spin_lock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 around: define(spin_unlock(lock))
@@ -118,7 +118,7 @@ after: call(static inline int spin_trylock(..)) ||
        call(static inline int spin_trylock_irq(..)) ||
        call(int __ldv_spin_trylock(..))
 {
-	return ldv_spin_trylock_$arg_sign1();
+	return ldv_spin_trylock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 around: define(spin_unlock_wait(lock))
@@ -129,12 +129,12 @@ __ldv_spin_unlock_wait(lock)
 before: call(static inline void spin_unlock_wait(..)) ||
         call(void __ldv_spin_unlock_wait(..))
 {
-	ldv_spin_unlock_wait_$arg_sign1();
+	ldv_spin_unlock_wait{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 after: call(static inline int spin_is_locked(..))
 {
-	return ldv_spin_is_locked_$arg_sign1();
+	return ldv_spin_is_locked{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 around: define(spin_can_lock(lock))
@@ -145,12 +145,12 @@ __ldv_spin_can_lock(lock)
 after: call(static inline int spin_can_lock(..)) ||
        call(void __ldv_spin_can_lock(..))
 {
-	return ldv_spin_can_lock_$arg_sign1();
+	return ldv_spin_can_lock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 after: call(static inline int spin_is_contended(..))
 {
-	return ldv_spin_is_contended_$arg_sign1();
+	return ldv_spin_is_contended{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 around: define(atomic_dec_and_lock(atomic, lock))
@@ -160,5 +160,5 @@ __ldv_atomic_dec_and_lock(lock)
 
 after: call(int __ldv_atomic_dec_and_lock(..))
 { 
-	return ldv_atomic_dec_and_lock_$arg_sign1();
+	return ldv_atomic_dec_and_lock{{ spinlock_arg_sign_patterns[1] }}();
 }
