@@ -1,5 +1,10 @@
+@include <linux/alloc.aspect>
+
 before: file ("$this")
 {
+#include <linux/device.h>
+#include <verifier/common.h>
+
 struct usb_device;
 
 struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
@@ -20,4 +25,14 @@ around: call(void usb_put_dev(..))
 before: call(int ldv_post_probe(..))
 {
 	ldv_check_return_value_probe($arg1);
+}
+
+around: execution(static inline void *dev_get_drvdata(const struct device *dev))
+{
+	return dev->driver_data;
+}
+
+around: execution(static inline void dev_set_drvdata(struct device *dev, void *data))
+{
+	dev->driver_data = data;
 }
