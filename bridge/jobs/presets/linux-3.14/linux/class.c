@@ -3,6 +3,8 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+struct class;
+
 /* There are 2 possible states of class structure registration. */
 enum
 {
@@ -20,6 +22,9 @@ void *ldv_create_class(void)
 
 	/* OTHER Get blk request in the nondeterministic way */
 	is_got = ldv_undef_ptr();
+
+	/* OTHER Function cannot return NULL */
+	ldv_assume(is_got);
 
 	/* ASSERT Get blk request just in case when an error did not happen */
 	if (!ldv_is_err(is_got))
@@ -62,6 +67,13 @@ void ldv_unregister_class(void)
 	ldv_assert("linux:class:double deregistration", ldv_usb_gadget_class == LDV_CLASS_REGISTERED);
 	/* CHANGE_STATE Unregister class for usb gadget */
 	ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
+}
+
+void ldv_destroy_class(struct class *cls)
+{
+    if ((cls == 0) || (ldv_is_err(cls)))
+        return;
+    ldv_unregister_class();
 }
 
 /* MODEL_FUNC_DEF Check that usb gadget is fully unregistered at the end */
