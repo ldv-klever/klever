@@ -52,11 +52,14 @@ class RSG(core.avtg.plugins.Plugin):
             for model_c_file in self.conf['models']:
                 # Specify additional settings for generated models that have not any settings.
                 if model_c_file.startswith('$'):
+                    is_generated_model_c_file_found = False
                     for generated_model_c_file in generated_models:
                         if generated_model_c_file.endswith(model_c_file[1:]):
                             models[generated_model_c_file] = self.conf['models'][model_c_file]
-                        else:
-                            raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
+                            is_generated_model_c_file_found = True
+                            break
+                    if not is_generated_model_c_file_found:
+                        raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
             # Like common models processed below.
             for model_c_file in self.conf['models']:
                 if not model_c_file.startswith('$'):

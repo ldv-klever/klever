@@ -201,15 +201,11 @@
       "aliases": ["32"],
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {
-        "argument signatures list": "mutex_arg_signs",
-        "request aspect": "linux/mutex.request.aspect"
-      },
-      "TR": {"templates": [
-        "linux/mutex.c.tmpl",
-        "linux/mutex.aspect.tmpl",
-        "linux/automata/mutex.spc.tmpl"
-      ]},
+      "ASE": {"request aspects": {"linux/mutex.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/mutex.c.tmpl": {},
+        "linux/mutex.aspect.tmpl": {}
+      }},
       "RSG": {"models": {"$linux/mutex.c": {
           "bug kinds": [
             "linux:mutex::one thread:double lock",
@@ -225,14 +221,11 @@
       "aliases": ["39"],
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {
-        "argument signatures list": "spinlock_arg_signs",
-        "request aspect": "linux/spinlock.request.aspect"
-      },
-      "TR": {"templates": [
-        "linux/spinlock.c.tmpl",
-        "linux/spinlock.aspect.tmpl"
-      ]},
+      "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/spinlock.c.tmpl": {},
+        "linux/spinlock.aspect.tmpl": {}
+      }},
       "RSG": {"models": {"$linux/spinlock.c": {
         "bug kinds": [
           "linux:spinlock::one thread:double lock",

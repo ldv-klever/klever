@@ -220,19 +220,11 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
             template = 'Argument signatures for Linux kernel modules'
             break
 
-    if 'common aspect' in conf:
-        new_rule_spec_desc = {
-            'template': template,
-            'rule specifications': rule_specifications,
-            'RSG': {'common aspect': conf['common aspect']}
-        }
-    else:
-        new_rule_spec_desc = {
-            'template': template,
-            'rule specifications': rule_specifications
-        }
+    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = {
+        'template': template,
+        'rule specifications': rule_specifications
+    }
 
-    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = new_rule_spec_desc
     conf['rule specifications'] = [new_rule_name_id]
 
 
