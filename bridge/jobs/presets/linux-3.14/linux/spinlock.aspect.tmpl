@@ -1,6 +1,6 @@
 before: file ("$this")
 {
-#include <linux/spinlock.h>
+#include <linux/spinlock_types.h>
 
 extern void __ldv_spin_lock(spinlock_t *lock);
 extern void __ldv_spin_unlock(spinlock_t *lock);
