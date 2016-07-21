@@ -1,13 +1,6 @@
 before: file ("$this")
 {
-int ldv_usb_register(void);
 void ldv_check_return_value_probe(int retval);
-}
-
-/* Nondeterministically change state after call to usb_register(). */
-around: define(usb_register(driver))
-{
-ldv_usb_register()
 }
 
 before: call(int ldv_post_probe(..))

@@ -1,12 +1,6 @@
 before: file ("$this")
 {
-int ldv_register_netdev(void);
 void ldv_check_return_value_probe(int retval);
-}
-
-after: call(int register_netdev(..))
-{
-	return ldv_register_netdev();
 }
 
 before: call(int ldv_post_probe(..))
