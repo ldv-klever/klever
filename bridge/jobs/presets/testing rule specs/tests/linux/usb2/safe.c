@@ -23,7 +23,7 @@ static const struct usb_driver ldv_dummy_driver = {
 
 static int __init init(void)
 {
-	return 0;
+	return usb_register(&ldv_dummy_driver);
 }
 
 /* This function are defined here just to make Driver Environment Generator
