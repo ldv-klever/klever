@@ -296,6 +296,14 @@
     {
       "Linux kernel": {
         "external modules": "tests/linux/usb2",
+        "modules": ["netdev2.ko"]
+      },
+      "rule specifications": ["linux:netdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
         "modules": ["register.ko"]
       },
       "rule specifications": ["linux:usb:register"],
