@@ -12,7 +12,6 @@ static int ldv_usb_probe(struct usb_interface *interface,
 	err = usb_register(ldv_usb_driver2);
 
 	return 0;
-
 }
 
 static const struct usb_driver ldv_usb_driver = {
