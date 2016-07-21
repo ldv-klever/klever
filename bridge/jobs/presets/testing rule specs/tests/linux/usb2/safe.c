@@ -23,7 +23,7 @@ static int ldv_usb_probe(struct usb_interface *interface,
 	return 0;
 }
 
-static const struct usb_driver ldv_usb_driver = {
+static struct usb_driver ldv_usb_driver = {
 	.probe = ldv_usb_probe
 };
 
