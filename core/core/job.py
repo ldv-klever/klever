@@ -409,8 +409,8 @@ class Job(core.utils.CallbacksCaller):
         self.results = self.data.copy()
         for test in self.results:
             self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                test, self.data[test]['ideal verdict'], self.data[test]['verification status'],
-                ' ("{0}")'.format(self.data[test]['comment']) if self.data[test]['comment'] else ''))
+                test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
+                ' ("{0}")'.format(self.results[test]['comment']) if self.results[test]['comment'] else ''))
 
     def report_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
