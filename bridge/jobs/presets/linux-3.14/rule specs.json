@@ -107,6 +107,7 @@
             "common sets model": "counter",
             "common models": {
               "linux/err.c": {},
+              "linux/general.c": {},
               "linux/ldv/common.c": {},
               "verifier/common.c": {},
               "verifier/nondet.c": {},
