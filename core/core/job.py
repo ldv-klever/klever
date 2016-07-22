@@ -145,7 +145,11 @@ class Job(core.utils.CallbacksCaller):
                         context.mqs['verification statuses'] = multiprocessing.Queue()
 
                     def after_decide_verification_task(context):
-                        context.mqs['verification statuses'].put(context.verification_status)
+                        context.mqs['verification statuses'].put({
+                            "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            "rule specification": context.conf['abstract task desc']['attrs'][1]['rule specification'],
+                            "verification status": context.verification_status
+                        })
 
                     def after_generate_all_verification_tasks(context):
                         context.logger.info('Terminate verification statuses message queue')
