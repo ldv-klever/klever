@@ -188,12 +188,19 @@
       "aliases": ["150"],
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/mmc/sdio_func.c": {"bug kinds": [
-        "linux:mmc:sdio_func:wrong params",
-        "linux:mmc:sdio_func:double claim",
-        "linux:mmc:sdio_func:release without claim",
-        "linux:mmc:sdio_func:unreleased at exit"
-      ]}}}
+      "RSG": {"models": {"linux/mmc/sdio_func.c": {
+        "bug kinds": [
+          "linux:mmc:sdio_func:wrong params",
+          "linux:mmc:sdio_func:double claim",
+          "linux:mmc:sdio_func:release without claim",
+          "linux:mmc:sdio_func:unreleased at exit"
+        ],
+        "headers": [
+          "linux/mmc/sdio_func.h",
+          "linux/mmc/host.h",
+          "linux/mmc/card.h"
+        ]
+      }}}
     },
     "linux:module": {
       "aliases": ["8"],

@@ -1,11 +1,13 @@
 before: file ("$this")
 {
-extern void ldv__spin_lock(void *);
-extern void ldv__spin_unlock(void *);
-extern int ldv__spin_trylock(void *);
-extern void ldv__spin_unlock_wait(void *);
-extern void ldv__spin_can_lock(void *);
-extern int ldv__atomic_dec_and_lock(void *);
+#include <linux/spinlock_types.h>
+
+extern void __ldv_spin_lock(spinlock_t *lock);
+extern void __ldv_spin_unlock(spinlock_t *lock);
+extern int __ldv_spin_trylock(spinlock_t *lock);
+extern void __ldv_spin_unlock_wait(spinlock_t *lock);
+extern void __ldv_spin_can_lock(spinlock_t *lock);
+extern int __ldv_atomic_dec_and_lock(spinlock_t *lock);
 }
 
 around: define(spin_lock(lock))
