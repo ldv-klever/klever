@@ -17,11 +17,16 @@
           "interface": ["usb.usb_driver"]
         }
       },
-      "process": "<assign>.[register] | <none>",
+      "process": "<pre>.(<assign>.[register] | <none>)",
       "actions": {
         "register": {
           "parameters": [
             "%usb_driver%"
+          ]
+        },
+        "pre": {
+          "statements": [
+            "$res = ldv_pre_usb_register_driver();"
           ]
         },
         "assign": {
@@ -110,8 +115,13 @@
           "interface": ["net.net_device"]
         }
       },
-      "process": "<assign>.[open].[register] | <none>",
+      "process": "<pre>.(<assign>.[open].[register] | <none>)",
       "actions": {
+        "pre": {
+          "statements": [
+            "$res = ldv_pre_register_netdev();"
+          ]
+        },
         "open": {
           "callback": "%netdev.net_device_ops.ndo_open%",
           "parameters": [

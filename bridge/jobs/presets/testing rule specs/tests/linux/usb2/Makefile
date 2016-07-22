@@ -1,1 +1,1 @@
-obj-m += safe.o netdev.o register.o
+obj-m += safe.o netdev.o netdev2.o register.o
