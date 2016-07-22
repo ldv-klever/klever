@@ -279,7 +279,13 @@ class Job(core.utils.CallbacksCaller):
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
                 self.logger.debug('Sub-job name and type are "{0}" and "{1}"'.format(sub_job_name, sub_job_type))
 
-                sub_job = Job(self.logger, self.id + sub_job_name, sub_job_type)
+                sub_job_id = self.id + sub_job_name
+
+                for sub_job in self.sub_jobs:
+                    if sub_job.id == sub_job_id:
+                        raise ValueError('Several sub-jobs have the same identifier "{0}"'.format(sub_job_id))
+
+                sub_job = Job(self.logger, sub_job_id, sub_job_type)
                 self.sub_jobs.append(sub_job)
                 sub_job.parent = {'id': self.id, 'type': self.type}
                 sub_job.name = sub_job_name
