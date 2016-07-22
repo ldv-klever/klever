@@ -644,6 +644,70 @@
       },
       "rule specifications": ["linux:usb:coherent"],
       "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:rtnl"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": ["double-lock.ko"]
+      },
+      "rule specifications": ["linux:rtnl"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": ["double-unlock.ko"]
+      },
+      "rule specifications": ["linux:rtnl"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": ["lock-on-exit.ko"]
+      },
+      "rule specifications": ["linux:rtnl"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:sock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": ["double-release.ko"]
+      },
+      "rule specifications": ["linux:sock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": ["all-locked-sockets-must-be-released.ko"]
+      },
+      "rule specifications": ["linux:sock"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": ["double-release-2.ko"]
+      },
+      "rule specifications": ["linux:sock"],
+      "ideal verdict": "unsafe"
     }
   ]
 }
