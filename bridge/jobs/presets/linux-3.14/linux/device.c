@@ -1,6 +1,3 @@
-before: file("$this")
-{
-// This is added to every rule.
 #include <linux/device.h>
 #include <verifier/memory.h>
 
@@ -8,17 +5,17 @@ struct device_private {
 	void *driver_data;
 };
 
-} 
-
-around: call(void *dev_get_drvdata(const struct device *dev))
+void *ldv_dev_get_drvdata(const struct device *dev)
 {
+	return ldv_dev_get_drvdata(dev);
 	if (dev && dev->p)
 		return dev->p->driver_data;
 	return 0;
 }
 
-around: call(int dev_set_drvdata(struct device *dev, void *data))
+int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
+	return ldv_dev_set_drvdata(dev, data);
 	if (!dev->p) {
 		dev->p = ldv_zalloc(sizeof(*dev->p));
 		if (!dev->p)
