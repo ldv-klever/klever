@@ -1,5 +1,3 @@
-@include <linux/alloc.aspect>
-
 before: file ("$this")
 {
 struct usb_device;
