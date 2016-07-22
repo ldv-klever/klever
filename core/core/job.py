@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import importlib
 import json
 import multiprocessing
@@ -253,27 +254,30 @@ class Job(core.utils.CallbacksCaller):
                 external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
 
                 modules = sub_job_concrete_conf['Linux kernel']['modules']
-                if len(modules) != 1:
-                    raise ValueError('You should specify exactly one module ("{0}" is given)'.format(modules))
-                modules = modules[0]
+                if len(modules) == 1:
+                    modules_hash = modules[0]
+                else:
+                    modules_hash = hashlib.sha1(''.join(modules).encode('utf8')).hexdigest()[:7]
 
                 rule_specs = sub_job_concrete_conf['rule specifications']
-                if len(rule_specs) != 1:
-                    raise ValueError(
-                        'You should specify exactly one rule specification ("{0}" is given)'.format(rule_specs))
-                rule_specs = rule_specs[0]
+                if len(rule_specs) == 1:
+                    rule_specs_hash = rule_specs[0]
+                else:
+                    rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
+
                 if self.type == 'Validation on commits in Linux kernel Git repositories':
                     commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
                     if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
                         raise ValueError(
                             'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
                                 commit))
-                    sub_job_name = os.path.join(commit, external_modules, modules, rule_specs)
-                    sub_job_work_dir = os.path.join(commit, external_modules, modules, re.sub(r'\W', '-', rule_specs))
+                    sub_job_name = os.path.join(commit, external_modules, modules_hash, rule_specs_hash)
+                    sub_job_work_dir = os.path.join(commit, external_modules, modules_hash,
+                                                    re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
-                    sub_job_name = os.path.join(external_modules, modules, rule_specs)
-                    sub_job_work_dir = os.path.join(external_modules, modules, re.sub(r'\W', '-', rule_specs))
+                    sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
+                    sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
