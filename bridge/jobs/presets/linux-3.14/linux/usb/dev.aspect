@@ -1,6 +1,5 @@
 before: file ("$this")
 {
-#include <linux/device.h>
 #include <verifier/common.h>
 
 struct usb_device;
