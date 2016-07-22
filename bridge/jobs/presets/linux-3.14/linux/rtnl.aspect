@@ -1,0 +1,27 @@
+before: file ("$this")
+{
+void ldv_past_rtnl_lock(void);
+void ldv_past_rtnl_unlock(void);
+int ldv_rtnl_is_locked(void);
+int ldv_rtnl_trylock(void);
+}
+
+after: call(void rtnl_lock(..))
+{
+	ldv_past_rtnl_lock();
+}
+
+after: call(void rtnl_unlock(..))
+{
+	ldv_past_rtnl_unlock();
+}
+
+around: call(int rtnl_trylock(..))
+{
+	return ldv_rtnl_trylock();
+}
+
+around: call(int rtnl_is_locked(..))
+{
+	return ldv_rtnl_is_locked();
+}
