@@ -18,7 +18,7 @@ static struct my_struct
 	unsigned int *irq;
 };
 
-static void memory_allocation(void)
+static void memory_allocation(gfp_t flags)
 {
 	int order, node, newtailroom, newheadroom, iso_packets;
 	struct vm_area_struct *vma;
@@ -34,42 +34,42 @@ static void memory_allocation(void)
 	struct device *device;
 
 	// ALLOC
-	struct page *mem_1 = alloc_pages(GFP_ATOMIC, order);
-	struct page *mem_2 = alloc_pages_vma(GFP_ATOMIC, order, vma, addr, node);
-	struct my_struct *mem_3 = kmalloc(sizeof(mem_3), GFP_ATOMIC);
-	struct sk_buff *mem_4 = alloc_skb(sizeof(mem_3), GFP_ATOMIC);
-	struct sk_buff *mem_5 = alloc_skb_fclone(sizeof(mem_3), GFP_ATOMIC);
-	struct sk_buff *mem_6 = skb_copy(mem_5, GFP_ATOMIC);
-	struct sk_buff *mem_7 = skb_share_check(mem_6, GFP_ATOMIC);
-	struct sk_buff *mem_8 = skb_clone(mem_7, GFP_ATOMIC);
-	struct sk_buff *mem_9 = skb_unshare(mem_8, GFP_ATOMIC);
-	struct sk_buff *mem_10 = __netdev_alloc_skb(dev, length, GFP_ATOMIC);
-	struct sk_buff *mem_11 = skb_copy_expand(mem_10, newheadroom, newtailroom, GFP_ATOMIC);
-	struct my_struct *mem_12 = usb_alloc_coherent(dev_usb, sizeof(mem_3), GFP_ATOMIC, dma);
-	struct urb *mem_13 =  usb_alloc_urb(iso_packets, GFP_ATOMIC);
-	struct my_struct *mem_14 = kmalloc_node(sizeof(mem_3), GFP_ATOMIC, node);
-	struct my_struct *mem_15 = kmem_cache_alloc(cache, GFP_ATOMIC);
-	struct my_struct *mem_16 = mempool_alloc(pool, GFP_ATOMIC);
-	struct my_struct *mem_17 = dma_pool_alloc(pool1, GFP_ATOMIC, dma);
-	struct my_struct *mem_18 = kcalloc(length, sizeof(mem_3), GFP_ATOMIC);
-	struct my_struct *mem_19 = krealloc(mem_18, sizeof(mem_3), GFP_ATOMIC);
-	struct my_struct *mem_20 = dma_zalloc_coherent(device, sizeof(mem_3), dma, GFP_ATOMIC);
-	struct my_struct *mem_21 = dma_alloc_coherent(device , sizeof(mem_3), dma, GFP_ATOMIC);
+	struct page *mem_1 = alloc_pages(flags, order);
+	struct page *mem_2 = alloc_pages_vma(flags, order, vma, addr, node);
+	struct my_struct *mem_3 = kmalloc(sizeof(mem_3), flags);
+	struct sk_buff *mem_4 = alloc_skb(sizeof(mem_3), flags);
+	struct sk_buff *mem_5 = alloc_skb_fclone(sizeof(mem_3), flags);
+	struct sk_buff *mem_6 = skb_copy(mem_5, flags);
+	struct sk_buff *mem_7 = skb_share_check(mem_6, flags);
+	struct sk_buff *mem_8 = skb_clone(mem_7, flags);
+	struct sk_buff *mem_9 = skb_unshare(mem_8, flags);
+	struct sk_buff *mem_10 = __netdev_alloc_skb(dev, length, flags);
+	struct sk_buff *mem_11 = skb_copy_expand(mem_10, newheadroom, newtailroom, flags);
+	struct my_struct *mem_12 = usb_alloc_coherent(dev_usb, sizeof(mem_3), flags, dma);
+	struct urb *mem_13 =  usb_alloc_urb(iso_packets, flags);
+	struct my_struct *mem_14 = kmalloc_node(sizeof(mem_3), flags, node);
+	struct my_struct *mem_15 = kmem_cache_alloc(cache, flags);
+	struct my_struct *mem_16 = mempool_alloc(pool, flags);
+	struct my_struct *mem_17 = dma_pool_alloc(pool1, flags, dma);
+	struct my_struct *mem_18 = kcalloc(length, sizeof(mem_3), flags);
+	struct my_struct *mem_19 = krealloc(mem_18, sizeof(mem_3), flags);
+	struct my_struct *mem_20 = dma_zalloc_coherent(device, sizeof(mem_3), dma, flags);
+	struct my_struct *mem_21 = dma_alloc_coherent(device , sizeof(mem_3), dma, flags);
 
 	// ALLOC with int
-	int x_1 = __get_free_pages(GFP_ATOMIC, sizeof(mem_3));
-	int x_2 = usb_submit_urb(mem_13, GFP_ATOMIC);
-	int x_3 = mempool_resize(pool, order, GFP_ATOMIC);
-	int x_4 = pskb_expand_head(mem_8, order, node, GFP_ATOMIC);
+	int x_1 = __get_free_pages(flags, sizeof(mem_3));
+	int x_2 = usb_submit_urb(mem_13, flags);
+	int x_3 = mempool_resize(pool, order, flags);
+	int x_4 = pskb_expand_head(mem_8, order, node, flags);
 
 	// zalloc
-	struct my_struct *mem_z1 = kzalloc(sizeof(mem_3), GFP_ATOMIC);
-	struct my_struct *mem_z2 = kmem_cache_zalloc(cache, GFP_ATOMIC);
-	struct my_struct *mem_z3 = kzalloc_node(sizeof(mem_3), GFP_ATOMIC, node);
+	struct my_struct *mem_z1 = kzalloc(sizeof(mem_3), flags);
+	struct my_struct *mem_z2 = kmem_cache_zalloc(cache, flags);
+	struct my_struct *mem_z3 = kzalloc_node(sizeof(mem_3), flags, node);
 
 	// macro
-	struct page *mem_m1 = alloc_pages(GFP_ATOMIC, order);
-	struct page *mem_m2 = alloc_page_vma(GFP_ATOMIC, vma, addr);
+	struct page *mem_m1 = alloc_pages(flags, order);
+	struct page *mem_m2 = alloc_page_vma(flags, vma, addr);
 }
 
 static void memory_allocation_nonatomic(void)
@@ -87,45 +87,24 @@ static void memory_allocation_nonatomic(void)
 
 static irqreturn_t my_func_irq(int irq, void *dev_id)
 {
-	memory_allocation();
-	//memory_allocation();
+	memory_allocation(GFP_ATOMIC);
 	return IRQ_HANDLED;
 }
 
-
-static int my_usb_probe(struct usb_interface *intf, const struct usb_device_id *id)
-{
-	struct my_struct *err;
-	err->name = "struct_name";
-	memory_allocation();
-	memory_allocation_nonatomic();
-	err = request_irq(err->irq, my_func_irq, IRQF_SHARED, err->name, err);
-	//memory_allocation();
-	memory_allocation_nonatomic();
-	memory_allocation();
-	return PTR_ERR(err);
-}
-
-static struct usb_driver my_usb_driver = {
-	.name = "my usb irq",
-	.probe = my_usb_probe,
-};
-
 static int __init my_init(void)
 {
-	int ret_val = usb_register(&my_usb_driver);
-	//memory_allocation();
-	//memory_allocation_nonatomic();
-	//memory_allocation();
-	//memory_allocation();
-	//memory_allocation_nonatomic();
-	return ret_val;
-}
-
-static void __exit my_exit(void)
-{
-	usb_deregister(&my_usb_driver);
+	gfp_t flags;
+	unsigned int irq;
+	const char *name;
+	void *dev;
+	memory_allocation(flags);
+	memory_allocation_nonatomic();
+	memory_allocation(flags);
+	request_irq(irq, my_func_irq, IRQF_SHARED, name, dev);
+	memory_allocation(flags);
+	memory_allocation_nonatomic();
+	memory_allocation(flags);
+	return 0;
 }
 
 module_init(my_init);
-module_exit(my_exit);

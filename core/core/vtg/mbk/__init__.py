@@ -35,4 +35,4 @@ class MBK(MAV):
 
         # Add bug kind functions file to other abstract verification task files.
         self.conf['abstract task desc']['extra C files'].append(
-            {'C file': os.path.relpath('bug kind funcs.c', os.path.realpath(self.conf['source tree root']))})
+            {'C file': os.path.abspath('bug kind funcs.c')})

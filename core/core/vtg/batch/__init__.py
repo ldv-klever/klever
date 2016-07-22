@@ -8,8 +8,7 @@ from core.vtg.sbt import SBT
 class BATCH(SBT):
 
     def perform_sanity_checks(self):
-        if 'unite rule specifications' not in self.conf['abstract task desc']['AVTG'] \
-                or not self.conf['abstract task desc']['AVTG']['unite rule specifications']:
+        if 'unite rule specifications' not in self.conf or not self.conf['unite rule specifications']:
             raise AttributeError("Current VTG strategy supports only united bug types")
 
     def print_strategy_information(self):

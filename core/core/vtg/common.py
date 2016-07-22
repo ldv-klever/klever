@@ -2,7 +2,6 @@
 
 import os
 import re
-import shutil
 import glob
 from abc import abstractclassmethod, ABCMeta
 from xml.dom import minidom
@@ -54,6 +53,7 @@ class CommonStrategy(core.components.Component):
         self.perform_preprocess_actions()
         self.main_cycle()
         self.perform_postprocess_actions()
+        self.perform_general_postprocess_actions()
 
     main = execute
 
@@ -91,7 +91,7 @@ class CommonStrategy(core.components.Component):
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
-                extra_c_file['C file'] = trimmed_c_file
+                extra_c_file['new C file'] = trimmed_c_file
 
             core.utils.execute(self.logger,
                                (
@@ -112,11 +112,11 @@ class CommonStrategy(core.components.Component):
                                    '--rmUnusedInlines',
                                    '--out', 'cil.i',
                                ) +
-                               tuple(extra_c_file['C file']
+                               tuple(extra_c_file['new C file']
                                      for extra_c_file in self.conf['abstract task desc']['extra C files']))
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    os.remove(extra_c_file['C file'])
+                    os.remove(extra_c_file['new C file'])
 
             self.task_desc['files'].append('cil.i')
 
@@ -124,6 +124,13 @@ class CommonStrategy(core.components.Component):
         else:
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 self.task_desc['files'].append(extra_c_file['C file'])
+
+    def perform_general_postprocess_actions(self):
+        # Remove all extra C files.
+        if not self.conf['keep intermediate files']:
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if os.path.isfile(extra_c_file['C file']):
+                    os.remove(extra_c_file['C file'])
 
     # This function creates 'verification' report, which is required for each verdict.
     @abstractclassmethod
@@ -137,6 +144,13 @@ class CommonStrategy(core.components.Component):
                 'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
                     log_files))
         return log_files[0]
+
+    def clear_safe_logs(self, log_file):
+        if 'upload safe proofs' not in self.conf['VTG strategy'] or \
+                not self.conf['VTG strategy']['upload safe proofs']:
+            log_file = "empty"
+            open(log_file, 'w')
+        return log_file
 
     def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
@@ -173,6 +187,8 @@ class CommonStrategy(core.components.Component):
 
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
+            log_file = self.clear_safe_logs(log_file)
+
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -399,7 +415,6 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
-            log_file = self.get_verifier_log_file()
             core.utils.report(self.logger,
                               'unknown',
                               {

@@ -1,4 +1,4 @@
-#include <linux/spinlock.h>
+#include <linux/spinlock_types.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>

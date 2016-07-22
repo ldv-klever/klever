@@ -52,11 +52,14 @@ class RSG(core.avtg.plugins.Plugin):
             for model_c_file in self.conf['models']:
                 # Specify additional settings for generated models that have not any settings.
                 if model_c_file.startswith('$'):
+                    is_generated_model_c_file_found = False
                     for generated_model_c_file in generated_models:
                         if generated_model_c_file.endswith(model_c_file[1:]):
                             models[generated_model_c_file] = self.conf['models'][model_c_file]
-                        else:
-                            raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
+                            is_generated_model_c_file_found = True
+                            break
+                    if not is_generated_model_c_file_found:
+                        raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
             # Like common models processed below.
             for model_c_file in self.conf['models']:
                 if not model_c_file.startswith('$'):
@@ -74,7 +77,7 @@ class RSG(core.avtg.plugins.Plugin):
                 self.logger.debug('Get common model with C file "{0}"'.format(common_model_c_file_realpath))
                 models[common_model_c_file_realpath] = self.conf['common models'][common_model_c_file]
 
-        self.logger.info(models)
+        self.logger.debug('Resulting models are: {0}'.format(models))
 
         if not models:
             self.logger.warning('No models are specified')
@@ -101,27 +104,27 @@ class RSG(core.avtg.plugins.Plugin):
                     'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
                     .format(rule_spec_prefix, model_c_file))
 
-                preprocessed_model_c_file = os.path.join('models', '{0}.{1}.c'.format(
-                    os.path.splitext(os.path.basename(model_c_file))[0],
-                    re.sub(r'\W', '_', model['rule specification identifier'])))
-                with open(os.path.join(self.conf['source tree root'], model_c_file), encoding='ascii') as fp_in, \
+                preprocessed_model_c_file = '{0}.{1}.c'.format(
+                    model_c_file,
+                    re.sub(r'\W', '_', model['rule specification identifier']))
+                with open(model_c_file, encoding='ascii') as fp_in, \
                         open(preprocessed_model_c_file, 'w', encoding='ascii') as fp_out:
                     # Specify original location to avoid references to generated C files in error traces. Absolute file
                     # path here and below is required to get absolute path references in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
-                                            re.sub(r'ldv_(?!assert|assume|undef|set|map)', rule_spec_prefix, line)))
-                model['prefix preprocessed C file'] = os.path.relpath(preprocessed_model_c_file,
-                                                                      os.path.realpath(self.conf['source tree root']))
+                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err)',
+                                                   rule_spec_prefix, line)))
+                model['prefix preprocessed C file'] = preprocessed_model_c_file
                 self.logger.debug(
                     'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
                     format(preprocessed_model_c_file))
 
-                preprocessed_aspect = os.path.join('models', '{0}.{1}.aspect'.format(
-                    os.path.splitext(os.path.basename(aspect))[0],
-                    re.sub(r'\W', '_', model['rule specification identifier'])))
-                with open(os.path.join(self.conf['source tree root'], aspect), encoding='ascii') as fp_in, \
+                preprocessed_aspect = '{0}.{1}.aspect'.format(
+                    aspect,
+                    re.sub(r'\W', '_', model['rule specification identifier']))
+                with open(aspect, encoding='ascii') as fp_in, \
                         open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
                     # Specify original location to avoid references to generated aspects in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(aspect)))
@@ -130,7 +133,7 @@ class RSG(core.avtg.plugins.Plugin):
                 self.logger.debug(
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
-                aspects.append(os.path.relpath(preprocessed_aspect, os.path.realpath(self.conf['source tree root'])))
+                aspects.append(preprocessed_aspect)
             else:
                 model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)

@@ -26,11 +26,11 @@ class MBT(MAV):
         return bug_kinds
 
     def create_asserts(self):
-        self.logger.debug('Merging all bug kinds for each rule specification"')
+        self.logger.debug('Merging all bug kinds for each rule specification')
         # Bug kind is rule specification.
         bug_kinds = self.get_all_bug_kinds()
         for bug_kind in bug_kinds:
-            self.number_of_asserts +=1
+            self.number_of_asserts += 1
             function = "{0}".format(re.sub(r'\W', '_', bug_kind))
             self.assert_function[bug_kind] = function
         self.logger.debug('Multi-Aspect Verification will check "{0}" asserts'.format(self.number_of_asserts))
@@ -53,4 +53,4 @@ class MBT(MAV):
 
         # Add bug kind functions file to other abstract verification task files.
         self.conf['abstract task desc']['extra C files'].append(
-            {'C file': os.path.relpath('bug kind funcs.c', os.path.realpath(self.conf['source tree root']))})
+            {'C file': os.path.abspath('bug kind funcs.c')})

@@ -13,9 +13,9 @@ enum
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
 /* MODEL_FUNC_DEF Nondeterministically change state after call to register_netdev() */
-int ldv_register_netdev(void)
+int ldv_pre_register_netdev(void)
 {
-	int nondet;
+	int nondet = ldv_undef_int();
 
 	/* OTHER Nondeterministically report error */
 	if (nondet < 0) {

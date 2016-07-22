@@ -1,9 +1,11 @@
 #!/usr/bin/python3
 
 import hashlib
+import multiprocessing
 import os
 import re
 import shutil
+import subprocess
 import tarfile
 import time
 import urllib.parse
@@ -11,6 +13,7 @@ import json
 
 import core.components
 import core.utils
+import core.lkbce.utils
 
 # Architecture name to search for architecture specific header files can differ from the target architecture.
 # See Linux kernel Makefile for details. Mapping below was extracted from Linux 3.5.
@@ -23,6 +26,14 @@ _arch_hdr_arch = {
     'tilepro': 'tile',
     'tilegx': 'tile',
 }
+
+
+def before_launch_sub_job_components(context):
+    context.mqs['model cc options and headers'] = multiprocessing.Queue()
+
+
+def after_set_model_cc_opts_and_headers(context):
+    context.mqs['model cc options and headers'].put(context.model_cc_opts_and_headers)
 
 
 class LKBCE(core.components.Component):
@@ -190,18 +201,23 @@ class LKBCE(core.components.Component):
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
+
         for build_target in build_targets:
             if build_target[0] == 'modules_prepare' and self.linux_kernel['prepared to build ext modules']:
                 continue
+
             self.__make(build_target,
                         jobs_num=jobs_num,
                         specify_arch=True, collect_build_cmds=True)
+
             if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
                     self.linux_kernel['prepared to build ext modules']:
                 with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
                           encoding='ascii') as fp:
                     fp.write(self.linux_kernel['conf'])
 
+            if build_target[0] == 'modules_prepare':
+                self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='ascii') as fp:
@@ -450,6 +466,58 @@ class LKBCE(core.components.Component):
     # This method is inteded just for calbacks.
     def get_linux_kernel_build_cmd_desc(self):
         pass
+
+    def copy_model_headers(self):
+        self.logger.info('Copy model headers')
+
+        linux_kernel_work_src_tree = os.path.realpath(self.linux_kernel['work src tree'])
+
+        os.makedirs('model-headers')
+
+        model_cc_opts_and_headers = self.mqs['model cc options and headers'].get()
+
+        for model_c_file in model_cc_opts_and_headers:
+            self.logger.debug('Copy headers of model with C file "{0}"'.format(model_c_file))
+
+            model_headers_c_file = os.path.join('model-headers', os.path.basename(model_c_file))
+
+            cc_opts = model_cc_opts_and_headers[model_c_file]['CC options']
+            headers = model_cc_opts_and_headers[model_c_file]['headers']
+
+            with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
+                for header in headers:
+                    fp.write('#include <{0}>\n'.format(header))
+
+            model_headers_deps_file = model_headers_c_file + '.d'
+
+            # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
+            # "-nostdinc" option and system stdarg.h couldn't be used.
+            stdout = core.utils.execute(self.logger,
+                                        ('aspectator', '-print-file-name=include'),
+                                        collect_all_stdout=True)
+
+            core.utils.execute(self.logger,
+                               tuple(
+                                   ['aspectator', '-M', '-MF', os.path.relpath(model_headers_deps_file, linux_kernel_work_src_tree)] +
+                                   cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   [os.path.relpath(model_headers_c_file, linux_kernel_work_src_tree)]
+                               ),
+                               cwd=self.linux_kernel['work src tree'])
+
+            deps = core.lkbce.utils.get_deps_from_gcc_deps_file(model_headers_deps_file)
+
+            # Like in Command.copy_deps() in lkbce/wrappers/common.py but much more simpler.
+            for dep in deps:
+                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) != \
+                        linux_kernel_work_src_tree) or dep.endswith('.c'):
+                    continue
+
+                dest_dep = os.path.relpath(dep, linux_kernel_work_src_tree) if os.path.isabs(dep) else dep
+
+                if not os.path.isfile(dest_dep):
+                    self.logger.debug('Copy model header "{0}"'.format(dep))
+                    os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
+                    shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
 
     def __make_canonical_work_src_tree(self, work_src_tree):
         work_src_tree_root = None

@@ -50,8 +50,8 @@ class MAV(CommonStrategy):
         if self.mpv:
             # MPV strategies should be used for property automata.
             raise AttributeError("MAV-strategies do not support property automata")
-        if 'unite rule specifications' not in self.conf['abstract task desc']['AVTG'] \
-                or not self.conf['abstract task desc']['AVTG']['unite rule specifications']:
+        if 'unite rule specifications' not in self.conf \
+            or not self.conf['unite rule specifications']:
             raise AttributeError("Current VTG strategy supports only united bug types")
 
     def perform_preprocess_actions(self):
@@ -100,7 +100,7 @@ class MAV(CommonStrategy):
             if os.path.isfile(self.path_to_property_automata):
                 tar.add(self.path_to_property_automata)
             for file in self.task_desc['files']:
-                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+                tar.add(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
@@ -204,6 +204,8 @@ class MAV(CommonStrategy):
                 "memory size": 0,
                 "wall time": 0}
         log_file = self.get_verifier_log_file()
+        if decision_results['status'] == 'safe':
+            log_file = self.clear_safe_logs(log_file)
         core.utils.report(self.logger,
                           'verification',
                           {
