@@ -5,6 +5,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import string
 
 import core.components
 import core.utils
@@ -325,7 +326,9 @@ class AVTG(core.components.Component):
                           self.conf['main working directory'])
         self.get_shadow_src_tree()
         self.get_hdr_arch()
+        # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
+        self.set_model_cc_opts_and_headers()
         self.generate_all_abstract_verification_task_descs()
 
     main = generate_abstract_verification_tasks
@@ -336,6 +339,35 @@ class AVTG(core.components.Component):
         self.common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
 
         self.mqs['AVTG common prj attrs'].close()
+
+    def set_model_cc_opts_and_headers(self):
+        self.logger.info('Set model CC options and headers')
+
+        self.model_cc_opts_and_headers = {}
+
+        for rule_spec_desc in self.rule_spec_descs:
+            self.logger.debug('Set headers of rule specification "{0}"'.format(rule_spec_desc['id']))
+            for plugin_desc in rule_spec_desc['plugins']:
+                if plugin_desc['name'] == 'RSG' \
+                        and 'model CC options' in plugin_desc['options'] \
+                        and 'models' in plugin_desc['options']:
+                    for model_c_file, model in plugin_desc['options']['models'].items():
+                        self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
+                        if 'headers' in model:
+                            self.model_cc_opts_and_headers[model_c_file] = {
+                                'CC options': [
+                                    string.Template(opt).substitute(hdr_arch=self.conf['header architecture'])
+                                    for opt in plugin_desc['options']['model CC options']
+                                ],
+                                'headers': []
+                            }
+                            self.logger.debug('Set model CC options "{0}"'.format(
+                                self.model_cc_opts_and_headers[model_c_file]['CC options']))
+                            for header in model['headers']:
+                                self.model_cc_opts_and_headers[model_c_file]['headers'].append(
+                                    string.Template(header).substitute(hdr_arch=self.conf['header architecture']))
+                            self.logger.debug(
+                                'Set headers "{0}"'.format(self.model_cc_opts_and_headers[model_c_file]['headers']))
 
     def get_hdr_arch(self):
         self.logger.info('Get architecture name to search for architecture specific header files')
