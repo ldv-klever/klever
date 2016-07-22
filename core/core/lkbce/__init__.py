@@ -78,6 +78,8 @@ class LKBCE(core.components.Component):
             self.extract_module_files()
             self.receive_modules_to_build()
 
+            self.copy_model_headers()
+
             self.launch_subcomponents(('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
 
@@ -85,8 +87,6 @@ class LKBCE(core.components.Component):
 
             if not self.conf['keep intermediate files']:
                 os.remove(self.linux_kernel['build cmd descs file'])
-
-            self.copy_model_headers()
 
     def extract_module_deps_and_sizes(self):
         if self.linux_kernel['build kernel']:

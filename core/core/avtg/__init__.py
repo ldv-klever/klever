@@ -350,24 +350,27 @@ class AVTG(core.components.Component):
             for plugin_desc in rule_spec_desc['plugins']:
                 if plugin_desc['name'] == 'RSG' \
                         and 'model CC options' in plugin_desc['options'] \
-                        and 'models' in plugin_desc['options']:
-                    for model_c_file, model in plugin_desc['options']['models'].items():
-                        self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
-                        if 'headers' in model:
-                            self.model_cc_opts_and_headers[model_c_file] = {
-                                'CC options': [
-                                    string.Template(opt).substitute(hdr_arch=self.conf['header architecture'])
-                                    for opt in plugin_desc['options']['model CC options']
-                                ],
-                                'headers': []
-                            }
-                            self.logger.debug('Set model CC options "{0}"'.format(
-                                self.model_cc_opts_and_headers[model_c_file]['CC options']))
-                            for header in model['headers']:
-                                self.model_cc_opts_and_headers[model_c_file]['headers'].append(
-                                    string.Template(header).substitute(hdr_arch=self.conf['header architecture']))
-                            self.logger.debug(
-                                'Set headers "{0}"'.format(self.model_cc_opts_and_headers[model_c_file]['headers']))
+                        and ('common models' in plugin_desc['options'] or 'models' in plugin_desc['options']):
+                    for models in ('common models', 'models'):
+                        if models in plugin_desc['options']:
+                            for model_c_file, model in plugin_desc['options'][models].items():
+                                self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
+                                if 'headers' in model:
+                                    self.model_cc_opts_and_headers[model_c_file] = {
+                                        'CC options': [
+                                            string.Template(opt).substitute(hdr_arch=self.conf['header architecture'])
+                                            for opt in plugin_desc['options']['model CC options']
+                                        ],
+                                        'headers': []
+                                    }
+                                    self.logger.debug('Set model CC options "{0}"'.format(
+                                        self.model_cc_opts_and_headers[model_c_file]['CC options']))
+                                    for header in model['headers']:
+                                        self.model_cc_opts_and_headers[model_c_file]['headers'].append(
+                                            string.Template(header).substitute(
+                                                hdr_arch=self.conf['header architecture']))
+                                    self.logger.debug('Set headers "{0}"'.format(
+                                        self.model_cc_opts_and_headers[model_c_file]['headers']))
 
     def get_hdr_arch(self):
         self.logger.info('Get architecture name to search for architecture specific header files')
