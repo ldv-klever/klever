@@ -141,7 +141,7 @@ class Job(core.utils.CallbacksCaller):
 
                 # Specify callbacks to collect verification statuses from VTG. They will be used to
                 # calculate validation and testing results.
-                if 'ideal verdict' in self.components_common_conf:
+                if 'ideal verdicts' in self.components_common_conf:
                     def before_launch_sub_job_components(context):
                         context.mqs['verification statuses'] = multiprocessing.Queue()
 
@@ -369,7 +369,7 @@ class Job(core.utils.CallbacksCaller):
             self.report_results()
 
     def report_results(self):
-        if 'ideal verdict' in self.components_common_conf:
+        if 'ideal verdicts' in self.components_common_conf:
             verification_statuses = []
             while True:
                 verification_status = self.mqs['verification statuses'].get()
@@ -387,17 +387,13 @@ class Job(core.utils.CallbacksCaller):
             if not verification_statuses:
                 verification_statuses.append('unknown')
 
-            if len(verification_statuses) > 1:
-                raise ValueError(
-                    'Got too many verification statuses "{0}" (just one is expected) for sub-job "{1}"'.format(
-                        verification_statuses, self.name))
-
             with self.data_lock:
-                self.data[self.name] = {
-                    'ideal verdict': self.components_common_conf['ideal verdict'],
-                    'comment': self.components_common_conf.get('comment'),
-                    'verification status': verification_statuses[0]
-                }
+                # Get previously processed results.
+                self.results = self.data.copy()
+
+                # Process new results.
+                self.results.update(self.__match_verification_statuses_and_ideal_verdicts(
+                    verification_statuses, self.components_common_conf['ideal verdicts']))
 
                 if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
                     self.process_validation_results()
@@ -415,10 +411,11 @@ class Job(core.utils.CallbacksCaller):
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
 
+                # Store processed results.
+                self.data = self.results
+
     def process_testing_results(self):
         self.logger.info('Check whether tests passed')
-        # Report obtained data as is.
-        self.results = self.data.copy()
         for test in self.results:
             self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
                 test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
@@ -429,7 +426,7 @@ class Job(core.utils.CallbacksCaller):
 
         bug_results = {}
         bug_fix_results = {}
-        for name, results in self.data.items():
+        for name, results in self.results.items():
             # Corresponds to validation result before bug fix.
             if results['ideal verdict'] == 'unsafe':
                 bug_results[name] = results
@@ -439,6 +436,7 @@ class Job(core.utils.CallbacksCaller):
             else:
                 raise ValueError(
                     'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
+        self.results.clear()
 
         for bug_id, bug_result in bug_results.items():
             found_bug_fix = False
@@ -470,3 +468,68 @@ class Job(core.utils.CallbacksCaller):
                 self.results[bug_id]['after fix'] = bug_fix_result
 
             self.logger.info(validation_res_msg)
+
+    def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
+        results = {}
+
+        for verification_status in verification_statuses:
+            verification_object = verification_status['verification object']
+            rule_specification = verification_status['rule specification']
+            verification_status = verification_status['verification status']
+
+            # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
+            # one sub-job).
+            name = os.path.join(self.name_prefix, verification_object, rule_specification)
+
+            # Try to match exactly by both verification object and rule specification.
+            for ideal_verdict in ideal_verdicts:
+                if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
+                        and ideal_verdict['verification object'] == verification_object \
+                        and ideal_verdict['rule specification'] == rule_specification:
+                    results[name] = {
+                        'ideal verdict': ideal_verdict['ideal verdict'],
+                        'verification status': verification_status,
+                        'comment': ideal_verdict.get('comment')
+                    }
+                    break
+
+            # Try to match just by verification object.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
+                            and ideal_verdict['verification object'] == verification_object:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            # Try to match just by rule specification.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' not in ideal_verdict and 'rule specification' in ideal_verdict \
+                            and ideal_verdict['rule specification'] == rule_specification:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            # If nothing of above matched.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            if name not in results:
+                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}"'.format(
+                    verification_status))
+
+        return results
