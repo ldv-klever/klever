@@ -715,7 +715,7 @@
         "modules": ["safe.ko"]
       },
       "rule specifications": ["linux:rtnl"],
-      "ideal verdict": "unsafe"
+      "ideal verdict": "safe"
     },
     {
       "Linux kernel": {
