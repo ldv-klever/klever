@@ -52,8 +52,7 @@ pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, 
 						   call(int pskb_expand_head(.., gfp_t flags, ..))
 
 /* Separately weave *zalloc*() bacause it should not call kmalloc() in the body. */
-pointcut ZALLOC_KNOWN_SIZE: execution(static inline void *kzalloc(.., gfp_t flags, ..)) ||
-					        execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
+pointcut ZALLOC_KNOWN_SIZE: execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
 
 pointcut ZALLOC_AUX: execution(static inline void *kmem_cache_zalloc(.., gfp_t flags, ..))
 
