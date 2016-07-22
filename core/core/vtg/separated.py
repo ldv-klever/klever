@@ -51,6 +51,9 @@ class SeparatedStrategy(CommonStrategy):
                 "wall time": 0}
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
+        if decision_results['status'] == 'safe':
+            log_file = self.clear_safe_logs(log_file)
+
         core.utils.report(self.logger,
                           'verification',
                           {

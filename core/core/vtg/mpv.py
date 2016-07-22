@@ -66,8 +66,8 @@ class MPV(CommonStrategy):
     def perform_sanity_checks(self):
         if not self.mpv:
             raise AttributeError("MPV-strategies require property automata")
-        if 'unite rule specifications' not in self.conf['abstract task desc']['AVTG'] \
-                or not self.conf['abstract task desc']['AVTG']['unite rule specifications']:
+        if 'unite rule specifications' not in self.conf \
+                or not self.conf['unite rule specifications']:
             raise AttributeError("MPV-strategies require united bug types")
 
     def perform_preprocess_actions(self):
@@ -105,7 +105,7 @@ class MPV(CommonStrategy):
                 if os.path.isfile(path_to_file):
                     tar.add(path_to_file)
             for file in self.task_desc['files']:
-                tar.add(os.path.join(self.conf['source tree root'], file), os.path.basename(file))
+                tar.add(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):

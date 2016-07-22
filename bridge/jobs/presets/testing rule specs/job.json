@@ -31,6 +31,62 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:alloc:usb lock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:spinlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:rwlock"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/empty",
+        "modules": ["safe.ko"]
+      },
+      "rule specifications": ["linux:mmc:sdio_func"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/mutex",
         "modules": ["double-lock.ko"]
       },
@@ -289,6 +345,14 @@
       "Linux kernel": {
         "external modules": "tests/linux/usb2",
         "modules": ["netdev.ko"]
+      },
+      "rule specifications": ["linux:netdev"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/usb2",
+        "modules": ["netdev2.ko"]
       },
       "rule specifications": ["linux:netdev"],
       "ideal verdict": "unsafe"

@@ -21,4 +21,3 @@ int ldv_post_probe(int probe_ret_val)
 {
 	return ldv_filter_positive_int(probe_ret_val);
 }
-

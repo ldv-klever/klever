@@ -7,6 +7,9 @@ before: file ("$this")
 #include <verifier/memory.h>
 #include <verifier/nondet.h>
 
+#ifndef __LINUX_ALLOC_ASPECT
+#define __LINUX_ALLOC_ASPECT
+
 extern void ldv_check_alloc_flags(gfp_t flags);
 extern void ldv_check_alloc_nonatomic(void);
 extern void ldv_after_alloc(void *res);
@@ -16,6 +19,9 @@ void *ldv_alloc_macro(gfp_t flags)
 	ldv_check_alloc_flags(flags);
 	return ldv_verifier_malloc(1);
 }
+
+#endif /* __LINUX_ALLOC_ASPECT */
+
 }
 
 /* Functions which has parameter of type gfp_t. */
