@@ -9,7 +9,7 @@ void ldv_linux_module_check_final_state(void);
 void ldv_linux_usb_urb_check_final_state(void);
 void ldv_linux_usb_coherent_check_final_state(void);
 void ldv_linux_rwlock_check_final_state(void);
-// void ldv_linux_mmc_sdio_func_check_final_state(void);
+void ldv_linux_mmc_sdio_func_check_final_state(void);
 void ldv_linux_class_check_final_state(void);
 void ldv_linux_chrdev_check_final_state(void);
 void ldv_linux_usb_gadget_check_final_state(void);
@@ -99,7 +99,7 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_usb_urb_check_final_state();
 	ldv_linux_usb_coherent_check_final_state();
 	ldv_linux_rwlock_check_final_state();
-//	ldv_linux_mmc_sdio_func_check_final_state();
+	ldv_linux_mmc_sdio_func_check_final_state();
 	ldv_linux_class_check_final_state();
 	ldv_linux_chrdev_check_final_state();
 	ldv_linux_usb_gadget_check_final_state();
