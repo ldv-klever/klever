@@ -388,9 +388,9 @@ class Job(core.utils.CallbacksCaller):
                 }
 
                 if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                    self.report_validation_results()
+                    self.process_validation_results()
                 elif self.parent['type'] == 'Verification of Linux kernel modules':
-                    self.report_testing_results()
+                    self.process_testing_results()
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
@@ -403,7 +403,7 @@ class Job(core.utils.CallbacksCaller):
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
 
-    def report_testing_results(self):
+    def process_testing_results(self):
         self.logger.info('Check whether tests passed')
         # Report obtained data as is.
         self.results = self.data.copy()
@@ -412,7 +412,7 @@ class Job(core.utils.CallbacksCaller):
                 test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
                 ' ("{0}")'.format(self.results[test]['comment']) if self.results[test]['comment'] else ''))
 
-    def report_validation_results(self):
+    def process_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
 
         bug_results = {}
