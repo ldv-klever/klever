@@ -32,6 +32,7 @@ class Job(core.utils.CallbacksCaller):
         self.id = id
         self.logger.debug('Job identifier is "{0}"'.format(id))
         self.parent = {}
+        self.name_prefix = None
         self.name = None
         self.work_dir = None
         self.mqs = {}
@@ -275,11 +276,13 @@ class Job(core.utils.CallbacksCaller):
                         raise ValueError(
                             'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
                                 commit))
+                    sub_job_name_prefix = os.path.join(commit, external_modules)
                     sub_job_name = os.path.join(commit, external_modules, modules_hash, rule_specs_hash)
                     sub_job_work_dir = os.path.join(commit, external_modules, modules_hash,
                                                     re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
+                    sub_job_name_prefix = os.path.join(external_modules)
                     sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
                     sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
@@ -296,6 +299,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job = Job(self.logger, sub_job_id, sub_job_type)
                 self.sub_jobs.append(sub_job)
                 sub_job.parent = {'id': self.id, 'type': self.type}
+                sub_job.name_prefix = sub_job_name_prefix
                 sub_job.name = sub_job_name
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
