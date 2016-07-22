@@ -1,4 +1,3 @@
-#include <linux/spinlock.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
@@ -131,4 +130,18 @@ void ldv_check_final_state(void)
 	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked before finishing operation */
 	ldv_assert("linux:spinlock::one thread:locked at exit", ldv_spin{{ arg_sign.id }} == 1);
 	// endfor
+}
+
+/* For 'linux:alloc:spin lock' rule */
+int ldv_exclusive_spin_is_locked(void)
+{
+	// for arg_sign in spinlock_arg_signs
+	/* OTHER Nondeterministically understand whether spinlock{{ arg_sign.text }} was locked */
+	if(ldv_spin{{ arg_sign.id }} == 2) {
+		/* RETURN Spinlock{{ arg_sign.text }} is locked */
+		return 1;
+	}
+	// endfor
+	/* RETURN None of the spinlocks are locked */
+	return 0;
 }

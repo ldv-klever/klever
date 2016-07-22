@@ -2,14 +2,14 @@
 #include <linux/ldv/gfp.h>
 #include <verifier/common.h>
 
+extern int ldv_exclusive_spin_is_locked(void);
+
 /* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired */
 void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (CHECK_WAIT_FLAGS(flags)) {
-		// for arg_sign in spinlock_arg_signs
 		/* ASSERT __GFP_WAIT flag should be unset (GFP_ATOMIC or GFP_NOWAIT flag should be used) when spinlock{{ arg_sign.text }} is aquired */
-		ldv_assert("linux:alloc:spin lock:wrong flags", !ldv_exclusive_spin_is_locked{{ arg_sign.id }}());
-		// endfor
+		ldv_assert("linux:alloc:spin lock:wrong flags", !ldv_exclusive_spin_is_locked());
 	}
 }
 
