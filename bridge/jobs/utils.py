@@ -452,7 +452,8 @@ def create_job(kwargs):
         return _("The job author is required")
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
-    newjob.light = kwargs['light']
+    if 'light' in kwargs:
+        newjob.light = kwargs['light']
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
@@ -511,7 +512,8 @@ def update_job(kwargs):
     if 'name' in kwargs and len(kwargs['name']) > 0:
         kwargs['job'].name = kwargs['name']
     kwargs['job'].change_author = kwargs['author']
-    kwargs['job'].light = kwargs['light']
+    if 'light' in kwargs:
+        kwargs['job'].light = kwargs['light']
     kwargs['job'].version += 1
     kwargs['job'].save()
 

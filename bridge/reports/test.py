@@ -251,6 +251,27 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/plain')
 
+        # Collapse job
+        response = self.client.post('/jobs/ajax/collapse_reports/', {'job_id': self.job.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(
+            len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
+        )
+
+        self.job = Job.objects.get(pk=self.job.pk)
+        self.job.light = True
+        self.job.save()
+        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        DecideJobs('service', 'service', CHUNKS1)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(
+            len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
+        )
+
     def test_comparison(self):
         try:
             # Exclude jobs "Validation on commits" due to they need additional attribute for comparison: "Commit"
