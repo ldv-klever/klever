@@ -156,6 +156,11 @@ class JobAccess(object):
     def can_download(self):
         return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
 
+    def can_collapse(self):
+        if self.job is None:
+            return False
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
+
     def __get_prop(self, user):
         if self.job is not None:
             try:
@@ -447,6 +452,7 @@ def create_job(kwargs):
         return _("The job author is required")
     newjob.name = kwargs['name']
     newjob.change_author = kwargs['author']
+    newjob.light = kwargs['light']
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
@@ -505,6 +511,7 @@ def update_job(kwargs):
     if 'name' in kwargs and len(kwargs['name']) > 0:
         kwargs['job'].name = kwargs['name']
     kwargs['job'].change_author = kwargs['author']
+    kwargs['job'].light = kwargs['light']
     kwargs['job'].version += 1
     kwargs['job'].save()
 

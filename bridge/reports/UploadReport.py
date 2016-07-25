@@ -9,6 +9,7 @@ from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
 from reports.utils import save_attrs
 from reports.models import *
+from tools.utils import RecalculateLeaves, RecalculateVerdicts
 
 
 class UploadReport(object):
@@ -225,7 +226,9 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             report_datafile = None
             if 'data' in self.data:
-                report_datafile = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+                if self.job.light and self.data['id'] == '/' or not self.job.light:
+                    report_datafile = file_get_or_create(
+                        BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report = ReportComponent(
                 identifier=identifier, parent=self.parent, root=self.root, start_date=now(), data=report_datafile,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
@@ -245,9 +248,10 @@ class UploadReport(object):
             report.wall_time = int(self.data['resources']['wall time'])
 
         if self.archive is not None:
-            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
-        if 'log' in self.data:
-            report.log = self.data['log']
+            if self.job.light and (self.data['type'] == 'verification' or self.data['id'] == '/') or not self.job.light:
+                report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+                if 'log' in self.data:
+                    report.log = self.data['log']
 
         report.save()
 
@@ -265,6 +269,8 @@ class UploadReport(object):
             self.error = 'Updated report does not exist'
 
     def __update_report_data(self, identifier):
+        if self.job.light and self.data['id'] != '/':
+            return
         try:
             report = ReportComponent.objects.get(identifier=identifier)
             report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
@@ -287,12 +293,14 @@ class UploadReport(object):
         report.wall_time = int(self.data['resources']['wall time'])
 
         if self.archive is not None:
-            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
-        if 'log' in self.data:
-            report.log = self.data['log']
+            if self.job.light and (self.data['type'] == 'verification' or self.data['id'] == '/') or not self.job.light:
+                report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+                if 'log' in self.data:
+                    report.log = self.data['log']
 
         if 'data' in self.data:
-            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+            if not (self.job.light and self.data['id'] != '/'):
+                report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
         report.finish_date = now()
         report.save()
 
@@ -305,18 +313,20 @@ class UploadReport(object):
                 self.__job_failed("There are unfinished reports")
                 return
             KleverCoreFinishDecision(self.job)
+            if self.job.light:
+                self.__collapse_reports()
 
     def __create_report_unknown(self, identifier):
+        if self.job.light and self.parent.parent_id is not None:
+            self.parent.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            self.parent.save()
         try:
             ReportUnknown.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
             report = ReportUnknown(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-                component=self.parent.component
+                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
             )
 
         if self.archive is None:
@@ -346,6 +356,8 @@ class UploadReport(object):
         ConnectReportWithMarks(report)
 
     def __create_report_safe(self, identifier):
+        if self.job.light:
+            return
         try:
             ReportSafe.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
@@ -378,16 +390,20 @@ class UploadReport(object):
         ConnectReportWithMarks(report)
 
     def __create_report_unsafe(self, identifier):
+        unsafe_parent = self.parent
+        if self.job.light:
+            root_report = ReportComponent.objects.get(parent=None, root=self.root)
+            if self.parent.archive is None:
+                unsafe_parent = root_report
+            else:
+                self.parent.parent = root_report
+                self.parent.save()
         try:
             ReportUnsafe.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
-            report = ReportUnsafe(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root
-            )
+            report = ReportUnsafe(identifier=identifier, parent=unsafe_parent, root=self.root)
 
         if self.archive is None:
             self.error = 'Unsafe report must contain archive with error trace and source code files'
@@ -483,3 +499,45 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+
+    def __collapse_reports(self):
+        root_report = ReportComponent.objects.get(parent=None, root=self.root)
+        reports_to_save = []
+        for u in ReportUnsafe.objects.filter(root=self.root):
+            if u.parent_id != root_report.pk:
+                reports_to_save.append(u.parent_id)
+        for u in ReportUnknown.objects.filter(root=self.root):
+            reports_to_save.append(u.parent_id)
+        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
+
+
+class CollapseReports(object):
+    def __init__(self, job):
+        self.job = job
+        self.__collapse()
+        self.job.light = True
+        self.job.save()
+
+    def __collapse(self):
+        try:
+            root_report = ReportComponent.objects.get(parent=None, root__job=self.job)
+        except ObjectDoesNotExist:
+            return
+        reports_to_save = []
+        for u in ReportUnsafe.objects.filter(root__job=self.job):
+            parent = ReportComponent.objects.get(pk=u.parent_id)
+            if parent.archive is None:
+                u.parent = root_report
+                u.save()
+            else:
+                parent.parent = root_report
+                parent.save()
+                reports_to_save.append(parent.pk)
+        for u in ReportUnknown.objects.filter(root__job=self.job):
+            if u.parent.parent is not None:
+                u.parent.parent = root_report
+                u.parent.save()
+                reports_to_save.append(u.parent_id)
+        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
+        RecalculateLeaves([self.job])
+        RecalculateVerdicts([self.job])
