@@ -94,14 +94,13 @@ class UploadReport(object):
                     self.data['comp'] = data['comp']
         elif data['type'] == 'finish':
             try:
-                self.data.update({
-                    'log': data['log'],
-                    'resources': data['resources'],
-                })
+                self.data['resources'] = data['resources']
             except KeyError as e:
                 return "Property '%s' is required." % e
             if 'data' in data:
                 self.data.update({'data': data['data']})
+            if 'log' in data:
+                self.data['log'] = data['log']
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
@@ -113,8 +112,7 @@ class UploadReport(object):
                     'parent id': data['parent id'],
                     'attrs': data['attrs'],
                     'name': data['name'],
-                    'resources': data['resources'],
-                    'log': data['log'],
+                    'resources': data['resources']
                 })
             except KeyError as e:
                 return "Property '%s' is required." % e
@@ -122,6 +120,8 @@ class UploadReport(object):
                 self.data.update({'data': data['data']})
             if 'comp' in data:
                 self.data['comp'] = data['comp']
+            if 'log' in data:
+                self.data['log'] = data['log']
         elif data['type'] == 'safe':
             try:
                 self.data.update({
