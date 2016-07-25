@@ -412,7 +412,8 @@ class Job(core.utils.CallbacksCaller):
                                   self.components_common_conf['main working directory'])
 
                 # Store processed results.
-                self.data = self.results
+                self.data.clear()
+                self.data.update(self.results)
 
     def process_testing_results(self):
         self.logger.info('Check whether tests passed')
