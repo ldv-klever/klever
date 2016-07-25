@@ -1,6 +1,6 @@
 before: file ("$this")
 {
-void ldv_check_return_value_probe(int retval);
+#include <verifier/common.h>
 }
 
 before: call(int ldv_post_probe(..))
