@@ -57,15 +57,6 @@
         "external modules": "tests/linux/empty",
         "modules": ["safe.ko"]
       },
-      "rule specifications": [
-        "linux:alloc:irq",
-        "linux:alloc:spin lock",
-        "linux:alloc:usb lock",
-        "linux:spinlock",
-        "linux:rwlock",
-        "linux:mutex",
-        "linux:mmc:sdio_func"
-      ],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
@@ -79,7 +70,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:mutex"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -101,7 +91,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:class"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -123,7 +112,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:chrdev"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -146,7 +134,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:usb:gadget"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -170,7 +157,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:module"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -196,7 +182,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:rwlock"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -217,7 +202,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:netdev"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -237,7 +221,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:usb:register"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -262,7 +245,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:mmc:sdio_func"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -283,7 +265,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:irq"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -306,7 +287,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -331,7 +311,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:usb lock"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -356,7 +335,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:spinlock"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -377,7 +355,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:usb:dev"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -398,7 +375,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:resource"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -419,7 +395,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:usb:urb"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
@@ -440,7 +415,6 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:usb:coherent"],
       "ideal verdicts": [
         {
           "ideal verdict": "safe",
