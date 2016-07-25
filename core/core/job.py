@@ -255,6 +255,10 @@ class Job(core.utils.CallbacksCaller):
 
         if 'Sub-jobs' in self.components_common_conf:
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
+                # Sub-job configuration is based on common sub-jobs configuration.
+                sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
+
                 self.logger.info('Get sub-job name and type')
                 external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
 
@@ -307,9 +311,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.uploading_reports_process = self.uploading_reports_process
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
-                # Sub-job configuration is based on common sub-jobs configuration.
-                sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
-                core.utils.merge_confs(sub_job.components_common_conf, sub_job_concrete_conf)
+                sub_job.components_common_conf = sub_job_concrete_conf
 
     def get_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
