@@ -525,5 +525,7 @@ class AVTG(core.components.Component):
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
             self.abstract_task_desc_file = None
+            self.verification_obj = verification_obj_desc['id']
+            self.rule_spec = rule_spec_desc['id']
         finally:
             plugin_mqs['abstract task description'].close()
