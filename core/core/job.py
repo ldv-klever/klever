@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import importlib
 import json
 import multiprocessing
@@ -31,6 +32,7 @@ class Job(core.utils.CallbacksCaller):
         self.id = id
         self.logger.debug('Job identifier is "{0}"'.format(id))
         self.parent = {}
+        self.name_prefix = None
         self.name = None
         self.work_dir = None
         self.mqs = {}
@@ -139,12 +141,24 @@ class Job(core.utils.CallbacksCaller):
 
                 # Specify callbacks to collect verification statuses from VTG. They will be used to
                 # calculate validation and testing results.
-                if 'ideal verdict' in self.components_common_conf:
+                if 'ideal verdicts' in self.components_common_conf:
                     def before_launch_sub_job_components(context):
                         context.mqs['verification statuses'] = multiprocessing.Queue()
 
+                    def after_generate_abstact_verification_task_desc(context):
+                        if not context.abstract_task_desc_file:
+                            context.mqs['verification statuses'].put({
+                                "verification object": context.verification_obj,
+                                "rule specification": context.rule_spec,
+                                "verification status": 'unknown'
+                            })
+
                     def after_decide_verification_task(context):
-                        context.mqs['verification statuses'].put(context.verification_status)
+                        context.mqs['verification statuses'].put({
+                            "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            "rule specification": context.conf['abstract task desc']['attrs'][1]['rule specification'],
+                            "verification status": context.verification_status
+                        })
 
                     def after_generate_all_verification_tasks(context):
                         context.logger.info('Terminate verification statuses message queue')
@@ -153,6 +167,7 @@ class Job(core.utils.CallbacksCaller):
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            before_launch_sub_job_components,
+                                                           after_generate_abstact_verification_task_desc,
                                                            after_decide_verification_task,
                                                            after_generate_all_verification_tasks
                                                        ))
@@ -198,17 +213,12 @@ class Job(core.utils.CallbacksCaller):
                 core.utils.remove_component_callbacks(self.logger, type(self))
 
                 if self.name:
-                    # Create empty log required just for finish report below.
-                    with open('log', 'w', encoding='ascii'):
-                        pass
-
                     core.utils.report(self.logger,
                                       'finish',
                                       {
                                           'id': self.id,
                                           'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'log': 'log',
-                                          'files': ['log']
+                                          'log': None
                                       },
                                       self.mqs['report files'],
                                       self.components_common_conf['main working directory'])
@@ -249,31 +259,40 @@ class Job(core.utils.CallbacksCaller):
 
         if 'Sub-jobs' in self.components_common_conf:
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
+                # Sub-job configuration is based on common sub-jobs configuration.
+                sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
+
                 self.logger.info('Get sub-job name and type')
                 external_modules = sub_job_concrete_conf['Linux kernel'].get('external modules', '')
 
                 modules = sub_job_concrete_conf['Linux kernel']['modules']
-                if len(modules) != 1:
-                    raise ValueError('You should specify exactly one module ("{0}" is given)'.format(modules))
-                modules = modules[0]
+                if len(modules) == 1:
+                    modules_hash = modules[0]
+                else:
+                    modules_hash = hashlib.sha1(''.join(modules).encode('utf8')).hexdigest()[:7]
 
                 rule_specs = sub_job_concrete_conf['rule specifications']
-                if len(rule_specs) != 1:
-                    raise ValueError(
-                        'You should specify exactly one rule specification ("{0}" is given)'.format(rule_specs))
-                rule_specs = rule_specs[0]
+                if len(rule_specs) == 1:
+                    rule_specs_hash = rule_specs[0]
+                else:
+                    rule_specs_hash = hashlib.sha1(''.join(rule_specs).encode('utf8')).hexdigest()[:7]
+
                 if self.type == 'Validation on commits in Linux kernel Git repositories':
                     commit = sub_job_concrete_conf['Linux kernel']['Git repository']['commit']
                     if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
                         raise ValueError(
                             'Commit hashes should have 12 symbols and optional "~" at the end ("{0}" is given)'.format(
                                 commit))
-                    sub_job_name = os.path.join(commit, external_modules, modules, rule_specs)
-                    sub_job_work_dir = os.path.join(commit, external_modules, modules, re.sub(r'\W', '-', rule_specs))
+                    sub_job_name_prefix = os.path.join(commit, external_modules)
+                    sub_job_name = os.path.join(commit, external_modules, modules_hash, rule_specs_hash)
+                    sub_job_work_dir = os.path.join(commit, external_modules, modules_hash,
+                                                    re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 elif self.type == 'Verification of Linux kernel modules':
-                    sub_job_name = os.path.join(external_modules, modules, rule_specs)
-                    sub_job_work_dir = os.path.join(external_modules, modules, re.sub(r'\W', '-', rule_specs))
+                    sub_job_name_prefix = os.path.join(external_modules)
+                    sub_job_name = os.path.join(external_modules, modules_hash, rule_specs_hash)
+                    sub_job_work_dir = os.path.join(external_modules, modules_hash, re.sub(r'\W', '-', rule_specs_hash))
                     sub_job_type = 'Verification of Linux kernel modules'
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.type))
@@ -288,6 +307,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job = Job(self.logger, sub_job_id, sub_job_type)
                 self.sub_jobs.append(sub_job)
                 sub_job.parent = {'id': self.id, 'type': self.type}
+                sub_job.name_prefix = sub_job_name_prefix
                 sub_job.name = sub_job_name
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
@@ -295,9 +315,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.uploading_reports_process = self.uploading_reports_process
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
-                # Sub-job configuration is based on common sub-jobs configuration.
-                sub_job.components_common_conf = copy.deepcopy(self.components_common_conf)
-                core.utils.merge_confs(sub_job.components_common_conf, sub_job_concrete_conf)
+                sub_job.components_common_conf = sub_job_concrete_conf
 
     def get_sub_job_components(self):
         self.logger.info('Get components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
@@ -357,7 +375,7 @@ class Job(core.utils.CallbacksCaller):
             self.report_results()
 
     def report_results(self):
-        if 'ideal verdict' in self.components_common_conf:
+        if 'ideal verdicts' in self.components_common_conf:
             verification_statuses = []
             while True:
                 verification_status = self.mqs['verification statuses'].get()
@@ -373,24 +391,24 @@ class Job(core.utils.CallbacksCaller):
             # There is no verification statuses when some (sub)component failed prior to VTG strategy
             # receives some abstract verification tasks.
             if not verification_statuses:
-                verification_statuses.append('unknown')
-
-            if len(verification_statuses) > 1:
-                raise ValueError(
-                    'Got too many verification statuses "{0}" (just one is expected) for sub-job "{1}"'.format(
-                        verification_statuses, self.name))
+                verification_statuses.append({
+                    'verification object': None,
+                    'rule specification': None,
+                    'verification status': 'unknown'
+                })
 
             with self.data_lock:
-                self.data[self.name] = {
-                    'ideal verdict': self.components_common_conf['ideal verdict'],
-                    'comment': self.components_common_conf.get('comment'),
-                    'verification status': verification_statuses[0]
-                }
+                # Get previously processed results.
+                self.results = self.data.copy()
+
+                # Process new results.
+                self.results.update(self.__match_verification_statuses_and_ideal_verdicts(
+                    verification_statuses, self.components_common_conf['ideal verdicts']))
 
                 if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                    self.report_validation_results()
+                    self.process_validation_results()
                 elif self.parent['type'] == 'Verification of Linux kernel modules':
-                    self.report_testing_results()
+                    self.process_testing_results()
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
@@ -403,21 +421,23 @@ class Job(core.utils.CallbacksCaller):
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
 
-    def report_testing_results(self):
+                # Store processed results.
+                self.data.clear()
+                self.data.update(self.results)
+
+    def process_testing_results(self):
         self.logger.info('Check whether tests passed')
-        # Report obtained data as is.
-        self.results = self.data.copy()
         for test in self.results:
             self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                test, self.data[test]['ideal verdict'], self.data[test]['verification status'],
-                ' ("{0}")'.format(self.data[test]['comment']) if self.data[test]['comment'] else ''))
+                test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
+                ' ("{0}")'.format(self.results[test]['comment']) if self.results[test]['comment'] else ''))
 
-    def report_validation_results(self):
+    def process_validation_results(self):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
 
         bug_results = {}
         bug_fix_results = {}
-        for name, results in self.data.items():
+        for name, results in self.results.items():
             # Corresponds to validation result before bug fix.
             if results['ideal verdict'] == 'unsafe':
                 bug_results[name] = results
@@ -427,6 +447,7 @@ class Job(core.utils.CallbacksCaller):
             else:
                 raise ValueError(
                     'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
+        self.results.clear()
 
         for bug_id, bug_result in bug_results.items():
             found_bug_fix = False
@@ -458,3 +479,71 @@ class Job(core.utils.CallbacksCaller):
                 self.results[bug_id]['after fix'] = bug_fix_result
 
             self.logger.info(validation_res_msg)
+
+    def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
+        results = {}
+
+        for verification_status in verification_statuses:
+            verification_object = verification_status['verification object']
+            rule_specification = verification_status['rule specification']
+            verification_status = verification_status['verification status']
+
+            if verification_object and rule_specification:
+                # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
+                # one sub-job).
+                name = os.path.join(self.name_prefix, verification_object, rule_specification)
+            else:
+                name = self.name_prefix
+
+            # Try to match exactly by both verification object and rule specification.
+            for ideal_verdict in ideal_verdicts:
+                if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
+                        and ideal_verdict['verification object'] == verification_object \
+                        and ideal_verdict['rule specification'] == rule_specification:
+                    results[name] = {
+                        'ideal verdict': ideal_verdict['ideal verdict'],
+                        'verification status': verification_status,
+                        'comment': ideal_verdict.get('comment')
+                    }
+                    break
+
+            # Try to match just by verification object.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
+                            and ideal_verdict['verification object'] == verification_object:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            # Try to match just by rule specification.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' not in ideal_verdict and 'rule specification' in ideal_verdict \
+                            and ideal_verdict['rule specification'] == rule_specification:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            # If nothing of above matched.
+            if name not in results:
+                for ideal_verdict in ideal_verdicts:
+                    if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
+                        results[name] = {
+                            'ideal verdict': ideal_verdict['ideal verdict'],
+                            'verification status': verification_status,
+                            'comment': ideal_verdict.get('comment')
+                        }
+                        break
+
+            if name not in results:
+                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}"'.format(
+                    verification_status))
+
+        return results

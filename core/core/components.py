@@ -139,8 +139,9 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                           self.start_time,
                                           self.include_child_resources,
                                           all_child_resources),
-                                      'log': 'log',
-                                      'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) + ['log']
+                                      'log': 'log.txt' if os.path.isfile('log.txt') else None,
+                                      'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) +
+                                               (['log.txt'] if os.path.isfile('log.txt') else [])
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])

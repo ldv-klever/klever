@@ -107,6 +107,7 @@
             "common sets model": "counter",
             "common models": {
               "linux/err.c": {},
+              "linux/device.c": {"headers": ["linux/device.h"]},
               "linux/ldv/common.c": {},
               "verifier/common.c": {},
               "verifier/nondet.c": {},
@@ -162,11 +163,19 @@
     "linux:alloc:spin lock": {
       "aliases": ["43"],
       "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/alloc2.c": {"bug kinds": [
-        "linux:alloc:spin lock:wrong flags",
-        "linux:alloc:spin lock:nonatomic"
-      ]}}}
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/spinlock.c.tmpl": {},
+        "linux/spinlock.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {
+        "$linux/spinlock.c": {"sets model": "flag"},
+        "linux/alloc2.c": {"bug kinds": [
+          "linux:alloc:spin lock:wrong flags",
+          "linux:alloc:spin lock:nonatomic"
+        ]}
+      }}
     },
     "linux:alloc:usb lock": {
       "aliases": ["77"],
