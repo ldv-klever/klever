@@ -4,7 +4,7 @@
 #include <verifier/nondet.h>
 #include <verifier/memory.h>
 
-/*ISO/IEC 9899:1999 specification. p. 313, § 7.20.3 "Memory management functions"*/
+/* ISO/IEC 9899:1999 specification. p. 313, § 7.20.3 "Memory management functions". */
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *);
@@ -30,7 +30,7 @@ void ldv_free(void *s)
 
 void *ldv_verifier_malloc(size_t size)
 {
-	if(ldv_undef_int()) {
+	if (ldv_undef_int()) {
 		void *res = malloc(size);
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
@@ -42,7 +42,7 @@ void *ldv_verifier_malloc(size_t size)
 
 void *ldv_verifier_calloc(size_t nmemb, size_t size)
 {
-	if(ldv_undef_int()) {
+	if (ldv_undef_int()) {
 		void *res = calloc(nmemb, size);
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
@@ -54,7 +54,7 @@ void *ldv_verifier_calloc(size_t nmemb, size_t size)
 
 void *ldv_verifier_zalloc(size_t size)
 {
-	if(ldv_undef_int()) {
+	if (ldv_undef_int()) {
 		void *res = calloc(1, size);
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));

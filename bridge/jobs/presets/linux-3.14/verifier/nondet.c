@@ -2,7 +2,7 @@
 #include <verifier/nondet.h>
 #include <linux/types.h>
 
-/*SV-COMP functions*/
+/* SV-COMP functions intended for modelling nondeterminism. */
 char __VERIFIER_nondet_char(void);
 int __VERIFIER_nondet_int(void);
 float __VERIFIER_nondet_float(void);
@@ -20,7 +20,6 @@ unsigned long __VERIFIER_nondet_ulong(void);
 void *__VERIFIER_nondet_pointer(void);
 void __VERIFIER_assume(int expression);
 
-/*LDV implementations through SV-COMP*/
 int ldv_undef_int(void) {
 	return __VERIFIER_nondet_int();
 }
