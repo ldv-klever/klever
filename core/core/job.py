@@ -213,17 +213,12 @@ class Job(core.utils.CallbacksCaller):
                 core.utils.remove_component_callbacks(self.logger, type(self))
 
                 if self.name:
-                    # Create empty log required just for finish report below.
-                    with open('log', 'w', encoding='ascii'):
-                        pass
-
                     core.utils.report(self.logger,
                                       'finish',
                                       {
                                           'id': self.id,
                                           'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'log': 'log',
-                                          'files': ['log']
+                                          'log': None
                                       },
                                       self.mqs['report files'],
                                       self.components_common_conf['main working directory'])

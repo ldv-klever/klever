@@ -358,12 +358,20 @@ def get_logger(name, conf):
     if 'handlers' not in pref_logger_conf:
         raise KeyError('Handlers are not specified for logger "{0}"'.format(pref_logger_conf['name']))
     for handler_conf in pref_logger_conf['handlers']:
+        if 'level' not in handler_conf:
+            raise KeyError(
+                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(
+                    pref_logger_conf['name'], handler_conf['name'] if 'name' in handler_conf else ''))
+
+        if handler_conf['level'] == 'NONE':
+            continue
+
         if handler_conf['name'] == 'console':
             # Always print log to STDOUT.
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log', encoding='ascii')
+            handler = logging.FileHandler('log.txt', encoding='ascii')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -372,10 +380,6 @@ def get_logger(name, conf):
         # Set up handler logging level.
         log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
                       'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-        if 'level' not in handler_conf:
-            raise KeyError(
-                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(pref_logger_conf['name'],
-                                                                                           handler_conf['name']))
         if handler_conf['level'] not in log_levels:
             raise KeyError(
                 'Logging level "{0}" {1} is not supported{2}'.format(
@@ -403,6 +407,9 @@ def get_logger(name, conf):
         handler.setFormatter(formatter)
 
         logger.addHandler(handler)
+
+    if not logger.handlers:
+        logger.disabled = True
 
     logger.debug("Logger was set up")
 

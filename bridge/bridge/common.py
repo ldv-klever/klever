@@ -107,7 +107,7 @@ KLEVER_CORE_PARALLELISM_PACKS = {
     'very quick': (1, 2.0, 2.0),
 }
 
-LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
+LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   scheduling:
@@ -140,7 +140,7 @@ DEF_KLEVER_CORE_MODES = [
             ['LOW', '0', 'balance'],
             'slow',
             [1.0, 2, 100.0, None, None, None],
-            ['WARNING', 'brief', 'INFO', 'brief'],
+            ['NONE', 'brief', 'NONE', 'brief'],
             False, False, False, False, False, False
         ]
     },
