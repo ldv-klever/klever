@@ -5,7 +5,6 @@ import multiprocessing
 import os
 import re
 import shutil
-import subprocess
 import tarfile
 import time
 import urllib.parse
@@ -85,8 +84,6 @@ class LKBCE(core.components.Component):
 
             if not self.conf['keep intermediate files']:
                 os.remove(self.linux_kernel['build cmd descs file'])
-
-            self.copy_model_headers()
 
     def extract_module_deps_and_sizes(self):
         if self.linux_kernel['build kernel']:
@@ -203,18 +200,21 @@ class LKBCE(core.components.Component):
                 '\n'.join([' '.join(build_target) for build_target in build_targets])))
 
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
-        for build_target in build_targets:
-            if build_target[0] == 'modules_prepare' and self.linux_kernel['prepared to build ext modules']:
-                continue
-            self.__make(build_target,
-                        jobs_num=jobs_num,
-                        specify_arch=True, collect_build_cmds=True)
-            if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
-                    self.linux_kernel['prepared to build ext modules']:
-                with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
-                          encoding='ascii') as fp:
-                    fp.write(self.linux_kernel['conf'])
 
+        for build_target in build_targets:
+            if build_target[0] != 'modules_prepare' or not self.linux_kernel['prepared to build ext modules']:
+                self.__make(build_target,
+                            jobs_num=jobs_num,
+                            specify_arch=True, collect_build_cmds=True)
+
+                if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
+                        self.linux_kernel['prepared to build ext modules']:
+                    with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
+                              encoding='ascii') as fp:
+                        fp.write(self.linux_kernel['conf'])
+
+            if build_target[0] == 'modules_prepare':
+                self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='ascii') as fp:

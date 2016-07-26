@@ -8,7 +8,6 @@ extern void ldv_write_unlock(void);
 
 extern int ldv_read_trylock(void);
 extern int ldv_write_trylock(void);
-
 }
 
 around: define(read_lock(lock)) ||

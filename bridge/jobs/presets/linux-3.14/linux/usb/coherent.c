@@ -39,3 +39,4 @@ void ldv_check_final_state(void)
     /* ASSERT The coherent memory must be freed at the end. */
     ldv_assert("linux:usb:coherent::more initial at exit", ldv_coherent_state == 0);
 }
+
