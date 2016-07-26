@@ -152,6 +152,13 @@ class CommonStrategy(core.components.Component):
             open(log_file, 'w')
         return log_file
 
+    def parse_bug_kind(self, bug_kind):
+        match = re.search(r'(.+)::(.*)', bug_kind)
+        if match:
+            return match.groups()[0]
+        else:
+            return ''
+
     def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
         verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
         # Add assertion if it was specified.
@@ -160,7 +167,7 @@ class CommonStrategy(core.components.Component):
             return
         added_attrs = []
         if assertion:
-            added_attrs.append({"Assert": assertion})
+            added_attrs.append({"Rule specification": assertion})
         path_to_witness = None
         if decision_results['status'] == 'unsafe':
             # Default place for witness, if we consider only 1 possible witness for verification task.
