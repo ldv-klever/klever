@@ -36,7 +36,7 @@ void *ldv_verifier_malloc(size_t size)
 		ldv_assume(!ldv_is_err(res));
 		return res;
 	} else {
-		return 0;
+		return NULL;
 	}
 }
 
@@ -48,7 +48,7 @@ void *ldv_verifier_calloc(size_t nmemb, size_t size)
 		ldv_assume(!ldv_is_err(res));
 		return res;
 	} else {
-		return 0;
+		return NULL;
 	}
 }
 
@@ -60,7 +60,7 @@ void *ldv_verifier_zalloc(size_t size)
 		ldv_assume(!ldv_is_err(res));
 		return res;
 	} else {
-		return 0;
+		return NULL;
 	}
 }
 
