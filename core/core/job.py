@@ -145,6 +145,14 @@ class Job(core.utils.CallbacksCaller):
                     def before_launch_sub_job_components(context):
                         context.mqs['verification statuses'] = multiprocessing.Queue()
 
+                    def after_generate_abstact_verification_task_desc(context):
+                        if not context.abstract_task_desc_file:
+                            context.mqs['verification statuses'].put({
+                                "verification object": context.verification_obj,
+                                "rule specification": context.rule_spec,
+                                "verification status": 'unknown'
+                            })
+
                     def after_decide_verification_task(context):
                         context.mqs['verification statuses'].put({
                             "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
@@ -159,6 +167,7 @@ class Job(core.utils.CallbacksCaller):
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            before_launch_sub_job_components,
+                                                           after_generate_abstact_verification_task_desc,
                                                            after_decide_verification_task,
                                                            after_generate_all_verification_tasks
                                                        ))
@@ -387,7 +396,11 @@ class Job(core.utils.CallbacksCaller):
             # There is no verification statuses when some (sub)component failed prior to VTG strategy
             # receives some abstract verification tasks.
             if not verification_statuses:
-                verification_statuses.append('unknown')
+                verification_statuses.append({
+                    'verification object': None,
+                    'rule specification': None,
+                    'verification status': 'unknown'
+                })
 
             with self.data_lock:
                 # Get previously processed results.
@@ -480,9 +493,12 @@ class Job(core.utils.CallbacksCaller):
             rule_specification = verification_status['rule specification']
             verification_status = verification_status['verification status']
 
-            # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
-            # one sub-job).
-            name = os.path.join(self.name_prefix, verification_object, rule_specification)
+            if verification_object and rule_specification:
+                # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
+                # one sub-job).
+                name = os.path.join(self.name_prefix, verification_object, rule_specification)
+            else:
+                name = self.name_prefix
 
             # Try to match exactly by both verification object and rule specification.
             for ideal_verdict in ideal_verdicts:
