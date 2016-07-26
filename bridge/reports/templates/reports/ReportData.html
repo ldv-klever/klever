@@ -74,7 +74,7 @@
             {% endfor %}
         </tbody>
     </table>
-{% else %}
+{% elif component == 'LKVOG' %}
     <h5 class="ui brown header">{% trans 'Lines of code' %}</h5>
     <table class="ui compact brown table">
         <thead>
@@ -92,4 +92,8 @@
             {% endfor %}
         </tbody>
     </table>
+{% else %}
+    <p>{% trans 'Component' %}: {{ component }}</p>
+    <p>{% trans 'Class' %}: {{ type }}</p>
+    <p>{% trans 'Data' %}: "{{ data }}"</p>
 {% endif %}
