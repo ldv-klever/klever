@@ -387,7 +387,11 @@ class Job(core.utils.CallbacksCaller):
             # There is no verification statuses when some (sub)component failed prior to VTG strategy
             # receives some abstract verification tasks.
             if not verification_statuses:
-                verification_statuses.append('unknown')
+                verification_statuses.append({
+                    'verification object': None,
+                    'rule specification': None,
+                    'verification status': 'unknown'
+                })
 
             with self.data_lock:
                 # Get previously processed results.
@@ -480,9 +484,12 @@ class Job(core.utils.CallbacksCaller):
             rule_specification = verification_status['rule specification']
             verification_status = verification_status['verification status']
 
-            # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
-            # one sub-job).
-            name = os.path.join(self.name_prefix, verification_object, rule_specification)
+            if verification_object and rule_specification:
+                # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
+                # one sub-job).
+                name = os.path.join(self.name_prefix, verification_object, rule_specification)
+            else:
+                name = self.name_prefix
 
             # Try to match exactly by both verification object and rule specification.
             for ideal_verdict in ideal_verdicts:
