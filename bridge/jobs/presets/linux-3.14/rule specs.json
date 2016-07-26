@@ -174,7 +174,8 @@
         "linux/alloc2.c": {"bug kinds": [
           "linux:alloc:spin lock:wrong flags",
           "linux:alloc:spin lock:nonatomic"
-        ]}}}
+        ]}
+      }}
     },
     "linux:alloc:usb lock": {
       "aliases": ["77"],
