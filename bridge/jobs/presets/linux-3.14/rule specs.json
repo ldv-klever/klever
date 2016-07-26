@@ -354,5 +354,16 @@
         "linux:chrdev:registered at exit"
       ]}}}
     }
+  },
+  "vulnerability groups": {
+    "Race conditions and deadlocks in one thread": {
+      "bug kinds": [
+        "double lock",
+        "double unlock",
+        "locked at exit"
+      ]
+    },
+    "Other": {
+    }
   }
 }
