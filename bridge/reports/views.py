@@ -2,6 +2,7 @@ from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
@@ -76,6 +77,8 @@ def report_component(request, job_id, report_id):
         status = 3
     except ObjectDoesNotExist:
         pass
+    except MultipleObjectsReturned:
+        status = 4
 
     report_data = None
     if report.data is not None:

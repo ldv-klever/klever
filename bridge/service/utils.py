@@ -488,16 +488,18 @@ class GetTasks(object):
                 elif progress.job.status == JOB_STATUS[2][0]:
                     if progress.job.identifier in data['jobs']['finished']:
                         try:
-                            if len(ReportUnknown.objects.filter(
-                                    parent=ReportComponent.objects.get(
-                                        Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                                    )
-                            )) > 0:
-                                change_job_status(progress.job, JOB_STATUS[5][0])
-                            else:
-                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            root_report = ReportComponent.objects.get(
+                                Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
+                            )
                         except ObjectDoesNotExist:
                             change_job_status(progress.job, JOB_STATUS[5][0])
+                        else:
+                            if progress.job.light:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            elif len(ReportUnknown.objects.filter(parent=root_report)) > 0:
+                                change_job_status(progress.job, JOB_STATUS[4][0])
+                            else:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
                     elif progress.job.identifier in data['jobs']['error']:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:

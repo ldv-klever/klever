@@ -651,8 +651,12 @@ class DecideJobs(object):
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
-        with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        if random.randint(1, 10) > 4:
+            with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        else:
+            report['log'] = None
+            self.service.post('/reports/upload/', {'report': json.dumps(report)})
         return r_id
 
     def __upload_unknown_report(self, parent, archive):

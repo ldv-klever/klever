@@ -317,16 +317,16 @@ class UploadReport(object):
                 self.__collapse_reports()
 
     def __create_report_unknown(self, identifier):
-        if self.job.light and self.parent.parent_id is not None:
-            self.parent.parent = ReportComponent.objects.get(parent=None, root=self.root)
-            self.parent.save()
+        unknown_parent = self.parent
+        if self.job.light:
+            unknown_parent = ReportComponent.objects.get(parent=None, root=self.root)
         try:
             ReportUnknown.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
             report = ReportUnknown(
-                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
+                identifier=identifier, parent=unknown_parent, root=self.root, component=self.parent.component
             )
 
         if self.archive is None:
@@ -506,8 +506,6 @@ class UploadReport(object):
         for u in ReportUnsafe.objects.filter(root=self.root):
             if u.parent_id != root_report.pk:
                 reports_to_save.append(u.parent_id)
-        for u in ReportUnknown.objects.filter(root=self.root):
-            reports_to_save.append(u.parent_id)
         ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
 
 
@@ -534,10 +532,8 @@ class CollapseReports(object):
                 parent.save()
                 reports_to_save.append(parent.pk)
         for u in ReportUnknown.objects.filter(root__job=self.job):
-            if u.parent.parent is not None:
-                u.parent.parent = root_report
-                u.parent.save()
-                reports_to_save.append(u.parent_id)
+            u.parent = root_report
+            u.save()
         ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
         RecalculateLeaves([self.job])
         RecalculateVerdicts([self.job])
