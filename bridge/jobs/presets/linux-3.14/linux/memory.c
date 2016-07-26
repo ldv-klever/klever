@@ -42,6 +42,6 @@ void ldv_memory_free(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Nothing should be allocated at the end. */
-	ldv_assert("linux:alloc:resource:more at exit", ldv_alloc_count <= 0);
-	ldv_assert("linux:alloc:resource:less at exit", ldv_alloc_count >= 0);
+	ldv_assert("linux:alloc:resource::more at exit", ldv_alloc_count <= 0);
+	ldv_assert("linux:alloc:resource::less at exit", ldv_alloc_count >= 0);
 }
