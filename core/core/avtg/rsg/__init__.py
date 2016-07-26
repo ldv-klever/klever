@@ -114,7 +114,8 @@ class RSG(core.avtg.plugins.Plugin):
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
-                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|exclusive)',
+                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
+                                                   r'exclusive|zalloc|malloc)',
                                                    rule_spec_prefix, line)))
                 model['prefix preprocessed C file'] = preprocessed_model_c_file
                 self.logger.debug(
