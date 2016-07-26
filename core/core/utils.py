@@ -498,7 +498,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
-    if 'files' in report:
+    if 'files' in report and report['files']:
         report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         with tarfile.open(report_files_archive, 'w:gz') as tar:
