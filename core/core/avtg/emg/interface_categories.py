@@ -273,6 +273,9 @@ class CategoriesSpecification:
         if interface.identifier not in self._implementations_cache:
             self._implementations_cache[interface.identifier] = {'weak': None, 'strict': None}
 
+        # Sort results before saving
+        candidates = sorted(candidates, key=lambda i: i.identifier)
+
         if weakly and not self._implementations_cache[interface.identifier]['weak']:
             self._implementations_cache[interface.identifier]['weak'] = candidates
         elif not weakly and not self._implementations_cache[interface.identifier]['strict']:

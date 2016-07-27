@@ -380,7 +380,7 @@ class Process:
         if not interface:
             return self.__accesses[string]
         else:
-            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.expression)
+            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.interface.identifier)
                     if acc.interface and acc.interface.identifier == interface][0]
 
     def __compare_signals(self, process, first, second):

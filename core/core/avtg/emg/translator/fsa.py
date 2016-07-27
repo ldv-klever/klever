@@ -384,7 +384,7 @@ class Automaton:
 
         subprocesses = {}
         for state in self.fsa.states:
-            label = "Action: {}\n".format(state.desc['label'])
+            label = "Action {}: {}\n".format(state.identifier, state.desc['label'])
 
             if 'guard' in state.code and len(state.code['guard']) > 0:
                 label += 'Guard: ' + ' && '.join(state.code['guard'])
