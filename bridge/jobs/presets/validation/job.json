@@ -89,8 +89,10 @@
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
       "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "comment": "Non-target bug"
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Non-target bug"
+      }]
     },
     {
       "Linux kernel": {
@@ -98,8 +100,10 @@
         "modules": ["drivers/hid/hid.ko"]
       },
       "rule specifications": ["linux:chrdev"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
+      }]
     },
     {
       "Linux kernel": {
@@ -107,8 +111,10 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -120,8 +126,10 @@
         "drivers/leds/leds-lp5521.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      }]
     },
     {
       "Linux kernel": {
@@ -133,8 +141,10 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      }]
     },
     {
       "Linux kernel": {
@@ -142,8 +152,10 @@
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -151,8 +163,10 @@
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -164,8 +178,10 @@
         "drivers/w1/masters/ds2482.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "???"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
@@ -173,8 +189,10 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
+      }]
     },
     {
       "Linux kernel": {
@@ -182,8 +200,10 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -196,8 +216,10 @@
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+      }]
     },
     {
       "Linux kernel": {
@@ -209,8 +231,10 @@
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
       "rule specifications": ["linux:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}],
-      "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
+      }]
     },
     {
       "Linux kernel": {
@@ -294,8 +318,10 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdicts": [{"ideal verdict": "safe"}],
-      "comment": "See comment for unsafe"
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     },
     {
       "Linux kernel": {
@@ -303,13 +329,15 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "safe"}],
       "VTG strategy": {"verifier": {"options": [
         {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "comment": "See comment for unsafe"
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     },
     {
       "Linux kernel": {
