@@ -9,7 +9,7 @@ from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
 from reports.utils import save_attrs
 from reports.models import *
-from tools.utils import RecalculateLeaves, RecalculateVerdicts
+from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
 
 class UploadReport(object):
@@ -259,7 +259,10 @@ class UploadReport(object):
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
 
         if 'resources' in self.data:
-            self.__update_parent_resources(report)
+            if self.job.light:
+                self.__update_light_resources(report)
+            else:
+                self.__update_parent_resources(report)
 
     def __update_attrs(self, identifier):
         try:
@@ -306,7 +309,10 @@ class UploadReport(object):
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
-        self.__update_parent_resources(report)
+        if self.job.light:
+            self.__update_light_resources(report)
+        else:
+            self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
             if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
@@ -357,6 +363,8 @@ class UploadReport(object):
 
     def __create_report_safe(self, identifier):
         if self.job.light:
+            self.root.safes += 1
+            self.root.save()
             return
         try:
             ReportSafe.objects.get(identifier=identifier)
@@ -365,12 +373,12 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
-        if self.archive is None:
-            self.error = 'Safe report must contain archive with proof'
-            return
-        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
-        report.proof = self.data['proof']
+        if self.archive is not None:
+            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+            report.proof = self.data['proof']
         report.save()
+        self.root.safes += 1
+        self.root.save()
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
@@ -500,6 +508,25 @@ class UploadReport(object):
             except ObjectDoesNotExist:
                 parent = None
 
+    def __update_light_resources(self, report):
+        try:
+            comp_res = LightResource.objects.get(report=self.root, component=report.component)
+        except ObjectDoesNotExist:
+            comp_res = LightResource(report=self.root, component=report.component, wall_time=0, cpu_time=0, memory=0)
+        comp_res.cpu_time += report.cpu_time
+        comp_res.wall_time += report.wall_time
+        comp_res.memory = max(report.memory, comp_res.memory)
+        comp_res.save()
+
+        try:
+            total_res = LightResource.objects.get(report=self.root, component=None)
+        except ObjectDoesNotExist:
+            total_res = LightResource(report=self.root, component=None, wall_time=0, cpu_time=0, memory=0)
+        total_res.cpu_time += report.cpu_time
+        total_res.wall_time += report.wall_time
+        total_res.memory = max(report.memory, total_res.memory)
+        total_res.save()
+
     def __collapse_reports(self):
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         reports_to_save = []
@@ -524,6 +551,8 @@ class CollapseReports(object):
         reports_to_save = []
         for u in ReportUnsafe.objects.filter(root__job=self.job):
             parent = ReportComponent.objects.get(pk=u.parent_id)
+            if parent.parent is None:
+                continue
             if parent.archive is None:
                 u.parent = root_report
                 u.save()
@@ -534,6 +563,19 @@ class CollapseReports(object):
         for u in ReportUnknown.objects.filter(root__job=self.job):
             u.parent = root_report
             u.save()
+        self.__fill_resources()
         ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
         RecalculateLeaves([self.job])
         RecalculateVerdicts([self.job])
+        RecalculateResources([self.job])
+
+    def __fill_resources(self):
+        if self.job.light:
+            return
+        self.job.reportroot.safes = len(ReportSafe.objects.filter(root__job=self.job))
+        self.job.reportroot.save()
+        LightResource.objects.filter(report=self.job.reportroot).delete()
+        LightResource.objects.bulk_create(list(LightResource(
+            report=self.job.reportroot, component=cres.component,
+            cpu_time=cres.cpu_time, wall_time=cres.wall_time, memory=cres.memory
+        ) for cres in ComponentResource.objects.filter(report__root__job=self.job, report__parent=None)))

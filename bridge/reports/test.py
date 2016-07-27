@@ -672,6 +672,11 @@ class DecideJobs(object):
                 'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': 'proof.txt', 'attrs': attrs
             }), 'file': fp})
 
+    def __upload_empty_safe_report(self, parent, attrs):
+        self.service.post('/reports/upload/', {'report': json.dumps({
+            'id': self.__get_report_id('safe'), 'type': 'safe', 'parent id': parent, 'proof': None, 'attrs': attrs
+        })})
+
     def __upload_unsafe_report(self, parent, attrs, archive):
         r_id = self.__get_report_id('unsafe')
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
@@ -767,6 +772,7 @@ class DecideJobs(object):
             if 'safe' in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_safe_report(tool, [], chunk['safe'])
+                # self.__upload_empty_safe_report(tool, [])
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
