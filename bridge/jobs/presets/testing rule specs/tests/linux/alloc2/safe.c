@@ -110,6 +110,8 @@ static void memory_allocation_2(void)
 	struct my_struct *mem_19 = krealloc(mem_18, sizeof(mem_3), GFP_NOWAIT);
 	struct my_struct *mem_20 = dma_zalloc_coherent(device, sizeof(mem_3), dma, GFP_NOWAIT);
 	struct my_struct *mem_21 = dma_alloc_coherent(device , sizeof(mem_3), dma, GFP_NOWAIT);
+	usb_free_coherent(dev_usb, sizeof(mem_3), mem_12, 0));
+	usb_free_urb(mem_13);
 
 	// ALLOC with int
 	int x_1 = __get_free_pages(GFP_NOWAIT, sizeof(mem_3));

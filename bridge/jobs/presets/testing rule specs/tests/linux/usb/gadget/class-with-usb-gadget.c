@@ -12,11 +12,10 @@ static int __init init(void)
 	// All at once.
 	if (!usb_gadget_probe_driver(cur_driver)) {
 		if (class_register(cur_class) == 0) {
-			class_destroy(cur_class);
+			class_unregister(cur_class);
 		}
 		usb_gadget_unregister_driver(cur_driver);
 	}
-
 	return 0;
 }
 
