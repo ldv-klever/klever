@@ -1,10 +1,10 @@
 before: file("$this")
 {
 #include <linux/types.h>
-void *ldv_kzalloc(gfp_t flags);
+void *ldv_kzalloc(size_t size, gfp_t flags);
 } 
 
-around: execution(static inline void *kzalloc(.., gfp_t flags, ..))
+around: execution(static inline void *kzalloc(size_t size, gfp_t flags))
 {
-    return ldv_kzalloc(flags);
+    return ldv_kzalloc(size, flags);
 }
