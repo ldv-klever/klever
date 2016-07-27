@@ -70,6 +70,14 @@ class CommonStrategy(core.components.Component):
         for attr_name in ('priority', 'upload input files of static verifiers'):
             self.task_desc[attr_name] = self.conf[attr_name]
 
+        for attr in self.conf['abstract task desc']['attrs']:
+            attr_name = list(attr.keys())[0]
+            attr_val = attr[attr_name]
+            if attr_name == 'verification object':
+                self.verification_object = attr_val
+            elif attr_name == 'rule specification':
+                self.rule_specification = attr_val
+
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
 
@@ -195,6 +203,11 @@ class CommonStrategy(core.components.Component):
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
             log_file = self.clear_safe_logs(log_file)
+            self.mqs['verification statuses'].put({
+                "rule specification": assertion or self.rule_specification,
+                "verification status": "safe",
+                "verification object": self.verification_object
+            })
 
             core.utils.report(self.logger,
                               'safe',
@@ -405,6 +418,11 @@ class CommonStrategy(core.components.Component):
             with open(path_to_processed_witness, 'w', encoding='utf8') as fp:
                 graphml.writexml(fp)
 
+            self.mqs['verification statuses'].put({
+                "rule specification": assertion or self.rule_specification,
+                "verification status": "unsafe",
+                "verification object": self.verification_object
+            })
             core.utils.report(self.logger,
                               'unsafe',
                               {
@@ -422,6 +440,11 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
+            self.mqs['verification statuses'].put({
+                "rule specification": assertion or self.rule_specification,
+                "verification status": "unknown",
+                "verification object": self.verification_object
+            })
             core.utils.report(self.logger,
                               'unknown',
                               {

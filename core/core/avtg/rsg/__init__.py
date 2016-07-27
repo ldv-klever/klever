@@ -120,7 +120,7 @@ class RSG(core.avtg.plugins.Plugin):
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
                                             re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
-                                                   r'exclusive|zalloc|malloc)',
+                                                   r'exclusive|zalloc|malloc|pre)',
                                                    rule_spec_prefix, line)))
                 model['prefix preprocessed C file'] = os.path.abspath(preprocessed_model_c_file)
                 self.logger.debug(
@@ -142,7 +142,7 @@ class RSG(core.avtg.plugins.Plugin):
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
                                             re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
-                                                   r'exclusive|zalloc|malloc)',
+                                                   r'exclusive|zalloc|malloc|pre)',
                                                    rule_spec_prefix, line)))
                 self.logger.debug(
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.

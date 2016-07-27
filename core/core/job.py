@@ -143,22 +143,13 @@ class Job(core.utils.CallbacksCaller):
                 # calculate validation and testing results.
                 if 'ideal verdicts' in self.components_common_conf:
                     def before_launch_sub_job_components(context):
-                        context.mqs['verification statuses'] = multiprocessing.Queue()
+                        pass
 
                     def after_generate_abstact_verification_task_desc(context):
-                        if not context.abstract_task_desc_file:
-                            context.mqs['verification statuses'].put({
-                                "verification object": context.verification_obj,
-                                "rule specification": context.rule_spec,
-                                "verification status": 'unknown'
-                            })
+                        pass
 
                     def after_decide_verification_task(context):
-                        context.mqs['verification statuses'].put({
-                            "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
-                            "rule specification": context.conf['abstract task desc']['attrs'][1]['rule specification'],
-                            "verification status": context.verification_status
-                        })
+                        pass
 
                     def after_generate_all_verification_tasks(context):
                         context.logger.info('Terminate verification statuses message queue')
@@ -548,7 +539,8 @@ class Job(core.utils.CallbacksCaller):
                         break
 
             if name not in results:
-                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}"'.format(
-                    verification_status))
+                raise ValueError('Could not find appropriate ideal verdict for verdict "{0}", '
+                                 'verification object "{1}" and rule {2}'.
+                                 format(verification_status, verification_object, rule_specification))
 
         return results
