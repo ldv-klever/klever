@@ -2,6 +2,8 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+void rtnl_lock(void);
+void rtnl_unlock(void);
 
 /* CHANGE_STATE There is no rtnllock at the beginning */
 int rtnllocknumber = 0;
@@ -22,6 +24,15 @@ void ldv_past_rtnl_lock(void)
 	ldv_assert("linux:rtnl:double lock", rtnllocknumber == 0);
 	/* CHANGE_STATE locking */
 	rtnllocknumber=1;
+}
+
+/* MODEL_FUNC_DEF executed before ieee80211_unregister_hw */
+void ldv_before_ieee80211_unregister_hw(void)
+{
+	/* OTHER Modeling lock */
+	ldv_past_rtnl_lock();
+	/* OTHER Modeling unlock */
+	ldv_past_rtnl_unlock();
 }
 
 /* MODEL_FUNC_DEF rtnl is locked */
