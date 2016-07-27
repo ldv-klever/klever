@@ -46,7 +46,6 @@ class Job(core.utils.CallbacksCaller):
         self.components = []
         self.callbacks = {}
         self.component_processes = []
-        self.results = {}
 
     def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
@@ -398,17 +397,17 @@ class Job(core.utils.CallbacksCaller):
                 })
 
             with self.data_lock:
-                # Get previously processed results.
-                self.results = self.data.copy()
-
-                # Process new results.
-                self.results.update(self.__match_verification_statuses_and_ideal_verdicts(
+                # Common processing of new results.
+                self.data.update(self.__match_verification_statuses_and_ideal_verdicts(
                     verification_statuses, self.components_common_conf['ideal verdicts']))
+                # Without this we won't be able to reliably iterate over data since it is
+                # multiprocessing.Manager().dict().
+                results = self.data.copy()
 
                 if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                    self.process_validation_results()
+                    results = self.process_validation_results(results)
                 elif self.parent['type'] == 'Verification of Linux kernel modules':
-                    self.process_testing_results()
+                    results = self.process_testing_results(results)
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
@@ -416,28 +415,30 @@ class Job(core.utils.CallbacksCaller):
                                   'data',
                                   {
                                       'id': self.parent['id'],
-                                      'data': json.dumps(self.results)
+                                      'data': json.dumps(results)
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
 
-                # Store processed results.
-                self.data.clear()
-                self.data.update(self.results)
-
-    def process_testing_results(self):
+    def process_testing_results(self, results):
         self.logger.info('Check whether tests passed')
-        for test in self.results:
-            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
-                ' ("{0}")'.format(self.results[test]['comment']) if self.results[test]['comment'] else ''))
 
-    def process_validation_results(self):
+        for test in results:
+            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
+                test, results[test]['ideal verdict'], results[test]['verification status'],
+                ' ("{0}")'.format(results[test]['comment']) if results[test]['comment'] else ''))
+
+        # Report results as is.
+        return results
+
+    def process_validation_results(self, results):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
+
+        new_results = {}
 
         bug_results = {}
         bug_fix_results = {}
-        for name, results in self.results.items():
+        for name, results in results.items():
             # Corresponds to validation result before bug fix.
             if results['ideal verdict'] == 'unsafe':
                 bug_results[name] = results
@@ -447,17 +448,16 @@ class Job(core.utils.CallbacksCaller):
             else:
                 raise ValueError(
                     'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
-        self.results.clear()
 
         for bug_id, bug_result in bug_results.items():
-            found_bug_fix = False
+            found_bug_fix_result = None
             for bug_fix_id, bug_fix_result in bug_fix_results.items():
                 # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
                 # taken into account that all commit hashes have exactly 12 symbols.
                 if bug_id[:12] == bug_fix_id[:12] and (bug_id[13:] == bug_fix_id[12:]
                                                        if len(bug_id) > 12 and bug_id[12] == '~'
                                                        else bug_id[12:] == bug_fix_id[13:]):
-                    found_bug_fix = True
+                    found_bug_fix_result = bug_fix_result
                     break
 
             validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
@@ -467,18 +467,21 @@ class Job(core.utils.CallbacksCaller):
                 else '')
 
             # At least save validation result before bug fix.
-            self.results[bug_id] = {'before fix': bug_result}
+            new_results[bug_id] = {'before fix': bug_result}
 
-            if not found_bug_fix:
+            if not found_bug_fix_result:
                 self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(bug_id))
-                self.results[bug_id]['after fix'] = None
+                new_results[bug_id]['after fix'] = None
             else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(bug_fix_result['verification status'],
-                                                                       ' ("{0}")'.format(bug_fix_result['comment'])
-                                                                       if bug_fix_result['comment'] else '')
-                self.results[bug_id]['after fix'] = bug_fix_result
+                validation_res_msg += ', after fix is "{0}"{1}'.format(found_bug_fix_result['verification status'],
+                                                                       ' ("{0}")'.format(
+                                                                           found_bug_fix_result['comment'])
+                                                                       if found_bug_fix_result['comment'] else '')
+                new_results[bug_id]['after fix'] = found_bug_fix_result
 
             self.logger.info(validation_res_msg)
+
+            return new_results
 
     def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
         results = {}
