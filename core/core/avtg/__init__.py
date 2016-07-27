@@ -79,31 +79,12 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     if rule_spec_id in raw_rule_spec_descs['rule specifications']:
         rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
     else:
-        is_alias_found = False
-        for potential_rule_spec_id, potential_rule_spec_desc in raw_rule_spec_descs['rule specifications'].items():
-            if 'aliases' in potential_rule_spec_desc:
-                for alias in potential_rule_spec_desc['aliases']:
-                    if rule_spec_id == alias:
-                        is_alias_found = True
-                        logger.debug(
-                            'Rule specification "{0}" was found by alias "{1}"'.format(potential_rule_spec_id,
-                                                                                       rule_spec_id))
-                        # Use true rule specification ID rather than its alias further.
-                        rule_spec_id = potential_rule_spec_id
-                        break
-            if is_alias_found:
-                rule_spec_desc = potential_rule_spec_desc
-                break
-
-        if not is_alias_found:
-            raise ValueError(
-                'Specified rule specification "{0}" could not be found in rule specifications DB'.format(
-                    rule_spec_id))
+        raise ValueError(
+            'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
 
     # Get rid of useless information.
-    for attr in ('aliases', 'description'):
-        if attr in rule_spec_desc:
-            del (rule_spec_desc[attr])
+    if 'description' in rule_spec_desc:
+        del (rule_spec_desc['description'])
 
     # Get rule specification template which it is based on.
     if 'template' not in rule_spec_desc:
