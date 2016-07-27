@@ -742,6 +742,9 @@
           "container": true,
           "interface": ["usb_serial.usb_serial_driver"]
         },
+        "callback": {
+          "callback": true
+        },
         "ret": {
           "signature": "int a",
           "value": "1"
@@ -753,7 +756,7 @@
           "process": "[probe].(<y_ret>.[attach].(<y_ret>.{main_workflow} | <n_ret>.[release]) | <n_ret>).{init_workflow} | <free>.(deregister)"
         },
         "main_workflow": {
-          "process": "[suspend].([resume] | [reset_resume]).{main_workflow} | [port_probe].(<y_ret>.[port_remove] | <n_ret>).{main_workflow} | [open].(<y_ret>.{ops_workflow} | <n_ret>.{main_workflow}) | [disconnect].[release].{init_workflow}"
+          "process": "[rest] | [suspend].([resume] | [reset_resume]).{main_workflow} | [port_probe].(<y_ret>.[port_remove] | <n_ret>).{main_workflow} | [open].(<y_ret>.{ops_workflow} | <n_ret>.{main_workflow}) | [disconnect].[release].{init_workflow}"
         },
         "ops_workflow": {
           "process": "([write] | [irq_write] | [write_room] | [ioctl]).{ops_workflow} | [close].{main_workflow}"
@@ -855,6 +858,12 @@
         "ioctl": {
           "callback": "%driver.ioctl%",
           "parameters": ["%resource%"]
+        },
+        "rest": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
         }
       }
     },
