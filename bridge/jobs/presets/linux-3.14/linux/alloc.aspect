@@ -21,7 +21,6 @@ void *ldv_alloc_macro(gfp_t flags)
 }
 
 #endif /* __LINUX_ALLOC_ASPECT */
-
 }
 
 /* Functions which has parameter of type gfp_t. */

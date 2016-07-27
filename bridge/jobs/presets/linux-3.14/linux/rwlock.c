@@ -1,4 +1,3 @@
-#include <linux/spinlock_types.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
@@ -9,7 +8,7 @@ int ldv_rlock = 1;
 int ldv_wlock = 1;
 
 /* MODEL_FUNC_DEF Check that write lock is not acquired and acquire read lock */
-void ldv_read_lock(rwlock_t *lock)
+void ldv_read_lock(void)
 {
 	/* ASSERT Write lock should not be aquired */
 	ldv_assert("linux:rwlock:read lock on write lock", ldv_wlock == 1);
@@ -18,7 +17,7 @@ void ldv_read_lock(rwlock_t *lock)
 }
 
 /* MODEL_FUNC_DEF Check that read lock is acquired and release it */
-void ldv_read_unlock(rwlock_t *lock)
+void ldv_read_unlock(void)
 {
 	/* ASSERT Read lock should be acquired */
 	ldv_assert("linux:rwlock:more read unlocks", ldv_rlock > 1);
@@ -27,7 +26,7 @@ void ldv_read_unlock(rwlock_t *lock)
 }
 
 /* MODEL_FUNC_DEF Check that write lock is not aquired and acquire it */
-void ldv_write_lock(rwlock_t *lock)
+void ldv_write_lock(void)
 {
 	/* ASSERT Write lock should not be aquired */
 	ldv_assert("linux:rwlock:double write lock", ldv_wlock == 1);
@@ -36,7 +35,7 @@ void ldv_write_lock(rwlock_t *lock)
 }
 
 /* MODEL_FUNC_DEF Check that write lock is aquired and release it */
-void ldv_write_unlock(rwlock_t *lock)
+void ldv_write_unlock(void)
 {
 	/* ASSERT Write lock should be aquired */
 	ldv_assert("linux:rwlock:double write unlock", ldv_wlock != 1);
@@ -45,7 +44,7 @@ void ldv_write_unlock(rwlock_t *lock)
 }
 
 /* MODEL_FUNC_DEF Try to acquire read lock */
-int ldv_read_trylock(rwlock_t *lock)
+int ldv_read_trylock(void)
 {
 	/* OTHER Nondeterministically acquire read lock if write lock is not acquired */
 	if (ldv_wlock == 1 && ldv_undef_int()) {
@@ -61,7 +60,7 @@ int ldv_read_trylock(rwlock_t *lock)
 }
 
 /* MODEL_FUNC_DEF Try to acquire write lock */
-int ldv_write_trylock(rwlock_t *lock)
+int ldv_write_trylock(void)
 {
 	/* OTHER Nondeterministically acquire write lock if it is not acquired */
 	if (ldv_wlock == 1 && ldv_undef_int()) {

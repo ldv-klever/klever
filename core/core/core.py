@@ -93,8 +93,8 @@ class Core(core.utils.CallbacksCaller):
                                           'resources': core.utils.count_consumed_resources(
                                               self.logger,
                                               self.start_time),
-                                          'log': 'log',
-                                          'files': ['log']
+                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
+                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'])
 

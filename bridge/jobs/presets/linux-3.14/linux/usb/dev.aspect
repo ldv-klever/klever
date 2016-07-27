@@ -1,5 +1,7 @@
 before: file ("$this")
 {
+#include <verifier/common.h>
+
 struct usb_device;
 
 struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
