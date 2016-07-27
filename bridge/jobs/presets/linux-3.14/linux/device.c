@@ -15,7 +15,7 @@ void *ldv_dev_get_drvdata(const struct device *dev)
 int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
 	if (!dev->p) {
-		dev->p = ldv_zalloc(sizeof(*dev->p));
+		dev->p = ldv_verifier_zalloc(sizeof(*dev->p));
 		if (!dev->p)
 			return -12;
 	}
