@@ -218,19 +218,19 @@
           "signature": "int (*port_remove)(%usb_serial.usb_serial_port%)"
         },
         "open": {
-          "signature": "int  (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+          "signature": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
         },
         "close": {
           "signature": "void (*close)(%usb_serial.usb_serial_port%)"
         },
         "write": {
-          "signature": "int  (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+          "signature": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
         },
         "write_room": {
-          "signature": "int  (*write_room)(%usb_serial.tty_struct%)"
+          "signature": "int (*write_room)(%usb_serial.tty_struct%)"
         },
         "ioctl": {
-          "signature": "int  (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, unsigned long arg)"
+          "signature": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
         }
       },
       "resources": {
