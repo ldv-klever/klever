@@ -9,7 +9,7 @@ void *ldv_kzalloc(size_t size, gfp_t flags)
 	void *res;
 
 	ldv_check_alloc_flags(flags);
-	res = ldv_verifier_zalloc(size);
+	res = ldv_zalloc(size);
 	ldv_after_alloc(res);
 
 	return res;
