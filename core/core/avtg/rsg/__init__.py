@@ -109,7 +109,6 @@ class RSG(core.avtg.plugins.Plugin):
                     model_c_file_short = m.group(1)
                 else:
                     model_c_file_short = model_c_file
-                self.logger.info(model_c_file_short)
                 preprocessed_model_c_file = '{0}.{1}.c'.format(
                     model_c_file_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
@@ -149,9 +148,6 @@ class RSG(core.avtg.plugins.Plugin):
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
                 aspects.append(os.path.abspath(preprocessed_aspect))
-
-                self.logger.info(">>>{0}".format(preprocessed_aspect))
-                self.logger.info(">>>{0}".format(aspect))
             else:
                 model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
