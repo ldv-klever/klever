@@ -289,6 +289,13 @@
         "linux:usb:coherent::more initial at exit"
       ]}}}
     },
+    "linux:bitops": {
+      "description": "129",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/bitops.c": {"bug kinds": [
+        "linux:bitops:offset out of range"
+      ]}}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",

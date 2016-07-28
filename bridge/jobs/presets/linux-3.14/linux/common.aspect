@@ -32,6 +32,7 @@ void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
 void ldv_linux_mutex_initialize(void);
 void ldv_linux_spinlock_initialize(void);
 void ldv_linux_usb_dev_initialize(void);
+void ldv_linux_bitops_initialize(void);
 
 struct urb;
 void *ldv_linux_usb_coherent_usb_alloc_coherent(void);
@@ -197,4 +198,5 @@ around: call(void ldv_initialize(void))
 	ldv_linux_mutex_initialize();
 	ldv_linux_spinlock_initialize();
 	ldv_linux_usb_dev_initialize();
+	ldv_linux_bitops_initialize();
 }
