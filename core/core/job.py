@@ -481,7 +481,7 @@ class Job(core.utils.CallbacksCaller):
 
             self.logger.info(validation_res_msg)
 
-            return new_results
+        return new_results
 
     def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
         results = {}
