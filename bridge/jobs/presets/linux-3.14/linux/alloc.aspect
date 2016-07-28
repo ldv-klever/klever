@@ -16,10 +16,8 @@ extern void ldv_after_alloc(void *res);
 
 void *ldv_alloc_macro(gfp_t flags)
 {
-	void *res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_malloc_unknown_size();
 }
 
 #endif /* __LINUX_ALLOC_ASPECT */
@@ -59,8 +57,7 @@ pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, 
 						   call(int pskb_expand_head(.., gfp_t flags, ..))
 
 /* Separately weave *zalloc*() bacause it should not call kmalloc() in the body. */
-pointcut ZALLOC_KNOWN_SIZE: execution(static inline void *kzalloc(.., gfp_t flags, ..)) ||
-					        execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
+pointcut ZALLOC_KNOWN_SIZE: execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
 
 pointcut ZALLOC_AUX: execution(static inline void *kmem_cache_zalloc(.., gfp_t flags, ..))
 
@@ -79,50 +76,44 @@ pointcut alloc_macro: define(alloc_pages(gfp_mask, order)) ||
 
 around: ALLOC
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_malloc_unknown_size();
 }
 
 around: ALLOC_KNOWN_SIZE
 {
-	void* res = ldv_malloc(size);
+	void *res;
 	ldv_check_alloc_flags(flags);
+	res = ldv_malloc_unknown_size();
 	ldv_after_alloc(res);
 	return res;
 }
 
-around: ALLOC_RETURN_INT //TODO here
+around: ALLOC_RETURN_INT
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return (unsigned int) res;
+	return (unsigned int) ldv_malloc_unknown_size();
 }
 
 around: ZALLOC_KNOWN_SIZE
 {
-	void* res = ldv_zalloc(size);
+	void *res;
 	ldv_check_alloc_flags(flags);
+	res = ldv_zalloc_unknown_size();
 	ldv_after_alloc(res);
 	return res;
 }
 
 around: ZALLOC_AUX
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_flags(flags);
-	return res;
+	return ldv_zalloc_unknown_size();
 }
 
 around: ALLOC_WITHOUT
 {
-	void* res = ldv_undef_ptr();
-	ldv_assume(!ldv_is_err(res));
 	ldv_check_alloc_nonatomic();
-	return res;
+	return ldv_malloc_unknown_size();
 }
 
 around: alloc_macro
