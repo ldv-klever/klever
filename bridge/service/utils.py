@@ -811,7 +811,7 @@ class NodesData(object):
 
 # Case 3.4(5) DONE
 class StartJobDecision(object):
-    def __init__(self, user, job_id, data):
+    def __init__(self, user, job_id, data, light=False):
         self.error = None
         self.operator = user
         self.data = data
@@ -834,6 +834,7 @@ class StartJobDecision(object):
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
+        self.job.light = light
         self.job.save()
 
     def __get_klever_core_data(self):

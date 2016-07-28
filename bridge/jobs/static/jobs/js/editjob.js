@@ -75,7 +75,6 @@ function set_actions_for_edit_form () {
     check_all_roles();
     set_actions_for_file_form();
     $('.ui.dropdown').dropdown();
-    $('#job_light_popup').popup();
 
     $('.files-actions-popup').popup({position: 'bottom right'});
 
@@ -209,8 +208,7 @@ function set_actions_for_edit_form () {
                 user_roles: user_roles,
                 file_data: file_data,
                 parent_identifier: $('#job_parent_identifier').val(),
-                last_version: last_job_version,
-                light: $('#is_job_light').is(':checked')
+                last_version: last_job_version
             },
             function (data) {
                 data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data.job_id + '/');

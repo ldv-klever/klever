@@ -71,14 +71,14 @@ def report_component(request, job_id, report_id):
             report_attrs_data.append(request.POST.get('view_id', None))
 
     unknown_href = None
-    try:
-        unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf', args=['unknown', unknown.pk])
-        status = 3
-    except ObjectDoesNotExist:
-        pass
-    except MultipleObjectsReturned:
+    if report.root.job.light:
         status = 4
+    else:
+        try:
+            unknown_href = reverse('reports:leaf', args=['unknown', ReportUnknown.objects.get(parent=report).pk])
+            status = 3
+        except ObjectDoesNotExist:
+            pass
 
     report_data = None
     if report.data is not None:

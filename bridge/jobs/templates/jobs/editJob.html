@@ -22,12 +22,6 @@
             <div class="ui input fluid">
                 <input class="ui fluid" id="job_title" type="text" value="{{ job.name }}">
             </div>
-            <br>
-            <div class="ui input checkbox">
-                <label for="is_job_light">{% trans 'Lightweight results' %}<i id="job_light_popup" class="ui help blue icon" data-content="{% trans 'Without safes and most of components' %}" data-variation="very wide"></i></label>
-                <input id="is_job_light" type="checkbox"{% if job.job.light %} checked{% endif %}>
-            </div>
-            <br>
             {% if job_id %}
                 <br>
                 <label for="job_parent_identifier"><strong>{% trans 'Parent identifier' %}</strong></label>

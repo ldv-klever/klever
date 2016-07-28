@@ -430,7 +430,9 @@ class TestJobs(KleverTestCase):
             ],
             [False, True, True, False, True, False]
         ])
-        response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
+        response = self.client.post('/jobs/ajax/run_decision/', {
+            'job_id': job_pk, 'data': run_conf, 'is_light': 'false'
+        })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))

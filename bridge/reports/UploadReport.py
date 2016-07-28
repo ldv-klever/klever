@@ -37,7 +37,7 @@ class UploadReport(object):
 
     def __job_failed(self, error=None):
         if 'id' in self.data:
-            error = 'Report with id "%s" has led to fail. ' + error
+            error = 'Report with id "%s" has led to fail. ' % self.data['id'] + error
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
@@ -122,6 +122,8 @@ class UploadReport(object):
                 self.data['comp'] = data['comp']
             if 'log' in data:
                 self.data['log'] = data['log']
+        elif data['type'] == 'verification finish':
+            pass
         elif data['type'] == 'safe':
             try:
                 self.data.update({
@@ -206,6 +208,7 @@ class UploadReport(object):
             'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
             'verification': self.__create_report_component,
+            'verification finish': self.__finish_verification_report,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
@@ -248,10 +251,9 @@ class UploadReport(object):
             report.wall_time = int(self.data['resources']['wall time'])
 
         if self.archive is not None:
-            if self.job.light and (self.data['type'] == 'verification' or self.data['id'] == '/') or not self.job.light:
+            if not self.job.light or self.data['type'] == 'verification' or self.data['id'] == '/':
                 report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
-                if 'log' in self.data:
-                    report.log = self.data['log']
+                report.log = self.data.get('log')
 
         report.save()
 
@@ -296,10 +298,9 @@ class UploadReport(object):
         report.wall_time = int(self.data['resources']['wall time'])
 
         if self.archive is not None:
-            if self.job.light and (self.data['type'] == 'verification' or self.data['id'] == '/') or not self.job.light:
+            if self.data['id'] == '/' or not self.job.light:
                 report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
-                if 'log' in self.data:
-                    report.log = self.data['log']
+                report.log = self.data.get('log')
 
         if 'data' in self.data:
             if not (self.job.light and self.data['id'] != '/'):
@@ -321,18 +322,31 @@ class UploadReport(object):
             KleverCoreFinishDecision(self.job)
             if self.job.light:
                 self.__collapse_reports()
+        elif self.job.light and len(ReportComponent.objects.filter(parent=report)) == 0:
+            report.delete()
+
+    def __finish_verification_report(self, identifier):
+        if not self.job.light:
+            return
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+        except ObjectDoesNotExist:
+            self.error = 'Verification report does not exist'
+            return
+        if len(ReportUnsafe.objects.filter(parent=report)) == 0:
+            report.delete()
 
     def __create_report_unknown(self, identifier):
-        unknown_parent = self.parent
         if self.job.light:
-            unknown_parent = ReportComponent.objects.get(parent=None, root=self.root)
+            self.__create_light_unknown_report(identifier)
+            return
         try:
             ReportUnknown.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
             report = ReportUnknown(
-                identifier=identifier, parent=unknown_parent, root=self.root, component=self.parent.component
+                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
             )
 
         if self.archive is None:
@@ -359,6 +373,36 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+        ConnectReportWithMarks(report)
+
+    def __create_light_unknown_report(self, identifier):
+        try:
+            ReportUnknown.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
+        except ObjectDoesNotExist:
+            report = ReportUnknown(
+                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
+            )
+
+        if self.archive is None:
+            self.error = 'Unknown report must contain archive with problem description'
+            return
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.problem_description = self.data['problem desc']
+        report.save()
+
+        self.__collect_attrs(report)
+        report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+        report.save()
+
+        verdict = Verdict.objects.get_or_create(report=report.parent)[0]
+        verdict.unknown += 1
+        verdict.save()
+        comp_unknown = ComponentUnknown.objects.get_or_create(report=report.parent, component=report.component)[0]
+        comp_unknown.number += 1
+        comp_unknown.save()
+        ReportComponentLeaf.objects.create(report=report.parent, unknown=report)
         ConnectReportWithMarks(report)
 
     def __create_report_safe(self, identifier):
@@ -398,20 +442,15 @@ class UploadReport(object):
         ConnectReportWithMarks(report)
 
     def __create_report_unsafe(self, identifier):
-        unsafe_parent = self.parent
         if self.job.light:
-            root_report = ReportComponent.objects.get(parent=None, root=self.root)
-            if self.parent.archive is None:
-                unsafe_parent = root_report
-            else:
-                self.parent.parent = root_report
-                self.parent.save()
+            self.__create_light_unsafe_report(identifier)
+            return
         try:
             ReportUnsafe.objects.get(identifier=identifier)
             self.error = 'The report with specified identifier already exists'
             return
         except ObjectDoesNotExist:
-            report = ReportUnsafe(identifier=identifier, parent=unsafe_parent, root=self.root)
+            report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
 
         if self.archive is None:
             self.error = 'Unsafe report must contain archive with error trace and source code files'
@@ -435,6 +474,46 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+        ConnectReportWithMarks(report)
+
+    def __create_light_unsafe_report(self, identifier):
+        try:
+            ReportUnsafe.objects.get(identifier=identifier)
+            self.error = 'The report with specified identifier already exists'
+            return
+        except ObjectDoesNotExist:
+            report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
+
+        if self.archive is None:
+            self.error = 'Unsafe report must contain archive with error trace and source code files'
+            return
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.error_trace = self.data['error trace']
+        report.save()
+
+        # Each verification report can have only one unsafe child
+        # In other cases unsafe reports will be without attributes
+        self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
+
+        root_report = ReportComponent.objects.get(parent=None, root=self.root)
+        if self.parent.archive is None:
+            report.parent = root_report
+            report.save()
+        else:
+            self.parent.parent = root_report
+            self.parent.save()
+            verdict = Verdict.objects.get_or_create(report=self.parent)[0]
+            verdict.unsafe += 1
+            verdict.unsafe_unassociated += 1
+            verdict.save()
+            ReportComponentLeaf.objects.create(report=self.parent, unsafe=report)
+
+        verdict = Verdict.objects.get_or_create(report=root_report)[0]
+        verdict.unsafe += 1
+        verdict.unsafe_unassociated += 1
+        verdict.save()
+        ReportComponentLeaf.objects.create(report=root_report, unsafe=report)
         ConnectReportWithMarks(report)
 
     def __collect_attrs(self, report):

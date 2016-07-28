@@ -427,7 +427,6 @@ def save_job(request):
         'global_role': request.POST.get('global_role', JOB_ROLES[0][0]),
         'user_roles': json.loads(request.POST.get('user_roles', '[]')),
         'filedata': json.loads(request.POST.get('file_data', '[]')),
-        'light': json.loads(request.POST.get('light', 'false')),
         'author': request.user
     }
 
@@ -762,7 +761,7 @@ def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    if any(x not in request.POST for x in ['data', 'job_id']):
+    if any(x not in request.POST for x in ['data', 'job_id', 'is_light']):
         return JsonResponse({'error': 'Unknown error'})
     try:
         configuration = GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
@@ -770,7 +769,10 @@ def run_decision(request):
         return JsonResponse({'error': 'Unknown error'})
     if configuration is None:
         return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
+    result = StartJobDecision(
+        request.user, request.POST['job_id'], configuration,
+        light=bool(json.loads(request.POST['is_light']))
+    )
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
