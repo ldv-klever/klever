@@ -1,0 +1,20 @@
+@include <linux/alloc.aspect>
+
+before: file("$this")
+{
+#include <verifier/nondet.h>
+
+extern void ldv_srcu_read_lock(void);
+extern void ldv_srcu_read_unlock(void);
+}
+
+around: execution(static inline int srcu_read_lock(..))
+{
+	ldv_srcu_read_lock();
+	return ldv_undef_int();
+}
+
+around: execution(static inline void srcu_read_unlock(..))
+{
+	ldv_srcu_read_unlock();
+}

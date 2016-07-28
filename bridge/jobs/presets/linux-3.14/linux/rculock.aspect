@@ -1,0 +1,17 @@
+@include <linux/alloc.aspect>
+
+before: file("$this")
+{
+extern void ldv_rcu_read_lock(void);
+extern void ldv_rcu_read_unlock(void);
+}
+
+around: execution(static inline void rcu_read_lock(void))
+{
+	ldv_rcu_read_lock();
+}
+
+around: execution(static inline void rcu_read_unlock(void))
+{
+	ldv_rcu_read_unlock();
+}
