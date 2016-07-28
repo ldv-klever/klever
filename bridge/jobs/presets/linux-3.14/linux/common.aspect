@@ -14,6 +14,7 @@ void ldv_linux_class_check_final_state(void);
 void ldv_linux_chrdev_check_final_state(void);
 void ldv_linux_usb_gadget_check_final_state(void);
 void ldv_linux_alloc_resource_check_final_state(void);
+void ldv_linux_blk_request_check_final_state(void);
 
 void ldv_linux_usb_dev_check_return_value_probe(int retval);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
@@ -113,6 +114,7 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_chrdev_check_final_state();
 	ldv_linux_usb_gadget_check_final_state();
 	ldv_linux_alloc_resource_check_final_state();
+	ldv_linux_blk_request_check_final_state();
 }
 
 before: call(int ldv_post_probe(int retval))

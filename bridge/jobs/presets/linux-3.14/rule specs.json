@@ -296,6 +296,15 @@
         "linux:bitops:offset out of range"
       ]}}}
     },
+    "linux:blk:request": {
+      "description": "101",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/blk/request.c": {"bug kinds": [
+        "linux:blk:request:double get",
+        "linux:blk:request:double put",
+        "linux:blk:request:get at exit"
+      ]}}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
