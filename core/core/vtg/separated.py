@@ -42,7 +42,7 @@ class SeparatedStrategy(CommonStrategy):
     def print_strategy_information(self):
         pass
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
@@ -212,7 +212,7 @@ class SeparatedStrategy(CommonStrategy):
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind)
-                self.create_auxiliary_report(verification_report_id, decision_results, bug_kind)
+                self.create_verification_report(verification_report_id, decision_results, bug_kind)
 
                 if self.mea:
                     all_found_error_traces = glob.glob(self.path_to_error_traces)

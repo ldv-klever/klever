@@ -199,7 +199,7 @@ class MAV(CommonStrategy):
     def prepare_bug_kind_functions_file(self):
         pass
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
@@ -318,7 +318,7 @@ class MAV(CommonStrategy):
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification{1}'.format(self.id, iteration)
-                self.create_auxiliary_report(verification_report_id, decision_results, iteration)
+                self.create_verification_report(verification_report_id, decision_results, iteration)
 
                 # Parse file with results.
                 is_new_verdicts = False

@@ -138,9 +138,9 @@ class CommonStrategy(core.components.Component):
                 if os.path.isfile(extra_c_file['C file']):
                     os.remove(extra_c_file['C file'])
 
-    # This function creates 'verification' report, which is required for each verdict.
+    # This function creates 'verification' report.
     @abstractclassmethod
-    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         pass
 
     def get_verifier_log_file(self):

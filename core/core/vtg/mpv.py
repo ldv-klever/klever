@@ -152,7 +152,7 @@ class MPV(CommonStrategy):
         else:
             self.logger.debug('No MPV strategy was specified')
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         files_to_send = ['benchmark.xml']
         for assertion, automaton in self.property_automata.items():
@@ -230,7 +230,7 @@ class MPV(CommonStrategy):
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification{1}'.format(self.id)
-                self.create_auxiliary_report(verification_report_id, decision_results)
+                self.create_verification_report(verification_report_id, decision_results)
 
                 # Parse file with statistics.
                 results = {}
