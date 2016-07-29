@@ -385,6 +385,8 @@ class MAV(CommonStrategy):
                                                     assertion=bug_kind)
                         if verdict != 'checking':
                             self.remove_assertion(bug_kind)
+
+                self.create_verification_finish_report(verification_report_id, iteration)
                 break
             time.sleep(1)
         self.is_finished = is_finished

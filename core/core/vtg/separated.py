@@ -229,6 +229,8 @@ class SeparatedStrategy(CommonStrategy):
                 else:
                     self.process_single_verdict(decision_results, verification_report_id,
                                                 assertion=bug_kind)
+
+                self.create_verification_finish_report(verification_report_id, bug_kind)
                 break
 
             time.sleep(1)

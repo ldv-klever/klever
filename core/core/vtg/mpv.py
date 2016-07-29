@@ -272,5 +272,7 @@ class MPV(CommonStrategy):
                     else:  # Verdicts unknown or safe.
                         self.process_single_verdict(decision_results, verification_report_id,
                                                     assertion=assertion)
+
+                self.create_verification_finish_report(verification_report_id)
                 break
             time.sleep(1)

@@ -143,6 +143,15 @@ class CommonStrategy(core.components.Component):
     def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         pass
 
+    # This function creates 'verification finish' report.
+    def create_verification_finish_report(self, verification_report_id, bug_kind=None):
+        core.utils.report(self.logger,
+                          'verification finish',
+                          {'id': verification_report_id},
+                          self.mqs['report files'],
+                          self.conf['main working directory'],
+                          bug_kind)
+
     def get_verifier_log_file(self):
         log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
         if len(log_files) != 1:
