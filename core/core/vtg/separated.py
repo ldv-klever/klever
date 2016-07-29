@@ -45,9 +45,6 @@ class SeparatedStrategy(CommonStrategy):
     def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
-        if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
-
         core.utils.report(self.logger,
                           'verification',
                           {

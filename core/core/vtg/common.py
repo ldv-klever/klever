@@ -151,13 +151,6 @@ class CommonStrategy(core.components.Component):
                     log_files))
         return log_files[0]
 
-    def clear_safe_logs(self, log_file):
-        if 'upload safe proofs' not in self.conf['VTG strategy'] or \
-                not self.conf['VTG strategy']['upload safe proofs']:
-            log_file = "empty"
-            open(log_file, 'w')
-        return log_file
-
     def parse_bug_kind(self, bug_kind):
         match = re.search(r'(.+)::(.*)', bug_kind)
         if match:
