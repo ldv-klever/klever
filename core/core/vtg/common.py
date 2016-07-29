@@ -138,8 +138,9 @@ class CommonStrategy(core.components.Component):
         # Remove all extra C files.
         if not self.conf['keep intermediate files']:
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                if os.path.isfile(extra_c_file['C file']):
-                    os.remove(extra_c_file['C file'])
+                if 'C file' in extra_c_file:
+                    if os.path.isfile(extra_c_file['C file']):
+                        os.remove(extra_c_file['C file'])
 
     # This function creates 'verification' report.
     @abstractclassmethod
