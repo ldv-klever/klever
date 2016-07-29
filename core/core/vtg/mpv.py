@@ -6,6 +6,7 @@ import tarfile
 import time
 import glob
 import re
+import shutil
 from enum import Enum
 from abc import abstractclassmethod, ABCMeta
 
@@ -111,9 +112,7 @@ class MPV(CommonStrategy):
     def create_property_automata(self):
         for assertion, automaton in self.property_automata.items():
             path_to_file = assertion + '.spc'
-            with open(path_to_file, 'w') as fp:
-                for line in automaton:
-                    fp.write(line)
+            shutil.copy(automaton, path_to_file)
 
     def add_verifier_options(self):
         self.logger.debug('Add common verifier options for MPV')
@@ -152,6 +151,11 @@ class MPV(CommonStrategy):
         else:
             self.logger.debug('No MPV strategy was specified')
 
+        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
+                self.conf['VTG strategy']['verifier']['options']:
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+
     def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         files_to_send = ['benchmark.xml']
@@ -170,7 +174,7 @@ class MPV(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   files_to_send + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
@@ -229,7 +233,7 @@ class MPV(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
-                verification_report_id = '{0}/verification{1}'.format(self.id)
+                verification_report_id = '{0}/verification'.format(self.id)
                 self.create_verification_report(verification_report_id, decision_results)
 
                 # Parse file with statistics.

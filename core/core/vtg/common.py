@@ -88,7 +88,10 @@ class CommonStrategy(core.components.Component):
             # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
             self.logger.debug('Ignore asm goto expressions')
 
+            c_files = ()
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if 'C file' not in extra_c_file:
+                    continue
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
                 with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
                           encoding='ascii') as fp_in, open(trimmed_c_file, 'w', encoding='ascii') as fp_out:
@@ -98,6 +101,7 @@ class CommonStrategy(core.components.Component):
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['new C file'] = trimmed_c_file
+                c_files += (trimmed_c_file, )
 
             core.utils.execute(self.logger,
                                (
@@ -117,12 +121,11 @@ class CommonStrategy(core.components.Component):
                                    '--no-split-structs',
                                    '--rmUnusedInlines',
                                    '--out', 'cil.i',
-                               ) +
-                               tuple(extra_c_file['new C file']
-                                     for extra_c_file in self.conf['abstract task desc']['extra C files']))
+                               ) + c_files)
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    os.remove(extra_c_file['new C file'])
+                    if 'new C file' in extra_c_file:
+                        os.remove(extra_c_file['new C file'])
 
             self.task_desc['files'].append('cil.i')
 
@@ -154,18 +157,16 @@ class CommonStrategy(core.components.Component):
 
     def get_verifier_log_file(self):
         log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+
         if len(log_files) != 1:
             RuntimeError(
                 'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
                     log_files))
-        return log_files[0]
 
-    def clear_safe_logs(self, log_file):
-        if 'upload safe proofs' not in self.conf['VTG strategy'] or \
-                not self.conf['VTG strategy']['upload safe proofs']:
-            log_file = "empty"
-            open(log_file, 'w')
-        return log_file
+        if self.logger.disabled:
+            return None
+        else:
+            return log_files[0]
 
     def parse_bug_kind(self, bug_kind):
         match = re.search(r'(.+)::(.*)', bug_kind)
@@ -210,9 +211,10 @@ class CommonStrategy(core.components.Component):
 
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
-        log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
+            # TODO: until feature_7368 will be merged to master create empty proof.
+            with open('proof', 'w', encoding='ascii'):
+                pass
 
             core.utils.report(self.logger,
                               'safe',
@@ -220,9 +222,9 @@ class CommonStrategy(core.components.Component):
                                   'id': verification_report_id + '/safe/{0}'.format(assertion or ''),
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
-                                  # TODO: just the same file as parent log, looks strange.
-                                  'proof': log_file,
-                                  'files': [log_file]
+                                  # TODO: at the moment it is unclear what are verifier proofs.
+                                  'proof': 'proof',
+                                  'files': ['proof']
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
@@ -265,6 +267,8 @@ class CommonStrategy(core.components.Component):
                         match = re.search(
                             r'/\*\s+(MODEL_FUNC_DEF|ASSERT|CHANGE_STATE|RETURN|MODEL_FUNC_CALL|OTHER)\s+(.*)\s+\*/',
                             line)
+                        if self.mpv:
+                            match = re.search(r'/\*\s+(ASPECT_FUNC_CALL)\s+(.*)\s+\*/', line)
                         if match:
                             kind, comment = match.groups()
 
@@ -336,7 +340,10 @@ class CommonStrategy(core.components.Component):
 
                     for data in edge.getElementsByTagName('data'):
                         if data.getAttribute('key') == 'originfile':
-                            src_file = data.firstChild.data
+                            # Note, that not everything in trace should has a link to the sorce code!
+                            # (for example, if assertion is specified in property automaton)
+                            if data.firstChild:
+                                src_file = data.firstChild.data
                         elif data.getAttribute('key') == 'startline':
                             src_line = int(data.firstChild.data)
                         elif data.getAttribute('key') == 'enterFunction':
@@ -440,6 +447,8 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
+            else:
+                log_file = self.get_verifier_log_file()
             core.utils.report(self.logger,
                               'unknown',
                               {
