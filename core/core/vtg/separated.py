@@ -211,7 +211,7 @@ class SeparatedStrategy(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
-                verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind)
+                verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind if bug_kind else '')
                 self.create_verification_report(verification_report_id, decision_results, bug_kind)
 
                 if self.mea:
