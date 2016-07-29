@@ -131,11 +131,7 @@ class RSG(core.avtg.plugins.Plugin):
                     .format(rule_spec_prefix, model_c_file))
 
                 if self.conf['RSG strategy'] == 'instrumentation':
-                    m = re.search(r'/(\w+).c', model_c_file)
-                    if m:
-                        model_c_file_short = m.group(1)
-                    else:
-                        model_c_file_short = model_c_file
+                    model_c_file_short = os.path.splitext(os.path.basename(model_c_file))[0]
                     preprocessed_model_c_file = '{0}.{1}.c'.format(
                         model_c_file_short,
                         re.sub(r'\W', '_', model['rule specification identifier']))
@@ -149,16 +145,12 @@ class RSG(core.avtg.plugins.Plugin):
                                                 re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
                                                        r'exclusive|zalloc|malloc|pre)',
                                                        rule_spec_prefix, line)))
-                    model['prefix preprocessed C file'] = os.path.abspath(preprocessed_model_c_file)
+                    model['prefix preprocessed C file'] = preprocessed_model_c_file
                     self.logger.debug(
                         'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
                         format(preprocessed_model_c_file))
 
-                m = re.search(r'/(\w+).aspect', aspect)
-                if m:
-                    aspect_short = m.group(1)
-                else:
-                    aspect_short = aspect
+                aspect_short = os.path.splitext(os.path.basename(aspect))[0]
                 preprocessed_aspect = '{0}.{1}.aspect'.format(
                     aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
@@ -174,9 +166,9 @@ class RSG(core.avtg.plugins.Plugin):
                 self.logger.debug(
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
-                aspects.append(os.path.abspath(preprocessed_aspect))
+                aspects.append(preprocessed_aspect)
 
-                #TODO here
+                # TODO: change names in .spc files as well
             else:
                 if (self.conf['RSG strategy'] == 'instrumentation') or \
                         (model_c_file not in automata):
