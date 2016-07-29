@@ -5,7 +5,6 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.settings import LIGHTWEIGHTNESS
 from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory
@@ -812,7 +811,7 @@ class NodesData(object):
 
 # Case 3.4(5) DONE
 class StartJobDecision(object):
-    def __init__(self, user, job_id, data, light=LIGHTWEIGHTNESS):
+    def __init__(self, user, job_id, data):
         self.error = None
         self.operator = user
         self.data = data
@@ -835,7 +834,7 @@ class StartJobDecision(object):
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.light = light
+        self.job.light = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -863,6 +862,7 @@ class StartJobDecision(object):
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
+            'lightweightness': self.data[4][6],
             'logging': {
                 'formatters': [
                     {

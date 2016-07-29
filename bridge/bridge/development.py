@@ -7,5 +7,3 @@ ALLOWED_HOSTS = []
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 
 DEF_KLEVER_CORE_MODE = 'development'
-
-LIGHTWEIGHTNESS = False

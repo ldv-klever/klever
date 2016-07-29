@@ -428,11 +428,9 @@ class TestJobs(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False]
+            [False, True, True, False, True, False, False]
         ])
-        response = self.client.post('/jobs/ajax/run_decision/', {
-            'job_id': job_pk, 'data': run_conf, 'is_light': 'false'
-        })
+        response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))

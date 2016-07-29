@@ -268,11 +268,9 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False]
+            [False, True, True, False, True, False, True]
         ])
-        self.client.post('/jobs/ajax/run_decision/', {
-            'job_id': self.job.pk, 'data': run_conf, 'is_light': 'true'
-        })
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', CHUNKS1)
         self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
         self.assertEqual(

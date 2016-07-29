@@ -120,11 +120,11 @@ $(document).ready(function () {
                     $('#upload_other_checkbox').is(':checked'),
                     $('#allow_localdir_checkbox').is(':checked'),
                     $('#ignore_core_checkbox').is(':checked'),
-                    $('#ignore_failed_sub_jobs_checkbox').is(':checked')
+                    $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
+                    $('#is_job_light').is(':checked')
                 ]
             ]),
-            job_id: $('#job_pk').val(),
-            is_light: $('#is_job_light').is(':checked')
+            job_id: $('#job_pk').val()
         }
     }
     $('#default_configs').dropdown({

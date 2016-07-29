@@ -10,7 +10,6 @@ from django.shortcuts import get_object_or_404, render
 from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from bridge.settings import LIGHTWEIGHTNESS
 from bridge.vars import VIEW_TYPES
 from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
 from jobs.ViewJobData import ViewJobData
@@ -762,7 +761,7 @@ def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    if any(x not in request.POST for x in ['data', 'job_id', 'is_light']):
+    if any(x not in request.POST for x in ['data', 'job_id']):
         return JsonResponse({'error': 'Unknown error'})
     try:
         configuration = GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
@@ -770,10 +769,7 @@ def run_decision(request):
         return JsonResponse({'error': 'Unknown error'})
     if configuration is None:
         return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(
-        request.user, request.POST['job_id'], configuration,
-        light=bool(json.loads(request.POST['is_light']))
-    )
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
     if result.error is not None:
         return JsonResponse({'error': result.error + ''})
     return JsonResponse({})
@@ -809,8 +805,7 @@ def prepare_decision(request, job_id):
         'job': job,
         'data': StartDecisionData(request.user, configuration),
         'configurations': get_default_configurations(),
-        'current_conf': current_conf,
-        'light': LIGHTWEIGHTNESS
+        'current_conf': current_conf
     })
 
 
