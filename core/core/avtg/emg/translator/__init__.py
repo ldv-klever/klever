@@ -1,6 +1,7 @@
 import os
 import copy
 import abc
+from operator import attrgetter
 from pympler import asizeof
 
 from core.avtg.emg.translator.instances import split_into_instances
@@ -277,7 +278,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
             self.logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                               format(automaton.identifier, automaton.process.name, automaton.process.category))
-            for state in list(automaton.fsa.states):
+            for state in sorted(list(automaton.fsa.states), key=attrgetter('identifier')):
                 automaton.generate_code(analysis, model, self, state)
 
         # Save digraphs
