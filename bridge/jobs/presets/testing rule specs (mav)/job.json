@@ -58,7 +58,7 @@
       },
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
-{
+    {
       "Linux kernel": {
         "external modules": "tests/linux/mutex",
         "modules": [
@@ -580,24 +580,24 @@
         ]
       },
       "rule specifications": [
-		  "linux:mmc:sdio_func",
-		  "linux:usb:coherent",
-		  "linux:usb:dev",
-		  "linux:usb:gadget",
-		  "linux:usb:register",
-		  "linux:usb:urb",
-		  "linux:alloc:irq",
-		  "linux:alloc:spin lock",
-		  "linux:alloc:usb lock",
-		  "linux:chrdev",
-		  "linux:class",
-		  "linux:module",
-		  "linux:mutex",
-		  "linux:netdev",
-		  "linux:rwlock",
-		  "linux:spinlock",
-		  "linux:alloc:resource"
-	  ],
+        "linux:mmc:sdio_func",
+        "linux:usb:coherent",
+        "linux:usb:dev",
+        "linux:usb:gadget",
+        "linux:usb:register",
+        "linux:usb:urb",
+        "linux:alloc:irq",
+        "linux:alloc:spin lock",
+        "linux:alloc:usb lock",
+        "linux:chrdev",
+        "linux:class",
+        "linux:module",
+        "linux:mutex",
+        "linux:netdev",
+        "linux:rwlock",
+        "linux:spinlock",
+        "linux:alloc:resource"
+      ],
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
