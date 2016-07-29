@@ -202,8 +202,6 @@ class MAV(CommonStrategy):
     def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
-        if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -215,7 +213,7 @@ class MAV(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   ['benchmark.xml', self.path_to_property_automata] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
