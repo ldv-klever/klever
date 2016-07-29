@@ -212,10 +212,6 @@ class CommonStrategy(core.components.Component):
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
         if decision_results['status'] == 'safe':
-            # TODO: until feature_7368 will be merged to master create empty proof.
-            with open('proof', 'w', encoding='ascii'):
-                pass
-
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -223,8 +219,7 @@ class CommonStrategy(core.components.Component):
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  'proof': 'proof',
-                                  'files': ['proof']
+                                  'proof': None
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
