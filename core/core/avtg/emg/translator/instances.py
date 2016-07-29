@@ -243,9 +243,9 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
         fulfilled_values = set()
         fulfilled_interfaces = set()
         final_set = set()
-        original_options = list(reversed(sorted(list(original_options), key=lambda v: len(basevalue_to_value[v]))))
+        original_options = sorted(sorted(original_options), key=lambda v: len(basevalue_to_value[v]), reverse=True)
         while len(fulfilled_values) != len(summary_values) or len(fulfilled_interfaces) != len(summary_interfaces):
-            value = set(summary_values - fulfilled_values).pop()
+            value = sorted(set(summary_values - fulfilled_values)).pop()
             chosen_value = None
 
             for option in original_options:
@@ -268,7 +268,7 @@ def _extract_implementation_dependencies(analysis, access_map, accesses):
     # Sort options
     options = [o for o in options_interfaces if len([value for value in interface_to_value[o]
                                                      if value in basevalue_to_value]) > 0]
-    final_options_list = list(reversed(sorted(options, key=lambda o: containers_impacts[o])))
+    final_options_list = sorted(sorted(options), key=lambda o: containers_impacts[o], reverse=True)
 
     return interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list
 
@@ -303,7 +303,7 @@ def _match_array_maps(expression, interface, values, maps, interface_to_value, v
         if len(interface_to_value[interface][value]) > 0:
             suitable_map = None
             for mp, chosen_values in ((m, cv) for m, cv in maps if not m[expression][interface] and m not in added):
-                for e in (e for e in mp if type(mp[e]) is dict):
+                for e in (e for e in sorted(mp.keys()) if type(mp[e]) is dict):
                     same_container = \
                         [mp for i in mp[e] if i != interface and type(mp[e][i]) is Implementation and
                          mp[e][i].base_value and _from_same_container(v_implementation, mp[e][i])]
