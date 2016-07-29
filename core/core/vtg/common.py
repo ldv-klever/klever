@@ -432,6 +432,8 @@ class CommonStrategy(core.components.Component):
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
+            else:
+                log_file = self.get_verifier_log_file()
             core.utils.report(self.logger,
                               'unknown',
                               {
