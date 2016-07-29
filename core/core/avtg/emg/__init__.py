@@ -84,6 +84,12 @@ class EMG(core.avtg.plugins.Plugin):
         tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
 
+        # Dump to disk instance map
+        instance_map_file = 'instance map.json'
+        self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
+        with open(instance_map_file, "w") as fh:
+            fh.writelines(json.dumps(tr.instance_maps, sort_keys=True, indent=4))
+
         # Send data to the server
         self.logger.info("Send data on generated instances to server")
         core.utils.report(self.logger,

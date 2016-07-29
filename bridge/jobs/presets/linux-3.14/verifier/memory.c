@@ -47,16 +47,28 @@ void ldv_free(void *s)
 
 void *ldv_malloc_unknown_size(void)
 {
-	void *res = ldv_undef_ptr();
-	ldv_assume(res != NULL);
-	return res;
+	if (ldv_undef_int()) {
+		void *res = ldv_undef_ptr();
+		ldv_assume(res != NULL);
+		ldv_assume(!ldv_is_err(res));
+		return res;
+	}
+	else {
+		return NULL;
+	}
 }
 
 void *ldv_calloc_unknown_size(void)
 {
-	void *res = ldv_undef_ptr();
-	ldv_assume(res != NULL);
-	return res;
+	if (ldv_undef_int()) {
+		void *res = ldv_undef_ptr();
+		ldv_assume(res != NULL);
+		ldv_assume(!ldv_is_err(res));
+		return res;
+	}
+	else {
+		return NULL;
+	}
 }
 
 void *ldv_zalloc_unknown_size(void)
