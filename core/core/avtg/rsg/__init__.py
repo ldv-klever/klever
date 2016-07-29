@@ -168,7 +168,20 @@ class RSG(core.avtg.plugins.Plugin):
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
                 aspects.append(preprocessed_aspect)
 
-                # TODO: change names in .spc files as well
+                if model_c_file in automata:
+                    automaton = automata[model_c_file]
+                    automaton_short = os.path.splitext(os.path.basename(automaton))[0]
+                    preprocessed_automaton = '{0}.{1}.spc'.format(
+                        automaton_short,
+                        re.sub(r'\W', '_', model['rule specification identifier']))
+                    with open(automaton, encoding='ascii') as fp_in, \
+                            open(preprocessed_automaton, 'w', encoding='ascii') as fp_out:
+                        for line in fp_in:
+                            fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
+                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
+                                                       r'exclusive|zalloc|malloc|pre)',
+                                                       rule_spec_prefix, line)))
+                    automata[model_c_file] = os.path.abspath(preprocessed_automaton)
             else:
                 if (self.conf['RSG strategy'] == 'instrumentation') or \
                         (model_c_file not in automata):
