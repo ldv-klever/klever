@@ -185,9 +185,10 @@ class CommonStrategy(core.components.Component):
         self.create_auxiliary_report(verification_report_id, decision_results, assertion)
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
-        log_file = self.get_verifier_log_file()
         if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
+            # TODO: until feature_7368 will be merged to master create empty proof.
+            with open('proof', 'w', encoding='ascii'):
+                pass
 
             core.utils.report(self.logger,
                               'safe',
@@ -195,9 +196,9 @@ class CommonStrategy(core.components.Component):
                                   'id': verification_report_id + '/safe',
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
-                                  # TODO: just the same file as parent log, looks strange.
-                                  'proof': log_file,
-                                  'files': [log_file]
+                                  # TODO: at the moment it is unclear what are verifier proofs.
+                                  'proof': 'proof',
+                                  'files': ['proof']
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
