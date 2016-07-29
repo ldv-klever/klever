@@ -20,7 +20,6 @@
       "linux:alloc:usb lock",
       "linux:chrdev",
       "linux:class",
-      "linux:alloc:resource",
       "linux:module",
       "linux:mutex",
       "linux:netdev",
@@ -72,12 +71,27 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mutex",
+          "verification object": "ext-modules/double-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:mutex"
+          "rule specification": "linux:mutex",
+          "verification object": "ext-modules/double-unlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mutex",
+          "verification object": "ext-modules/double-unlock-2.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mutex",
+          "verification object": "ext-modules/locked-at-exit.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -93,12 +107,22 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:class",
+          "verification object": "ext-modules/created-at-exit.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:class"
+          "rule specification": "linux:class",
+          "verification object": "ext-modules/class-registered-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:class",
+          "verification object": "ext-modules/unregister-class.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -114,12 +138,22 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:chrdev",
+          "verification object": "ext-modules/chrdev-at-exit.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:chrdev"
+          "rule specification": "linux:chrdev",
+          "verification object": "ext-modules/chrdev-at-exit-2.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:chrdev",
+          "verification object": "ext-modules/unregister-chrdev.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -136,12 +170,27 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:gadget",
+          "verification object": "ext-modules/chrdev-with-usb-gadget.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:usb:gadget"
+          "rule specification": "linux:usb:gadget",
+          "verification object": "ext-modules/class-with-usb-gadget.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:gadget",
+          "verification object": "ext-modules/usb-gadget-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:gadget",
+          "verification object": "ext-modules/unregister-usb-gadget.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -159,12 +208,32 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:module",
+          "verification object": "ext-modules/double-put.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:module"
+          "rule specification": "linux:module",
+          "verification object": "ext-modules/get-without-put.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:module",
+          "verification object": "ext-modules/put-and-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:module",
+          "verification object": "ext-modules/refcount.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:module",
+          "verification object": "ext-modules/tryget.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -184,12 +253,42 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/rlock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:rwlock"
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/wlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/runlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/wunlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/rlock-after-wlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/tryrlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rwlock",
+          "verification object": "ext-modules/trywlock.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -204,12 +303,17 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:netdev",
+          "verification object": "ext-modules/netdev.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:netdev"
+          "rule specification": "linux:netdev",
+          "verification object": "ext-modules/netdev2.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -223,12 +327,12 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:register",
+          "verification object": "ext-modules/register.ko"
         },
         {
-          "ideal verdict": "unsafe",
-          "rule specification": "linux:usb:register"
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -247,12 +351,37 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/claim.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:mmc:sdio_func"
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/memcpy.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/release.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/sdio.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/sdio-2.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:mmc:sdio_func",
+          "verification object": "ext-modules/sdio-3.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -267,12 +396,17 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:irq",
+          "verification object": "ext-modules/wrong-flags.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:irq"
+          "rule specification": "linux:alloc:irq",
+          "verification object": "ext-modules/nonatomic.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -289,12 +423,27 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/wrong-flags-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock"
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/wrong-flags-trylock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/nonatomic-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/nonatomic-trylock.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -313,12 +462,37 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/wrong-flags-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:usb lock"
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/wrong-flags-lock-for-reset.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/wrong-flags-trylock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/nonatomic-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/nonatomic-lock-for-reset.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:usb lock",
+          "verification object": "ext-modules/nonatomic-trylock.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -337,12 +511,37 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/atomic.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:spinlock"
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/double-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/double-unlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/double-unlock-2.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/is-locked.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:spinlock",
+          "verification object": "ext-modules/trylock.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -357,12 +556,17 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:dev",
+          "verification object": "ext-modules/less-decrement.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:usb:dev"
+          "rule specification": "linux:usb:dev",
+          "verification object": "ext-modules/more-at-exit.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -375,14 +579,38 @@
           "safe.ko"
         ]
       },
+      "rule specifications": [
+        "linux:mmc:sdio_func",
+        "linux:usb:coherent",
+        "linux:usb:dev",
+        "linux:usb:gadget",
+        "linux:usb:register",
+        "linux:usb:urb",
+        "linux:alloc:irq",
+        "linux:alloc:spin lock",
+        "linux:alloc:usb lock",
+        "linux:chrdev",
+        "linux:class",
+        "linux:module",
+        "linux:mutex",
+        "linux:netdev",
+        "linux:rwlock",
+        "linux:spinlock",
+        "linux:alloc:resource"
+      ],
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:resource",
+          "verification object": "ext-modules/alloc-without-free.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:resource"
+          "rule specification": "linux:alloc:resource",
+          "verification object": "ext-modules/free-without-alloc.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -397,12 +625,17 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:urb",
+          "verification object": "ext-modules/less-decrement.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:usb:urb"
+          "rule specification": "linux:usb:urb",
+          "verification object": "ext-modules/more-at-exit.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     },
@@ -417,12 +650,17 @@
       },
       "ideal verdicts": [
         {
-          "ideal verdict": "safe",
-          "verification object": "ext-modules/safe.ko"
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:usb:coherent",
+          "verification object": "ext-modules/more-at-exit.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:usb:coherent"
+          "rule specification": "linux:usb:coherent",
+          "verification object": "ext-modules/less-decrement.ko"
+        },
+        {
+          "ideal verdict": "safe"
         }
       ]
     }

@@ -70,6 +70,12 @@ class CommonStrategy(core.components.Component):
         for attr_name in ('priority', 'upload input files of static verifiers'):
             self.task_desc[attr_name] = self.conf[attr_name]
 
+        for attr in self.conf['abstract task desc']['attrs']:
+            attr_name = list(attr.keys())[0]
+            attr_val = attr[attr_name]
+            if attr_name == 'rule specification':
+                self.rule_specification = attr_val
+
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
 
@@ -134,7 +140,7 @@ class CommonStrategy(core.components.Component):
 
     # This function creates 'verification' report, which is required for each verdict.
     @abstractclassmethod
-    def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
+    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
         pass
 
     def get_verifier_log_file(self):
@@ -152,19 +158,28 @@ class CommonStrategy(core.components.Component):
             open(log_file, 'w')
         return log_file
 
-    def process_single_verdict(self, decision_results, assertion=None, specified_error_trace=None):
-        verification_report_id = '{0}/verification{1}'.format(self.id, assertion)
+    def parse_bug_kind(self, bug_kind):
+        match = re.search(r'(.+)::(.*)', bug_kind)
+        if match:
+            return match.groups()[0]
+        else:
+            return ''
+
+    def process_single_verdict(self, decision_results, verification_report_id,
+                               assertion=None, specified_error_trace=None):
         # Add assertion if it was specified.
         if decision_results['status'] == 'checking':
             # Do not print any verdict for still checking tasks
             return
         added_attrs = []
         if assertion:
-            added_attrs.append({"Assert": assertion})
+            added_attrs.append({"Rule specification": assertion})
         path_to_witness = None
         if decision_results['status'] == 'unsafe':
             # Default place for witness, if we consider only 1 possible witness for verification task.
             # Is strategy may produce more than 1 witness, it should be specified in 'specified_witness'.
+            verification_report_id_unsafe = "{0}/unsafe/{1}".\
+                format(verification_report_id, assertion or '')
             path_to_witness = 'output/witness.0.graphml'
             if specified_error_trace:
                 path_to_witness = specified_error_trace
@@ -172,17 +187,18 @@ class CommonStrategy(core.components.Component):
                 if self.mea.error_trace_filter(path_to_witness, assertion):
                     self.logger.debug('Processing error trace "{0}"'.format(path_to_witness, assertion))
                     new_error_trace_number = self.mea.get_current_error_trace_number(assertion)
-                    verification_report_id += "{0}".format(new_error_trace_number)
+                    verification_report_id_unsafe = "{0}/{1}".\
+                        format(verification_report_id_unsafe, new_error_trace_number)
                     if not assertion:
                         assertion = ''
                     assertion += "{0}".format(new_error_trace_number)
+                    self.logger.info(assertion)
                     added_attrs.append({"Error trace number": "{0}".format(new_error_trace_number)})
                 else:
                     self.logger.info('Error trace "{0}" is equivalent to one of the already processed'.
                                      format(path_to_witness))
                     return
 
-        self.create_auxiliary_report(verification_report_id, decision_results, assertion)
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
         if decision_results['status'] == 'safe':
@@ -193,7 +209,7 @@ class CommonStrategy(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': verification_report_id + '/safe',
+                                  'id': verification_report_id + '/safe/{0}'.format(assertion or ''),
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   # TODO: at the moment it is unclear what are verifier proofs.
@@ -402,7 +418,7 @@ class CommonStrategy(core.components.Component):
             core.utils.report(self.logger,
                               'unsafe',
                               {
-                                  'id': verification_report_id + '/unsafe',
+                                  'id': verification_report_id_unsafe,
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   'error trace': path_to_processed_witness,
@@ -419,7 +435,7 @@ class CommonStrategy(core.components.Component):
             core.utils.report(self.logger,
                               'unknown',
                               {
-                                  'id': verification_report_id + '/unknown',
+                                  'id': verification_report_id + '/unknown/{0}'.format(assertion or ''),
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   # TODO: just the same file as parent log, looks strange.
@@ -431,7 +447,7 @@ class CommonStrategy(core.components.Component):
                               self.mqs['report files'],
                               self.conf['main working directory'],
                               assertion)
-        # TODO: what is this?
+        self.rule_specification = assertion or self.rule_specification
         self.verification_status = decision_results['status']
 
     def print_mea_stats(self):
@@ -460,8 +476,7 @@ class CommonStrategy(core.components.Component):
                                             {"External filter": "{0}".format(external_filter)}],
                                   'name': "MEA",
                                   'resources': resources,
-                                  'log': "log",
-                                  'files': ['log']
+                                  'log': None
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
