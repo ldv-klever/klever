@@ -10,6 +10,7 @@ from django.shortcuts import get_object_or_404, render
 from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
+from bridge.settings import LIGHTWEIGHTNESS
 from bridge.vars import VIEW_TYPES
 from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
 from jobs.ViewJobData import ViewJobData
@@ -808,7 +809,8 @@ def prepare_decision(request, job_id):
         'job': job,
         'data': StartDecisionData(request.user, configuration),
         'configurations': get_default_configurations(),
-        'current_conf': current_conf
+        'current_conf': current_conf,
+        'light': LIGHTWEIGHTNESS
     })
 
 

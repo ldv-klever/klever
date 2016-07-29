@@ -5,6 +5,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
+from bridge.settings import LIGHTWEIGHTNESS
 from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory
@@ -811,7 +812,7 @@ class NodesData(object):
 
 # Case 3.4(5) DONE
 class StartJobDecision(object):
-    def __init__(self, user, job_id, data, light=False):
+    def __init__(self, user, job_id, data, light=LIGHTWEIGHTNESS):
         self.error = None
         self.operator = user
         self.data = data
