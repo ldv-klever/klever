@@ -56,7 +56,7 @@ class SeparatedStrategy(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
                                   [self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']

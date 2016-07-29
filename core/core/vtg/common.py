@@ -145,11 +145,16 @@ class CommonStrategy(core.components.Component):
 
     def get_verifier_log_file(self):
         log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
+
         if len(log_files) != 1:
             RuntimeError(
                 'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
                     log_files))
-        return log_files[0]
+
+        if self.logger.disabled:
+            return None
+        else:
+            return log_files[0]
 
     def parse_bug_kind(self, bug_kind):
         match = re.search(r'(.+)::(.*)', bug_kind)
