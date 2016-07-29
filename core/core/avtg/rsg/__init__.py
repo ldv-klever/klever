@@ -122,7 +122,7 @@ class RSG(core.avtg.plugins.Plugin):
                                             re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
                                                    r'exclusive|zalloc|malloc|pre)',
                                                    rule_spec_prefix, line)))
-                model['prefix preprocessed C file'] = os.path.abspath(preprocessed_model_c_file)
+                model['prefix preprocessed C file'] = os.path.relpath(preprocessed_model_c_file, self.conf['main working directory'])
                 self.logger.debug(
                     'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
                     format(preprocessed_model_c_file))
@@ -147,7 +147,7 @@ class RSG(core.avtg.plugins.Plugin):
                 self.logger.debug(
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
-                aspects.append(os.path.abspath(preprocessed_aspect))
+                aspects.append(os.path.relpath(preprocessed_aspect, self.conf['main working directory']))
             else:
                 model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
