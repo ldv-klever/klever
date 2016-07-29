@@ -152,14 +152,8 @@ class MPV(CommonStrategy):
         else:
             self.logger.debug('No MPV strategy was specified')
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
+    def create_auxiliary_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-        if self.resources_written:
-            # In MPV we write resource statistics only for 1 verdict.
-            decision_results['resources'] = {
-                "CPU time": 0,
-                "memory size": 0,
-                "wall time": 0}
         files_to_send = ['benchmark.xml']
         for assertion, automaton in self.property_automata.items():
             path_to_file = assertion + '.spc'
@@ -184,7 +178,7 @@ class MPV(CommonStrategy):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'],
-                          suffix)
+                          bug_kind)
         self.resources_written = True
 
     def process_global_error(self, task_error):
@@ -235,6 +229,9 @@ class MPV(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
+                verification_report_id = '{0}/verification{1}'.format(self.id)
+                self.create_auxiliary_report(verification_report_id, decision_results)
+
                 # Parse file with statistics.
                 results = {}
                 is_stats_found = False
@@ -269,9 +266,11 @@ class MPV(CommonStrategy):
                     if verdict == 'unsafe':
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == assertion:
-                                self.process_single_verdict(decision_results, assertion=assertion,
+                                self.process_single_verdict(decision_results, verification_report_id,
+                                                            assertion=assertion,
                                                             specified_error_trace=error_trace)
                     else:  # Verdicts unknown or safe.
-                        self.process_single_verdict(decision_results, assertion=assertion)
+                        self.process_single_verdict(decision_results, verification_report_id,
+                                                    assertion=assertion)
                 break
             time.sleep(1)
