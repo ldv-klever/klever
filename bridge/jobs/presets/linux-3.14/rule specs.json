@@ -215,7 +215,8 @@
       "ASE": {"request aspects": {"linux/mutex.request.aspect": {}}},
       "TR": {"templates": {
         "linux/mutex.c.tmpl": {},
-        "linux/mutex.aspect.tmpl": {}
+        "linux/mutex.aspect.tmpl": {},
+        "linux/automata/mutex.spc.tmpl": {}
       }},
       "RSG": {"models": {"$linux/mutex.c": {
           "bug kinds": [
@@ -225,7 +226,7 @@
             "linux:mutex::one thread:locked at exit"
           ],
           "sets model": "flag",
-          "automaton": "$linux/automata/mutex_as.spc"
+          "automaton": "$linux/automata/mutex.spc"
       }}}
     },
     "linux:spinlock": {
@@ -269,7 +270,7 @@
             "linux:usb:dev::more initial at exit",
             "linux:usb:dev::probe failed"
           ],
-          "automaton": "linux/automata/usb1.spc"}
+          "automaton": "linux/automata/usb_dev.spc"}
         }
       }
     },
