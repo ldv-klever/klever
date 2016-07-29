@@ -16,7 +16,6 @@ def before_launch_sub_job_components(context):
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
-    context.mqs['verification statuses'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
