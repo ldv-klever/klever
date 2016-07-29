@@ -152,10 +152,10 @@ class Job(core.utils.CallbacksCaller):
                                 "verification status": 'unknown'
                             })
 
-                    def after_decide_verification_task(context):
+                    def after_process_single_verdict(context):
                         context.mqs['verification statuses'].put({
                             "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
-                            "rule specification": context.conf['abstract task desc']['attrs'][1]['rule specification'],
+                            "rule specification": context.rule_specification,
                             "verification status": context.verification_status
                         })
 
@@ -167,7 +167,7 @@ class Job(core.utils.CallbacksCaller):
                                                        (
                                                            before_launch_sub_job_components,
                                                            after_generate_abstact_verification_task_desc,
-                                                           after_decide_verification_task,
+                                                           after_process_single_verdict,
                                                            after_generate_all_verification_tasks
                                                        ))
 
