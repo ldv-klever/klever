@@ -90,7 +90,10 @@ class CommonStrategy(core.components.Component):
             # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
             self.logger.debug('Ignore asm goto expressions')
 
+            c_files = ()
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if 'C file' not in extra_c_file:
+                    continue
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
                 with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
                           encoding='ascii') as fp_in, open(trimmed_c_file, 'w', encoding='ascii') as fp_out:
@@ -100,6 +103,7 @@ class CommonStrategy(core.components.Component):
                     for line in fp_in:
                         fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
                 extra_c_file['new C file'] = trimmed_c_file
+                c_files += (trimmed_c_file, )
 
             core.utils.execute(self.logger,
                                (
@@ -119,12 +123,11 @@ class CommonStrategy(core.components.Component):
                                    '--no-split-structs',
                                    '--rmUnusedInlines',
                                    '--out', 'cil.i',
-                               ) +
-                               tuple(extra_c_file['new C file']
-                                     for extra_c_file in self.conf['abstract task desc']['extra C files']))
+                               ) + c_files)
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    os.remove(extra_c_file['new C file'])
+                    if 'new C file' in extra_c_file:
+                        os.remove(extra_c_file['new C file'])
 
             self.task_desc['files'].append('cil.i')
 
@@ -260,6 +263,8 @@ class CommonStrategy(core.components.Component):
                         match = re.search(
                             r'/\*\s+(MODEL_FUNC_DEF|ASSERT|CHANGE_STATE|RETURN|MODEL_FUNC_CALL|OTHER)\s+(.*)\s+\*/',
                             line)
+                        if self.mpv:
+                            match = re.search(r'/\*\s+(ASPECT_FUNC_CALL)\s+(.*)\s+\*/', line)
                         if match:
                             kind, comment = match.groups()
 
@@ -331,7 +336,10 @@ class CommonStrategy(core.components.Component):
 
                     for data in edge.getElementsByTagName('data'):
                         if data.getAttribute('key') == 'originfile':
-                            src_file = data.firstChild.data
+                            # Note, that not everything in trace should has a link to the sorce code!
+                            # (for example, if assertion is specified in property automaton)
+                            if data.firstChild:
+                                src_file = data.firstChild.data
                         elif data.getAttribute('key') == 'startline':
                             src_line = int(data.firstChild.data)
                         elif data.getAttribute('key') == 'enterFunction':

@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 
 from core.vtg.separated import SeparatedStrategy
 
@@ -20,14 +21,13 @@ class SBT(SeparatedStrategy):
     def prepare_property_automaton(self, bug_kind=None):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'automaton' in extra_c_file:
-                automaton = extra_c_file['automaton']
+                original_automaton = extra_c_file['automaton']
                 automaton_name = self.conf['abstract task desc']['attrs'][1]['rule specification'] + ".spc"
                 self.automaton_file = automaton_name
+                shutil.copy(original_automaton, automaton_name)
 
-                with open(automaton_name, 'w', encoding='ascii') as fp:
-                    for line in automaton:
-                        fp.write('{0}'.format(line))
-                self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})
+                self.conf['VTG strategy']['verifier']['options'].\
+                    append({'-spec': automaton_name})
 
     def prepare_bug_kind_functions_file(self, bug_kind=None):
         if self.mpv:
