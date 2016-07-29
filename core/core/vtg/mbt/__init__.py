@@ -20,7 +20,10 @@ class MBT(MAV):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'bug kinds' in extra_c_file:
                 bug_kinds_for_rule_specification = extra_c_file['bug kinds']
-                common_bug_kind = os.path.commonprefix(bug_kinds_for_rule_specification)
+                common_bug_kind = bug_kinds_for_rule_specification[0]
+                rule = self.parse_bug_kind(common_bug_kind)
+                if rule:
+                    common_bug_kind = rule
                 self.assert_to_bug_kinds[common_bug_kind] = bug_kinds_for_rule_specification
                 bug_kinds.append(common_bug_kind)
         return bug_kinds

@@ -104,8 +104,10 @@ class RSG(core.avtg.plugins.Plugin):
                     'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
                     .format(rule_spec_prefix, model_c_file))
 
+                model_c_file_short = os.path.splitext(os.path.basename(model_c_file))[0]
+
                 preprocessed_model_c_file = '{0}.{1}.c'.format(
-                    model_c_file,
+                    model_c_file_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
                 with open(model_c_file, encoding='ascii') as fp_in, \
                         open(preprocessed_model_c_file, 'w', encoding='ascii') as fp_out:
@@ -114,22 +116,27 @@ class RSG(core.avtg.plugins.Plugin):
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in fp_in:
                         fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
-                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|exclusive)',
+                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
+                                                   r'exclusive|zalloc|malloc|pre)',
                                                    rule_spec_prefix, line)))
                 model['prefix preprocessed C file'] = preprocessed_model_c_file
                 self.logger.debug(
                     'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
                     format(preprocessed_model_c_file))
 
+                aspect_short = os.path.splitext(os.path.basename(aspect))[0]
                 preprocessed_aspect = '{0}.{1}.aspect'.format(
-                    aspect,
+                    aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
                 with open(aspect, encoding='ascii') as fp_in, \
                         open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
                     # Specify original location to avoid references to generated aspects in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(aspect)))
                     for line in fp_in:
-                        fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(), re.sub(r'ldv_', rule_spec_prefix, line)))
+                        fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
+                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
+                                                   r'exclusive|zalloc|malloc|pre)',
+                                                   rule_spec_prefix, line)))
                 self.logger.debug(
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))

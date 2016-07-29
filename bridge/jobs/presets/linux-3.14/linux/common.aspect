@@ -13,6 +13,7 @@ void ldv_linux_mmc_sdio_func_check_final_state(void);
 void ldv_linux_class_check_final_state(void);
 void ldv_linux_chrdev_check_final_state(void);
 void ldv_linux_usb_gadget_check_final_state(void);
+void ldv_linux_alloc_resource_check_final_state(void);
 
 void ldv_linux_usb_dev_check_return_value_probe(int retval);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
@@ -81,6 +82,13 @@ void ldv_check_alloc_flags(gfp_t flags)
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
 }
 
+void ldv_linux_alloc_resource_after_alloc(void *res);
+/* 104 */
+void ldv_after_alloc(void *res)
+{
+	ldv_linux_alloc_resource_after_alloc(res);
+}
+
 void ldv_check_alloc_nonatomic(void)
 {
 	ldv_linux_alloc_irq_check_alloc_nonatomic();
@@ -103,6 +111,7 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_class_check_final_state();
 	ldv_linux_chrdev_check_final_state();
 	ldv_linux_usb_gadget_check_final_state();
+	ldv_linux_alloc_resource_check_final_state();
 }
 
 before: call(int ldv_post_probe(int retval))
