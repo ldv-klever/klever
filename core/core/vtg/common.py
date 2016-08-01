@@ -156,7 +156,8 @@ class CommonStrategy(core.components.Component):
                           self.conf['main working directory'],
                           bug_kind)
 
-    def get_verifier_log_file(self):
+    # If report is false, then it will be used for verifer report.
+    def get_verifier_log_file(self, verifier=True):
         log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
 
         if len(log_files) != 1:
@@ -164,7 +165,7 @@ class CommonStrategy(core.components.Component):
                 'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
                     log_files))
 
-        if self.logger.disabled:
+        if self.logger.disabled and verifier:
             return None
         else:
             return log_files[0]
@@ -444,7 +445,7 @@ class CommonStrategy(core.components.Component):
                 with open('error.txt', 'w', encoding='ascii') as fp:
                     fp.write(decision_results['status'])
             else:
-                log_file = self.get_verifier_log_file()
+                log_file = self.get_verifier_log_file(False)
             core.utils.report(self.logger,
                               'unknown',
                               {
