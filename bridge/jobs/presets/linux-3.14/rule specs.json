@@ -342,6 +342,21 @@
         "linux:srculock::locked at exit"
       ]}}}
     },
+    "linux:completion": {
+      "description": "148",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/completion.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/completion.c.tmpl": {},
+        "linux/completion.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/completion.c": {
+          "bug kinds": [
+            "linux:comletion::double init",
+            "linux:comletion::wait without init"
+          ]
+      }}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
