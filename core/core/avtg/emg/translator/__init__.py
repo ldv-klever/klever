@@ -983,6 +983,93 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return v_code, block
 
+    def _merge_points(self, initial_state):
+        graph = dict()
+        split_points = dict()
+        merge_points = dict()
+
+        # Collect iformation about branches
+        processed = set()
+        queue = [initial_state]
+        while len(queue) > 0:
+            st = queue.pop(0)
+            out_value = dict()
+
+            # Add epson states
+            if st.identifier not in graph:
+                graph[st.identifier] = dict()
+
+            # Calculate output branches
+            for _ in {p for p in st.action.predecessors if p.identifier not in processed}:
+                ready = False
+                break
+
+            if not ready:
+                queue.append(st)
+            else:
+                if len(st.action.predecessors) > 1:
+                    # Try to collect all branches first
+                    for predecessor in st.predecessors:
+                        for split in graph[predecessor.identifier][st.identifier]:
+                            if split not in out_value:
+                                out_value[split] = set()
+                            out_value[split].update(graph[predecessor.identifier][st.identifier][split])
+
+                    # Remove completely merged branches
+                    for split in out_value:
+                        for predecessor in st.predecessors:
+                            if len(out_value[split].
+                                           difference(graph[predecessor.identifier][st.identifier][split])) > 0:
+                                # Add merge point
+                                split_points[split]['merges'][st.identifier] = \
+                                    {graph[p.identifier][st.identifier][split] for p in st.predecessors
+                                     if split in graph[p.identifier][st.identifier]}
+                                if st.identifier not in merge_points:
+                                    merge_points[st.identifier] = dict()
+                                merge_points[st.identifier][split] = \
+                                    {p.identifier for p in st.predecessors
+                                     if split in graph[predecessor.identifier][st.identifier]}
+                                split_points[split]['split sets'][st.identifier] = out_value[split]
+
+                        # Remove, since all branches are merged
+                        if len(out_value[split].symmetric_difference(split_points[split]['merge branches'])) == 0:
+                            # Merge these branches
+                            del out_value[split]
+                elif len(st.action.predecessors) == 1:
+                    # Just copy meta info from the previous predecessor
+                    out_value = graph[list(st.action.predecessors)[0].identifier][st.identifier]
+
+                # This is a split point, create meta information on it and start tracking its branches
+                if len(st.successors) > 1:
+                    split_points[st.identifier] = {
+                        'total branches': st.successors,
+                        'merge branches': st.successors,
+                        'merges': list(),
+                        'split sets': dict(),
+                        'terminals': set()
+                    }
+
+                for successor in st.successors:
+                    if successor not in graph:
+                        graph[successor] = dict()
+                        # Assign branches from the previous split points
+                        graph[st.identifier][successor.identifier] = out_value
+
+                    # Branches with subprocesses has no merge point
+                    if type(successor.action) is Subprocess:
+                        for split in out_value:
+                            for branch in out_value[split]:
+                                # Do not expect to find merge point for this branch
+                                split_points[split]['merge branches'].remove(branch)
+                    else:
+                        if st.identifier in split_points:
+                            # Mark new branch
+                            graph[st.identifier][successor.identifier][st.identifier] = {successor.identifier}
+
+                        queue.append(successor)
+
+        return split_points, merge_points
+
     def _label_sequence(self, analysis, automaton, initial_states, name):
         f_code = []
         v_code = []
