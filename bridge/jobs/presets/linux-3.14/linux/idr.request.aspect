@@ -1,0 +1,28 @@
+before: file ("$this")
+{
+}
+
+info: call(void idr_init(struct idr *))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(int idr_alloc(struct idr *, void *, int, int, gfp_t))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(static inline void *idr_find(struct idr *, int))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void idr_remove(struct idr *, int))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void idr_destroy(struct idr *))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}

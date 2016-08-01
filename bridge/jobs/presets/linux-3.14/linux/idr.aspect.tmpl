@@ -1,0 +1,35 @@
+before: file ("$this")
+{
+// for arg_sign in idr_arg_signs
+extern void ldv_idr_init{{ arg_sign.id }}(void);
+extern void ldv_idr_alloc{{ arg_sign.id }}(void);
+extern void ldv_idr_find{{ arg_sign.id }}(void);
+extern void ldv_idr_remove{{ arg_sign.id }}(void);
+extern void ldv_idr_destroy{{ arg_sign.id }}(void);
+// endfor
+}
+
+around: call(void idr_init(struct idr *))
+{
+	ldv_idr_init{{ idr_arg_sign_patterns[1] }}();
+}
+
+around: call(int idr_alloc(struct idr *, void *, int, int, gfp_t))
+{
+	ldv_idr_alloc{{ idr_arg_sign_patterns[1] }}();
+}
+
+around: call(static inline void *idr_find(struct idr *, int))
+{
+	ldv_idr_find{{ idr_arg_sign_patterns[1] }}();
+}
+
+around: call(void idr_remove(struct idr *, int))
+{
+	ldv_idr_remove{{ idr_arg_sign_patterns[1] }}();
+}
+
+around: call(void idr_destroy(struct idr *))
+{
+	ldv_idr_destroy{{ idr_arg_sign_patterns[1] }}();
+}

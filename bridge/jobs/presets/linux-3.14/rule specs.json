@@ -357,6 +357,23 @@
           ]
       }}}
     },
+    "linux:idr": {
+      "description": "153",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/idr.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/idr.c.tmpl": {},
+        "linux/idr.aspect.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/idr.c": {
+          "bug kinds": [
+            "linux:idr::double init",
+            "linux:idr::not initialized",
+            "linux:idr::destroyed before usage",
+            "linux:idr::more at exit"
+          ]
+      }}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
