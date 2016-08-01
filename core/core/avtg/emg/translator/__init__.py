@@ -339,7 +339,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             for label in [process.labels[name] for name in sorted(process.labels.keys())
                           if len(process.labels[name].interfaces) > 0]:
                 nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                              if len(analysis.implementations(analysis.interfaces[interface])) == 0]
+                                              if len(analysis.implementations(analysis.get_intf(interface))) == 0]
                 if len(nonimplemented_intrerfaces) > 0:
                     undefined_labels.append(label)
 
@@ -479,7 +479,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                     False)
             automaton.control_function = cf
         for automaton in self._model_fsa:
-            cf = Aspect(automaton.process.name, analysis.kernel_functions[automaton.process.name].declaration, 'around')
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            cf = Aspect(automaton.process.name, function_obj.declaration, 'around')
             self.model_aspects.append(cf)
             automaton.control_function = cf
 
@@ -538,10 +539,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         files = set()
         if automaton.process.category == "kernel models":
             # Calls
-            files.update(set(analysis.kernel_functions[automaton.process.name].files_called_at))
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            files.update(set(function_obj.files_called_at))
+            for caller in (c for c in function_obj.functions_called_at):
                 # Caller definitions
-                files.update(set(analysis.modules_functions[caller].keys()))
+                files.update(set(analysis.get_modules_function_files(caller)))
 
         if len(files) == 0:
             return self.entry_file
@@ -624,10 +626,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         files = set()
         if automaton.process.category == "kernel models":
             # Calls
-            files.update(set(analysis.kernel_functions[automaton.process.name].files_called_at))
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            files.update(set(function_obj.files_called_at))
+            for caller in (c for c in function_obj.functions_called_at):
                 # Caller definitions
-                files.update(set(analysis.modules_functions[caller].keys()))
+                files.update(set(analysis.get_modules_function_files(caller)))
 
         # Export
         for file in files:
@@ -1170,11 +1173,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         f_code = []
 
         # Check necessity to return a value
-        if aspect and analysis.kernel_functions[aspect].declaration.return_value and \
-                analysis.kernel_functions[aspect].declaration.return_value.identifier != 'void':
-            ret_expression = 'return $res;'
-        else:
-            ret_expression = 'return;'
+        ret_expression = 'return;'
+        if aspect:
+            kfunction_obj = analysis.get_kernel_function(aspect)
+            if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
+                ret_expression = 'return $res;'
 
         # Generate function definition
         cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
