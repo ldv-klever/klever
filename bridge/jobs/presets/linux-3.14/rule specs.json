@@ -401,6 +401,15 @@
         "linux:gendisk::more initial at exit"
       ]}}}
     },
+    "linux:blk:queue": {
+      "description": "27",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/blk/queue.c": {"bug kinds": [
+        "linux:blk:queue::double allocation",
+        "linux:blk:queue::use before allocation",
+        "linux:blk:queue::more initial at exit"
+      ]}}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
