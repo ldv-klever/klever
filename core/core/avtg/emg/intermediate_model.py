@@ -438,7 +438,7 @@ class ProcessModel:
                 # Try to match container
                 if len(label.interfaces) > 0 and label.name not in label_map["matched labels"]:
                     for interface in label.interfaces:
-                        interface_obj = analysis.get_or_restore_intf(interface)
+                        interface_obj = analysis.get_intf(interface)
 
                         if interface_obj.category == category:
                             self.__add_label_match(label_map, label, interface)
