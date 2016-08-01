@@ -288,6 +288,16 @@
         ]
       },
       "rule specifications": ["linux:sock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/bitops",
+        "modules": [
+          "wrong-offset.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:bitops"]
     }
   ]
 }

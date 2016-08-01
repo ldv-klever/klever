@@ -26,7 +26,8 @@
       "linux:rwlock",
       "linux:spinlock",
       "linux:rtnl",
-      "linux:sock"
+      "linux:sock",
+      "linux:bitops"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -600,7 +601,8 @@
         "linux:spinlock",
         "linux:alloc:resource",
         "linux:rtnl",
-        "linux:sock"
+        "linux:sock",
+        "linux:bitops"
       ],
       "ideal verdicts": [
         {
@@ -724,6 +726,25 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:sock",
           "verification object": "ext-modules/double-release-2.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/bitops",
+        "modules": [
+          "wrong-offset.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:bitops",
+          "verification object": "ext-modules/wrong-offset.ko"
         },
         {
           "ideal verdict": "safe"
