@@ -1,0 +1,29 @@
+before: file("$this")
+{
+struct gendisk;
+
+struct gendisk *ldv_alloc_disk(void);
+void ldv_add_disk(void);
+void ldv_del_gendisk(void);
+void ldv_put_disk(struct gendisk *);
+}
+
+after: call(struct gendisk *alloc_disk(int minors))
+{
+	return ldv_alloc_disk();
+}
+
+before: call(void add_disk(struct gendisk *disk))
+{
+	ldv_add_disk();
+}
+
+before: call(void del_gendisk(struct gendisk *gp))
+{
+	ldv_del_gendisk();
+}
+
+before: call(void put_disk(struct gendisk *disk))
+{
+	ldv_put_disk(disk);
+}

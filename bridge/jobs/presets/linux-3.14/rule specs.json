@@ -390,6 +390,17 @@
           ]
       }}}
     },
+    "linux:gendisk": {
+      "description": "26",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/gendisk.c": {"bug kinds": [
+        "linux:gendisk::double allocation",
+        "linux:gendisk::use before allocation",
+        "linux:gendisk::delete before add",
+        "linux:gendisk::free before allocation",
+        "linux:gendisk::more initial at exit"
+      ]}}}
+    },
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
