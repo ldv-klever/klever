@@ -503,7 +503,8 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         with tarfile.open(report_files_archive, 'w:gz') as tar:
             for file in report['files']:
-                tar.add(file)
+                if os.path.isfile(file):
+                    tar.add(file)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
