@@ -365,6 +365,14 @@
         "linux:sysfs::more initial at exit"
       ]}}}
     },
+    "linux:iomem": {
+      "description": "152",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/iomem.c": {"bug kinds": [
+        "linux:iomem::less initial decrement",
+        "linux:iomem::more initial at exit"
+      ]}}}
+    },
     "linux:idr": {
       "description": "153",
       "template": "Argument signatures for Linux kernel modules",
