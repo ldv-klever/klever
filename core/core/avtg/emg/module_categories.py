@@ -786,7 +786,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         for interface in [self._interfaces[name] for name in sorted(self._interfaces.keys())]:
             if interface not in relevant_interfaces:
                 self._logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
-                del self._interfaces[interface.identifier]
+                self.del_intf(interface.identifier)
 
     def __calculate_relevant_interfaces(self):
         relevant_interfaces = set()
