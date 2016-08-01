@@ -51,37 +51,85 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     @property
     def interfaces(self):
+        """
+        Return sorted list of interface names.
+
+        :return: List of Interface object identifiers.
+        """
         return sorted(self._interfaces.keys())
 
     @property
     def kernel_functions(self):
+        """
+        Return sorted list of kernel function names.
+
+        :return: KernelFunction identifiers list.
+        """
         return sorted(self._kernel_functions.keys())
 
     @property
     def modules_functions(self):
+        """
+        Return sorted list of modules functions names.
+
+        :return: List of function name strings.
+        """
         return sorted(self._modules_functions.keys())
 
     @property
     def inits(self):
+        """
+        Returns names of module initialization functions and files where they has been found.
+
+        :return: List [filename1, initname1, filename2, initname2, ...]
+        """
         return list(self._inits)
 
     @property
     def exits(self):
+        """
+        Returns names of module exit functions and files where they has been found.
+
+        :return: List [filename1, exitname1, filename2, exitname2, ...]
+        """
         return list(self._exits)
 
     def get_intf(self, identifier):
+        """
+        Provides an interface from the interface collection by a given identifier.
+
+        :param identifier: Interface object identifier string.
+        :return: Interface object.
+        """
         return self._interfaces[identifier]
 
     def get_kernel_function(self, name):
+        """
+        Provides kernel function by a given name from the collection.
+
+        :param name: Kernel function name.
+        :return: KernelFunction object.
+        """
         return self._kernel_functions[name]
 
     def get_modules_function_files(self, name):
+        """
+        Returns sorted list of modules files where a function with a provided name is implemented.
+
+        :param name: Function name string.
+        :return: List with file names.
+        """
         return sorted(self._modules_functions[name].keys())
 
-    def get_modules_function(self, name, file):
-        return self._modules_functions[name][file]
-
     def get_or_restore_intf(self, identifier):
+        """
+        Search for an interface prvided by an identifier in an interface collection and deleted interfaces collection
+        to provide an object. If it is found as a deleted interface then it would be restored back to the main
+        collection.
+
+        :param identifier: Interface identifier
+        :return: Interface object.
+        """
         if identifier in self._interfaces:
             return self._interfaces[identifier]
         elif identifier not in self._interfaces and identifier in self.__deleted_interfaces:
@@ -92,6 +140,12 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             raise KeyError("Unknown interface '{}'".format(identifier))
 
     def del_intf(self, identifier):
+        """
+        Search for an interface provided by an identifier in the main collection and return corresponding object.
+
+        :param identifier:
+        :return: Interface object.
+        """
         self.__deleted_interfaces[identifier] = self._interfaces[identifier]
         del self._interfaces[identifier]
 
