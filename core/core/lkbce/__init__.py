@@ -123,7 +123,9 @@ class LKBCE(core.components.Component):
         self.logger.info('Build Linux kernel')
 
         # First of all collect all targets to be built.
-        build_targets = []
+        # Always prepare for building modules since it brings all necessary headers that can be included from ones
+        # required for model headers that should be copied before any real module will be built.
+        build_targets = [('modules_prepare',)]
 
         if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
             build_targets.append(('all',))
@@ -151,9 +153,6 @@ class LKBCE(core.components.Component):
             self.logger.info('Make canonical working source tree of external Linux kernel modules')
             self.__make_canonical_work_src_tree(self.linux_kernel['ext modules work src tree'])
 
-            # Linux kernel external modules always require this preparation.
-            build_targets.append(('modules_prepare',))
-
             if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
                 build_targets.append(('M=ext-modules', 'modules'))
 
@@ -179,10 +178,6 @@ class LKBCE(core.components.Component):
                                              if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
-                        # Add "modules_prepare" target once.
-                        if not build_targets or build_targets[0] != ('modules_prepare',):
-                            build_targets.insert(0, ('modules_prepare',))
-
                         modules_dir = os.path.join('ext-modules', modules_set) \
                             if 'external modules' in self.conf['Linux kernel'] else modules_set
 

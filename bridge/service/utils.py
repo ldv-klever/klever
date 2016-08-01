@@ -488,16 +488,18 @@ class GetTasks(object):
                 elif progress.job.status == JOB_STATUS[2][0]:
                     if progress.job.identifier in data['jobs']['finished']:
                         try:
-                            if len(ReportUnknown.objects.filter(
-                                    parent=ReportComponent.objects.get(
-                                        Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                                    )
-                            )) > 0:
-                                change_job_status(progress.job, JOB_STATUS[5][0])
-                            else:
-                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            root_report = ReportComponent.objects.get(
+                                Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
+                            )
                         except ObjectDoesNotExist:
                             change_job_status(progress.job, JOB_STATUS[5][0])
+                        else:
+                            if progress.job.light:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            elif len(ReportUnknown.objects.filter(parent=root_report)) > 0:
+                                change_job_status(progress.job, JOB_STATUS[4][0])
+                            else:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
                     elif progress.job.identifier in data['jobs']['error']:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:
@@ -832,6 +834,7 @@ class StartJobDecision(object):
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
+        self.job.light = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -859,6 +862,7 @@ class StartJobDecision(object):
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
+            'lightweightness': self.data[4][6],
             'logging': {
                 'formatters': [
                     {

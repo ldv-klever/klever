@@ -75,6 +75,7 @@ function set_actions_for_edit_form () {
     check_all_roles();
     set_actions_for_file_form();
     $('.ui.dropdown').dropdown();
+
     $('.files-actions-popup').popup({position: 'bottom right'});
 
     $('#add_user_for_role').click(function () {
@@ -803,6 +804,13 @@ $(document).ready(function () {
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
+    $('#collapse_reports_modal').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#collapse_reports_modal_show', 'show');
+    $('#cancel_collapse_reports').click(function () {
+        $('#collapse_reports_modal').modal('hide');
+    });
+
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
@@ -850,6 +858,15 @@ $(document).ready(function () {
                 $('#cancel_edit_job_btn').click(function () {
                     window.location.replace('');
                 });
+            }
+        );
+    });
+    $('#collapse_reports_btn').click(function () {
+        $.post(
+            job_ajax_url + 'collapse_reports/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                data.error ? err_notify(data.error) : window.location.replace('');
             }
         );
     });
@@ -1010,6 +1027,12 @@ $(document).ready(function () {
                     }
                     else {
                         $('#show_remove_job_popup').addClass('disabled');
+                    }
+                    if (data['can_collapse']) {
+                        $('#collapse_reports_modal_show').removeClass('disabled');
+                    }
+                    else {
+                        $('#collapse_reports_modal_show').addClass('disabled');
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {

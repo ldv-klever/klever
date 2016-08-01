@@ -2,6 +2,7 @@ from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
@@ -71,11 +72,14 @@ def report_component(request, job_id, report_id):
 
     unknown_href = None
     try:
-        unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf', args=['unknown', unknown.pk])
+        unknown_href = reverse('reports:leaf', args=[
+            'unknown', ReportUnknown.objects.get(parent=report, component=report.component).pk
+        ])
         status = 3
     except ObjectDoesNotExist:
         pass
+    except MultipleObjectsReturned:
+        status = 4
 
     report_data = None
     if report.data is not None:
@@ -259,11 +263,13 @@ def report_leaf(request, leaf_type, report_id):
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
-        afc = ArchiveFileContent(report.archive, file_name=report.proof)
-        if afc.error is not None:
-            logger.error(afc.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
-        main_file_content = afc.content
+        main_file_content = ''
+        if report.archive is not None and report.proof is not None:
+            afc = ArchiveFileContent(report.archive, file_name=report.proof)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            main_file_content = afc.content
     elif leaf_type == 'unknown':
         afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
         if afc.error is not None:

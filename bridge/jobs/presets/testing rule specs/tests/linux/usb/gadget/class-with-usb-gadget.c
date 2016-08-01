@@ -16,6 +16,7 @@ static int __init init(void)
 		}
 		usb_gadget_unregister_driver(cur_driver);
 	}
+
 	return 0;
 }
 

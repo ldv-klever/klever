@@ -142,13 +142,22 @@ class Job(core.utils.CallbacksCaller):
                 # calculate validation and testing results.
                 if 'ideal verdicts' in self.components_common_conf:
                     def before_launch_sub_job_components(context):
-                        pass
+                        context.mqs['verification statuses'] = multiprocessing.Queue()
 
                     def after_generate_abstact_verification_task_desc(context):
-                        pass
+                        if not context.abstract_task_desc_file:
+                            context.mqs['verification statuses'].put({
+                                "verification object": context.verification_obj,
+                                "rule specification": context.rule_spec,
+                                "verification status": 'unknown'
+                            })
 
-                    def after_decide_verification_task(context):
-                        pass
+                    def after_process_single_verdict(context):
+                        context.mqs['verification statuses'].put({
+                            "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            "rule specification": context.rule_specification,
+                            "verification status": context.verification_status
+                        })
 
                     def after_generate_all_verification_tasks(context):
                         context.logger.info('Terminate verification statuses message queue')
@@ -158,7 +167,7 @@ class Job(core.utils.CallbacksCaller):
                                                        (
                                                            before_launch_sub_job_components,
                                                            after_generate_abstact_verification_task_desc,
-                                                           after_decide_verification_task,
+                                                           after_process_single_verdict,
                                                            after_generate_all_verification_tasks
                                                        ))
 
@@ -472,7 +481,7 @@ class Job(core.utils.CallbacksCaller):
 
             self.logger.info(validation_res_msg)
 
-            return new_results
+        return new_results
 
     def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
         results = {}
@@ -537,8 +546,8 @@ class Job(core.utils.CallbacksCaller):
                         break
 
             if name not in results:
-                raise ValueError('Could not find appropriate ideal verdict for verdict "{0}", '
-                                 'verification object "{1}" and rule {2}'.
+                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}", '
+                                 'verification object "{1}" and rule specification "{2}"'.
                                  format(verification_status, verification_object, rule_specification))
 
         return results

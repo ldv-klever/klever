@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import VIEWJOB_DEF_VIEW
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
+from reports.models import LightResource
 
 
 COLORS = {
@@ -131,17 +132,20 @@ class ViewJobData(object):
 
         return get_children({'id': None}, -1)
 
-
     def __resource_info(self):
         res_data = {}
-
         resource_filters = {}
+        resource_table = self.report.resources_cache
+        if self.report.parent is None and self.report.root.job.light:
+            resource_table = LightResource.objects
+            resource_filters['report'] = self.report.root
+
         if 'resource_component' in self.view['filters']:
             ft = 'component__name__' + self.view['filters']['resource_component']['type']
             fv = self.view['filters']['resource_component']['value']
             resource_filters = {ft: fv}
 
-        for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters)):
+        for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)):
             if cr.component.name not in res_data:
                 res_data[cr.component.name] = {}
             rd = get_resource_data(self.user, cr)
@@ -150,13 +154,13 @@ class ViewJobData(object):
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
         if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.resources_cache.filter(component=None).first()
+            if self.report.root.job.light and self.report.parent is None:
+                res_total = resource_table.filter(component=None, report=self.report.root).first()
+            else:
+                res_total = resource_table.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user, res_total)
-                resource_data.append({
-                    'component': _('Total'),
-                    'val': "%s %s %s" % (rd[0], rd[1], rd[2]),
-                })
+                resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
         return resource_data
 
     def __unknowns_info(self):
@@ -264,6 +268,8 @@ class ViewJobData(object):
             elif s == 'total':
                 if verdicts.safe > 0:
                     self.safes_total = (verdicts.safe, reverse('reports:list', args=[self.report.pk, 'safes']))
+                elif self.report.root.safes > 0:
+                    self.safes_total = [self.report.root.safes]
                 continue
             if val != 0:
                 safes_data.append({

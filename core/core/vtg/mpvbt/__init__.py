@@ -16,7 +16,10 @@ class MPVBT(MPV):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'bug kinds' in extra_c_file:
                 bug_kinds_for_rule_specification = extra_c_file['bug kinds']
-                common_bug_kind = os.path.commonprefix(bug_kinds_for_rule_specification)
+                common_bug_kind = bug_kinds_for_rule_specification[0]
+                rule = self.parse_bug_kind(common_bug_kind)
+                if rule:
+                    common_bug_kind = rule
                 automaton = extra_c_file['automaton']
                 self.property_automata[common_bug_kind] = automaton
         self.logger.debug('Multi-Property Verification will check "{0}" properties'.

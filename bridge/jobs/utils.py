@@ -156,6 +156,11 @@ class JobAccess(object):
     def can_download(self):
         return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
 
+    def can_collapse(self):
+        if self.job is None:
+            return False
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
+
     def __get_prop(self, user):
         if self.job is not None:
             try:
@@ -757,10 +762,13 @@ class GetConfiguration(object):
                 formatters[f['name']] = f['value']
             loggers = {}
             for l in filedata['logging']['loggers']:
-                loggers[l['name']] = {
-                    'formatter': formatters[l['formatter']],
-                    'level': l['level']
-                }
+                # TODO: what to do with other loggers?
+                if l['name'] == 'default':
+                    for l_h in l['handlers']:
+                        loggers[l_h['name']] = {
+                            'formatter': formatters[l_h['formatter']],
+                            'level': l_h['level']
+                        }
             logging = [
                 loggers['console']['level'],
                 loggers['console']['formatter'],
@@ -793,7 +801,8 @@ class GetConfiguration(object):
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
                     filedata['ignore other instances'],
-                    filedata['ignore failed sub-jobs']
+                    filedata['ignore failed sub-jobs'],
+                    filedata['lightweightness']
                 ]
             ]
         except Exception as e:
@@ -836,7 +845,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 6:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 7:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False
