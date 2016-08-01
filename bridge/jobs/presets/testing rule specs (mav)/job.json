@@ -24,7 +24,9 @@
       "linux:mutex",
       "linux:netdev",
       "linux:rwlock",
-      "linux:spinlock"
+      "linux:spinlock",
+      "linux:rtnl",
+      "linux:sock"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -596,7 +598,9 @@
         "linux:netdev",
         "linux:rwlock",
         "linux:spinlock",
-        "linux:alloc:resource"
+        "linux:alloc:resource",
+        "linux:rtnl",
+        "linux:sock"
       ],
       "ideal verdicts": [
         {
@@ -658,6 +662,68 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:usb:coherent",
           "verification object": "ext-modules/less-decrement.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": [
+          "double-lock.ko",
+          "double-unlock.ko",
+          "lock-on-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rtnl",
+          "verification object": "ext-modules/double-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rtnl",
+          "verification object": "ext-modules/double-unlock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rtnl",
+          "verification object": "ext-modules/lock-on-exit.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": [
+          "double-release.ko",
+          "all-locked-sockets-must-be-released.ko",
+          "double-release-2.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:sock",
+          "verification object": "ext-modules/double-release.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:sock",
+          "verification object": "ext-modules/all-locked-sockets-must-be-released.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:sock",
+          "verification object": "ext-modules/double-release-2.ko"
         },
         {
           "ideal verdict": "safe"

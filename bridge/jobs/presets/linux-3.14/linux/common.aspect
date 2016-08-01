@@ -19,6 +19,8 @@ void ldv_linux_rculock_check_final_state(void);
 void ldv_linux_rculockbh_check_final_state(void);
 void ldv_linux_rculocksched_check_final_state(void);
 void ldv_linux_srculock_check_final_state(void);
+void ldv_linux_sock_check_final_state(void);
+void ldv_linux_rtnl_check_final_state(void);
 
 void ldv_linux_usb_dev_check_return_value_probe(int retval);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
@@ -138,6 +140,8 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_rculockbh_check_final_state();
 	ldv_linux_rculocksched_check_final_state();
 	ldv_linux_srculock_check_final_state();
+	ldv_linux_sock_check_final_state();
+	ldv_linux_rtnl_check_final_state();
 }
 
 before: call(int ldv_post_probe(int retval))

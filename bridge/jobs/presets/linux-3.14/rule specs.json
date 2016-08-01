@@ -390,6 +390,23 @@
         "linux:chrdev::double deregistration",
         "linux:chrdev::registered at exit"
       ]}}}
+    },
+    "linux:sock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/locksock.c": { "bug kinds": [
+            "linux:sock::all locked sockets must be released",
+            "linux:sock::double release"
+          ]}}}
+    },
+    "linux:rtnl": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/rtnl.c": { "bug kinds": [
+            "linux:rtnl::double lock",
+            "linux:rtnl::lock on exit",
+            "linux:rtnl::double unlock"
+          ]}}}
     }
   }
 }

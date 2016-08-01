@@ -264,6 +264,30 @@
         ]
       },
       "rule specifications": ["linux:usb:coherent"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": [
+          "double-lock.ko",
+          "double-unlock.ko",
+          "lock-on-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:rtnl"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": [
+          "double-release.ko",
+          "all-locked-sockets-must-be-released.ko",
+          "double-release-2.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:sock"]
     }
   ]
 }
