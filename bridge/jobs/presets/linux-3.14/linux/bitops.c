@@ -7,7 +7,7 @@
 unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)
 {
 	/* ASSERT Offset should not be greater than size. */
-	ldv_assert("linux:bitops:offset out of range", offset <= size);
+	ldv_assert("linux:bitops::offset out of range", offset <= size);
 	/* RETURN Return value between 0 and size. */
 	unsigned long nondet = ldv_undef_ulong();
 	ldv_assume (nondet <= size);

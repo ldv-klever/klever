@@ -294,52 +294,52 @@
       "description": "129",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/bitops.c": {"bug kinds": [
-        "linux:bitops:offset out of range"
+        "linux:bitops::offset out of range"
       ]}}}
     },
     "linux:blk:request": {
       "description": "101",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/blk/request.c": {"bug kinds": [
-        "linux:blk:request:double get",
-        "linux:blk:request:double put",
-        "linux:blk:request:get at exit"
+        "linux:blk:request::double get",
+        "linux:blk:request::double put",
+        "linux:blk:request::get at exit"
       ]}}}
     },
     "linux:rculock": {
       "description": "part of 147",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculock.c": {"bug kinds": [
-        "linux:rculock:more unlocks",
-        "linux:rculock:locked at read section",
-        "linux:rculock:locked at exit"
+        "linux:rculock::more unlocks",
+        "linux:rculock::locked at read section",
+        "linux:rculock::locked at exit"
       ]}}}
     },
     "linux:rculockbh": {
       "description": "part of 147",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculockbh.c": {"bug kinds": [
-        "linux:rculockbh:more unlocks",
-        "linux:rculockbh:locked at read section",
-        "linux:rculockbh:locked at exit"
+        "linux:rculockbh::more unlocks",
+        "linux:rculockbh::locked at read section",
+        "linux:rculockbh::locked at exit"
       ]}}}
     },
     "linux:rculocksched": {
       "description": "part of 147",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculocksched.c": {"bug kinds": [
-        "linux:rculocksched:more unlocks",
-        "linux:rculocksched:locked at read section",
-        "linux:rculocksched:locked at exit"
+        "linux:rculocksched::more unlocks",
+        "linux:rculocksched::locked at read section",
+        "linux:rculocksched::locked at exit"
       ]}}}
     },
     "linux:srculock": {
       "description": "part of 147",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/srculock.c": {"bug kinds": [
-        "linux:srculock:more unlocks",
-        "linux:srculock:locked at read section",
-        "linux:srculock:locked at exit"
+        "linux:srculock::more unlocks",
+        "linux:srculock::locked at read section",
+        "linux:srculock::locked at exit"
       ]}}}
     },
     "linux:alloc:resource": {

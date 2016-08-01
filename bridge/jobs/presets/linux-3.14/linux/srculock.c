@@ -16,7 +16,7 @@ void ldv_srcu_read_lock(void)
 void ldv_srcu_read_unlock(void)
 {
 	/* ASSERT checks the count of opened srcu_lock sections.*/
-	ldv_assert("linux:srculock:more unlocks", ldv_srcu_nested > 0);
+	ldv_assert("linux:srculock::more unlocks", ldv_srcu_nested > 0);
 	/* CHANGE_STATE Decrements the level of srcu_lock nesting.*/
 	ldv_srcu_nested--;
 }
@@ -25,12 +25,12 @@ void ldv_srcu_read_unlock(void)
 void ldv_check_for_read_section( void )
 {
 	/* ASSERT checks the count of opened srcu_lock sections.*/
-	ldv_assert("linux:srculock:locked at read section", ldv_srcu_nested == 0);
+	ldv_assert("linux:srculock::locked at read section", ldv_srcu_nested == 0);
 }
 
 /* MODEL_FUNC_DEF Checks that all srcu_lock sections are closed at exit.*/
 void ldv_check_final_state( void )
 {
 	/* ASSERT checks the count of opened srcu_lock sections.*/
-	ldv_assert("linux:srculock:locked at exit", ldv_srcu_nested == 0);
+	ldv_assert("linux:srculock::locked at exit", ldv_srcu_nested == 0);
 }
