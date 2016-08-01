@@ -2,12 +2,13 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-stable",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {
