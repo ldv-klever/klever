@@ -357,6 +357,14 @@
           ]
       }}}
     },
+    "linux:sysfs": {
+      "description": "151",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/sysfs.c": {"bug kinds": [
+        "linux:sysfs::less initial decrement",
+        "linux:sysfs::more initial at exit"
+      ]}}}
+    },
     "linux:idr": {
       "description": "153",
       "template": "Argument signatures for Linux kernel modules",
