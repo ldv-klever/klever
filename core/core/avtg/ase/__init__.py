@@ -24,6 +24,8 @@ class ASE(core.avtg.plugins.Plugin):
         for request_aspect in self.conf['request aspects']:
             arg_signs_file = os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0]
 
+            arg_signs = None
+
             if os.path.isfile(arg_signs_file):
                 self.logger.info('Process obtained argument signatures from file "{0}"'.format(arg_signs_file))
                 # We could obtain the same argument signatures, so remove duplicates.
