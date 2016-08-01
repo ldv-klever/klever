@@ -239,7 +239,7 @@ class MPV(CommonStrategy):
                 # Parse file with statistics.
                 results = {}
                 is_stats_found = False
-                log_file = self.get_verifier_log_file()
+                log_file = self.get_verifier_log_file(False)
                 with open(log_file, encoding='ascii') as fp:
                     for line in fp:
                         result = re.search(self.verifier_results_regexp, line)
