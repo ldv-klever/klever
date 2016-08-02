@@ -157,7 +157,8 @@
         "linux/alloc1.c": {"bug kinds": [
           "linux:alloc:irq::wrong flags",
           "linux:alloc:irq::nonatomic"
-        ]}
+        ],
+        "automaton": "linux/automata/alloc_irq.spc"}
       }}
     },
     "linux:alloc:spin lock": {

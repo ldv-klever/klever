@@ -16,6 +16,7 @@ extern void ldv_after_alloc(void *res);
 
 void *ldv_alloc_macro(gfp_t flags)
 {
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	return ldv_malloc_unknown_size();
 }
@@ -76,6 +77,7 @@ pointcut alloc_macro: define(alloc_pages(gfp_mask, order)) ||
 
 around: ALLOC
 {
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	return ldv_malloc_unknown_size();
 }
@@ -83,6 +85,7 @@ around: ALLOC
 around: ALLOC_KNOWN_SIZE
 {
 	void *res;
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	res = ldv_malloc_unknown_size();
 	ldv_after_alloc(res);
@@ -91,6 +94,7 @@ around: ALLOC_KNOWN_SIZE
 
 around: ALLOC_RETURN_INT
 {
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	return (unsigned int) ldv_malloc_unknown_size();
 }
@@ -98,6 +102,7 @@ around: ALLOC_RETURN_INT
 around: ZALLOC_KNOWN_SIZE
 {
 	void *res;
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	res = ldv_zalloc_unknown_size();
 	ldv_after_alloc(res);
@@ -106,12 +111,14 @@ around: ZALLOC_KNOWN_SIZE
 
 around: ZALLOC_AUX
 {
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_flags(flags);
 	return ldv_zalloc_unknown_size();
 }
 
 around: ALLOC_WITHOUT
 {
+	/* ASPECT_FUNC_CALL Check allocation flags */
 	ldv_check_alloc_nonatomic();
 	return ldv_malloc_unknown_size();
 }
