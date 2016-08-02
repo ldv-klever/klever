@@ -291,14 +291,12 @@
       ]}}}
     },
     "linux:bitops": {
-      "description": "129",
+      "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/bitops.c": {"bug kinds": [
-        "linux:bitops::offset out of range"
-      ]}}}
+      "RSG": {"models": {"linux/bitops.c": {"bug kinds": ["linux:bitops::offset out of range"]}}}
     },
     "linux:blk:request": {
-      "description": "101",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/blk/request.c": {"bug kinds": [
         "linux:blk:request::double get",
@@ -307,7 +305,7 @@
       ]}}}
     },
     "linux:rculock": {
-      "description": "part of 147",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculock.c": {"bug kinds": [
         "linux:rculock::more unlocks",
@@ -316,7 +314,7 @@
       ]}}}
     },
     "linux:rculockbh": {
-      "description": "part of 147",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculockbh.c": {"bug kinds": [
         "linux:rculockbh::more unlocks",
@@ -325,7 +323,7 @@
       ]}}}
     },
     "linux:rculocksched": {
-      "description": "part of 147",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rculocksched.c": {"bug kinds": [
         "linux:rculocksched::more unlocks",
@@ -334,7 +332,7 @@
       ]}}}
     },
     "linux:srculock": {
-      "description": "part of 147",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/srculock.c": {"bug kinds": [
         "linux:srculock::more unlocks",
@@ -343,7 +341,7 @@
       ]}}}
     },
     "linux:completion": {
-      "description": "148",
+      "description": "...",
       "template": "Argument signatures for Linux kernel modules",
       "ASE": {"request aspects": {"linux/completion.request.aspect": {}}},
       "TR": {"templates": {
@@ -358,7 +356,7 @@
       }}}
     },
     "linux:sysfs": {
-      "description": "151",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/sysfs.c": {"bug kinds": [
         "linux:sysfs::less initial decrement",
@@ -366,7 +364,7 @@
       ]}}}
     },
     "linux:iomem": {
-      "description": "152",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/iomem.c": {"bug kinds": [
         "linux:iomem::less initial decrement",
@@ -374,7 +372,7 @@
       ]}}}
     },
     "linux:idr": {
-      "description": "153",
+      "description": "...",
       "template": "Argument signatures for Linux kernel modules",
       "ASE": {"request aspects": {"linux/idr.request.aspect": {}}},
       "TR": {"templates": {
@@ -391,7 +389,7 @@
       }}}
     },
     "linux:gendisk": {
-      "description": "26",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/gendisk.c": {"bug kinds": [
         "linux:gendisk::double allocation",
@@ -402,7 +400,7 @@
       ]}}}
     },
     "linux:blk:queue": {
-      "description": "27",
+      "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/blk/queue.c": {"bug kinds": [
         "linux:blk:queue::double allocation",
@@ -463,18 +461,18 @@
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/locksock.c": { "bug kinds": [
-            "linux:sock::all locked sockets must be released",
-            "linux:sock::double release"
-          ]}}}
+        "linux:sock::all locked sockets must be released",
+        "linux:sock::double release"
+      ]}}}
     },
     "linux:rtnl": {
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/rtnl.c": { "bug kinds": [
-            "linux:rtnl::double lock",
-            "linux:rtnl::lock on exit",
-            "linux:rtnl::double unlock"
-          ]}}}
+        "linux:rtnl::double lock",
+        "linux:rtnl::lock on exit",
+        "linux:rtnl::double unlock"
+      ]}}}
     }
   }
 }

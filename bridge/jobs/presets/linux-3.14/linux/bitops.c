@@ -1,7 +1,7 @@
+#include <linux/cpumask.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
-#include <linux/cpumask.h>
 
 /* MODEL_FUNC_DEF Check offset value and return value between 0 and size. */
 unsigned long ldv_find_next_bit(unsigned long size, unsigned long offset)

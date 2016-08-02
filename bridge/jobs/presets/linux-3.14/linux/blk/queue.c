@@ -6,8 +6,8 @@ struct request_queue;
 
 enum {
 /* There are 2 possible states of queue. */
-  LDV_NO_QUEUE = 0,  /* There is no queue or queue was cleaned. */
-  LDV_INITIALIZED_QUEUE           /* Queue was created. */
+  LDV_NO_QUEUE = 0,     /* There is no queue or queue was cleaned. */
+  LDV_INITIALIZED_QUEUE /* Queue was created. */
 };
 
 static int ldv_queue_state = LDV_NO_QUEUE;

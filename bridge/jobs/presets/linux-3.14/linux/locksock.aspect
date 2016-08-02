@@ -1,7 +1,6 @@
 before: file ("$this")
 {
 #include <linux/types.h>
-struct sock;
 
 void ldv_before_release_sock(void);
 void ldv_past_lock_sock_nested(void);

@@ -4,7 +4,6 @@
 
 int __init my_init(void)
 {
-
 	struct srcu_struct *sp;
 	int idx;
 	srcu_read_lock(sp);

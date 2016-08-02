@@ -21,12 +21,12 @@ around: call(void __ldv_init_completion_macro(..))
 }
 
 before: call(void wait_for_completion(..)) ||
-		call(int wait_for_completion_interruptible(..)) ||
-		call(int wait_for_completion_killable(..)) ||
-		call(unsigned long wait_for_completion_timeout(..)) ||
-		call(long wait_for_completion_interruptible_timeout(..)) ||
-		call(long wait_for_completion_killable_timeout(..)) ||
-		call(bool try_wait_for_completion(..))
+        call(int wait_for_completion_interruptible(..)) ||
+        call(int wait_for_completion_killable(..)) ||
+        call(unsigned long wait_for_completion_timeout(..)) ||
+        call(long wait_for_completion_interruptible_timeout(..)) ||
+        call(long wait_for_completion_killable_timeout(..)) ||
+        call(bool try_wait_for_completion(..))
 {
 	ldv_wait_for_completion{{ completion_arg_sign_patterns[1] }}();
 }

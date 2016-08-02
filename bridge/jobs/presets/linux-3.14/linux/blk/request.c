@@ -1,14 +1,14 @@
+#include <linux/gfp.h>
 #include <linux/ldv/common.h>
 #include <linux/ldv/err.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
-#include <linux/gfp.h>
 
-// There are 2 possible states of blk request.
+/* There are 2 possible states of blk request. */
 enum
 {
-	LDV_BLK_RQ_ZERO_STATE,	// blk request isn't got.
-	LDV_BLK_RQ_GOT			// blk request is got.
+	LDV_BLK_RQ_ZERO_STATE, /* blk request isn't got. */
+	LDV_BLK_RQ_GOT         /* blk request is got. */
 };
 
 /* CHANGE_STATE At the beginning blk request is not got. */

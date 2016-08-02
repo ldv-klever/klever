@@ -1,9 +1,7 @@
+#include <linux/types.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
-#include <linux/types.h>
 #include <verifier/nondet.h>
-
-struct sock;
 
 /* CHANGE_STATE There is no locked sockets at the beginning */
 int locksocknumber = 0;
@@ -11,7 +9,7 @@ int locksocknumber = 0;
 /* MODEL_FUNC_DEF executed after locking socket using nested function */
 void ldv_past_lock_sock_nested(void)
 {
-/* CHANGE_STATE locking socket */
+        /* CHANGE_STATE locking socket */
 	locksocknumber++;
 }
 
@@ -19,8 +17,7 @@ void ldv_past_lock_sock_nested(void)
 bool ldv_lock_sock_fast(void)
 {
 	/* OTHER we dont know lock this socket or not */
-	if (ldv_undef_int())
-	{
+	if (ldv_undef_int()) {
 		/* CHANGE_STATE locking socket*/	
 		locksocknumber++;
 		/* RETURN Socket lock */

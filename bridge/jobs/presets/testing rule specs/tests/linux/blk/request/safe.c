@@ -12,18 +12,12 @@ int __init my_init(void)
 
 	struct request *request_1 = blk_get_request(r, x, flags);
 	if (request_1)
-	{
 		blk_put_request(request_1);
-	}
 	else
-	{
 		return -1;
-	}
 //	struct request *request_2 = blk_make_request(r, bio, flags);
 //	if (!IS_ERR(request_2))
-//	{
 //		__blk_put_request(queue, request_2);
-//	}
 	return 0;
 }
 

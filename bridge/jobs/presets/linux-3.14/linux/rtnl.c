@@ -8,7 +8,7 @@ void rtnl_unlock(void);
 /* CHANGE_STATE There is no rtnllock at the beginning */
 int rtnllocknumber = 0;
 
-/* MODEL_FUNC_DEF executed after rtnl_unlock*/
+/* MODEL_FUNC_DEF executed after rtnl_unlock */
 void ldv_past_rtnl_unlock(void)
 {
 	/* ASSERT double rtnl_unlock */

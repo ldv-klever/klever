@@ -13,7 +13,6 @@ static int __init init(void)
 	release_sock(sk2);
 	if (lock_sock_fast(sk1))
 		unlock_sock_fast(sk1,false);
-	
 	lock_sock(sk1);
 	unlock_sock_fast(sk1,true);
 

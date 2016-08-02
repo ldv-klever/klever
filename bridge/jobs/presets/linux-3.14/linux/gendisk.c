@@ -5,10 +5,10 @@
 struct gendisk;
 
 enum {
-/* There are 3 possible states of disk. */
-  LDV_NO_DISK = 0, /* There is no disk or disk was put. */
-  LDV_ALLOCATED_DISK,           /* Disk was allocated. */
-  LDV_ADDED_DISK               /* Disk was added. */
+	/* There are 3 possible states of disk. */
+	LDV_NO_DISK = 0,    /* There is no disk or disk was put. */
+	LDV_ALLOCATED_DISK, /* Disk was allocated. */
+	LDV_ADDED_DISK      /* Disk was added. */
 };
 
 static int ldv_disk_state = LDV_NO_DISK;
@@ -52,8 +52,7 @@ void ldv_del_gendisk(void)
 /* MODEL_FUNC_DEF Free gendisk. */
 void ldv_put_disk(struct gendisk *disk)
 {
-	if (disk)
-	{
+	if (disk) {
 		/* ASSERT Gendisk should be allocated . */
 		ldv_assert("linux:gendisk::free before allocation", ldv_disk_state >= LDV_ALLOCATED_DISK);
 		/* CHANGE_STATE Add gendisk. */
