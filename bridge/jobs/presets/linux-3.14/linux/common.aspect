@@ -2,9 +2,21 @@ before: file("$this")
 {
 #include <verifier/common.h>
 
+@ifdef LDV_LINUX_MUTEX
+void ldv_linux_mutex_initialize(void);
 void ldv_linux_mutex_check_final_state(void);
+@endif /* LDV_LINUX_MUTEX */
+
+@ifdef LDV_LINUX_SPINLOCK
+void ldv_linux_spinlock_initialize(void);
 void ldv_linux_spinlock_check_final_state(void);
+@endif /*LDV_LINUX_USB_DEV */
+
+@ifdef LDV_LINUX_USB_DEV
+void ldv_linux_usb_dev_initialize(void);
 void ldv_linux_usb_dev_check_final_state(void);
+@endif /* LDV_LINUX_USB_DEV */
+
 void ldv_linux_module_check_final_state(void);
 void ldv_linux_usb_urb_check_final_state(void);
 void ldv_linux_usb_coherent_check_final_state(void);
@@ -41,9 +53,6 @@ void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
 void ldv_linux_alloc_spin_lock_check_alloc_nonatomic(void);
 void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
 
-void ldv_linux_mutex_initialize(void);
-void ldv_linux_spinlock_initialize(void);
-void ldv_linux_usb_dev_initialize(void);
 void ldv_linux_bitops_initialize(void);
 
 struct urb;
@@ -128,9 +137,18 @@ void ldv_check_for_read_section(void)
 
 around: call(void ldv_check_final_state(void))
 {
+@ifdef LDV_LINUX_MUTEX
 	ldv_linux_mutex_check_final_state();
+@endif /* LDV_LINUX_MUTEX */
+
+@ifdef LDV_LINUX_SPINLOCK
 	ldv_linux_spinlock_check_final_state();
+@endif /*LDV_LINUX_USB_DEV */
+
+@ifdef LDV_LINUX_USB_DEV
 	ldv_linux_usb_dev_check_final_state();
+@endif /* LDV_LINUX_USB_DEV */
+
 	ldv_linux_module_check_final_state();
 	ldv_linux_usb_urb_check_final_state();
 	ldv_linux_usb_coherent_check_final_state();
@@ -234,8 +252,17 @@ after: call(void unregister_chrdev_region(..)) ||
 
 around: call(void ldv_initialize(void))
 {
+@ifdef LDV_LINUX_MUTEX
 	ldv_linux_mutex_initialize();
+@endif /* LDV_LINUX_MUTEX */
+
+@ifdef LDV_LINUX_SPINLOCK
 	ldv_linux_spinlock_initialize();
+@endif /*LDV_LINUX_USB_DEV */
+
+@ifdef LDV_LINUX_USB_DEV
 	ldv_linux_usb_dev_initialize();
+@endif /* LDV_LINUX_USB_DEV */
+
 	ldv_linux_bitops_initialize();
 }
