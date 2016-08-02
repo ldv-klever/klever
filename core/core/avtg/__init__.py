@@ -5,6 +5,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import re
 import string
 
 import core.components
@@ -158,7 +159,8 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     if 'rule specifications' in rule_spec_desc:
         # Merge plugin options specific for constituent rule specifications.
         for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
-            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs, constituent_rule_spec_id)['plugins']:
+            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs,
+                                                                             constituent_rule_spec_id)['plugins']:
                 for plugin_desc in plugin_descs:
                     if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
                         # Specify constituent rule specification identifier for RSG models. It will be used to generate
@@ -174,6 +176,16 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
                         elif 'options' in constituent_rule_spec_plugin_desc:
                             plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
                         break
+
+        # Specify additional aspect preprocessing options.
+        for plugin_desc in plugin_descs:
+            if plugin_desc['name'] == 'Weaver':
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options']['aspect preprocessing options'] = \
+                    ['-DLDV_' + re.sub(r'\W', '_', rule_spec_id).upper()
+                     for rule_spec_id in rule_spec_desc['rule specifications']]
+
         del (rule_spec_desc['rule specifications'])
 
     rule_spec_desc['plugins'] = plugin_descs

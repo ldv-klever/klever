@@ -79,6 +79,8 @@ class Weaver(core.avtg.plugins.Plugin):
                                                                                       self.conf['main working directory'],
                                                                                       self.conf['rule specifications DB'])),
                                           os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))),
+                                  '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
+                                                                 if 'aspect preprocessing options' in self.conf else '',
                                   '--out', os.path.relpath(cc_full_desc['out file'],
                                                            os.path.join(self.conf['main working directory'],
                                                                         cc_full_desc['cwd'])),
