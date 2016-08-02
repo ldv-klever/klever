@@ -26,7 +26,8 @@
       "linux:spinlock",
       "linux:rtnl",
       "linux:sock",
-      "linux:bitops"
+      "linux:bitops",
+      "linux:blk:request"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -601,7 +602,8 @@
         "linux:alloc:resource",
         "linux:rtnl",
         "linux:sock",
-        "linux:bitops"
+        "linux:bitops",
+        "linux:blk:request"
       ],
       "ideal verdicts": [
         {
@@ -744,6 +746,37 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:bitops",
           "verification object": "ext-modules/wrong-offset.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/request",
+        "modules": [
+          "double-get.ko",
+          "double-put.ko",
+          "get-at-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:request",
+          "verification object": "ext-modules/double-get.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:request",
+          "verification object": "ext-modules/double-put.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:request",
+          "verification object": "ext-modules/get-at-exit.ko"
         },
         {
           "ideal verdict": "safe"

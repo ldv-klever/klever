@@ -297,6 +297,18 @@
         ]
       },
       "rule specifications": ["linux:bitops"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/request",
+        "modules": [
+          "double-get.ko",
+          "double-put.ko",
+          "get-at-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:blk:request"]
     }
   ]
 }
