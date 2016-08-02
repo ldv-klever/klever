@@ -452,7 +452,6 @@ class AVTG(core.components.Component):
                     del plugin_conf['shadow source tree']
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
-                plugin_conf.update({'rule spec id': rule_spec_desc['id']})
                 if 'bug kinds' in rule_spec_desc:
                     plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 

@@ -296,10 +296,9 @@ class RSG(core.avtg.plugins.Plugin):
                                                     else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
 
-                cc_extra_full_desc_file = {
-                    'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
-                    'rule spec id': self.conf['rule spec id']
-                }
+                cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
+                                                                               self.conf['main working directory'])
+
             if model_c_file in automata:
                 cc_extra_full_desc_file['automaton'] = automata[model_c_file]
 
