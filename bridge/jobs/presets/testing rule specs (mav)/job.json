@@ -28,7 +28,12 @@
       "linux:sock",
       "linux:bitops",
       "linux:blk:request",
-      "linux:blk:queue"
+      "linux:blk:queue",
+      "linux:rculock",
+      "linux:rculockbh",
+      "linux:rculocksched",
+      "linux:srculock",
+      "linux:completion"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -605,7 +610,12 @@
         "linux:sock",
         "linux:bitops",
         "linux:blk:request",
-        "linux:blk:queue"
+        "linux:blk:queue",
+        "linux:rculock",
+        "linux:rculockbh",
+        "linux:rculocksched",
+        "linux:srculock",
+        "linux:completion"
       ],
       "ideal verdicts": [
         {
@@ -810,6 +820,110 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:blk:queue",
           "verification object": "ext-modules/use-before-alloc.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-more-unlocks.ko",
+          "rcu-lock-at-read.ko",
+          "rcu-lock-at-exit.ko",
+          "srcu-more-unlocks.ko",
+          "srcu-lock-at-read.ko",
+          "srcu-lock-at-exit.ko",
+          "rcu-bh-more-unlocks.ko",
+          "rcu-bh-lock-at-read.ko",
+          "rcu-bh-lock-at-exit.ko",
+          "rcu-sched-more-unlocks.ko",
+          "rcu-sched-lock-at-read.ko",
+          "rcu-sched-lock-at-exit.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculock",
+          "verification object": "ext-modules/rcu-more-unlocks.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculock",
+          "verification object": "ext-modules/rcu-lock-at-read.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculock",
+          "verification object": "ext-modules/rcu-lock-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculockbh",
+          "verification object": "ext-modules/rcu-bh-more-unlocks.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculockbh",
+          "verification object": "ext-modules/rcu-bh-lock-at-read.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculockbh",
+          "verification object": "ext-modules/rcu-bh-lock-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculocksched",
+          "verification object": "ext-modules/rcu-sched-more-unlocks.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculocksched",
+          "verification object": "ext-modules/rcu-sched-lock-at-read.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:rculocksched",
+          "verification object": "ext-modules/rcu-sched-lock-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:srculock",
+          "verification object": "ext-modules/srcu-lock-at-read.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:srculock",
+          "verification object": "ext-modules/srcu-lock-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:srculock",
+          "verification object": "ext-modules/srcu-more-unlocks.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/completion",
+        "modules": [
+          "wait-without-init.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:completion",
+          "verification object": "ext-modules/wait-without-init.ko"
         },
         {
           "ideal verdict": "safe"

@@ -321,6 +321,64 @@
         ]
       },
       "rule specifications": ["linux:blk:queue"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-more-unlocks.ko",
+          "rcu-lock-at-read.ko",
+          "rcu-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-bh-more-unlocks.ko",
+          "rcu-bh-lock-at-read.ko",
+          "rcu-bh-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculockbh"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-sched-more-unlocks.ko",
+          "rcu-sched-lock-at-read.ko",
+          "rcu-sched-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculocksched"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "srcu-more-unlocks.ko",
+          "srcu-lock-at-read.ko",
+          "srcu-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:srculock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/completion",
+        "modules": [
+          "safe.ko",
+          "wait-without-init.ko"
+        ]
+      },
+      "rule specifications": ["linux:completion"]
     }
   ]
 }
