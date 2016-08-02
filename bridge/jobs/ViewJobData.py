@@ -235,6 +235,9 @@ class ViewJobData(object):
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
+        if self.report.root.safes > 0:
+            self.safes_total = [self.report.root.safes]
+
         safes_data = []
         try:
             verdicts = self.report.verdict
@@ -268,8 +271,6 @@ class ViewJobData(object):
             elif s == 'total':
                 if verdicts.safe > 0:
                     self.safes_total = (verdicts.safe, reverse('reports:list', args=[self.report.pk, 'safes']))
-                elif self.report.root.safes > 0:
-                    self.safes_total = [self.report.root.safes]
                 continue
             if val != 0:
                 safes_data.append({
