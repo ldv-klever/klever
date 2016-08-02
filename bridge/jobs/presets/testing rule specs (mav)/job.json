@@ -33,7 +33,11 @@
       "linux:rculockbh",
       "linux:rculocksched",
       "linux:srculock",
-      "linux:completion"
+      "linux:completion",
+      "linux:sysfs",
+      "linux:iomem",
+      "linux:idr",
+      "linux:gendisk"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -615,7 +619,11 @@
         "linux:rculockbh",
         "linux:rculocksched",
         "linux:srculock",
-        "linux:completion"
+        "linux:completion",
+        "linux:sysfs",
+        "linux:iomem",
+        "linux:idr",
+        "linux:gendisk"
       ],
       "ideal verdicts": [
         {
@@ -915,8 +923,8 @@
       "Linux kernel": {
         "external modules": "tests/linux/completion",
         "modules": [
-          "wait-without-init.ko",
-          "safe.ko"
+          "safe.ko",
+          "wait-without-init.ko"
         ]
       },
       "ideal verdicts": [
@@ -924,6 +932,136 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:completion",
           "verification object": "ext-modules/wait-without-init.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sysfs",
+        "modules": [
+          "safe.ko",
+          "less-initial.ko",
+          "more-initial.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:sysfs",
+          "verification object": "ext-modules/less-initial.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:sysfs",
+          "verification object": "ext-modules/more-initial.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/iomem",
+        "modules": [
+          "safe.ko",
+          "less-initial.ko",
+          "more-initial.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:iomem",
+          "verification object": "ext-modules/less-initial.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:iomem",
+          "verification object": "ext-modules/more-initial.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/idr",
+        "modules": [
+          "safe.ko",
+          "destroy-before-usage.ko",
+          "double-init.ko",
+          "more-at-exit.ko",
+          "not-initialized.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:idr",
+          "verification object": "ext-modules/destroy-before-usage.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:idr",
+          "verification object": "ext-modules/double-init.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:idr",
+          "verification object": "ext-modules/more-at-exit.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:idr",
+          "verification object": "ext-modules/not-initialized.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/gendisk",
+        "modules": [
+          "safe.ko",
+          "double-alloc.ko",
+          "use-before-alloc.ko",
+          "delete-before-add.ko",
+          "free-before-alloc.ko",
+          "more-initial.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:gendisk",
+          "verification object": "ext-modules/double-alloc.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:gendisk",
+          "verification object": "ext-modules/use-before-alloc.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:gendisk",
+          "verification object": "ext-modules/delete-before-add.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:gendisk",
+          "verification object": "ext-modules/free-before-alloc.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:gendisk",
+          "verification object": "ext-modules/more-initial.ko"
         },
         {
           "ideal verdict": "safe"
