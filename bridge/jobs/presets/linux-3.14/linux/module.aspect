@@ -12,18 +12,21 @@ extern void ldv_module_put_and_exit(void);
 around: execution(static inline int try_module_get(..)) ||
         call(bool try_module_get(..))
 {
+	/* ASPECT_FUNC_CALL Nondeterministically increment module reference counter unless module pointer is NULL */
 	return ldv_try_module_get($arg1);
 }
 
 around: execution(static inline void __module_get(..)) ||
         call(void __module_get(..))
 {
+	/* ASPECT_FUNC_CALL Increment module reference counter unless module pointer is NULL */
 	ldv_module_get($arg1);
 }
 
 around: call(void module_put(..)) ||
         execution(static inline void module_put(..))
 {
+	/* ASPECT_FUNC_CALL Check that module reference counter is greater than its initial state and decrement it */
 	ldv_module_put($arg1);
 }
 
@@ -35,6 +38,7 @@ ldv_module_put_and_exit();
 around: call(unsigned int module_refcount(..)) ||
         call(unsigned long module_refcount(..))
 {
+	/* ASPECT_FUNC_CALL Check that module reference counter is greater than its initial state, decrement it and stop execution */
 	return ldv_module_refcount();
 }
 

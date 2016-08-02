@@ -204,10 +204,13 @@
     "linux:module": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/module.c": {"bug kinds": [
+      "RSG": {"models": {"linux/module.c": {
+        "bug kinds": [
           "linux:module::less initial decrement",
           "linux:module::more initial at exit"
-      ]}}}
+        ],
+        "automaton": "linux/automata/module.spc"
+      }}}
     },
     "linux:mutex": {
       "description": "...",
