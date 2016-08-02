@@ -159,7 +159,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('ascii').rstrip()
+                line = line.decode('utf8').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)

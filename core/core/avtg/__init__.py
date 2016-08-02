@@ -280,8 +280,8 @@ def _extract_rule_spec_descs(conf, logger):
         #if os.path.isfile('rule spec descs.json'):
         #    raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
         logger.debug('Create rule specification descriptions file "rule spec descs.json"')
-        with open('rule spec descs.json', 'w', encoding='ascii') as fp:
-            json.dump(rule_spec_descs, fp, sort_keys=True, indent=4)
+        with open('rule spec descs.json', 'w', encoding='utf8') as fp:
+            json.dump(rule_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     return rule_spec_descs
 

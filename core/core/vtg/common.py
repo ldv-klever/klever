@@ -94,7 +94,7 @@ class CommonStrategy(core.components.Component):
                     continue
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
                 with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
-                          encoding='ascii') as fp_in, open(trimmed_c_file, 'w', encoding='ascii') as fp_out:
+                          encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
                     # Specify original location to avoid references to *.trimmed.i files in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
                     # Each such expression occupies individual line, so just get rid of them.
@@ -228,7 +228,7 @@ class CommonStrategy(core.components.Component):
                               assertion)
         elif decision_results['status'] == 'unsafe':
             path_to_processed_witness = path_to_witness + ".processed"
-            with open(path_to_witness, encoding='ascii') as fp:
+            with open(path_to_witness, encoding='utf8') as fp:
                 # TODO: try xml.etree (see https://svn.sosy-lab.org/trac/cpachecker/ticket/236).
                 dom = minidom.parse(fp)
 
