@@ -46,8 +46,8 @@ UNSAFES = [
 # Dictionary of titles of static columns
 TITLES = {
     'name': _('Title'),
-    'author': _('Author'),
-    'date': _('Last change'),
+    'author': _('Last change author'),
+    'date': _('Last change date'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
