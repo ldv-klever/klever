@@ -293,9 +293,11 @@
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/usb/coherent.c": {"bug kinds":[
-        "linux:usb:coherent::less initial decrement",
-        "linux:usb:coherent::more initial at exit"
-      ]}}}
+          "linux:usb:coherent::less initial decrement",
+          "linux:usb:coherent::more initial at exit"
+        ],
+        "automaton": "linux/automata/usb_coherent.spc"
+      }}}
     },
     "linux:bitops": {
       "description": "...",
