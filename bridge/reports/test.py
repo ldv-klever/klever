@@ -280,9 +280,9 @@ class TestReports(KleverTestCase):
     def test_comparison(self):
         try:
             # Exclude jobs "Validation on commits" due to they need additional attribute for comparison: "Commit"
-            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[3][0]))[0]
+            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[1][0]))[0]
         except IndexError:
-            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[3][0]))[0]
+            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[1][0]))[0]
 
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -498,7 +498,7 @@ class TestReports(KleverTestCase):
                     'verification status': 'unknown'
                 }
             }
-        elif self.job.type == JOB_CLASSES[3][0]:
+        elif self.job.type == JOB_CLASSES[1][0]:
             core_data = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
@@ -723,7 +723,7 @@ class DecideJobs(object):
                     'verification status': 'unknown'
                 }
             }
-        elif job.type == JOB_CLASSES[3][0]:
+        elif job.type == JOB_CLASSES[1][0]:
             core_data = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
@@ -755,7 +755,7 @@ class DecideJobs(object):
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
 
         for chunk in self.reports_data:
-            if job.type == JOB_CLASSES[3][0]:
+            if job.type == JOB_CLASSES[1][0]:
                 chunk['attrs'].append({'Commit': 'HEAD'})
 
             sa = self.__upload_start_report('SA', avtg, chunk['attrs'])
