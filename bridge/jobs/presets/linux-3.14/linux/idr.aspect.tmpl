@@ -1,5 +1,7 @@
 before: file ("$this")
 {
+#include <verifier/nondet.h>
+
 // for arg_sign in idr_arg_signs
 extern void ldv_idr_init{{ arg_sign.id }}(void);
 extern void ldv_idr_alloc{{ arg_sign.id }}(void);
@@ -17,11 +19,13 @@ around: call(void idr_init(struct idr *))
 around: call(int idr_alloc(struct idr *, void *, int, int, gfp_t))
 {
 	ldv_idr_alloc{{ idr_arg_sign_patterns[1] }}();
+	return ldv_undef_int();
 }
 
 around: call(static inline void *idr_find(struct idr *, int))
 {
 	ldv_idr_find{{ idr_arg_sign_patterns[1] }}();
+	return ldv_undef_ptr();
 }
 
 around: call(void idr_remove(struct idr *, int))

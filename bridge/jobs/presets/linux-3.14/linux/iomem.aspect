@@ -5,32 +5,18 @@ void ldv_io_mem_unmap(void);
 }
 
 around:call(void *ioremap(..))
-	|| call(void *ioremap(..))
-	|| call(void *ioremap(..))
-	|| call(void *ioremap(..))
-	|| call(void *ioremap(..))
-	|| execution(static inline void *ioremap(..))
-	|| execution(static inline void *ioremap(..))
 	|| execution(static inline void *ioremap(..))
 	|| execution(static inline void *acpi_os_ioremap(..))
 	|| call(void *ioremap_cache(..))
 	|| execution(static inline void *ioremap_cache(..))
-	|| execution(static inline void *ioremap_cache(..))
 	|| call(void *ioremap_nocache(..))
-	|| execution(static inline void *ioremap_nocache(..))
 	|| execution(static inline void *ioremap_nocache(..))
 {
 	return ldv_io_mem_remap();
 }
 
 around:call(void iounmap(..))
-	|| call(void iounmap(..))
-	|| call(void iounmap(..))
-	|| call(void iounmap(..))
-	|| call(void iounmap(..))
 	|| execution(static inline void iounmap(..))
-	|| execution(static inline void iounmap(..))
-	|| call(void iounmap(..))
 	|| expand(iounmap(address))
 {
 	ldv_io_mem_unmap();
