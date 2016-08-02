@@ -307,4 +307,10 @@ $(document).ready(function () {
             $(this).addClass('ETV_LN_Warning_Selected');
         }
     });
+    $('.ETV_error_trace').scroll(function () {
+        $(this).find('.ETV_LN').css('left', $(this).scrollLeft());
+    });
+    $('#ETV_source_code').scroll(function () {
+        $(this).find('.ETVSrcL').css('left', $(this).scrollLeft());
+    })
 });
