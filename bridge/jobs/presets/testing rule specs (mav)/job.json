@@ -27,7 +27,8 @@
       "linux:rtnl",
       "linux:sock",
       "linux:bitops",
-      "linux:blk:request"
+      "linux:blk:request",
+      "linux:blk:queue"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
@@ -603,7 +604,8 @@
         "linux:rtnl",
         "linux:sock",
         "linux:bitops",
-        "linux:blk:request"
+        "linux:blk:request",
+        "linux:blk:queue"
       ],
       "ideal verdicts": [
         {
@@ -777,6 +779,37 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:blk:request",
           "verification object": "ext-modules/get-at-exit.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/queue",
+        "modules": [
+          "safe.ko",
+          "double-alloc.ko",
+          "more-initial.ko",
+          "use-before-alloc.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:queue",
+          "verification object": "ext-modules/double-alloc.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:queue",
+          "verification object": "ext-modules/more-initial.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:blk:queue",
+          "verification object": "ext-modules/use-before-alloc.ko"
         },
         {
           "ideal verdict": "safe"

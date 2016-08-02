@@ -309,6 +309,18 @@
         ]
       },
       "rule specifications": ["linux:blk:request"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/queue",
+        "modules": [
+          "safe.ko",
+          "double-alloc.ko",
+          "more-initial.ko",
+          "use-before-alloc.ko"
+        ]
+      },
+      "rule specifications": ["linux:blk:queue"]
     }
   ]
 }
