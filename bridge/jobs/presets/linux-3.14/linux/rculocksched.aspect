@@ -1,4 +1,4 @@
-@include <linux/alloc.aspect>
+@include <linux/rcu.aspect>
 
 before: file("$this")
 {
