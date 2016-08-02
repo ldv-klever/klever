@@ -2,13 +2,14 @@
   "Linux kernel": {
     "source": "linux-3.5.tar.bz2",
     "configuration": "allmodconfig",
-    "build kernel": false,
     "modules": ["drivers/net/usb/kaweth.ko"]
   },
   "LKVOG strategy": {"name": "separate modules"},
   "maximum verification object size": 30000,
   "rule specifications DB": "rule specs.json",
-  "rule specifications": ["linux:alloc2", "linux:mutex", "linux:module"],
+  "rule specifications": ["linux:alloc:spin lock", "linux:mutex", "linux:module"],
+  "unite rule specifications": false,
+  "RSG strategy": "instrumentation",
   "VTG strategy": {
     "name": "single bug type",
     "verifier": {
