@@ -1,12 +1,8 @@
-import os
 import json
-import tarfile
-from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
-from django.conf import settings
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
@@ -25,6 +21,7 @@ REP_MARK_TITLES = {
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
+    'tags': _('Tags')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -229,9 +226,11 @@ class ReportTable(object):
 
         data = {}
 
-        columns = ['number', 'marks_number']
-        if self.verdict is None:
-            columns.append('report_verdict')
+        columns = ['number']
+        for col in self.view['columns']:
+            if self.verdict is not None and col == 'report_verdict':
+                continue
+            columns.append(col)
 
         if self.verdict is not None:
             leaf_filter = {list_types[self.type] + '__verdict': self.verdict}
@@ -308,6 +307,12 @@ class ReportTable(object):
                                 val = s[1]
                                 break
                         color = SAFE_COLOR[report.verdict]
+                elif col == 'tags':
+                    tags = []
+                    for t in report.tags.filter(number__gt=0).order_by('tag__tag'):
+                        tags.append(t.tag.tag)
+                    if len(tags) > 0:
+                        val = '; '.join(tags)
                 values_row.append({
                     'value': val,
                     'color': color,
@@ -479,18 +484,3 @@ class AttrData(object):
         for attr in self._attrs:
             if attr[0] in self._name:
                 self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]
-
-
-class GetReportFiles(object):
-    def __init__(self, report):
-        self.report = report
-        self.tarname = "%s files.tar.gz" % self.report.component.name
-        self.memory = BytesIO()
-        self.__create_archive()
-        self.memory.seek(0)
-
-    def __create_archive(self):
-        tarobj = tarfile.open(fileobj=self.memory, mode='w:gz')
-        for f in self.report.files.all():
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-        tarobj.close()

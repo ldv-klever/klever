@@ -1,11 +1,14 @@
+from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
+from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, logger
+from bridge.utils import unparallel_group, logger, ArchiveFileContent
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -16,6 +19,22 @@ from reports.models import *
 from reports.utils import *
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+
+
+# These filters are used for visualization component specific data. They should not be used for any other purposes.
+@register.filter
+def get_dict_val(d, key):
+    return d.get(key)
+
+
+@register.filter
+def sort_list(l):
+    return sorted(l)
+
+
+@register.filter
+def sort_bugs_list(l):
+    return sorted(l, key=lambda bug: bug[12:].lstrip('~'))
 
 
 @login_required
@@ -53,17 +72,20 @@ def report_component(request, job_id, report_id):
 
     unknown_href = None
     try:
-        unknown = ReportUnknown.objects.get(parent=report)
-        unknown_href = reverse('reports:leaf',
-                               args=['unknown', unknown.pk])
+        unknown_href = reverse('reports:leaf', args=[
+            'unknown', ReportUnknown.objects.get(parent=report, component=report.component).pk
+        ])
         status = 3
     except ObjectDoesNotExist:
         pass
+    except MultipleObjectsReturned:
+        status = 4
 
     report_data = None
     if report.data is not None:
         try:
-            report_data = json.loads(report.data.decode('utf8'))
+            with report.data.file as fp:
+                report_data = json.loads(fp.read().decode('utf8'))
         except Exception as e:
             logger.exception("Json parsing error: %s" % e, stack_info=True)
 
@@ -166,7 +188,7 @@ def report_list_tag(request, report_id, ltype, tag_id):
         else:
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[704]))
+        return HttpResponseRedirect(reverse('error', args=[509]))
     return report_list(request, report_id, ltype, tag=tag)
 
 
@@ -203,7 +225,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
         try:
             problem = UnknownProblem.objects.get(pk=problem_id)
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[804]))
+            return HttpResponseRedirect(reverse('error', args=[508]))
     return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
 
 
@@ -229,24 +251,49 @@ def report_leaf(request, leaf_type, report_id):
 
     template = 'reports/report_leaf.html'
     etv = None
+    main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        etv = GetETV(report.error_trace)
+        afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
+        if afc.error is not None:
+            logger.error(afc.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        etv = GetETV(afc.content, request.user.extended.assumptions)
         if etv.error is not None:
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
-    return render(
-        request, template,
-        {
-            'type': leaf_type,
-            'report': report,
-            'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(request.user, report).table_data,
-            'MarkTable': ReportMarkTable(request.user, report),
-            'etv': etv,
-            'can_mark': MarkAccess(request.user, report=report).can_create()
-        }
-    )
+    elif leaf_type == 'safe':
+        main_file_content = ''
+        if report.archive is not None and report.proof is not None:
+            afc = ArchiveFileContent(report.archive, file_name=report.proof)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            main_file_content = afc.content
+    elif leaf_type == 'unknown':
+        afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+        if afc.error is not None:
+            logger.error(afc.error)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        main_file_content = afc.content
+    try:
+        return render(
+            request, template,
+            {
+                'type': leaf_type,
+                'report': report,
+                'parents': get_parents(report),
+                'SelfAttrsData': ReportTable(request.user, report).table_data,
+                'MarkTable': ReportMarkTable(request.user, report),
+                'etv': etv,
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'include_assumptions': request.user.extended.assumptions
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @login_required
@@ -261,17 +308,21 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    etv = GetETV(report.error_trace)
+    afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
+    if afc.error is not None:
+        logger.error(afc.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    etv = GetETV(afc.content, request.user.extended.assumptions)
     if etv.error is not None:
         logger.error(etv.error, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
-    return render(
-        request, 'reports/etv_fullscreen.html',
-        {
-            'report': report,
-            'etv': etv
-        }
-    )
+    try:
+        return render(request, 'reports/etv_fullscreen.html', {
+            'report': report, 'etv': etv, 'include_assumptions': request.user.extended.assumptions
+        })
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
 
 @unparallel_group(['mark', 'report'])
@@ -322,9 +373,18 @@ def get_component_log(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    logname = report.component.name + '.log'
-    response = StreamingHttpResponse(FileWrapper(report.log.file, 8192), content_type='text/plain')
-    response['Content-Length'] = len(report.log.file)
+    logname = '%s-log.txt' % report.component.name
+
+    afc = ArchiveFileContent(report.archive, file_name=report.log)
+    if afc.error is not None:
+        logger.error(afc.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    file_inmem = BytesIO(afc.content.encode('utf8'))
+    file_inmem.seek(0, 2)
+    size = file_inmem.tell()
+    file_inmem.seek(0)
+    response = StreamingHttpResponse(FileWrapper(file_inmem, 8192), content_type='text/plain')
+    response['Content-Length'] = size
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
@@ -342,9 +402,10 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    if len(report.log.file) > 10000:
-        return HttpResponse(_('The component log is huge and can not be showed but you can download it'))
-    return HttpResponse(report.log.file.read().decode('utf8'))
+    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
+    if afc.error is not None:
+        return HttpResponse(str(afc.error))
+    return HttpResponse(afc.content)
 
 
 @login_required
@@ -364,9 +425,7 @@ def get_source_code(request):
     if len(filename) > 50:
         filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
-        'content': result.data,
-        'name': filename,
-        'fullname': request.POST['file_name']
+        'content': result.data, 'name': filename, 'fullname': request.POST['file_name']
     })
 
 
@@ -462,8 +521,11 @@ def download_report_files(request, report_id):
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
-    res = GetReportFiles(report)
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename="%s"' % res.tarname
-    response.write(res.memory.read())
-    return response
+    if report.archive is None:
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+    with report.archive.file as fp:
+        response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
+        response['Content-Length'] = len(fp)
+        response['Content-Disposition'] = 'attachment; filename="%s files.tar.gz"' % report.component.name
+        return response

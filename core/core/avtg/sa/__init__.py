@@ -6,7 +6,7 @@ import re
 
 import jinja2
 
-import core.components
+import core.avtg.plugins
 import core.utils
 from core.avtg.sa.initparser import parse_initializations
 
@@ -15,7 +15,7 @@ def nested_dict():
     return collections.defaultdict(nested_dict)
 
 
-class SA(core.components.Component):
+class SA(core.avtg.plugins.Plugin):
     # TODO: Use template processor instead of predefined aspect file and target output files
     collection = None
     files = []
@@ -23,12 +23,6 @@ class SA(core.components.Component):
     kernel_functions = []
 
     def analyze_sources(self):
-        self.logger.info("Start source analyzer {}".format(self.id))
-
-        self.logger.info("Going to extract abstract verification task from queue")
-        avt = self.mqs['abstract task description'].get()
-        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
-
         # Init an empty collection
         self.logger.info("Initialize an empty collection before analyzing source code")
         self.collection = collections.defaultdict(nested_dict)
@@ -41,7 +35,7 @@ class SA(core.components.Component):
 
         # Perform requests
         self.logger.info("Run source code analysis")
-        self._perform_info_requests(avt)
+        self._perform_info_requests(self.abstract_task_desc)
         self.logger.info("Source analysis has been finished successfully")
 
         # Extract data
@@ -61,13 +55,10 @@ class SA(core.components.Component):
         self.logger.info("Collection has been saved succussfully")
 
         # Save data to abstract task
-        self.logger.info("Add the collection to an abstract verification task {}".format(avt["id"]))
+        self.logger.info("Add the collection to an abstract verification task {}".format(self.abstract_task_desc["id"]))
         # todo: better do this way: avt["source analysis"] = self.collection
-        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
-
-        # Put edited task and terminate
-        self.mqs['abstract task description'].put(avt)
-        self.logger.info("Source analyzer {} successfully finished".format(self.id))
+        self.abstract_task_desc["source analysis"] = os.path.relpath("model.json", os.path.realpath(
+            self.conf["main working directory"]))
 
     def _generate_aspect_file(self):
         # Prepare aspect file
@@ -108,7 +99,7 @@ class SA(core.components.Component):
         for group in abstract_task["grps"]:
             b_cmds[group['id']] = []
             for section in group["cc extra full desc files"]:
-                file = os.path.join(self.conf["source tree root"],
+                file = os.path.join(self.conf["main working directory"],
                                     section["cc full desc file"])
                 self.logger.info("Import build commands from {}".format(file))
                 with open(file, encoding="ascii") as fh:
@@ -124,32 +115,27 @@ class SA(core.components.Component):
                 stdout = core.utils.execute(self.logger, ('aspectator', '-print-file-name=include'),
                                             collect_all_stdout=True)
                 self.logger.info("Analyze source file {}".format(command['in files'][0]))
-                core.utils.execute(self.logger, tuple(['cif',
-                                                      '--in', command['in files'][0],
-                                                      '--aspect', self.aspect,
-                                                      '--out', command['out file'],
-                                                      '--stage', 'instrumentation',
-                                                      '--back-end', 'src',
-                                                      '--debug', 'DEBUG'] +
-                                                     (['--keep'] if self.conf['keep intermediate files'] else []) +
-                                                     ['--'] +
-                                                     command["opts"] +
-                                                     ['-isystem{0}'.format(stdout[0])]),
-                                  cwd=self.conf['source tree root'])
+                core.utils.execute(self.logger,
+                                   tuple(['cif',
+                                          '--in', command['in files'][0],
+                                          '--aspect', self.aspect,
+                                          '--out', command['out file'],
+                                          '--stage', 'instrumentation',
+                                          '--back-end', 'src',
+                                          '--debug', 'DEBUG'] +
+                                         (['--keep'] if self.conf['keep intermediate files'] else []) +
+                                         ['--'] +
+                                         [opt.replace('"', '\\"') for opt in command["opts"]] +
+                                         ['-isystem{0}'.format(stdout[0])]),
+                                   cwd=os.path.relpath(
+                                       os.path.join(self.conf['main working directory'], command['cwd'])))
 
     def _import_content(self, file):
         self.logger.info("Import file {} generated by CIF replacing pathes".format(file))
         content = []
         if os.path.isfile(file):
-            kernel = os.path.realpath(self.conf["source tree root"]) + "/"
-            path_re = re.compile(kernel)
             with open(file, encoding="ascii") as output_fh:
-                for line in output_fh:
-                    if path_re.search(line):
-                        new_line = path_re.sub("", line)
-                    else:
-                        new_line = line
-                    content.append(new_line)
+                content = output_fh.readlines()
             self.logger.debug("File {} has been successfully imported".format(file))
         else:
             self.logger.debug("File {} does not exist".format(file))
@@ -159,7 +145,7 @@ class SA(core.components.Component):
         # Patterns to parse
         function_signature_re = re.compile('([^\s]+) (\w+) signature=\'(.+)\'\n$')
         all_args_re = "(?:\sarg\d+='[^']*')*"
-        call_re = re.compile("^([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
+        call_re = re.compile("^([^\s]*)\s([^\s]*)\s(\w*)\s(\w*)({})\n".format(all_args_re))
         arg_re = re.compile("\sarg(\d+)='([^']*)'")
         short_pair_re = re.compile("^([^\s]*)\s(\w*)\n")
         typedef_declaration = re.compile("^declaration: typedef ([^\n]+);")
@@ -200,12 +186,19 @@ class SA(core.components.Component):
         content = self._import_content(func_calls_file)
         for line in content:
             if call_re.fullmatch(line):
-                path, caller_name, name, args = call_re.fullmatch(line).groups()
+                path, cc_path, caller_name, name, args = call_re.fullmatch(line).groups()
                 if self.collection["functions"][caller_name]["files"][path]:
+                    # Add information to caller
                     if not self.collection["functions"][caller_name]["files"][path]["calls"][name]:
                         self.collection["functions"][caller_name]["files"][path]["calls"][name] = list()
                     self.collection["functions"][caller_name]["files"][path]["calls"][name].\
                         append([arg[1] for arg in arg_re.findall(args)])
+
+                    # Add information to called
+                    if "called at" not in self.collection["functions"][name]:
+                        self.collection["functions"][name]["called at"] = list()
+                    if cc_path not in self.collection["functions"][name]["called at"]:
+                        self.collection["functions"][name]["called at"].append(cc_path)
                 else:
                     raise ValueError("Expect function definition {} in file {} but it has not been extracted".
                                      format(caller_name, path))

@@ -33,6 +33,7 @@ class Callback(Interface):
         self.param_interfaces = []
         self.rv_interface = False
         self.called = False
+        self.interrupt_context = False
 
 
 class Resource(Interface):
@@ -47,12 +48,13 @@ class KernelFunction(Interface):
         self.declaration = None
         self.param_interfaces = []
         self.rv_interface = False
-        self.called_at = {}
+        self.functions_called_at = {}
+        self.files_called_at = set()
 
     def add_call(self, caller):
-        if caller not in self.called_at:
-            self.called_at[caller] = 1
+        if caller not in self.functions_called_at:
+            self.functions_called_at[caller] = 1
         else:
-            self.called_at[caller] += 1
+            self.functions_called_at[caller] += 1
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

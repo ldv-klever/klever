@@ -9,6 +9,7 @@ urlpatterns = [
     url(r'^prepare_run/(?P<job_id>[0-9]+)/$', views.prepare_decision, name='prepare_run'),
     url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_files_comparison, name='comparison'),
     url(r'^download_configuration/(?P<runhistory_id>[0-9]+)/$', views.download_configuration),
+    url(r'^create/$', views.copy_new_job, name='create'),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
@@ -17,7 +18,6 @@ urlpatterns = [
     url(r'^ajax/check_view_name/$', views.check_view_name),
     url(r'^ajax/removejobs/$', views.remove_jobs),
     url(r'^ajax/editjob/$', views.edit_job),
-    url(r'^ajax/create/$', views.copy_new_job),
     url(r'^ajax/savejob/$', views.save_job),
     url(r'^ajax/showjobdata/$', views.showjobdata),
     url(r'^ajax/upload_file/$', views.upload_file),
@@ -35,6 +35,7 @@ urlpatterns = [
     url(r'^ajax/check_compare_access/$', views.check_compare_access),
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
     url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
+    url(r'^ajax/collapse_reports/$', views.collapse_reports),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),

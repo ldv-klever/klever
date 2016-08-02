@@ -1,9 +1,9 @@
 import argparse
-import copy
-import importlib
 import json
 import multiprocessing
 import os
+import setuptools_scm
+import setuptools_scm.hacks
 import shutil
 import time
 import traceback
@@ -16,15 +16,6 @@ import core.utils
 class Core(core.utils.CallbacksCaller):
     DEFAULT_CONF_FILE = 'core.json'
     ID = '/'
-    JOB_CLASS_COMPONENTS = {
-        'Verification of Linux kernel modules': [
-            'LKBCE',
-            'LKVOG',
-            'AVTG',
-            'VTG',
-        ],
-        'Validation on commits in Linux kernel Git repositories': [],
-    }
 
     def __init__(self):
         self.exit_code = 0
@@ -37,11 +28,7 @@ class Core(core.utils.CallbacksCaller):
         self.session = None
         self.mqs = {}
         self.uploading_reports_process = None
-        self.components = []
-        self.components_conf = None
         self.callbacks = {}
-        self.component_processes = []
-        self.data = None
 
     def main(self):
         try:
@@ -55,187 +42,24 @@ class Core(core.utils.CallbacksCaller):
             self.change_work_dir()
             self.logger = core.utils.get_logger(type(self).__name__, self.conf['logging'])
             version = self.get_version()
-            job = core.job.Job(self.logger, self.conf['identifier'])
-            self.comp = self.get_comp_desc()
+            job = core.job.Job(self.logger, self.ID)
+            self.logger.info('Support jobs of format "{0}"'.format(job.FORMAT))
+            self.get_comp_desc()
             start_report_file = core.utils.report(self.logger,
                                                   'start',
                                                   {
                                                       'id': self.ID,
                                                       'attrs': [{'Klever Core version': version}],
-                                                      'comp': [
-                                                          {attr[attr_shortcut]['name']: attr[attr_shortcut]['value']}
-                                                          for attr in self.comp for attr_shortcut in attr
-                                                      ]
+                                                      'comp': self.comp
                                                   })
-            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], job.id)
-            self.session.decide_job(job, start_report_file)
-            # TODO: create parallel process to send requests about successful operation to Klever Bridge.
-            self.mqs['report files'] = multiprocessing.Queue()
+            self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+            self.session.start_job_decision(job, start_report_file)
+            self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.extract_archive()
-            job.get_class()
-            self.get_components(job)
-            # Do not read anything from job directory untill job class will be examined (it might be unsupported). This
-            # differs from specification that doesn't treat unsupported job classes at all.
-            with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
-                job.conf = json.load(fp)
-            # TODO: think about implementation in form of classes derived from class Job.
-            if job.type == 'Verification of Linux kernel modules':
-                self.create_components_conf(job)
-                self.callbacks = core.utils.get_component_callbacks(self.logger, [type(self)] + self.components,
-                                                                    self.components_conf)
-                self.launch_all_components(self.ID)
-                self.wait_for_components()
-            elif job.type == 'Validation on commits in Linux kernel Git repositories':
-                # Specify callbacks to collect verification statuses from VTG. They will be used to
-                # calculate validation results.
-                def before_launch_all_components(context):
-                    context.mqs['verification statuses'] = multiprocessing.Queue()
-
-                def after_decide_verification_task(context):
-                    context.mqs['verification statuses'].put(context.verification_status)
-
-                def after_generate_all_verification_tasks(context):
-                    context.logger.info('Terminate verification statuses message queue')
-                    context.mqs['verification statuses'].put(None)
-
-                core.utils.set_component_callbacks(self.logger, type(self),
-                                                   (
-                                                       before_launch_all_components,
-                                                       after_decide_verification_task,
-                                                       after_generate_all_verification_tasks
-                                                   ))
-                self.logger.info('Prepare sub-jobs of class "Verification of Linux kernel modules"')
-                sub_jobs_common_conf = {}
-                if 'Common' in job.conf:
-                    sub_jobs_common_conf = job.conf['Common']
-                if 'Sub-jobs' in job.conf:
-                    for i, sub_job_concrete_conf in enumerate(job.conf['Sub-jobs']):
-                        sub_job = core.job.Job(self.logger, i)
-                        job.sub_jobs.append(sub_job)
-                        sub_job.type = 'Verification of Linux kernel modules'
-                        # Sub-job configuration is based on common sub-jobs configuration.
-                        sub_job.conf = copy.deepcopy(sub_jobs_common_conf)
-                        core.utils.merge_confs(sub_job.conf, sub_job_concrete_conf)
-                self.logger.info('Decide prepared sub-jobs')
-                # TODO: looks very like the code above.
-                # TODO: create artificial log file for Validator.
-                with open('__log', 'w', encoding='ascii'):
-                    pass
-                self.data = []
-                commits = {}
-                for sub_job in job.sub_jobs:
-                    commit = sub_job.conf['Linux kernel']['Git repository']['commit']
-                    if len(commit) != 12 and (len(commit) != 13 or commit[12] != '~'):
-                        raise ValueError(
-                            'Commit hashes should have 12 symbols and optional "~" at the end but "{0}" is given'.
-                                format(commit))
-                    # Make unique identifiers by extending commit hashes with the number of sub-jobs referred to the
-                    # same commit if so.
-                    if commit in commits:
-                        commits[commit] += 1
-                        commit += ' ({0})'.format(commits[commit])
-                    else:
-                        commits[commit] = 1
-                    sub_job_id = self.ID + str(commit)
-                    # TODO: create this auxiliary component reports to allow deciding several sub-jobs. This should be likely done otherwise.
-                    core.utils.report(self.logger,
-                                      'start',
-                                      {
-                                          'id': sub_job_id,
-                                          'parent id': self.ID,
-                                          'name': 'Validator',
-                                          'attrs': [{'commit': commit}],
-                                      },
-                                      self.mqs['report files'],
-                                      suffix=' validator {0}'.format(commit))
-                    try:
-                        os.makedirs(commit)
-                        with core.utils.Cd(commit):
-                            self.get_components(sub_job)
-                            self.create_components_conf(sub_job)
-                            self.callbacks = core.utils.get_component_callbacks(self.logger,
-                                                                                [type(self)] + self.components,
-                                                                                self.components_conf)
-                            self.launch_all_components(sub_job_id)
-                            self.wait_for_components()
-                            # TODO: dirty hack to wait for all reports to be uploaded since they may be accidently removed when local source directories use is allowed and next sub-job is decided.
-                            while True:
-                                time.sleep(1)
-                                # Do not wait if reports uploading failed.
-                                if self.uploading_reports_process.exitcode:
-                                    break
-                                if self.mqs['report files'].empty():
-                                    time.sleep(3)
-                                    break
-                        # Do not proceed to other sub-jobs if reports uploading failed.
-                        if self.uploading_reports_process.exitcode:
-                            break
-                    except Exception:
-                        if self.mqs:
-                            with open('problem desc.txt', 'w', encoding='ascii') as fp:
-                                traceback.print_exc(file=fp)
-
-                            if os.path.isfile('problem desc.txt'):
-                                core.utils.report(self.logger,
-                                                  'unknown',
-                                                  {
-                                                      'id': sub_job_id + '/unknown',
-                                                      'parent id': sub_job_id,
-                                                      'problem desc': 'problem desc.txt',
-                                                      'files': ['problem desc.txt']
-                                                  },
-                                                  self.mqs['report files'],
-                                                  suffix=' validator {0}'.format(commit))
-
-                        if self.logger:
-                            self.logger.exception('Catch exception')
-                        else:
-                            traceback.print_exc()
-
-                        self.exit_code = 1
-
-                        break
-                    finally:
-                        if 'verification statuses' in self.mqs:
-                            sub_job.conf['obtained verification statuses'] = []
-                            while True:
-                                verification_status = self.mqs['verification statuses'].get()
-
-                                if verification_status is None:
-                                    self.logger.debug('Verification statuses message queue was terminated')
-                                    self.mqs['verification statuses'].close()
-                                    del self.mqs['verification statuses']
-                                    break
-
-                                sub_job.conf['obtained verification statuses'].append(verification_status)
-
-                            # There is no verification statuses when some (sub)component failed prior to VTG strategy
-                            # receives some abstract verification tasks.
-                            if not sub_job.conf['obtained verification statuses']:
-                                sub_job.conf['obtained verification statuses'].append('unknown')
-
-                            self.data.append([commit,
-                                              sub_job.conf['ideal verdict']] +
-                                             sub_job.conf['obtained verification statuses'] +
-                                             [sub_job.conf['comment'] if 'comment' in sub_job.conf else None])
-
-                            self.report_validation_results(commit)
-
-                        core.utils.report(self.logger,
-                                          'finish',
-                                          {
-                                              'id': sub_job_id,
-                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                              'log': '__log',
-                                              'files': ['__log']
-                                          },
-                                          self.mqs['report files'],
-                                          suffix=' validator {0}'.format(commit))
-
-                # All validation results were already reported.
-                self.data = []
+            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
+        except SystemExit:
+            self.exit_code = 1
         except Exception:
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='ascii') as fp:
@@ -259,26 +83,19 @@ class Core(core.utils.CallbacksCaller):
 
             self.exit_code = 1
         finally:
+            # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
-                for p in self.component_processes:
-                    # Do not terminate components that already exitted.
-                    if p.is_alive():
-                        p.stop()
-
                 if self.mqs:
-                    finish_report = {
-                        'id': self.ID,
-                        'resources': core.utils.count_consumed_resources(
-                            self.logger,
-                            self.start_time),
-                        'log': 'log',
-                        'files': ['log']
-                    }
-                    if self.data:
-                        finish_report.update({'data': json.dumps(self.data)})
                     core.utils.report(self.logger,
                                       'finish',
-                                      finish_report,
+                                      {
+                                          'id': self.ID,
+                                          'resources': core.utils.count_consumed_resources(
+                                              self.logger,
+                                              self.start_time),
+                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
+                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
+                                      },
                                       self.mqs['report files'])
 
                     self.logger.info('Terminate report files message queue')
@@ -292,6 +109,17 @@ class Core(core.utils.CallbacksCaller):
 
                 if self.session:
                     self.session.sign_out()
+            except Exception:
+                if self.logger:
+                    self.logger.exception('Catch exception')
+                else:
+                    traceback.print_exc()
+
+                # Do not upload reports and wait for corresponding process any more if something else went wrong above.
+                if self.uploading_reports_process:
+                    self.uploading_reports_process.terminate()
+
+                self.exit_code = 1
             # At least release working directory if cleaning code above will raise some exception.
             finally:
                 if self.is_solving_file_fp and not self.is_solving_file_fp.closed:
@@ -323,7 +151,7 @@ class Core(core.utils.CallbacksCaller):
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+            if not self.conf['ignore other instances'] and os.path.isfile(self.is_solving_file):
                 raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
                     self.conf['working directory']))
 
@@ -359,40 +187,35 @@ class Core(core.utils.CallbacksCaller):
         Get version either as a tag in the Git repository of Klever or from the file created when installing Klever.
         """
         # Git repository directory may be located in parent directory of parent directory.
-        git_repo_dir = os.path.join(os.path.dirname(__file__), '../../.git')
-        if os.path.isdir(git_repo_dir):
-            return core.utils.get_entity_val(self.logger, 'version',
-                                             'git --git-dir {0} describe --always --abbrev=7 --dirty'.format(
-                                                 git_repo_dir))
+        git_repo_dir = os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir)
+        if os.path.isdir(os.path.join(git_repo_dir, '.git')):
+            self.logger.info('Get version on the basis of the Git repository')
+            version = setuptools_scm.get_version(root=git_repo_dir)
         else:
-            # TODO: get version of installed Klever.
-            return ''
+            self.logger.info('Get version on the basis of package information')
+            version = setuptools_scm.get_version(os.path.join(os.path.dirname(__file__), os.path.pardir, 'EGG-INFO'),
+                                                 parse=setuptools_scm.hacks.parse_pkginfo)
+        self.logger.debug('Klever Core version is "{0}"'.format(version))
+        return version
 
     def get_comp_desc(self):
         self.logger.info('Get computer description')
 
-        return [
-            {
-                entity_name_cmd[0]: {
-                    'name': entity_name_cmd[1] if entity_name_cmd[1] else entity_name_cmd[0],
-                    'value': core.utils.get_entity_val(self.logger,
-                                                       entity_name_cmd[1]
-                                                       if entity_name_cmd[1]
-                                                       else entity_name_cmd[0],
-                                                       entity_name_cmd[2])
-                }
-            }
-            for entity_name_cmd in [
-                ['node name', '', 'uname -n'],
-                ['CPU model', '', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'],
-                ['CPUs num', 'number of CPU cores', 'cat /proc/cpuinfo | grep processor | wc -l'],
-                ['mem size', 'memory size',
-                 'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'],
-                ['Linux kernel version', '', 'uname -r'],
-                ['arch', 'architecture', 'uname -m']
+        self.comp = tuple([
+            {entity_name_cmd[0]: core.utils.get_entity_val(self.logger, entity_name_cmd[0], entity_name_cmd[1])}
+            for entity_name_cmd in (
+                ('node name', 'uname -n'),
+                ('CPU model', 'cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"'),
+                ('number of CPU cores', 'cat /proc/cpuinfo | grep processor | wc -l'),
+                ('memory size', 'cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'),
+                ('Linux kernel version', 'uname -r'),
+                ('architecture', 'uname -m'),
+            )
+            ])
 
-            ]
-            ]
+        # Add computer description to configuration since it can be used by (sub)components.
+        for entity in self.comp:
+            self.conf.update(entity)
 
     def send_reports(self):
         try:
@@ -402,10 +225,6 @@ class Core(core.utils.CallbacksCaller):
 
                 if report_and_report_files_archive is None:
                     self.logger.debug('Report files message queue was terminated')
-                    # Note that this and all other closing of message queues aren't strictly necessary and everything
-                    # will work without them as well, but this potentially can save some memory since closing explicitly
-                    # notifies that corresponding message queue won't be used any more and its memory could be freed.
-                    self.mqs['report files'].close()
                     break
 
                 report_file = report_and_report_files_archive['report file']
@@ -420,120 +239,3 @@ class Core(core.utils.CallbacksCaller):
             # If we can't send reports to Klever Bridge by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Klever Bridge')
             exit(1)
-
-    def get_components(self, job):
-        self.logger.info('Get components necessary to solve job of class "{0}"'.format(job.type))
-
-        if job.type not in self.JOB_CLASS_COMPONENTS:
-            raise KeyError('Job class "{0}" is not supported'.format(job.type))
-
-        self.components = [getattr(importlib.import_module('.{0}'.format(component.lower()), 'core'), component) for
-                           component in self.JOB_CLASS_COMPONENTS[job.type]]
-
-        self.logger.debug('Components to be launched: "{0}"'.format(
-            ', '.join([component.__name__ for component in self.components])))
-
-    def create_components_conf(self, job):
-        """
-        Create configuration to be used by all Klever Core components.
-        """
-        self.logger.info('Create components configuration')
-
-        # Components configuration is based on job configuration.
-        self.components_conf = job.conf
-
-        # Convert list of primitive dictionaries to one dictionary to simplify code below.
-        comp = {}
-        for attr in self.comp:
-            comp.update(attr)
-
-        # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
-        # be used somewhere in components.
-        self.components_conf.update(self.conf)
-
-        self.components_conf.update({'sys': {attr: comp[attr]['value'] for attr in ('CPUs num', 'mem size', 'arch')}})
-
-        if self.conf['keep intermediate files']:
-            if os.path.isfile('components conf.json'):
-                raise FileExistsError('Components configuration file "components conf.json" already exists')
-            self.logger.debug('Create components configuration file "components conf.json"')
-            with open('components conf.json', 'w', encoding='ascii') as fp:
-                json.dump(self.components_conf, fp, sort_keys=True, indent=4)
-
-    def launch_all_components(self, parent_id):
-        self.logger.info('Launch all components')
-
-        for component in self.components:
-            p = component(self.components_conf, self.logger, parent_id, self.callbacks, self.mqs,
-                          separate_from_parent=True)
-            p.start()
-            self.component_processes.append(p)
-
-    def wait_for_components(self):
-        self.logger.info('Wait for components')
-
-        # Every second check whether some component died. Otherwise even if some non-first component will die we
-        # will wait for all components that preceed that failed component prior to notice that something went wrong.
-        # Treat process that upload reports as component that may fail.
-        while True:
-            # The number of components that are still operating.
-            operating_components_num = 0
-
-            for p in self.component_processes:
-                p.join(1.0 / len(self.component_processes))
-                operating_components_num += p.is_alive()
-
-            if not operating_components_num or self.uploading_reports_process.exitcode:
-                break
-
-        # Clean up this list to properly decide other sub-jobs.
-        if not self.uploading_reports_process.exitcode:
-            self.component_processes = []
-
-    def report_validation_results(self, commit):
-        self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
-        validation_results = []
-        validation_results_before_bug_fixes = []
-        validation_results_after_bug_fixes = []
-        for validation_res in self.data:
-            # Corresponds to validation result before bug fix.
-            if validation_res[1] == 'unsafe':
-                validation_results_before_bug_fixes.append(validation_res)
-            # Corresponds to validation result after bug fix.
-            elif validation_res[1] == 'safe':
-                validation_results_after_bug_fixes.append(validation_res)
-            else:
-                raise ValueError(
-                    'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(validation_res[1]))
-        for commit1, ideal_verdict1, verification_status1, comment1 in validation_results_before_bug_fixes:
-            found_validation_res_after_bug_fix = False
-            for commit2, ideal_verdict2, verification_status2, comment2 in validation_results_after_bug_fixes:
-                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
-                # taken into account that all commit hashes have exactly 12 symbols and sub-jobs referred to the same
-                # commit are properly ordered (for instance, unsafe1 - safe1 - unsafe2 - safe2 or unsafe1 - unsafe2 -
-                # safe1 - safe2 and not unsafe1 - unsafe2 - safe2 - safe1).
-                if commit1[:12] == commit2[:12] and (commit1[13:] == commit2[12:]
-                                                     if len(commit1) > 12 and commit1[12] == '~'
-                                                     else commit1[12:] == commit2[13:]):
-                    found_validation_res_after_bug_fix = True
-                    break
-            validation_res_msg = 'Verification status of bug "{0}" before fix is "{1}"{2}'.format(
-                commit1, verification_status1, ' ("{0}")'.format(comment1) if comment1 else '')
-            # At least save validation result before bug fix.
-            if not found_validation_res_after_bug_fix:
-                self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(commit1))
-                validation_results.append([commit1, verification_status1, comment1, None, None])
-            else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(verification_status2,
-                                                                       ' ("{0}")'.format(comment2) if comment2 else '')
-                validation_results.append([commit1, verification_status1, comment1, verification_status2, comment2])
-            self.logger.info(validation_res_msg)
-
-        core.utils.report(self.logger,
-                          'data',
-                          {
-                              'id': self.ID,
-                              'data': json.dumps(validation_results)
-                          },
-                          self.mqs['report files'],
-                          suffix=' {0}'.format(commit))

@@ -156,17 +156,12 @@ def solve_task(conf):
         "memlimit": str(conf["resource limits"]["memory size"]) + "B",
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-    for opt in conf["verifier"]["options"] + [
-        {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"}
-    ] + ([] if "-heap" in [list(opt.keys())[0] for opt in conf["verifier"]["options"]] else [
-        # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
-        # general memory size limit.
-        {"-heap": '{0}m'.format(round(3 * conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
-    ]):
+    for opt in conf["verifier"]["options"]:
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
-    ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
+    # Property file may not be specified.
+    if "property file" in conf:
+        ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
     tasks = ElementTree.SubElement(benchmark, "tasks")
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
@@ -232,10 +227,8 @@ def solve_task(conf):
 
     with tarfile.open("decision result files.tar.gz", "w:gz") as tar:
         tar.add("decision results.json")
-        if decision_results["status"] == 'unsafe':
-            tar.add("output/witness.graphml", 'witness.graphml')
-        for file in glob.glob(os.path.join("output", "benchmark*logfiles/*")):
-            tar.add(file, os.path.basename(file))
+        for file in glob.glob("output/*"):
+            tar.add(file)
         if conf["upload input files of static verifiers"]:
             tar.add("benchmark.xml")
 

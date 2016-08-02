@@ -1,0 +1,5 @@
+{
+  "function": "error: implicit declaration of function 'ldv_usb_lock.*'",
+  "pattern": "#7116",
+  "link": "http://forge.ispras.ru/issues/7116"
+}

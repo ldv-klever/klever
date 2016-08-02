@@ -297,6 +297,16 @@ def get_component_callbacks(logger, components, components_conf):
     return callbacks
 
 
+def remove_component_callbacks(logger, component):
+    logger.info('Remove callbacks for component "{0}"'.format(component.__name__))
+
+    module = sys.modules[component.__module__]
+
+    for attr in dir(module):
+        if any(attr.startswith(kind) for kind in CALLBACK_KINDS):
+            delattr(module, attr)
+
+
 def get_entity_val(logger, name, cmd):
     """
     Return a value of the specified entity name by executing the specified command and reading its first string
@@ -348,12 +358,20 @@ def get_logger(name, conf):
     if 'handlers' not in pref_logger_conf:
         raise KeyError('Handlers are not specified for logger "{0}"'.format(pref_logger_conf['name']))
     for handler_conf in pref_logger_conf['handlers']:
+        if 'level' not in handler_conf:
+            raise KeyError(
+                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(
+                    pref_logger_conf['name'], handler_conf['name'] if 'name' in handler_conf else ''))
+
+        if handler_conf['level'] == 'NONE':
+            continue
+
         if handler_conf['name'] == 'console':
             # Always print log to STDOUT.
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log', encoding='ascii')
+            handler = logging.FileHandler('log.txt', encoding='ascii')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -362,10 +380,6 @@ def get_logger(name, conf):
         # Set up handler logging level.
         log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
                       'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-        if 'level' not in handler_conf:
-            raise KeyError(
-                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(pref_logger_conf['name'],
-                                                                                           handler_conf['name']))
         if handler_conf['level'] not in log_levels:
             raise KeyError(
                 'Logging level "{0}" {1} is not supported{2}'.format(
@@ -394,6 +408,9 @@ def get_logger(name, conf):
 
         logger.addHandler(handler)
 
+    if not logger.handlers:
+        logger.disabled = True
+
     logger.debug("Logger was set up")
 
     return logger
@@ -409,7 +426,7 @@ def get_parallel_threads_num(logger, conf, action):
         parallel_threads_num = raw_parallel_threads_num
     # In case of decimal number it is fraction of the number of CPUs.
     elif isinstance(raw_parallel_threads_num, float):
-        parallel_threads_num = conf['sys']['CPUs num'] * raw_parallel_threads_num
+        parallel_threads_num = conf['number of CPU cores'] * raw_parallel_threads_num
     else:
         raise ValueError(
             'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
@@ -420,7 +437,7 @@ def get_parallel_threads_num(logger, conf, action):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * conf['sys']['CPUs num']:
+    elif parallel_threads_num > 2 * conf['number of CPU cores']:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
                 parallel_threads_num, action))
@@ -435,7 +452,7 @@ def merge_confs(a, b):
         if key in a:
             # Perform sanity checks.
             if not isinstance(key, str):
-                raise KeyError('Key is not string (its type is {"0"})'.format(type(key)))
+                raise KeyError('Key is not string (its type is "{0}")'.format(type(key).__name__))
             elif not isinstance(a[key], type(b[key])):
                 raise ValueError(
                     'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
@@ -481,7 +498,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
-    if 'files' in report:
+    if 'files' in report and report['files']:
         report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         with tarfile.open(report_files_archive, 'w:gz') as tar:

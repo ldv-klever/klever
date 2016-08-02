@@ -1,11 +1,12 @@
 {% extends 'jobs/base.html' %}
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
 {% block jobs_head_block %}
-    <script src="/static/jobs/js/startjob.js"></script>
-    <link href="/static/jobs/css/start-job.css" rel="stylesheet">
+    <script src="{% static 'jobs/js/startjob.js' %}"></script>
+    <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -81,21 +82,28 @@
                 <h3>{% trans 'Operations parallelism' %}</h3>
                 <div class="ui grid">
                     <div class="eight wide column">
+                        <label for="sub_jobs_proc_parallelism__value">{% trans 'Sub-jobs processing' %}</label>
+                        <div class="ui fluid input">
+                            <input id="sub_jobs_proc_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                        </div>
+                    </div>
+                    <div class="eight wide column">
                         <label for="build_parallelism__value">{% trans 'Build' %}</label>
                         <div class="ui fluid input">
-                            <input id="build_parallelism__value" type="text" value="{{ data.default.1.0 }}">
+                            <input id="build_parallelism__value" type="text" value="{{ data.default.1.1 }}">
                         </div>
                     </div>
                     <div class="eight wide column">
                         <label for="tasks_gen_parallelism__value">{% trans 'Tasks generation' %}</label>
                         <div class="ui fluid input">
-                            <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.1 }}">
+                            <input id="tasks_gen_parallelism__value" type="text" value="{{ data.default.1.2 }}">
                         </div>
                     </div>
                 </div>
                 <br>
                 {% for p in data.parallelism %}
                     <span class="get-attr-value">{{ p.1 }}
+                        <input class="sub_jobs_proc_parallelism" name="sub_jobs_proc_parallelism" type="hidden" value="{{ p.0 }}">
                         <input class="build_parallelism" name="build_parallelism" type="hidden" value="{{ p.0 }}">
                         <input class="tasks_gen_parallelism" name="tasks_gen_parallelism" type="hidden" value="{{ p.0 }}">
                     </span>
@@ -230,7 +238,17 @@
                 <br><br>
                 <div class="ui toggle checkbox">
                     <input id="ignore_core_checkbox" type="checkbox"{% if data.default.4.4 %} checked{% endif %}>
-                    <label for="ignore_core_checkbox">{% trans 'Ignore another instances of Klever Core' %}</label>
+                    <label for="ignore_core_checkbox">{% trans 'Ignore other instances of Klever Core' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="ignore_failed_sub_jobs_checkbox" type="checkbox"{% if data.default.4.5 %} checked{% endif %}>
+                    <label for="ignore_failed_sub_jobs_checkbox">{% trans 'Ignore failed sub-jobs' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <label for="is_job_light">{% trans 'Lightweight results' %}<i id="job_light_popup" class="ui help blue icon" data-content="{% trans 'Without safes and most of components' %}" data-variation="very wide"></i></label>
+                    <input id="is_job_light" type="checkbox"{% if data.default.4.6 %} checked{% endif %}>
                 </div>
             </div>
         </div>

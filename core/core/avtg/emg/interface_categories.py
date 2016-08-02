@@ -1,17 +1,37 @@
 import copy
 
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
-from core.avtg.emg.common.signature import BaseType, InterfaceReference, UndefinedReference, Primitive, Array, Function,\
-    Structure, Pointer, Union, import_signature
+from core.avtg.emg.common.signature import InterfaceReference, Primitive, Array, Function, Structure, Pointer, Union, \
+    refine_declaration, import_declaration
 
 
 class CategoriesSpecification:
+    """
+    Parser and importer of a interface categories specification which should be provided to a EMG plugin.
+    """
+
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
 
     @property
     def categories(self):
+        """
+        Return a list with names of all existing categories in a deterministic order.
+
+        :return: List of strings.
+        """
         return sorted(set([interface.category for interface in self.interfaces.values()]))
 
     def import_specification(self, specification):
+        """
+        Starts specification import.
+
+        First it creates Interface objects for each container, resource and callback in specification and then imports
+        kernel functions matching their parameters with already imported interfaces.
+        :param specification: Dictionary with content of a JSON specification prepared manually.
+        :return: None
+        """
         self.logger.info("Analyze provided interface categories specification")
         for category in sorted(specification["categories"]):
             self.logger.debug("Found interface category {}".format(category))
@@ -45,28 +65,66 @@ class CategoriesSpecification:
 
         # todo: import "kernel macro-functions" (issue #6573)
 
-        # Refine dirty declarations
+        # Refine "dirty" declarations
         self._refine_interfaces()
 
     def containers(self, category=None):
+        """
+        Return a list with deterministic order with all existing containers from a provided category or
+        with containers from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Container objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Container and
                 (not category or self.interfaces[name].category == category)]
 
     def callbacks(self, category=None):
+        """
+        Return a list with deterministic order with all existing callbacks from a provided category or
+        with callbacks from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Callback objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Callback and
                 (not category or self.interfaces[name].category == category)]
 
     def resources(self, category=None):
+        """
+        Return a list with deterministic order with all existing resources from a provided category or
+        with resources from all categories if the first parameter has not been provided.
+
+        :param category: Category name string.
+        :return: List with Resource objects.
+        """
         return [self.interfaces[name] for name in sorted(self.interfaces.keys())
                 if type(self.interfaces[name]) is Resource and
                 (not category or self.interfaces[name].category == category)]
 
     def uncalled_callbacks(self, category=None):
+        """
+        Returns a list with deterministic order which contains Callback from a given category or from all categories
+        that are not called in the environment model.
+
+        :param category: Category name string.
+        :return: List with Callback objects.
+        """
         return [cb for cb in self.callbacks(category) if not cb.called]
 
     def select_containers(self, field, signature=None, category=None):
+        """
+        Search for containers with a declaration of type Structure and with a provided field. If a signature parameter
+        is provided than those containers are chosen which additionaly has the field with the corresponding type.
+        Containers can be chosen from a provided categorty only.
+
+        :param field: Name of the structure field to match.
+        :param signature: Declaration object to match the field.
+        :param category: a category name string.
+        :return: List with Container objects.
+        """
         self.logger.debug("Search for containers which has field '{}'".format(field))
         return [container for container in self.containers(category)
                 if type(container.declaration) is Structure and
@@ -76,29 +134,46 @@ class CategoriesSpecification:
                   (not signature or container.declaration.fields[field].identifier == signature.identifier))) and
                 (not category or container.category == category)]
 
-    def resolve_containers(self, target, category=None):
-        self.logger.debug("Resolve containers for signature '{}'".format(target.identifier))
-        if target.identifier not in self._containers_cache:
-            self._containers_cache[target.identifier] = {}
+    def resolve_containers(self, declaration, category=None):
+        """
+        Tries to find containers from given category which contains an element or field of type according to
+        provided declaration.
 
-        if category and category not in self._containers_cache[target.identifier]:
+        :param declaration: Declaration of an element or a field.
+        :param category:  Category name string.
+        :return: List with Container objects.
+        """
+        self.logger.debug("Resolve containers for signature '{}'".format(declaration.identifier))
+        if declaration.identifier not in self._containers_cache:
+            self._containers_cache[declaration.identifier] = {}
+
+        if category and category not in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache miss")
-            cnts = self.__resolve_containers(target, category)
-            self._containers_cache[target.identifier][category] = cnts
+            cnts = self.__resolve_containers(declaration, category)
+            self._containers_cache[declaration.identifier][category] = cnts
             return cnts
-        elif not category and 'default' not in self._containers_cache[target.identifier]:
+        elif not category and 'default' not in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache miss")
-            cnts = self.__resolve_containers(target, category)
-            self._containers_cache[target.identifier]['default'] = cnts
+            cnts = self.__resolve_containers(declaration, category)
+            self._containers_cache[declaration.identifier]['default'] = cnts
             return cnts
-        elif category and category in self._containers_cache[target.identifier]:
+        elif category and category in self._containers_cache[declaration.identifier]:
             self.logger.debug("Cache hit")
-            return self._containers_cache[target.identifier][category]
+            return self._containers_cache[declaration.identifier][category]
         else:
             self.logger.debug("Cache hit")
-            return self._containers_cache[target.identifier]['default']
+            return self._containers_cache[declaration.identifier]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
+        """
+        Tries to find an interface which matches a type from a provided declaration from a given category.
+
+        :param signature: Declaration.
+        :param category: Category object.
+        :param use_cache: Flag that allows to use or omit cache - better to use cache only if all interfaces are
+                          extracted or generated and no new types or interfaces will appear.
+        :return: Returns list of Container objects.
+        """
         if type(signature) is InterfaceReference and signature.interface in self.interfaces:
             return [self.interfaces[signature.interface]]
         elif type(signature) is InterfaceReference and signature.interface not in self.interfaces:
@@ -118,6 +193,16 @@ class CategoriesSpecification:
             return self._interface_cache[signature.identifier]
 
     def resolve_interface_weakly(self, signature, category=None, use_cache=True):
+        """
+        Tries to find an interface which matches a type from a provided declaration from a given category. This
+        function allows to match pointers to a declaration or types to which given type points.
+
+        :param signature: Declaration.
+        :param category: Category object.
+        :param use_cache: Flag that allows to use or omit cache - better to use cache only if all interfaces are
+                          extracted or generated and no new types or interfaces will appear.
+        :return: Returns list of Container objects.
+        """
         self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
         intf = self.resolve_interface(signature, category, use_cache)
         if not intf and type(signature) is Pointer:
@@ -127,7 +212,18 @@ class CategoriesSpecification:
         return intf
 
     def implementations(self, interface, weakly=True):
-        self.logger.debug("Calculate inplementations for interface '{}'".format(interface.identifier))
+        """
+        Finds all implementations which are relevant toa given interface. This function finds all implementations
+        available for a given declaration in interface and tries to filter out that implementations which implements
+        the other interfaces with the same declaration. This can be done on base of connections with containers and
+        many other assumptions.
+
+        :param interface: Interface object.
+        :param weakly: Seach for implementations in implementations of pointers to given type or in implementations
+                       available for a type to which given type points.
+        :return: List of Implementation objects.
+        """
+        self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
             self.logger.debug("Cache hit")
@@ -144,13 +240,18 @@ class CategoriesSpecification:
             candidates = [interface.declaration.implementations[name] for name in
                           sorted(interface.declaration.implementations.keys())]
 
+        # Filter implementations with fixed interafces
+        if len(candidates) > 0:
+            candidates = [impl for impl in candidates
+                          if not impl.fixed_interface or impl.fixed_interface == interface.identifier]
+
         if len(candidates) > 0:
             # Filter filter interfaces
             implementations = []
             for impl in candidates:
                 if len(impl.sequence) > 0:
                     cnts = self.resolve_containers(interface)
-                    for cnt in cnts:
+                    for cnt in sorted(list(cnts.keys())):
                         cnt_intf = self.interfaces[cnt]
                         if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
                                 interface.identifier == cnt_intf.element_interface.identifier:
@@ -172,11 +273,18 @@ class CategoriesSpecification:
         if interface.identifier not in self._implementations_cache:
             self._implementations_cache[interface.identifier] = {'weak': None, 'strict': None}
 
+        # Sort results before saving
+        candidates = sorted(candidates, key=lambda i: i.identifier)
+
         if weakly and not self._implementations_cache[interface.identifier]['weak']:
             self._implementations_cache[interface.identifier]['weak'] = candidates
         elif not weakly and not self._implementations_cache[interface.identifier]['strict']:
             self._implementations_cache[interface.identifier]['strict'] = candidates
         return candidates
+
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
     def __resolve_containers(self, target, category):
         self.logger.debug("Calculate containers for signature '{}'".format(target.identifier))
@@ -185,79 +293,23 @@ class CategoriesSpecification:
                 if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
                 (type(container.declaration) is Array and container.contains(target))}
 
-    def _refine_declaration(self, declaration):
-        self.logger.debug("Refine dirty declaration '{}'".format(declaration.identifier))
-        if declaration.clean_declaration:
-            raise ValueError('Cannot clean already cleaned declaration')
-
-        if type(declaration) is UndefinedReference:
-            return None
-        elif type(declaration) is InterfaceReference:
-            if declaration.interface in self.interfaces and \
-                    self.interfaces[declaration.interface].declaration.clean_declaration:
-                if declaration.pointer:
-                    return self.interfaces[declaration.interface].declaration.take_pointer
-                else:
-                    return self.interfaces[declaration.interface].declaration
-            else:
-                return None
-        elif type(declaration) is Function:
-            refinement = False
-            ret = True
-            cp_declaration = copy.copy(declaration)
-            
-            if cp_declaration.return_value and not cp_declaration.return_value.clean_declaration:
-                rv = self._refine_declaration(cp_declaration.return_value)
-                if rv:
-                    cp_declaration.return_value = rv
-                    refinement = True
-                else:
-                    ret = False
-
-            for index in range(len(cp_declaration.parameters)):
-                if type(cp_declaration.parameters[index]) is not str and \
-                        not cp_declaration.parameters[index].clean_declaration:
-                    pr = self._refine_declaration(cp_declaration.parameters[index])
-                    if pr:
-                        cp_declaration.parameters[index] = pr
-                        refinement = True
-                    else:
-                        ret = False
-
-            if refinement and cp_declaration.identifier in self.types:
-                declaration = self.types[cp_declaration.identifier]
-            elif refinement:
-                declaration.return_value = cp_declaration.return_value
-                declaration.parameters = cp_declaration.parameters
-                # Identifier has been changed!
-                self.types[declaration.identifier] = declaration
-
-            if ret:
-                return declaration
-            else:
-                return None
-        elif type(declaration) is Pointer and type(declaration.points) is Function:
-            func = self._refine_declaration(declaration.points)
-            if func:
-                return func.take_pointer
-            else:
-                return None
-        else:
-            raise ValueError('Cannot clean non-function or interface-reference')
-
     def _refine_interfaces(self):
         # Clean declarations if it is poissible
         self.logger.debug('Clean all interface declarations from InterfaceReferences')
         clean_flag = True
+
+        # Do refinements until nothing can be changed
         while clean_flag:
             clean_flag = False
 
-            for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())]:
+            # Refine ordinary interfaces
+            for interface in [self.interfaces[name] for name in sorted(self.interfaces.keys())] + \
+                             [self.kernel_functions[name] for name in sorted(self.kernel_functions.keys())]:
                 if not interface.declaration.clean_declaration:
-                    new_declaration = self._refine_declaration(interface.declaration)
+                    refined = refine_declaration(self.interfaces, interface.declaration)
 
-                    if new_declaration:
-                        interface.declaration = new_declaration
+                    if refined:
+                        interface.declaration = refined
                         clean_flag = True
 
         self.logger.debug("Restore field declarations in structure declarations")
@@ -265,9 +317,11 @@ class CategoriesSpecification:
                           type(intf.declaration) is Structure]:
             for field in [field for field in sorted(structure.declaration.fields.keys())
                           if not structure.declaration.fields[field].clean_declaration]:
-                new_declaration = self._refine_declaration(structure.declaration.fields[field])
+                new_declaration = refine_declaration(self.interfaces, structure.declaration.fields[field])
                 if new_declaration:
                     structure.declaration.fields[field] = new_declaration
+
+        return
 
     def _fulfill_function_interfaces(self, interface, category=None):
         self.logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
@@ -306,13 +360,13 @@ class CategoriesSpecification:
                     p_interface = self.resolve_interface(declaration.parameters[index], category, False)
                     if len(p_interface) == 0:
                         p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
-
                     if len(p_interface) == 1:
-                        p_interface = p_interface[-1]
+                        p_interface = p_interface[0]
                     elif len(p_interface) == 0:
                         p_interface = None
                     else:
-                        raise ValueError('Cannot match parameter with two or more interfaces')
+                        # todo: how to match several interfaces with the same signature?
+                        p_interface = p_interface[0]
                 else:
                     p_interface = None
 
@@ -330,7 +384,7 @@ class CategoriesSpecification:
 
             self.logger.debug("Import kernel function description '{}'".format(identifier))
             interface = KernelFunction(identifier, collection[category_name][identifier]["header"])
-            interface.declaration = import_signature(collection[category_name][identifier]["signature"])
+            interface.declaration = import_declaration(collection[category_name][identifier]["signature"])
             if type(interface.declaration) is Function:
                 self._fulfill_function_interfaces(interface)
             else:
@@ -353,7 +407,10 @@ class CategoriesSpecification:
             interface.header = desc["header"]
 
         if "signature" in desc:
-            interface.declaration = import_signature(desc["signature"])
+            interface.declaration = import_declaration(desc["signature"])
+
+        if "interrupt context" in desc and desc["interrupt context"]:
+            interface.interrupt_context = True
 
         return interface
 
@@ -381,7 +438,7 @@ class CategoriesSpecification:
                 # Import field interfaces
                 if "fields" in dictionary['containers'][identifier]:
                     for field in sorted(dictionary['containers'][identifier]["fields"].keys()):
-                        f_signature = import_signature(dictionary['containers'][identifier]["fields"][field])
+                        f_signature = import_declaration(dictionary['containers'][identifier]["fields"][field])
                         self.interfaces[fi].field_interfaces[field] = self.interfaces[f_signature.interface]
                         self.interfaces[fi].declaration.fields[field] = f_signature
 

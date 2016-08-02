@@ -148,4 +148,7 @@ def get_solution_description(**kwargs):
 def solution_delete(**kwargs):
     file = kwargs['instance']
     storage, path = file.archive.storage, file.archive.path
-    storage.delete(path)
+    try:
+        storage.delete(path)
+    except PermissionError:
+        pass

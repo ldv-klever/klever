@@ -24,6 +24,10 @@
                         <th class="right aligned">{% trans 'Format' %}</th>
                         <td>{{ mark.format }}</td>
                     </tr>
+                    <tr>
+                        <th class="right aligned">{% trans 'Source' %}</th>
+                        <td>{{ mark.get_type_display }}</td>
+                    </tr>
                     {% if markdata.type == 'unknown' %}
                         <tr>
                             <th class="right aligned">{% trans 'Component' %}</th>
@@ -76,7 +80,7 @@
                                         {% if v.href %}
                                             <a href="{{ v.href }}">{{ v.value }}</a>
                                         {% else %}
-                                            <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                            <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
                                         {% endif %}
                                     </td>
                                 {% endfor %}
@@ -100,7 +104,7 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/Tags.html' %}
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 </div>
                 <div class="ui teal segment">
                     <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
@@ -148,7 +152,7 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/Tags.html' %}
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 </div>
                 <div class="ui styled accordion fluid">
                     <div class="title">

@@ -1,15 +1,25 @@
 import json
+import re
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.common.interface import Container, Resource, Callback, KernelFunction
 from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, Primitive, InterfaceReference, \
-    setup_collection, import_signature, import_typedefs, extract_name, check_null
+    setup_collection, import_declaration, import_typedefs, extract_name, check_null
+from core.avtg.emg import tarjan
 
 
 class ModuleCategoriesSpecification(CategoriesSpecification):
+    """Implements parser of source analysis and representation of module interface categories specification."""
 
-    def __init__(self, logger):
+    def __init__(self, logger, conf):
+        """
+        Setup initial attributes and get logger object.
+
+        :param logger: logging object.
+        :param conf: Configuration properties dictionary.
+        """
         self.logger = logger
+        self.conf = conf
         self.interfaces = {}
         self.kernel_functions = {}
         self.kernel_macro_functions = {}
@@ -23,10 +33,25 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self._implementations_cache = {}
         self._containers_cache = {}
         self._interface_cache = {}
+        self._function_calls_cache = {}
+        self._kernel_function_calls_cache = {}
 
         setup_collection(self.types, self.typedefs)
 
-    def import_specification(self, specification=None, module_specification=None, analysis=None):
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
+
+    def import_specification(self, avt, specification=None, module_specification=None, analysis=None):
+        """
+        Perform main routin with import of interface categories specification and then results of source analysis.
+        After that object contains only relevant to environment generation interfaces and their implementations.
+
+        :param specification: Dictionary with content of a JSON specification prepared manually.
+        :param module_specification: Dictionary with content of manually prepared module categories specification.
+        :param analysis: Dictionary with content of source analysis.
+        :return: None
+        """
         # Import typedefs if there are provided
         if analysis and 'typedefs' in analysis:
             import_typedefs(analysis['typedefs'])
@@ -41,7 +66,97 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Import source analysis
         self.logger.info("Import results of source code analysis")
-        self.__import_source_analysis(analysis)
+        self.__import_source_analysis(analysis, avt)
+
+    def collect_relevant_models(self, function):
+        """
+        Collects all kernel functions which can be called in a callstack of a provided module function.
+
+        :param function: Module function name string.
+        :return: List with kernel functions name strings.
+        """
+        self.logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
+        if not function in self._kernel_function_calls_cache:
+            level_counter = 0
+            max_level = None
+
+            if 'callstack deep search' in self.conf:
+                max_level = int(self.conf['callstack deep search'])
+
+            # Simple BFS with deep counting from the given function
+            relevant = set()
+            level_functions = {function}
+            processed = set()
+            while len(level_functions) > 0 and (not max_level or level_counter < max_level):
+                next_level = set()
+
+                for fn in level_functions:
+                    # kernel functions + modules functions
+                    kfs, mfs = self.__functions_called_in(fn, processed)
+                    next_level.update(mfs)
+                    relevant.update(kfs)
+
+                level_functions = next_level
+                level_counter += 1
+
+            self._kernel_function_calls_cache[function] = relevant
+        else:
+            self.logger.debug('Cache hit')
+            relevant = self._kernel_function_calls_cache[function]
+
+        return sorted(relevant)
+
+    def find_relevant_function(self, parameter_interfaces):
+        """
+        Get a list of options of function parameters (interfaces) and tries to find a kernel function which would
+        has a prameter from each provided set in its parameters.
+
+        :param interface: List with lists of Interface objects.
+        :return: List with dictionaries:
+                 {"function" -> 'KernelFunction obj', 'parameters' -> [Interfaces objects]}.
+        """
+        matches = []
+        for function in self.kernel_functions.values():
+            match = {
+                "function": function,
+                "parameters": []
+            }
+            if len(parameter_interfaces) > 0:
+                # Match parameters
+                params = []
+                suits = 0
+                for index in range(len((parameter_interfaces))):
+                    found = 0
+                    for param in (p for p in function.param_interfaces[index:] if p):
+                        for option in parameter_interfaces[index]:
+                            if option.identifier == param.identifier:
+                                found = param
+                                break
+                        if found:
+                            break
+                    if found:
+                        suits += 1
+                        params.append(param)
+                if suits == len(parameter_interfaces):
+                    match["parameters"] = params
+                    matches.append(match)
+
+        return matches
+
+    @staticmethod
+    def callback_name(call):
+        """
+        Resolve function name from simple expressions which contains explicit function name like '& myfunc', '(myfunc)',
+        '(& myfunc)' or 'myfunc'.
+
+        :param call: Expression string.
+        :return: Function name string.
+        """
+        name_re = re.compile("\(?\s*&?\s*(\w+)\s*\)?$")
+        if name_re.fullmatch(call):
+            return name_re.fullmatch(call).group(1)
+        else:
+            return None
 
     def save_to_file(self, file):
         raise NotImplementedError
@@ -52,25 +167,37 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #with open(file, "w", encoding="ascii") as fh:
         #    fh.write(content)
 
-    def collect_relevant_models(self, function):
-        self.logger.debug("Collect relevant kernel functions called in a call stack of function ''".format(function))
-        process_names = [function]
-        processed_names = []
-        relevant = []
-        while len(process_names) > 0:
-            name = process_names.pop()
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
-            if name in self.modules_functions:
-                for file in sorted(self.modules_functions[name].keys()):
-                    for called in self.modules_functions[name][file]['calls']:
-                        if called in self.modules_functions and called not in processed_names and \
-                                called not in process_names:
-                            process_names.append(called)
+    def __functions_called_in(self, function, processed):
+        kfs = set()
+        mfs = set()
+        processed.add(function)
+
+        if function in self.modules_functions:
+            self.logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
+            if function in self._function_calls_cache:
+                self.logger.debug("Cache hit")
+                return self._function_calls_cache[function]
+            else:
+                for file in sorted(self.modules_functions[function].keys()):
+                    for called in self.modules_functions[function][file]['calls']:
+                        if called in self.modules_functions and called not in processed:
+                            mfs.add(called)
                         elif called in self.kernel_functions:
-                            relevant.append(called)
+                            kfs.add(called)
 
-            processed_names.append(name)
-        return relevant
+                self._function_calls_cache[function] = [kfs, mfs]
+        return kfs, mfs
+
+    def determine_original_file(self, label_value):
+        label_name = self.callback_name(label_value)
+        if label_name and label_name in self.modules_functions:
+            # todo: if several files exist?
+            return list(self.modules_functions[label_name])[0]
+        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
 
     @staticmethod
     def __check_category_relevance(function):
@@ -78,10 +205,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         if function.rv_interface:
             relevant.append(function.rv_interface)
-        else:
-            for parameter in function.param_interfaces:
-                if parameter:
-                    relevant.append(parameter)
+        for parameter in function.param_interfaces:
+            if parameter:
+                relevant.append(parameter)
 
         return relevant
 
@@ -107,9 +233,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if not interface.declaration.clean_declaration:
             interface.declaration = declaration
 
-    def __import_source_analysis(self, analysis):
+    def __import_source_analysis(self, analysis, avt):
         self.logger.info("Import modules init and exit functions")
-        self.__import_inits_exits(analysis)
+        self.__import_inits_exits(analysis, avt)
 
         self.logger.info("Extract complete types definitions")
         self.__extract_types(analysis)
@@ -126,16 +252,26 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         self.logger.info("Both specifications are imported and categories are merged")
 
-    def __import_inits_exits(self, analysis):
+    def __import_inits_exits(self, analysis, avt):
         self.logger.debug("Move module initilizations functions to the modules interface specification")
+        deps = {}
+        for module, dep in avt['deps'].items():
+            deps[module] = list(sorted(dep))
+        order = tarjan.calculate_load_order(self.logger, deps)
+        order_c_files = []
+        for module in order:
+            for module2 in avt['grps']:
+                if module2['id'] != module:
+                    continue
+                order_c_files.extend([file['in file'] for file in module2['cc extra full desc files']])
         if "init" in analysis:
-            self.inits = analysis["init"]
+            self.inits = [(module, analysis['init'][module]) for module in order_c_files if module in analysis["init"]]
         if len(self.inits) == 0:
             raise ValueError('There is no module initialization function provided')
 
         self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
-            self.exits = analysis["exit"]
+            self.exits = list(reversed([(module, analysis['exit'][module]) for module in order_c_files if module in analysis['exit']]))
         if len(self.exits) == 0:
             self.logger.warning('There is no module exit function provided')
 
@@ -150,7 +286,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 if not variable_name:
                     raise ValueError('Global variable without a name')
 
-                signature = import_signature(variable['declaration'])
+                signature = import_declaration(variable['declaration'])
                 if type(signature) is Structure or type(signature) is Array or type(signature) is Union:
                     entity = {
                         "path": variable['path'],
@@ -174,13 +310,17 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.logger.info("Import types from kernel functions")
             for function in sorted(analysis['kernel functions'].keys()):
                 self.logger.debug("Parse signature of function {}".format(function))
-                declaration = import_signature(analysis['kernel functions'][function]['signature'])
+                declaration = import_declaration(analysis['kernel functions'][function]['signature'])
 
                 if function in self.kernel_functions:
                     self.__set_declaration(self.kernel_functions[function], declaration)
                 else:
                     new_intf = KernelFunction(function, analysis['kernel functions'][function]['header'])
                     new_intf.declaration = declaration
+                    self.kernel_functions[function] = new_intf
+
+                self.kernel_functions[function].files_called_at.\
+                    update(set(analysis['kernel functions'][function]["called at"]))
 
         # Remove dirty declarations
         self._refine_interfaces()
@@ -196,8 +336,11 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 for path in sorted(module_function["files"].keys()):
                     self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
-                        {'declaration': import_signature(module_function["files"][path]["signature"])}
+                        {'declaration': import_declaration(module_function["files"][path]["signature"])}
 
+                    if "called at" in module_function["files"][path]:
+                        modules_functions[function][path]["called at"] = \
+                            set(module_function["files"][path]["called at"])
                     if "calls" in module_function["files"][path]:
                         modules_functions[function][path]['calls'] = module_function["files"][path]['calls']
                         for kernel_function in [name for name in sorted(module_function["files"][path]["calls"].keys())
@@ -209,12 +352,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                 for index in [index for index in range(len(call))
                                               if call[index] and
                                               check_null(kf.declaration, call[index])]:
-                                    kf.declaration.parameters[index].\
+                                    new = kf.declaration.parameters[index].\
                                         add_implementation(call[index], path, None, None, [])
+                                    if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
+                                        new.fixed_interface = kf.param_interfaces[index].identifier
 
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in sorted(self.kernel_functions.keys()):
-            if len(self.kernel_functions[function].called_at) == 0:
+            if len(self.kernel_functions[function].functions_called_at) == 0:
                 del self.kernel_functions[function]
 
         self.modules_functions = modules_functions
@@ -269,7 +414,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         field = extract_name(entry['field'])
                         # Ignore actually unions and structures without a name
                         if field:
-                            e_bt = import_signature(entry['field'], None, bt)
+                            e_bt = import_declaration(entry['field'], None)
+                            e_bt.add_parent(bt)
                             new_sequence = list(entity["root sequence"])
                             new_sequence.append(field)
 
@@ -313,6 +459,21 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             for parameter in [p for p in signature.points.parameters if type(p) is not str]:
                 self.__add_interface_candidate(parameter, 'resources', category)
 
+    def __not_violate_specification(self, declaration1, declaration2):
+        intf1 = self.resolve_interface_weakly(declaration1, None, False)
+        intf2 = self.resolve_interface_weakly(declaration2, None, False)
+
+        if intf1 and intf2:
+            categories1 = set([intf.category for intf in intf1])
+            categories2 = set([intf.category for intf in intf2])
+
+            if len(categories1.symmetric_difference(categories2)) == 0:
+                return True
+            else:
+                return False
+        else:
+            return True
+
     def __extract_categories(self):
         structures = [self.types[name] for name in sorted(self.types.keys()) if type(self.types[name]) is Structure and
                       len([self.types[name].fields[nm] for nm in sorted(self.types[name].fields.keys())
@@ -336,13 +497,15 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     for field in sorted(tp.fields.keys()):
                         if type(tp.fields[field]) is Pointer and \
                                 (type(tp.fields[field].points) is Array or
-                                 type(tp.fields[field].points) is Structure):
+                                 type(tp.fields[field].points) is Structure) and \
+                                self.__not_violate_specification(tp.fields[field].points, tp):
                             self.__add_to_processing(tp.fields[field].points, to_process, category)
                             c_flag = True
                         if type(tp.fields[field]) is Pointer and type(tp.fields[field].points) is Function:
                             self.__add_callback(tp.fields[field], category, field)
                             c_flag = True
-                        elif type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure:
+                        elif (type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure) and \
+                                self.__not_violate_specification(tp.fields[field], tp):
                             self.__add_to_processing(tp.fields[field], to_process, category)
                             c_flag = True
 
@@ -353,24 +516,26 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 elif type(tp) is Array:
                     if type(tp.element) is Pointer and \
                             (type(tp.element.points) is Array or
-                             type(tp.element.points) is Structure):
+                             type(tp.element.points) is Structure) and \
+                            self.__not_violate_specification(tp.element.points, tp):
                         self.__add_to_processing(tp.element.points, to_process, category)
                         self.__add_interface_candidate(tp, 'containers', category)
                     elif type(tp.element) is Pointer and type(tp.element) is Function:
                         self.__add_callback(tp.element, category)
                         self.__add_interface_candidate(tp, 'containers', category)
-                    elif type(tp.element) is Array or type(tp.element) is Structure:
+                    elif (type(tp.element) is Array or type(tp.element) is Structure) and \
+                            self.__not_violate_specification(tp.element, tp):
                         self.__add_to_processing(tp.element, to_process, category)
                         self.__add_interface_candidate(tp, 'containers', category)
                 if (type(tp) is Array or type(tp) is Structure) and len(tp.parents) > 0:
                     for parent in tp.parents:
-                        if type(parent) is Structure or \
-                           type(parent) is Array:
+                        if (type(parent) is Structure or
+                            type(parent) is Array) and self.__not_violate_specification(parent, tp):
                             self.__add_to_processing(parent, to_process, category)
                         elif type(parent) is Pointer and len(parent.parents) > 0:
                             for ancestor in parent.parents:
-                                if type(ancestor) is Structure or \
-                                   type(ancestor) is Array:
+                                if (type(ancestor) is Structure or
+                                    type(ancestor) is Array) and self.__not_violate_specification(ancestor, tp):
                                     self.__add_to_processing(ancestor, to_process, category)
 
             if len(category['callbacks']) > 0:

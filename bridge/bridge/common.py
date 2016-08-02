@@ -96,17 +96,18 @@ KLEVER_CORE_LOG_FORMATTERS = {
 }
 
 # Each Klever Core parallelism pack represents set of numbers of parallel threads/processes for following actions:
+#   sub-jobs processing,
 #   build,
 #   tasks generation.
 # WARNING!!! Change also KLEVER_CORE_PARALLELISM from bridge.vars when you change these packs
 KLEVER_CORE_PARALLELISM_PACKS = {
-    'sequential': (1, 1),
-    'slow': (2, 2),
-    'quick': (1.0, 1.0),
-    'very quick': (2.0, 2.0),
+    'sequential': (1, 1, 1),
+    'slow': (1, 2, 2),
+    'quick': (1, 1.0, 1.0),
+    'very quick': (1, 2.0, 2.0),
 }
 
-LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
+LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
 
 # Each Klever Core mode represents sets of values for following sets of attributes:
 #   scheduling:
@@ -130,7 +131,9 @@ LOGGING_LEVELS = ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTSET']
 #   upload input files of static verifiers - True or False,
 #   upload other intermediate files - True or False,
 #   allow local source directories use - True or False,
-#   ignore another instances - True or False.
+#   ignore other instances - True or False,
+#   ignore failed sub-jobs - True of False.
+#   lightweight decision - True of False.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
@@ -138,8 +141,8 @@ DEF_KLEVER_CORE_MODES = [
             ['LOW', '0', 'balance'],
             'slow',
             [1.0, 2, 100.0, None, None, None],
-            ['WARNING', 'brief', 'INFO', 'brief'],
-            False, False, False, False, False
+            ['NONE', 'brief', 'NONE', 'brief'],
+            False, False, False, False, False, False, True
         ]
     },
     {
@@ -148,7 +151,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True
+            True, True, False, True, True, True, False
         ]
     },
     {
@@ -157,7 +160,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True
+            True, True, True, True, True, True, False
         ]
     },
 ]
@@ -167,6 +170,7 @@ DEF_USER = {
     'language': 'en',  # See bridge.vars.LANGUAGES for options
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
+    'assumptions': False
 }
 
 LOGGING = {

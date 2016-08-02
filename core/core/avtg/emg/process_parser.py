@@ -1,9 +1,21 @@
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
 
+####################################################################################################################
+# PUBLIC FUNCTIONS
+####################################################################################################################
+
 
 def parse_event_specification(logger, raw):
+    """
+    Parse event categories specification and create all existing Process objects.
+
+    :param logger: logging object.
+    :param raw: Dictionary with content of JSON file of a specification.
+    :return: [List of Process objects which correspond to kernel function models],
+             [List of Process objects which correspond to processes with callback calls]
+    """
     env_processes = {}
     models = {}
 
@@ -28,6 +40,10 @@ def parse_event_specification(logger, raw):
 
     return models, env_processes
 
+####################################################################################################################
+# PRIVATE FUNCTIONS
+####################################################################################################################
+
 
 def __import_process(name, dic):
     process = Process(name)
@@ -37,7 +53,7 @@ def __import_process(name, dic):
             label = Label(name)
             process.labels[name] = label
 
-            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer']:
+            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file']:
                 if att in dic['labels'][name]:
                     setattr(label, att, dic['labels'][name][att])
 
@@ -50,7 +66,7 @@ def __import_process(name, dic):
                 else:
                     TypeError('Expect list or string with interface identifier')
             if 'signature' in dic['labels'][name]:
-                label.prior_signature = import_signature(dic['labels'][name]['signature'])
+                label.prior_signature = import_declaration(dic['labels'][name]['signature'])
 
     # Import process
     process_strings = []
@@ -69,6 +85,7 @@ def __import_process(name, dic):
 
     for subprocess_name in process.actions:
         regexes = generate_regex_set(subprocess_name)
+        matched = False
 
         for regex in regexes:
             for string in process_strings:
@@ -81,7 +98,12 @@ def __import_process(name, dic):
                     else:
                         act = process_type(subprocess_name)
                     process.actions[subprocess_name] = act
+                    matched = True
                     break
+
+        if not matched:
+            raise ValueError("Action '{}' is not used in process description '{}'".
+                             format(subprocess_name, name))
 
         # Values from dictionary
         if 'callback' in dic['actions'][subprocess_name]:
@@ -90,6 +112,14 @@ def __import_process(name, dic):
         # Add parameters
         if 'parameters' in dic['actions'][subprocess_name]:
             process.actions[subprocess_name].parameters = dic['actions'][subprocess_name]['parameters']
+
+        # Add pre-callback operations
+        if 'pre-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].pre_call = dic['actions'][subprocess_name]['pre-call']
+
+        # Add post-callback operations
+        if 'post-call' in dic['actions'][subprocess_name]:
+            process.actions[subprocess_name].post_call = dic['actions'][subprocess_name]['post-call']
 
         # Add callback return value
         if 'callback return value' in dic['actions'][subprocess_name]:

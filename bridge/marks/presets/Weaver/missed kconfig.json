@@ -1,5 +1,0 @@
-{
-  "function": "fatal error: include/linux/kconfig.h: No such file or directory",
-  "pattern": "KconfigMiss",
-  "description": "Header \"include/linux/kconfig.h\" was introduced just in Linux 3.0 (https://git.kernel.org/cgit/linux/kernel/git/torvalds/linux.git/log/include/linux/kconfig.h). But would we like to support the Linux kernel prior 3.0?.."
-}

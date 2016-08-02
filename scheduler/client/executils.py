@@ -1,3 +1,4 @@
+import glob
 import logging
 import uuid
 import re
@@ -85,7 +86,7 @@ def extract_description(solution_dir, description_file):
         description["status"] = "killed by signal"
     elif "return value" in description:
         if description["return value"] == 0:
-            if os.path.isfile(os.path.join(solution_dir, 'witness.graphml')):
+            if glob.glob(os.path.join(solution_dir, "output", "witness.*.graphml")):
                 description["status"] = "unsafe"
             else:
                 description["status"] = "safe"

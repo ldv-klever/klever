@@ -56,16 +56,16 @@ class Session:
                 self.logger.warning('Could not send "{0}" request to "{1}"'.format(method, url))
                 time.sleep(1)
 
-    def decide_job(self, job, start_report_file):
+    def start_job_decision(self, job, start_report_file):
         # TODO: report is likely should be compressed.
         with open(start_report_file, encoding='ascii') as fp:
             resp = self.__request('jobs/decide_job/', {
-                'job format': job.format,
+                'job format': job.FORMAT,
                 'report': fp.read()
             }, stream=True)
 
-        self.logger.debug('Write job archive to "{0}'.format(job.archive))
-        with open(job.archive, 'wb') as fp:
+        self.logger.debug('Write job archive to "{0}'.format(job.ARCHIVE))
+        with open(job.ARCHIVE, 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 

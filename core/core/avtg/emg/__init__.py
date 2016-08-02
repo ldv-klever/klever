@@ -1,7 +1,8 @@
 import json
 import os
+import re
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 from core.avtg.emg.interface_categories import CategoriesSpecification
@@ -10,28 +11,50 @@ from core.avtg.emg.process_parser import parse_event_specification
 from core.avtg.emg.intermediate_model import ProcessModel
 
 
-class EMG(core.components.Component):
+class EMG(core.avtg.plugins.Plugin):
+    """
+    EMG plugin for environment model generation.
+    """
+
+    specification_extension_re = re.compile('.json$')
+
+    ####################################################################################################################
+    # PUBLIC METHODS
+    ####################################################################################################################
 
     def generate_environment(self):
+        """
+        Main function of EMG plugin.
+
+        Plugin generates an environment model for a module (modules) in abstract verification task. The model is
+        represented in as a set of aspect files which will be included after generation to an abstract verification
+        task.
+
+        :return: None
+        """
         self.logger.info("Start environment model generator {}".format(self.id))
 
         # Initialization of EMG
         self.logger.info("============== Initialization stage ==============")
 
-        self.logger.info("Going to extract abstract verification task from queue")
-        avt = self.mqs['abstract task description'].get()
-        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
-
         self.logger.info("Expect directory with specifications provided via configuration property "
                          "'specifications directory'")
-        spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                               self.conf["specifications directory"])
+        spec_dir = self.__get_path(self.conf, "specifications directory")
 
         self.logger.info("Import results of source analysis from SA plugin")
-        analysis = self.__get_analysis(avt)
+        analysis = self.__get_analysis(self.abstract_task_desc)
 
         # Choose translator
-        tr = self.__get_translator(avt)
+        tr = self.__get_translator(self.abstract_task_desc)
+
+        # Get instance maps if possible
+        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
+        if 'EMG instances' in self.conf:
+            with open(core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
+                                                  self.conf['EMG instances']), encoding='ascii') as fp:
+                emg_instances = json.load(fp)
+            if vo_identifier in emg_instances:
+                tr.instance_maps = emg_instances[vo_identifier]
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
@@ -40,8 +63,8 @@ class EMG(core.components.Component):
 
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
-        mcs = ModuleCategoriesSpecification(self.logger)
-        mcs.import_specification(interface_spec, module_interface_spec, analysis)
+        mcs = ModuleCategoriesSpecification(self.logger, self.conf)
+        mcs.import_specification(self.abstract_task_desc, interface_spec, module_interface_spec, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 
@@ -51,7 +74,8 @@ class EMG(core.components.Component):
 
         if 'intermediate model options' not in self.conf:
             self.conf['intermediate model options'] = {}
-        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes)
+        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes,
+                             self.__get_json_content(self.conf['intermediate model options'], "map file"))
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
@@ -60,10 +84,31 @@ class EMG(core.components.Component):
         tr.translate(mcs, model)
         self.logger.info("An environment model has been generated successfully")
 
-        self.logger.info("Add generated environment model to the abstract verification task")
-        self.mqs['abstract task description'].put(avt)
+        # Dump to disk instance map
+        instance_map_file = 'instance map.json'
+        self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
+        with open(instance_map_file, "w") as fh:
+            fh.writelines(json.dumps(tr.instance_maps, sort_keys=True, indent=4))
 
-        self.logger.info("Environment model generator successfully finished")
+        # Send data to the server
+        self.logger.info("Send data on generated instances to server")
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps(
+                                  {self.abstract_task_desc['attrs'][0]['verification object']: tr.instance_maps},
+                                  sort_keys=True, indent=4
+                              )
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
+    main = generate_environment
+
+    ####################################################################################################################
+    # PRIVATE METHODS
+    ####################################################################################################################
 
     def __read_additional_content(self, file_type):
         lines = []
@@ -101,22 +146,18 @@ class EMG(core.components.Component):
         if "translator" in self.conf:
             translator_name = self.conf["translator"]
         else:
-            translator_name = "sequential"
+            translator_name = "default"
         self.logger.info("Translation module {} has been chosen".format(translator_name))
 
         translator = getattr(__import__("core.avtg.emg.translator.{}".format(translator_name),
                                         fromlist=['Translator']),
                              'Translator')
 
-        # Import auxilary files for environment model
-        self.logger.info("Check whether additional header files are provided to be included in an environment model")
-        headers_lines = self.__read_additional_content("headers")
-
         # Import additional aspect files
         self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
         aspect_lines = self.__read_additional_content("aspects")
 
-        return translator(self.logger, self.conf, avt, headers_lines, aspect_lines)
+        return translator(self.logger, self.conf, avt, aspect_lines)
 
     def __get_specs(self, logger, directory):
         """
@@ -136,26 +177,23 @@ class EMG(core.components.Component):
                               format(len(files)))
 
         for file in files:
-            logger.info("Import content of specification file {}".format(file))
-            with open(file, encoding="ascii") as fh:
-                spec = json.loads(fh.read())
+            if self.specification_extension_re.search(file):
+                logger.info("Import content of specification file {}".format(file))
+                with open(file, encoding="ascii") as fh:
+                    spec = json.loads(fh.read())
 
-            logger.info("Going to analyze content of specification file {}".format(file))
+                logger.info("Going to analyze content of specification file {}".format(file))
 
-            if "categories" in spec and "interface implementations" in spec:
-                # todo: not supported yet
-                logger.info("Specification file {} is treated as module interface specification".format(file))
-                module_interface_spec = spec
-            elif "categories" in spec and "interface implementations" not in spec:
-                logger.info("Specification file {} is treated as interface categories specification".format(file))
-                interface_spec = spec
-            elif "environment processes" in spec:
-                logger.info("Specification file {} is treated as event categories specification".format(file))
-                event_categories_spec = spec
-            else:
-                raise FileNotFoundError("Specification file {} does not match interface categories specification nor it"
-                                        " matches event categories specification, please check its content".
-                                        format(file))
+                if "categories" in spec and "interface implementations" in spec:
+                    # todo: not supported yet
+                    logger.info("Specification file {} is treated as module interface specification".format(file))
+                    module_interface_spec = spec
+                elif "categories" in spec and "interface implementations" not in spec:
+                    logger.info("Specification file {} is treated as interface categories specification".format(file))
+                    interface_spec = spec
+                elif "environment processes" in spec:
+                    logger.info("Specification file {} is treated as event categories specification".format(file))
+                    event_categories_spec = spec
 
         if not interface_spec:
             raise FileNotFoundError("Environment model generator missed an interface categories specification")
@@ -164,6 +202,20 @@ class EMG(core.components.Component):
 
         return interface_spec, module_interface_spec, event_categories_spec
 
-    main = generate_environment
+    def __get_path(self, conf, prop):
+        if prop in conf:
+            spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], conf[prop])
+            return spec_dir
+        else:
+            return None
+
+    def __get_json_content(self, conf, prop):
+        file = self.__get_path(conf, prop)
+        if file:
+            with open(file, encoding="ascii") as fh:
+                content = json.loads(fh.read())
+            return content
+        else:
+            return None
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

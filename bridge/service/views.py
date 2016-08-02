@@ -1,15 +1,14 @@
 import os
 import mimetypes
 from urllib.parse import quote
-from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
 from bridge.utils import unparallel_group, unparallel
+from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
-from service.test import *
 
 
 # Case 3.1(3)
@@ -70,7 +69,8 @@ def download_solution(request):
     if result.task.status == TASK_STATUS[3][0]:
         return JsonResponse({'task error': result.task.error})
     mimetype = mimetypes.guess_type(os.path.basename(result.solution.archname))[0]
-    response = HttpResponse(result.solution.archive.read(), content_type=mimetype)
+    with result.solution.archive as fp:
+        response = HttpResponse(fp.read(), content_type=mimetype)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.solution.archname)
     return response
 
@@ -146,7 +146,8 @@ def download_task(request):
         return JsonResponse({'error': result.error + ''})
 
     mimetype = mimetypes.guess_type(os.path.basename(result.task.archname))[0]
-    response = HttpResponse(result.task.archive.read(), content_type=mimetype)
+    with result.task.archive as fp:
+        response = HttpResponse(fp.read(), content_type=mimetype)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.task.archname)
     return response
 

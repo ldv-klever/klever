@@ -5,6 +5,19 @@
         <i class="filter icon"></i>{% trans 'View' %} ({% if view_id == 'default' %}{% trans 'Default' %}{% elif view_id %}{% for v in views %}{% if v.id == view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <div class="content ui small form">
+        <h5>{% trans 'Columns' %}</h5>
+        <div class="ui checkbox">
+            <input type="checkbox" id="list_filter_checkbox__marks_number"{% if 'marks_number' in view.columns %} checked{% endif %}>
+            <label for="list_filter_checkbox__marks_number">{% trans 'Number of associated marks' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="list_filter_checkbox__report_verdict"{% if 'report_verdict' in view.columns %} checked{% endif %}>
+            <label for="list_filter_checkbox__report_verdict">{% trans 'Total verdict' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="list_filter_checkbox__tags"{% if 'tags' in view.columns %} checked{% endif %}>
+            <label for="list_filter_checkbox__tags">{% trans 'Tags' %}</label>
+        </div><br>
         <h5 class="header">{% trans 'Order by attribute' %}</h5>
         <div class="ui grid">
             <div class="two wide column">

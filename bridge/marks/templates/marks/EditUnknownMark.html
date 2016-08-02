@@ -44,6 +44,10 @@
                             <td>{{ mark.format }}</td>
                         </tr>
                         <tr>
+                            <th class="right aligned">{% trans 'Source' %}</th>
+                            <td>{{ mark.get_type_display }}</td>
+                        </tr>
+                        <tr>
                             <th class="right aligned">{% trans 'Component' %}</th>
                             <td>{{ mark.component.name }}</td>
                         </tr>
@@ -75,7 +79,7 @@
                 </table>
                 {% if reports.values|length > 0 %}
                     <h4 class="ui teal header">{% trans 'Associated leaf reports' %}</h4>
-                    <div>
+                    <div style="overflow-x:auto;">
                         <table class="ui compact teal celled table" style="width:auto;">
                             <thead>
                                 {% for column_row in reports.header %}
@@ -117,7 +121,7 @@
                     </select>
                     <br>
                 {% endif %}
-                <div id="mark_add_data_div">{% include 'marks/MarkUnknownData.html' with markdata=markdata %}</div>
+                <div id="mark_data_div">{% include 'marks/MarkUnknownData.html' with markdata=markdata %}</div>
                 <br>
                 {% if can_freeze %}
                     <div class="ui toggle checkbox">

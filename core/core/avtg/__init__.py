@@ -5,16 +5,16 @@ import importlib
 import json
 import multiprocessing
 import os
-import queue
+import string
 
 import core.components
 import core.utils
 
 
-def before_launch_all_components(context):
+def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['verification obj descs'] = multiprocessing.Queue()
-    context.mqs['AVTG src tree root'] = multiprocessing.Queue()
+    context.mqs['verification obj desc files'] = multiprocessing.Queue()
+    context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
@@ -22,22 +22,23 @@ def after_set_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
 
 
-def after_set_src_tree_root(context):
-    context.mqs['AVTG src tree root'].put(context.src_tree_root)
-
-
 def after_set_hdr_arch(context):
     context.mqs['hdr arch'].put(context.hdr_arch)
 
 
+def after_set_shadow_src_tree(context):
+    context.mqs['shadow src tree'].put(context.shadow_src_tree)
+
+
 def after_generate_verification_obj_desc(context):
-    # We need to copy verification object description since it may be accidently overwritten by LKVOG.
-    context.mqs['verification obj descs'].put(copy.deepcopy(context.verification_obj_desc))
+    if context.verification_obj_desc:
+        context.mqs['verification obj desc files'].put(
+            os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
 
 
 def after_generate_all_verification_obj_descs(context):
-    context.logger.info('Terminate verification object descriptions message queue')
-    context.mqs['verification obj descs'].put(None)
+    context.logger.info('Terminate verification object description files message queue')
+    context.mqs['verification obj desc files'].put(None)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -71,6 +72,144 @@ def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
     return plugin_descs
 
 
+def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
+    logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
+
+    # Get raw rule specification description.
+    if rule_spec_id in raw_rule_spec_descs['rule specifications']:
+        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+    else:
+        raise ValueError(
+            'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
+
+    # Get rid of useless information.
+    if 'description' in rule_spec_desc:
+        del (rule_spec_desc['description'])
+
+    # Get rule specification template which it is based on.
+    if 'template' not in rule_spec_desc:
+        raise ValueError(
+            'Rule specification "{0}" has not mandatory attribute "template"'.format(rule_spec_id))
+    tmpl_id = rule_spec_desc['template']
+    # This information won't be used any more.
+    del (rule_spec_desc['template'])
+    logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
+    if 'templates' not in raw_rule_spec_descs or tmpl_id not in raw_rule_spec_descs['templates']:
+        raise ValueError(
+            'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
+                tmpl_id, rule_spec_id))
+    tmpl_desc = raw_rule_spec_descs['templates'][tmpl_id]
+
+    # Get options for plugins specified in template.
+    plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
+
+    # Get options for plugins specified in base template and merge them with the ones extracted above.
+    if 'template' in tmpl_desc:
+        if tmpl_desc['template'] not in raw_rule_spec_descs['templates']:
+            raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
+                tmpl_desc['template'], tmpl_id))
+
+        logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+
+        base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
+                                                       raw_rule_spec_descs['templates'][tmpl_desc['template']])
+
+        for plugin_desc in plugin_descs:
+            for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
+                if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
+                    if 'options' in base_tmpl_plugin_desc:
+                        if 'options' in plugin_desc:
+                            plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
+                                                                            plugin_desc['options'])
+                        else:
+                            plugin_desc['options'] = base_tmpl_plugin_desc['options']
+
+    # Add plugin options specific for rule specification.
+    rule_spec_plugin_names = []
+    for attr in rule_spec_desc:
+        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
+        if attr == 'rule specifications':
+            continue
+
+        plugin_name = attr
+        rule_spec_plugin_names.append(plugin_name)
+        is_plugin_specified = False
+
+        for plugin_desc in plugin_descs:
+            if plugin_name == plugin_desc['name']:
+                is_plugin_specified = True
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options'].update(rule_spec_desc[plugin_name])
+                logger.debug(
+                    'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(
+                        plugin_name, rule_spec_id, rule_spec_desc[plugin_name]))
+                break
+
+        if not is_plugin_specified:
+            raise ValueError(
+                'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
+                    rule_spec_id, plugin_name, tmpl_id))
+
+    # We don't need to keep plugin options specific for rule specification in such the form any more.
+    for plugin_name in rule_spec_plugin_names:
+        del (rule_spec_desc[plugin_name])
+
+    if 'rule specifications' in rule_spec_desc:
+        # Merge plugin options specific for constituent rule specifications.
+        for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
+            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs, constituent_rule_spec_id)['plugins']:
+                for plugin_desc in plugin_descs:
+                    if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
+                        # Specify constituent rule specification identifier for RSG models. It will be used to generate
+                        # unique variable and function names.
+                        if constituent_rule_spec_plugin_desc['name'] == 'RSG' \
+                           and 'options' in constituent_rule_spec_plugin_desc \
+                           and 'models' in constituent_rule_spec_plugin_desc['options']:
+                            rsg_models = constituent_rule_spec_plugin_desc['options']['models']
+                            for model in rsg_models:
+                                rsg_models[model]['rule specification identifier'] = constituent_rule_spec_id
+                        if 'options' in plugin_desc and 'options' in constituent_rule_spec_plugin_desc:
+                            core.utils.merge_confs(plugin_desc['options'], constituent_rule_spec_plugin_desc['options'])
+                        elif 'options' in constituent_rule_spec_plugin_desc:
+                            plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
+                        break
+        del (rule_spec_desc['rule specifications'])
+
+    rule_spec_desc['plugins'] = plugin_descs
+
+    # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
+    # plugin name above.
+    rule_spec_desc['id'] = rule_spec_id
+
+    return rule_spec_desc
+
+
+# This function automatically untites all rule specifications and creates new rule specification.
+def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
+    logger.info('Unite all rule specifications')
+
+    rule_specifications = conf['rule specifications']
+    prefix = os.path.commonprefix(rule_specifications)
+    new_rule_name_id = prefix + ":" + 'united'
+    logger.info('United rule specification was given the following name "{0}"'.format(new_rule_name_id))
+
+    template = 'Linux kernel modules'
+
+    for rule_specification in rule_specifications:
+        model = raw_rule_spec_descs['rule specifications'][rule_specification]
+        if model['template'] == 'Argument signatures for Linux kernel modules':
+            template = 'Argument signatures for Linux kernel modules'
+            break
+
+    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = {
+        'template': template,
+        'rule specifications': rule_specifications
+    }
+
+    conf['rule specifications'] = [new_rule_name_id]
+
+
 # This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
@@ -79,118 +218,44 @@ def _extract_rule_spec_descs(conf, logger):
         logger.warning('Nothing will be verified since rule specifications are not specified')
         return []
 
-    # Read rule specification descriprions DB.
+    # Read rule specification descriptions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
-              encoding='ascii') as fp:
-        descs = json.load(fp)
+              encoding='utf8') as fp:
+        raw_rule_spec_descs = json.load(fp)
+
+    if 'rule specifications' not in raw_rule_spec_descs:
+        raise KeyError('Rule specifications DB has not mandatory attribute "rule specifications"')
+
+    if 'all' in conf['rule specifications']:
+        if not len(conf['rule specifications']) == 1:
+            raise ValueError(
+                'You can not specify "all" rule specifications together with some other rule specifications')
+
+        # Add all rule specification identifiers from DB.
+        conf['rule specifications'] = sorted(raw_rule_spec_descs['rule specifications'].keys())
+
+        # Remove all empty rule specifications since they are intended for development.
+        rule_specs = []
+        for rule_spec_id in conf['rule specifications']:
+            if rule_spec_id.find('empty') == -1 and rule_spec_id.find('test') == -1:
+                rule_specs.append(rule_spec_id)
+        conf['rule specifications'] = rule_specs
+        logger.debug('Following rule specifications will be checked "{0}"'.format(conf['rule specifications']))
+
+    if 'unite rule specifications' in conf and conf['unite rule specifications']:
+        _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
 
     rule_spec_descs = []
 
     for rule_spec_id in conf['rule specifications']:
-        logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
+        rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
 
-        # Get raw rule specification description.
-        if 'rule specifications' not in descs or rule_spec_id not in descs['rule specifications']:
-            is_alias_found = False
-            for potential_rule_spec_id, potential_rule_spec_desc in descs['rule specifications'].items():
-                if 'aliases' in potential_rule_spec_desc:
-                    for alias in potential_rule_spec_desc['aliases']:
-                        if rule_spec_id == alias:
-                            is_alias_found = True
-                            logger.debug(
-                                'Rule specification "{0}" was found by alias "{1}"'.format(potential_rule_spec_id,
-                                                                                           rule_spec_id))
-                            # Use true rule specification ID rather than its alias further.
-                            rule_spec_id = potential_rule_spec_id
-                            break
-                if is_alias_found:
-                    rule_spec_desc = potential_rule_spec_desc
-                    break
-
-            if not is_alias_found:
-                raise ValueError(
-                    'Specified rule specification "{0}" could not be found in rule specifications DB'.format(
-                        rule_spec_id))
-        else:
-            rule_spec_desc = descs['rule specifications'][rule_spec_id]
-
-        rule_spec_desc['id'] = rule_spec_id
-
-        # Get rid of useless information.
-        for attr in ('aliases', 'description'):
-            if attr in rule_spec_desc:
-                del (rule_spec_desc[attr])
-
-        # Get rule specification template which it is based on.
-        if 'template' not in rule_spec_desc:
-            raise ValueError(
-                'Rule specification "{0}" has not mandatory attribute "template"'.format(rule_spec_id))
-        tmpl_id = rule_spec_desc['template']
-        # This information won't be used any more.
-        del (rule_spec_desc['template'])
-        logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
-        if 'templates' not in descs or tmpl_id not in descs['templates']:
-            raise ValueError(
-                'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
-                    tmpl_id, rule_spec_id))
-        tmpl_desc = descs['templates'][tmpl_id]
-
-        # Get options for plugins specified in template.
-        plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
-
-        # Get options for plugins specified in base template and merge them with the ones extracted above.
-        if 'template' in tmpl_desc:
-            if tmpl_desc['template'] not in descs['templates']:
-                raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
-                    tmpl_desc['template'], tmpl_id))
-
-            logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
-
-            base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
-                                                           descs['templates'][tmpl_desc['template']])
-
-            for plugin_desc in plugin_descs:
-                for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
-                    if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
-                        if 'options' in base_tmpl_plugin_desc:
-                            if 'options' in plugin_desc:
-                                plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
-                                                                                plugin_desc['options'])
-                            else:
-                                plugin_desc['options'] = base_tmpl_plugin_desc['options']
-
-        # Add plugin options specific for rule specification.
-        rule_spec_plugin_names = []
-        for attr in rule_spec_desc:
-            # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-            if attr not in ('id', 'bug kinds'):
-                plugin_name = attr
-                rule_spec_plugin_names.append(plugin_name)
-                is_plugin_specified = False
-
-                for plugin_desc in plugin_descs:
-                    if plugin_name == plugin_desc['name']:
-                        is_plugin_specified = True
-                        if 'options' not in plugin_desc:
-                            plugin_desc['options'] = {}
-                        plugin_desc['options'].update(rule_spec_desc[plugin_name])
-                        logger.debug(
-                            'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(plugin_name,
-                                                                                                          rule_spec_id,
-                                                                                                          rule_spec_desc[
-                                                                                                              plugin_name]))
-                        break
-
-                if not is_plugin_specified:
-                    raise ValueError(
-                        'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
-                            rule_spec_id, plugin_name, tmpl_id))
-        # We don't need to keep plugin options specific for rule specification in such the form any more.
-        for plugin_name in rule_spec_plugin_names:
-            del (rule_spec_desc[plugin_name])
-        rule_spec_desc['plugins'] = plugin_descs
-
-        rule_spec_descs.append(rule_spec_desc)
+    if conf['keep intermediate files']:
+        #if os.path.isfile('rule spec descs.json'):
+        #    raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
+        logger.debug('Create rule specification descriptions file "rule spec descs.json"')
+        with open('rule spec descs.json', 'w', encoding='ascii') as fp:
+            json.dump(rule_spec_descs, fp, sort_keys=True, indent=4)
 
     return rule_spec_descs
 
@@ -227,7 +292,7 @@ class AVTG(core.components.Component):
         # TODO: get rid of these variables.
         self.common_prj_attrs = {}
         self.plugins_work_dir = None
-        self.abstract_task_desc = None
+        self.abstract_task_desc_file = None
         self.abstract_task_desc_num = 0
 
         # TODO: combine extracting and reporting of attributes.
@@ -240,9 +305,11 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.get_src_tree_root()
+        self.get_shadow_src_tree()
         self.get_hdr_arch()
+        # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
+        self.set_model_cc_opts_and_headers()
         self.generate_all_abstract_verification_task_descs()
 
     main = generate_abstract_verification_tasks
@@ -254,39 +321,71 @@ class AVTG(core.components.Component):
 
         self.mqs['AVTG common prj attrs'].close()
 
+    def set_model_cc_opts_and_headers(self):
+        self.logger.info('Set model CC options and headers')
+
+        self.model_cc_opts_and_headers = {}
+
+        for rule_spec_desc in self.rule_spec_descs:
+            self.logger.debug('Set headers of rule specification "{0}"'.format(rule_spec_desc['id']))
+            for plugin_desc in rule_spec_desc['plugins']:
+                if plugin_desc['name'] == 'RSG' \
+                        and 'model CC options' in plugin_desc['options'] \
+                        and ('common models' in plugin_desc['options'] or 'models' in plugin_desc['options']):
+                    for models in ('common models', 'models'):
+                        if models in plugin_desc['options']:
+                            for model_c_file, model in plugin_desc['options'][models].items():
+                                self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
+                                if 'headers' in model:
+                                    self.model_cc_opts_and_headers[model_c_file] = {
+                                        'CC options': [
+                                            string.Template(opt).substitute(hdr_arch=self.conf['header architecture'])
+                                            for opt in plugin_desc['options']['model CC options']
+                                        ],
+                                        'headers': []
+                                    }
+                                    self.logger.debug('Set model CC options "{0}"'.format(
+                                        self.model_cc_opts_and_headers[model_c_file]['CC options']))
+                                    for header in model['headers']:
+                                        self.model_cc_opts_and_headers[model_c_file]['headers'].append(
+                                            string.Template(header).substitute(
+                                                hdr_arch=self.conf['header architecture']))
+                                    self.logger.debug('Set headers "{0}"'.format(
+                                        self.model_cc_opts_and_headers[model_c_file]['headers']))
+
     def get_hdr_arch(self):
         self.logger.info('Get architecture name to search for architecture specific header files')
 
-        self.conf['sys']['hdr arch'] = self.mqs['hdr arch'].get()
+        self.conf['header architecture'] = self.mqs['hdr arch'].get()
 
         self.mqs['hdr arch'].close()
 
         self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
-            self.conf['sys']['hdr arch']))
+            self.conf['header architecture']))
 
-    def get_src_tree_root(self):
-        self.logger.info('Get source tree root')
+    def get_shadow_src_tree(self):
+        self.logger.info('Get shadow source tree')
 
-        self.conf['source tree root'] = self.mqs['AVTG src tree root'].get()
+        self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
 
-        self.mqs['AVTG src tree root'].close()
+        self.mqs['shadow src tree'].close()
 
-        self.logger.debug('Source tree root is "{0}"'.format(self.conf['source tree root']))
+        self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
 
     def generate_all_abstract_verification_task_descs(self):
         self.logger.info('Generate all abstract verification task decriptions')
 
-        # TODO: use different MQs for different workers when abstract verification task descriptions will be generated
-        # in parallel (see below).
-        self.mqs.update({'abstract task description': multiprocessing.Queue()})
-
         while True:
-            verification_obj_desc = self.mqs['verification obj descs'].get()
+            verification_obj_desc_file = self.mqs['verification obj desc files'].get()
 
-            if verification_obj_desc is None:
+            if verification_obj_desc_file is None:
                 self.logger.debug('Verification object descriptions message queue was terminated')
-                self.mqs['verification obj descs'].close()
+                self.mqs['verification obj desc files'].close()
                 break
+
+            with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
+                      encoding='ascii') as fp:
+                verification_obj_desc = json.load(fp)
 
             if not self.rule_spec_descs:
                 self.logger.warning(
@@ -309,10 +408,8 @@ class AVTG(core.components.Component):
             'Generate abstract verification task description for {0}'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
 
-        self.plugins_work_dir = os.path.relpath(
-            os.path.join(self.conf['source tree root'], '{0}.task'.format(verification_obj_desc['id']),
-                         rule_spec_desc['id']))
-        os.makedirs(self.plugins_work_dir)
+        self.plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
+        os.makedirs(self.plugins_work_dir, exist_ok=True)
         self.logger.debug('Plugins working directory is "{0}"'.format(self.plugins_work_dir))
 
         # Initial abstract verification task looks like corresponding verification object.
@@ -322,7 +419,7 @@ class AVTG(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf['source tree root'], cc_full_desc_file), encoding='ascii') as fh:
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='ascii') as fh:
                     command = json.load(fh)
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})
@@ -339,99 +436,77 @@ class AVTG(core.components.Component):
 
         # Invoke all plugins one by one.
         cur_abstract_task_desc = initial_abstract_task_desc
-        is_plugin_failed = False
-        for plugin_desc in rule_spec_desc['plugins']:
-            self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+        plugin_mqs = self.mqs
+        plugin_mqs.update({'abstract task description': multiprocessing.Queue()})
+        try:
+            for plugin_desc in rule_spec_desc['plugins']:
+                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-            # Put either initial or current description of abstract verification task.
-            self.mqs['abstract task description'].put(cur_abstract_task_desc)
+                # Put either initial or current description of abstract verification task.
+                plugin_mqs['abstract task description'].put(cur_abstract_task_desc)
 
-            # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-            # specification and information on rule specification itself.
-            plugin_conf = copy.deepcopy(self.conf)
-            if 'options' in plugin_desc:
-                plugin_conf.update(plugin_desc['options'])
-            plugin_conf.update({'rule spec id': rule_spec_desc['id']})
-            if 'bug kinds' in rule_spec_desc:
-                plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
+                # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+                # specification and information on rule specification itself.
+                plugin_conf = copy.deepcopy(self.conf)
+                if plugin_desc['name'] != 'RSG':
+                    del plugin_conf['shadow source tree']
+                if 'options' in plugin_desc:
+                    plugin_conf.update(plugin_desc['options'])
+                plugin_conf.update({'rule spec id': rule_spec_desc['id']})
+                if 'bug kinds' in rule_spec_desc:
+                    plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
 
-            p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
-                                      '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
-                                      os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
-                                      initial_attrs, True, True)
-
-            # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
-            # verification objects or/and rule specifications.
-            try:
+                p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, plugin_mqs, self.locks,
+                                          '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
+                                          os.path.join(self.plugins_work_dir, plugin_desc['name'].lower()),
+                                          initial_attrs, True, True)
                 p.start()
-                # See "Joining processes that use queues" in multiprocessing documentation.
-                while True:
-                    p.join(0.5)
-                    try:
-                        cur_abstract_task_desc = self.mqs['abstract task description'].get_nowait()
-                        break
-                    except queue.Empty:
-                        # Complain just if plugin returns well.
-                        if p.exitcode == 0:
-                            raise RuntimeError(
-                                '{0} did not put abstract verification task description back to queue on termination'.format(
-                                    plugin_desc['name']))
-                # Wait for plugin after it put abstract verification task description back to queue, in particular catch
-                # exceptions that may happen.
                 p.join()
-            except core.components.ComponentError:
-                # Clean up message queue to prevent intermixing of data for different abstract verification tasks.
-                self.mqs['abstract task description'].put(None)
-                while True:
-                    cur_abstract_task_desc = self.mqs['abstract task description'].get()
 
-                    if cur_abstract_task_desc is None:
-                        break
-                is_plugin_failed = True
-                break
+                cur_abstract_task_desc = plugin_mqs['abstract task description'].get()
+                # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
+                # anything before.
+                if self.conf['keep intermediate files']:
+                    plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
+                    if os.path.isfile(plugin_conf_file):
+                        raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
+                            plugin_conf_file))
+                    self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
+                    with open(plugin_conf_file, 'w', encoding='ascii') as fp:
+                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
 
-            # Plugin working directory is created just if plugin starts successfully (above). So we can't dump
-            # anything before.
-            if self.conf['keep intermediate files']:
-                plugin_conf_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(), 'conf.json')
-                if os.path.isfile(plugin_conf_file):
-                    raise FileExistsError('Plugins configuration file "{0}" already exists'.format(
-                        plugin_conf_file))
-                self.logger.debug('Create plugins configuration file "{0}"'.format(plugin_conf_file))
-                with open(plugin_conf_file, 'w', encoding='ascii') as fp:
-                    json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+                    cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
+                                                               'abstract task.json')
+                    if os.path.isfile(cur_abstract_task_desc_file):
+                        raise FileExistsError(
+                            'Current abstract verification task description file "{0}" already exists'.format(
+                                cur_abstract_task_desc_file))
+                    self.logger.debug('Create current abstract verification task description file "{0}"'.format(
+                        cur_abstract_task_desc_file))
+                    with open(cur_abstract_task_desc_file, 'w', encoding='ascii') as fp:
+                        json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
-                cur_abstract_task_desc_file = os.path.join(self.plugins_work_dir, plugin_desc['name'].lower(),
-                                                           'abstract task.json')
-                if os.path.isfile(cur_abstract_task_desc_file):
-                    raise FileExistsError(
-                        'Current abstract verification task description file "{0}" already exists'.format(
-                            cur_abstract_task_desc_file))
-                self.logger.debug('Create current abstract verification task description file "{0}"'.format(
-                    cur_abstract_task_desc_file))
-                with open(cur_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
-
-        # Finalize generation of abstract verification task description.
-        if is_plugin_failed:
-            self.abstract_task_desc = None
-        else:
             # Dump final abstract verification task description that equals to abstract verification task description
-            # received from last plugin. But corresponding file will be put not to plugin working directory - it will
-            # be put near initial abstract verification task description.
-            if self.conf['keep intermediate files']:
-                final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
-                if os.path.isfile(final_abstract_task_desc_file):
-                    raise FileExistsError(
-                        'Final abstract verification task description file "{0}" already exists'.format(
-                            final_abstract_task_desc_file))
-                self.logger.debug('Create final abstract verification task description file "{0}"'.format(
+            # received from last plugin.
+            final_abstract_task_desc_file = os.path.join(self.plugins_work_dir, 'final abstract task.json')
+            if os.path.isfile(final_abstract_task_desc_file):
+                raise FileExistsError('Final abstract verification task description file "{0}" already exists'.format(
                     final_abstract_task_desc_file))
-                with open(final_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-                    json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
+            self.logger.debug(
+                'Create final abstract verification task description file "{0}"'.format(final_abstract_task_desc_file))
+            with open(final_abstract_task_desc_file, 'w', encoding='ascii') as fp:
+                json.dump(cur_abstract_task_desc, fp, sort_keys=True, indent=4)
 
-            # VTG will consume this abstract verification task description.
-            self.abstract_task_desc = cur_abstract_task_desc
+            # VTG will consume this abstract verification task description file.
+            self.abstract_task_desc_file = final_abstract_task_desc_file
 
             # Count the number of successfully generated abstract verification task descriptions.
             self.abstract_task_desc_num += 1
+        # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
+        # verification objects or/and rule specifications.
+        except core.components.ComponentError:
+            self.abstract_task_desc_file = None
+            self.verification_obj = verification_obj_desc['id']
+            self.rule_spec = rule_spec_desc['id']
+        finally:
+            plugin_mqs['abstract task description'].close()

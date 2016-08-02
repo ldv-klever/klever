@@ -75,6 +75,7 @@ function set_actions_for_edit_form () {
     check_all_roles();
     set_actions_for_file_form();
     $('.ui.dropdown').dropdown();
+
     $('.files-actions-popup').popup({position: 'bottom right'});
 
     $('#add_user_for_role').click(function () {
@@ -365,7 +366,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 
 function update_treegrid() {
-    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
+    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon', true);
 }
 
 function selected_row() {
@@ -803,6 +804,13 @@ $(document).ready(function () {
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
+    $('#collapse_reports_modal').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#collapse_reports_modal_show', 'show');
+    $('#cancel_collapse_reports').click(function () {
+        $('#collapse_reports_modal').modal('hide');
+    });
+
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
@@ -828,7 +836,7 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
-                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
+                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon', true);
                 set_action_on_file_click();
                 set_actions_for_run_history();
             }
@@ -853,9 +861,18 @@ $(document).ready(function () {
             }
         );
     });
+    $('#collapse_reports_btn').click(function () {
+        $.post(
+            job_ajax_url + 'collapse_reports/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                data.error ? err_notify(data.error) : window.location.replace('');
+            }
+        );
+    });
 
     $("#copy_job_btn").click(function () {
-        $.redirectPost(job_ajax_url + 'create/', {parent_id: $('#job_pk').val()});
+        $.redirectPost('/jobs/create/', {parent_id: $('#job_pk').val()});
     });
 
     $('#remove_job_btn').click(function () {
@@ -939,12 +956,30 @@ $(document).ready(function () {
                         return false;
                     }
                     if ('jobdata' in data) {
-                        var is_hidden = $('#resources-note').popup('is hidden');
+                        var is_hidden = $('#resources-note').popup('is hidden'), shown_tag_description_id;
                         $('#resources-note').popup('hide');
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup('hide');
+                            if (!$(this).popup('is hidden')) {
+                                shown_tag_description_id = $(this).attr('id').replace('tag_description_id_', '')
+                            }
+                        });
                         $('#job_data_div').html(data['jobdata']);
                         $('#resources-note').popup();
                         if (!is_hidden) {
                             $('#resources-note').popup('show');
+                        }
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup({
+                                html: $(this).attr('data-content'),
+                                hoverable: true
+                            });
+                        });
+                        if (shown_tag_description_id) {
+                            var tag_descr = $('#tag_description_id_' + shown_tag_description_id);
+                            if (tag_descr.length) {
+                                tag_descr.popup('show');
+                            }
                         }
                     }
                     var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
@@ -992,6 +1027,12 @@ $(document).ready(function () {
                     }
                     else {
                         $('#show_remove_job_popup').addClass('disabled');
+                    }
+                    if (data['can_collapse']) {
+                        $('#collapse_reports_modal_show').removeClass('disabled');
+                    }
+                    else {
+                        $('#collapse_reports_modal_show').addClass('disabled');
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {

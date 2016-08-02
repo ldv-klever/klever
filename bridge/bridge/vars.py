@@ -9,24 +9,21 @@ DATAFORMAT = (
 
 # Do not use error code 500 (Unknown error)
 ERRORS = {
-    404: _('The job was not found'),
-    405: _('One of the selected jobs was not found'),
+    300: _("You don't have an access to this page"),
+    305: _("Can't populate without Manager and service user"),
     400: _("You don't have an access to this job"),
     401: _("You don't have an access to one of the selected jobs"),
-    451: _('You specified wrong parameters, please reload the page and try again'),
+    404: _('The job was not found'),
+    405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),
-    604: _("The mark was not found"),
-    600: _("You don't have an access to this mark"),
-    601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark"),
-    650: _("Saving the mark failed"),
-    704: _("The tag was not found"),
-    804: _("The problem was not found"),
-    900: _("You don't have an access to this page"),
     505: _("Couldn't visualize the error trace"),
     506: _("The comparison cache was not found or was corrupted"),
     507: _("You don't have an access to compare these jobs"),
-    605: _("Can't populate without Manager and service user")
+    508: _("The problem was not found"),
+    509: _("The tag was not found"),
+    604: _("The mark was not found"),
+    601: _("You don't have an access to create new marks"),
+    602: _("You don't have an access to delete this mark")
 }
 
 LANGUAGES = (
@@ -44,11 +41,7 @@ USER_ROLES = (
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Validation on Linux kernel modules')),
-    ('2', _('Verification of commits in Linux kernel Git repositories')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
-    ('4', _('Verification of C programs')),
-    ('5', _('Validation on C programs')),
 )
 
 COMPARE_VERDICT = (
@@ -120,7 +113,7 @@ JOB_DEF_VIEW = {
     },
 }
 
-VIEW_TYPES = {
+VIEW_TYPES = (
     ('1', 'job tree'),
     ('2', 'job view'),
     ('3', 'component children list'),
@@ -130,7 +123,13 @@ VIEW_TYPES = {
     ('7', 'unsafe marks'),
     ('8', 'safe marks'),
     ('9', 'unknown marks')
-}
+)
+
+MARK_TYPE = (
+    ('0', _('Created')),
+    ('1', _('Preset')),
+    ('2', _('Uploaded')),
+)
 
 MARK_STATUS = (
     ('0', _('Unreported')),
@@ -171,7 +170,7 @@ SAFE_VERDICTS = (
 
 VIEWJOB_DEF_VIEW = {
     # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources'],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)
@@ -234,6 +233,7 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
+    'columns': ['marks_number', 'report_verdict', 'tags'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -245,6 +245,7 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
+    'columns': ['marks_number', 'report_verdict', 'tags'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -275,7 +276,7 @@ UNKNOWN_LIST_DEF_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_SAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {
@@ -298,7 +299,7 @@ MARKS_SAFE_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_UNSAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {
@@ -376,20 +377,12 @@ TASK_STATUS = (
 MARKS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Rule specification', 'Verification object'],
     JOB_CLASSES[1][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[2][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[3][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[4][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[5][0]: ['Rule specification', 'Verification object'],
 }
 
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[2][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[3][0]: ['Commit', 'Verification object', 'Rule specification'],
-    JOB_CLASSES[4][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[5][0]: ['Verification object', 'Rule specification']
+    JOB_CLASSES[1][0]: ['Commit', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.
@@ -417,3 +410,5 @@ START_JOB_DEFAULT_MODES = {
     'development': _('Development'),
     'paranoid development': _('Paranoid development')
 }
+
+REPORT_FILES_ARCHIVE = 'data.tar.gz'

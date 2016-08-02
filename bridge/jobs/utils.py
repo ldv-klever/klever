@@ -119,7 +119,6 @@ class JobAccess(object):
     def can_decide(self):
         if self.job is None or self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
-        # TODO: can author decide the job?
         return self.__is_manager or self.__is_author or self.__job_role in [JOB_ROLES[3][0], JOB_ROLES[4][0]]
 
     def can_view(self):
@@ -156,6 +155,11 @@ class JobAccess(object):
 
     def can_download(self):
         return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
+
+    def can_collapse(self):
+        if self.job is None:
+            return False
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
 
     def __get_prop(self, user):
         if self.job is not None:
@@ -461,8 +465,11 @@ def create_job(kwargs):
         except ObjectDoesNotExist:
             newjob.pk = int(kwargs['pk'])
 
-    time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
-    newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    if 'identifier' in kwargs and kwargs['identifier'] is not None:
+        newjob.identifier = kwargs['identifier']
+    else:
+        time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
+        newjob.identifier = hashlib.md5(time_encoded).hexdigest()
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
@@ -755,10 +762,13 @@ class GetConfiguration(object):
                 formatters[f['name']] = f['value']
             loggers = {}
             for l in filedata['logging']['loggers']:
-                loggers[l['name']] = {
-                    'formatter': formatters[l['formatter']],
-                    'level': l['level']
-                }
+                # TODO: what to do with other loggers?
+                if l['name'] == 'default':
+                    for l_h in l['handlers']:
+                        loggers[l_h['name']] = {
+                            'formatter': formatters[l_h['formatter']],
+                            'level': l_h['level']
+                        }
             logging = [
                 loggers['console']['level'],
                 loggers['console']['formatter'],
@@ -772,7 +782,11 @@ class GetConfiguration(object):
         try:
             self.configuration = [
                 [filedata['priority'], scheduler, filedata['abstract task generation priority']],
-                [filedata['parallelism']['Build'], filedata['parallelism']['Tasks generation']],
+                [
+                    filedata['parallelism']['Sub-jobs processing'],
+                    filedata['parallelism']['Build'],
+                    filedata['parallelism']['Tasks generation']
+                ],
                 [
                     filedata['resource limits']['memory size'] / 10**9,
                     filedata['resource limits']['number of CPU cores'],
@@ -786,7 +800,9 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instances']
+                    filedata['ignore other instances'],
+                    filedata['ignore failed sub-jobs'],
+                    filedata['lightweightness']
                 ]
             ]
         except Exception as e:
@@ -803,8 +819,7 @@ class GetConfiguration(object):
                 return float(val)
 
         try:
-            conf[1][0] = int_or_float(conf[1][0])
-            conf[1][1] = int_or_float(conf[1][1])
+            conf[1] = [int_or_float(conf[1][i]) for i in range(3)]
             if len(conf[2][3]) == 0:
                 conf[2][3] = None
             conf[2][0] = float(conf[2][0])
@@ -824,13 +839,13 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[0], list) or len(self.configuration[0]) != 3:
             return False
-        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 2:
+        if not isinstance(self.configuration[1], list) or len(self.configuration[1]) != 3:
             return False
         if not isinstance(self.configuration[2], list) or len(self.configuration[2]) != 6:
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 5:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 7:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False
@@ -838,10 +853,9 @@ class GetConfiguration(object):
             return False
         if self.configuration[0][2] not in list(x[0] for x in AVTG_PRIORITY):
             return False
-        if not isinstance(self.configuration[1][0], (float, int)):
-            return False
-        if not isinstance(self.configuration[1][1], (float, int)):
-            return False
+        for i in range(3):
+            if not isinstance(self.configuration[1][i], (float, int)):
+                return False
         if not isinstance(self.configuration[2][0], (float, int)):
             return False
         if not isinstance(self.configuration[2][1], int):

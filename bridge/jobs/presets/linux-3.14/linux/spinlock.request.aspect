@@ -1,7 +1,6 @@
 before: file ("$this")
 {
-#include <linux/kernel.h>
-#include <linux/spinlock.h>
+#include <linux/spinlock_types.h>
 
 extern void __ldv_spin_lock(spinlock_t *lock);
 extern void __ldv_spin_unlock(spinlock_t *lock);
@@ -46,9 +45,9 @@ around: define(spin_lock_irqsave_nested(lock, flags, subclass))
 __ldv_spin_lock(lock)
 }
 
-info: call(static inline void spin_lock(..)) || 
-      call(static inline void spin_lock_bh(..)) || 
-      call(static inline void spin_lock_irq(..)) || 
+info: call(static inline void spin_lock(..)) ||
+      call(static inline void spin_lock_bh(..)) ||
+      call(static inline void spin_lock_irq(..)) ||
       call(void __ldv_spin_lock(..))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
@@ -74,10 +73,10 @@ around: define(spin_unlock_irqrestore(lock, flags))
 __ldv_spin_unlock(lock)
 }
 
-info: call(static inline void spin_unlock(..)) || 
+info: call(static inline void spin_unlock(..)) ||
       call(static inline void spin_unlock_bh(..)) ||
-      call(static inline void spin_unlock_irq(..)) || 
-      call(static inline void spin_unlock_irqrestore(..)) || 
+      call(static inline void spin_unlock_irq(..)) ||
+      call(static inline void spin_unlock_irqrestore(..)) ||
       call(void __ldv_spin_unlock(..))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
@@ -103,9 +102,9 @@ around: define(spin_trylock_irqsave(lock, flags))
 __ldv_spin_trylock(lock)
 }
 
-info: call(static inline int spin_trylock(..)) || 
-      call(static inline int spin_trylock_bh(..)) || 
-      call(static inline int spin_trylock_irq(..)) || 
+info: call(static inline int spin_trylock(..)) ||
+      call(static inline int spin_trylock_bh(..)) ||
+      call(static inline int spin_trylock_irq(..)) ||
       call(int __ldv_spin_trylock(..))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
@@ -132,7 +131,7 @@ around: define(spin_can_lock(lock))
 __ldv_spin_can_lock(lock)
 }
 
-info: call(static inline int spin_can_lock(..)) || 
+info: call(static inline int spin_can_lock(..)) ||
       call(void __ldv_spin_can_lock(..))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>

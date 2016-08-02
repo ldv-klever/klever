@@ -1,5 +1,6 @@
 import os
 import time
+import shutil
 import logging
 import hashlib
 import tarfile
@@ -7,13 +8,15 @@ import tempfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.template.defaultfilters import filesizeformat
+from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import MAX_FILE_SIZE
+from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
 from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+TESTS_DIR = 'Tests'
 
 logger = logging.getLogger('bridge')
 
@@ -119,11 +122,77 @@ def file_get_or_create(fp, filename, check_size=False):
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
 def extract_tar_temp(archive):
-    fp = tempfile.NamedTemporaryFile()
-    for chunk in archive.chunks():
-        fp.write(chunk)
-    fp.seek(0)
-    tar = tarfile.open(fileobj=fp, mode='r:gz')
-    tmp_dir_name = tempfile.TemporaryDirectory()
-    tar.extractall(tmp_dir_name.name)
+    with tempfile.NamedTemporaryFile() as fp:
+        for chunk in archive.chunks():
+            fp.write(chunk)
+        fp.seek(0)
+        with tarfile.open(fileobj=fp, mode='r:gz') as tar:
+            tmp_dir_name = tempfile.TemporaryDirectory()
+            tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
+
+
+def unique_id():
+    return hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()
+
+
+def tests_logging_conf():
+    tests_logging = LOGGING.copy()
+    cnt = 1
+    for handler in tests_logging['handlers']:
+        if 'filename' in tests_logging['handlers'][handler]:
+            tests_logging['handlers'][handler]['filename'] = os.path.join(MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
+            cnt += 1
+    return tests_logging
+
+
+# Logging overriding does not work (does not override it for tests but override it after tests done)
+# Maybe it's Django's bug (LOGGING=tests_logging_conf())
+@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR))
+class KleverTestCase(TestCase):
+    def setUp(self):
+        if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
+            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR))
+        self.client = Client()
+        super(KleverTestCase, self).setUp()
+
+    def tearDown(self):
+        super(KleverTestCase, self).tearDown()
+        try:
+            shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
+        except PermissionError:
+            pass
+
+
+# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
+class ArchiveFileContent(object):
+    def __init__(self, file_model, file_name=None, max_size=None):
+        self._file = file_model
+        self._max_size = max_size
+        self._name = file_name
+        self.error = None
+        try:
+            self.content = self.__extract_file_content()
+        except Exception as e:
+            logger.exception("Error while extracting file from archive: %s" % e)
+            self.error = 'Unknown error'
+
+    def __extract_file_content(self):
+        with File.objects.get(pk=self._file.pk).file as fp:
+            with tarfile.open(fileobj=fp, mode='r:gz') as arch:
+                for f in arch.getmembers():
+                    if f.isreg():
+                        if self._name is not None and f.name != self._name:
+                            continue
+                        file_extracted = arch.extractfile(f)
+                        if self._max_size is not None:
+                            file_extracted.seek(0, 2)
+                            if file_extracted.tell() > self._max_size:
+                                self.error = _('The component log is huge and '
+                                               'can not be showed but you can download it')
+                                return None
+                            file_extracted.seek(0)
+                        self._name = f.name
+                        return file_extracted.read().decode('utf8')
+        self.error = _('Needed file was not found')
+        return None

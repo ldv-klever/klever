@@ -1,6 +1,4 @@
 from django.db import models
-from django.db.models.signals import post_init
-from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import File, Job
@@ -26,6 +24,7 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
+    safes = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'report_root'
@@ -73,81 +72,39 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL)
-    data = models.BinaryField(null=True)
+    archive = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    log = models.CharField(max_length=128, null=True)
+    data = models.ForeignKey(File, null=True, related_name='reports2')
 
     class Meta:
         db_table = 'report_component'
 
 
-@receiver(post_init, sender=ReportComponent)
-def get_report_data(**kwargs):
-    report = kwargs['instance']
-    if report.data is not None and not isinstance(report.data, bytes):
-        report.data = report.data.tobytes()
-
-
-class ReportFiles(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'report_files'
-
-
 class ReportUnsafe(Report):
-    error_trace = models.BinaryField()
+    archive = models.ForeignKey(File)
+    error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
 
 
-@receiver(post_init, sender=ReportUnsafe)
-def get_unsafe_trace(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.error_trace, bytes):
-        report.error_trace = report.error_trace.tobytes()
-
-
-class ETVFiles(models.Model):
-    unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'etv_files'
-
-
 class ReportSafe(Report):
-    proof = models.BinaryField()
+    archive = models.ForeignKey(File, null=True)
+    proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
         db_table = 'report_safe'
 
 
-@receiver(post_init, sender=ReportSafe)
-def get_safe_proof(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.proof, bytes):
-        report.proof = report.proof.tobytes()
-
-
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    problem_description = models.BinaryField()
+    archive = models.ForeignKey(File)
+    problem_description = models.CharField(max_length=128)
 
     class Meta:
         db_table = 'report_unknown'
-
-
-@receiver(post_init, sender=ReportUnknown)
-def get_unknown_problem(**kwargs):
-    report = kwargs['instance']
-    if not isinstance(report.problem_description, bytes):
-        report.problem_description = report.problem_description.tobytes()
 
 
 class ReportComponentLeaf(models.Model):
@@ -190,6 +147,17 @@ class ComponentResource(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_resource'
+
+
+class LightResource(models.Model):
+    report = models.ForeignKey(ReportRoot)
+    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
+    cpu_time = models.BigIntegerField()
+    wall_time = models.BigIntegerField()
+    memory = models.BigIntegerField()
+
+    class Meta:
+        db_table = 'cache_report_light_resource'
 
 
 class ComponentUnknown(models.Model):

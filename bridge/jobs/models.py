@@ -29,9 +29,7 @@ def file_delete(**kwargs):
 
 class JobBase(models.Model):
     name = models.CharField(max_length=150)
-    change_author = models.ForeignKey(User, blank=True, null=True,
-                                      on_delete=models.SET_NULL,
-                                      related_name="%(class)s")
+    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
 
     class Meta:
         abstract = True
@@ -45,6 +43,7 @@ class Job(JobBase):
     identifier = models.CharField(max_length=255, unique=True)
     parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
+    light = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'job'
@@ -54,7 +53,7 @@ class RunHistory(models.Model):
     job = models.ForeignKey(Job)
     operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     configuration = models.ForeignKey(File)
-    date = models.DateTimeField(auto_now=True)
+    date = models.DateTimeField()
     status = models.CharField(choices=JOB_STATUS, max_length=1)
 
     class Meta:
