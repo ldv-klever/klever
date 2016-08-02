@@ -7,7 +7,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.populate import Population
 from bridge.vars import ERRORS, USER_ROLES
-from bridge.utils import unparallel
+from bridge.utils import unparallel, logger
 from users.models import Extended
 
 
@@ -62,9 +62,12 @@ def population(request):
             service_username = None
         if need_manager and need_service and (manager_username is None or service_username is None):
             return HttpResponseRedirect(reverse('error', args=[305]))
-        return render(request, 'Population.html', {
-            'changes': Population(request.user, manager_username, service_username).changes
-        })
+        try:
+            res = Population(request.user, manager_username, service_username)
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+        return render(request, 'Population.html', {'changes': res.changes})
     return render(request, 'Population.html', {
         'need_manager': need_manager,
         'need_service': need_service,

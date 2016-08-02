@@ -1,7 +1,6 @@
 import os
 import json
 import hashlib
-from time import sleep
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
@@ -10,7 +9,7 @@ from django.utils.translation import override, ungettext_lazy
 from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import file_get_or_create, logger, unique_id
+from bridge.utils import file_get_or_create, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
@@ -29,7 +28,6 @@ def extend_user(user, role=USER_ROLES[1][0]):
 
 
 class Population(object):
-
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
@@ -45,7 +43,7 @@ class Population(object):
             except ObjectDoesNotExist:
                 extend_user(self.user)
         self.__populate_functions()
-        if len(Job.objects.filter(parent=None)) < 3:
+        if len(Job.objects.filter(parent=None)) < len(JOB_CLASSES):
             self.__populate_jobs()
         self.__populate_default_jobs()
         self.__populate_unknown_marks()
@@ -93,10 +91,7 @@ class Population(object):
 
     def __get_manager(self, manager_username):
         if manager_username is None:
-            try:
-                return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
-            except IndexError:
-                return None
+            return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
@@ -129,14 +124,10 @@ class Population(object):
         return password
 
     def __populate_jobs(self):
-        if not isinstance(self.manager, User):
-            return None
         args = {
             'author': self.manager,
             'global_role': JOB_ROLES[1][0],
         }
-        if not isinstance(args['author'], User):
-            return
         for i in range(len(JOB_CLASSES)):
             try:
                 Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
@@ -146,47 +137,31 @@ class Population(object):
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
                     args['type'] = JOB_CLASSES[i][0]
                     create_job(args)
-                    sleep(0.1)
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        if not isinstance(self.manager, User):
-            return None
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                logger.error('There is default job without settings file (%s)' % jobdir, stack_info=True)
-                continue
+                raise ValueError('There is default job without settings file (%s)' % jobdir)
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
-                try:
-                    job_settings = json.load(fp)
-                except Exception as e:
-                    logger.exception('The default job was not created: %s' % e, stack_info=True)
-                    continue
+                job_settings = json.load(fp)
             if any(x not in job_settings for x in ['name', 'class', 'description']):
-                logger.error(
-                    'Default job settings must contain name, class and description. Job in "%s" has %s' % (
-                        jobdir, str(list(job_settings))
-                    ), stack_info=True
-                )
-                continue
+                raise ValueError('Default job settings must contain name, class and description. Job in "%s" has %s' % (
+                    jobdir, str(list(job_settings))
+                ))
             if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                logger.error(
-                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class'],
-                    stack_info=True
+                raise ValueError(
+                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
                 )
-                continue
             if len(job_settings['name']) == 0:
-                logger.error('Default job name is required', stack_info=True)
-                continue
+                raise ValueError('Default job name is required')
             try:
                 parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
-                logger.exception(
-                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class'],
-                    stack_info=True
+                raise Exception(
+                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
                 )
-                continue
             job = create_job({
                 'author': self.manager,
                 'global_role': '1',
@@ -195,11 +170,11 @@ class Population(object):
                 'parent': parent,
                 'filedata': self.__get_filedata(jobdir)
             })
-            if isinstance(job, Job):
-                if 'default_jobs' not in self.changes:
-                    self.changes['default_jobs'] = []
-                self.changes['default_jobs'].append([job.name, job.identifier])
-            sleep(0.1)
+            if not isinstance(job, Job):
+                raise ValueError('Default job was not created: %s' % job)
+            if 'default_jobs' not in self.changes:
+                self.changes['default_jobs'] = []
+            self.changes['default_jobs'].append([job.name, job.identifier])
 
     def __get_filedata(self, d):
         self.cnt = 0
@@ -213,15 +188,10 @@ class Population(object):
                     continue
                 self.cnt += 1
                 if os.path.isfile(f):
-                    try:
-                        check_sum = file_get_or_create(open(f, 'rb'), base_f, True)[1]
-                    except Exception as e:
-                        logger.exception('One of the job files was not uploaded (%s): %s' % (f, e), stack_info=True)
-                        continue
                     fdata.append({
                         'id': self.cnt,
                         'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': check_sum,
+                        'hash_sum': file_get_or_create(open(f, 'rb'), base_f, True)[1],
                         'title': base_f,
                         'type': '1'
                     })
@@ -247,17 +217,12 @@ class Population(object):
         for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             component = os.path.basename(component_dir)
             if not 0 < len(component) <= 15:
-                logger.error('Wrong component length: "%s". 1-15 is allowed.' % component, stack_info=True)
+                raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 with open(mark_settings, encoding='utf8') as fp:
-                    try:
-                        data = json.load(fp)
-                    except Exception as e:
-                        logger.exception("Error while parsing mark's data %s: %s" % (mark_settings, e), stack_info=True)
-                        continue
+                    data = json.load(fp)
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    logger.error('Wrong unknown mark data format: %s' % mark_settings, stack_info=True)
-                    continue
+                    raise ValueError('Wrong unknown mark data format: %s' % mark_settings)
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
@@ -266,28 +231,20 @@ class Population(object):
                     data['status'] = MARK_STATUS[0][0]
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
-                if data['status'] not in list(x[0] for x in MARK_STATUS) \
-                        or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 \
-                        or not isinstance(data['is_modifiable'], bool):
-                    logger.error('Wrong unknown mark data: %s' % mark_settings, stack_info=True)
-                    continue
+                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
+                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                    raise ValueError('Wrong unknown mark data: %s' % mark_settings)
                 try:
                     MarkUnknown.objects.get(
                         component__name=component, function=data['function'], problem_pattern=data['pattern']
                     )
-                    continue
                 except ObjectDoesNotExist:
-                    try:
-                        mark = MarkUnknown.objects.create(
-                            identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
-                            author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                            function=data['function'], problem_pattern=data['pattern'], description=data['description'],
-                            type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
-                        )
-                    except Exception as e:
-                        logger.exception("Can't save mark '%s' to DB: %s" % (mark_settings, e), stack_info=True)
-                        continue
+                    mark = MarkUnknown.objects.create(
+                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                        author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
+                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                    )
                     MarkUnknownHistory.objects.create(
                         mark=mark, version=mark.version, author=mark.author, status=mark.status,
                         function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
@@ -296,8 +253,7 @@ class Population(object):
                     ConnectMarkWithReports(mark)
                     self.changes['marks'] = True
                 except MultipleObjectsReturned:
-                    logger.exception('There are two unknown marks in the system '
-                                     'with the same functions, patterns and components', stack_info=True)
+                    raise Exception('There are similar unknown marks in the system')
 
     def __populate_tags(self):
         self.changes['tags'] = []
@@ -316,12 +272,11 @@ class Population(object):
         self.ccc = 0
         preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
         if not os.path.isfile(preset_tags):
-            logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
         with open(preset_tags, mode='rb') as fp:
             res = CreateTagsFromFile(fp, tag_type, True)
             if res.error is not None:
-                logger.error("Error while creating tags: %s" % res.error, stack_info=True)
+                raise Exception(res.error)
         return res.number_of_created
 
 
