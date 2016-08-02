@@ -281,10 +281,13 @@
     "linux:usb:urb": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/usb/urb.c": {"bug kinds": [
-        "linux:usb:urb::less initial decrement",
-        "linux:usb:urb::more initial at exit"
-      ]}}}
+      "RSG": {"models": {"linux/usb/urb.c": {
+        "bug kinds": [
+          "linux:usb:urb::less initial decrement",
+          "linux:usb:urb::more initial at exit"
+        ],
+        "automaton": "linux/automata/usb_urb.spc"
+      }}}
     },
     "linux:usb:coherent": {
       "description": "...",

@@ -8,10 +8,12 @@ extern void ldv_usb_free_urb(struct urb *urb);
 
 around: call(void usb_free_urb(struct urb *urb))
 {
+	/* ASPECT_FUNC_CALL Releases memory of urb request */
 	ldv_usb_free_urb(urb);
 }
 
 around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
 {
+	/* ASPECT_FUNC_CALL Allocates memory for urb request */
 	return ldv_usb_alloc_urb();
 }
