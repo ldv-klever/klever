@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import collections
 import copy
 import importlib
 import json
@@ -197,29 +198,42 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     return rule_spec_desc
 
 
-# This function automatically untites all rule specifications and creates new rule specification.
+# Unite all rule specifications by multi-aspect groups by creating corresponding new rule specifications.
 def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
-    logger.info('Unite all rule specifications')
+    logger.info('Unite all rule specifications by multi-aspect groups')
 
-    rule_specifications = conf['rule specifications']
-    prefix = os.path.commonprefix(rule_specifications)
-    new_rule_name_id = prefix + ":" + 'united'
-    logger.info('United rule specification was given the following name "{0}"'.format(new_rule_name_id))
+    # Find out multi-aspect groups of rule specifications. Respect order of rule specifications and corresponding
+    # multi-aspect groups.
+    multi_aspect_groups = collections.OrderedDict()
+    for rule_spec_id in conf['rule specifications']:
+        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+        if 'multi-aspect group' in rule_spec_desc:
+            multi_aspect_group = rule_spec_desc['multi-aspect group']
+            del rule_spec_desc['multi-aspect group']
+        else:
+            multi_aspect_group = None
+        if multi_aspect_group not in multi_aspect_groups:
+            multi_aspect_groups[multi_aspect_group] = []
+        multi_aspect_groups[multi_aspect_group].append(rule_spec_id)
 
-    template = 'Linux kernel modules'
+    for multi_aspect_group in multi_aspect_groups:
+        logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(
+            multi_aspect_group if multi_aspect_group else 'Other'))
 
-    for rule_specification in rule_specifications:
-        model = raw_rule_spec_descs['rule specifications'][rule_specification]
-        if model['template'] == 'Argument signatures for Linux kernel modules':
-            template = 'Argument signatures for Linux kernel modules'
-            break
+        # Find out the most broad template for given multi-aspect group.
+        template = 'Linux kernel modules'
+        for rule_spec_id in multi_aspect_groups[multi_aspect_group]:
+            rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+            if rule_spec_desc['template'] == 'Argument signatures for Linux kernel modules':
+                template = 'Argument signatures for Linux kernel modules'
+                break
 
-    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = {
-        'template': template,
-        'rule specifications': rule_specifications
-    }
+        raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
+            'template': template,
+            'rule specifications': multi_aspect_groups[multi_aspect_group]
+        }
 
-    conf['rule specifications'] = [new_rule_name_id]
+    conf['rule specifications'] = list(multi_aspect_groups.keys())
 
 
 # This function is invoked to collect plugin callbacks.
