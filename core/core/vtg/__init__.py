@@ -116,11 +116,14 @@ class VTG(core.components.Component):
                 self.logger.debug('Abstract verification task descriptions message queue was terminated')
                 break
 
-            abstract_task_desc_file = abstract_task_desc_file_and_num['desc file']
+            abstract_task_desc_file = os.path.join(self.conf['main working directory'],
+                                                   abstract_task_desc_file_and_num['desc file'])
 
-            with open(os.path.join(self.conf['main working directory'], abstract_task_desc_file),
-                      encoding='ascii') as fp:
+            with open(abstract_task_desc_file, encoding='ascii') as fp:
                 abstract_task_desc = json.load(fp)
+
+            if not self.conf['keep intermediate files']:
+                os.remove(abstract_task_desc_file)
 
             # Print progress in form of "the number of already generated abstract verification task descriptions/the
             # number of all abstract verification task descriptions". The latter may be omitted for early abstract
