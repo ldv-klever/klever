@@ -1,0 +1,26 @@
+// for arg_sign in spinlock_arg_signs
+OBSERVER AUTOMATON linux_spinlock{{ arg_sign.id }}
+
+INITIAL STATE Unlocked;
+
+STATE USEALL Unlocked :
+  MATCH CALL {ldv_spin_lock{{ arg_sign.id }}($?)} -> GOTO Locked;
+  MATCH RETURN {$1=ldv_spin_trylock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH RETURN {$1=ldv_atomic_dec_and_lock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH CALL {ldv_spin_unlock{{ arg_sign.id }}($?)} -> ERROR("linux:spinlock::one thread:double unlock");
+
+STATE USEALL Locked :
+  MATCH CALL {ldv_spin_lock{{ arg_sign.id }}($?)} -> ERROR("linux:spinlock::one thread:double lock");
+  MATCH RETURN {$1 = ldv_spin_is_locked{{ arg_sign.id }}($?)} -> SPLIT {((int)$1) == 1} GOTO Locked NEGATION GOTO Stop;
+  MATCH RETURN {$1 = ldv_spin_can_lock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1) == 0} GOTO Locked NEGATION GOTO Stop;
+  MATCH RETURN {$1=ldv_spin_trylock{{ arg_sign.id }}($?)} -> ERROR("linux:spinlock::one thread:double lock try");
+  MATCH CALL {ldv_spin_unlock_wait{{ arg_sign.id }}($?)} -> ERROR("linux:spinlock::one thread:double lock try");
+  MATCH RETURN {$1=ldv_atomic_dec_and_lock{{ arg_sign.id }}($?)} -> ERROR("linux:spinlock::one thread:double lock try");
+  MATCH CALL {ldv_spin_unlock{{ arg_sign.id }}($?)} ->  GOTO Unlocked;
+  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:spinlock::one thread:locked at exit");
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor

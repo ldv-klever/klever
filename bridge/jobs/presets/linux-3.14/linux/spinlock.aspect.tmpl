@@ -61,6 +61,7 @@ before: call(static inline void spin_lock(..)) ||
         call(static inline void spin_lock_irq(..)) ||
         call(void __ldv_spin_lock(..))
 {
+	/* ASPECT_FUNC_CALL Check that spinlock was not locked and lock it */
 	ldv_spin_lock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
@@ -90,6 +91,7 @@ before: call(static inline void spin_unlock(..)) ||
         call(static inline void spin_unlock_irqrestore(..)) ||
         call(void __ldv_spin_unlock(..))
 {
+	/* ASPECT_FUNC_CALL Check that spinlock was locked and unlock it */
 	ldv_spin_unlock_$arg_sign1();
 }
 
@@ -118,6 +120,7 @@ after: call(static inline int spin_trylock(..)) ||
        call(static inline int spin_trylock_irq(..)) ||
        call(int __ldv_spin_trylock(..))
 {
+	/* ASPECT_FUNC_CALL Check that spinlock was not locked and nondeterministically lock it */
 	return ldv_spin_trylock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
@@ -129,11 +132,13 @@ __ldv_spin_unlock_wait(lock)
 before: call(static inline void spin_unlock_wait(..)) ||
         call(void __ldv_spin_unlock_wait(..))
 {
+	/* ASPECT_FUNC_CALL The same thread can not both lock spinlock and wait until it will be unlocked */
 	ldv_spin_unlock_wait{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 after: call(static inline int spin_is_locked(..))
 {
+	/* ASPECT_FUNC_CALL Check whether spinlock was locked */
 	return ldv_spin_is_locked{{ spinlock_arg_sign_patterns[1] }}();
 }
 
@@ -145,11 +150,13 @@ __ldv_spin_can_lock(lock)
 after: call(static inline int spin_can_lock(..)) ||
        call(void __ldv_spin_can_lock(..))
 {
+	/* ASPECT_FUNC_CALL Check whether spinlock was not locked */
 	return ldv_spin_can_lock{{ spinlock_arg_sign_patterns[1] }}();
 }
 
 after: call(static inline int spin_is_contended(..))
 {
+	/* ASPECT_FUNC_CALL Check whether spinlock is contended */
 	return ldv_spin_is_contended{{ spinlock_arg_sign_patterns[1] }}();
 }
 
@@ -160,5 +167,6 @@ __ldv_atomic_dec_and_lock(lock)
 
 after: call(int __ldv_atomic_dec_and_lock(..))
 { 
+	/* ASPECT_FUNC_CALL Lock spinlock if atomic decrement result is zero */
 	return ldv_atomic_dec_and_lock{{ spinlock_arg_sign_patterns[1] }}();
 }

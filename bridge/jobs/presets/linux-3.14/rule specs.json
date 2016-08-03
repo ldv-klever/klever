@@ -242,7 +242,8 @@
       "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
       "TR": {"templates": {
         "linux/spinlock.c.tmpl": {},
-        "linux/spinlock.aspect.tmpl": {}
+        "linux/spinlock.aspect.tmpl": {},
+        "linux/automata/spinlock.spc.tmpl": {}
       }},
       "RSG": {"models": {"$linux/spinlock.c": {
         "bug kinds": [
@@ -251,7 +252,8 @@
           "linux:spinlock::one thread:double unlock",
           "linux:spinlock::one thread:locked at exit"
         ],
-        "sets model": "flag"
+        "sets model": "flag",
+        "automaton": "$linux/automata/spinlock.spc"
       }}}
     },
     "linux:rwlock": {
