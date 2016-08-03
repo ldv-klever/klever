@@ -3,7 +3,8 @@
 
 static int __init init(void)
 {
-	class_create(THIS_MODULE, "test");
+	struct class *res;
+	res = class_create(THIS_MODULE, "test");
 	return 0;
 }
 

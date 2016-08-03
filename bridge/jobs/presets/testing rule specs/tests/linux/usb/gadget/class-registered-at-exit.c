@@ -8,7 +8,7 @@ static int __init init(void)
 {
 	struct class *cur_class;
 
-	class_register(cur_class);
+	if (class_register(cur_class));
 
 	return 0;
 }
