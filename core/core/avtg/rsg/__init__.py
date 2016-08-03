@@ -211,7 +211,7 @@ class RSG(core.avtg.plugins.Plugin):
         for model_c_file in models:
             model = models[model_c_file]
 
-            if self.conf['RSG strategy'] == 'instrumentation':
+            if self.conf['RSG strategy'] == 'instrumentation' or model_c_file not in automata:
                 if 'bug kinds' in model:
                     self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                     # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
