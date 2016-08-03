@@ -5,5 +5,6 @@ void ldv_check_return_value_probe(int);
 
 before: call(int ldv_post_probe(..))
 {
+	/* ASPECT_FUNC_CALL Check that error code was properly propagated in probe() */
 	ldv_check_return_value_probe($arg1);
 }

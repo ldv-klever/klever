@@ -445,12 +445,18 @@
     "linux:usb:register": {
       "description": "Error handling for usb register in probe()",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/usb/register.c": {"bug kinds": ["linux:usb:register::wrong return value"]}}}
+      "RSG": {"models": {"linux/usb/register.c": {
+        "bug kinds": ["linux:usb:register::wrong return value"],
+        "automaton": "linux/automata/usb_register.spc"
+      }}}
     },
     "linux:netdev": {
       "description": "Error handling for netdev in probe()",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/netdev.c": {"bug kinds": ["linux:netdev::wrong return value"]}}}
+      "RSG": {"models": {"linux/netdev.c": {
+        "bug kinds": ["linux:netdev::wrong return value"],
+        "automaton": "linux/automata/netdev.spc"
+      }}}
     },
     "linux:usb:gadget": {
       "description": "...",
