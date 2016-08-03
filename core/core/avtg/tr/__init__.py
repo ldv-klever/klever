@@ -48,8 +48,12 @@ class TR(core.avtg.plugins.Plugin):
                 # Rendered templates will be placed into files inside TR working directory.
                 os.makedirs(os.path.dirname(file), exist_ok=True)
                 with open(file, 'w', encoding='ascii') as fp:
+                    if 'arg_sign' in self.conf['templates'][tmpl]:
+                        rendered = self.conf['templates'][tmpl]['arg_sign']
+                    else:
+                        rendered = os.path.splitext(os.path.basename(file))[0]
                     fp.write(env.get_template(tmpl).render(
-                        self.abstract_task_desc['template context'][os.path.splitext(os.path.basename(file))[0]]))
+                        self.abstract_task_desc['template context'][rendered]))
 
                 self.abstract_task_desc['files'].append(
                     os.path.relpath(file, self.conf['main working directory']))
