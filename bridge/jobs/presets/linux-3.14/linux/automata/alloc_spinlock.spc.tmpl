@@ -1,0 +1,30 @@
+// for arg_sign in spinlock_arg_signs
+OBSERVER AUTOMATON linux_alloc_spinlock{{ arg_sign.id }}
+
+INITIAL STATE Unlocked;
+
+STATE USEALL Unlocked :
+  MATCH CALL {ldv_spin_lock{{ arg_sign.id }}($?)} -> GOTO Locked;
+  MATCH RETURN {$1=ldv_spin_trylock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH RETURN {$1=ldv_atomic_dec_and_lock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH CALL {ldv_spin_unlock{{ arg_sign.id }}($?)} -> GOTO Stop;
+
+STATE USEALL Locked :
+  MATCH CALL {ldv_spin_lock{{ arg_sign.id }}($?)} -> GOTO Stop;
+  MATCH RETURN {$1 = ldv_spin_is_locked{{ arg_sign.id }}($?)} -> SPLIT {((int)$1) == 1} GOTO Locked NEGATION GOTO Stop;
+  MATCH RETURN {$1 = ldv_spin_can_lock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1) == 0} GOTO Locked NEGATION GOTO Stop;
+  MATCH RETURN {$1=ldv_spin_trylock{{ arg_sign.id }}($?)} -> GOTO Stop;
+  MATCH CALL {ldv_spin_unlock_wait{{ arg_sign.id }}($?)} -> GOTO Stop;
+  MATCH RETURN {$1=ldv_atomic_dec_and_lock{{ arg_sign.id }}($?)} -> GOTO Stop;
+  MATCH CALL {ldv_spin_unlock{{ arg_sign.id }}($?)} ->  GOTO Unlocked;
+
+  MATCH CALL {ldv_check_alloc_flags($1)} -> ASSUME {((int)$1)==32} GOTO Locked;
+  MATCH CALL {ldv_check_alloc_flags($1)} -> ASSUME {((int)$1)==0} GOTO Locked;
+  MATCH CALL {ldv_check_alloc_flags($1)} -> ASSUME {((int)$1)!=0; ((int)$1)!=32} ERROR("linux:alloc:spin lock::wrong flags");
+  MATCH CALL {ldv_check_alloc_nonatomic($?)} ->  ERROR("linux:alloc:spin lock::nonatomic");
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor

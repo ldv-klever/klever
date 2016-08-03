@@ -167,14 +167,17 @@
       "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
       "TR": {"templates": {
         "linux/spinlock.c.tmpl": {},
-        "linux/spinlock.aspect.tmpl": {}
+        "linux/spinlock.aspect.tmpl": {},
+        "linux/automata/alloc_spinlock.spc.tmpl": {"arg_sign": "spinlock"}
       }},
       "RSG": {"models": {
-        "$linux/spinlock.c": {"sets model": "flag"},
-        "linux/alloc2.c": {"bug kinds": [
-          "linux:alloc:spin lock::wrong flags",
-          "linux:alloc:spin lock::nonatomic"
-        ]}
+        "$linux/spinlock.c": {"sets model": "flag", "automaton": "$linux/automata/alloc_spinlock.spc"},
+        "linux/alloc2.c": {
+          "bug kinds": [
+            "linux:alloc:spin lock::wrong flags",
+            "linux:alloc:spin lock::nonatomic"
+          ]
+        }
       }}
     },
     "linux:alloc:usb lock": {
