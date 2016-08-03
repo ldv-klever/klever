@@ -262,14 +262,17 @@
     "linux:rwlock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/rwlock.c": {"bug kinds": [
-        "linux:rwlock::read lock on write lock",
-        "linux:rwlock::more read unlocks",
-        "linux:rwlock::read lock at exit",
-        "linux:rwlock::double write lock",
-        "linux:rwlock::double write unlock",
-        "linux:rwlock::write lock at exit"
-      ]}}}
+      "RSG": {"models": {"linux/rwlock.c": {
+        "bug kinds": [
+          "linux:rwlock::read lock on write lock",
+          "linux:rwlock::more read unlocks",
+          "linux:rwlock::read lock at exit",
+          "linux:rwlock::double write lock",
+          "linux:rwlock::double write unlock",
+          "linux:rwlock::write lock at exit"
+        ],
+        "automaton": "linux/automata/rwlock.spc"
+      }}}
     },
     "linux:usb:dev": {
       "description": "...",
