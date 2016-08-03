@@ -90,7 +90,7 @@ class RSG(core.avtg.plugins.Plugin):
                                                                         self.conf['models'][model_c_file][elem])
                                 automaton = os.path.abspath(automaton)
                                 if not os.path.isfile(automaton):
-                                    raise ValueError('WTH is "{0}"'.format(automaton))
+                                    raise ValueError('Automaton "{0}" does not exist'.format(automaton))
 
                                 automata[model_c_file_realpath] = automaton
                                 self.logger.debug('Get model with automaton file "{0}"'.
