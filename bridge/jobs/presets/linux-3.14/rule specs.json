@@ -315,11 +315,14 @@
     "linux:blk:request": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/blk/request.c": {"bug kinds": [
-        "linux:blk:request::double get",
-        "linux:blk:request::double put",
-        "linux:blk:request::get at exit"
-      ]}}}
+      "RSG": {"models": {"linux/blk/request.c": {
+        "bug kinds": [
+          "linux:blk:request::double get",
+          "linux:blk:request::double put",
+          "linux:blk:request::get at exit"
+        ],
+        "automaton": "linux/automata/blk_request.spc"
+      }}}
     },
     "linux:rculock": {
       "description": "...",

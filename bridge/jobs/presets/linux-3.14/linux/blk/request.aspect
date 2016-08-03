@@ -11,17 +11,20 @@ void ldv_put_blk_rq(void);
 
 around: call(struct request *blk_get_request(..))
 {
+	/* ASPECT_FUNC_CALL Check that a blk request was not got and get it. Returns NULL if failed */
 	return ldv_blk_get_request($arg3);
 }
 
 around: call(struct request *blk_make_request(..))
 {
+	/* ASPECT_FUNC_CALL Check that a blk request was not got and get it. Returns ERRPTR if failed */
 	return ldv_blk_make_request($arg3);
 }
 
 around: call(void blk_put_request(..)) ||
         call(void __blk_put_request(..))
 {
+	/* ASPECT_FUNC_CALL Check that a blk request was got and free it */
 	ldv_put_blk_rq();
 }
 
