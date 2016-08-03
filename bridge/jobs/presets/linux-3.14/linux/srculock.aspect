@@ -10,11 +10,13 @@ extern void ldv_srcu_read_unlock(void);
 
 around: execution(static inline int srcu_read_lock(..))
 {
+	/* ASPECT_FUNC_CALL SRCU read lock */
 	ldv_srcu_read_lock();
 	return ldv_undef_int();
 }
 
 around: execution(static inline void srcu_read_unlock(..))
 {
+	/* ASPECT_FUNC_CALL SRCU read lock */
 	ldv_srcu_read_unlock();
 }

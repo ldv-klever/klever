@@ -8,10 +8,12 @@ extern void ldv_rcu_read_unlock_sched(void);
 
 around: execution(static inline void rcu_read_lock_sched(void))
 {
+	/* ASPECT_FUNC_CALL RCU-sched read lock */
 	ldv_rcu_read_lock_sched();
 }
 
 around: execution(static inline void rcu_read_unlock_sched(void))
 {
+	/* ASPECT_FUNC_CALL RCU-sched read lock */
 	ldv_rcu_read_unlock_sched();
 }

@@ -8,10 +8,12 @@ extern void ldv_rcu_read_unlock_bh(void);
 
 around: execution(static inline void rcu_read_lock_bh(void))
 {
+	/* ASPECT_FUNC_CALL RCU-bh read lock */
 	ldv_rcu_read_lock_bh();
 }
 
 around: execution(static inline void rcu_read_unlock_bh(void))
 {
+	/* ASPECT_FUNC_CALL RCU-bh read unlock */
 	ldv_rcu_read_unlock_bh();
 }

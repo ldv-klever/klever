@@ -32,6 +32,7 @@ pointcut CHECK_FOR_READ_SECTION:
 around: define(rcu_assign_pointer(gptr, p))
 {
   ({
+     /* ASPECT_FUNC_CALL RCU read lock critical section */
      ldv_check_for_read_section();
      gptr = ldv_undef_ptr();
   })
@@ -39,5 +40,6 @@ around: define(rcu_assign_pointer(gptr, p))
 
 around: CHECK_FOR_READ_SECTION
 {
+	/* ASPECT_FUNC_CALL RCU read lock critical section */
 	ldv_check_for_read_section();
 }

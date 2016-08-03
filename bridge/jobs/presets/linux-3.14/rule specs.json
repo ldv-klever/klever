@@ -333,38 +333,50 @@
     "linux:rculock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/rculock.c": {"bug kinds": [
-        "linux:rculock::more unlocks",
-        "linux:rculock::locked at read section",
-        "linux:rculock::locked at exit"
-      ]}}}
+      "RSG": {"models": {"linux/rculock.c": {
+        "bug kinds": [
+          "linux:rculock::more unlocks",
+          "linux:rculock::locked at read section",
+          "linux:rculock::locked at exit"
+        ],
+        "automaton": "linux/automata/rculock.spc"
+      }}}
     },
     "linux:rculockbh": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/rculockbh.c": {"bug kinds": [
-        "linux:rculockbh::more unlocks",
-        "linux:rculockbh::locked at read section",
-        "linux:rculockbh::locked at exit"
-      ]}}}
+      "RSG": {"models": {"linux/rculockbh.c": {
+        "bug kinds": [
+          "linux:rculockbh::more unlocks",
+          "linux:rculockbh::locked at read section",
+          "linux:rculockbh::locked at exit"
+        ],
+        "automaton": "linux/automata/rculockbh.spc"
+      }}}
     },
     "linux:rculocksched": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/rculocksched.c": {"bug kinds": [
-        "linux:rculocksched::more unlocks",
-        "linux:rculocksched::locked at read section",
-        "linux:rculocksched::locked at exit"
-      ]}}}
+      "RSG": {"models": {"linux/rculocksched.c": {
+        "bug kinds": [
+          "linux:rculocksched::more unlocks",
+          "linux:rculocksched::locked at read section",
+          "linux:rculocksched::locked at exit"
+        ],
+        "automaton": "linux/automata/rculocksched.spc"
+      }}}
     },
     "linux:srculock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/srculock.c": {"bug kinds": [
-        "linux:srculock::more unlocks",
-        "linux:srculock::locked at read section",
-        "linux:srculock::locked at exit"
-      ]}}}
+      "RSG": {"models": {"linux/srculock.c": {
+        "bug kinds": [
+          "linux:srculock::more unlocks",
+          "linux:srculock::locked at read section",
+          "linux:srculock::locked at exit"
+        ],
+        "automaton": "linux/automata/srculock.spc"
+      }}}
     },
     "linux:completion": {
       "description": "...",
