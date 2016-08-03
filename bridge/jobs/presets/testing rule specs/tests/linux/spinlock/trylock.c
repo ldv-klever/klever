@@ -5,8 +5,10 @@
 static int __init my_init(void)
 {
 	spinlock_t *lock_1;
+	int is_locked;
 
-	spin_trylock(lock_1);
+	is_locked = spin_trylock(lock_1);
+	/* successfully ignore is_locked */
 	spin_unlock(lock_1);
 
 	return 0;

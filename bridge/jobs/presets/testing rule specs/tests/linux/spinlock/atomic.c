@@ -6,9 +6,11 @@
 static int __init my_init(void)
 {
 	spinlock_t *lock_1;
-
 	atomic_t *atomic;
-	atomic_dec_and_lock(atomic, lock_1);
+	int is_locked;
+
+	is_locked = atomic_dec_and_lock(atomic, lock_1);
+	/* successfully ignore is_locked */
 	spin_unlock(lock_1);
 
 	return 0;
