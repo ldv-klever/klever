@@ -313,7 +313,10 @@
     "linux:bitops": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/bitops.c": {"bug kinds": ["linux:bitops::offset out of range"]}}}
+      "RSG": {"models": {"linux/bitops.c": {
+        "bug kinds": ["linux:bitops::offset out of range"],
+        "automaton": "linux/automata/bitops.spc"
+      }}}
     },
     "linux:blk:request": {
       "description": "...",
