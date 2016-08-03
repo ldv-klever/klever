@@ -27,34 +27,40 @@ ldv_register_class()
 
 around: call(void class_destroy(struct class *cls))
 {
+	/* ASPECT_FUNC_CALL Check that class was registered and unregister it */
 	ldv_destroy_class(cls);
 }
 
 after: call(void class_unregister(..))
 {
+	/* ASPECT_FUNC_CALL Check that class was registered and unregister it */
 	ldv_unregister_class();
 }
 
 after: call(int alloc_chrdev_region(..)) ||
        call(int register_chrdev_region(..))
 {
+	/* ASPECT_FUNC_CALL Check that chrdev region was not registered and register it */
 	return ldv_register_chrdev_region();
 }
 
 after: execution(static inline int register_chrdev(unsigned int major, ..))
 {
+	/* ASPECT_FUNC_CALL Check that chrdev region was not registered and register it */
 	return ldv_register_chrdev(major);
 }
 
 after: call(void unregister_chrdev_region(..)) ||
        execution(static inline void unregister_chrdev(..))
 {
+	/* ASPECT_FUNC_CALL Check that chrdev region was registered and unregister it */
 	ldv_unregister_chrdev_region();
 }
 
 after: call(int usb_gadget_register_driver(..)) ||
        call(int usb_gadget_probe_driver(..))
 {
+	/* ASPECT_FUNC_CALL Check that usb gadget was not registered and register it */
 	return ldv_register_usb_gadget();
 }
 
@@ -64,5 +70,6 @@ after: call(int usb_gadget_register_driver(..)) ||
  */
 after: call(int usb_gadget_unregister_driver(..))
 {
+	/* ASPECT_FUNC_CALL Check that usb gadget was registered and unregister it */
 	ldv_unregister_usb_gadget();
 }

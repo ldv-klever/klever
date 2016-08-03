@@ -449,33 +449,42 @@
     "linux:usb:gadget": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/usb/gadget.c": {"bug kinds": [
-        "linux:usb:gadget::class registration with usb gadget",
-        "linux:usb:gadget::class deregistration with usb gadget",
-        "linux:usb:gadget::chrdev registration with usb gadget",
-        "linux:usb:gadget::chrdev deregistration with usb gadget",
-        "linux:usb:gadget::double usb gadget registration",
-        "linux:usb:gadget::double usb gadget deregistration",
-        "linux:usb:gadget::usb gadget registered at exit"
-      ]}}}
+      "RSG": {"models": {"linux/usb/gadget.c": {
+        "bug kinds": [
+          "linux:usb:gadget::class registration with usb gadget",
+          "linux:usb:gadget::class deregistration with usb gadget",
+          "linux:usb:gadget::chrdev registration with usb gadget",
+          "linux:usb:gadget::chrdev deregistration with usb gadget",
+          "linux:usb:gadget::double usb gadget registration",
+          "linux:usb:gadget::double usb gadget deregistration",
+          "linux:usb:gadget::usb gadget registered at exit"
+        ],
+        "automaton": "linux/automata/usb_gadget.spc"
+      }}}
     },
     "linux:class": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/class.c": {"bug kinds": [
-        "linux:class::double registration",
-        "linux:class::double deregistration",
-        "linux:class::registered at exit"
-      ]}}}
+      "RSG": {"models": {"linux/class.c": {
+        "bug kinds": [
+          "linux:class::double registration",
+          "linux:class::double deregistration",
+          "linux:class::registered at exit"
+        ],
+        "automaton": "linux/automata/class.spc"
+      }}}
     },
     "linux:chrdev": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/chrdev.c": {"bug kinds": [
-        "linux:chrdev::double registration",
-        "linux:chrdev::double deregistration",
-        "linux:chrdev::registered at exit"
-      ]}}}
+      "RSG": {"models": {"linux/chrdev.c": {
+        "bug kinds": [
+          "linux:chrdev::double registration",
+          "linux:chrdev::double deregistration",
+          "linux:chrdev::registered at exit"
+        ],
+        "automaton": "linux/automata/chrdev.spc"
+      }}}
     },
     "linux:sock": {
       "description": "...",

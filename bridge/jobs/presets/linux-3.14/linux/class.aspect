@@ -20,10 +20,12 @@ ldv_register_class()
 
 around: call(void class_destroy(struct class *cls))
 {
+	/* ASPECT_FUNC_CALL Check that class was registered and unregister it */
 	ldv_destroy_class(cls);
 }
 
 after: call(void class_unregister(..))
 {
+	/* ASPECT_FUNC_CALL Check that class was registered and unregister it */
 	ldv_unregister_class();
 }
