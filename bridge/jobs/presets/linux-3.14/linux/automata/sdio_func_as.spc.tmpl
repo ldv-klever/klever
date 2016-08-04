@@ -1,0 +1,20 @@
+// for arg_sign in sdio_func_as_arg_signs
+OBSERVER AUTOMATON linux_sdio_func_as{{ arg_sign.id }}
+
+INITIAL STATE Unlocked;
+
+STATE USEFIRST Unlocked :
+  MATCH CALL {ldv_sdio_claim_host{{ arg_sign.id }}($?)} -> GOTO Locked;
+  MATCH CALL {ldv_sdio_release_host{{ arg_sign.id }}($?)} -> ERROR("linux:mmc:sdio_func::release without claim");
+  MATCH CALL {ldv_check_context{{ arg_sign.id }}($?)} -> ERROR("linux:mmc:sdio_func::wrong params");
+
+STATE USEFIRST Locked :
+  MATCH CALL {ldv_sdio_claim_host{{ arg_sign.id }}($?)} -> ERROR("linux:mmc:sdio_func::double claim");
+  MATCH CALL {ldv_sdio_release_host{{ arg_sign.id }}($?)} -> GOTO Unlocked;
+  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:mmc:sdio_func::unreleased at exit");
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor

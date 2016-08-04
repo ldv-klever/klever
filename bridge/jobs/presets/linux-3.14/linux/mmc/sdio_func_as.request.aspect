@@ -1,0 +1,34 @@
+info: call(void sdio_claim_host(struct sdio_func *func))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void sdio_release_host(struct sdio_func *func))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(int sdio_enable_func(struct sdio_func *func)) ||
+        call(int sdio_disable_func(struct sdio_func *func)) ||
+        call(int sdio_claim_irq(struct sdio_func *func, ..)) ||
+        call(int sdio_release_irq(struct sdio_func *func)) ||
+        call(u8 sdio_readb(struct sdio_func *func, ..)) ||
+        call(u16 sdio_readw(struct sdio_func *func, ..)) ||
+        call(u32 sdio_readl(struct sdio_func *func, ..)) ||
+        call(int sdio_readsb(struct sdio_func *func, ..)) ||
+        call(int sdio_writesb(struct sdio_func *func, ..)) ||
+        call(u8 sdio_writeb_readb(struct sdio_func *func, ..)) ||
+        call(int sdio_memcpy_fromio(struct sdio_func *func, ..)) ||
+        call(int sdio_memcpy_toio(struct sdio_func *func, ..)) ||
+        call(unsigned char sdio_f0_readb(struct sdio_func *func, ..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void sdio_writeb(struct sdio_func *func, ..)) ||
+        call(void sdio_writew(struct sdio_func *func, ..)) ||
+        call(void sdio_writel(struct sdio_func *func, ..)) ||
+        call(void sdio_f0_writeb(struct sdio_func *func, ..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}

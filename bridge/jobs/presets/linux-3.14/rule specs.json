@@ -205,8 +205,26 @@
           "linux/mmc/sdio_func.h",
           "linux/mmc/host.h",
           "linux/mmc/card.h"
-        ],
-        "automaton": "linux/automata/mmc.spc"
+        ]
+      }}}
+    },
+    "linux:mmc:sdio_func_as": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/mmc/sdio_func_as.request.aspect": {}}},
+      "TR": {"templates": {
+        "linux/mmc/sdio_func_as.c.tmpl": {},
+        "linux/mmc/sdio_func_as.aspect.tmpl": {},
+        "linux/automata/sdio_func_as.spc.tmpl": {}
+      }},
+      "RSG": {"models": {"$linux/mmc/sdio_func_as.c": {
+          "bug kinds": [
+          "linux:mmc:sdio_func::wrong params",
+          "linux:mmc:sdio_func::double claim",
+          "linux:mmc:sdio_func::release without claim",
+          "linux:mmc:sdio_func::unreleased at exit"
+          ],
+          "automaton": "$linux/automata/sdio_func_as.spc"
       }}}
     },
     "linux:module": {
