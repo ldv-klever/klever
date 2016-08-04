@@ -205,7 +205,8 @@
           "linux/mmc/sdio_func.h",
           "linux/mmc/host.h",
           "linux/mmc/card.h"
-        ]
+        ],
+        "automaton": "linux/automata/mmc.spc"
       }}}
     },
     "linux:module": {
@@ -384,13 +385,15 @@
       "ASE": {"request aspects": {"linux/completion.request.aspect": {}}},
       "TR": {"templates": {
         "linux/completion.c.tmpl": {},
-        "linux/completion.aspect.tmpl": {}
+        "linux/completion.aspect.tmpl": {},
+        "linux/automata/completion.spc.tmpl": {}
       }},
       "RSG": {"models": {"$linux/completion.c": {
           "bug kinds": [
-            "linux:comletion::double init",
-            "linux:comletion::wait without init"
-          ]
+            "linux:completion::double init",
+            "linux:completion::wait without init"
+          ],
+          "automaton": "$linux/automata/completion.spc"
       }}}
     },
     "linux:sysfs": {
