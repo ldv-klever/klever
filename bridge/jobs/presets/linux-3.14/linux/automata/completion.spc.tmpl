@@ -1,0 +1,18 @@
+// for arg_sign in completion_arg_signs
+OBSERVER AUTOMATON linux_completion{{ arg_sign.id }}
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH CALL {ldv_init_completion{{ arg_sign.id }}($?)} -> GOTO Declared;
+  MATCH CALL {ldv_init_completion_macro{{ arg_sign.id }}($?)} -> ERROR("linux:completion::double init");
+  MATCH CALL {ldv_wait_for_completion{{ arg_sign.id }}($?)} -> ERROR("linux:completion::wait without init");
+
+STATE USEFIRST Declared :
+  TRUE -> GOTO Stop;
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor
