@@ -399,10 +399,13 @@
     "linux:sysfs": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/sysfs.c": {"bug kinds": [
-        "linux:sysfs::less initial decrement",
-        "linux:sysfs::more initial at exit"
-      ]}}}
+      "RSG": {"models": {"linux/sysfs.c": {
+        "bug kinds": [
+          "linux:sysfs::less initial decrement",
+          "linux:sysfs::more initial at exit"
+        ],
+        "automaton": "linux/automata/sysfs.spc"
+      }}}
     },
     "linux:iomem": {
       "description": "...",

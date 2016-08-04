@@ -6,9 +6,11 @@ void ldv_sysfs_remove_group(void);
 
 around: call(int sysfs_create_group(..))
 {
+	/* ASPECT_FUNC_CALL Create sysfs group */
 	return ldv_sysfs_create_group();
 }
 around: call(void sysfs_remove_group(..))
 {
+	/* ASPECT_FUNC_CALL Remove sysfs group */
 	ldv_sysfs_remove_group();
 }
