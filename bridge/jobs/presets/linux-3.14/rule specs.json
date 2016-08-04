@@ -440,13 +440,16 @@
     "linux:gendisk": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/gendisk.c": {"bug kinds": [
-        "linux:gendisk::double allocation",
-        "linux:gendisk::use before allocation",
-        "linux:gendisk::delete before add",
-        "linux:gendisk::free before allocation",
-        "linux:gendisk::more initial at exit"
-      ]}}}
+      "RSG": {"models": {"linux/gendisk.c": {
+        "bug kinds": [
+          "linux:gendisk::double allocation",
+          "linux:gendisk::use before allocation",
+          "linux:gendisk::delete before add",
+          "linux:gendisk::free before allocation",
+          "linux:gendisk::more initial at exit"
+        ],
+        "automaton": "linux/automata/gendisk.spc"
+      }}}
     },
     "linux:blk:queue": {
       "description": "...",

@@ -10,20 +10,24 @@ void ldv_put_disk(struct gendisk *);
 
 after: call(struct gendisk *alloc_disk(int minors))
 {
+	/* ASPECT_FUNC_CALL Allocate gendisk. */
 	return ldv_alloc_disk();
 }
 
 before: call(void add_disk(struct gendisk *disk))
 {
+	/* ASPECT_FUNC_CALL Add gendisk. */
 	ldv_add_disk();
 }
 
 before: call(void del_gendisk(struct gendisk *gp))
 {
+	/* ASPECT_FUNC_CALL Delete gendisk. */
 	ldv_del_gendisk();
 }
 
 before: call(void put_disk(struct gendisk *disk))
 {
+	/* ASPECT_FUNC_CALL Free gendisk. */
 	ldv_put_disk(disk);
 }
