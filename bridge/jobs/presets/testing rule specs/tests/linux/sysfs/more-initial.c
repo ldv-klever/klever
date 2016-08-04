@@ -6,7 +6,7 @@ int __init my_init(void)
 	const struct attribute_group *grp;
 	struct kobject *kobj;
 
-	sysfs_create_group(kobj, grp);
+	if (sysfs_create_group(kobj, grp));
 
 	return 0;
 }
