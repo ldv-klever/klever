@@ -1,4 +1,4 @@
-OBSERVER AUTOMATON mutex_usb_urb
+OBSERVER AUTOMATON linux_usb_urb
 INITIAL STATE Init;
 
 STATE USEALL Init :
