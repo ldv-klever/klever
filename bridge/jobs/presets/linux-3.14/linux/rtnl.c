@@ -2,14 +2,11 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
-void rtnl_lock(void);
-void rtnl_unlock(void);
-
 /* CHANGE_STATE There is no rtnllock at the beginning */
 int rtnllocknumber = 0;
 
-/* MODEL_FUNC_DEF executed after rtnl_unlock */
-void ldv_past_rtnl_unlock(void)
+/* MODEL_FUNC_DEF Unlock rtnl */
+void ldv_rtnl_unlock(void)
 {
 	/* ASSERT double rtnl_unlock */
 	ldv_assert("linux:rtnl::double unlock", rtnllocknumber == 1);
@@ -17,8 +14,8 @@ void ldv_past_rtnl_unlock(void)
 	rtnllocknumber=0;
 }
 
-/* MODEL_FUNC_DEF executed after rtnl_lock */
-void ldv_past_rtnl_lock(void)
+/* MODEL_FUNC_DEF Lock rtnl */
+void ldv_rtnl_lock(void)
 {
 	/* ASSERT double rtnl_lock */
 	ldv_assert("linux:rtnl::double lock", rtnllocknumber == 0);
@@ -26,16 +23,16 @@ void ldv_past_rtnl_lock(void)
 	rtnllocknumber=1;
 }
 
-/* MODEL_FUNC_DEF executed before ieee80211_unregister_hw */
-void ldv_before_ieee80211_unregister_hw(void)
+/* MODEL_FUNC_DEF executed before ieee80211_unregister_hw function */
+void ldv_ieee80211_unregister_hw(void)
 {
 	/* OTHER Modeling lock */
-	ldv_past_rtnl_lock();
+	ldv_rtnl_lock();
 	/* OTHER Modeling unlock */
-	ldv_past_rtnl_unlock();
+	ldv_rtnl_unlock();
 }
 
-/* MODEL_FUNC_DEF rtnl is locked */
+/* MODEL_FUNC_DEF Return true if rtnl is locked */
 int ldv_rtnl_is_locked(void)
 {
 	/* OTHER If we know about lock */
@@ -51,7 +48,7 @@ int ldv_rtnl_is_locked(void)
 		return 0;
 }
 
-/* MODEL_FUNC_DEF trylock */
+/* MODEL_FUNC_DEF Try to lock rtnl and return true in cesa of success */
 int ldv_rtnl_trylock(void)
 {
 	/* ASSERT double rtnl_trylock */

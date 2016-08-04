@@ -2,29 +2,31 @@ before: file ("$this")
 {
 #include <linux/types.h>
 
-void ldv_before_release_sock(void);
-void ldv_past_lock_sock_nested(void);
+void ldv_lock_sock(void);
 bool ldv_lock_sock_fast(void);
-void ldv_unlock_sock_fast(void);
+void ldv_unlock_sock(void);
 }
 
 after: call(void lock_sock_nested(..))
 {
-	ldv_past_lock_sock_nested();
+	/* ASPECT_FUNC_CALL Lock socket */
+	ldv_lock_sock();
 }
 
 before: call(void release_sock(..))
 {
-	ldv_before_release_sock();
+	/* ASPECT_FUNC_CALL Unlock socket */
+	ldv_unlock_sock();
 }
 
 around: execution(static inline void unlock_sock_fast(..))
 {
-	ldv_unlock_sock_fast();
+	/* ASPECT_FUNC_CALL Unlock socket */
+	ldv_unlock_sock();
 }
-
 
 around: call(bool lock_sock_fast(..))
 {
+	/* ASPECT_FUNC_CALL Try to lock socked and return true in case of success */
 	return ldv_lock_sock_fast();
 }

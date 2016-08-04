@@ -1,33 +1,38 @@
 before: file ("$this")
 {
-void ldv_past_rtnl_lock(void);
-void ldv_past_rtnl_unlock(void);
+void ldv_rtnl_lock(void);
+void ldv_rtnl_unlock(void);
 int ldv_rtnl_is_locked(void);
 int ldv_rtnl_trylock(void);
-void ldv_before_ieee80211_unregister_hw(void);
+void ldv_ieee80211_unregister_hw(void);
 }
 
 before: call(void ieee80211_unregister_hw(..))
 {
-	ldv_before_ieee80211_unregister_hw();
+	/* ASPECT_FUNC_CALL executed before ieee80211_unregister_hw function */
+	ldv_ieee80211_unregister_hw();
 }
 
 after: call(void rtnl_lock(..))
 {
-	ldv_past_rtnl_lock();
+	/* ASPECT_FUNC_CALL Lock rtnl */
+	ldv_rtnl_lock();
 }
 
 after: call(void rtnl_unlock(..))
 {
-	ldv_past_rtnl_unlock();
+	/* ASPECT_FUNC_CALL Unlock rtnl */
+	ldv_rtnl_unlock();
 }
 
 around: call(int rtnl_trylock(..))
 {
+	/* ASPECT_FUNC_CALL Try to lock rtnl and return true in cesa of success */
 	return ldv_rtnl_trylock();
 }
 
 around: call(int rtnl_is_locked(..))
 {
+	/* ASPECT_FUNC_CALL Return true if rtnl is locked */
 	return ldv_rtnl_is_locked();
 }

@@ -6,14 +6,14 @@
 /* CHANGE_STATE There is no locked sockets at the beginning */
 int locksocknumber = 0;
 
-/* MODEL_FUNC_DEF executed after locking socket using nested function */
-void ldv_past_lock_sock_nested(void)
+/* MODEL_FUNC_DEF Lock socket */
+void ldv_lock_sock(void)
 {
-        /* CHANGE_STATE locking socket */
+	/* CHANGE_STATE locking socket */
 	locksocknumber++;
 }
 
-/* MODEL_FUNC_DEF executed around locking socket using fast function */
+/* MODEL_FUNC_DEF Try to lock socked and return true in case of success */
 bool ldv_lock_sock_fast(void)
 {
 	/* OTHER we dont know lock this socket or not */
@@ -27,21 +27,12 @@ bool ldv_lock_sock_fast(void)
 	return false;
 }
 
-/* MODEL_FUNC_DEF executed around unlocking socket using fast function */
-void ldv_unlock_sock_fast(void)
+/* MODEL_FUNC_DEF Unlock socket */
+void ldv_unlock_sock(void)
 {
-	/* ASSERT unlock_sock_fas negative locksocknumber the result of multiply releases */
+	/* ASSERT Socked must be locked before unlocking */
 	ldv_assert("linux:sock::double release", locksocknumber > 0);
-	/* CHANGE_STATE unlocking socket fast warning*/
-	locksocknumber--;
-}
-
-/* MODEL_FUNC_DEF executed after releasing socket */
-void ldv_before_release_sock(void)
-{
-	/* ASSERT lock_sock negative locksocknumber the result of multiply releases */
-	ldv_assert("linux:sock::double release", locksocknumber > 0);
-	/* CHANGE_STATE locked socket released */
+	/* CHANGE_STATE Unlock socked*/
 	locksocknumber--;
 }
 
