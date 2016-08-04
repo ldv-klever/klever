@@ -1,0 +1,40 @@
+// for arg_sign in idr_arg_signs
+OBSERVER AUTOMATON linux_idr{{ arg_sign.id }}
+
+INITIAL STATE Init;
+
+STATE USEFIRST Init :
+  MATCH CALL {ldv_idr_init{{ arg_sign.id }}($?)} -> GOTO Initialized;
+  MATCH CALL {ldv_idr_alloc{{ arg_sign.id }}($?)} -> ERROR("linux:idr::not initialized");
+  MATCH CALL {ldv_idr_find{{ arg_sign.id }}($?)} -> ERROR("linux:idr::not initialized");
+  MATCH CALL {ldv_idr_remove{{ arg_sign.id }}($?)} -> ERROR("linux:idr::not initialized");
+  MATCH CALL {ldv_idr_destroy{{ arg_sign.id }}($?)} -> ERROR("linux:idr::not initialized");
+
+STATE USEFIRST Initialized :
+  MATCH CALL {ldv_idr_init{{ arg_sign.id }}($?)} -> ERROR("linux:idr::double init");
+  MATCH CALL {ldv_idr_alloc{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_find{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_remove{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_destroy{{ arg_sign.id }}($?)} -> GOTO Destroyed;
+  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:idr::more at exit");
+
+STATE USEFIRST Changed :
+  MATCH CALL {ldv_idr_init{{ arg_sign.id }}($?)} -> ERROR("linux:idr::double init");
+  MATCH CALL {ldv_idr_alloc{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_find{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_remove{{ arg_sign.id }}($?)} -> GOTO Changed;
+  MATCH CALL {ldv_idr_destroy{{ arg_sign.id }}($?)} -> GOTO Destroyed;
+  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:idr::more at exit");
+
+STATE USEFIRST Destroyed :
+  MATCH CALL {ldv_idr_init{{ arg_sign.id }}($?)} -> ERROR("linux:idr::double init");
+  MATCH CALL {ldv_idr_alloc{{ arg_sign.id }}($?)} -> ERROR("linux:idr::destroyed before usage");
+  MATCH CALL {ldv_idr_find{{ arg_sign.id }}($?)} -> ERROR("linux:idr::destroyed before usage");
+  MATCH CALL {ldv_idr_remove{{ arg_sign.id }}($?)} -> ERROR("linux:idr::destroyed before usage");
+  MATCH CALL {ldv_idr_destroy{{ arg_sign.id }}($?)} -> ERROR("linux:idr::destroyed before usage");
+
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
+END AUTOMATON
+// endfor

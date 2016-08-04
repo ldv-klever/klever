@@ -13,27 +13,32 @@ extern void ldv_idr_destroy{{ arg_sign.id }}(void);
 
 around: call(void idr_init(struct idr *))
 {
+	/* ASPECT_FUNC_CALL Init IDR. */
 	ldv_idr_init{{ idr_arg_sign_patterns[1] }}();
 }
 
 around: call(int idr_alloc(struct idr *, void *, int, int, gfp_t))
 {
+	/* ASPECT_FUNC_CALL Alloc new object in IDR. */
 	ldv_idr_alloc{{ idr_arg_sign_patterns[1] }}();
 	return ldv_undef_int();
 }
 
 around: call(static inline void *idr_find(struct idr *, int))
 {
+	/* ASPECT_FUNC_CALL Find object in IDR. */
 	ldv_idr_find{{ idr_arg_sign_patterns[1] }}();
 	return ldv_undef_ptr();
 }
 
 around: call(void idr_remove(struct idr *, int))
 {
+	/* ASPECT_FUNC_CALL Remove object from IDR. */
 	ldv_idr_remove{{ idr_arg_sign_patterns[1] }}();
 }
 
 around: call(void idr_destroy(struct idr *))
 {
+	/* ASPECT_FUNC_CALL Destroy IDR. */
 	ldv_idr_destroy{{ idr_arg_sign_patterns[1] }}();
 }

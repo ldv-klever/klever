@@ -424,7 +424,8 @@
       "ASE": {"request aspects": {"linux/idr.request.aspect": {}}},
       "TR": {"templates": {
         "linux/idr.c.tmpl": {},
-        "linux/idr.aspect.tmpl": {}
+        "linux/idr.aspect.tmpl": {},
+        "linux/automata/idr.spc.tmpl": {}
       }},
       "RSG": {"models": {"$linux/idr.c": {
           "bug kinds": [
@@ -432,7 +433,8 @@
             "linux:idr::not initialized",
             "linux:idr::destroyed before usage",
             "linux:idr::more at exit"
-          ]
+          ],
+          "automaton": "$linux/automata/idr.spc"
       }}}
     },
     "linux:gendisk": {
