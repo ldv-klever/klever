@@ -12,6 +12,7 @@ around: call(void *ioremap(..)) ||
         call(void *ioremap_nocache(..)) ||
         execution(static inline void *ioremap_nocache(..))
 {
+	/* ASPECT_FUNC_CALL Create some io-memory map for specified address */
 	return ldv_io_mem_remap();
 }
 
@@ -19,6 +20,7 @@ around: call(void iounmap(..)) ||
         execution(static inline void iounmap(..)) ||
         expand(iounmap(address))
 {
+	/* ASPECT_FUNC_CALL Delete some io-memory map for specified address */
 	ldv_io_mem_unmap();
 }
 

@@ -410,10 +410,13 @@
     "linux:iomem": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/iomem.c": {"bug kinds": [
-        "linux:iomem::less initial decrement",
-        "linux:iomem::more initial at exit"
-      ]}}}
+      "RSG": {"models": {"linux/iomem.c": {
+        "bug kinds": [
+          "linux:iomem::less initial decrement",
+          "linux:iomem::more initial at exit"
+        ],
+        "automaton": "linux/automata/iomem.spc"
+      }}}
     },
     "linux:idr": {
       "description": "...",
