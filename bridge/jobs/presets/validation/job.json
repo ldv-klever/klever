@@ -13,8 +13,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "version": "20376"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -213,7 +212,6 @@
       },
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
@@ -331,7 +329,6 @@
       },
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
