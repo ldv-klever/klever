@@ -170,7 +170,7 @@
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+        "comment": "[Environment model] Nonstandard environment models specification (<a href='https://forge.ispras.ru/issues/7439'>feature #7439</a>)"
       }]
     },
     {
