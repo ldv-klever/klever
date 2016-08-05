@@ -435,11 +435,11 @@ class AVTG(core.components.Component):
         )
         initial_attr_vals = tuple(attr[name] for attr in initial_attrs for name in attr)
 
-        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
-            'Generate abstract verification task description for {0} ({1})'.format(
+            'Generate abstract verification task description for {0} ({1}{2})'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals),
-                self.abstract_task_desc_num))
+                self.abstract_task_desc_num, '/{0}'.format(self.abstract_task_descs_num.value)
+                if self.abstract_task_descs_num.value else ''))
 
         plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
         os.makedirs(plugins_work_dir, exist_ok=True)
