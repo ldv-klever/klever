@@ -1,0 +1,1 @@
+obj-m += safe.o double-init.o not-initialized.o destroy-before-usage.o more-at-exit.o

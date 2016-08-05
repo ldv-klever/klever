@@ -35,6 +35,6 @@ void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR) {
 		/* ASSERT Errors of usb_register() should be properly propagated */
-		ldv_assert("linux:usb:register:wrong return value", retval != 0);
+		ldv_assert("linux:usb:register::wrong return value", retval != 0);
 	}
 }

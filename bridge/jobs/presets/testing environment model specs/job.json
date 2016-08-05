@@ -2,8 +2,7 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
@@ -40,7 +39,6 @@
           "atm_dev_invoke.ko"
         ]
       },
-      "ideal verdict": "safe",
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",

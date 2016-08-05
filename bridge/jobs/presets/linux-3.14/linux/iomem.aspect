@@ -1,0 +1,31 @@
+before: file("$this")
+{
+void *ldv_io_mem_remap(void);
+void ldv_io_mem_unmap(void);
+}
+
+around: call(void *ioremap(..)) ||
+        execution(static inline void *ioremap(..)) ||
+        execution(static inline void *acpi_os_ioremap(..)) ||
+        call(void *ioremap_cache(..)) ||
+        execution(static inline void *ioremap_cache(..)) ||
+        call(void *ioremap_nocache(..)) ||
+        execution(static inline void *ioremap_nocache(..))
+{
+	return ldv_io_mem_remap();
+}
+
+around: call(void iounmap(..)) ||
+        execution(static inline void iounmap(..)) ||
+        expand(iounmap(address))
+{
+	ldv_io_mem_unmap();
+}
+
+around: define(ioremap(address, object)) ||
+        define(ioremap_cache(address, offset)) ||
+        define(ioremap_nocache(address, offset)) ||
+        define(ioremap_wc(address, offset))
+{
+ldv_io_mem_remap()
+}

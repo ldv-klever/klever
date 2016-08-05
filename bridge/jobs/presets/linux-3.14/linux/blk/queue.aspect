@@ -1,0 +1,18 @@
+before: file("$this")
+{
+struct request_queue;
+
+struct request_queue *ldv_request_queue(void);
+void ldv_blk_cleanup_queue(void);
+}
+
+after: call(struct request_queue *blk_init_queue(..)) ||
+       call(struct request_queue *blk_alloc_queue(..))
+{
+	return ldv_request_queue();
+}
+
+before: call(void blk_cleanup_queue(..))
+{
+	ldv_blk_cleanup_queue();
+}

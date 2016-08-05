@@ -47,12 +47,16 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Delete' %}</p>
                 </div>
+                <button id="collapse_reports_modal_show" class="ui orange button normal-popup{% if not can_collapse %} disabled{% endif %}"><i class="archive icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Collapse reports' %}</p>
+                </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
                 <thead>
                     <tr>
                         <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ job.name }}</span>
+                            <span class="ui olive header">{{ job.name }}{% if job.light %} ({% trans 'light' %}){% endif %}</span>
                         </th>
                     </tr>
                 </thead>
@@ -226,6 +230,23 @@
                 <div class="ui center aligned grid">
                     <button id="cancel_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui red basic inverted button">{% trans 'Start' %}</a>
+                </div>
+            </div>
+        </div>
+        <div id="collapse_reports_modal" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'There is no reverse of this action' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_collapse_reports" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="collapse_reports_btn" class="ui orange basic inverted button">{% trans 'Collapse' %}</button>
                 </div>
             </div>
         </div>

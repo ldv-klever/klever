@@ -1,0 +1,30 @@
+before: file ("$this")
+{
+#include <linux/types.h>
+
+void ldv_before_release_sock(void);
+void ldv_past_lock_sock_nested(void);
+bool ldv_lock_sock_fast(void);
+void ldv_unlock_sock_fast(void);
+}
+
+after: call(void lock_sock_nested(..))
+{
+	ldv_past_lock_sock_nested();
+}
+
+before: call(void release_sock(..))
+{
+	ldv_before_release_sock();
+}
+
+around: execution(static inline void unlock_sock_fast(..))
+{
+	ldv_unlock_sock_fast();
+}
+
+
+around: call(bool lock_sock_fast(..))
+{
+	return ldv_lock_sock_fast();
+}

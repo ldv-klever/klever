@@ -75,7 +75,7 @@ class TestPopulation(KleverTestCase):
 
         safe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'safe.json')
         if os.path.isfile(safe_tags_presets):
-            with open(safe_tags_presets) as fp:
+            with open(safe_tags_presets, encoding='utf8') as fp:
                 data = json.load(fp)
             if not isinstance(data, list):
                 self.fail('Wrong preset safe tags format')
@@ -96,7 +96,7 @@ class TestPopulation(KleverTestCase):
 
         unsafe_tags_presets = os.path.join(BASE_DIR, 'marks', 'tags_presets', 'unsafe.json')
         if os.path.isfile(unsafe_tags_presets):
-            with open(unsafe_tags_presets) as fp:
+            with open(unsafe_tags_presets, encoding='utf8') as fp:
                 data = json.load(fp)
             if not isinstance(data, list):
                 self.fail('Wrong preset safe tags format')

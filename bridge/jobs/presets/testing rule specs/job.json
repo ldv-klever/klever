@@ -2,8 +2,7 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
@@ -264,6 +263,171 @@
         ]
       },
       "rule specifications": ["linux:usb:coherent"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rtnl",
+        "modules": [
+          "double-lock.ko",
+          "double-unlock.ko",
+          "lock-on-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:rtnl"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sock",
+        "modules": [
+          "double-release.ko",
+          "all-locked-sockets-must-be-released.ko",
+          "double-release-2.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:sock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/bitops",
+        "modules": [
+          "wrong-offset.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:bitops"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/request",
+        "modules": [
+          "double-get.ko",
+          "double-put.ko",
+          "get-at-exit.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:blk:request"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/blk/queue",
+        "modules": [
+          "safe.ko",
+          "double-alloc.ko",
+          "more-initial.ko",
+          "use-before-alloc.ko"
+        ]
+      },
+      "rule specifications": ["linux:blk:queue"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-more-unlocks.ko",
+          "rcu-lock-at-read.ko",
+          "rcu-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-bh-more-unlocks.ko",
+          "rcu-bh-lock-at-read.ko",
+          "rcu-bh-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculockbh"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "rcu-sched-more-unlocks.ko",
+          "rcu-sched-lock-at-read.ko",
+          "rcu-sched-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:rculocksched"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/rcu",
+        "modules": [
+          "safe.ko",
+          "srcu-more-unlocks.ko",
+          "srcu-lock-at-read.ko",
+          "srcu-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:srculock"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/completion",
+        "modules": [
+          "safe.ko",
+          "wait-without-init.ko"
+        ]
+      },
+      "rule specifications": ["linux:completion"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/sysfs",
+        "modules": [
+          "safe.ko",
+          "less-initial.ko",
+          "more-initial.ko"
+        ]
+      },
+      "rule specifications": ["linux:sysfs"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/iomem",
+        "modules": [
+          "safe.ko",
+          "less-initial.ko",
+          "more-initial.ko"
+        ]
+      },
+      "rule specifications": ["linux:iomem"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/idr",
+        "modules": [
+          "safe.ko",
+          "destroy-before-usage.ko",
+          "double-init.ko",
+          "more-at-exit.ko",
+          "not-initialized.ko"
+        ]
+      },
+      "rule specifications": ["linux:idr"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/gendisk",
+        "modules": [
+          "safe.ko",
+          "double-alloc.ko",
+          "use-before-alloc.ko",
+          "delete-before-add.ko",
+          "free-before-alloc.ko",
+          "more-initial.ko"
+        ]
+      },
+      "rule specifications": ["linux:gendisk"]
     }
   ]
 }

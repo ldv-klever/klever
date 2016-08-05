@@ -93,6 +93,7 @@
 }
 
 .ETVSrcL {
+    position: relative;
     background-color: #d7f0f0;
     padding-left: 5px;
     padding-right: 5px;
@@ -100,6 +101,7 @@
 
 /* Error trace: Line number object */
 .ETV_LN {
+    position: relative;
     white-space: pre;
     background-color: #ffe6d7;
     padding-left: 5px;

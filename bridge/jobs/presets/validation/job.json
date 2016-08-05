@@ -2,12 +2,13 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-stable",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {
@@ -213,7 +214,7 @@
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
         {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
       "ideal verdicts": [{
@@ -331,7 +332,7 @@
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
         {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
       "ideal verdicts": [{

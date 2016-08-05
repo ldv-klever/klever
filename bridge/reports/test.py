@@ -251,12 +251,38 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'text/plain')
 
+        # Collapse job
+        response = self.client.post('/jobs/ajax/collapse_reports/', {'job_id': self.job.pk})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(
+            len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
+        )
+
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True, False, True]
+        ])
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
+        DecideJobs('service', 'service', CHUNKS1)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(
+            len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
+        )
+
     def test_comparison(self):
         try:
             # Exclude jobs "Validation on commits" due to they need additional attribute for comparison: "Commit"
-            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[3][0]))[0]
+            job1 = Job.objects.filter(~Q(parent=None) & ~Q(type=JOB_CLASSES[1][0]))[0]
         except IndexError:
-            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[3][0]))[0]
+            job1 = Job.objects.filter(~Q(type=JOB_CLASSES[1][0]))[0]
 
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -472,7 +498,7 @@ class TestReports(KleverTestCase):
                     'verification status': 'unknown'
                 }
             }
-        elif self.job.type == JOB_CLASSES[3][0]:
+        elif self.job.type == JOB_CLASSES[1][0]:
             core_data = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
@@ -630,15 +656,24 @@ class DecideJobs(object):
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
-        with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        if random.randint(1, 10) > 4:
+            with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        else:
+            report['log'] = None
+            self.service.post('/reports/upload/', {'report': json.dumps(report)})
         return r_id
 
-    def __upload_unknown_report(self, parent, archive):
+    def __upload_finish_verification_report(self, r_id):
+        self.service.post('/reports/upload/', {'report': json.dumps({'id': r_id, 'type': 'verification finish'})})
+
+    def __upload_unknown_report(self, parent, archive, finish_parent=True):
         r_id = self.__get_report_id('unknown')
         report = {'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': 'problem description.txt'}
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+        if finish_parent:
+            self.__upload_finish_report(parent)
 
     def __upload_safe_report(self, parent, attrs, archive):
         r_id = self.__get_report_id('safe')
@@ -646,6 +681,11 @@ class DecideJobs(object):
             self.service.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': 'proof.txt', 'attrs': attrs
             }), 'file': fp})
+
+    def __upload_empty_safe_report(self, parent, attrs):
+        self.service.post('/reports/upload/', {'report': json.dumps({
+            'id': self.__get_report_id('safe'), 'type': 'safe', 'parent id': parent, 'proof': None, 'attrs': attrs
+        })})
 
     def __upload_unsafe_report(self, parent, attrs, archive):
         r_id = self.__get_report_id('unsafe')
@@ -683,7 +723,7 @@ class DecideJobs(object):
                     'verification status': 'unknown'
                 }
             }
-        elif job.type == JOB_CLASSES[3][0]:
+        elif job.type == JOB_CLASSES[1][0]:
             core_data = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
@@ -715,41 +755,48 @@ class DecideJobs(object):
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
 
         for chunk in self.reports_data:
-            if job.type == JOB_CLASSES[3][0]:
-                chunk['attrs']['Commit'] = 'HEAD'
+            if job.type == JOB_CLASSES[1][0]:
+                chunk['attrs'].append({'Commit': 'HEAD'})
+
             sa = self.__upload_start_report('SA', avtg, chunk['attrs'])
             self.__upload_data_report(sa)
-            self.__upload_finish_report(sa)
             if 'fail' in chunk and chunk['fail'] == 'SA':
                 self.__upload_unknown_report(sa, chunk['unknown'])
                 continue
+            self.__upload_finish_report(sa)
+
             emg = self.__upload_start_report('EMG', avtg, chunk['attrs'])
-            self.__upload_finish_report(emg)
             if 'fail' in chunk and chunk['fail'] == 'EMG':
                 self.__upload_unknown_report(emg, chunk['unknown'])
                 continue
+            self.__upload_finish_report(emg)
+
             rsg = self.__upload_start_report('RSG', avtg, chunk['attrs'])
-            self.__upload_finish_report(rsg)
             if 'fail' in chunk and chunk['fail'] == 'RSG':
                 self.__upload_unknown_report(rsg, chunk['unknown'])
                 continue
+            self.__upload_finish_report(rsg)
+
             abkm = self.__upload_start_report('ABKM', avtg, chunk['attrs'])
             if 'fail' in chunk and chunk['fail'] == 'ABKM':
-                self.__upload_finish_report(abkm)
-                self.__upload_unknown_report(sa, chunk['unknown'])
+                self.__upload_unknown_report(abkm, chunk['unknown'])
                 continue
             cnt = 1
             if 'safe' in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_safe_report(tool, [], chunk['safe'])
+                self.__upload_finish_verification_report(tool)
+                # self.__upload_empty_safe_report(tool, [])
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
+                    self.__upload_finish_verification_report(tool)
                     cnt += 1
             if 'unknown' in chunk and 'safe' not in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
-                self.__upload_unknown_report(tool, chunk['unknown'])
+                self.__upload_unknown_report(tool, chunk['unknown'], False)
+                self.__upload_finish_verification_report(tool)
             self.__upload_finish_report(abkm)
 
         self.__upload_finish_report(avtg)
