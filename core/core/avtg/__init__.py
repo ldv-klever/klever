@@ -400,8 +400,9 @@ class AVTG(core.components.Component):
             for rule_spec_desc in self.rule_spec_descs:
                 self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
-        self.logger.info('The total number of abstract verification task descriptions is "{0}"'.format(
-            self.abstract_task_desc_num))
+        if self.failed_abstract_task_desc_num.value:
+            self.logger.info('Could not generate "{0}" abstract verification task descriptions'.format(
+                self.failed_abstract_task_desc_num.value))
 
     def get_verification_obj_descs_num(self):
         self.logger.info('Get the total number of verification object descriptions')
