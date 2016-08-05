@@ -128,6 +128,9 @@ class SeparatedStrategy(CommonStrategy):
                     {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
         if self.mpv:
             self.add_option_for_entry_point()
+        else:
+            # Specify default configuration.
+            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
