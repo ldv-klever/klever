@@ -18,7 +18,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         :param logger: logging object.
         :param conf: Configuration properties dictionary.
         """
-        self._logger = logger
+        self.logger = logger
 
         # Inheritable
         self._conf = conf
@@ -172,7 +172,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             raise NotImplementedError
 
         # Import source analysis
-        self._logger.info("Import results of source code analysis")
+        self.logger.info("Import results of source code analysis")
         self.__import_source_analysis(analysis, avt)
 
     def collect_relevant_models(self, function):
@@ -182,7 +182,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         :param function: Module function name string.
         :return: List with kernel functions name strings.
         """
-        self._logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
+        self.logger.debug("Collect relevant kernel functions called in a call stack of callback '{}'".format(function))
         if not function in self.__kernel_function_calls_cache:
             level_counter = 0
             max_level = None
@@ -208,7 +208,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
             self.__kernel_function_calls_cache[function] = relevant
         else:
-            self._logger.debug('Cache hit')
+            self.logger.debug('Cache hit')
             relevant = self.__kernel_function_calls_cache[function]
 
         return sorted(relevant)
@@ -284,9 +284,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         processed.add(function)
 
         if function in self._modules_functions:
-            self._logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
+            self.logger.debug("Collect relevant functions called in a call stack of function '{}'".format(function))
             if function in self.__function_calls_cache:
-                self._logger.debug("Cache hit")
+                self.logger.debug("Cache hit")
                 return self.__function_calls_cache[function]
             else:
                 for file in sorted(self._modules_functions[function].keys()):
@@ -341,30 +341,30 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             interface.declaration = declaration
 
     def __import_source_analysis(self, analysis, avt):
-        self._logger.info("Import modules init and exit functions")
+        self.logger.info("Import modules init and exit functions")
         self.__import_inits_exits(analysis, avt)
 
-        self._logger.info("Extract complete types definitions")
+        self.logger.info("Extract complete types definitions")
         self.__extract_types(analysis)
 
-        self._logger.info("Determine categories from extracted types")
+        self.logger.info("Determine categories from extracted types")
         categories = self.__extract_categories()
 
-        self._logger.info("Merge interface categories from both interface categories specification and modules "
+        self.logger.info("Merge interface categories from both interface categories specification and modules "
                          "interface specification")
         self.__merge_categories(categories)
 
-        self._logger.info("Remove useless interfaces")
+        self.logger.info("Remove useless interfaces")
         self.__remove_interfaces()
 
-        self._logger.info("Both specifications are imported and categories are merged")
+        self.logger.info("Both specifications are imported and categories are merged")
 
     def __import_inits_exits(self, analysis, avt):
-        self._logger.debug("Move module initilizations functions to the modules interface specification")
+        self.logger.debug("Move module initilizations functions to the modules interface specification")
         deps = {}
         for module, dep in avt['deps'].items():
             deps[module] = list(sorted(dep))
-        order = tarjan.calculate_load_order(self._logger, deps)
+        order = tarjan.calculate_load_order(self.logger, deps)
         order_c_files = []
         for module in order:
             for module2 in avt['grps']:
@@ -376,17 +376,17 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if len(self._inits) == 0:
             raise ValueError('There is no module initialization function provided')
 
-        self._logger.debug("Move module exit functions to the modules interface specification")
+        self.logger.debug("Move module exit functions to the modules interface specification")
         if "exit" in analysis:
             self._exits = list(reversed([(module, analysis['exit'][module]) for module in order_c_files if module in analysis['exit']]))
         if len(self._exits) == 0:
-            self._logger.warning('There is no module exit function provided')
+            self.logger.warning('There is no module exit function provided')
 
     def __extract_types(self, analysis):
         entities = []
         # todo: this section below is slow enough
         if 'global variable initializations' in analysis:
-            self._logger.info("Import types from global variables initializations")
+            self.logger.info("Import types from global variables initializations")
             for variable in sorted(analysis["global variable initializations"],
                                    key=lambda var: str(var['declaration'])):
                 variable_name = extract_name(variable['declaration'])
@@ -414,9 +414,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             self.__import_entities(entities)
 
         if 'kernel functions' in analysis:
-            self._logger.info("Import types from kernel functions")
+            self.logger.info("Import types from kernel functions")
             for function in sorted(analysis['kernel functions'].keys()):
-                self._logger.debug("Parse signature of function {}".format(function))
+                self.logger.debug("Parse signature of function {}".format(function))
                 declaration = import_declaration(analysis['kernel functions'][function]['signature'])
 
                 if function in self._kernel_functions:
@@ -435,13 +435,13 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # Import modules functions
         modules_functions = {}
         if 'modules functions' in analysis:
-            self._logger.info("Import modules functions and implementations from kernel functions calls in it")
+            self.logger.info("Import modules functions and implementations from kernel functions calls in it")
             for function in [name for name in sorted(analysis["modules functions"].keys())
                              if 'files' in analysis["modules functions"][name]]:
                 modules_functions[function] = {}
                 module_function = analysis["modules functions"][function]
                 for path in sorted(module_function["files"].keys()):
-                    self._logger.debug("Parse signature of function {} from file {}".format(function, path))
+                    self.logger.debug("Parse signature of function {} from file {}".format(function, path))
                     modules_functions[function][path] = \
                         {'declaration': import_declaration(module_function["files"][path]["signature"])}
 
@@ -464,7 +464,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                                     if len(kf.param_interfaces) > index and kf.param_interfaces[index]:
                                         new.fixed_interface = kf.param_interfaces[index].identifier
 
-        self._logger.info("Remove kernel functions which are not called at driver functions")
+        self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in sorted(self._kernel_functions.keys()):
             if len(self._kernel_functions[function].functions_called_at) == 0:
                 del self._kernel_functions[function]
@@ -486,7 +486,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                         entity["root sequence"]
                     )
                 else:
-                    self._logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
+                    self.logger.debug('Skip null pointer value for function pointer {}'.format(bt.to_string('%s')))
             elif "value" in entity["description"] and type(entity["description"]['value']) is list:
                 if type(bt) is Array:
                     for entry in entity["description"]['value']:
@@ -656,8 +656,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         interface = self.resolve_interface(signature, category, False)
         if len(interface) == 0:
             interface = constructor(category, signature.pretty_name)
-            self._logger.debug("Create new interface '{}' with signature '{}'".
-                               format(interface.identifier, signature.identifier))
+            self.logger.debug("Create new interface '{}' with signature '{}'".
+                              format(interface.identifier, signature.identifier))
             interface.declaration = signature
             self._interfaces[interface.identifier] = interface
             interface = [interface]
@@ -675,8 +675,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 identifier = declaration.pretty_name
 
             interface = Callback(category, identifier)
-            self._logger.debug("Create new interface '{}' with signature '{}'".
-                               format(interface.identifier, declaration.identifier))
+            self.logger.debug("Create new interface '{}' with signature '{}'".
+                              format(interface.identifier, declaration.identifier))
             interface.declaration = declaration
             self._interfaces[interface.identifier] = interface
             return interface
@@ -724,14 +724,14 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 return None
 
     def __merge_categories(self, categories):
-        self._logger.info("Try to find suitable interface descriptions for found types")
+        self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
             category_identifier = self.__yield_existing_category(category)
             if not category_identifier:
                 category_identifier = self.__yield_new_category(category)
 
             # Add containers and resources
-            self._logger.info("Found interfaces for category {}".format(category_identifier))
+            self.logger.info("Found interfaces for category {}".format(category_identifier))
             for signature in category['containers']:
                 if type(signature) is not Array and type(signature) is not Structure:
                     raise TypeError('Expect structure or array to create container object')
@@ -834,12 +834,12 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
     def __remove_interfaces(self):
         # Remove categories without implementations
-        self._logger.info("Calculate relevant interfaces")
+        self.logger.info("Calculate relevant interfaces")
         relevant_interfaces = self.__calculate_relevant_interfaces()
 
         for interface in [self._interfaces[name] for name in sorted(self._interfaces.keys())]:
             if interface not in relevant_interfaces:
-                self._logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
+                self.logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
                 self.del_intf(interface.identifier)
 
     def __calculate_relevant_interfaces(self):

@@ -32,9 +32,9 @@ class CategoriesSpecification:
         :param specification: Dictionary with content of a JSON specification prepared manually.
         :return: None
         """
-        self._logger.info("Analyze provided interface categories specification")
+        self.logger.info("Analyze provided interface categories specification")
         for category in sorted(specification["categories"]):
-            self._logger.debug("Found interface category {}".format(category))
+            self.logger.debug("Found interface category {}".format(category))
             self.__import_category_interfaces(category, specification["categories"][category])
 
             if 'extensible' in specification["categories"][category] and \
@@ -42,12 +42,12 @@ class CategoriesSpecification:
                 self._locked_categories.add(category)
 
         if "kernel functions" in specification:
-            self._logger.info("Import kernel functions description")
+            self.logger.info("Import kernel functions description")
             for intf in self.__import_kernel_interfaces("kernel functions", specification):
                 self._kernel_functions[intf.identifier] = intf
-                self._logger.debug("New kernel function {} has been imported".format(intf.identifier))
+                self.logger.debug("New kernel function {} has been imported".format(intf.identifier))
         else:
-            self._logger.warning("Kernel functions are not provided within an interface categories specification, "
+            self.logger.warning("Kernel functions are not provided within an interface categories specification, "
                                 "expect 'kernel functions' attribute")
 
         # Add fields to container declaration types
@@ -125,7 +125,7 @@ class CategoriesSpecification:
         :param category: a category name string.
         :return: List with Container objects.
         """
-        self._logger.debug("Search for containers which has field '{}'".format(field))
+        self.logger.debug("Search for containers which has field '{}'".format(field))
         return [container for container in self.containers(category)
                 if type(container.declaration) is Structure and
                 ((field in container.field_interfaces and
@@ -143,25 +143,25 @@ class CategoriesSpecification:
         :param category:  Category name string.
         :return: List with Container objects.
         """
-        self._logger.debug("Resolve containers for signature '{}'".format(declaration.identifier))
+        self.logger.debug("Resolve containers for signature '{}'".format(declaration.identifier))
         if declaration.identifier not in self._containers_cache:
             self._containers_cache[declaration.identifier] = {}
 
         if category and category not in self._containers_cache[declaration.identifier]:
-            self._logger.debug("Cache miss")
+            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[declaration.identifier][category] = cnts
             return cnts
         elif not category and 'default' not in self._containers_cache[declaration.identifier]:
-            self._logger.debug("Cache miss")
+            self.logger.debug("Cache miss")
             cnts = self.__resolve_containers(declaration, category)
             self._containers_cache[declaration.identifier]['default'] = cnts
             return cnts
         elif category and category in self._containers_cache[declaration.identifier]:
-            self._logger.debug("Cache hit")
+            self.logger.debug("Cache hit")
             return self._containers_cache[declaration.identifier][category]
         else:
-            self._logger.debug("Cache hit")
+            self.logger.debug("Cache hit")
             return self._containers_cache[declaration.identifier]['default']
 
     def resolve_interface(self, signature, category=None, use_cache=True):
@@ -179,11 +179,11 @@ class CategoriesSpecification:
         elif type(signature) is InterfaceReference and signature.interface not in self._interfaces:
             raise KeyError('Cannot find description of interface {}'.format(signature.interface))
         else:
-            self._logger.debug("Resolve an interface for signature '{}'".format(signature.identifier))
+            self.logger.debug("Resolve an interface for signature '{}'".format(signature.identifier))
             if signature.identifier in self._interface_cache and use_cache:
-                self._logger.debug('Cache hit')
+                self.logger.debug('Cache hit')
             else:
-                self._logger.debug('Cache miss')
+                self.logger.debug('Cache miss')
                 interfaces = [self._interfaces[name] for name in sorted(self._interfaces.keys())
                               if type(self._interfaces[name].declaration) is type(signature) and
                               (self._interfaces[name].declaration.identifier == signature.identifier) and
@@ -203,7 +203,7 @@ class CategoriesSpecification:
                           extracted or generated and no new types or interfaces will appear.
         :return: Returns list of Container objects.
         """
-        self._logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
+        self.logger.debug("Resolve weakly an interface for signature '{}'".format(signature.identifier))
         intf = self.resolve_interface(signature, category, use_cache)
         if not intf and type(signature) is Pointer:
             intf = self.resolve_interface(signature.points, category, use_cache)
@@ -223,16 +223,16 @@ class CategoriesSpecification:
                        available for a type to which given type points.
         :return: List of Implementation objects.
         """
-        self._logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
+        self.logger.debug("Calculate implementations for interface '{}'".format(interface.identifier))
         if weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['weak']) is list:
-            self._logger.debug("Cache hit")
+            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['weak']
         elif not weakly and interface.identifier in self._implementations_cache and \
                 type(self._implementations_cache[interface.identifier]['strict']) is list:
-            self._logger.debug("Cache hit")
+            self.logger.debug("Cache hit")
             return self._implementations_cache[interface.identifier]['strict']
-        self._logger.debug("Cache miss")
+        self.logger.debug("Cache miss")
 
         if weakly:
             candidates = interface.declaration.weak_implementations
@@ -287,7 +287,7 @@ class CategoriesSpecification:
     ####################################################################################################################
 
     def __resolve_containers(self, target, category):
-        self._logger.debug("Calculate containers for signature '{}'".format(target.identifier))
+        self.logger.debug("Calculate containers for signature '{}'".format(target.identifier))
 
         return {container.identifier: container.contains(target) for container in self.containers(category)
                 if (type(container.declaration) is Structure and len(container.contains(target)) > 0) or
@@ -295,7 +295,7 @@ class CategoriesSpecification:
 
     def _refine_interfaces(self):
         # Clean declarations if it is poissible
-        self._logger.debug('Clean all interface declarations from InterfaceReferences')
+        self.logger.debug('Clean all interface declarations from InterfaceReferences')
         clean_flag = True
 
         # Do refinements until nothing can be changed
@@ -312,7 +312,7 @@ class CategoriesSpecification:
                         interface.declaration = refined
                         clean_flag = True
 
-        self._logger.debug("Restore field declarations in structure declarations")
+        self.logger.debug("Restore field declarations in structure declarations")
         for structure in [intf for intf in self.containers() if intf.declaration and
                           type(intf.declaration) is Structure]:
             for field in [field for field in sorted(structure.declaration.fields.keys())
@@ -324,7 +324,7 @@ class CategoriesSpecification:
         return
 
     def _fulfill_function_interfaces(self, interface, category=None):
-        self._logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
+        self.logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
         if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
             declaration = interface.declaration.points
         elif type(interface.declaration) is Function:
@@ -382,7 +382,7 @@ class CategoriesSpecification:
             elif "header" not in collection[category_name][identifier]:
                 raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
 
-            self._logger.debug("Import kernel function description '{}'".format(identifier))
+            self.logger.debug("Import kernel function description '{}'".format(identifier))
             interface = KernelFunction(identifier, collection[category_name][identifier]["header"])
             interface.declaration = import_declaration(collection[category_name][identifier]["signature"])
             if type(interface.declaration) is Function:
@@ -394,7 +394,7 @@ class CategoriesSpecification:
 
     def __import_interfaces(self, category_name, identifier, desc, constructor):
         if "{}.{}".format(category_name, identifier) not in self._interfaces:
-            self._logger.debug("Import described interface description '{}.{}'".format(category_name, identifier))
+            self.logger.debug("Import described interface description '{}.{}'".format(category_name, identifier))
             interface = constructor(category_name, identifier)
             self._interfaces[interface.identifier] = interface
         else:
@@ -415,24 +415,24 @@ class CategoriesSpecification:
         return interface
 
     def __import_category_interfaces(self, category_name, dictionary):
-        self._logger.debug("Initialize description for category {}".format(category_name))
+        self.logger.debug("Initialize description for category {}".format(category_name))
 
         # Import interfaces
         if "containers" in dictionary:
-            self._logger.debug("Import containers from a description of an interface category {}".format(category_name))
+            self.logger.debug("Import containers from a description of an interface category {}".format(category_name))
             for identifier in sorted(dictionary['containers'].keys()):
                 self.__import_interfaces(category_name, identifier, dictionary["containers"][identifier], Container)
         if "resources" in dictionary:
-            self._logger.debug("Import resources from a description of an interface category {}".format(category_name))
+            self.logger.debug("Import resources from a description of an interface category {}".format(category_name))
             for identifier in sorted(dictionary['resources'].keys()):
                 self.__import_interfaces(category_name, identifier, dictionary["resources"][identifier], Resource)
         if "callbacks" in dictionary:
-            self._logger.debug("Import callbacks from a description of an interface category {}".format(category_name))
+            self.logger.debug("Import callbacks from a description of an interface category {}".format(category_name))
             for identifier in sorted(dictionary['callbacks'].keys()):
                 self.__import_interfaces(category_name, identifier, dictionary["callbacks"][identifier], Callback)
 
         if "containers" in dictionary:
-            self._logger.debug("Import containers from a description of an interface category {}".format(category_name))
+            self.logger.debug("Import containers from a description of an interface category {}".format(category_name))
             for identifier in sorted(dictionary['containers'].keys()):
                 fi = "{}.{}".format(category_name, identifier)
                 # Import field interfaces
