@@ -426,6 +426,9 @@ class AVTG(core.components.Component):
                 format(self.failed_abstract_task_desc_num.value))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        # Count the number of generated abstract verification task descriptions.
+        self.abstract_task_desc_num += 1
+
         initial_attrs = (
             {'verification object': verification_obj_desc['id']},
             {'rule specification': rule_spec_desc['id']}
@@ -436,7 +439,7 @@ class AVTG(core.components.Component):
         self.logger.info(
             'Generate abstract verification task description for {0} ({1})'.format(
                 'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals),
-                self.abstract_task_desc_num + 1))
+                self.abstract_task_desc_num))
 
         plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
         os.makedirs(plugins_work_dir, exist_ok=True)
@@ -517,22 +520,14 @@ class AVTG(core.components.Component):
 
             # VTG will consume this abstract verification task description file.
             self.abstract_task_desc_file = out_abstract_task_desc_file
-
-            # Count the number of successfully generated abstract verification task descriptions.
-            self.abstract_task_desc_num += 1
         # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
-            # Count the number of abstract verification task descriptions that weren't generated. This is required to
-            # count the total number of abstract verification task descriptions to be generated that can be done just
-            # when the total number of verification object descriptions will be known.
+            # Count the number of abstract verification task descriptions that weren't generated successfully. This is
+            # required to count the total number of abstract verification task descriptions to be generated successfully
+            # in ideal that can be done just when the total number of verification object descriptions will be known.
             with self.failed_abstract_task_desc_num.get_lock():
                 self.failed_abstract_task_desc_num.value += 1
-            # In addition decrease the total number of abstract verification task descpriptions to be generated if it is
-            # already known.
-            with self.abstract_task_descs_num.get_lock():
-                if self.abstract_task_descs_num.value:
-                    self.abstract_task_descs_num.value -= 1
             self.abstract_task_desc_file = None
             self.verification_obj = verification_obj_desc['id']
             self.rule_spec = rule_spec_desc['id']
