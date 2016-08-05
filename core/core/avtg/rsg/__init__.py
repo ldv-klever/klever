@@ -85,16 +85,26 @@ class RSG(core.avtg.plugins.Plugin):
                     if self.conf['RSG strategy'] == 'property automaton':
                         for elem in self.conf['models'][model_c_file]:
                             if elem == 'automaton':
-                                automaton = core.utils.find_file_or_dir(self.logger,
-                                                                        self.conf['main working directory'],
-                                                                        self.conf['models'][model_c_file][elem])
-                                automaton = os.path.abspath(automaton)
-                                if not os.path.isfile(automaton):
-                                    raise ValueError('Automaton "{0}" does not exist'.format(automaton))
+                                if self.conf['models'][model_c_file][elem].startswith('$'):
+                                    automaton = self.conf['models'][model_c_file]['automaton']
+                                    for generated_model_automaton_file in generated_models:
+                                        if generated_model_automaton_file.endswith(automaton[1:]):
+                                            generated_model_automaton_file = \
+                                                os.path.abspath(generated_model_automaton_file)
+                                            automata[model_c_file_realpath] = generated_model_automaton_file
+                                            self.logger.debug('Get model with automaton file "{0}"'.
+                                                              format(automaton))
+                                else:
+                                    automaton = core.utils.find_file_or_dir(self.logger,
+                                                                            self.conf['main working directory'],
+                                                                            self.conf['models'][model_c_file][elem])
+                                    automaton = os.path.abspath(automaton)
+                                    if not os.path.isfile(automaton):
+                                        raise ValueError('Automaton "{0}" does not exist'.format(automaton))
 
-                                automata[model_c_file_realpath] = automaton
-                                self.logger.debug('Get model with automaton file "{0}"'.
-                                                  format(automaton))
+                                    automata[model_c_file_realpath] = automaton
+                                    self.logger.debug('Get model with automaton file "{0}"'.
+                                                      format(automaton))
 
         if 'common models' in self.conf:
             for common_model_c_file in self.conf['common models']:
