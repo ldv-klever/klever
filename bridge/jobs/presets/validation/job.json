@@ -61,6 +61,14 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "448356262f56~"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
@@ -93,6 +101,14 @@
         "ideal verdict": "safe",
         "comment": "Non-target bug"
       }]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "448356262f56"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -144,17 +160,6 @@
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
         "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
-      }]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "448356262f56~"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
       }]
     },
     {
@@ -273,14 +278,6 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "448356262f56"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
