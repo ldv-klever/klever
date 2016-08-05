@@ -555,6 +555,24 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/usb_serial_driver",
+        "modules": [
+          "usb_serial_callbacks.ko",
+          "usb_serial_deregister_drivers.ko",
+          "usb_serial_invoke.ko",
+          "usb_serial_register_drivers.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/usb_serial_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/workqueue",
         "modules": [
           "queue_work.ko",
