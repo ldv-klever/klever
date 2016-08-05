@@ -14,6 +14,7 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
+    context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
@@ -39,6 +40,7 @@ def after_generate_verification_obj_desc(context):
 def after_generate_all_verification_obj_descs(context):
     context.logger.info('Terminate verification object description files message queue')
     context.mqs['verification obj desc files'].put(None)
+    context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -309,7 +311,8 @@ class AVTG(core.components.Component):
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_cc_opts_and_headers()
-        self.generate_all_abstract_verification_task_descs()
+        self.launch_subcomponents(('ALKBCDP', self.get_verification_obj_descs_num),
+                                  ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
     main = generate_abstract_verification_tasks
 
@@ -394,6 +397,19 @@ class AVTG(core.components.Component):
             # TODO: specification requires to do this in parallel...
             for rule_spec_desc in self.rule_spec_descs:
                 self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
+
+        self.logger.info('The total number of abstract verification task descriptions is "{0}"'.format(
+            self.abstract_task_desc_num))
+
+    def get_verification_obj_descs_num(self):
+        self.logger.info('Get the total number of verification object descriptions')
+
+        verification_obj_descs_num = self.mqs['verification obj descs num'].get()
+
+        self.mqs['verification obj descs num'].close()
+
+        self.logger.debug('The total number of verification object descriptions is "{0}"'.format(
+            verification_obj_descs_num))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         initial_attrs = (
