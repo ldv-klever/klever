@@ -20,8 +20,7 @@ void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
 int ldv_clk_enable{{ arg_sign.id }}(void)
 {
 	int retval = ldv_undef_int();
-	if (!retval)
-	{
+	if (!retval) {
 		/* CHANGE_STATE Increase counter */
 		ldv_counter{{ arg_sign.id }} = 1;
 	}
