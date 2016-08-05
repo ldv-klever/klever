@@ -171,12 +171,13 @@
         "linux/automata/alloc_spinlock.spc.tmpl": {"arg_sign": "spinlock"}
       }},
       "RSG": {"models": {
-        "$linux/spinlock.c": {"sets model": "flag", "automaton": "$linux/automata/alloc_spinlock.spc"},
+        "$linux/spinlock.c": {"sets model": "flag"},
         "linux/alloc2.c": {
           "bug kinds": [
             "linux:alloc:spin lock::wrong flags",
             "linux:alloc:spin lock::nonatomic"
-          ]
+          ],
+          "automaton": "$linux/automata/alloc_spinlock.spc"
         }
       }}
     },
