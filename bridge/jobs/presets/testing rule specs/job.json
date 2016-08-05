@@ -428,6 +428,17 @@
         ]
       },
       "rule specifications": ["linux:gendisk"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/clk",
+        "modules": [
+          "unsafe1.ko",
+          "unsafe2.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:clk"]
     }
   ]
 }
