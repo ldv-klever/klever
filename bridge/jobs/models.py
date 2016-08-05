@@ -43,6 +43,7 @@ class Job(JobBase):
     identifier = models.CharField(max_length=255, unique=True)
     parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
+    light = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'job'

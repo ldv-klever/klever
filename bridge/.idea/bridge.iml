@@ -13,14 +13,9 @@
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.idea" />
-      <excludeFolder url="file://$MODULE_DIR$/jobs/migrations" />
-      <excludeFolder url="file://$MODULE_DIR$/marks/migrations" />
       <excludeFolder url="file://$MODULE_DIR$/media" />
-      <excludeFolder url="file://$MODULE_DIR$/reports/migrations" />
-      <excludeFolder url="file://$MODULE_DIR$/service/migrations" />
       <excludeFolder url="file://$MODULE_DIR$/static/images" />
       <excludeFolder url="file://$MODULE_DIR$/static/semantic" />
-      <excludeFolder url="file://$MODULE_DIR$/users/migrations" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.4" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />

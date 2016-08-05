@@ -42,18 +42,9 @@ class SeparatedStrategy(CommonStrategy):
     def print_strategy_information(self):
         pass
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
-        if self.resources_written:
-            # In MAV we write resource statistics only for 1 verdict.
-            decision_results['resources'] = {
-                "CPU time": 0,
-                "memory size": 0,
-                "wall time": 0}
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
-        if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
-
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -65,7 +56,7 @@ class SeparatedStrategy(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
                                   [self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
@@ -74,9 +65,10 @@ class SeparatedStrategy(CommonStrategy):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'],
-                          suffix)
-        if not self.resources_written and decision_results['status'] == 'unsafe' and self.mea:
+                          bug_kind)
+        if decision_results['status'] == 'unsafe' and self.mea:
             # Unsafe-incomplete.
+            # TODO: fix this.
             is_incomplete = True
             log_file = self.get_verifier_log_file()
             with open(log_file) as fp:
@@ -97,10 +89,7 @@ class SeparatedStrategy(CommonStrategy):
                                       'files': ['unsafe-incomplete.txt']
                                   },
                                   self.mqs['report files'],
-                                  self.conf['main working directory'],
-                                  suffix)
-        self.resources_written = True
-
+                                  self.conf['main working directory'])
 
     @abstractclassmethod
     def prepare_property_automaton(self, bug_kind=None):
@@ -219,18 +208,26 @@ class SeparatedStrategy(CommonStrategy):
                 with open('decision results.json', encoding='ascii') as fp:
                     decision_results = json.load(fp)
 
+                verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind if bug_kind else '')
+                self.create_verification_report(verification_report_id, decision_results, bug_kind)
+
                 if self.mea:
                     all_found_error_traces = glob.glob(self.path_to_error_traces)
                     if all_found_error_traces:
                         decision_results['status'] = 'unsafe'
                     if decision_results['status'] == 'unsafe':
                         for error_trace in all_found_error_traces:
-                            self.process_single_verdict(decision_results, assertion=bug_kind,
+                            self.process_single_verdict(decision_results, verification_report_id,
+                                                        assertion=bug_kind,
                                                         specified_error_trace=error_trace)
                     else:
-                        self.process_single_verdict(decision_results, assertion=bug_kind)
+                        self.process_single_verdict(decision_results, verification_report_id,
+                                                    assertion=bug_kind)
                 else:
-                    self.process_single_verdict(decision_results, assertion=bug_kind)
+                    self.process_single_verdict(decision_results, verification_report_id,
+                                                assertion=bug_kind)
+
+                self.create_verification_finish_report(verification_report_id, bug_kind)
                 break
 
             time.sleep(1)

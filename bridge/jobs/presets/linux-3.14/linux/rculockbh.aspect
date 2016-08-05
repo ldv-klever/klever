@@ -1,0 +1,17 @@
+@include <linux/rcu.aspect>
+
+before: file("$this")
+{
+extern void ldv_rcu_read_lock_bh(void);
+extern void ldv_rcu_read_unlock_bh(void);
+}
+
+around: execution(static inline void rcu_read_lock_bh(void))
+{
+	ldv_rcu_read_lock_bh();
+}
+
+around: execution(static inline void rcu_read_unlock_bh(void))
+{
+	ldv_rcu_read_unlock_bh();
+}

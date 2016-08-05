@@ -30,7 +30,7 @@ void *ldv_create_class(void)
 	if (!ldv_is_err(is_got))
 	{
 		/* ASSERT Check that usb gadget class is unregistered */
-		ldv_assert("linux:class:double registration", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
+		ldv_assert("linux:class::double registration", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
 		/* CHANGE_STATE Register class for usb gadget */
 		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
 	}
@@ -51,7 +51,7 @@ int ldv_register_class(void)
 	if (!is_reg)
 	{
 		/* ASSERT Check that usb gadget class is unregistered */
-		ldv_assert("linux:class:double registration", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
+		ldv_assert("linux:class::double registration", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
 		/* CHANGE_STATE Register class for usb gadget */
 		ldv_usb_gadget_class = LDV_CLASS_REGISTERED;
 	}
@@ -64,7 +64,7 @@ int ldv_register_class(void)
 void ldv_unregister_class(void)
 {
 	/* ASSERT Check that usb gadget class is registered */
-	ldv_assert("linux:class:double deregistration", ldv_usb_gadget_class == LDV_CLASS_REGISTERED);
+	ldv_assert("linux:class::double deregistration", ldv_usb_gadget_class == LDV_CLASS_REGISTERED);
 	/* CHANGE_STATE Unregister class for usb gadget */
 	ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
 }
@@ -80,5 +80,5 @@ void ldv_destroy_class(struct class *cls)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Usb gadget class should be unregistered at the end */
-	ldv_assert("linux:class:registered at exit", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
+	ldv_assert("linux:class::registered at exit", ldv_usb_gadget_class == LDV_CLASS_ZERO_STATE);
 }

@@ -1,0 +1,43 @@
+before: file("$this")
+{
+#include <verifier/nondet.h>
+
+extern void ldv_check_for_read_section(void);
+}
+
+pointcut CHECK_FOR_READ_SECTION:
+	call(void synchronize_rcu(void)) ||
+	call(void synchronize_rcu_bh(void)) ||
+	call(void synchronize_srcu(struct srcu_struct *sp)) ||
+	call(void synchronize_sched(void)) ||
+	call(void rcu_barrier(void)) ||
+	call(void rcu_barrier_bh(void)) ||
+	call(void rcu_barrier_sched(void)) ||
+	call(void srcu_barrier(struct srcu_struct *sp)) ||
+	call(void call_rcu(..)) ||
+	call(void call_rcu_bh(..)) ||
+	call(void call_rcu_sched(..)) ||
+	call(void call_srcu(..)) ||
+	execution(static inline void list_add_rcu(..)) ||
+	execution(static inline void list_add_tail_rcu(..)) ||
+	execution(static inline void list_del_rcu(..)) ||
+	execution(static inline void list_replace_rcu(..)) ||
+	execution(static inline void hlist_replace_rcu(..)) ||
+	execution(static inline void hlist_del_rcu(..)) ||
+	execution(static inline void hlist_add_head_rcu(..)) ||
+	execution(static inline void hlist_add_after_rcu(..)) ||
+	execution(static inline void list_splice_init_rcu(..)) ||
+	call(void __list_add_rcu(..))
+
+around: define(rcu_assign_pointer(gptr, p))
+{
+  ({
+     ldv_check_for_read_section();
+     gptr = ldv_undef_ptr();
+  })
+}
+
+around: CHECK_FOR_READ_SECTION
+{
+	ldv_check_for_read_section();
+}

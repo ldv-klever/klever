@@ -752,9 +752,11 @@ class MarkAccess(object):
     def can_create(self):
         if not isinstance(self.user, User):
             return False
-        if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
-            return True
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
+            if self.report.archive is None:
+                return False
+            if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+                return True
             first_v = self.report.root.job.versions.order_by('version')[0]
             if first_v.change_author == self.user:
                 return True
@@ -770,6 +772,8 @@ class MarkAccess(object):
                     return True
             except ObjectDoesNotExist:
                 return False
+        elif self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+            return True
         return False
 
     def can_delete(self):

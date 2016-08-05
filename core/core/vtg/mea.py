@@ -39,6 +39,11 @@ class MEA:
         self.logger.info('Checking for all violations of bug kinds by '
                          'means of Multiple Error Analysis')
 
+        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
+                self.conf['VTG strategy']['verifier']['options']:
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+
         # Internal Filter.
         if 'mea internal filter' in self.conf['VTG strategy']['verifier']:
             internal_filter = self.conf['VTG strategy']['verifier']['mea internal filter']
