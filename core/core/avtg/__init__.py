@@ -295,6 +295,8 @@ class AVTG(core.components.Component):
         self.common_prj_attrs = {}
         self.abstract_task_desc_file = None
         self.abstract_task_desc_num = 0
+        self.failed_abstract_task_desc_num = multiprocessing.Value('i', 0)
+        self.abstract_task_descs_num = multiprocessing.Value('i', 0)
 
         # TODO: combine extracting and reporting of attributes.
         self.get_common_prj_attrs()
@@ -411,6 +413,18 @@ class AVTG(core.components.Component):
         self.logger.debug('The total number of verification object descriptions is "{0}"'.format(
             verification_obj_descs_num))
 
+        # Take into account that generation of some abstract verification task descriptions could fail.
+        self.abstract_task_descs_num.value = verification_obj_descs_num * len(
+            self.rule_spec_descs) - self.failed_abstract_task_desc_num.value
+
+        self.logger.debug('The total number of abstract verification task descriptions to be generated is "{0}"'.format(
+            self.abstract_task_descs_num.value))
+
+        if self.failed_abstract_task_desc_num.value:
+            self.logger.debug(
+                'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
+                format(self.failed_abstract_task_desc_num.value))
+
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         initial_attrs = (
             {'verification object': verification_obj_desc['id']},
@@ -509,6 +523,16 @@ class AVTG(core.components.Component):
         # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
+            # Count the number of abstract verification task descriptions that weren't generated. This is required to
+            # count the total number of abstract verification task descriptions to be generated that can be done just
+            # when the total number of verification object descriptions will be known.
+            with self.failed_abstract_task_desc_num.get_lock():
+                self.failed_abstract_task_desc_num.value += 1
+            # In addition decrease the total number of abstract verification task descpriptions to be generated if it is
+            # already known.
+            with self.abstract_task_descs_num.get_lock():
+                if self.abstract_task_descs_num.value:
+                    self.abstract_task_descs_num.value -= 1
             self.abstract_task_desc_file = None
             self.verification_obj = verification_obj_desc['id']
             self.rule_spec = rule_spec_desc['id']
