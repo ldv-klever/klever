@@ -182,7 +182,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     interface.header not in header_list:
                 header_list.append(interface.header)
 
-        # todo: Get from specifications
+        # Get from specifications
+        for process in (p for p in model.model_processes + model.event_processes if len(p.headers) > 0):
+            for header in process.headers:
+                if header not in header_list:
+                    header_list.append(header)
 
         # Generate aspect
         if len(header_list) > 0:

@@ -83,6 +83,9 @@ def __import_process(name, dic):
             if 'process' in dic['actions'][name]:
                 process_strings.append(dic['actions'][name]['process'])
 
+    if 'headers' in dic:
+        process.headers = dic['headers']
+
     for subprocess_name in process.actions:
         regexes = generate_regex_set(subprocess_name)
         matched = False
