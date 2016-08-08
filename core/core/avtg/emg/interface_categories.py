@@ -380,11 +380,16 @@ class CategoriesSpecification:
         for identifier in sorted(collection[category_name].keys()):
             if "signature" not in collection[category_name][identifier]:
                 raise TypeError("Specify 'signature' for kernel interface {} at {}".format(identifier, category_name))
-            elif "header" not in collection[category_name][identifier]:
+            elif "header" not in collection[category_name][identifier] and \
+                    "headers" not in collection[category_name][identifier]:
                 raise TypeError("Specify 'header' for kernel interface {} at {}".format(identifier, category_name))
 
             self.logger.debug("Import kernel function description '{}'".format(identifier))
-            interface = KernelFunction(identifier, collection[category_name][identifier]["header"])
+            if "header" in collection[category_name][identifier]:
+                interface = KernelFunction(identifier, collection[category_name][identifier]["header"])
+            else:
+                interface = KernelFunction(identifier, collection[category_name][identifier]["headers"])
+
             interface.declaration = import_declaration(collection[category_name][identifier]["signature"])
             if type(interface.declaration) is Function:
                 self._fulfill_function_interfaces(interface)
@@ -404,8 +409,10 @@ class CategoriesSpecification:
         if "implemented in kernel" in desc:
             interface.implemented_in_kernel = desc["implemented in kernel"]
 
-        if "header" in desc:
-            interface.header = desc["header"]
+        if "headers" in desc:
+            interface.header = desc["headers"]
+        elif "header" in desc:
+            interface.header = [desc["header"]]
 
         if "signature" in desc:
             interface.declaration = import_declaration(desc["signature"])

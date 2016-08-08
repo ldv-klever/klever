@@ -14,11 +14,11 @@
     },
     "usb_serial_register_drivers": {
       "signature": "int usb_serial_register_drivers($, $, %usb_serial.usb_device_id%)",
-      "header": "linux/usb/serial.h"
+      "headers": ["linux/usb.h", "linux/usb/serial.h"]
     },
     "usb_serial_deregister_drivers": {
       "signature": "void usb_serial_deregister_drivers($)",
-      "header": "linux/usb/serial.h"
+      "headers": ["linux/usb.h", "linux/usb/serial.h"]
     },
     "platform_driver_unregister": {
       "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
@@ -169,7 +169,7 @@
     "usb_serial": {
       "containers": {
         "usb_serial_driver": {
-          "header": "linux/usb/serial.h",
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
           "signature": "struct usb_serial_driver driver",
           "fields": {
             "probe": "%usb_serial.probe%",
@@ -241,12 +241,12 @@
         },
         "usb_serial": {
           "signature": "struct usb_serial *serial",
-          "header": "linux/usb/serial.h",
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
           "implemented in kernel": true
         },
         "usb_serial_port": {
           "signature": "struct usb_serial_port *port",
-          "header": "linux/usb/serial.h",
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
           "implemented in kernel": true
         },
         "tty_struct": {
@@ -328,7 +328,7 @@
       "containers": {
         "dev_pm_ops": {
           "signature": "struct dev_pm_ops",
-          "header": "linux/linux/pm.h",
+          "header": "linux/pm.h",
           "fields": {
             "prepare": "%pm.prepare%",
             "complete": "%pm.complete%",

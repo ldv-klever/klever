@@ -178,9 +178,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Get from unused interfaces
         header_list = list()
         for interface in (analysis.get_intf(i) for i in analysis.interfaces):
-            if len(interface.declaration.implementations) == 0 and interface.header and \
-                    interface.header not in header_list:
-                header_list.append(interface.header)
+            if len(interface.declaration.implementations) == 0 and interface.header:
+                for header in interface.header:
+                    if header not in header_list:
+                        header_list.append(header)
 
         # Get from specifications
         for process in (p for p in model.model_processes + model.event_processes if len(p.headers) > 0):
@@ -198,7 +199,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.additional_aspects.extend(aspect)
 
         return
-
 
     def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         """
