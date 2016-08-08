@@ -52,6 +52,7 @@ class LKVOG(core.components.Component):
         self.loc = {}
         self.cc_full_descs_files = {}
         self.verification_obj_desc_file = None
+        self.verification_obj_desc_num = 0
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -110,6 +111,8 @@ class LKVOG(core.components.Component):
             return False
 
     def generate_all_verification_obj_descs(self):
+        self.logger.info('Generate all verification object decriptions')
+
         strategy_name = self.conf['LKVOG strategy']['name']
 
         if 'all' in self.conf['Linux kernel']['modules'] and not len(self.conf['Linux kernel']['modules']) == 1:
@@ -258,9 +261,12 @@ class LKVOG(core.components.Component):
 
         self.send_loc_report()
 
+        self.logger.info('The total number of verification object descriptions is "{0}"'.format(
+            self.verification_obj_desc_num))
+
     def generate_verification_obj_desc(self):
-        self.logger.info(
-            'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
+        self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
+                         format(self.module['name'], self.verification_obj_desc_num + 1))
 
         self.verification_obj_desc = {}
 
@@ -310,6 +316,9 @@ class LKVOG(core.components.Component):
         os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
         with open(self.verification_obj_desc_file, 'w', encoding='ascii') as fp:
             json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+
+        # Count the number of successfully generated verification object descriptions.
+        self.verification_obj_desc_num += 1
 
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
