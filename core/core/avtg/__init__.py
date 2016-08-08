@@ -313,7 +313,7 @@ class AVTG(core.components.Component):
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_cc_opts_and_headers()
-        self.launch_subcomponents(('ALKBCDP', self.get_verification_obj_descs_num),
+        self.launch_subcomponents(('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
                                   ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
     main = generate_abstract_verification_tasks
@@ -404,7 +404,7 @@ class AVTG(core.components.Component):
             self.logger.info('Could not generate "{0}" abstract verification task descriptions'.format(
                 self.failed_abstract_task_desc_num.value))
 
-    def get_verification_obj_descs_num(self):
+    def evaluate_abstract_verification_task_descs_num(self):
         self.logger.info('Get the total number of verification object descriptions')
 
         verification_obj_descs_num = self.mqs['verification obj descs num'].get()
@@ -416,8 +416,9 @@ class AVTG(core.components.Component):
 
         self.abstract_task_descs_num.value = verification_obj_descs_num * len(self.rule_spec_descs)
 
-        self.logger.debug('The total number of abstract verification task descriptions to be generated is "{0}"'.format(
-            self.abstract_task_descs_num.value))
+        self.logger.info(
+            'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
+                self.abstract_task_descs_num.value))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         # Count the number of generated abstract verification task descriptions.
@@ -518,8 +519,8 @@ class AVTG(core.components.Component):
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
             # Count the number of abstract verification task descriptions that weren't generated successfully to print
-            # it at the end of work. Note that the total number of abstract verification task descriptions will be
-            # printed at least once already.
+            # it at the end of work. Note that the total number of abstract verification task descriptions to be
+            # generated in ideal will be printed at least once already.
             with self.failed_abstract_task_desc_num.get_lock():
                 self.failed_abstract_task_desc_num.value += 1
             self.abstract_task_desc_file = None
