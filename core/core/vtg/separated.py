@@ -128,6 +128,9 @@ class SeparatedStrategy(CommonStrategy):
                     {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
         if self.mpv:
             self.add_option_for_entry_point()
+        else:
+            # Specify default configuration.
+            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
@@ -162,6 +165,18 @@ class SeparatedStrategy(CommonStrategy):
 
     def decide_verification_task(self, bug_kind=None):
         self.logger.info('Decide verification task')
+
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                  'the number of verification tasks prepared for abstract verification task': 1
+                              })
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
         self.verification_status = None
 
         if not self.automaton_file:

@@ -85,6 +85,17 @@ class MAV(CommonStrategy):
         self.logger.info('Conditional Multi-Aspect Verification has been completed in {0} iteration(s)'.
                          format(iterations))
 
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                  'the number of verification tasks prepared for abstract verification task': iterations
+                              })
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
     @abstractclassmethod
     def print_strategy_information(self):
         pass
@@ -116,6 +127,9 @@ class MAV(CommonStrategy):
 
     def add_verifier_options(self):
         self.logger.debug('Add common verifier options for MAV')
+
+        # Specify default configuration.
+        self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
         # Add entry point since we do not use property file.
         self.add_option_for_entry_point()

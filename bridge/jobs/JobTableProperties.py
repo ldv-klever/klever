@@ -37,7 +37,7 @@ ALL_FILTERS = [
 
 FILTER_TITLES = {
     'name': _('Title'),
-    'change_author': _('Author'),
+    'change_author': _('Last change author'),
     'change_date': _('Last change date'),
     'status': _('Decision status'),
     'resource_component': string_concat(_('Consumed resources'), '/', _('Component name')),

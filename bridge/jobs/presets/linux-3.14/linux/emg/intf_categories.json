@@ -12,6 +12,14 @@
       "signature": "$ usb_deregister(*%usb.usb_driver%)",
       "header": "include/linux/usb.h"
     },
+    "usb_serial_register_drivers": {
+      "signature": "int usb_serial_register_drivers($, $, %usb_serial.usb_device_id%)",
+      "header": "include/linux/usb/serial.h"
+    },
+    "usb_serial_deregister_drivers": {
+      "signature": "void usb_serial_deregister_drivers($)",
+      "header": "include/linux/usb/serial.h"
+    },
     "platform_driver_unregister": {
       "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
       "header": "include/linux/platform_device.h"
@@ -154,6 +162,96 @@
         "usb_interface": {
           "signature": "struct usb_interface *usb_interface",
           "header": "include/linux/usb.h",
+          "implemented in kernel": true
+        }
+      }
+    },
+    "usb_serial": {
+      "containers": {
+        "usb_serial_driver": {
+          "header": "include/linux/usb/serial.h",
+          "signature": "struct usb_serial_driver driver",
+          "fields": {
+            "probe": "%usb_serial.probe%",
+            "attach": "%usb_serial.attach%",
+            "disconnect": "%usb_serial.disconnect%",
+            "release": "%usb_serial.release%",
+            "suspend": "%usb_serial.suspend%",
+            "resume": "%usb_serial.resume%",
+            "reset_resume": "%usb_serial.reset_resume%",
+            "port_probe": "%usb_serial.port_probe%",
+            "port_remove": "%usb_serial.port_remove%",
+            "open": "%usb_serial.open%",
+            "close": "%usb_serial.close%",
+            "write": "%usb_serial.write%",
+            "write_room": "%usb_serial.write_room%",
+            "ioctl": "%usb_serial.ioctl%"
+          }
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe)(%usb_serial.usb_serial%, %usb_serial.usb_device_id%)"
+        },
+        "attach": {
+          "signature": "int (*attach)(%usb_serial.usb_serial%)"
+        },
+        "disconnect": {
+          "signature": "void (*disconnect)(%usb_serial.usb_serial%)"
+        },
+        "release": {
+          "signature": "void (*release)(%usb_serial.usb_serial%)"
+        },
+        "suspend": {
+          "signature": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
+        },
+        "resume": {
+          "signature": "int (*resume)(%usb_serial.usb_serial%)"
+        },
+        "reset_resume": {
+          "signature": "int (*reset_resume)(%usb_serial.usb_serial%)"
+        },
+        "port_probe": {
+          "signature": "int (*port_probe)(%usb_serial.usb_serial_port%)"
+        },
+        "port_remove": {
+          "signature": "int (*port_remove)(%usb_serial.usb_serial_port%)"
+        },
+        "open": {
+          "signature": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+        },
+        "close": {
+          "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+        },
+        "write": {
+          "signature": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+        },
+        "write_room": {
+          "signature": "int (*write_room)(%usb_serial.tty_struct%)"
+        },
+        "ioctl": {
+          "signature": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
+        }
+      },
+      "resources": {
+        "usb_device_id": {
+          "signature": "const struct usb_device_id *id",
+          "header": "include/linux/mod_devicetable.h",
+          "implemented in kernel": false
+        },
+        "usb_serial": {
+          "signature": "struct usb_serial *serial",
+          "header": "include/linux/usb/serial.h",
+          "implemented in kernel": true
+        },
+        "usb_serial_port": {
+          "signature": "struct usb_serial_port *port",
+          "header": "include/linux/usb/serial.h",
+          "implemented in kernel": true
+        },
+        "tty_struct": {
+          "signature": "struct tty_struct *tty",
+          "header": "include/linux/tty.h",
           "implemented in kernel": true
         }
       }
@@ -388,6 +486,31 @@
         },
         "release": {
           "signature": "$ (*release) (%file_operations.inode%, %file_operations.file%)"
+        }
+      }
+    },
+    "v4l2_file_operations": {
+      "containers": {
+        "v4l2_file_operations": {
+          "signature": "struct v4l2_file_operations ops",
+          "header": "media/v4l2-dev.h",
+          "fields": {
+            "release": "%v4l2_file_operations.release%",
+            "open": "%v4l2_file_operations.probe%"
+          }
+        }
+      },
+      "resources": {
+        "file": {
+          "signature": "struct file *file"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe) (%v4l2_file_operations.file%)"
+        },
+        "release": {
+          "signature": "$ (*release) (%v4l2_file_operations.file%)"
         }
       }
     },
