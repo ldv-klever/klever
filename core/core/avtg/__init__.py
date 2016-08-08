@@ -414,17 +414,10 @@ class AVTG(core.components.Component):
         self.logger.debug('The total number of verification object descriptions is "{0}"'.format(
             verification_obj_descs_num))
 
-        # Take into account that generation of some abstract verification task descriptions could fail.
-        self.abstract_task_descs_num.value = verification_obj_descs_num * len(
-            self.rule_spec_descs) - self.failed_abstract_task_desc_num.value
+        self.abstract_task_descs_num.value = verification_obj_descs_num * len(self.rule_spec_descs)
 
         self.logger.debug('The total number of abstract verification task descriptions to be generated is "{0}"'.format(
             self.abstract_task_descs_num.value))
-
-        if self.failed_abstract_task_desc_num.value:
-            self.logger.debug(
-                'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
-                format(self.failed_abstract_task_desc_num.value))
 
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         # Count the number of generated abstract verification task descriptions.
@@ -524,9 +517,9 @@ class AVTG(core.components.Component):
         # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
-            # Count the number of abstract verification task descriptions that weren't generated successfully. This is
-            # required to count the total number of abstract verification task descriptions to be generated successfully
-            # in ideal that can be done just when the total number of verification object descriptions will be known.
+            # Count the number of abstract verification task descriptions that weren't generated successfully to print
+            # it at the end of work. Note that the total number of abstract verification task descriptions will be
+            # printed at least once already.
             with self.failed_abstract_task_desc_num.get_lock():
                 self.failed_abstract_task_desc_num.value += 1
             self.abstract_task_desc_file = None
