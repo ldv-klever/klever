@@ -386,7 +386,10 @@ class ProcessModel:
                         raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                          format(action.callback, process.name))
 
-    def __add_label_match(self, label_map, label, interface):
+    def __add_label_match(self, analysis, label_map, label, interface):
+        if analysis.is_removed_intf(interface):
+            analysis.get_or_restore_intf(interface)
+
         if label.name not in label_map["matched labels"]:
             self.logger.debug("Match label '{}' with interface '{}'".format(label.name, interface))
             label_map["matched labels"][label.name] = set([interface])
@@ -413,9 +416,9 @@ class ProcessModel:
                 intf_category, short_identifier = intf.split(".")
                 nc.add(intf_category)
 
-                if intf in analysis.interfaces and intf_category == category:
+                if (intf in analysis.interfaces or analysis.is_removed_intf(intf)) and intf_category == category:
                     ni.add(intf)
-                    self.__add_label_match(label_map, label, intf)
+                    self.__add_label_match(analysis, label_map, label, intf)
         label_map["native interfaces"] = len(ni)
 
         # Stop analysis if process tied with another category
@@ -437,17 +440,18 @@ class ProcessModel:
 
                 # Try to match container
                 if len(label.interfaces) > 0 and label.name not in label_map["matched labels"]:
-                    for interface in (interface for interface in label.interfaces if interface in analysis.interfaces):
+                    for interface in (interface for interface in label.interfaces if interface in analysis.interfaces or
+                                      analysis.is_removed_intf(interface)):
                         interface_obj = analysis.get_intf(interface)
 
                         if interface_obj.category == category:
-                            self.__add_label_match(label_map, label, interface)
+                            self.__add_label_match(analysis, label_map, label, interface)
                 elif len(label.interfaces) == 0 and not label.prior_signature and tail and label.container and \
                         label.name not in label_map["matched labels"]:
                     for container in analysis.containers(category):
                         interfaces = self.__resolve_interface(analysis, container, tail, process, action)
                         if interfaces:
-                            self.__add_label_match(label_map, label, container.identifier)
+                            self.__add_label_match(analysis, label_map, label, container.identifier)
 
                 # Try to match callback itself
                 functions = []
@@ -458,11 +462,16 @@ class ProcessModel:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
                     if type(label_map["matched labels"][label.name]) is set:
-                        functions.extend([analysis.get_intf(name) for name in
+                        functions.extend([analysis.get_or_restore_intf(name) for name in
                                           sorted(label_map["matched labels"][label.name])
-                                          if name in analysis.interfaces])
-                    elif label_map["matched labels"][label.name] in analysis.interfaces:
+                                          if name in analysis.interfaces or analysis.is_deleted_intf(name)])
+                    elif label_map["matched labels"][label.name] in analysis.interfaces or\
+                            analysis.is_removed_intf(label_map["matched labels"][label.name]):
                         functions.append(analysis.get_intf(label_map["matched labels"][label.name]))
+
+                # Restore interfaces if necesary
+                for intf in (f for f in functions if analysis.is_removed_intf(f)):
+                    analysis.get_or_restore_intf(intf)
 
                 # Match parameters
                 for function in functions:
@@ -474,7 +483,7 @@ class ProcessModel:
                             for container in analysis.containers(category):
                                 interfaces = self.__resolve_interface(analysis, container, p_tail)
                                 if interfaces:
-                                    self.__add_label_match(label_map, p_label, container.identifier)
+                                    self.__add_label_match(analysis, label_map, p_label, container.identifier)
                                     pre_matched.add(interfaces[-1].identifier)
 
                         labels.append([p_label, p_tail])
@@ -487,16 +496,16 @@ class ProcessModel:
                                   set([label[0] for label in labels])
                         if len(matched) == 0 and f_intfs[pr].identifier not in pre_matched:
                             if len(labels) == len(f_intfs):
-                                self.__add_label_match(label_map, labels[pr][0], f_intfs[pr].identifier)
+                                self.__add_label_match(analysis, label_map, labels[pr][0], f_intfs[pr].identifier)
                             else:
                                 unmatched = [label[0] for label in labels
                                              if label[0].name not in label_map['matched labels'] and len(label[1]) == 0]
                                 if len(unmatched) > 0:
-                                    self.__add_label_match(label_map, unmatched[0], f_intfs[pr].identifier)
+                                    self.__add_label_match(analysis, label_map, unmatched[0], f_intfs[pr].identifier)
                                 else:
                                     rsrs = [label[0] for label in labels if label[0].resource]
                                     if len(rsrs) > 0:
-                                        self.__add_label_match(label_map, rsrs[-1], f_intfs[pr].identifier)
+                                        self.__add_label_match(analysis, label_map, rsrs[-1], f_intfs[pr].identifier)
 
             # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
@@ -508,13 +517,14 @@ class ProcessModel:
                                                sorted(label_map["matched labels"][container.name])]:
                             for f_intf in [intf for intf in container_intf.field_interfaces.values()
                                            if type(intf) is Callback and not intf.called and
-                                           intf.identifier not in label_map['matched callbacks']]:
-                                self.__add_label_match(label_map, callback, f_intf.identifier)
+                                           intf.identifier not in label_map['matched callbacks'] and
+                                           intf.identifier in analysis.interfaces]:
+                                self.__add_label_match(analysis, label_map, callback, f_intf.identifier)
             if len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for intf in [intf for intf in analysis.callbacks(category)
                                  if not intf.called and intf.identifier not in label_map['matched callbacks']]:
-                        self.__add_label_match(label_map, callback, intf.identifier)
+                        self.__add_label_match(analysis, label_map, callback, intf.identifier)
 
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in sorted(process.labels.keys())
