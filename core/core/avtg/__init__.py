@@ -420,6 +420,18 @@ class AVTG(core.components.Component):
             'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
                 self.abstract_task_descs_num.value))
 
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                    'total number of abstract verification task descriptions to be generated in ideal':
+                                    self.abstract_task_descs_num.value
+                              })
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         # Count the number of generated abstract verification task descriptions.
         self.abstract_task_desc_num += 1
@@ -523,6 +535,19 @@ class AVTG(core.components.Component):
             # generated in ideal will be printed at least once already.
             with self.failed_abstract_task_desc_num.get_lock():
                 self.failed_abstract_task_desc_num.value += 1
+                core.utils.report(self.logger,
+                                  'data',
+                                  {
+                                      'id': self.id,
+                                      'data': json.dumps({
+                                          'faulty generated abstract verification task descriptions':
+                                              self.failed_abstract_task_desc_num.value
+                                      })
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'],
+                                  self.failed_abstract_task_desc_num.value)
+
             self.abstract_task_desc_file = None
             self.verification_obj = verification_obj_desc['id']
             self.rule_spec = rule_spec_desc['id']

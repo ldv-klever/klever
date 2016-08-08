@@ -41,7 +41,7 @@ class VTG(core.components.Component):
         self.strategy_name = None
         self.strategy = None
         self.common_prj_attrs = {}
-        self.faulty_generated_abstract_task_desc_num = multiprocessing.Value('i', 0)
+        self.faulty_generated_abstract_task_descs_num = multiprocessing.Value('i', 0)
         self.num_of_abstract_task_descs_to_be_processed = multiprocessing.Value('i', 0)
         self.processed_abstract_task_desc_num = multiprocessing.Value('i', 0)
         self.faulty_processed_abstract_task_descs_num = multiprocessing.Value('i', 0)
@@ -113,21 +113,12 @@ class VTG(core.components.Component):
         self.logger.info(
             'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'.format(
                 self.num_of_abstract_task_descs_to_be_processed.value -
-                self.faulty_generated_abstract_task_desc_num.value))
+                self.faulty_generated_abstract_task_descs_num.value))
 
-        if self.faulty_generated_abstract_task_desc_num.value:
+        if self.faulty_generated_abstract_task_descs_num.value:
             self.logger.debug(
                 'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
-                format(self.faulty_generated_abstract_task_desc_num.value))
-
-        # core.utils.report(self.logger,
-        #                   'data',
-        #                   {
-        #                       'id': self.id,
-        #                       'data': json.dumps(self.abstract_task_descs_num.value)
-        #                   },
-        #                   self.mqs['report files'],
-        #                   self.conf['main working directory'])
+                format(self.faulty_generated_abstract_task_descs_num.value))
 
     def _generate_verification_tasks(self):
         while True:
@@ -138,15 +129,15 @@ class VTG(core.components.Component):
                 break
 
             if abstract_task_desc_file is '':
-                with self.faulty_generated_abstract_task_desc_num.get_lock():
-                    self.faulty_generated_abstract_task_desc_num.value += 1
+                with self.faulty_generated_abstract_task_descs_num.get_lock():
+                    self.faulty_generated_abstract_task_descs_num.value += 1
                 self.logger.info(
                     'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'
                     .format(self.num_of_abstract_task_descs_to_be_processed.value -
-                            self.faulty_generated_abstract_task_desc_num.value))
+                            self.faulty_generated_abstract_task_descs_num.value))
                 self.logger.debug(
                     'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
-                    format(self.faulty_generated_abstract_task_desc_num.value))
+                    format(self.faulty_generated_abstract_task_descs_num.value))
                 continue
 
             # Count the number of processed abstract verification task descriptions.
@@ -163,7 +154,7 @@ class VTG(core.components.Component):
             self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
                     abstract_task_desc['id'], self.processed_abstract_task_desc_num.value,
                     '/{0}'.format(self.num_of_abstract_task_descs_to_be_processed.value -
-                                  self.faulty_generated_abstract_task_desc_num.value)
+                                  self.faulty_generated_abstract_task_descs_num.value)
                     if self.num_of_abstract_task_descs_to_be_processed.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
@@ -189,3 +180,15 @@ class VTG(core.components.Component):
                 # ideal will be printed at least once already.
                 with self.faulty_processed_abstract_task_descs_num.get_lock():
                     self.faulty_processed_abstract_task_descs_num.value += 1
+                    core.utils.report(self.logger,
+                                      'data',
+                                      {
+                                          'id': self.id,
+                                          'data': json.dumps({
+                                              'faulty processed abstract verification task descriptions':
+                                                  self.faulty_processed_abstract_task_descs_num.value
+                                          })
+                                      },
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'],
+                                      self.faulty_processed_abstract_task_descs_num.value)
