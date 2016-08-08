@@ -145,6 +145,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
+        # Determine additional headers to include
+        self.extract_headers_to_attach(analysis, model)
+
         # Prepare entry point function
         self.logger.info("Generate C code from an intermediate model")
         self._prepare_code(analysis, model)
@@ -162,6 +165,36 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__add_entry_points()
 
         self.logger.info("Model translation is finished")
+
+    def extract_headers_to_attach(self, analysis, model):
+        """
+        Try to extract headers which are need to include in addition to existing in the source code. Get them from the
+        list of interfaces without an implementations and from the model processes descriptions.
+
+        :param analysis: ModuleCategoriesSpecification object.
+        :param model: ProcessModel object.
+        :return: None
+        """
+        # Get from unused interfaces
+        header_list = list()
+        for interface in (analysis.get_intf(i) for i in analysis.interfaces):
+            if len(interface.declaration.implementations) == 0 and interface.header and \
+                    interface.header not in header_list:
+                header_list.append(interface.header)
+
+        # todo: Get from specifications
+
+        # Generate aspect
+        if len(header_list) > 0:
+            aspect = ['before: file ("$this")\n',
+                      '{\n']
+            aspect.extend(['#include <{}>\n'.format(h) for h in header_list])
+            aspect.append('}\n')
+
+            self.additional_aspects.extend(aspect)
+
+        return
+
 
     def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         """
@@ -1646,7 +1679,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 if len(self.additional_aspects) > 0:
                     lines.append("\n")
-                    lines.append("/* EMG additional non-generated aspects */\n")
+                    lines.append("/* EMG additional aspects */\n")
                     lines.extend(self.additional_aspects)
                     lines.append("\n")
 
