@@ -525,6 +525,9 @@ class CommonStrategy(core.components.Component):
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
 
+            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
+                round(self.conf['VTG strategy']['resource limits']['CPU time'] / 1000))})
+
             if 'value analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
             elif 'caching' in self.conf['VTG strategy']:

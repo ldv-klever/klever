@@ -14,8 +14,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "version": "20376"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -550,6 +549,24 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/usb_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_serial_driver",
+        "modules": [
+          "usb_serial_callbacks.ko",
+          "usb_serial_deregister_drivers.ko",
+          "usb_serial_invoke.ko",
+          "usb_serial_register_drivers.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/usb_serial_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]
