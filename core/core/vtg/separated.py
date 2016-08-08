@@ -165,6 +165,18 @@ class SeparatedStrategy(CommonStrategy):
 
     def decide_verification_task(self, bug_kind=None):
         self.logger.info('Decide verification task')
+
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                  'the number of verification tasks prepared for abstract verification task': 1
+                              })
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
         self.verification_status = None
 
         if not self.automaton_file:
