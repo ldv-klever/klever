@@ -132,6 +132,14 @@ class SeparatedStrategy(CommonStrategy):
             # Specify default configuration.
             self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
+        # Set time limits for Separated strategy.
+        time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point
+        # Soft time limit.
+        self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
+            round(time_limit / 1000))})
+        # Hard time limit.
+        self.conf['VTG strategy']['resource limits']['CPU time'] = time_limit
+
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 

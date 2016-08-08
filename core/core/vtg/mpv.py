@@ -57,6 +57,7 @@ class MPV(CommonStrategy):
 
     __metaclass__ = ABCMeta
 
+    delta = 200000
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     # Relevant for revision 20543.
     verifier_results_regexp = r"\Property (.+).spc: (\w+)"
@@ -116,6 +117,14 @@ class MPV(CommonStrategy):
 
     def add_verifier_options(self):
         self.logger.debug('Add common verifier options for MPV')
+
+        # Set time limits for MPV.
+        time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.property_automata.__len__()
+        # Soft time limit.
+        self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
+            round(time_limit / 1000))})
+        # Hard time limit.
+        self.conf['VTG strategy']['resource limits']['CPU time'] = time_limit + self.delta
 
         # Add entry point since we do not use property file.
         self.add_option_for_entry_point()

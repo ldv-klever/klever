@@ -33,6 +33,7 @@ class MAV(CommonStrategy):
 
     __metaclass__ = ABCMeta
 
+    mu = 4/3
     path_to_file_with_results = 'output/mav_results_file'
     number_of_asserts = 0
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
@@ -161,10 +162,20 @@ class MAV(CommonStrategy):
             self.logger.info('Launching Conditional Multi-Aspect Verification in one verification run')
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.relaunchInOneRun=true'})
+            # Set time limits for internal MAV.
+            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.number_of_asserts
         elif self.relaunch == 'external':
             self.logger.info('Launching Conditional Multi-Aspect Verification in several verification run')
+            # Set time limits for external MAV.
+            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
         else:
-            self.logger.info('Launching single iteration of Multi-Aspect Verification')
+            raise AttributeError("Relaunch type of Conditional Multi-Aspect Verification was not specified")
+
+        # Soft time limit.
+        self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
+            round(time_limit / 1000))})
+        # Hard time limit.
+        self.conf['VTG strategy']['resource limits']['CPU time'] = time_limit
 
         self.parse_preset()
 
