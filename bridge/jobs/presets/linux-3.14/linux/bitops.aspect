@@ -17,3 +17,8 @@ around: call (unsigned long find_first_zero_bit(const unsigned long *addr, unsig
 	/* ASPECT_FUNC_CALL Function returns value between 0 and size */
 	return ldv_find_first_bit(size);
 }
+
+after: call(void ldv_initialize(..))
+{
+	ldv_assume(nr_cpu_ids > 0);
+}
