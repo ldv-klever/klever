@@ -611,9 +611,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             return True
 
     def __extract_categories(self):
-        structures = [self._types[name] for name in sorted(self._types.keys()) if type(self._types[name]) is Structure and
-                      len([self._types[name].fields[nm] for nm in sorted(self._types[name].fields.keys())
-                           if self._types[name].fields[nm].clean_declaration]) > 0]
+        structures = [self._types[name] for name in sorted(self._types.keys()) if type(self._types[name]) is Structure
+                      and len([self._types[name].fields[nm] for nm in sorted(self._types[name].fields.keys())
+                               if self._types[name].fields[nm].clean_declaration]) > 0]
         categories = []
 
         while len(structures) > 0:
@@ -666,12 +666,12 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 if (type(tp) is Array or type(tp) is Structure) and len(tp.parents) > 0:
                     for parent in tp.parents:
                         if (type(parent) is Structure or
-                            type(parent) is Array) and self.__not_violate_specification(parent, tp):
+                                type(parent) is Array) and self.__not_violate_specification(parent, tp):
                             self.__add_to_processing(parent, to_process, category)
                         elif type(parent) is Pointer and len(parent.parents) > 0:
                             for ancestor in parent.parents:
                                 if (type(ancestor) is Structure or
-                                    type(ancestor) is Array) and self.__not_violate_specification(ancestor, tp):
+                                        type(ancestor) is Array) and self.__not_violate_specification(ancestor, tp):
                                     self.__add_to_processing(ancestor, to_process, category)
 
             if len(category['callbacks']) > 0:
