@@ -41,7 +41,7 @@
     ],
     "unite rule specifications": true,
     "RSG strategy": "property automaton",
-    "common aspect": "linux/common.aspect",
+    "common aspect": "linux/common_mpv.aspect",
     "VTG strategy": {
       "name": "multiple property verification bug types",
       "verifier": {
@@ -53,7 +53,7 @@
       },
       "resource limits": {
         "wall time": 1000000,
-        "CPU time": 900000,
+        "CPU time": 27200000,
         "memory size": 10000000000,
         "CPU model": null,
         "number of CPU cores": 1,
