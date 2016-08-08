@@ -29,16 +29,6 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "Git repository": {"commit": "448356262f56~"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    }
-  ],
-  "Sub-jobs~": [
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
