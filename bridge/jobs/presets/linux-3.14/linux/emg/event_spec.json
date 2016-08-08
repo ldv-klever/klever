@@ -486,7 +486,7 @@
         }
       }
     },
-    "request_threaded_irq": {
+    "request_threaded_irq, devm_request_threaded_irq": {
       "labels": {
         "thread": {
           "callback": true,
