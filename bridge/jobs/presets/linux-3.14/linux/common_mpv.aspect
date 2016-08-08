@@ -1,0 +1,28 @@
+before: file("$this")
+{
+#include <linux/ldv/err.h>
+#include <verifier/nondet.h>
+
+struct urb;
+struct urb *ldv_usb_alloc_urb(void);
+void *ldv_usb_alloc_coherent(void);
+}
+
+/*68-69 inside 10-43-77*/
+
+around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
+{
+	struct urb *res = ldv_usb_alloc_urb();
+	ldv_assume(!ldv_is_err(res));
+	ldv_check_alloc_flags(flags);
+	return res;
+}
+
+around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
+{
+	void *res = ldv_usb_alloc_coherent();
+	ldv_assume(!ldv_is_err(res));
+	ldv_check_alloc_flags(flags);
+	return res;
+}
+
