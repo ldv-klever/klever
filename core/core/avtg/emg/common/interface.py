@@ -44,7 +44,11 @@ class Resource(Interface):
 class KernelFunction(Interface):
     def __init__(self, identifier, header):
         self.identifier = identifier
-        self.header = header
+        if type(header) is list:
+            self.header = header
+        else:
+            self.header = [header]
+
         self.declaration = None
         self.param_interfaces = []
         self.rv_interface = False
