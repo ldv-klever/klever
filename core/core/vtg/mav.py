@@ -352,7 +352,7 @@ class MAV(CommonStrategy):
 
                 # Parse file with results.
                 is_new_verdicts = False
-                try:
+                if os.path.isfile(self.path_to_file_with_results):
                     with open(self.path_to_file_with_results, encoding='ascii') as fp:
                         for line in fp:
                             result = re.search(self.verifier_results_regexp, line)
@@ -373,13 +373,14 @@ class MAV(CommonStrategy):
                                     if not is_new_verdicts:
                                         is_new_verdicts = True
                                         results[LCA] = 'unknown'
-
-                except FileNotFoundError:
+                else:
+                    # Verifier failed before even starting verification.
+                    # Create only one Unknown report for strategy.
                     log_file = self.get_verifier_log_file()
                     with open(log_file, encoding='ascii') as fp:
                         content = fp.readlines()
                     task_error = content
-                    self.process_global_error(task_error)
+                    self.process_global_error(''.join(task_error))
                     break
 
                 # No new transitions -> change all checking verdicts to unknown.
