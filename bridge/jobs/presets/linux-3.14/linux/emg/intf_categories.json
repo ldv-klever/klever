@@ -119,6 +119,30 @@
     "transport_subsystem_release": {
       "signature": "void transport_subsystem_release(*%se_subsystem.se_subsystem_api%)",
       "header": "target/target_core_backend.h"
+    },
+    "cdev_init": {
+      "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_register": {
+      "signature": "int misc_register(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
+    },
+    "cdev_del": {
+      "signature": "void cdev_del(*%file_operations.cdev%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_deregister": {
+      "signature": "void misc_deregister(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
+    },
+    "ieee80211_alloc_hw": {
+      "signature": "*%ieee80211.ieee80211_hw% ieee80211_alloc_hw($, *%ieee80211.ieee80211_ops%)",
+      "header": "net/mac80211.h"
+    },
+    "ieee80211_free_hw": {
+      "signature": "void ieee80211_free_hw(*%ieee80211.ieee80211_hw%)",
+      "header": "net/mac80211.h"
     }
   },
   "kernel macro-functions": {},
@@ -288,6 +312,39 @@
         },
         "setup": {
           "signature": "$ (*setup)(*%net.net_device%)"
+        }
+      }
+    },
+    "ieee80211": {
+      "containers": {
+        "ieee80211_ops": {
+          "signature": "struct ieee80211_ops a",
+          "header": "net/mac80211.h",
+          "fields": {
+            "start": "%ieee80211.start%",
+            "stop": "%ieee80211.stop%",
+            "suspend": "%ieee80211.suspend%",
+            "resume": "%ieee80211.resume%"
+          }
+        }
+      },
+      "callbacks": {
+        "start": {
+          "signature": "int (*start)(%ieee80211.ieee80211_hw%)"
+        },
+        "stop": {
+          "signature": "void (*stop)(%ieee80211.ieee80211_hw%)"
+        },
+        "suspend": {
+          "signature": "int (*suspend)(%ieee80211.ieee80211_hw%, $)"
+        },
+        "resume": {
+          "signature": "int (*resume)(%ieee80211.ieee80211_hw%)"
+        }
+      },
+      "resources": {
+        "ieee80211_hw": {
+          "signature": "struct ieee80211_hw *a"
         }
       }
     },
@@ -469,6 +526,20 @@
           "fields": {
             "release": "%file_operations.release%",
             "open": "%file_operations.probe%"
+          }
+        },
+        "cdev": {
+          "signature": "struct cdev cdev",
+          "header": "linux/cdev.h",
+          "fields": {
+            "ops": "*%file_operations.file_operations%"
+          }
+        },
+        "miscdevice": {
+          "signature": "struct miscdevice dev",
+          "header": "linux/miscdevice.h",
+          "fields": {
+            "fops": "*%file_operations.file_operations%"
           }
         }
       },

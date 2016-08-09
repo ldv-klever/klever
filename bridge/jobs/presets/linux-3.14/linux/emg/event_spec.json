@@ -486,7 +486,7 @@
         }
       }
     },
-    "request_threaded_irq": {
+    "request_threaded_irq, devm_request_threaded_irq": {
       "labels": {
         "thread": {
           "callback": true,
@@ -597,6 +597,181 @@
         "assign": {
           "statements": [
             "%line% = $arg1;"
+          ]
+        }
+      }
+    },
+    "misc_register": {
+      "labels": {
+        "file_operations": {
+          "container": true,
+          "interface": ["file_operations.file_operations"]
+        },
+        "miscdevice": {
+          "container": true,
+          "parameter": true,
+          "interface": ["file_operations.miscdevice"]
+        }
+      },
+      "process": "<assign>.[register] | <none>",
+      "actions": {
+        "register": {
+          "parameters": [
+            "%file_operations%"
+          ]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%file_operations% = %miscdevice%->fops;"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        }
+      }
+    },
+    "misc_deregister": {
+      "labels": {
+        "file_operations": {
+          "container": true,
+          "interface": ["file_operations.file_operations"]
+        },
+        "miscdevice": {
+          "container": true,
+          "parameter": true,
+          "interface": ["file_operations.miscdevice"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "deregister": {
+          "parameters": [
+            "%file_operations%"
+          ]
+        },
+        "assign": {
+          "condition": [],
+          "statements": [
+            "%file_operations% = %miscdevice%->fops;"
+          ]
+        }
+      }
+    },
+    "cdev_init": {
+      "labels": {
+        "file_operations": {
+          "container": true,
+          "parameter": true,
+          "interface": ["file_operations.file_operations"]
+        },
+        "cdev": {
+          "container": true,
+          "parameter": true,
+          "interface": ["file_operations.cdev"]
+        }
+      },
+      "process": "<assign>.[register]",
+      "actions": {
+        "register": {
+          "parameters": [
+            "%file_operations%"
+          ]
+        },
+        "assign": {
+          "condition": [],
+          "statements": [
+            "%cdev%->ops = %file_operations%;"
+          ]
+        }
+      }
+    },
+    "cdev_del": {
+      "labels": {
+        "file_operations": {
+          "container": true,
+          "interface": ["file_operations.file_operations"]
+        },
+        "cdev": {
+          "container": true,
+          "parameter": true,
+          "interface": ["file_operations.cdev"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "deregister": {
+          "parameters": [
+            "%file_operations%"
+          ]
+        },
+        "assign": {
+          "condition": [],
+          "statements": [
+            "%file_operations% = %cdev%->ops;"
+          ]
+        }
+      }
+    },
+    "ieee80211_alloc_hw": {
+      "labels": {
+        "ieee80211_ops": {
+          "container": true,
+          "parameter": true,
+          "interface": ["ieee80211.ieee80211_ops"]
+        },
+        "ieee80211_hw": {
+          "resource": true,
+          "pointer": true,
+          "interface": ["ieee80211.ieee80211_hw"]
+        }
+      },
+      "process": "<alloc>.<success>.[register].<ret> | <fail>",
+      "actions": {
+        "alloc": {
+          "statements": [
+            "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
+          ]
+        },
+        "success": {
+          "condition": ["%ieee80211_hw%"]
+        },
+        "fail":{
+           "condition": ["!%ieee80211_hw%"],
+           "statements": [
+            "return 0;"
+          ]
+        },
+        "ret": {
+          "statements": [
+            "return %ieee80211_hw%;"
+          ]
+        },
+        "register": {
+          "parameters": [
+            "%ieee80211_hw%"
+          ]
+        }
+      }
+    },
+    "ieee80211_free_hw": {
+      "labels": {
+        "ieee80211_hw": {
+          "resource": true,
+          "parameter": true,
+          "interface": ["ieee80211.ieee80211_hw"]
+        }
+      },
+      "process": "[deregister].<free>",
+      "actions": {
+        "free": {
+          "statements": [
+            "$FREE(%ieee80211_hw%);"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%ieee80211_hw%"
           ]
         }
       }
@@ -1278,10 +1453,10 @@
           "value": "1"
         }
       },
-      "process": "(!register).<init>.[probe].{call}",
+      "process": "(!register).<init>.{call}",
       "actions": {
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
+          "process": "<positive_probe>.([callback] | [release].<after_release>).{call} | <negative_probe>.([probe].{call} | <free>.(deregister))"
         },
         "register": {
           "parameters": [
@@ -1335,6 +1510,86 @@
         },
         "negative_probe": {
           "condition": ["%probed% != 0"]
+        }
+      }
+    },
+    "ieee80211_instance": {
+      "headers": ["linux/rtnetlink.h"],
+      "labels": {
+        "container": {
+          "container": true,
+          "interface": ["ieee80211.ieee80211_ops"]
+        },
+        "callback": {
+          "callback": true
+        },
+        "resource": {
+          "resource": true,
+          "interface": ["ieee80211.ieee80211_hw"]
+        },
+        "ret": {
+          "signature": "int a"
+        }
+      },
+      "process": "(!register).{main}",
+      "actions": {
+        "main": {
+          "process": "[start].(<y_ret>.{started} | <n_ret>).{main} | (deregister)"
+        },
+        "started": {
+          "process": "[suspend].[resume].{started} | [callback].{started} | [stop].{main}"
+        },
+        "register": {
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "start": {
+          "callback": "%container.start%",
+          "parameters": ["%resource%"],
+          "pre-call": [
+            "rtnl_lock();"
+          ],
+          "post-call": [
+            "rtnl_unlock();"
+          ],
+          "callback return value": "%ret%"
+        },
+        "stop": {
+          "callback": "%container.stop%",
+          "parameters": ["%resource%"],
+          "pre-call": [
+            "rtnl_lock();"
+          ],
+          "post-call": [
+            "rtnl_unlock();"
+          ]
+
+        },
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": ["%resource%"]
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": ["%resource%"]
         }
       }
     },
