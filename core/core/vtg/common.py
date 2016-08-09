@@ -530,6 +530,7 @@ class CommonStrategy(core.components.Component):
             # Based on this value, strategy will decide how to limit real launch of verifier.
             # If this value was not specified, strategy will fail.
             # This limit is specified in ms.
+            # It is strictly forbidden to specify 'soft' or 'hard' time limits for verifier manually.
             cpu_time_limit_per_rule_per_module_per_entry_point = \
                 self.conf['VTG strategy']['resource limits']\
                     ['CPU time limit PER 1 rule PER 1 module PER 1 entry point']
