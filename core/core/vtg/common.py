@@ -11,6 +11,29 @@ import core.session
 import core.utils
 from core.vtg.mea import MEA
 
+CPAchecker_preset_params = ['-config',
+                            '-cpas',
+                            '-spec',
+                            '-outputpath',
+                            '-logfile',
+                            '-entryfunction',
+                            '-timelimit',
+                            '-cbmc',
+                            '-nolog',
+                            '-noout',
+                            '-java',
+                            '-32',
+                            '-64',
+                            '-secureMode',
+                            '-skipRecursion',
+                            '-setprop',
+                            '-printOptions',
+                            '-v',
+                            '-verbose',
+                            '-printUsedOptions',
+                            '-help',
+                            '-stats'
+                            ]
 
 # This is an abstract class for VTG strategy.
 # It includes basic abstrcat operations and common actions.
@@ -18,6 +41,7 @@ class CommonStrategy(core.components.Component):
 
     __metaclass__ = ABCMeta
 
+    verifier_present_configuration = False
     mpv = False  # Property automata specifications.
     mea = None  # Processes MEA action.
     path_to_error_traces = 'output/witness.*.graphml'  # Common path to all error traces.
@@ -541,11 +565,23 @@ class CommonStrategy(core.components.Component):
 
             if 'value analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
+                self.verifier_present_configuration = True
             elif 'caching' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam': ''}]
+                self.verifier_present_configuration = True
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
+                self.verifier_present_configuration = True
 
+            # Check if the user specified configuration in options.
+            for option in self.conf['VTG strategy']['verifier']['options']:
+                arg = list(option.keys())[0]
+                if arg == '-timelimit':
+                    raise ValueError('It is strictly forbidden to specify time limits for verifier manually')
+                if arg not in CPAchecker_preset_params:
+                    if self.verifier_present_configuration:
+                        raise ValueError('Configuration already was specified"')
+                    self.verifier_present_configuration = True
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
 

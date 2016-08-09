@@ -130,7 +130,8 @@ class SeparatedStrategy(CommonStrategy):
             self.add_option_for_entry_point()
         else:
             # Specify default configuration.
-            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+            if not self.verifier_present_configuration:
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
         # Set time limits for Separated strategy.
         time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point

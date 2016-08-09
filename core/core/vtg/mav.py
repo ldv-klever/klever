@@ -131,7 +131,8 @@ class MAV(CommonStrategy):
         self.logger.debug('Add common verifier options for MAV')
 
         # Specify default configuration.
-        self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+        if not self.verifier_present_configuration:
+            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
         # Add entry point since we do not use property file.
         self.add_option_for_entry_point()
