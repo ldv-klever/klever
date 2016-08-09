@@ -109,7 +109,26 @@
               "linux/err.c": {},
               "linux/device.c": {"headers": ["linux/device.h"]},
               "linux/kzalloc.c": {},
-              "linux/ldv/common.c": {},
+              "linux/ldv/common.c": {
+                "headers": [
+                  "linux/usb.h",
+                  "linux/usb/serial.h",
+                  "linux/platform_device.h",
+                  "linux/netdevice.h",
+                  "linux/net.h",
+                  "linux/timer.h",
+                  "linux/interrupt.h",
+                  "linux/seq_file.h",
+                  "linux/i2c.h",
+                  "linux/mod_devicetable.h",
+                  "linux/tty.h",
+                  "linux/device.h",
+                  "linux/pm.h",
+                  "linux/fs.h",
+                  "net/sch_generic.h",
+                  "target/target_core_backend.h"
+                ]
+              },
               "verifier/common.c": {},
               "verifier/nondet.c": {},
               "verifier/memory.c": {},
