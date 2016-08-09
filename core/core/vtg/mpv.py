@@ -44,7 +44,7 @@ class MPVStrategy(Enum):
         {"-setprop": "analysis.mpa.budget.limit.automataStateExplosionPercent=20"},
         {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
     ]
-    AllThenIrrelevantThenSep = [
+    Relevance = [
         {"-setprop": "analysis.mpa.partition.operator=RelevanceThenIrrelevantThenRelevantOperator"},
         {"-setprop": "analysis.mpa.time.cpu.relevance.step2=1200"},
         {"-setprop": "analysis.mpa.time.cpu.relevance.step3=900"},
@@ -58,6 +58,8 @@ class MPV(CommonStrategy):
     __metaclass__ = ABCMeta
 
     delta = 200000
+    psi = 4/3
+    omega = 2/9
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     # Relevant for revision 20543.
     verifier_results_regexp = r"\Property (.+).spc: (\w+)"
@@ -157,10 +159,11 @@ class MPV(CommonStrategy):
                                      format(specified_preset))
             else:
                 self.logger.info('Using MPV strategy "{0}"'.format(selected_preset.name))
+
                 self.conf['VTG strategy']['verifier']['options'] = \
                     self.conf['VTG strategy']['verifier']['options'].__add__(selected_preset.value)
         else:
-            self.logger.debug('No MPV strategy was specified')
+            raise AttributeError('No MPV partitioning strategy was specified')
 
         if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
                 self.conf['VTG strategy']['verifier']['options']:
