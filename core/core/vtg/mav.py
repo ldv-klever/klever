@@ -29,7 +29,6 @@ from core.vtg.common import CommonStrategy
 # L5 is considered only for experiments (it should not get in production).
 # L5 is supported only be internal launch of CMAV.
 # The default preset is L1.
-# TODO: L1 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 100}
 class MAVPreset(Enum):
     L1 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 1/9}
     L2 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 4/3}
