@@ -69,6 +69,30 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "d8e172f3c0a5"},
+        "modules": ["drivers/spi/spi-imx.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bff71889260f~"},
+        "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "2ba4b92e8773~"},
+        "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
@@ -108,6 +132,30 @@
         "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
       "rule specifications": ["linux:alloc:irq"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "d8e172f3c0a5~"},
+        "modules": ["drivers/spi/spi-imx.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bff71889260f"},
+        "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "2ba4b92e8773"},
+        "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
+      },
+      "rule specifications": ["linux:clk"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
@@ -242,6 +290,17 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "c822fb57ba12~"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Rule specifications] dev_get_drvdata() and dev_set_drvdata() (<a href='https://forge.ispras.ru/issues/7352'>feature #7352</a>)"
+      }]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "bcb4a75bde38"},
         "modules": ["drivers/hid/hid.ko"]
       },
@@ -345,6 +404,17 @@
       ]]}},
       "rule specifications": ["linux:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "c822fb57ba12"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
+      },
+      "rule specifications": ["linux:clk"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     }
   ],
   "Source code > 25 KLOC": [
