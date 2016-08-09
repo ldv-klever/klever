@@ -434,7 +434,6 @@
     "linux:alloc:resource": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/memory.c": {"bug kinds": [
         "linux:alloc:resource::more at exit",
         "linux:alloc:resource::less at exit"
