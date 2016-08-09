@@ -48,7 +48,7 @@
         "name": "CPAchecker",
         "version": "20376",
         "options": [{"-ldv-mpa": ""}],
-        "MPV strategy": "AllThenIrrelevantThenSep",
+        "MPV strategy": "Relevance",
         "mea": false
       },
       "resource limits": {

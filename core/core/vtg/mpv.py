@@ -21,34 +21,26 @@ from core.vtg.common import CommonStrategy
 # If not specified, can be overwritten with verifier options.
 class MPVStrategy(Enum):
     All = [
-        {"-setprop": "analysis.mpa.partition.operator=AllThenNoneOperator"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900000s"}
+        {"-setprop": "analysis.mpa.partition.operator=AllThenNoneOperator"}
     ]
     AllThenSep = [
-        {"-setprop": "analysis.mpa.partition.operator=AllThenSepOperator"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
+        {"-setprop": "analysis.mpa.partition.operator=AllThenSepOperator"}
     ]
     AllThenSepRefinementTime = [
         {"-setprop": "analysis.mpa.partition.operator=AllThenSepOperator"},
-        {"-setprop": "analysis.mpa.budget.limit.avgRefineTime=800ms"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
+        {"-setprop": "analysis.mpa.budget.limit.avgRefineTime=800ms"}
     ]
     AllThenSepRefinementCount = [
         {"-setprop": "analysis.mpa.partition.operator=AllThenNotExhaustedThenSepOperator"},
         {"-setprop": "analysis.mpa.budget.limit.refinementsTimesMore=2"},
-        {"-setprop": "analysis.mpa.budget.limit.numRefinements=10"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
+        {"-setprop": "analysis.mpa.budget.limit.numRefinements=10"}
     ]
     AllThenSepExplosion = [
         {"-setprop": "analysis.mpa.partition.operator=AllThenSepOperator"},
-        {"-setprop": "analysis.mpa.budget.limit.automataStateExplosionPercent=20"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=900s"}
+        {"-setprop": "analysis.mpa.budget.limit.automataStateExplosionPercent=20"}
     ]
     Relevance = [
-        {"-setprop": "analysis.mpa.partition.operator=RelevanceThenIrrelevantThenRelevantOperator"},
-        {"-setprop": "analysis.mpa.time.cpu.relevance.step2=1200"},
-        {"-setprop": "analysis.mpa.time.cpu.relevance.step3=900"},
-        {"-setprop": "analysis.mpa.partition.time.cpu=200s"}
+        {"-setprop": "analysis.mpa.partition.operator=RelevanceThenIrrelevantThenRelevantOperator"}
     ]
 
 
@@ -159,7 +151,25 @@ class MPV(CommonStrategy):
                                      format(specified_preset))
             else:
                 self.logger.info('Using MPV strategy "{0}"'.format(selected_preset.name))
-
+                if selected_preset.name == 'All':
+                    selected_preset.value.append({"-setprop": "analysis.mpa.partition.time.cpu={0}s".
+                                                 format(round(time_limit / 1000))})
+                elif selected_preset.name == 'Relevance':
+                    first_step_time_limit = round(self.cpu_time_limit_per_rule_per_module_per_entry_point *
+                                                  self.omega / 1000)
+                    second_step_time_limit = round(self.cpu_time_limit_per_rule_per_module_per_entry_point *
+                                                   self.psi / 1000)
+                    third_step_time_limit = round(self.cpu_time_limit_per_rule_per_module_per_entry_point /
+                                                  1000)
+                    selected_preset.value.append({"-setprop": "analysis.mpa.partition.time.cpu={0}s".
+                                                 format(first_step_time_limit)})
+                    selected_preset.value.append({"-setprop": "analysis.mpa.time.cpu.relevance.step2={0}s".
+                                                 format(second_step_time_limit)})
+                    selected_preset.value.append({"-setprop": "analysis.mpa.time.cpu.relevance.step3={0}s".
+                                                 format(third_step_time_limit)})
+                else:
+                    selected_preset.value.append({"-setprop": "analysis.mpa.partition.time.cpu={0}s".format(round(
+                        self.cpu_time_limit_per_rule_per_module_per_entry_point / 1000))})
                 self.conf['VTG strategy']['verifier']['options'] = \
                     self.conf['VTG strategy']['verifier']['options'].__add__(selected_preset.value)
         else:
