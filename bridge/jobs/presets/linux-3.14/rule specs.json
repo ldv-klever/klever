@@ -125,8 +125,6 @@
                   "linux/device.h",
                   "linux/pm.h",
                   "linux/fs.h",
-                  "net/sch_generic.h",
-                  "target/target_core_backend.h",
                   "linux/rtnetlink.h"
                 ]
               },
