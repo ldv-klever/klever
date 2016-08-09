@@ -1157,10 +1157,13 @@
           "value": "1"
         }
       },
-      "process": "(!register).<init>.[probe].{call}",
+      "process": "(!register).<init>.{main}",
       "actions": {
+        "main": {
+          "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+        },
         "call": {
-          "process": "[callback].{call} | <positive_probe>.([pm_register].[pm_deregister] | <none>).[release].<after_release>.{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
+          "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
         },
         "register": {
           "parameters": [
@@ -1214,9 +1217,6 @@
         },
         "negative_probe": {
           "condition": ["%probed% != 0"]
-        },
-        "none": {
-          "statements": []
         },
         "pm_register": {
           "parameters": []
@@ -1453,10 +1453,13 @@
           "value": "1"
         }
       },
-      "process": "(!register).<init>.{call}",
+      "process": "(!register).<init>.{main}",
       "actions": {
+        "main": {
+          "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+        },
         "call": {
-          "process": "<positive_probe>.([callback] | [release].<after_release>).{call} | <negative_probe>.([probe].{call} | <free>.(deregister))"
+          "process": "[callback].{call} | [release].<after_release>.{main}"
         },
         "register": {
           "parameters": [
