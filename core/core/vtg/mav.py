@@ -69,6 +69,8 @@ class MAV(CommonStrategy):
         self.logger.info('Starting Multi-Aspect Verification')
         self.print_strategy_information()
         self.create_asserts()
+        if self.number_of_asserts <= 1:
+            raise AttributeError("It is strictly forbidden to use MAV for less than 2 asserts")
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
         self.create_mea()

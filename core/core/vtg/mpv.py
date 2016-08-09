@@ -76,6 +76,8 @@ class MPV(CommonStrategy):
         self.logger.info('Starting Multi-Property Verification')
         self.print_strategy_information()
         self.create_asserts()
+        if self.property_automata.__len__() <= 1:
+            raise AttributeError("It is strictly forbidden to use MPV for less than 2 asserts")
         self.prepare_common_verification_task_desc()
         self.create_mea()
         self.add_verifier_options()
