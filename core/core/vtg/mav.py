@@ -205,6 +205,9 @@ class MAV(CommonStrategy):
                                     format(specified_preset))
             else:
                 # Existed preset was specified.
+                if self.relaunch == 'external' and selected_preset.name == 'L5':
+                    raise AttributeError(
+                        "Preset L5 can be used only with internal relaunch of CMAV")
                 TL = self.cpu_time_limit_per_rule_per_module_per_entry_point / 1000
                 ATL = round(selected_preset.value['alpha'] * TL)
                 IITL = round(selected_preset.value['betta'] * TL)
