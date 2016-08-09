@@ -20,12 +20,22 @@ from core.vtg.common import CommonStrategy
 # more higher level will provide more accurate results,
 # but also will require more resources.
 # Can be overwritten with verifier options.
+# The following notion will be used:
+# TL = cpu_time_limit_per_rule_per_module_per_entry_point
+# ATL = alpha*TL (Assert Time Limit - limit per one rule/assert)
+# IITL = betta*TL (for conditional MAV)
+# BITL = gamma*TL (heuristic time limit)
+# FITL = epsilon*TL (heuristic time limit)
+# L5 is considered only for experiments (it should not get in production).
+# L5 is supported only be internal launch of CMAV.
+# The default preset is L1.
+# TODO: L1 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 100}
 class MAVPreset(Enum):
-    L1 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 100}
-    L2 = {'ATL': 900, 'IITL': 20, 'BITL': 100, 'FITL': 1200}
-    L3 = {'ATL': 900, 'IITL': 20, 'BITL': 200, 'FITL': 1200}
-    L4 = {'ATL': 900, 'IITL': 20, 'BITL': 900, 'FITL': 1200}
-    L5 = {'ATL': 1200, 'IITL': 50, 'BITL': 900, 'FITL': 1200}
+    L1 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 1/9}
+    L2 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 4/3}
+    L3 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/2, 'epsilon': 4/3}
+    L4 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1.0, 'epsilon': 4/3}
+    L5 = {'alpha': 0.0, 'betta': 0.0,  'gamma': 0.0, 'epsilon': 0.0}
 
 
 # This class represent Multi-Aspect Verification (MAV) strategies.
@@ -189,24 +199,29 @@ class MAV(CommonStrategy):
                 if preset.name == specified_preset:
                     selected_preset = preset
             if not selected_preset:
+                # TODO: This option is considered only for debug mode and should not get in production!
+                # Otherwise the user can easily break MAV with just one parameter.
                 self.logger.warning('Specified MAV preset "{0}" is not supported, no limitations will be used'.
                                     format(specified_preset))
             else:
                 # Existed preset was specified.
+                TL = self.cpu_time_limit_per_rule_per_module_per_entry_point
+                ATL = round(selected_preset.value['alpha'] * TL)
+                IITL = round(selected_preset.value['betta'] * TL)
+                BITL = round(selected_preset.value['gamma'] * TL)
+                FITL = round(selected_preset.value['epsilon'] * TL)
                 self.logger.info('Using MAV preset "{0}" for limitations'.format(selected_preset.name))
                 self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'analysis.mav.assertTimeLimit={0}'.
-                        format(selected_preset.value['ATL'])})
+                    {'-setprop': 'analysis.mav.assertTimeLimit={0}'.format(ATL)})
                 self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'analysis.mav.idleIntervalTimeLimit={0}'.
-                        format(selected_preset.value['IITL'])})
+                    {'-setprop': 'analysis.mav.idleIntervalTimeLimit={0}'.format(IITL)})
                 self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'analysis.mav.basicIntervalTimeLimit={0}'.
-                        format(selected_preset.value['BITL'])})
+                    {'-setprop': 'analysis.mav.basicIntervalTimeLimit={0}'.format(BITL)})
                 self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'analysis.mav.firstIntervalTimeLimit={0}'.
-                        format(selected_preset.value['FITL'])})
+                    {'-setprop': 'analysis.mav.firstIntervalTimeLimit={0}'.format(FITL)})
         else:
+            # TODO: This option is considered only for debug mode and should not get in production!
+            # Otherwise the user can easily break MAV with just one parameter.
             self.logger.debug('No MAV preset was specified, no limitations will be used')
 
     @abstractclassmethod
