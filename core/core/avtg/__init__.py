@@ -213,27 +213,28 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
             multi_aspect_group = rule_spec_desc['multi-aspect group']
             del rule_spec_desc['multi-aspect group']
         else:
-            multi_aspect_group = None
+            # Use unique rule specification identifier to process rule specification description as is without merging.
+            multi_aspect_group = rule_spec_id
         if multi_aspect_group not in multi_aspect_groups:
             multi_aspect_groups[multi_aspect_group] = []
         multi_aspect_groups[multi_aspect_group].append(rule_spec_id)
 
     for multi_aspect_group in multi_aspect_groups:
-        logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(
-            multi_aspect_group if multi_aspect_group else 'Other'))
+        if multi_aspect_group not in conf['rule specifications']:
+            logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(multi_aspect_group))
 
-        # Find out the most broad template for given multi-aspect group.
-        template = 'Linux kernel modules'
-        for rule_spec_id in multi_aspect_groups[multi_aspect_group]:
-            rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
-            if rule_spec_desc['template'] == 'Argument signatures for Linux kernel modules':
-                template = 'Argument signatures for Linux kernel modules'
-                break
+            # Find out the most broad template for given multi-aspect group.
+            template = 'Linux kernel modules'
+            for rule_spec_id in multi_aspect_groups[multi_aspect_group]:
+                rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+                if rule_spec_desc['template'] == 'Argument signatures for Linux kernel modules':
+                    template = 'Argument signatures for Linux kernel modules'
+                    break
 
-        raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
-            'template': template,
-            'rule specifications': multi_aspect_groups[multi_aspect_group]
-        }
+            raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
+                'template': template,
+                'rule specifications': multi_aspect_groups[multi_aspect_group]
+            }
 
     conf['rule specifications'] = list(multi_aspect_groups.keys())
 
