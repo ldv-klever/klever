@@ -205,7 +205,7 @@ class MAV(CommonStrategy):
                                     format(specified_preset))
             else:
                 # Existed preset was specified.
-                TL = self.cpu_time_limit_per_rule_per_module_per_entry_point
+                TL = self.cpu_time_limit_per_rule_per_module_per_entry_point / 1000
                 ATL = round(selected_preset.value['alpha'] * TL)
                 IITL = round(selected_preset.value['betta'] * TL)
                 BITL = round(selected_preset.value['gamma'] * TL)
