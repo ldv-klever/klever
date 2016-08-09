@@ -1195,7 +1195,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return conditions
 
-    def _label_sequence(self, analysis, automaton, initial_state):
+    def _label_sequence(self, analysis, automaton, initial_state, ret_expression):
         ### Subroutines ###
         # Start a conditional branch
         def start_branch(tab, f_code, condition):
@@ -1318,6 +1318,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             else:
                 new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
+
+            # If this is a terminal state - quit control function
+            if type(state.action) is not Subprocess and len(state.successors) == 0:
+                code.extend([
+                    "/* Terminal state */",
+                    ret_expression
+                ])
             tab = print_action_code(tab, f_code, code, state, conditional_stack)
 
             # If this is a terminal state before completely closed merge point close the whole merge
@@ -1371,16 +1378,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 definition = var.declare() + ";"
             v_code.append(definition)
 
-        main_v_code, main_f_code = self._label_sequence(analysis, automaton, list(automaton.fsa.initial_states)[0])
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, list(automaton.fsa.initial_states)[0],
+                                                        ret_expression)
         v_code.extend(main_v_code)
         f_code.extend(main_f_code)
+        f_code.append("/* End of the process */")
         f_code.append(ret_expression)
 
         processed = []
         for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
                      if type(s.action) is Subprocess]:
             if subp.action.name not in processed:
-                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, list(subp.successors)[0])
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, list(subp.successors)[0],
+                                                            ret_expression)
 
                 v_code.extend(sp_v_code)
                 f_code.extend([
@@ -1389,6 +1399,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
                 ])
                 f_code.extend(sp_f_code)
+                f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
                 f_code.append(ret_expression)
                 processed.append(subp.action.name)
 
@@ -1433,6 +1444,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     break
 
         automaton.control_function = cf
+        cf.body.append(
+            "/* Control function based on process '{}' generated for interface category '{}' */".
+                format(automaton.process.name, automaton.process.category)
+        )
         return cf
 
     def _state_switch(self, states, file):
