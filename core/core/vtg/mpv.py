@@ -278,13 +278,25 @@ class MPV(CommonStrategy):
                             results[assertion] = verdict
                             self.logger.debug('Property "{0}" got verdict "{1}"'.
                                               format(assertion, verdict))
-                if not is_stats_found:
-                    for assertion, automaton in self.property_automata.items():
-                        results[assertion] = 'unknown'
 
                 # Process all found error traces.
                 witness_assert = {}  # Witnss (error trace) <-> assert (bug kind).
                 all_found_error_traces = glob.glob(self.path_to_error_traces)
+
+                if not is_stats_found:
+                    if not all_found_error_traces:
+                        # Verifier failed before even starting verification.
+                        # Create only one Unknown report for strategy.
+                        with open(log_file, encoding='ascii') as fp:
+                            content = fp.readlines()
+                        task_error = content
+                        self.process_global_error(''.join(task_error))
+                        break
+                    else:
+                        # Something was wrong during statistic print.
+                        for assertion, automaton in self.property_automata.items():
+                            results[assertion] = 'unknown'
+
                 for error_trace in all_found_error_traces:
                     violated_property = self.get_violated_property(error_trace)
                     witness_assert[error_trace] = violated_property
