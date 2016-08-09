@@ -18,12 +18,14 @@ static int ldv_release(struct inode *inode, struct file *filp)
     return 0;
 }
 
-static struct cdev ldv_cdev;
-
 static struct file_operations ldv_fops = {
 	.open		= ldv_open,
 	.release	= ldv_release,
 	.owner		= THIS_MODULE,
+};
+
+static struct cdev ldv_cdev = {
+	.ops = & ldv_fops,
 };
 
 static int __init ldv_init(void)

@@ -119,6 +119,22 @@
     "transport_subsystem_release": {
       "signature": "void transport_subsystem_release(*%se_subsystem.se_subsystem_api%)",
       "header": "target/target_core_backend.h"
+    },
+    "cdev_init": {
+      "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_register": {
+      "signature": "int misc_register(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
+    },
+    "cdev_del": {
+      "signature": "void cdev_del(*%file_operations.cdev%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_deregister": {
+      "signature": "void misc_deregister(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
     }
   },
   "kernel macro-functions": {},
@@ -469,6 +485,20 @@
           "fields": {
             "release": "%file_operations.release%",
             "open": "%file_operations.probe%"
+          }
+        },
+        "cdev": {
+          "signature": "struct cdev cdev",
+          "header": "linux/cdev.h",
+          "fields": {
+            "ops": "*%file_operations.file_operations%"
+          }
+        },
+        "miscdevice": {
+          "signature": "struct miscdevice dev",
+          "header": "linux/miscdevice.h",
+          "fields": {
+            "fops": "*%file_operations.file_operations%"
           }
         }
       },
