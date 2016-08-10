@@ -255,7 +255,7 @@ class RSG(core.avtg.plugins.Plugin):
                     self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
                                       format(model_c_file, preprocessed_model_c_file))
                 else:
-                    model['bug kinds preprocessed C file'] = model_c_file
+                    model['bug kinds preprocessed C file'] = model['prefix preprocessed C file']
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
