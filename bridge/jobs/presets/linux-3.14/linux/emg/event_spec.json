@@ -1240,6 +1240,112 @@
         }
       }
     },
+    "pci_instance": {
+      "labels": {
+        "container": {
+          "container": true
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "ret": {
+          "signature": "int a",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.{main}",
+      "actions": {
+        "main": {
+          "process": "[probe].(<y_ret>.{call} | <n_ret>).{main} | <free>.(deregister)"
+        },
+        "call": {
+          "process": "[callback].{call} | [suspend].[suspend_late].[resume_early].[resume].{call} | [shutdown].[release].{main}"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%container%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "suspend": {
+          "callback": "%container.suspend%",
+          "parameters": [
+            "%resource%"
+          ],
+          "callback return value": "%ret%"
+        },
+        "suspend_late": {
+          "callback": "%container.suspend_late%",
+          "parameters": [
+            "%resource%"
+          ],
+          "callback return value": "%ret%"
+        },
+        "resume_early": {
+          "callback": "%container.resume_early%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "resume": {
+          "callback": "%container.resume%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "shutdown": {
+          "callback": "%container.shutdown%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
+        }
+      }
+    },
     "platform_instance": {
       "labels": {
         "container": {
