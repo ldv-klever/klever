@@ -87,8 +87,9 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
             'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
 
     # Get rid of useless information.
-    if 'description' in rule_spec_desc:
-        del (rule_spec_desc['description'])
+    for attr in ('description', 'multi-aspect group'):
+        if attr in rule_spec_desc:
+            del (rule_spec_desc[attr])
 
     # Get rule specification template which it is based on.
     if 'template' not in rule_spec_desc:
