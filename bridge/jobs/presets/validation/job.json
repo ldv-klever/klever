@@ -56,7 +56,7 @@
         "Git repository": {"commit": "e4c7f259c5be~"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
+      "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
@@ -120,7 +120,7 @@
         "Git repository": {"commit": "e4c7f259c5be"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
+      "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
         "comment": "Non-target bug"
@@ -215,7 +215,7 @@
         "Git repository": {"commit": "7ce77510c9c7~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
+      "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
         "comment": "[Environment model] Nonstandard environment models specification (<a href='https://forge.ispras.ru/issues/7439'>feature #7439</a>)"
@@ -344,7 +344,7 @@
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
+      "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
