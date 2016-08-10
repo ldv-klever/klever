@@ -31,6 +31,9 @@ void ldv_linux_usb_dev_check_return_value_probe(int retval);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
 void ldv_linux_netdev_check_return_value_probe(int retval);
 
+void ldv_linux_usb_register_reset_error_counter(void);
+void ldv_linux_netdev_reset_error_counter(void);
+
 #include <linux/types.h>
 
 void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
@@ -159,6 +162,13 @@ before: call(int ldv_post_probe(int retval))
 	ldv_linux_usb_dev_check_return_value_probe(retval);
 	ldv_linux_usb_register_check_return_value_probe(retval);
 	ldv_linux_netdev_check_return_value_probe(retval);
+}
+
+before: call(void ldv_pre_probe(..)) ||
+        call(int ldv_post_init(..))
+{
+	ldv_linux_usb_register_reset_error_counter();
+	ldv_linux_netdev_reset_error_counter();
 }
 
 /*68-69 inside 10-43-77*/
