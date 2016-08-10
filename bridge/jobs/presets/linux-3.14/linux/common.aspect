@@ -37,9 +37,9 @@ void ldv_linux_usb_coherent_check_final_state(void);
 void ldv_linux_rwlock_check_final_state(void);
 @endif /* LDV_LINUX_RWLOCK */
 
-@ifdef LDV_LINUX_MMC_SDIO
+@ifdef LDV_LINUX_MMC_SDIO_FUNC
 void ldv_linux_mmc_sdio_func_check_final_state(void);
-@endif /* LDV_LINUX_MMC_SDIO */
+@endif /* LDV_LINUX_MMC_SDIO_FUNC */
 
 @ifdef LDV_LINUX_CLASS
 void *ldv_linux_class_create_class(void);
@@ -268,9 +268,9 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_rwlock_check_final_state();
 @endif /* LDV_LINUX_RWLOCK */
 
-@ifdef LDV_LINUX_MMC_SDIO
+@ifdef LDV_LINUX_MMC_SDIO_FUNC
 	ldv_linux_mmc_sdio_func_check_final_state();
-@endif /* LDV_LINUX_MMC_SDIO */
+@endif /* LDV_LINUX_MMC_SDIO_FUNC */
 
 @ifdef LDV_LINUX_CLASS
 	ldv_linux_class_check_final_state();
