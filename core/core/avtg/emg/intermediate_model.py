@@ -814,17 +814,18 @@ class ProcessModel:
             field = tail[index]
 
             # Match using a container field name
-            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
+            intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
+                    if name == field]
 
             # Match using an identifier
             if len(intf) == 0:
-                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier == field]
 
             # Math using an interface role
             if process and action and type(action) is Call and len(intf) == 0 and self.__roles_map and \
-                        field in self.__roles_map:
-                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                    field in self.__roles_map:
+                intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
                         type(matched[-1].field_interfaces[name]) is Callback]
 
