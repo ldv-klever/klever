@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import fileinput
 import json
 import os
 
@@ -78,6 +79,28 @@ class ASE(core.avtg.plugins.Plugin):
                     env['LDV_ARG_SIGNS_FILE'] = os.path.relpath(arg_signs_file,
                                                                 os.path.join(self.conf['main working directory'],
                                                                              cc_full_desc['cwd']))
+
+                    # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
+                    # additional argument signatures should be extracted. Like in Weaver.
+                    if 'plugin aspects' in cc_extra_full_desc_file:
+                        self.logger.info('Concatenate all aspects of all plugins together')
+
+                        # Get all aspects. Place original request aspect at beginning since it can instrument entities
+                        # added by aspects of other plugins while corresponding function declarations still need be at
+                        # beginning of file.
+                        aspects = [os.path.relpath(request_aspect, self.conf['main working directory'])]
+                        for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
+                            aspects.extend(plugin_aspects['aspects'])
+
+                        # Concatenate aspects.
+                        with open('aspect', 'w', encoding='utf8') as fout, fileinput.input(
+                                [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
+                                openhook=fileinput.hook_encoded('utf8')) as fin:
+                            for line in fin:
+                                fout.write(line)
+
+                        request_aspect = 'aspect'
+
                     core.utils.execute(self.logger,
                                        tuple(['cif',
                                               '--in', cc_full_desc['in files'][0],
