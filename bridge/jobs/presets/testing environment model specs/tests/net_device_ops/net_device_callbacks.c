@@ -28,6 +28,7 @@ static int ldv_close(struct net_device *dev)
 {
 	ldv_release_down();
     ldv_invoke_callback();
+    return 0;
 }
 
 static const struct net_device_ops ldv_ops = {

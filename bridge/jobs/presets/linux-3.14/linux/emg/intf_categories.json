@@ -32,8 +32,8 @@
       "signature": "int platform_driver_register(*%platform.platform_driver%)",
       "header": "linux/platform_device.h"
     },
-    "alloc_netdev": {
-      "signature": "*%net.net_device% alloc_netdev($, $, $, %net.setup%)",
+    "alloc_netdev_mqs": {
+      "signature": "*%net.net_device% alloc_netdev_mqs($, $, %net.setup%, $, $)",
       "header": "linux/netdevice.h"
     },
     "register_netdev": {
@@ -319,7 +319,7 @@
           "signature": "int (*ndo_stop)(*%net.net_device%)"
         },
         "setup": {
-          "signature": "$ (*setup)(*%net.net_device%)"
+          "signature": "void (*setup)(*%net.net_device%)"
         }
       }
     },
