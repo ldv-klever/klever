@@ -1,10 +1,17 @@
 before: file ("$this")
 {
 void ldv_check_return_value_probe(int);
+void ldv_reset_error_counter(void);
 }
 
 before: call(int ldv_post_probe(..))
 {
 	/* ASPECT_FUNC_CALL Check that error code was properly propagated in probe() */
 	ldv_check_return_value_probe($arg1);
+}
+
+before: call(void ldv_pre_probe(..)) ||
+        call(int ldv_post_init(..))
+{
+	ldv_reset_error_counter();
 }
