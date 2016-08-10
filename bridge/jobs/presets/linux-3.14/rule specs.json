@@ -125,7 +125,12 @@
                   "linux/device.h",
                   "linux/pm.h",
                   "linux/fs.h",
-                  "linux/rtnetlink.h"
+                  "linux/rtnetlink.h",
+                  "net/mac80211.h",
+                  "linux/iio/iio.h",
+                  "linux/iio/triggered_buffer.h",
+                  "linux/cdev.h",
+                  "linux/miscdevice.h"
                 ]
               },
               "verifier/common.c": {},
