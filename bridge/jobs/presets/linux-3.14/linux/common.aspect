@@ -127,10 +127,12 @@ void ldv_linux_blk_queue_check_final_state(void);
 @endif /* LDV_LINUX_BLK_QUEUE */
 
 @ifdef LDV_LINUX_USB_REGISTER
+void ldv_linux_usb_register_reset_error_counter(void);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
 @endif /* LDV_LINUX_USB_REGISTER */
 
 @ifdef LDV_LINUX_NETDEV
+void ldv_linux_netdev_reset_error_counter(void);
 void ldv_linux_netdev_check_return_value_probe(int retval);
 @endif /* LDV_LINUX_NETDEV */
 
@@ -335,6 +337,18 @@ around: call(void ldv_check_final_state(void))
 @ifdef LDV_LINUX_BLK_QUEUE
 	ldv_linux_blk_queue_check_final_state();
 @endif /* LDV_LINUX_BLK_QUEUE */
+}
+
+before: call(void ldv_pre_probe(..)) ||
+        call(int ldv_post_init(..))
+{
+@ifdef LDV_LINUX_USB_REGISTER
+	ldv_linux_usb_register_reset_error_counter();
+@endif /* LDV_LINUX_USB_REGISTER */
+
+@ifdef LDV_LINUX_NETDEV
+	ldv_linux_netdev_reset_error_counter();
+@endif /* LDV_LINUX_NETDEV */
 }
 
 before: call(int ldv_post_probe(int retval))
