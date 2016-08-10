@@ -143,6 +143,14 @@
     "ieee80211_free_hw": {
       "signature": "void ieee80211_free_hw(*%ieee80211.ieee80211_hw%)",
       "header": "net/mac80211.h"
+    },
+    "iio_triggered_buffer_setup": {
+      "signature": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, $)",
+      "header": "linux/iio/triggered_buffer.h"
+    },
+    "iio_triggered_buffer_cleanup": {
+      "signature": "void iio_triggered_buffer_cleanup(%iio_triggered_buffer.dev%)",
+      "header": "linux/iio/triggered_buffer.h"
     }
   },
   "kernel macro-functions": {},
@@ -745,6 +753,31 @@
         },
         "thread": {
           "signature": "irqreturn_t (*thread)(%interrupt.line%, %interrupt.data%)"
+        }
+      }
+    },
+    "iio_triggered_buffer": {
+      "extensible": false,
+      "containers": {},
+      "resources": {
+        "line": {
+          "signature": "int line"
+        },
+        "data": {
+          "signature": "void *data"
+        },
+        "dev": {
+          "signature": "struct iio_dev *dev",
+          "header": "linux/iio/iio.h"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "irqreturn_t (*handler)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)",
+          "interrupt context": true
+        },
+        "thread": {
+          "signature": "irqreturn_t (*thread)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)"
         }
       }
     }
