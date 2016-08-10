@@ -41,7 +41,7 @@
       },
       "rule specifications": [
         "linux:alloc:irq",
-        "linux:alloc:spin lock",
+        "linux:alloc:spinlock",
         "linux:alloc:usb lock",
         "linux:spinlock",
         "linux:rwlock",
@@ -187,7 +187,7 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:spin lock"]
+      "rule specifications": ["linux:alloc:spinlock"]
     },
     {
       "Linux kernel": {

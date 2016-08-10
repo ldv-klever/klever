@@ -15,7 +15,7 @@
       "linux:usb:register",
       "linux:usb:urb",
       "linux:alloc:irq",
-      "linux:alloc:spin lock",
+      "linux:alloc:spinlock",
       "linux:alloc:usb lock",
       "linux:chrdev",
       "linux:class",
@@ -435,22 +435,22 @@
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/wrong-flags-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/wrong-flags-trylock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/nonatomic-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/nonatomic-trylock.ko"
         },
         {
@@ -598,7 +598,7 @@
         "linux:usb:register",
         "linux:usb:urb",
         "linux:alloc:irq",
-        "linux:alloc:spin lock",
+        "linux:alloc:spinlock",
         "linux:alloc:usb lock",
         "linux:chrdev",
         "linux:class",

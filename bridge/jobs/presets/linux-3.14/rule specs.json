@@ -180,7 +180,7 @@
         ]}
       }}
     },
-    "linux:alloc:spin lock": {
+    "linux:alloc:spinlock": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
       "multi-aspect group": "α",
@@ -192,8 +192,8 @@
       "RSG": {"models": {
         "$linux/spinlock.c": {"sets model": "flag"},
         "linux/alloc2.c": {"bug kinds": [
-          "linux:alloc:spin lock::wrong flags",
-          "linux:alloc:spin lock::nonatomic"
+          "linux:alloc:spinlock::wrong flags",
+          "linux:alloc:spinlock::nonatomic"
         ]}
       }}
     },
