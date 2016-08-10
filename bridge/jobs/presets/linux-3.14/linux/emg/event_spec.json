@@ -95,11 +95,16 @@
           "interface": ["usb_serial.usb_device_id"]
         }
       },
-      "process": "[@deregister]",
+      "process": "<assign>.[@deregister]",
       "actions": {
         "deregister": {
           "parameters": [
             "%usb_device_id%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%usb_device_id% = $arg1;"
           ]
         }
       }
@@ -148,7 +153,8 @@
       "actions": {
         "alloc": {
           "statements": [
-            "%netdev% = $ALLOC(%netdev%);"
+            "%netdev% = $ALLOC(%netdev%);",
+            "%setup% = $arg3;"
           ]
         },
         "setup": {
@@ -483,6 +489,7 @@
         "assign": {
           "statements": [
             "%seq_file% = $ALLOC(%seq_file%);",
+            "%ops% = $arg2;",
             "/* todo: file->private_data = seq_file; */"
           ]
         }
@@ -535,7 +542,7 @@
         }
       }
     },
-    "request_threaded_irq, devm_request_threaded_irq": {
+    "request_threaded_irq": {
       "labels": {
         "thread": {
           "callback": true,
@@ -578,6 +585,53 @@
             "%callback% = $arg2;",
             "%thread% = $arg3;",
             "%data% = $arg6;"
+          ]
+        }
+      }
+    },
+    "devm_request_threaded_irq": {
+      "labels": {
+        "thread": {
+          "callback": true,
+          "interface": ["interrupt.thread"],
+          "parameter": true
+        },
+        "callback": {
+          "callback": true,
+          "interface": ["interrupt.handler"],
+          "parameter": true
+        },
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        },
+        "data": {
+          "resource": true,
+          "interface": ["interrupt.data"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_register] | <none>",
+      "actions": {
+        "irq_register": {
+          "parameters": [
+            "%line%",
+            "%callback%",
+            "%thread%",
+            "%data%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%line% = $arg2;",
+            "%callback% = $arg3;",
+            "%thread% = $arg4;",
+            "%data% = $arg7;"
           ]
         }
       }
@@ -628,7 +682,53 @@
         }
       }
     },
-    "free_irq": {
+    "request_percpu_irq": {
+      "labels": {
+        "thread": {
+          "callback": true,
+          "interface": ["interrupt.thread"]
+        },
+        "callback": {
+          "callback": true,
+          "interface": ["interrupt.handler"],
+          "parameter": true
+        },
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        },
+        "data": {
+          "resource": true,
+          "interface": ["interrupt.data"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_register] | <none>",
+      "actions": {
+        "irq_register": {
+          "parameters": [
+            "%line%",
+            "%callback%",
+            "%thread%",
+            "%data%"
+          ]
+        },
+        "none": {
+          "condition": ["$res != 0"]
+        },
+        "assign": {
+          "condition": ["$res == 0"],
+          "statements": [
+            "%line% = $arg1;",
+            "%callback% = $arg2;",
+            "%thread% = 0;",
+            "%data% = $arg4;"
+          ]
+        }
+      }
+    },
+    "free_irq, devm_free_irq": {
       "labels": {
         "line": {
           "resource": true,
@@ -646,6 +746,28 @@
         "assign": {
           "statements": [
             "%line% = $arg1;"
+          ]
+        }
+      }
+    },
+    "free_percpu_irq": {
+      "labels": {
+        "line": {
+          "resource": true,
+          "interface": ["interrupt.line"],
+          "parameter": true
+        }
+      },
+      "process": "<assign>.[irq_deregister]",
+      "actions": {
+        "irq_deregister": {
+          "parameters": [
+            "%line%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%line% = $arg2;"
           ]
         }
       }
@@ -672,6 +794,7 @@
         "assign": {
           "condition": ["$res == 0"],
           "statements": [
+            "%miscdevice% = $arg1;",
             "%file_operations% = %miscdevice%->fops;"
           ]
         },
@@ -702,6 +825,7 @@
         "assign": {
           "condition": [],
           "statements": [
+            "%miscdevice% = $arg1;",
             "%file_operations% = %miscdevice%->fops;"
           ]
         }
@@ -730,6 +854,8 @@
         "assign": {
           "condition": [],
           "statements": [
+            "%cdev% = $arg1;",
+            "%file_operations% = $arg2;",
             "%cdev%->ops = %file_operations%;"
           ]
         }
@@ -757,6 +883,7 @@
         "assign": {
           "condition": [],
           "statements": [
+            "%cdev% = $arg1;",
             "%file_operations% = %cdev%->ops;"
           ]
         }
@@ -779,6 +906,7 @@
       "actions": {
         "alloc": {
           "statements": [
+            "%ieee80211_ops% = $arg2;",
             "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
           ]
         },

@@ -32,6 +32,10 @@
       "signature": "int platform_driver_register(*%platform.platform_driver%)",
       "header": "linux/platform_device.h"
     },
+    "alloc_etherdev_mqs": {
+      "signature": "*%net.net_device% alloc_etherdev_mqs($, $, $)",
+      "header": "linux/etherdevice.h"
+    },
     "alloc_netdev_mqs": {
       "signature": "*%net.net_device% alloc_netdev_mqs($, $, %net.setup%, $, $)",
       "header": "linux/netdevice.h"
@@ -80,6 +84,26 @@
       "signature": "int request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
       "header": "linux/interrupt.h"
     },
+    "devm_request_threaded_irq": {
+      "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "request_percpu_irq": {
+      "signature": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, $, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "free_irq": {
+      "signature": "void free_irq(%interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "devm_free_irq": {
+      "signature": "void devm_free_irq($, %interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "free_percpu_irq": {
+      "signature": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
     "seq_open_private": {
       "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
       "header": "linux/seq_file.h"
@@ -95,14 +119,6 @@
     "seq_release": {
       "signature": "int seq_release($, %seq_operations.file%)",
       "header": "linux/seq_file.h"
-    },
-    "devm_request_threaded_irq": {
-      "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "linux/interrupt.h"
-    },
-    "free_irq": {
-      "signature": "void free_irq(%interrupt.line%, %interrupt.data%)",
-      "header": "linux/interrupt.h"
     },
     "i2c_register_driver": {
       "signature": "int i2c_register_driver($, *%i2c.i2c_driver%)",
