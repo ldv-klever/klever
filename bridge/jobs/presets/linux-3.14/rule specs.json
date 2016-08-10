@@ -132,7 +132,8 @@
               "verifier/nondet.c": {},
               "verifier/memory.c": {},
               "verifier/thread.c": {}
-            }
+            },
+            "common aspect": "linux/common.aspect"
           }
         },
         "Weaver"

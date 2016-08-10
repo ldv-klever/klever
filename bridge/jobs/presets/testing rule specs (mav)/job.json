@@ -41,7 +41,6 @@
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
-    "common aspect": "linux/common.aspect",
     "VTG strategy": {
       "name": "multiple bug types",
       "verifier": {
