@@ -9,7 +9,7 @@
       "header": "linux/usb.h"
     },
     "usb_deregister": {
-      "signature": "$ usb_deregister(*%usb.usb_driver%)",
+      "signature": "void usb_deregister(*%usb.usb_driver%)",
       "header": "linux/usb.h"
     },
     "usb_serial_register_drivers": {
@@ -21,15 +21,15 @@
       "headers": ["linux/usb.h", "linux/usb/serial.h"]
     },
     "platform_driver_unregister": {
-      "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
+      "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
       "header": "linux/platform_device.h"
     },
     "platform_driver_probe": {
-      "signature": "$ platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
+      "signature": "int platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
       "header": "linux/platform_device.h"
     },
     "platform_driver_register": {
-      "signature": "$ platform_driver_register(*%platform.platform_driver%)",
+      "signature": "int platform_driver_register(*%platform.platform_driver%)",
       "header": "linux/platform_device.h"
     },
     "alloc_netdev": {
@@ -37,19 +37,19 @@
       "header": "linux/netdevice.h"
     },
     "register_netdev": {
-      "signature": "$ register_netdev(*%net.net_device%)",
+      "signature": "int register_netdev(*%net.net_device%)",
       "header": "linux/netdevice.h"
     },
     "unregister_netdev": {
-      "signature": "$ unregister_netdev(*%net.net_device%)",
+      "signature": "void unregister_netdev(*%net.net_device%)",
       "header": "linux/netdevice.h"
     },
     "free_netdev": {
-      "signature": "$ free_netdev(*%net.net_device%)",
+      "signature": "void free_netdev(*%net.net_device%)",
       "header": "linux/netdevice.h"
     },
     "mod_timer": {
-      "signature": "$ mod_timer(*%timer.timer_list%, $)",
+      "signature": "int mod_timer(*%timer.timer_list%, $)",
       "header": "linux/timer.h"
     },
     "mod_timer_pinned": {
@@ -101,7 +101,7 @@
       "header": "linux/interrupt.h"
     },
     "free_irq": {
-      "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
+      "signature": "void free_irq(%interrupt.line%, %interrupt.data%)",
       "header": "linux/interrupt.h"
     },
     "i2c_register_driver": {
