@@ -133,6 +133,9 @@ class SeparatedStrategy(CommonStrategy):
             if not self.verifier_present_configuration:
                 self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
+        self.set_separated_time_limit()
+
+    def set_separated_time_limit(self):
         # Set time limits for Separated strategy.
         time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point
         # Soft time limit.
