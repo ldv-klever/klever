@@ -1009,7 +1009,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         block.append('/* Assign recieved labels */')
                         block.append('if (cf_arg_struct) {')
                         for index in range(len(param_expressions)):
-                            block.append('\t{} = cf_arg_struct->arg{};'.format(param_expressions[0], index))
+                            block.append('\t{} = cf_arg_struct->arg{};'.format(param_expressions[index], index))
                         block.append('}')
                 else:
                     block.append('/* Skip {} */'.format(state.desc['label']))
