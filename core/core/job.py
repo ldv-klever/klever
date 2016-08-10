@@ -268,6 +268,7 @@ class Job(core.utils.CallbacksCaller):
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                del (sub_job_components_common_conf['Sub-jobs'])
                 sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
 
                 self.logger.info('Get sub-job name and type')
