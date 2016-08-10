@@ -127,6 +127,14 @@ class Job(core.utils.CallbacksCaller):
         with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
             try:
                 if self.name:
+                    if self.components_common_conf['keep intermediate files']:
+                        if os.path.isfile('conf.json'):
+                            raise FileExistsError(
+                                'Components configuration file "conf.json" already exists')
+                        self.logger.debug('Create components configuration file "conf.json"')
+                        with open('conf.json', 'w', encoding='ascii') as fp:
+                            json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+
                     core.utils.report(self.logger,
                                       'start',
                                       {
