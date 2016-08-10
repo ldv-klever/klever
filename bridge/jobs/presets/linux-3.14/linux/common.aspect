@@ -139,10 +139,10 @@ void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
 void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-void ldv_linux_alloc_spin_lock_check_alloc_flags(gfp_t flags);
-void ldv_linux_alloc_spin_lock_check_alloc_nonatomic(void);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
+@ifdef LDV_LINUX_ALLOC_SPINLOCK
+void ldv_linux_alloc_spinlock_check_alloc_flags(gfp_t flags);
+void ldv_linux_alloc_spinlock_check_alloc_nonatomic(void);
+@endif /* LDV_LINUX_ALLOC_SPINLOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
@@ -187,9 +187,9 @@ void ldv_check_alloc_flags(gfp_t flags)
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
+@ifdef LDV_LINUX_ALLOC_SPINLOCK
+	ldv_linux_alloc_spinlock_check_alloc_flags(flags);
+@endif /* LDV_LINUX_ALLOC_SPINLOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
@@ -202,9 +202,9 @@ void ldv_check_alloc_nonatomic(void)
 	ldv_linux_alloc_irq_check_alloc_nonatomic();
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_nonatomic();
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
+@ifdef LDV_LINUX_ALLOC_SPINLOCK
+	ldv_linux_alloc_spinlock_check_alloc_nonatomic();
+@endif /* LDV_LINUX_ALLOC_SPINLOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
@@ -364,9 +364,9 @@ around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
+@ifdef LDV_LINUX_ALLOC_SPINLOCK
+	ldv_linux_alloc_spinlock_check_alloc_flags(flags);
+@endif /* LDV_LINUX_ALLOC_SPINLOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
