@@ -1164,18 +1164,18 @@
         "callback": {
           "callback": true
         },
-        "probed": {
+        "ret": {
           "signature": "int a",
           "value": "1"
-        },
-        "suspended": {
-          "signature": "int a"
         }
       },
-      "process": "(!register).<init>.[probe].{call}",
+      "process": "(!register).<init>.{main}",
       "actions": {
+        "main": {
+          "process": "[probe].(<y_ret>.{call} | <n_ret>).{main} | <free>.(deregister)"
+        },
         "call": {
-          "process": "[callback].{call} | <positive_probe>.[release].<after_release>.{call} |  <positive_probe>.[suspend].(<suspended>.[resume] | <not_suspended>).{call} | <negative_probe>.(<free>.(deregister) | <negative_probe>.[probe].{call})"
+          "process": "[callback].{call} | [suspend].(<y_ret>.[resume] | <n_ret>).{call} | [release].{main}"
         },
         "register": {
           "parameters": [
@@ -1204,9 +1204,9 @@
           "parameters": [
             "%resource%"
           ],
-          "callback return value": "%probed%",
+          "callback return value": "%ret%",
           "post-call": [
-            "%probed% = ldv_post_probe(%probed%);"
+            "%ret% = ldv_post_probe(%ret%);"
           ]
         },
         "suspend": {
@@ -1214,7 +1214,7 @@
           "parameters": [
             "%resource%"
           ],
-          "callback return value": "%suspended%"
+          "callback return value": "%ret%"
         },
         "resume": {
           "callback": "%container.resume%",
@@ -1232,22 +1232,11 @@
             "$FREE(%resource%);"
           ]
         },
-        "after_release": {
-          "statements": [
-            "%probed% = 1;"
-          ]
+        "y_ret": {
+          "condition": ["%ret% == 0"]
         },
-        "positive_probe": {
-          "condition": ["%probed% == 0"]
-        },
-        "negative_probe": {
-          "condition": ["%probed% != 0"]
-        },
-        "suspended": {
-          "condition": ["%suspended% == 0"]
-        },
-        "not_suspended": {
-          "condition": ["%suspended% != 0"]
+        "n_ret": {
+          "condition": ["%ret% != 0"]
         }
       }
     },
