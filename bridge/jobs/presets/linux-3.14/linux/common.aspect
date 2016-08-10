@@ -26,6 +26,7 @@ void ldv_linux_iomem_check_final_state(void);
 void ldv_linux_idr_check_final_state(void);
 void ldv_linux_gendisk_check_final_state(void);
 void ldv_linux_blk_queue_check_final_state(void);
+void ldv_linux_clk_check_final_state(void);
 
 void ldv_linux_usb_dev_check_return_value_probe(int retval);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
@@ -152,6 +153,7 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_idr_check_final_state();
 	ldv_linux_gendisk_check_final_state();
 	ldv_linux_blk_queue_check_final_state();
+	ldv_linux_clk_check_final_state();
 }
 
 before: call(int ldv_post_probe(int retval))
