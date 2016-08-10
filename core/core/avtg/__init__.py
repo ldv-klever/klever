@@ -495,8 +495,8 @@ class AVTG(core.components.Component):
         initial_abstract_task_desc_file = os.path.join(plugins_work_dir, 'initial abstract task.json')
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(initial_abstract_task_desc_file))
-        with open(initial_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-            json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
+        with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+            json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
         try:
@@ -529,8 +529,8 @@ class AVTG(core.components.Component):
                                                     '{0} conf.json'.format(plugin_desc['name'].lower()))
                     self.logger.debug(
                         'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'], plugin_conf_file))
-                    with open(plugin_conf_file, 'w', encoding='ascii') as fp:
-                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
