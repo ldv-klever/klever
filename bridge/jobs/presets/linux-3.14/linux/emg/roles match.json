@@ -11,7 +11,8 @@
       "add",
       "enable",
       "run",
-      "ctr"
+      "ctr",
+      "connect"
     ],
     "release": [
       "release",
