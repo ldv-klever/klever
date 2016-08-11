@@ -29,6 +29,14 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38~"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "60b35930067d~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
@@ -82,6 +90,14 @@
       },
       "rule specifications": ["linux:clk"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -151,17 +167,6 @@
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
         "comment": "???"
-      }]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "rule specifications": ["linux:chrdev"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
       }]
     },
     {
@@ -300,14 +305,6 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38"},
-        "modules": ["drivers/hid/hid.ko"]
-      },
-      "rule specifications": ["linux:chrdev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
