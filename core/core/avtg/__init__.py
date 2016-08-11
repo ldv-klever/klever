@@ -87,8 +87,9 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
             'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
 
     # Get rid of useless information.
-    if 'description' in rule_spec_desc:
-        del (rule_spec_desc['description'])
+    for attr in ('description', 'multi-aspect group'):
+        if attr in rule_spec_desc:
+            del (rule_spec_desc[attr])
 
     # Get rule specification template which it is based on.
     if 'template' not in rule_spec_desc:
@@ -132,7 +133,7 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     rule_spec_plugin_names = []
     for attr in rule_spec_desc:
         # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-        if attr == 'rule specifications':
+        if attr == 'constituent rule specifications':
             continue
 
         plugin_name = attr
@@ -159,12 +160,18 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     for plugin_name in rule_spec_plugin_names:
         del (rule_spec_desc[plugin_name])
 
-    if 'rule specifications' in rule_spec_desc:
+    if 'constituent rule specifications' in rule_spec_desc:
         # Merge plugin options specific for constituent rule specifications.
-        for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
+        for constituent_rule_spec_id in rule_spec_desc['constituent rule specifications']:
             for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs,
                                                                              constituent_rule_spec_id)['plugins']:
                 for plugin_desc in plugin_descs:
+                    # Specify rule specifications that are merged together for RSG.
+                    if plugin_desc['name'] == 'RSG':
+                        if 'options' not in plugin_desc:
+                            plugin_desc['options'] = []
+                        plugin_desc['options']['constituent rule specifications'] = \
+                            rule_spec_desc['constituent rule specifications']
                     if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
                         # Specify constituent rule specification identifier for RSG models. It will be used to generate
                         # unique variable and function names.
@@ -187,9 +194,9 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
                     plugin_desc['options'] = {}
                 plugin_desc['options']['aspect preprocessing options'] = \
                     ['-DLDV_' + re.sub(r'\W', '_', rule_spec_id).upper()
-                     for rule_spec_id in rule_spec_desc['rule specifications']]
+                     for rule_spec_id in rule_spec_desc['constituent rule specifications']]
 
-        del (rule_spec_desc['rule specifications'])
+        del (rule_spec_desc['constituent rule specifications'])
 
     rule_spec_desc['plugins'] = plugin_descs
 
@@ -218,10 +225,22 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
         if multi_aspect_group not in multi_aspect_groups:
             multi_aspect_groups[multi_aspect_group] = []
         multi_aspect_groups[multi_aspect_group].append(rule_spec_id)
+        logger.debug(
+            'Add rule specification "{0}" to multi-aspect group "{1}"'.format(rule_spec_id, multi_aspect_group))
+
+    conf['rule specifications'] = []
 
     for multi_aspect_group in multi_aspect_groups:
-        if multi_aspect_group not in conf['rule specifications']:
+        # Add rule specifications that don't belong to any multi-aspect group.
+        if multi_aspect_group in raw_rule_spec_descs['rule specifications']:
+            conf['rule specifications'].append(multi_aspect_group)
+        # Do not unite individual rule specifications that constitute corresponding multi-aspect group.
+        elif len(multi_aspect_groups[multi_aspect_group]) == 1:
+            conf['rule specifications'].append(multi_aspect_groups[multi_aspect_group][0])
+        else:
             logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(multi_aspect_group))
+
+            conf['rule specifications'].append(multi_aspect_group)
 
             # Find out the most broad template for given multi-aspect group.
             template = 'Linux kernel modules'
@@ -233,10 +252,8 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
 
             raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
                 'template': template,
-                'rule specifications': multi_aspect_groups[multi_aspect_group]
+                'constituent rule specifications': multi_aspect_groups[multi_aspect_group]
             }
-
-    conf['rule specifications'] = list(multi_aspect_groups.keys())
 
 
 # This function is invoked to collect plugin callbacks.
@@ -494,8 +511,8 @@ class AVTG(core.components.Component):
         initial_abstract_task_desc_file = os.path.join(plugins_work_dir, 'initial abstract task.json')
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(initial_abstract_task_desc_file))
-        with open(initial_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-            json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
+        with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+            json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
         try:
@@ -528,8 +545,8 @@ class AVTG(core.components.Component):
                                                     '{0} conf.json'.format(plugin_desc['name'].lower()))
                     self.logger.debug(
                         'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'], plugin_conf_file))
-                    with open(plugin_conf_file, 'w', encoding='ascii') as fp:
-                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),

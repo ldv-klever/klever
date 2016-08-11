@@ -41,7 +41,7 @@
       },
       "rule specifications": [
         "linux:alloc:irq",
-        "linux:alloc:spin lock",
+        "linux:alloc:spinlock",
         "linux:alloc:usb lock",
         "linux:spinlock",
         "linux:rwlock",
@@ -187,7 +187,7 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:spin lock"]
+      "rule specifications": ["linux:alloc:spinlock"]
     },
     {
       "Linux kernel": {
@@ -430,14 +430,23 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/linux/clk",
+        "external modules": "tests/linux/clk1",
         "modules": [
-          "unsafe1.ko",
-          "unsafe2.ko",
+          "unsafe.ko",
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:clk"]
+      "rule specifications": ["linux:clk1"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/clk2",
+        "modules": [
+          "unsafe.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:clk2"]
     }
   ]
 }

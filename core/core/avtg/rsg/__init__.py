@@ -191,8 +191,12 @@ class RSG(core.avtg.plugins.Plugin):
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
 
-        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
-        if 'common aspect' in self.conf:
+        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects. Common
+        # aspect should be used just if several rule specifications are merged together to resolve possible conflicts.
+        if 'constituent rule specifications' in self.conf:
+            if 'common aspect' not in self.conf:
+                raise KeyError(
+                    'Common aspect is not specified although several rule specifications are merged together')
             common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                         self.conf['common aspect'])
             self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
@@ -251,7 +255,7 @@ class RSG(core.avtg.plugins.Plugin):
                     self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
                                       format(model_c_file, preprocessed_model_c_file))
                 else:
-                    model['bug kinds preprocessed C file'] = model_c_file
+                    model['bug kinds preprocessed C file'] = model['prefix preprocessed C file']
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}

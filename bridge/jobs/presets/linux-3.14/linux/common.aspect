@@ -37,9 +37,9 @@ void ldv_linux_usb_coherent_check_final_state(void);
 void ldv_linux_rwlock_check_final_state(void);
 @endif /* LDV_LINUX_RWLOCK */
 
-@ifdef LDV_LINUX_MMC_SDIO
+@ifdef LDV_LINUX_MMC_SDIO_FUNC
 void ldv_linux_mmc_sdio_func_check_final_state(void);
-@endif /* LDV_LINUX_MMC_SDIO */
+@endif /* LDV_LINUX_MMC_SDIO_FUNC */
 
 @ifdef LDV_LINUX_CLASS
 void *ldv_linux_class_create_class(void);
@@ -68,11 +68,6 @@ int ldv_linux_usb_gadget_register_chrdev_region(void);
 void ldv_linux_usb_gadget_unregister_chrdev_region(void);
 void ldv_linux_usb_gadget_check_final_state(void);
 @endif /* LDV_LINUX_USB_GADGET */
-
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-void ldv_linux_alloc_resource_after_alloc(void *res);
-void ldv_linux_alloc_resource_check_final_state(void);
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
 
 @ifdef LDV_LINUX_BLK_REQUEST
 void ldv_linux_blk_request_check_final_state(void);
@@ -127,10 +122,12 @@ void ldv_linux_blk_queue_check_final_state(void);
 @endif /* LDV_LINUX_BLK_QUEUE */
 
 @ifdef LDV_LINUX_USB_REGISTER
+void ldv_linux_usb_register_reset_error_counter(void);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
 @endif /* LDV_LINUX_USB_REGISTER */
 
 @ifdef LDV_LINUX_NETDEV
+void ldv_linux_netdev_reset_error_counter(void);
 void ldv_linux_netdev_check_return_value_probe(int retval);
 @endif /* LDV_LINUX_NETDEV */
 
@@ -138,11 +135,6 @@ void ldv_linux_netdev_check_return_value_probe(int retval);
 void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
 void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
 @endif /* LDV_LINUX_ALLOC_IRQ */
-
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-void ldv_linux_alloc_spin_lock_check_alloc_flags(gfp_t flags);
-void ldv_linux_alloc_spin_lock_check_alloc_nonatomic(void);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
@@ -187,10 +179,6 @@ void ldv_check_alloc_flags(gfp_t flags)
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
-
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
@@ -202,21 +190,10 @@ void ldv_check_alloc_nonatomic(void)
 	ldv_linux_alloc_irq_check_alloc_nonatomic();
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_nonatomic();
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
-
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
 }
-
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-void ldv_after_alloc(void *res)
-{
-	ldv_linux_alloc_resource_after_alloc(res);
-}
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
 
 void ldv_check_for_read_section(void)
 {
@@ -240,18 +217,6 @@ void ldv_check_for_read_section(void)
 
 around: call(void ldv_check_final_state(void))
 {
-@ifdef LDV_LINUX_MUTEX
-	ldv_linux_mutex_check_final_state();
-@endif /* LDV_LINUX_MUTEX */
-
-@ifdef LDV_LINUX_SPINLOCK
-	ldv_linux_spinlock_check_final_state();
-@endif /*LDV_LINUX_USB_DEV */
-
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_check_final_state();
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_MODULE
 	ldv_linux_module_check_final_state();
 @endif /* LDV_LINUX_MODULE */
@@ -268,9 +233,9 @@ around: call(void ldv_check_final_state(void))
 	ldv_linux_rwlock_check_final_state();
 @endif /* LDV_LINUX_RWLOCK */
 
-@ifdef LDV_LINUX_MMC_SDIO
+@ifdef LDV_LINUX_MMC_SDIO_FUNC
 	ldv_linux_mmc_sdio_func_check_final_state();
-@endif /* LDV_LINUX_MMC_SDIO */
+@endif /* LDV_LINUX_MMC_SDIO_FUNC */
 
 @ifdef LDV_LINUX_CLASS
 	ldv_linux_class_check_final_state();
@@ -283,10 +248,6 @@ around: call(void ldv_check_final_state(void))
 @ifdef LDV_LINUX_USB_GADGET
 	ldv_linux_usb_gadget_check_final_state();
 @endif /* LDV_LINUX_USB_GADGET */
-
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-	ldv_linux_alloc_resource_check_final_state();
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
 
 @ifdef LDV_LINUX_BLK_REQUEST
 	ldv_linux_blk_request_check_final_state();
@@ -337,12 +298,20 @@ around: call(void ldv_check_final_state(void))
 @endif /* LDV_LINUX_BLK_QUEUE */
 }
 
+before: call(void ldv_pre_probe(..)) ||
+        call(int ldv_post_init(..))
+{
+@ifdef LDV_LINUX_USB_REGISTER
+	ldv_linux_usb_register_reset_error_counter();
+@endif /* LDV_LINUX_USB_REGISTER */
+
+@ifdef LDV_LINUX_NETDEV
+	ldv_linux_netdev_reset_error_counter();
+@endif /* LDV_LINUX_NETDEV */
+}
+
 before: call(int ldv_post_probe(int retval))
 {
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_check_return_value_probe(retval);
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_USB_REGISTER
 	ldv_linux_usb_register_check_return_value_probe(retval);
 @endif /* LDV_LINUX_USB_REGISTER */
@@ -364,10 +333,6 @@ around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
-
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
@@ -388,10 +353,6 @@ around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
 @ifdef LDV_LINUX_ALLOC_IRQ
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 @endif /* LDV_LINUX_ALLOC_IRQ */
-
-@ifdef LDV_LINUX_ALLOC_SPIN_LOCK
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_SPIN_LOCK */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
@@ -479,18 +440,6 @@ after: call(void unregister_chrdev_region(..)) ||
 
 around: call(void ldv_initialize(void))
 {
-@ifdef LDV_LINUX_MUTEX
-	ldv_linux_mutex_initialize();
-@endif /* LDV_LINUX_MUTEX */
-
-@ifdef LDV_LINUX_SPINLOCK
-	ldv_linux_spinlock_initialize();
-@endif /*LDV_LINUX_USB_DEV */
-
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_initialize();
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_BITOPS
 	ldv_linux_bitops_initialize();
 @endif /* LDV_LINUX_BITOPS */

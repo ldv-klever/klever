@@ -145,7 +145,7 @@ class VTG(core.components.Component):
 
             abstract_task_desc_file = os.path.join(self.conf['main working directory'], abstract_task_desc_file)
 
-            with open(abstract_task_desc_file, encoding='ascii') as fp:
+            with open(abstract_task_desc_file, encoding='utf8') as fp:
                 abstract_task_desc = json.load(fp)
 
             if not self.conf['keep intermediate files']:

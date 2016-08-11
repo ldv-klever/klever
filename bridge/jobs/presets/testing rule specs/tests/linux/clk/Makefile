@@ -1,1 +1,0 @@
-obj-m += safe.o unsafe1.o unsafe2.o

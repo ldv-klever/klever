@@ -142,7 +142,8 @@
               "verifier/nondet.c": {},
               "verifier/memory.c": {},
               "verifier/thread.c": {}
-            }
+            },
+            "common aspect": "linux/common.aspect"
           }
         },
         "Weaver"
@@ -189,10 +190,9 @@
         ]}
       }}
     },
-    "linux:alloc:spin lock": {
+    "linux:alloc:spinlock": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "α",
       "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
       "TR": {"templates": {
         "linux/spinlock.c.tmpl": {},
@@ -201,8 +201,8 @@
       "RSG": {"models": {
         "$linux/spinlock.c": {"sets model": "flag"},
         "linux/alloc2.c": {"bug kinds": [
-          "linux:alloc:spin lock::wrong flags",
-          "linux:alloc:spin lock::nonatomic"
+          "linux:alloc:spinlock::wrong flags",
+          "linux:alloc:spinlock::nonatomic"
         ]}
       }}
     },
@@ -311,7 +311,7 @@
     "linux:usb:urb": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/usb/urb.c": {"bug kinds": [
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"
@@ -320,7 +320,7 @@
     "linux:usb:coherent": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/usb/coherent.c": {"bug kinds":[
         "linux:usb:coherent::less initial decrement",
         "linux:usb:coherent::more initial at exit"
@@ -329,13 +329,13 @@
     "linux:bitops": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/bitops.c": {"bug kinds": ["linux:bitops::offset out of range"]}}}
     },
     "linux:blk:request": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/blk/request.c": {"bug kinds": [
         "linux:blk:request::double get",
         "linux:blk:request::double put",
@@ -345,7 +345,7 @@
     "linux:rculock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/rculock.c": {"bug kinds": [
         "linux:rculock::more unlocks",
         "linux:rculock::locked at read section",
@@ -355,7 +355,7 @@
     "linux:rculockbh": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/rculockbh.c": {"bug kinds": [
         "linux:rculockbh::more unlocks",
         "linux:rculockbh::locked at read section",
@@ -365,7 +365,7 @@
     "linux:rculocksched": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/rculocksched.c": {"bug kinds": [
         "linux:rculocksched::more unlocks",
         "linux:rculocksched::locked at read section",
@@ -375,7 +375,7 @@
     "linux:srculock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/srculock.c": {"bug kinds": [
         "linux:srculock::more unlocks",
         "linux:srculock::locked at read section",
@@ -385,7 +385,7 @@
     "linux:completion": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "ASE": {"request aspects": {"linux/completion.request.aspect": {}}},
       "TR": {"templates": {
         "linux/completion.c.tmpl": {},
@@ -401,7 +401,7 @@
     "linux:sysfs": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/sysfs.c": {"bug kinds": [
         "linux:sysfs::less initial decrement",
         "linux:sysfs::more initial at exit"
@@ -410,7 +410,7 @@
     "linux:iomem": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/iomem.c": {"bug kinds": [
         "linux:iomem::less initial decrement",
         "linux:iomem::more initial at exit"
@@ -419,7 +419,7 @@
     "linux:idr": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "ASE": {"request aspects": {"linux/idr.request.aspect": {}}},
       "TR": {"templates": {
         "linux/idr.c.tmpl": {},
@@ -437,7 +437,7 @@
     "linux:gendisk": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/gendisk.c": {"bug kinds": [
         "linux:gendisk::double allocation",
         "linux:gendisk::use before allocation",
@@ -449,7 +449,7 @@
     "linux:blk:queue": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/blk/queue.c": {"bug kinds": [
         "linux:blk:queue::double allocation",
         "linux:blk:queue::use before allocation",
@@ -513,7 +513,7 @@
     "linux:sock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/locksock.c": { "bug kinds": [
         "linux:sock::all locked sockets must be released",
         "linux:sock::double release"
@@ -522,27 +522,32 @@
     "linux:rtnl": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
+      "multi-aspect group": "β",
       "RSG": {"models": {"linux/rtnl.c": { "bug kinds": [
         "linux:rtnl::double lock",
         "linux:rtnl::lock on exit",
         "linux:rtnl::double unlock"
       ]}}}
     },
-    "linux:clk": {
+    "linux:clk1": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "ASE": {"request aspects": {"linux/clk.request.aspect": {}}},
+      "ASE": {"request aspects": {"linux/clk1.request.aspect": {}}},
       "TR": {"templates": [
-        "linux/clk.c.tmpl",
-        "linux/clk.aspect.tmpl"
+        "linux/clk1.c.tmpl",
+        "linux/clk1.aspect.tmpl"
       ]},
-      "RSG": {"models": {"$linux/clk.c": {
-        "bug kinds": [
-          "linux:clk::more at exit",
-          "linux:clk::less initial decrement"
-        ]
-      }}}
+      "RSG": {"models": {"$linux/clk1.c": {"bug kinds": ["linux:clk1::more at exit"]}}}
+    },
+    "linux:clk2": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/clk2.request.aspect": {}}},
+      "TR": {"templates": [
+        "linux/clk2.c.tmpl",
+        "linux/clk2.aspect.tmpl"
+      ]},
+      "RSG": {"models": {"$linux/clk2.c": {"bug kinds": ["linux:clk2::less initial decrement"]}}}
     }
   }
 }
