@@ -41,6 +41,9 @@ class FSA:
                 else:
                     node = State(ast, self.__yield_id())
 
+                    if ast['name'] not in process.actions:
+                        raise KeyError("Process '{}' does not have action description '{}'".
+                                       format(process.name, ast['name']))
                     node.action = process.actions[ast['name']]
                     if type(process.actions[ast['name']]) is Receive:
                         node.action.replicative = node.desc['replicative']

@@ -66,11 +66,17 @@ def t_NUMBER(t):
 
 
 def t_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    if t:
+        raise TypeError("Unknown text '%s'" % (t.value,))
+    else:
+        raise TypeError('Unknown token parsing error')
 
 
 def p_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    if t:
+        raise TypeError("Unknown text '%s'" % (t.value,))
+    else:
+        raise TypeError('Unknown parsing error')
 
 
 t_ignore = ' \t\n'
@@ -249,6 +255,10 @@ def parse_process(string):
     if not __parser:
         setup_parser()
 
-    return __parser.parse(string, lexer=__lexer)
+    try:
+        return __parser.parse(string, lexer=__lexer)
+    except TypeError as err:
+        raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
