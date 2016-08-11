@@ -126,10 +126,6 @@ void ldv_linux_gendisk_check_final_state(void);
 void ldv_linux_blk_queue_check_final_state(void);
 @endif /* LDV_LINUX_BLK_QUEUE */
 
-@ifdef LDV_LINUX_CLK
-void ldv_linux_clk_check_final_state(void);
-@endif /* LDV_LINUX_CLK */
-
 @ifdef LDV_LINUX_USB_REGISTER
 void ldv_linux_usb_register_reset_error_counter(void);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
@@ -341,10 +337,6 @@ around: call(void ldv_check_final_state(void))
 @ifdef LDV_LINUX_BLK_QUEUE
 	ldv_linux_blk_queue_check_final_state();
 @endif /* LDV_LINUX_BLK_QUEUE */
-
-@ifdef LDV_LINUX_CLK
-	ldv_linux_clk_check_final_state();
-@endif /* LDV_LINUX_CLK */
 }
 
 before: call(void ldv_pre_probe(..)) ||
