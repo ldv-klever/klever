@@ -16,4 +16,7 @@ STATE USEALL Inc :
   MATCH CALL {ldv_usb_free_coherent($1)} -> ASSUME {((void *)$1) == ((void *)0)} GOTO Inc;
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:usb:coherent::more initial at exit");
 
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
 END AUTOMATON

@@ -51,4 +51,7 @@ STATE USEALL R1_W1 :
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:rwlock::read lock at exit");
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:rwlock::write lock at exit");
 
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
 END AUTOMATON

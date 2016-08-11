@@ -17,4 +17,7 @@ STATE USEALL Inc :
 
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:usb:urb::more initial at exit");
 
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
 END AUTOMATON
