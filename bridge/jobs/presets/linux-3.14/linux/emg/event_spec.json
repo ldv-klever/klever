@@ -1172,6 +1172,97 @@
           ]
         }
       }
+    },
+    "alloc_tty_driver": {
+      "labels": {
+        "tty_driver": {
+          "resource": true,
+          "interface": ["tty.tty_driver"]
+        }
+      },
+      "process": "<alloc>.<success> | <fail>",
+      "actions": {
+        "alloc": {
+          "statements": [
+            "%tty_driver% = $ALLOC(%tty_driver%);"
+          ]
+        },
+        "success": {
+          "statements": [
+            "return %tty_driver%;"
+          ]
+        },
+        "fail":{
+           "statements": [
+            "return 0;"
+          ]
+        }
+      }
+    },
+    "tty_port_register_device": {
+      "labels": {
+        "tty_port": {
+          "resource": true,
+          "parameter": true,
+          "interface": ["tty.tty_port"]
+        },
+        "tty_driver": {
+          "resource": true,
+          "parameter": true,
+          "interface": ["tty.tty_driver"]
+        },
+        "device": {
+          "signature": "struct device *"
+        }
+      },
+      "process": "<alloc>.[register].<success> | <fail>",
+      "actions": {
+        "alloc": {
+          "statements": [
+            "%device% = $ALLOC(%device%);",
+            "%tty_port% = $arg1;",
+            "%tty_driver% = $arg2;"
+          ]
+        },
+        "register": {
+          "parameters": [
+            "%tty_port%",
+            "%tty_driver%"
+          ]
+        },
+        "success": {
+          "statements": [
+            "return %device%;"
+          ]
+        },
+        "fail":{
+           "statements": [
+            "return 0;"
+          ]
+        }
+      }
+    },
+    "tty_unregister_device": {
+      "labels": {
+        "tty_driver": {
+          "resource": true,
+          "parameter": true,
+          "interface": ["tty.tty_driver"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "assign": {
+          "statements": [
+            "%tty_driver% = $arg1;"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%tty_driver%"
+          ]
+        }
+      }
     }
   },
   "environment processes": {
@@ -2527,6 +2618,210 @@
         },
         "n_ret": {
           "condition": ["%ret% != 0"]
+        }
+      }
+    },
+    "tty_instance": {
+      "labels": {
+        "tty_port_operations": {
+          "container": true,
+          "interface": ["tty.tty_port_operations"]
+        },
+        "tty_operations": {
+          "container": true,
+          "interface": ["tty.tty_operations"]
+        },
+        "tty_port": {
+          "resource": true,
+          "interface": ["tty.tty_port"]
+        },
+        "tty_driver": {
+          "resource": true,
+          "interface": ["tty.tty_driver"]
+        },
+        "tty_struct": {
+          "resource": true,
+          "interface": ["tty.tty_struct"]
+        },
+        "file": {
+          "resource": true,
+          "interface": ["tty.file"]
+        },
+        "callback": {
+          "callback": true
+        },
+        "ret": {
+          "signature": "int a",
+          "value": "1"
+        }
+      },
+      "process": "(!register).<init>.[lookup].{main}",
+      "actions": {
+        "main": {
+          "process": "[install].(<y_ret>.[open].(<y_ret>.{call} | <n_ret>.[remove]) | <n_ret>).{main} | <free>.(deregister)"
+        },
+        "call": {
+          "process": "([lookup] | [callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox] | [port_activate].(<y_ret>.[port_shutdown] | <n_ret>)).{call} | [close].[shutdown].[cleanup].[remove].{main}"
+        },
+        "register": {
+          "parameters": [
+            "%tty_port%",
+            "%tty_driver%"
+          ]
+        },
+        "deregister": {
+          "condition": ["%tty_driver% == $ARG1"],
+          "parameters": [
+            "%tty_driver%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%tty_struct%"
+          ]
+        },
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
+        },
+        "init": {
+          "statements": [
+            "%file% = $ALLOC(%file%);"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%file%);"
+          ]
+        },
+        "lookup": {
+          "callback": "%tty_operations.lookup%",
+          "parameters": [
+            "%tty_driver%"
+          ],
+          "callback return value": "%tty_struct%",
+          "pre-call": [
+            "/* Expect that tty_mutex is locked */"
+          ]
+        },
+        "install": {
+          "callback": "%tty_operations.install%",
+          "parameters": [
+            "%tty_driver%",
+            "%tty_struct%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "remove": {
+          "callback": "%tty_operations.remove%",
+          "parameters": [
+            "%tty_driver%",
+            "%tty_struct%"
+          ]
+        },
+        "open": {
+          "callback": "%tty_operations.open%",
+          "parameters": [
+            "%tty_struct%",
+            "%file%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "close": {
+          "callback": "%tty_operations.close%",
+          "parameters": [
+            "%tty_driver%",
+            "%tty_struct%"
+          ]
+        },
+        "shutdown": {
+          "callback": "%tty_operations.shutdown%",
+          "parameters": [
+            "%tty_struct%"
+          ],
+          "pre-call": [
+            "/* Expect that tty_mutex is locked */"
+          ]
+        },
+        "cleanup": {
+          "callback": "%tty_operations.cleanup%",
+          "parameters": [
+            "%tty_struct%"
+          ]
+        },
+        "port_activate": {
+          "callback": "%tty_port_operations.port_activate%",
+          "parameters": [
+            "%tty_port%",
+            "%tty_struct%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "port_shutdown": {
+          "callback": "%tty_port_operations.port_shutdown%",
+          "parameters": [
+            "%tty_port%"
+          ]
+        },
+        "set_termios": {
+          "callback": "%tty_operations.set_termios%",
+          "parameters": [
+            "%tty_struct%"
+          ],
+          "pre-call": [
+            "/* Expect that termios mutex is locked */"
+          ]
+        },
+        "set_termiox": {
+          "callback": "%tty_operations.set_termiox%",
+          "parameters": [
+            "%tty_struct%"
+          ],
+          "pre-call": [
+            "/* Expect that termios mutex is locked */"
+          ]
+        },
+        "throttle": {
+          "callback": "%tty_operations.throttle%",
+          "parameters": [
+            "%tty_struct%"
+          ],
+          "pre-call": [
+            "/* Expect that termios mutex is locked */"
+          ]
+        },
+        "unthrottle": {
+          "callback": "%tty_operations.unthrottle%",
+          "parameters": [
+            "%tty_struct%"
+          ],
+          "pre-call": [
+            "/* Expect that termios mutex is locked */"
+          ]
+        },
+        "start": {
+          "callback": "%tty_operations.start%",
+          "parameters": [
+            "%tty_struct%"
+          ]
+        },
+        "stop": {
+          "callback": "%tty_operations.stop%",
+          "parameters": [
+            "%tty_struct%"
+          ]
         }
       }
     }

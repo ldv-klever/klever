@@ -133,7 +133,9 @@
                   "linux/miscdevice.h",
                   "linux/pci.h",
                   "linux/rtc.h",
-                  "scsi/scsi_host.h"
+                  "scsi/scsi_host.h",
+                  "linux/tty.h",
+                  "linux/tty_driver.h"
                 ]
               },
               "verifier/common.c": {},
