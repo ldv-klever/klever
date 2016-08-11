@@ -1339,6 +1339,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%usb_device_id% == $ARG1"],
           "parameters": [
             "%usb_device_id%"
           ]
@@ -1469,6 +1470,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -1556,6 +1558,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -1663,6 +1666,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -1867,6 +1871,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%se_subsystem_api% == $ARG1"],
           "parameters": [
             "%se_subsystem_api%"
           ]
@@ -1959,6 +1964,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%container% == $ARG1"],
           "parameters": [
             "%container%"
           ]
@@ -2040,6 +2046,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%resource% == $ARG1"],
           "parameters": [
             "%resource%"
           ]
@@ -2151,6 +2158,7 @@
           ]
         },
         "deregister": {
+          "condition": ["%host% == $ARG1"],
           "parameters": [
             "%host%"
           ]
@@ -2252,6 +2260,7 @@
           "process": "<started>.([stop].<post_stop> | [show] | [next]).{do} | <not_started>.([start].<post_start>.{do} | (deregister))"
         },
         "deregister": {
+          "condition": ["%seq_file% == $ARG1"],
           "parameters": ["%seq_file%"]
         },
         "register": {
