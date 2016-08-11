@@ -1084,6 +1084,94 @@
           ]
         }
       }
+    },
+    "scsi_host_alloc": {
+      "labels": {
+        "scsi_host_template": {
+          "container": true,
+          "parameter": true,
+          "interface": ["scsi_host_template.scsi_host_template"]
+        },
+        "host": {
+          "container": true,
+          "pointer": true,
+          "interface": ["scsi_host_template.host"]
+        }
+      },
+      "process": "<alloc>.<success> | <fail>",
+      "actions": {
+        "alloc": {
+          "statements": [
+            "%host% = $ALLOC(%host%);",
+            "%scsi_host_template% = $arg1;",
+            "%host%->hostt= %scsi_host_template%;"
+          ]
+        },
+        "success": {
+          "statements": [
+            "return %host%;"
+          ]
+        },
+        "fail":{
+           "statements": [
+            "return 0;"
+          ]
+        }
+      }
+    },
+    "scsi_add_host_with_dma, scsi_add_host, scsi_register": {
+      "labels": {
+        "host": {
+          "container": true,
+          "pointer": true,
+          "interface": ["scsi_host_template.host"]
+        }
+      },
+      "process": "<alloc>.[register].<success> | <fail>",
+      "actions": {
+        "alloc": {
+          "statements": [
+            "%host% = $ALLOC(%host%);"
+          ]
+        },
+        "register": {
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "success": {
+          "statements": [
+            "return %host%;"
+          ]
+        },
+        "fail":{
+           "statements": [
+            "return 0;"
+          ]
+        }
+      }
+    },
+    "scsi_remove_host, scsi_unregister": {
+      "labels": {
+        "host": {
+          "container": true,
+          "parameter": true,
+          "interface": ["scsi_host_template.host"]
+        }
+      },
+      "process": "<assign>.[deregister]",
+      "actions": {
+        "deregister": {
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "assign": {
+          "statements": [
+            "%host% = $arg1;"
+          ]
+        }
+      }
     }
   },
   "environment processes": {
@@ -2032,6 +2120,68 @@
           "parameters": [
             "%container%"
           ]
+        }
+      }
+    },
+    "scsi_host_template_instance": {
+      "labels": {
+        "host": {
+          "container": true,
+          "interface": ["scsi_host_template.host"]
+        },
+        "callback": {
+          "callback": true
+        },
+        "ret": {
+          "signature": "int a",
+          "value": "1"
+        }
+      },
+      "process": "(!register).{main}",
+      "actions": {
+        "main": {
+          "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | (deregister)"
+        },
+        "call": {
+          "process": "[callback].{call} | [release].{main}"
+        },
+        "register": {
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "deregister": {
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "release": {
+          "callback": "%host.scsi_host_template.release%",
+          "parameters": [
+            "%host%"
+          ]
+        },
+        "probe": {
+          "callback": "%host.scsi_host_template.probe%",
+          "parameters": [
+            "%host%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
         }
       }
     },

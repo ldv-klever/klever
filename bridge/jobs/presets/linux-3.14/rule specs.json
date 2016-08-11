@@ -132,7 +132,8 @@
                   "linux/cdev.h",
                   "linux/miscdevice.h",
                   "linux/pci.h",
-                  "linux/rtc.h"
+                  "linux/rtc.h",
+                  "scsi/scsi_host.h"
                 ]
               },
               "verifier/common.c": {},
