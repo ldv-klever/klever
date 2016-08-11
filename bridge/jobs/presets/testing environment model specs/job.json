@@ -481,36 +481,6 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/timer",
-        "modules": [
-          "setup_timer.ko",
-          "setup_deferrable_timer_on_stack.ko",
-          "setup_timer_on_stack.ko",
-          "init_timer.ko",
-          "init_timer_deferrable.ko",
-          "del_timer_sync.ko",
-          "del_timer.ko",
-          "try_to_del_timer_sync.ko",
-          "mod_timer_pending.ko",
-          "mod_timer_pinned.ko",
-          "setup_timer_invoke.ko",
-          "init_timer_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/setup_timer_invoke.ko"
-        },
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/init_timer_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/tty",
         "modules": [
           "tty_register_device.ko",
@@ -567,6 +537,38 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/usb_serial_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    }
+  ],
+  "Unsupported Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": [
+          "setup_timer.ko",
+          "setup_deferrable_timer_on_stack.ko",
+          "setup_timer_on_stack.ko",
+          "init_timer.ko",
+          "init_timer_deferrable.ko",
+          "del_timer_sync.ko",
+          "del_timer.ko",
+          "try_to_del_timer_sync.ko",
+          "mod_timer_pending.ko",
+          "mod_timer_pinned.ko",
+          "setup_timer_invoke.ko",
+          "init_timer_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/setup_timer_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/init_timer_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]
