@@ -1331,8 +1331,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 return False
 
         f_code = []
-        v_code = ["/* Control function of process '{}' of category '{}' */".
-                  format(automaton.process.name, automaton.process.category)]
+        v_code = []
 
         # Add artificial state if input copntains more than one state
         state_stack = [initial_state]
@@ -1393,7 +1392,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _label_cfunction(self, analysis, automaton, aspect=None):
         self.logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
                          format(automaton.identifier, automaton.process.name, automaton.process.category))
-        v_code = []
+        v_code = ["/* Control function based on process '{}' generated for interface category '{}' */".
+                  format(automaton.process.name, automaton.process.category)]
         f_code = []
 
         # Check necessity to return a value
@@ -1481,10 +1481,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     break
 
         automaton.control_function = cf
-        cf.body.append(
-            "/* Control function based on process '{}' generated for interface category '{}' */".
-                format(automaton.process.name, automaton.process.category)
-        )
         return cf
 
     def _state_switch(self, states, file):
