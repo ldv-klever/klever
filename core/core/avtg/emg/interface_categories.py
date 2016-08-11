@@ -347,7 +347,9 @@ class CategoriesSpecification:
                 if len(rv_interface) == 1:
                     interface.rv_interface = rv_interface[-1]
                 elif len(rv_interface) > 1:
-                    raise ValueError('Cannot match two return values')
+                    # todo: how to match several interfaces with the same signature?
+                    #raise ValueError('Cannot match two return values')
+                    interface.rv_interface = rv_interface[-1]
 
         for index in range(len(declaration.parameters)):
             if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]):
