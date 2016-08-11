@@ -2,6 +2,8 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+struct usb_device;
+
 /* CHANGE_STATE USB lock is not acquired at the beginning */
 int ldv_lock = 1;
 
@@ -30,7 +32,7 @@ void ldv_usb_lock_device(void)
 }
 
 /* MODEL_FUNC_DEF Try to acquire USB lock */
-int ldv_usb_trylock_device(void)
+int ldv_usb_trylock_device(struct usb_device *udev)
 {
 	if (ldv_lock == 1 && ldv_undef_int())
 	{
@@ -47,7 +49,7 @@ int ldv_usb_trylock_device(void)
 }
 
 /* MODEL_FUNC_DEF Try to acquire USB lock */
-int ldv_usb_lock_device_for_reset(void)
+int ldv_usb_lock_device_for_reset(struct usb_device *udev)
 {
 	if (ldv_lock == 1 && ldv_undef_int())
 	{
