@@ -1,1 +1,1 @@
-obj-m += safe.o wrong-flags-lock.o wrong-flags-lock-for-reset.o wrong-flags-trylock.o nonatomic-lock.o nonatomic-lock-for-reset.o nonatomic-trylock.o
+obj-m += safe.o wrong-flags-lock.o wrong-flags-lock-for-reset.o wrong-flags-trylock.o nonatomic-lock.o nonatomic-lock-for-reset.o nonatomic-trylock.o nonatomic-trylock-2.o
