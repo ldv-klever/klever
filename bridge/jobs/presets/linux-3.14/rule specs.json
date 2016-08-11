@@ -519,6 +519,26 @@
         "linux:rtnl::lock on exit",
         "linux:rtnl::double unlock"
       ]}}}
+    },
+    "linux:clk1": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/clk1.request.aspect": {}}},
+      "TR": {"templates": [
+        "linux/clk1.c.tmpl",
+        "linux/clk1.aspect.tmpl"
+      ]},
+      "RSG": {"models": {"$linux/clk1.c": {"bug kinds": ["linux:clk1::more at exit"]}}}
+    },
+    "linux:clk2": {
+      "description": "...",
+      "template": "Argument signatures for Linux kernel modules",
+      "ASE": {"request aspects": {"linux/clk2.request.aspect": {}}},
+      "TR": {"templates": [
+        "linux/clk2.c.tmpl",
+        "linux/clk2.aspect.tmpl"
+      ]},
+      "RSG": {"models": {"$linux/clk2.c": {"bug kinds": ["linux:clk2::less initial decrement"]}}}
     }
   }
 }
