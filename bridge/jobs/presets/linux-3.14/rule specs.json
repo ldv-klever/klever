@@ -183,7 +183,6 @@
     "linux:alloc:spinlock": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "α",
       "ASE": {"request aspects": {"linux/spinlock.request.aspect": {}}},
       "TR": {"templates": {
         "linux/spinlock.c.tmpl": {},
