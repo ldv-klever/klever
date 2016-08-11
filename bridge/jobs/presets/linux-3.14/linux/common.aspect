@@ -69,11 +69,6 @@ void ldv_linux_usb_gadget_unregister_chrdev_region(void);
 void ldv_linux_usb_gadget_check_final_state(void);
 @endif /* LDV_LINUX_USB_GADGET */
 
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-void ldv_linux_alloc_resource_after_alloc(void *res);
-void ldv_linux_alloc_resource_check_final_state(void);
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
-
 @ifdef LDV_LINUX_BLK_REQUEST
 void ldv_linux_blk_request_check_final_state(void);
 @endif /* LDV_LINUX_BLK_REQUEST */
@@ -213,13 +208,6 @@ void ldv_check_alloc_nonatomic(void)
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
 }
 
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-void ldv_after_alloc(void *res)
-{
-	ldv_linux_alloc_resource_after_alloc(res);
-}
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
-
 void ldv_check_for_read_section(void)
 {
 @ifdef LDV_LINUX_RCULOCK
@@ -242,18 +230,6 @@ void ldv_check_for_read_section(void)
 
 around: call(void ldv_check_final_state(void))
 {
-@ifdef LDV_LINUX_MUTEX
-	ldv_linux_mutex_check_final_state();
-@endif /* LDV_LINUX_MUTEX */
-
-@ifdef LDV_LINUX_SPINLOCK
-	ldv_linux_spinlock_check_final_state();
-@endif /*LDV_LINUX_USB_DEV */
-
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_check_final_state();
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_MODULE
 	ldv_linux_module_check_final_state();
 @endif /* LDV_LINUX_MODULE */
@@ -285,10 +261,6 @@ around: call(void ldv_check_final_state(void))
 @ifdef LDV_LINUX_USB_GADGET
 	ldv_linux_usb_gadget_check_final_state();
 @endif /* LDV_LINUX_USB_GADGET */
-
-@ifdef LDV_LINUX_ALLOC_RESOURCE
-	ldv_linux_alloc_resource_check_final_state();
-@endif /* LDV_LINUX_ALLOC_RESOURCE */
 
 @ifdef LDV_LINUX_BLK_REQUEST
 	ldv_linux_blk_request_check_final_state();
@@ -353,10 +325,6 @@ before: call(void ldv_pre_probe(..)) ||
 
 before: call(int ldv_post_probe(int retval))
 {
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_check_return_value_probe(retval);
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_USB_REGISTER
 	ldv_linux_usb_register_check_return_value_probe(retval);
 @endif /* LDV_LINUX_USB_REGISTER */
@@ -493,18 +461,6 @@ after: call(void unregister_chrdev_region(..)) ||
 
 around: call(void ldv_initialize(void))
 {
-@ifdef LDV_LINUX_MUTEX
-	ldv_linux_mutex_initialize();
-@endif /* LDV_LINUX_MUTEX */
-
-@ifdef LDV_LINUX_SPINLOCK
-	ldv_linux_spinlock_initialize();
-@endif /*LDV_LINUX_USB_DEV */
-
-@ifdef LDV_LINUX_USB_DEV
-	ldv_linux_usb_dev_initialize();
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_BITOPS
 	ldv_linux_bitops_initialize();
 @endif /* LDV_LINUX_BITOPS */
