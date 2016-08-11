@@ -131,7 +131,8 @@
                   "linux/iio/triggered_buffer.h",
                   "linux/cdev.h",
                   "linux/miscdevice.h",
-                  "linux/pci.h"
+                  "linux/pci.h",
+                  "linux/rtc.h"
                 ]
               },
               "verifier/common.c": {},

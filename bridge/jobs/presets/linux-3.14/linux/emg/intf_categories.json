@@ -167,6 +167,14 @@
     "iio_triggered_buffer_cleanup": {
       "signature": "void iio_triggered_buffer_cleanup(%iio_triggered_buffer.dev%)",
       "header": "linux/iio/triggered_buffer.h"
+    },
+    "rtc_device_register": {
+      "signature": "*%rtc.rtc_device% rtc_device_register($, %rtc.device%, *%rtc.rtc_class_ops%, $)",
+      "header": "linux/rtc.h"
+    },
+    "rtc_device_unregister": {
+      "signature": "void rtc_device_unregister(%rtc.rtc_device%)",
+      "header": "linux/rtc.h"
     }
   },
   "kernel macro-functions": {},
@@ -845,6 +853,40 @@
         },
         "thread": {
           "signature": "irqreturn_t (*thread)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)"
+        }
+      }
+    },
+    "rtc": {
+      "containers": {
+        "rtc_class_ops": {
+          "signature": "struct rtc_class_ops ops",
+          "header": "linux/rtc.h",
+          "fields": {
+            "open": "%rtc.probe%",
+            "release": "%rtc.release%"
+          }
+        },
+        "rtc_device": {
+          "signature": "struct rtc_device dev",
+          "header": "linux/rtc.h",
+          "fields": {
+            "ops": "*%rtc.rtc_class_ops%"
+          }
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe)(%rtc.device%)"
+        },
+        "release": {
+          "signature": "void (*release)(%rtc.device%)"
+        }
+      },
+      "resources": {
+        "device": {
+          "signature": "struct device *dev",
+          "header": "linux/device.h",
+          "implemented in kernel": true
         }
       }
     }
