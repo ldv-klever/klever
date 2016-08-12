@@ -402,7 +402,34 @@ class AVTG(core.components.Component):
                                     }
                                     self.logger.debug('Set model CC options "{0}"'.format(
                                         self.model_cc_opts_and_headers[model_c_file]['CC options']))
-                                    for header in model['headers']:
+
+                                    if isinstance(model['headers'], dict):
+                                        # Find out base specifications set.
+                                        base_specs_set = None
+                                        for specs_set in model['headers']:
+                                            if re.search(r'\(base\)', specs_set):
+                                                base_specs_set = specs_set
+                                                break
+                                        if not base_specs_set:
+                                            raise KeyError('Could not find base specifications set')
+
+                                        # Always require all headers of base specifications set.
+                                        headers = model['headers'][base_specs_set]
+
+                                        specs_set = self.conf['specifications set']
+
+                                        # Add/exclude specific headers of specific specifications set
+                                        if specs_set != base_specs_set and specs_set in model['headers']:
+                                            if 'add' in model['headers'][specs_set]:
+                                                for add_header in model['headers'][specs_set]['add']:
+                                                    headers.append(add_header)
+                                            if 'exclude' in model['headers'][specs_set]:
+                                                for exclude_header in model['headers'][specs_set]['exclude']:
+                                                    headers.remove(exclude_header)
+                                    else:
+                                        headers = model['headers']
+
+                                    for header in headers:
                                         self.model_cc_opts_and_headers[model_c_file]['headers'].append(
                                             string.Template(header).substitute(
                                                 hdr_arch=self.conf['header architecture']))
