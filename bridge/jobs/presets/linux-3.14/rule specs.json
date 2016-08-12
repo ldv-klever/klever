@@ -110,23 +110,29 @@
               "linux/device.c": {"headers": ["linux/device.h"]},
               "linux/kzalloc.c": {},
               "linux/ldv/common.c": {
-                "headers": [
-                  "linux/usb.h",
-                  "linux/usb/serial.h",
-                  "linux/platform_device.h",
-                  "linux/netdevice.h",
-                  "linux/net.h",
-                  "linux/timer.h",
-                  "linux/interrupt.h",
-                  "linux/seq_file.h",
-                  "linux/i2c.h",
-                  "linux/mod_devicetable.h",
-                  "linux/tty.h",
-                  "linux/device.h",
-                  "linux/pm.h",
-                  "linux/fs.h",
-                  "linux/rtnetlink.h"
-                ]
+                "headers": {
+                  "Linux 3.14 (base)": [
+                    "linux/usb.h",
+                    "linux/usb/serial.h",
+                    "linux/platform_device.h",
+                    "linux/netdevice.h",
+                    "linux/net.h",
+                    "linux/timer.h",
+                    "linux/interrupt.h",
+                    "linux/seq_file.h",
+                    "linux/i2c.h",
+                    "linux/mod_devicetable.h",
+                    "linux/tty.h",
+                    "linux/device.h",
+                    "linux/pm.h",
+                    "linux/fs.h",
+                    "linux/rtnetlink.h"
+                  ],
+                  "Abracadabra": {
+                    "add": ["linux/bio.h"],
+                    "exclude": ["linux/rtnetlink.h"]
+                  }
+                }
               },
               "verifier/common.c": {},
               "verifier/nondet.c": {},
