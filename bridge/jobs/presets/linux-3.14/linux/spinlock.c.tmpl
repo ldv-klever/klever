@@ -1,6 +1,7 @@
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
+#include <linux/spinlock_types.h>
 
 // for arg_sign in spinlock_arg_signs
 static int ldv_spin{{ arg_sign.id }} = 1;
@@ -24,7 +25,7 @@ void ldv_spin_unlock{{ arg_sign.id }}(void)
 }
 
 /* MODEL_FUNC_DEF Check that spinlock{{ arg_sign.text }} was not locked and nondeterministically lock it */
-int ldv_spin_trylock{{ arg_sign.id }}(void)
+int ldv_spin_trylock{{ arg_sign.id }}(spinlock_t *lock)
 {
 	int is_spin_held_by_another_thread;
 
@@ -55,7 +56,7 @@ void ldv_spin_unlock_wait{{ arg_sign.id }}(void)
 }
 
 /* MODEL_FUNC_DEF Check whether spinlock{{ arg_sign.text }} was locked */
-int ldv_spin_is_locked{{ arg_sign.id }}(void)
+int ldv_spin_is_locked{{ arg_sign.id }}(spinlock_t *lock)
 {
 	int is_spin_held_by_another_thread;
 
@@ -74,10 +75,10 @@ int ldv_spin_is_locked{{ arg_sign.id }}(void)
 }
 
 /* MODEL_FUNC_DEF Check whether spinlock{{ arg_sign.text }} was not locked */
-int ldv_spin_can_lock{{ arg_sign.id }}(void)
+int ldv_spin_can_lock{{ arg_sign.id }}(spinlock_t *lock)
 {
 	/* RETURN Inverse function for spin_is_locked() */
-	return !ldv_spin_is_locked{{ arg_sign.id }}();
+	return !ldv_spin_is_locked{{ arg_sign.id }}(lock);
 }
 
 /* MODEL_FUNC_DEF Check whether spinlock{{ arg_sign.text }} is contended */
@@ -100,7 +101,7 @@ int ldv_spin_is_contended{{ arg_sign.id }}(void)
 }
 
 /* MODEL_FUNC_DEF Lock spinlock{{ arg_sign.text }} if atomic decrement result is zero */
-int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
+int ldv_atomic_dec_and_lock{{ arg_sign.id }}(spinlock_t *lock)
 {
 	int atomic_value_after_dec;
 

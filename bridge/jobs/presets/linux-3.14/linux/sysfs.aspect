@@ -1,13 +1,13 @@
 before: file("$this")
 {
-int ldv_sysfs_create_group(void);
+int ldv_sysfs_create_group(void *dummy);
 void ldv_sysfs_remove_group(void);
 }
 
 around: call(int sysfs_create_group(..))
 {
 	/* ASPECT_FUNC_CALL Create sysfs group */
-	return ldv_sysfs_create_group();
+	return ldv_sysfs_create_group($arg1);
 }
 around: call(void sysfs_remove_group(..))
 {

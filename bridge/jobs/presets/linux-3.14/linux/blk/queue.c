@@ -13,7 +13,7 @@ enum {
 static int ldv_queue_state = LDV_NO_QUEUE;
 
 /* MODEL_FUNC_DEF Allocate queue. */
-struct request_queue *ldv_request_queue(void)
+struct request_queue *ldv_request_queue(void *dummy)
 {
 	/* ASSERT Queue should not be allocated twice. */
 	ldv_assert("linux:blk:queue::double allocation", ldv_queue_state == LDV_NO_QUEUE);

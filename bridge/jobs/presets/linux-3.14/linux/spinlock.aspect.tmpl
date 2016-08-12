@@ -12,12 +12,12 @@ extern int __ldv_atomic_dec_and_lock(spinlock_t *lock);
 // for arg_sign in spinlock_arg_signs
 extern void ldv_spin_lock{{ arg_sign.id }}(void);
 extern void ldv_spin_unlock{{ arg_sign.id }}(void);
-extern int ldv_spin_trylock{{ arg_sign.id }}(void);
+extern int ldv_spin_trylock{{ arg_sign.id }}(spinlock_t *lock);
 extern void ldv_spin_unlock_wait{{ arg_sign.id }}(void);
-extern int ldv_spin_is_locked{{ arg_sign.id }}(void);
-extern int ldv_spin_can_lock{{ arg_sign.id }}(void);
+extern int ldv_spin_is_locked{{ arg_sign.id }}(spinlock_t *lock);
+extern int ldv_spin_can_lock{{ arg_sign.id }}(spinlock_t *lock);
 extern int ldv_spin_is_contended{{ arg_sign.id }}(void);
-extern int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void);
+extern int ldv_atomic_dec_and_lock{{ arg_sign.id }}(spinlock_t *lock);
 // endfor
 }
 
@@ -121,7 +121,7 @@ after: call(static inline int spin_trylock(..)) ||
        call(int __ldv_spin_trylock(..))
 {
 	/* ASPECT_FUNC_CALL Check that spinlock was not locked and nondeterministically lock it */
-	return ldv_spin_trylock{{ spinlock_arg_sign_patterns[1] }}();
+	return ldv_spin_trylock{{ spinlock_arg_sign_patterns[1] }}($arg1);
 }
 
 around: define(spin_unlock_wait(lock))
@@ -139,7 +139,7 @@ before: call(static inline void spin_unlock_wait(..)) ||
 after: call(static inline int spin_is_locked(..))
 {
 	/* ASPECT_FUNC_CALL Check whether spinlock was locked */
-	return ldv_spin_is_locked{{ spinlock_arg_sign_patterns[1] }}();
+	return ldv_spin_is_locked{{ spinlock_arg_sign_patterns[1] }}($arg1);
 }
 
 around: define(spin_can_lock(lock))
@@ -151,7 +151,7 @@ after: call(static inline int spin_can_lock(..)) ||
        call(void __ldv_spin_can_lock(..))
 {
 	/* ASPECT_FUNC_CALL Check whether spinlock was not locked */
-	return ldv_spin_can_lock{{ spinlock_arg_sign_patterns[1] }}();
+	return ldv_spin_can_lock{{ spinlock_arg_sign_patterns[1] }}($arg1);
 }
 
 after: call(static inline int spin_is_contended(..))
@@ -168,5 +168,5 @@ __ldv_atomic_dec_and_lock(lock)
 after: call(int __ldv_atomic_dec_and_lock(..))
 { 
 	/* ASPECT_FUNC_CALL Lock spinlock if atomic decrement result is zero */
-	return ldv_atomic_dec_and_lock{{ spinlock_arg_sign_patterns[1] }}();
+	return ldv_atomic_dec_and_lock{{ spinlock_arg_sign_patterns[1] }}($arg1);
 }

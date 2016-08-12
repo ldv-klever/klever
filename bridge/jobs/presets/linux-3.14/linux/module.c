@@ -33,6 +33,8 @@ int ldv_try_module_get(struct module *module)
 			return 0;
 		}
 	}
+	/* RETURN Return true, if module is NULL */
+	return 1;
 }
 
 /* MODEL_FUNC_DEF Check that module reference counter is greater than its initial state and decrement it unless module pointer is NULL */
@@ -57,7 +59,7 @@ void ldv_module_put_and_exit(void)
 }
 
 /* MODEL_FUNC_DEF Get module reference counter */
-unsigned int ldv_module_refcount(void)
+unsigned int ldv_module_refcount(struct module *dummy)
 {
 	/* RETURN Return module reference counter */
 	return ldv_module_refcounter - 1;

@@ -16,7 +16,7 @@ enum
 int ldv_usb_gadget_class = LDV_CLASS_ZERO_STATE;
 
 /* MODEL_FUNC_DEF Check that class was not registered. Then create and register class for it */
-void *ldv_create_class(void)
+void *ldv_create_class(struct class *cls)
 {
 	void *is_got;
 
@@ -40,7 +40,7 @@ void *ldv_create_class(void)
 }
 
 /* MODEL_FUNC_DEF Check that class was not registered and register class for it */
-int ldv_register_class(void)
+int ldv_register_class(struct class *cls)
 {
 	int is_reg;
 

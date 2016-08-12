@@ -2,7 +2,7 @@ before: file("$this")
 {
 struct gendisk;
 
-struct gendisk *ldv_alloc_disk(void);
+struct gendisk *ldv_alloc_disk(int);
 void ldv_add_disk(void);
 void ldv_del_gendisk(void);
 void ldv_put_disk(struct gendisk *);
@@ -11,7 +11,7 @@ void ldv_put_disk(struct gendisk *);
 after: call(struct gendisk *alloc_disk(int minors))
 {
 	/* ASPECT_FUNC_CALL Allocate gendisk. */
-	return ldv_alloc_disk();
+	return ldv_alloc_disk(minors);
 }
 
 before: call(void add_disk(struct gendisk *disk))

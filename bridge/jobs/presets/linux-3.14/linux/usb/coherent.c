@@ -7,7 +7,7 @@
 int ldv_coherent_state = 0;
 
 /* MODEL_FUNC_DEF Allocates coherent memory. */
-void *ldv_usb_alloc_coherent(void)
+void *ldv_usb_alloc_coherent(void *dummy)
 {
     /* OTHER Choose an arbitrary memory location. */
     void *arbitrary_memory = ldv_undef_ptr();

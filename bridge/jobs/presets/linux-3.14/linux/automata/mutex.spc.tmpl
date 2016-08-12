@@ -5,7 +5,9 @@ INITIAL STATE Unlocked;
 
 STATE USEALL Unlocked :
   MATCH CALL {ldv_mutex_lock{{ arg_sign.id }}($?)} -> GOTO Locked;
-  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)==0} GOTO Locked NEGATION GOTO Unlocked;
+  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> ASSUME {((int)$1) == 0} GOTO Locked;
+  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> ASSUME {((int)$1) <  0} GOTO Unlocked;
+  MATCH RETURN {$1 = ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}($?)} -> ASSUME {((int)$1) >  0} GOTO Stop;
   MATCH RETURN {$1=ldv_mutex_trylock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
   MATCH RETURN {$1=ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}($?)} -> SPLIT {((int)$1)!=0} GOTO Locked NEGATION GOTO Unlocked;
   MATCH CALL {ldv_mutex_unlock{{ arg_sign.id }}($?)} -> ERROR("linux:mutex::one thread:double unlock");

@@ -1,22 +1,22 @@
-OBSERVER AUTOMATON linux_usb1
+OBSERVER AUTOMATON linux_usb_dev
 INITIAL STATE Init;
 
 STATE USEALL Init :
   MATCH ENTRY -> ENCODE {int count = 0;} GOTO Init;
 
-  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0} ENCODE {count=count+1;} GOTO Inc;
-  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0} GOTO Init;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; ((struct usb_device *)$2) != 0} ENCODE {count=count+1;} GOTO Inc;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0; ((struct usb_device *)$2) == 0} GOTO Init;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0; ((struct usb_device *)$2) != 0} GOTO Stop;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; ((struct usb_device *)$2) == 0} GOTO Stop;
   
-  MATCH CALL {ldv_usb_put_dev($1)} ->
-    ASSUME {((struct usb_device *)$1) != 0} ERROR("linux:usb:dev::unincremented counter decrement");
-  // Same condition?
-  MATCH CALL {ldv_usb_put_dev($1)} ->
-    ASSUME {((struct usb_device *)$1) != 0} ERROR("linux:usb:dev::less initial decrement");
+  MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0} ERROR("linux:usb:dev::less initial decrement");
   MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0} GOTO Init;
 
 STATE USEALL Inc :
-  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0} ENCODE {count=count+1;} GOTO Inc;
-  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0} GOTO Inc;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; ((struct usb_device *)$2) != 0} ENCODE {count=count+1;} GOTO Inc;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0; ((struct usb_device *)$2) == 0} GOTO Inc;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0; ((struct usb_device *)$2) != 0} GOTO Stop;
+  MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; ((struct usb_device *)$2) == 0} GOTO Stop;
 
   MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; count >  1} ENCODE {count=count-1;} GOTO Inc;
   MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; count == 1} ENCODE {count=count-1;} GOTO Init;

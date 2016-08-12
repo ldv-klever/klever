@@ -3,6 +3,8 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+struct sock;
+
 /* CHANGE_STATE There is no locked sockets at the beginning */
 int locksocknumber = 0;
 
@@ -14,7 +16,7 @@ void ldv_lock_sock(void)
 }
 
 /* MODEL_FUNC_DEF Try to lock socked and return true in case of success */
-bool ldv_lock_sock_fast(void)
+bool ldv_lock_sock_fast(struct sock *sk)
 {
 	/* OTHER we dont know lock this socket or not */
 	if (ldv_undef_int()) {

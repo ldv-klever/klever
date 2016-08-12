@@ -1,9 +1,10 @@
 before: file ("$this")
 {
 #include <linux/types.h>
+struct sock;
 
 void ldv_lock_sock(void);
-bool ldv_lock_sock_fast(void);
+bool ldv_lock_sock_fast(struct sock *sk);
 void ldv_unlock_sock(void);
 }
 
@@ -28,5 +29,5 @@ around: execution(static inline void unlock_sock_fast(..))
 around: call(bool lock_sock_fast(..))
 {
 	/* ASPECT_FUNC_CALL Try to lock socked and return true in case of success */
-	return ldv_lock_sock_fast();
+	return ldv_lock_sock_fast($arg1);
 }

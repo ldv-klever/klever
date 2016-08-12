@@ -38,7 +38,7 @@ int ldv_register_chrdev(int major)
 }
 
 /* MODEL_FUNC_DEF Check that chrdev region was not registered and register it */
-int ldv_register_chrdev_region(void)
+int ldv_register_chrdev_region(void *dummy)
 {
 	int is_reg;
 

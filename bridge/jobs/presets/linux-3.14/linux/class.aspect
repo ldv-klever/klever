@@ -2,20 +2,20 @@ before: file ("$this")
 {
 struct class;
 
-void *ldv_create_class(void);
-int ldv_register_class(void);
+void *ldv_create_class(struct class *cls);
+int ldv_register_class(struct class *cls);
 void ldv_unregister_class(void);
 void ldv_destroy_class(struct class *cls);
 }
 
 around: define(class_create(owner, name))
 {
-ldv_create_class()
+ldv_create_class(owner)
 }
 
 around: define(class_register(class))
 {
-ldv_register_class()
+ldv_register_class(class)
 }
 
 around: call(void class_destroy(struct class *cls))

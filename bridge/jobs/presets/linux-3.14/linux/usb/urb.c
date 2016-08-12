@@ -9,7 +9,7 @@ struct urb;
 int ldv_urb_state = 0;
 
 /* MODEL_FUNC_DEF Allocates memory for urb request. */
-struct urb *ldv_usb_alloc_urb(void)
+struct urb *ldv_usb_alloc_urb(int dummy)
 {
 	/* OTHER Choose an arbitrary memory location. */
 	void *arbitrary_memory = ldv_undef_ptr();
