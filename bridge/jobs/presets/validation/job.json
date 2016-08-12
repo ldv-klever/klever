@@ -33,6 +33,7 @@
         "Git repository": {"commit": "bcb4a75bde38~"},
         "modules": ["drivers/hid/hid.ko"]
       },
+      "specifications set": "Linux 3.5",
       "rule specifications": ["linux:chrdev"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
@@ -97,6 +98,7 @@
         "Git repository": {"commit": "bcb4a75bde38"},
         "modules": ["drivers/hid/hid.ko"]
       },
+      "specifications set": "Linux 3.5",
       "rule specifications": ["linux:chrdev"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
@@ -216,6 +218,7 @@
         "Git repository": {"commit": "7ce77510c9c7~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
@@ -283,6 +286,7 @@
         "sound/pci/emu10k1/snd-emu10k1.ko",
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
@@ -345,6 +349,7 @@
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },
@@ -403,6 +408,7 @@
         "sound/pci/emu10k1/snd-emu10k1.ko",
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
     },

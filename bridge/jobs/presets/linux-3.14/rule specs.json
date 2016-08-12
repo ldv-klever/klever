@@ -138,9 +138,14 @@
                     "linux/tty.h",
                     "linux/tty_driver.h"
                   ],
-                  "Abracadabra": {
-                    "add": ["linux/bio.h"],
-                    "exclude": ["linux/rtnetlink.h"]
+                  "Linux 3.5": {
+                    "exclude": ["linux/iio/triggered_buffer.h"]
+                  },
+                  "Linux 3.2": {
+                    "exclude": [
+                      "linux/iio/iio.h",
+                      "linux/iio/triggered_buffer.h"
+                    ]
                   }
                 }
               },
