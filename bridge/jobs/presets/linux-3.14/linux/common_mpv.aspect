@@ -23,7 +23,7 @@ around: call(void *usb_alloc_coherent(struct usb_device *dev, size_t size,
 {
 	void *res = ldv_usb_alloc_coherent(dev);
 	ldv_assume(!ldv_is_err(res));
-	ldv_check_alloc_flags(flags);
+	ldv_check_alloc_flags(mem_flags);
 	return res;
 }
 
