@@ -218,9 +218,9 @@ class Scheduler(schedulers.SchedulerExchange):
             with open(solution_file, 'wb') as sa:
                 sa.write(future.result())
         else:
-            logging.warning("Task has been finished but no data has been received for the task {}".
-                            format(identifier))
-            return "ERROR"
+            error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
@@ -253,7 +253,13 @@ class Scheduler(schedulers.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.submit_solution(identifier, solution_description, solution_archive)
+
+        try:
+            self.server.submit_solution(identifier, solution_description, solution_archive)
+        except Exception as err:
+            error_msg = "Cannot submit silution results of task {}: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
@@ -296,7 +302,7 @@ class Scheduler(schedulers.SchedulerExchange):
         termination.
         """
         logging.info("Terminate all runs")
-        self.wi.shutdown()
+        self.wi.shutdown(wait=False)
 
     def update_nodes(self):
         """

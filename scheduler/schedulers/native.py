@@ -341,7 +341,7 @@ class Scheduler(schedulers.SchedulerExchange):
         super(Scheduler, self).terminate()
 
         # Be sure that workers are killed
-        self.__pool.shutdown()
+        self.__pool.shutdown(wait=False)
 
     def update_nodes(self):
         """
