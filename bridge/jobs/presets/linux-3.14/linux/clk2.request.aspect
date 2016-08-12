@@ -1,0 +1,15 @@
+info: call(static inline void clk_disable_unprepare(struct clk *clk))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(static inline int clk_prepare_enable(struct clk *clk)) ||
+      call(int clk_enable(struct clk *clk))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}
+
+info: call(void clk_disable(struct clk *clk))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}

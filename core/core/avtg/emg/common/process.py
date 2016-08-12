@@ -204,6 +204,7 @@ class Process:
         self.actions = {}
         self.category = None
         self.process = None
+        self.headers = list()
         self.__process_ast = None
         self.__accesses = None
         self.allowed_implementations = dict()

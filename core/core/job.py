@@ -127,6 +127,14 @@ class Job(core.utils.CallbacksCaller):
         with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
             try:
                 if self.name:
+                    if self.components_common_conf['keep intermediate files']:
+                        if os.path.isfile('conf.json'):
+                            raise FileExistsError(
+                                'Components configuration file "conf.json" already exists')
+                        self.logger.debug('Create components configuration file "conf.json"')
+                        with open('conf.json', 'w', encoding='ascii') as fp:
+                            json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+
                     core.utils.report(self.logger,
                                       'start',
                                       {
@@ -260,6 +268,7 @@ class Job(core.utils.CallbacksCaller):
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                del (sub_job_components_common_conf['Sub-jobs'])
                 sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
 
                 self.logger.info('Get sub-job name and type')

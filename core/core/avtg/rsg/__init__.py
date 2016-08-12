@@ -135,15 +135,15 @@ class RSG(core.avtg.plugins.Plugin):
                     preprocessed_model_c_file = '{0}.{1}.c'.format(
                         model_c_file_short,
                         re.sub(r'\W', '_', model['rule specification identifier']))
-                    with open(model_c_file, encoding='ascii') as fp_in, \
-                            open(preprocessed_model_c_file, 'w', encoding='ascii') as fp_out:
-                        # Specify original location to avoid references to generated C files in error traces. Absolute file
-                        # path here and below is required to get absolute path references in error traces.
+                    with open(model_c_file, encoding='utf8') as fp_in, \
+                            open(preprocessed_model_c_file, 'w', encoding='utf8') as fp_out:
+                        # Specify original location to avoid references to generated C files in error traces. Absolute
+                        # file path here and below is required to get absolute path references in error traces.
                         fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                         for line in fp_in:
                             fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
-                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
-                                                       r'exclusive|zalloc|malloc|pre)',
+                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|'
+                                                       r'is_err|exclusive|zalloc|malloc|pre)',
                                                        rule_spec_prefix, line)))
                     model['prefix preprocessed C file'] = preprocessed_model_c_file
                     self.logger.debug(
@@ -154,8 +154,8 @@ class RSG(core.avtg.plugins.Plugin):
                 preprocessed_aspect = '{0}.{1}.aspect'.format(
                     aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
-                with open(aspect, encoding='ascii') as fp_in, \
-                        open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
+                with open(aspect, encoding='utf8') as fp_in, \
+                        open(preprocessed_aspect, 'w', encoding='utf8') as fp_out:
                     # Specify original location to avoid references to generated aspects in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(aspect)))
                     for line in fp_in:
@@ -178,8 +178,8 @@ class RSG(core.avtg.plugins.Plugin):
                             open(preprocessed_automaton, 'w', encoding='ascii') as fp_out:
                         for line in fp_in:
                             fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
-                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
-                                                       r'exclusive|zalloc|malloc|pre)',
+                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|'
+                                                       r'is_err|exclusive|zalloc|malloc|pre)',
                                                        rule_spec_prefix, line)))
                     automata[model_c_file] = os.path.abspath(preprocessed_automaton)
             else:
@@ -191,8 +191,12 @@ class RSG(core.avtg.plugins.Plugin):
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
 
-        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects.
-        if 'common aspect' in self.conf:
+        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects. Common
+        # aspect should be used just if several rule specifications are merged together to resolve possible conflicts.
+        if 'constituent rule specifications' in self.conf:
+            if 'common aspect' not in self.conf:
+                raise KeyError(
+                    'Common aspect is not specified although several rule specifications are merged together')
             common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                         self.conf['common aspect'])
             self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
@@ -218,7 +222,7 @@ class RSG(core.avtg.plugins.Plugin):
                     # specification model description.
                     bug_kinds = set()
                     lines = []
-                    with open(model['prefix preprocessed C file'], encoding='ascii') as fp:
+                    with open(model['prefix preprocessed C file'], encoding='utf8') as fp:
                         for line in fp:
                             # Bug kinds are specified in form of strings like in rule specifications DB as first actual
                             # parameters of ldv_assert().
@@ -238,9 +242,9 @@ class RSG(core.avtg.plugins.Plugin):
                                     bug_kind))
                     preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
                         os.path.splitext(os.path.basename(model['prefix preprocessed C file']))[0]))
-                    with open(preprocessed_model_c_file, 'w', encoding='ascii') as fp:
-                        # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will be
-                        # defined later somehow by VTG.
+                    with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
+                        # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
+                        # be defined later somehow by VTG.
                         for bug_kind in sorted(bug_kinds):
                             fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                         # Specify original location to avoid references to *.bk.c files in error traces.
@@ -251,7 +255,7 @@ class RSG(core.avtg.plugins.Plugin):
                     self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
                                       format(model_c_file, preprocessed_model_c_file))
                 else:
-                    model['bug kinds preprocessed C file'] = model_c_file
+                    model['bug kinds preprocessed C file'] = model['prefix preprocessed C file']
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
@@ -261,8 +265,8 @@ class RSG(core.avtg.plugins.Plugin):
 
             if 'bug kinds preprocessed C file' in model:
                 suffix = ''
-                full_desc_file = os.path.join('models',
-                                              '{0}.json'.format(os.path.basename(model['bug kinds preprocessed C file'])))
+                full_desc_file = os.path.join('models', '{0}.json'.format(
+                    os.path.basename(model['bug kinds preprocessed C file'])))
                 if os.path.isfile(full_desc_file):
                     suffix = 2
                     while True:
@@ -296,10 +300,9 @@ class RSG(core.avtg.plugins.Plugin):
                                                     else self.conf['common sets model']).upper()]
                     }, fp, sort_keys=True, indent=4)
 
-                cc_extra_full_desc_file = {
-                    'cc full desc file': os.path.relpath(full_desc_file, self.conf['main working directory']),
-                    'rule spec id': self.conf['rule spec id']
-                }
+                cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
+                                                                               self.conf['main working directory'])
+
             if model_c_file in automata:
                 cc_extra_full_desc_file['automaton'] = automata[model_c_file]
 

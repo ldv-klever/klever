@@ -148,6 +148,18 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         """
         return sorted(self._modules_functions[name].keys())
 
+    def is_removed_intf(self, identifier):
+        """
+        Returns True if there is an interface with a provided identifier in a deleted interfaces collection.
+
+        :param identifier: Interface object identifier.
+        :return: True or False.
+        """
+        if identifier in self.__deleted_interfaces:
+            return True
+        else:
+            return False
+
     def get_or_restore_intf(self, identifier):
         """
         Search for an interface prvided by an identifier in an interface collection and deleted interfaces collection
@@ -160,8 +172,15 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         if identifier in self._interfaces:
             return self._interfaces[identifier]
         elif identifier not in self._interfaces and identifier in self.__deleted_interfaces:
+            # Restore interface itself
             self._interfaces[identifier] = self.__deleted_interfaces[identifier]
             del self.__deleted_interfaces[identifier]
+
+            # Restore resources
+            if type(self._interfaces[identifier]) is Callback:
+                for pi in self._interfaces[identifier].param_interfaces:
+                    self.get_or_restore_intf(pi)
+
             return self._interfaces[identifier]
         else:
             raise KeyError("Unknown interface '{}'".format(identifier))

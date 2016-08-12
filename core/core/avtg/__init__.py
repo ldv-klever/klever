@@ -1,10 +1,12 @@
 #!/usr/bin/python3
 
+import collections
 import copy
 import importlib
 import json
 import multiprocessing
 import os
+import re
 import string
 
 import core.components
@@ -14,6 +16,7 @@ import core.utils
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
+    context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
     context.mqs['hdr arch'] = multiprocessing.Queue()
 
@@ -39,6 +42,7 @@ def after_generate_verification_obj_desc(context):
 def after_generate_all_verification_obj_descs(context):
     context.logger.info('Terminate verification object description files message queue')
     context.mqs['verification obj desc files'].put(None)
+    context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -83,8 +87,9 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
             'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
 
     # Get rid of useless information.
-    if 'description' in rule_spec_desc:
-        del (rule_spec_desc['description'])
+    for attr in ('description', 'multi-aspect group'):
+        if attr in rule_spec_desc:
+            del (rule_spec_desc[attr])
 
     # Get rule specification template which it is based on.
     if 'template' not in rule_spec_desc:
@@ -128,7 +133,7 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     rule_spec_plugin_names = []
     for attr in rule_spec_desc:
         # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-        if attr == 'rule specifications':
+        if attr == 'constituent rule specifications':
             continue
 
         plugin_name = attr
@@ -155,11 +160,18 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     for plugin_name in rule_spec_plugin_names:
         del (rule_spec_desc[plugin_name])
 
-    if 'rule specifications' in rule_spec_desc:
+    if 'constituent rule specifications' in rule_spec_desc:
         # Merge plugin options specific for constituent rule specifications.
-        for constituent_rule_spec_id in rule_spec_desc['rule specifications']:
-            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs, constituent_rule_spec_id)['plugins']:
+        for constituent_rule_spec_id in rule_spec_desc['constituent rule specifications']:
+            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs,
+                                                                             constituent_rule_spec_id)['plugins']:
                 for plugin_desc in plugin_descs:
+                    # Specify rule specifications that are merged together for RSG.
+                    if plugin_desc['name'] == 'RSG':
+                        if 'options' not in plugin_desc:
+                            plugin_desc['options'] = []
+                        plugin_desc['options']['constituent rule specifications'] = \
+                            rule_spec_desc['constituent rule specifications']
                     if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
                         # Specify constituent rule specification identifier for RSG models. It will be used to generate
                         # unique variable and function names.
@@ -174,7 +186,17 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
                         elif 'options' in constituent_rule_spec_plugin_desc:
                             plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
                         break
-        del (rule_spec_desc['rule specifications'])
+
+        # Specify additional aspect preprocessing options.
+        for plugin_desc in plugin_descs:
+            if plugin_desc['name'] == 'Weaver':
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options']['aspect preprocessing options'] = \
+                    ['-DLDV_' + re.sub(r'\W', '_', rule_spec_id).upper()
+                     for rule_spec_id in rule_spec_desc['constituent rule specifications']]
+
+        del (rule_spec_desc['constituent rule specifications'])
 
     rule_spec_desc['plugins'] = plugin_descs
 
@@ -185,29 +207,53 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     return rule_spec_desc
 
 
-# This function automatically untites all rule specifications and creates new rule specification.
+# Unite all rule specifications by multi-aspect groups by creating corresponding new rule specifications.
 def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
-    logger.info('Unite all rule specifications')
+    logger.info('Unite all rule specifications by multi-aspect groups')
 
-    rule_specifications = conf['rule specifications']
-    prefix = os.path.commonprefix(rule_specifications)
-    new_rule_name_id = prefix + ":" + 'united'
-    logger.info('United rule specification was given the following name "{0}"'.format(new_rule_name_id))
+    # Find out multi-aspect groups of rule specifications. Respect order of rule specifications and corresponding
+    # multi-aspect groups.
+    multi_aspect_groups = collections.OrderedDict()
+    for rule_spec_id in conf['rule specifications']:
+        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+        if 'multi-aspect group' in rule_spec_desc:
+            multi_aspect_group = rule_spec_desc['multi-aspect group']
+            del rule_spec_desc['multi-aspect group']
+        else:
+            # Use unique rule specification identifier to process rule specification description as is without merging.
+            multi_aspect_group = rule_spec_id
+        if multi_aspect_group not in multi_aspect_groups:
+            multi_aspect_groups[multi_aspect_group] = []
+        multi_aspect_groups[multi_aspect_group].append(rule_spec_id)
+        logger.debug(
+            'Add rule specification "{0}" to multi-aspect group "{1}"'.format(rule_spec_id, multi_aspect_group))
 
-    template = 'Linux kernel modules'
+    conf['rule specifications'] = []
 
-    for rule_specification in rule_specifications:
-        model = raw_rule_spec_descs['rule specifications'][rule_specification]
-        if model['template'] == 'Argument signatures for Linux kernel modules':
-            template = 'Argument signatures for Linux kernel modules'
-            break
+    for multi_aspect_group in multi_aspect_groups:
+        # Add rule specifications that don't belong to any multi-aspect group.
+        if multi_aspect_group in raw_rule_spec_descs['rule specifications']:
+            conf['rule specifications'].append(multi_aspect_group)
+        # Do not unite individual rule specifications that constitute corresponding multi-aspect group.
+        elif len(multi_aspect_groups[multi_aspect_group]) == 1:
+            conf['rule specifications'].append(multi_aspect_groups[multi_aspect_group][0])
+        else:
+            logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(multi_aspect_group))
 
-    raw_rule_spec_descs['rule specifications'][new_rule_name_id] = {
-        'template': template,
-        'rule specifications': rule_specifications
-    }
+            conf['rule specifications'].append(multi_aspect_group)
 
-    conf['rule specifications'] = [new_rule_name_id]
+            # Find out the most broad template for given multi-aspect group.
+            template = 'Linux kernel modules'
+            for rule_spec_id in multi_aspect_groups[multi_aspect_group]:
+                rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+                if rule_spec_desc['template'] == 'Argument signatures for Linux kernel modules':
+                    template = 'Argument signatures for Linux kernel modules'
+                    break
+
+            raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
+                'template': template,
+                'constituent rule specifications': multi_aspect_groups[multi_aspect_group]
+            }
 
 
 # This function is invoked to collect plugin callbacks.
@@ -254,8 +300,8 @@ def _extract_rule_spec_descs(conf, logger):
         #if os.path.isfile('rule spec descs.json'):
         #    raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
         logger.debug('Create rule specification descriptions file "rule spec descs.json"')
-        with open('rule spec descs.json', 'w', encoding='ascii') as fp:
-            json.dump(rule_spec_descs, fp, sort_keys=True, indent=4)
+        with open('rule spec descs.json', 'w', encoding='utf8') as fp:
+            json.dump(rule_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     return rule_spec_descs
 
@@ -293,6 +339,8 @@ class AVTG(core.components.Component):
         self.common_prj_attrs = {}
         self.abstract_task_desc_file = None
         self.abstract_task_desc_num = 0
+        self.failed_abstract_task_desc_num = multiprocessing.Value('i', 0)
+        self.abstract_task_descs_num = multiprocessing.Value('i', 0)
 
         # TODO: combine extracting and reporting of attributes.
         self.get_common_prj_attrs()
@@ -309,7 +357,8 @@ class AVTG(core.components.Component):
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_cc_opts_and_headers()
-        self.generate_all_abstract_verification_task_descs()
+        self.launch_subcomponents(('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
+                                  ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
     main = generate_abstract_verification_tasks
 
@@ -395,17 +444,53 @@ class AVTG(core.components.Component):
             for rule_spec_desc in self.rule_spec_descs:
                 self.generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
+        if self.failed_abstract_task_desc_num.value:
+            self.logger.info('Could not generate "{0}" abstract verification task descriptions'.format(
+                self.failed_abstract_task_desc_num.value))
+
+    def evaluate_abstract_verification_task_descs_num(self):
+        self.logger.info('Get the total number of verification object descriptions')
+
+        verification_obj_descs_num = self.mqs['verification obj descs num'].get()
+
+        self.mqs['verification obj descs num'].close()
+
+        self.logger.debug('The total number of verification object descriptions is "{0}"'.format(
+            verification_obj_descs_num))
+
+        self.abstract_task_descs_num.value = verification_obj_descs_num * len(self.rule_spec_descs)
+
+        self.logger.info(
+            'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
+                self.abstract_task_descs_num.value))
+
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                    'total number of abstract verification task descriptions to be generated in ideal':
+                                    self.abstract_task_descs_num.value
+                              })
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
     def generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
+        # Count the number of generated abstract verification task descriptions.
+        self.abstract_task_desc_num += 1
+
         initial_attrs = (
             {'verification object': verification_obj_desc['id']},
             {'rule specification': rule_spec_desc['id']}
         )
         initial_attr_vals = tuple(attr[name] for attr in initial_attrs for name in attr)
 
-        # TODO: print progress: n + 1/N, where n/N is the number of already generated/all to be generated verification tasks.
         self.logger.info(
-            'Generate abstract verification task description for {0}'.format(
-                'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals)))
+            'Generate abstract verification task description for {0} ({1}{2})'.format(
+                'verification object "{0}" and rule specification "{1}"'.format(*initial_attr_vals),
+                self.abstract_task_desc_num, '/{0}'.format(self.abstract_task_descs_num.value)
+                if self.abstract_task_descs_num.value else ''))
 
         plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
         os.makedirs(plugins_work_dir, exist_ok=True)
@@ -426,8 +511,8 @@ class AVTG(core.components.Component):
         initial_abstract_task_desc_file = os.path.join(plugins_work_dir, 'initial abstract task.json')
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(initial_abstract_task_desc_file))
-        with open(initial_abstract_task_desc_file, 'w', encoding='ascii') as fp:
-            json.dump(initial_abstract_task_desc, fp, sort_keys=True, indent=4)
+        with open(initial_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+            json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
         try:
@@ -448,7 +533,6 @@ class AVTG(core.components.Component):
                     del plugin_conf['shadow source tree']
                 if 'options' in plugin_desc:
                     plugin_conf.update(plugin_desc['options'])
-                plugin_conf.update({'rule spec id': rule_spec_desc['id']})
                 if 'bug kinds' in rule_spec_desc:
                     plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
                 plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
@@ -461,8 +545,8 @@ class AVTG(core.components.Component):
                                                     '{0} conf.json'.format(plugin_desc['name'].lower()))
                     self.logger.debug(
                         'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'], plugin_conf_file))
-                    with open(plugin_conf_file, 'w', encoding='ascii') as fp:
-                        json.dump(plugin_conf, fp, sort_keys=True, indent=4)
+                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
@@ -486,12 +570,27 @@ class AVTG(core.components.Component):
 
             # VTG will consume this abstract verification task description file.
             self.abstract_task_desc_file = out_abstract_task_desc_file
-
-            # Count the number of successfully generated abstract verification task descriptions.
-            self.abstract_task_desc_num += 1
         # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
         # verification objects or/and rule specifications.
         except core.components.ComponentError:
+            # Count the number of abstract verification task descriptions that weren't generated successfully to print
+            # it at the end of work. Note that the total number of abstract verification task descriptions to be
+            # generated in ideal will be printed at least once already.
+            with self.failed_abstract_task_desc_num.get_lock():
+                self.failed_abstract_task_desc_num.value += 1
+                core.utils.report(self.logger,
+                                  'data',
+                                  {
+                                      'id': self.id,
+                                      'data': json.dumps({
+                                          'faulty generated abstract verification task descriptions':
+                                              self.failed_abstract_task_desc_num.value
+                                      })
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'],
+                                  self.failed_abstract_task_desc_num.value)
+
             self.abstract_task_desc_file = None
             self.verification_obj = verification_obj_desc['id']
             self.rule_spec = rule_spec_desc['id']

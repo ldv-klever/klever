@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 
+import fileinput
 import json
 import os
 
@@ -72,21 +73,46 @@ class ASE(core.avtg.plugins.Plugin):
 
                     self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))
 
-                    arg_signs_file = os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0]
-
                     env = dict(os.environ)
-                    env['LDV_ARG_SIGNS_FILE'] = os.path.relpath(arg_signs_file,
-                                                                os.path.join(self.conf['main working directory'],
-                                                                             cc_full_desc['cwd']))
+                    env['LDV_ARG_SIGNS_FILE'] = os.path.relpath(
+                        os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0],
+                        os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))
+
+                    # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
+                    # additional argument signatures should be extracted. Like in Weaver.
+                    if 'plugin aspects' in cc_extra_full_desc_file:
+                        self.logger.info('Concatenate all aspects of all plugins together')
+
+                        # Resulting request aspect.
+                        aspect = '{0}.aspect'.format(os.path.splitext(os.path.basename(cc_full_desc['out file']))[0])
+
+                        # Get all aspects. Place original request aspect at beginning since it can instrument entities
+                        # added by aspects of other plugins while corresponding function declarations still need be at
+                        # beginning of file.
+                        aspects = [os.path.relpath(request_aspect, self.conf['main working directory'])]
+                        for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
+                            aspects.extend(plugin_aspects['aspects'])
+
+                        # Concatenate aspects.
+                        with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
+                                [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
+                                openhook=fileinput.hook_encoded('utf8')) as fin:
+                            for line in fin:
+                                fout.write(line)
+                    else:
+                        aspect = request_aspect
+
                     core.utils.execute(self.logger,
                                        tuple(['cif',
                                               '--in', cc_full_desc['in files'][0],
-                                              '--aspect', os.path.relpath(request_aspect, os.path.join(
+                                              '--aspect', os.path.relpath(aspect, os.path.join(
                                                self.conf['main working directory'], cc_full_desc['cwd'])),
                                               '--stage', 'instrumentation',
-                                              '--out', os.path.relpath(arg_signs_file + '.c',
-                                                                       os.path.join(self.conf['main working directory'],
-                                                                                    cc_full_desc['cwd'])),
+                                              # TODO: issues like in Weaver.
+                                              '--out', os.path.relpath(
+                                               '{0}.c'.format(
+                                                   os.path.splitext(os.path.basename(cc_full_desc['out file']))[0]),
+                                               os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +
                                              ['--'] +

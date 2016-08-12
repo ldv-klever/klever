@@ -145,6 +145,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
+        # Determine additional headers to include
+        self.extract_headers_to_attach(analysis, model)
+
         # Prepare entry point function
         self.logger.info("Generate C code from an intermediate model")
         self._prepare_code(analysis, model)
@@ -162,6 +165,40 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.__add_entry_points()
 
         self.logger.info("Model translation is finished")
+
+    def extract_headers_to_attach(self, analysis, model):
+        """
+        Try to extract headers which are need to include in addition to existing in the source code. Get them from the
+        list of interfaces without an implementations and from the model processes descriptions.
+
+        :param analysis: ModuleCategoriesSpecification object.
+        :param model: ProcessModel object.
+        :return: None
+        """
+        # Get from unused interfaces
+        header_list = list()
+        for interface in (analysis.get_intf(i) for i in analysis.interfaces):
+            if len(interface.declaration.implementations) == 0 and interface.header:
+                for header in interface.header:
+                    if header not in header_list:
+                        header_list.append(header)
+
+        # Get from specifications
+        for process in (p for p in model.model_processes + model.event_processes if len(p.headers) > 0):
+            for header in process.headers:
+                if header not in header_list:
+                    header_list.append(header)
+
+        # Generate aspect
+        if len(header_list) > 0:
+            aspect = ['before: file ("$this")\n',
+                      '{\n']
+            aspect.extend(['#include <{}>\n'.format(h) for h in header_list])
+            aspect.append('}\n')
+
+            self.additional_aspects.extend(aspect)
+
+        return
 
     def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         """
@@ -1195,7 +1232,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return conditions
 
-    def _label_sequence(self, analysis, automaton, initial_state):
+    def _label_sequence(self, analysis, automaton, initial_state, ret_expression):
         ### Subroutines ###
         # Start a conditional branch
         def start_branch(tab, f_code, condition):
@@ -1318,6 +1355,13 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             else:
                 new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
+
+            # If this is a terminal state - quit control function
+            if type(state.action) is not Subprocess and len(state.successors) == 0:
+                code.extend([
+                    "/* Terminal state */",
+                    ret_expression
+                ])
             tab = print_action_code(tab, f_code, code, state, conditional_stack)
 
             # If this is a terminal state before completely closed merge point close the whole merge
@@ -1371,16 +1415,19 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 definition = var.declare() + ";"
             v_code.append(definition)
 
-        main_v_code, main_f_code = self._label_sequence(analysis, automaton, list(automaton.fsa.initial_states)[0])
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, list(automaton.fsa.initial_states)[0],
+                                                        ret_expression)
         v_code.extend(main_v_code)
         f_code.extend(main_f_code)
+        f_code.append("/* End of the process */")
         f_code.append(ret_expression)
 
         processed = []
         for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
                      if type(s.action) is Subprocess]:
             if subp.action.name not in processed:
-                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, list(subp.successors)[0])
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, list(subp.successors)[0],
+                                                            ret_expression)
 
                 v_code.extend(sp_v_code)
                 f_code.extend([
@@ -1389,6 +1436,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
                 ])
                 f_code.extend(sp_f_code)
+                f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
                 f_code.append(ret_expression)
                 processed.append(subp.action.name)
 
@@ -1433,6 +1481,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     break
 
         automaton.control_function = cf
+        cf.body.append(
+            "/* Control function based on process '{}' generated for interface category '{}' */".
+                format(automaton.process.name, automaton.process.category)
+        )
         return cf
 
     def _state_switch(self, states, file):
@@ -1646,7 +1698,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 if len(self.additional_aspects) > 0:
                     lines.append("\n")
-                    lines.append("/* EMG additional non-generated aspects */\n")
+                    lines.append("/* EMG additional aspects */\n")
                     lines.extend(self.additional_aspects)
                     lines.append("\n")
 

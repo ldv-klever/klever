@@ -1,6 +1,6 @@
 #include <linux/module.h>
 #include <linux/fs.h>
-#include <linux/cdev.h>
+#include <linux/miscdevice.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
@@ -8,7 +8,7 @@ int flip_a_coin;
 
 static int ldv_open(struct inode *inode, struct file *filp)
 {
-	int res;
+		int res;
 
     ldv_invoke_callback();
     res = ldv_undef_int();
@@ -19,16 +19,12 @@ static int ldv_open(struct inode *inode, struct file *filp)
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
-	int res;
+		int res;
 
-    ldv_invoke_callback();
-    res = ldv_undef_int();
-    if (!res)
-        ldv_release_down();
-    return res;
+		ldv_release_down();
+		ldv_invoke_callback();
+    return 0;
 }
-
-static struct cdev ldv_cdev;
 
 static struct file_operations ldv_fops = {
 	.open		= ldv_open,
@@ -36,12 +32,16 @@ static struct file_operations ldv_fops = {
 	.owner		= THIS_MODULE,
 };
 
+static struct miscdevice ldv_misc = {
+    .fops = & ldv_fops
+};
+
 static int __init ldv_init(void)
 {
 	flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
-        cdev_init(&ldv_cdev, &ldv_fops);
+        misc_register(&ldv_misc);
     }
     return 0;
 }
@@ -49,7 +49,7 @@ static int __init ldv_init(void)
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-        cdev_del(&ldv_cdev);
+        misc_deregister(&ldv_misc);
         ldv_deregister();
     }
 }

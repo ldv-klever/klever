@@ -10,6 +10,8 @@ void ldv_spin_lock{{ arg_sign.id }}(void)
 {
 	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked */
 	ldv_assert("linux:spinlock::one thread:double lock", ldv_spin{{ arg_sign.id }} == 1);
+	/* OTHER Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 	/* CHANGE_STATE Lock spinlock{{ arg_sign.text }} */
 	ldv_spin{{ arg_sign.id }} = 2;
 }
@@ -19,6 +21,8 @@ void ldv_spin_unlock{{ arg_sign.id }}(void)
 {
 	/* ASSERT Spinlock{{ arg_sign.text }} must be locked */
 	ldv_assert("linux:spinlock::one thread:double unlock", ldv_spin{{ arg_sign.id }} == 2);
+	/* OTHER Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 2);
 	/* CHANGE_STATE Unlock spinlock{{ arg_sign.text }} */
 	ldv_spin{{ arg_sign.id }} = 1;
 }
@@ -30,6 +34,8 @@ int ldv_spin_trylock{{ arg_sign.id }}(void)
 
 	/* ASSERT It may be bug if spinlock{{ arg_sign.text }} is locked at this point */
 	ldv_assert("linux:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* OTHER Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 
 	/* OTHER Construct nondetermined result */
 	is_spin_held_by_another_thread = ldv_undef_int();
@@ -52,6 +58,8 @@ void ldv_spin_unlock_wait{{ arg_sign.id }}(void)
 {
 	/* ASSERT Spinlock{{ arg_sign.text }} must not be locked by current thread */
 	ldv_assert("linux:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* OTHER Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 }
 
 /* MODEL_FUNC_DEF Check whether spinlock{{ arg_sign.text }} was locked */
@@ -106,6 +114,8 @@ int ldv_atomic_dec_and_lock{{ arg_sign.id }}(void)
 
 	/* ASSERT Spinlock{{ arg_sign.text }} must be unlocked (since we may lock it in this function) */
 	ldv_assert("linux:spinlock::one thread:double lock try", ldv_spin{{ arg_sign.id }} == 1);
+	/* OTHER Cut all infeasible paths */
+	ldv_assume(ldv_spin{{ arg_sign.id }} == 1);
 
 	/* OTHER Assign result of atomic decrement */
 	atomic_value_after_dec = ldv_undef_int();
@@ -132,7 +142,7 @@ void ldv_check_final_state(void)
 	// endfor
 }
 
-/* For 'linux:alloc:spin lock' rule */
+/* For 'linux:alloc:spinlock' rule */
 int ldv_exclusive_spin_is_locked(void)
 {
 	// for arg_sign in spinlock_arg_signs

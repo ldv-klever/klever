@@ -11,8 +11,8 @@ import core.utils
 
 def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['abstract task desc files and nums'] = multiprocessing.Queue()
-    context.mqs['abstract task descs num'] = multiprocessing.Queue()
+    context.mqs['abstract task desc files'] = multiprocessing.Queue()
+    context.mqs['num of abstract task descs to be generated'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
@@ -20,18 +20,20 @@ def after_set_common_prj_attrs(context):
 
 
 def after_generate_abstact_verification_task_desc(context):
-    if context.abstract_task_desc_file:
-        context.mqs['abstract task desc files and nums'].put({
-            'desc file': os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory']),
-            'num': context.abstract_task_desc_num
-        })
+    context.mqs['abstract task desc files'].put(
+        os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory'])
+        if context.abstract_task_desc_file
+        else '')
+
+
+def after_evaluate_abstract_verification_task_descs_num(context):
+    context.mqs['num of abstract task descs to be generated'].put(context.abstract_task_descs_num.value)
 
 
 def after_generate_all_abstract_verification_task_descs(context):
     context.logger.info('Terminate abstract verification task descriptions message queue')
     for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
-        context.mqs['abstract task desc files and nums'].put(None)
-    context.mqs['abstract task descs num'].put(context.abstract_task_desc_num)
+        context.mqs['abstract task desc files'].put(None)
 
 
 class VTG(core.components.Component):
@@ -39,7 +41,10 @@ class VTG(core.components.Component):
         self.strategy_name = None
         self.strategy = None
         self.common_prj_attrs = {}
-        self.abstract_task_descs_num = multiprocessing.Value('i', 0)
+        self.faulty_generated_abstract_task_descs_num = multiprocessing.Value('i', 0)
+        self.num_of_abstract_task_descs_to_be_processed = multiprocessing.Value('i', 0)
+        self.processed_abstract_task_desc_num = multiprocessing.Value('i', 0)
+        self.faulty_processed_abstract_task_descs_num = multiprocessing.Value('i', 0)
 
         # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
         self.get_strategy()
@@ -80,57 +85,77 @@ class VTG(core.components.Component):
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
 
-        subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
+        subcomponents = [('NAVTDBPE', self.evaluate_num_of_abstract_verification_task_descs_to_be_processed)]
         for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
             subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
 
         self.launch_subcomponents(*subcomponents)
 
-        self.logger.info('Terminate abstract verification task description files and numbers message queue')
-        self.mqs['abstract task desc files and nums'].close()
+        self.mqs['abstract task desc files'].close()
 
-    def get_abstract_verification_task_descs_num(self):
-        self.logger.info('Get the total number of abstract verification task descriptions')
+        if self.faulty_processed_abstract_task_descs_num.value:
+            self.logger.info('Could not process "{0}" abstract verification task descriptions'.format(
+                self.faulty_processed_abstract_task_descs_num.value))
 
-        self.abstract_task_descs_num.value = self.mqs['abstract task descs num'].get()
+    def evaluate_num_of_abstract_verification_task_descs_to_be_processed(self):
+        self.logger.info('Get the total number of abstract verification task descriptions to be generated in ideal')
 
-        self.mqs['abstract task descs num'].close()
+        num_of_abstract_task_descs_to_be_generated = self.mqs['num of abstract task descs to be generated'].get()
 
-        self.logger.debug('The total number of abstract verification task descriptions is "{0}"'.format(
-            self.abstract_task_descs_num.value))
+        self.mqs['num of abstract task descs to be generated'].close()
 
-        core.utils.report(self.logger,
-                          'data',
-                          {
-                              'id': self.id,
-                              'data': json.dumps(self.abstract_task_descs_num.value)
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
+        self.logger.debug(
+            'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
+                num_of_abstract_task_descs_to_be_generated))
+
+        self.num_of_abstract_task_descs_to_be_processed.value = num_of_abstract_task_descs_to_be_generated
+
+        self.logger.info(
+            'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'.format(
+                self.num_of_abstract_task_descs_to_be_processed.value -
+                self.faulty_generated_abstract_task_descs_num.value))
+
+        if self.faulty_generated_abstract_task_descs_num.value:
+            self.logger.debug(
+                'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
+                format(self.faulty_generated_abstract_task_descs_num.value))
 
     def _generate_verification_tasks(self):
         while True:
-            abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
+            abstract_task_desc_file = self.mqs['abstract task desc files'].get()
 
-            if abstract_task_desc_file_and_num is None:
+            if abstract_task_desc_file is None:
                 self.logger.debug('Abstract verification task descriptions message queue was terminated')
                 break
 
-            abstract_task_desc_file = os.path.join(self.conf['main working directory'],
-                                                   abstract_task_desc_file_and_num['desc file'])
+            if abstract_task_desc_file is '':
+                with self.faulty_generated_abstract_task_descs_num.get_lock():
+                    self.faulty_generated_abstract_task_descs_num.value += 1
+                self.logger.info(
+                    'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'
+                    .format(self.num_of_abstract_task_descs_to_be_processed.value -
+                            self.faulty_generated_abstract_task_descs_num.value))
+                self.logger.debug(
+                    'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
+                    format(self.faulty_generated_abstract_task_descs_num.value))
+                continue
 
-            with open(abstract_task_desc_file, encoding='ascii') as fp:
+            # Count the number of processed abstract verification task descriptions.
+            self.processed_abstract_task_desc_num.value += 1
+
+            abstract_task_desc_file = os.path.join(self.conf['main working directory'], abstract_task_desc_file)
+
+            with open(abstract_task_desc_file, encoding='utf8') as fp:
                 abstract_task_desc = json.load(fp)
 
             if not self.conf['keep intermediate files']:
                 os.remove(abstract_task_desc_file)
 
-            # Print progress in form of "the number of already generated abstract verification task descriptions/the
-            # number of all abstract verification task descriptions". The latter may be omitted for early abstract
-            # verification task descriptions because of it isn't known until the end of AVTG operation.
             self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
-                    abstract_task_desc['id'], abstract_task_desc_file_and_num['num'],
-                    '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
+                    abstract_task_desc['id'], self.processed_abstract_task_desc_num.value,
+                    '/{0}'.format(self.num_of_abstract_task_descs_to_be_processed.value -
+                                  self.faulty_generated_abstract_task_descs_num.value)
+                    if self.num_of_abstract_task_descs_to_be_processed.value else ''))
 
             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
             work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
@@ -150,4 +175,20 @@ class VTG(core.components.Component):
             # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
             # tasks. Do not print information on failure since it will be printed automatically by core.components.
             except core.components.ComponentError:
-                pass
+                # Count the number of abstract verification task descriptions that weren't processed to print it at the
+                # end of work. Note that the total number of abstract verification task descriptions to be processed in
+                # ideal will be printed at least once already.
+                with self.faulty_processed_abstract_task_descs_num.get_lock():
+                    self.faulty_processed_abstract_task_descs_num.value += 1
+                    core.utils.report(self.logger,
+                                      'data',
+                                      {
+                                          'id': self.id,
+                                          'data': json.dumps({
+                                              'faulty processed abstract verification task descriptions':
+                                                  self.faulty_processed_abstract_task_descs_num.value
+                                          })
+                                      },
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'],
+                                      self.faulty_processed_abstract_task_descs_num.value)

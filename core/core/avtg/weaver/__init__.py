@@ -19,9 +19,9 @@ class Weaver(core.avtg.plugins.Plugin):
             for cc_extra_full_desc_file in grp['cc extra full desc files']:
 
                 if 'cc full desc file' in cc_extra_full_desc_file:
-                    with open(
-                            os.path.join(self.conf['main working directory'], cc_extra_full_desc_file['cc full desc file']),
-                            encoding='ascii') as fp:
+                    with open(os.path.join(self.conf['main working directory'],
+                                           cc_extra_full_desc_file['cc full desc file']),
+                              encoding='ascii') as fp:
                         cc_full_desc = json.load(fp)
 
                     self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
@@ -39,8 +39,8 @@ class Weaver(core.avtg.plugins.Plugin):
                         aspect = 'aspect'
 
                         # Get all aspects. Place RSG aspects at beginning since they can instrument entities added by
-                        # aspects of other plugins while corresponding function declarations still need be at beginning of
-                        # file.
+                        # aspects of other plugins while corresponding function declarations still need be at beginning
+                        # of file.
                         aspects = []
                         for plugin_aspects in cc_extra_full_desc_file['plugin aspects']:
                             if plugin_aspects['plugin'] == 'RSG':
@@ -49,9 +49,9 @@ class Weaver(core.avtg.plugins.Plugin):
                                 aspects.extend(plugin_aspects['aspects'])
 
                         # Concatenate aspects.
-                        with open(aspect, 'w', encoding='ascii') as fout, fileinput.input(
+                        with open(aspect, 'w', encoding='utf8') as fout, fileinput.input(
                                 [os.path.join(self.conf['main working directory'], aspect) for aspect in aspects],
-                                openhook=fileinput.hook_encoded('ascii')) as fin:
+                                openhook=fileinput.hook_encoded('utf8')) as fin:
                             for line in fin:
                                 fout.write(line)
                     else:
@@ -59,8 +59,8 @@ class Weaver(core.avtg.plugins.Plugin):
                         aspect = '/dev/null'
                     self.logger.debug('Aspect to be weaved in is "{0}"'.format(aspect))
 
-                    # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled with
-                    # "-nostdinc" option and system stdarg.h couldn't be used.
+                    # This is required to get compiler (Aspectator) specific stdarg.h since kernel C files are compiled
+                    # with "-nostdinc" option and system stdarg.h couldn't be used.
                     stdout = core.utils.execute(self.logger,
                                                 ('aspectator', '-print-file-name=include'),
                                                 collect_all_stdout=True)
@@ -74,11 +74,14 @@ class Weaver(core.avtg.plugins.Plugin):
                                                                            cc_full_desc['cwd'])),
                                   # Besides header files specific for rule specifications will be searched for.
                                   '--general-opts', "-I{0}".format(
-                                      os.path.relpath(
-                                          os.path.dirname(core.utils.find_file_or_dir(self.logger,
-                                                                                      self.conf['main working directory'],
-                                                                                      self.conf['rule specifications DB'])),
-                                          os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))),
+                                      os.path.relpath(os.path.dirname(
+                                          core.utils.find_file_or_dir(self.logger,
+                                                                      self.conf['main working directory'],
+                                                                      self.conf['rule specifications DB'])),
+                                                      os.path.join(self.conf['main working directory'],
+                                                                   cc_full_desc['cwd']))),
+                                  '--aspect-preprocessing-opts', ' '.join(self.conf['aspect preprocessing options'])
+                                                                 if 'aspect preprocessing options' in self.conf else '',
                                   '--out', os.path.relpath(cc_full_desc['out file'],
                                                            os.path.join(self.conf['main working directory'],
                                                                         cc_full_desc['cwd'])),
@@ -106,8 +109,8 @@ class Weaver(core.avtg.plugins.Plugin):
                     self.logger.debug('Preprocessed weaved C file was put to "{0}"'.format(preprocessed_c_file))
 
                     abs_paths_c_file = '{0}.abs-paths.i'.format(os.path.splitext(cc_full_desc['out file'])[0])
-                    with open(preprocessed_c_file, encoding='ascii') as fp_in, open(abs_paths_c_file, 'w',
-                                                                                    encoding='ascii') as fp_out:
+                    with open(preprocessed_c_file, encoding='utf8') as fp_in, open(abs_paths_c_file, 'w',
+                                                                                   encoding='utf8') as fp_out:
                         # Print preprocessor header as is.
                         first_line = fp_in.readline()
                         fp_out.write(first_line)

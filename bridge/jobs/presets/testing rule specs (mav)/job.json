@@ -15,7 +15,7 @@
       "linux:usb:register",
       "linux:usb:urb",
       "linux:alloc:irq",
-      "linux:alloc:spin lock",
+      "linux:alloc:spinlock",
       "linux:alloc:usb lock",
       "linux:chrdev",
       "linux:class",
@@ -37,11 +37,12 @@
       "linux:sysfs",
       "linux:iomem",
       "linux:idr",
-      "linux:gendisk"
+      "linux:gendisk",
+      "linux:clk1",
+      "linux:clk2"
     ],
     "unite rule specifications": true,
     "RSG strategy": "instrumentation",
-    "common aspect": "linux/common.aspect",
     "VTG strategy": {
       "name": "multiple bug types",
       "verifier": {
@@ -436,22 +437,22 @@
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/wrong-flags-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/wrong-flags-trylock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/nonatomic-lock.ko"
         },
         {
           "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:spin lock",
+          "rule specification": "linux:alloc:spinlock",
           "verification object": "ext-modules/nonatomic-trylock.ko"
         },
         {
@@ -599,7 +600,7 @@
         "linux:usb:register",
         "linux:usb:urb",
         "linux:alloc:irq",
-        "linux:alloc:spin lock",
+        "linux:alloc:spinlock",
         "linux:alloc:usb lock",
         "linux:chrdev",
         "linux:class",
@@ -622,7 +623,9 @@
         "linux:sysfs",
         "linux:iomem",
         "linux:idr",
-        "linux:gendisk"
+        "linux:gendisk",
+        "linux:clk1",
+        "linux:clk2"
       ],
       "ideal verdicts": [
         {
@@ -1061,6 +1064,44 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:gendisk",
           "verification object": "ext-modules/more-initial.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/clk1",
+        "modules": [
+          "unsafe.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:clk1",
+          "verification object": "ext-modules/unsafe.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/clk2",
+        "modules": [
+          "unsafe.ko",
+          "safe.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:clk2",
+          "verification object": "ext-modules/unsafe.ko"
         },
         {
           "ideal verdict": "safe"
