@@ -366,7 +366,7 @@
           "implemented in kernel": true
         },
         "tty_struct": {
-          "signature": "%tty.tty_struct%",
+          "signature": "struct tty_struct *str",
           "header": "linux/tty.h",
           "implemented in kernel": true
         }
