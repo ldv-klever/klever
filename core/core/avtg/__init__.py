@@ -268,6 +268,10 @@ def _extract_rule_spec_descs(conf, logger):
         logger.warning('Nothing will be verified since rule specifications are not specified')
         return []
 
+    if 'specifications set' not in conf:
+        logger.warning('Nothing will be verified since specifications set is not specified')
+        return []
+
     # Read rule specification descriptions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
               encoding='utf8') as fp:
