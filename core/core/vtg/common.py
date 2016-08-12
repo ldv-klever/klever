@@ -188,13 +188,16 @@ class CommonStrategy(core.components.Component):
             added_attrs.append({"Rule specification": assertion})
         path_to_witness = None
         if decision_results['status'] == 'unsafe':
-            # Default place for witness, if we consider only 1 possible witness for verification task.
-            # Is strategy may produce more than 1 witness, it should be specified in 'specified_witness'.
             verification_report_id_unsafe = "{0}/unsafe/{1}".\
                 format(verification_report_id, assertion or '')
-            path_to_witness = 'output/witness.0.graphml'
+
+            # If strategy may produce more than 1 witness, it should be specified in 'specified_witness'.
             if specified_error_trace:
                 path_to_witness = specified_error_trace
+            # Default place for witness, if we consider only 1 possible witness for verification task.
+            else:
+                path_to_witness = glob.glob(os.path.join('output', 'witness.*.graphml'))[0]
+
             if self.mea:
                 if self.mea.error_trace_filter(path_to_witness, assertion):
                     self.logger.debug('Processing error trace "{0}"'.format(path_to_witness, assertion))
@@ -541,6 +544,10 @@ class CommonStrategy(core.components.Component):
             # To allow to output multiple error traces if other options (configuration) will need this.
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+
+            # Do not compress witnesses as, say, CPAchecker r20376 we still used did.
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'counterexample.export.compressErrorWitness=false'})
 
             # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
             # general memory size limit if users don't specify their own sizes.
