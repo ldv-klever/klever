@@ -40,7 +40,7 @@ class Server(server.AbstractServer):
             description_file = os.path.join(work_dir, identifier, task_description_filename)
             logging.debug("Import task {} from description file {}".format(identifier, description_file))
 
-            with open(description_file, encoding="ascii") as desc:
+            with open(description_file, encoding="utf8") as desc:
                 description = json.loads(desc.read())
 
             # Add task to the pending list
@@ -85,9 +85,9 @@ class Server(server.AbstractServer):
             description["id"] = task_id
             description["files"] = [source]
             description["priority"] = random.choice(self.conf["priority options"])
-            json_description = json.dumps(description, sort_keys=True, indent=4)
+            json_description = json.dumps(description, ensure_ascii=False, sort_keys=True, indent=4)
             description_file = os.path.join(task_dir, task_description_filename)
-            with open(description_file, "w", encoding="ascii") as fh:
+            with open(description_file, "w", encoding="utf8") as fh:
                 fh.write(json_description)
             logging.debug("Generated JSON base_description {0}".format(description_file))
 
@@ -287,8 +287,8 @@ class Server(server.AbstractServer):
         :param nodes: String with JSON nodes description.
         """
         self.nodes = nodes
-        node_desc = json.dumps(nodes, sort_keys=True, indent=4)
-        with open(os.path.join(self.work_dir, "nodes.json"), "w", encoding="ascii") as fh:
+        node_desc = json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)
+        with open(os.path.join(self.work_dir, "nodes.json"), "w", encoding="utf8") as fh:
             fh.write(node_desc)
 
     def submit_tools(self, tools):
@@ -298,8 +298,8 @@ class Server(server.AbstractServer):
         :param tools: String with JSON verification tools description.
         """
         self.tools = tools
-        tool_desc = json.dumps(tools, sort_keys=True, indent=4)
-        with open(os.path.join(self.work_dir, "tools.json"), "w", encoding="ascii") as fh:
+        tool_desc = json.dumps(tools, ensure_ascii=False, sort_keys=True, indent=4)
+        with open(os.path.join(self.work_dir, "tools.json"), "w", encoding="utf8") as fh:
             fh.write(tool_desc)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

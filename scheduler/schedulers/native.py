@@ -42,9 +42,9 @@ class Scheduler(schedulers.SchedulerExchange):
         self.__kv_url = self.conf["scheduler"]["controller address"]
 
         # Import job configuration prototype
-        with open(self.conf["scheduler"]["job client configuration"], encoding="ascii") as fh:
+        with open(self.conf["scheduler"]["job client configuration"], encoding="utf8") as fh:
             self.__job_conf_prototype = json.loads(fh.read())
-        with open(self.conf["scheduler"]["task client configuration"], encoding="ascii") as fh:
+        with open(self.conf["scheduler"]["task client configuration"], encoding="utf8") as fh:
             self.__task_conf_prototype = json.loads(fh.read())
         if "Klever Bridge" not in self.__job_conf_prototype:
             logging.debug("Add Klever Bridge settings to client job configuration")
@@ -185,19 +185,19 @@ class Scheduler(schedulers.SchedulerExchange):
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         client_conf["identifier"] = identifier
         client_conf["common"]["working directory"] = task_work_dir
-        with open(os.path.join(task_work_dir, "task.json"), "w", encoding="ascii") as fp:
-            json.dump(desc, fp, sort_keys=True, indent=4)
+        with open(os.path.join(task_work_dir, "task.json"), "w", encoding="utf8") as fp:
+            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
         for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
             client_conf[name] = desc[name]
         # Property file may not be specified.
         if "property file" in desc:
             client_conf["property file"] = desc["property file"]
-        with open(os.path.join(task_work_dir, 'client.json'), 'w', encoding="ascii") as fp:
-            json.dump(client_conf, fp, sort_keys=True, indent=4)
+        with open(os.path.join(task_work_dir, 'client.json'), 'w', encoding="utf8") as fp:
+            json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
-        args = [client_bin, "TASK", json.dumps(client_conf)]
+        args = [client_bin, "TASK", json.dumps(client_conf, ensure_ascii=False, sort_keys=True, indent=4)]
 
         logging.debug("Start task: {}".format(str(args)))
 
@@ -228,7 +228,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Prepare command
         client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
-        args = [client_bin, "JOB", json.dumps(client_conf)]
+        args = [client_bin, "JOB", json.dumps(client_conf, ensure_ascii=False, sort_keys=True, indent=4)]
         logging.debug("Start job: {}".format(str(args)))
 
         return self.__pool.submit(subprocess.call, args)

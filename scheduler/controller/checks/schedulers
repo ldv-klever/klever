@@ -10,7 +10,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 import utils.bridge as bridge
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-with open(expect_file, encoding="ascii") as fh:
+with open(expect_file, encoding="utf8") as fh:
     conf = json.load(fh)
 
 # Sign in
@@ -30,7 +30,7 @@ if vc_out and vc_out != '':
     status["VerifierCloud"] = "HEALTHY"
 
 data = {
-    "statuses": json.dumps(status)
+    "statuses": json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
 }
 
 session.json_exchange("service/set_schedulers_status/", data)
@@ -41,7 +41,7 @@ session.sign_out()
 # Submit scheduler status to kv storage for debug
 session = consulate.Consul()
 try:
-    session.kv["schedulers"] = json.dumps(status)
+    session.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
     exit(0)
 except KeyError:
     print("Key-value storage is inaccessible.")

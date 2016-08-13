@@ -17,8 +17,8 @@ def solve_job(conf):
     conf = utils.common_initialization("Job executor client", conf)
 
     logging.debug("Create job configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -59,8 +59,8 @@ def solve_job(conf):
         raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
     # Save Klever Core configuration to default configuration file
-    with open("core.json", "w", encoding="ascii") as fh:
-        json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
+    with open("core.json", "w", encoding="utf8") as fh:
+        json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Import RunExec
     executor = RunExecutor()
@@ -105,8 +105,8 @@ def solve_task(conf):
     conf = utils.common_initialization("Task executor client", conf)
 
     logging.debug("Create task configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -148,7 +148,7 @@ def solve_task(conf):
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
     server.pull_task(conf["identifier"], "task files.tar.gz")
-    with tarfile.open("task files.tar.gz") as tar:
+    with tarfile.open("task files.tar.gz", encoding="utf8") as tar:
         tar.extractall()
 
     logging.info("Prepare benchmark")
@@ -168,7 +168,7 @@ def solve_task(conf):
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
         ElementTree.SubElement(tasks, "include").text = file
-    with open("benchmark.xml", "w", encoding="ascii") as fp:
+    with open("benchmark.xml", "w", encoding="utf8") as fp:
         fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
 
     os.makedirs("output")
@@ -224,10 +224,10 @@ def solve_task(conf):
                     else:
                         decision_results["status"] = value
     # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
-    with open("decision results.json", "w", encoding="ascii") as fp:
-        json.dump(decision_results, fp, sort_keys=True, indent=4)
+    with open("decision results.json", "w", encoding="utf8") as fp:
+        json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    with tarfile.open("decision result files.tar.gz", "w:gz") as tar:
+    with tarfile.open("decision result files.tar.gz", "w:gz", encoding="utf8") as tar:
         tar.add("decision results.json")
         for file in glob.glob("output/*"):
             tar.add(file)

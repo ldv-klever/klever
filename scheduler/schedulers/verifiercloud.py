@@ -159,8 +159,8 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         # TODO: Add more exceptions handling to make code more reliable
         with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
-                  encoding="ascii") as fp:
-            json.dump(description, fp, sort_keys=True, indent=4)
+                  encoding="utf8") as fp:
+            json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
         logging.debug("Prepare arguments of the task {}".format(identifier))
