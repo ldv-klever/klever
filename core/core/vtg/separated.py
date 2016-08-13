@@ -158,7 +158,7 @@ class SeparatedStrategy(CommonStrategy):
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
             with open('task.json', 'w', encoding='utf8') as fp:
-                json.dump(self.task_desc, fp, sort_keys=True, indent=4)
+                json.dump(self.task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
         self.decide_verification_task(bug_kind)

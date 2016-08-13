@@ -117,7 +117,7 @@ class Command:
                     break
 
             with open(full_desc_file, 'w', encoding='utf8') as fp:
-                json.dump(full_desc, fp, sort_keys=True, indent=4)
+                json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -138,7 +138,7 @@ class Command:
                 break
 
         with open(self.desc_file, 'w', encoding='utf8') as fp:
-            json.dump(desc, fp, sort_keys=True, indent=4)
+            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def enqueue(self):
         with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:

@@ -133,7 +133,7 @@ class Job(core.utils.CallbacksCaller):
                                 'Components configuration file "conf.json" already exists')
                         self.logger.debug('Create components configuration file "conf.json"')
                         with open('conf.json', 'w', encoding='utf8') as fp:
-                            json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+                            json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                     core.utils.report(self.logger,
                                       'start',
@@ -252,7 +252,7 @@ class Job(core.utils.CallbacksCaller):
                     'Components common configuration file "components common conf.json" already exists')
             self.logger.debug('Create components common configuration file "components common conf.json"')
             with open('components common conf.json', 'w', encoding='utf8') as fp:
-                json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+                json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def get_sub_jobs(self):
         self.logger.info('Get job sub-jobs')

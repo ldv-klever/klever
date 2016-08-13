@@ -514,7 +514,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
     with open(report_file, 'w', encoding='utf8') as fp:
-        json.dump(report, fp, sort_keys=True, indent=4)
+        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
 

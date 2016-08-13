@@ -281,7 +281,7 @@ class SA(core.avtg.plugins.Plugin):
 
     def _save_collection(self, km_file):
         with open(km_file, "w", encoding="utf8") as km_fh:
-            json.dump(self.collection, km_fh, sort_keys=True, indent=4)
+            json.dump(self.collection, km_fh, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _process_collection(self):
         self.logger.info("Process collection according to provided options")

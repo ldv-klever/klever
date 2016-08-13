@@ -298,7 +298,7 @@ class RSG(core.avtg.plugins.Plugin):
                              self.conf['model CC options']] +
                             ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
-                    }, fp, sort_keys=True, indent=4)
+                    }, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                 cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
                                                                                self.conf['main working directory'])

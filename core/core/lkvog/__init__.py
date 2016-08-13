@@ -315,7 +315,7 @@ class LKVOG(core.components.Component):
             self.module['name'], self.verification_obj_desc_file))
         os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
-            json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+            json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Count the number of successfully generated verification object descriptions.
         self.verification_obj_desc_num += 1
