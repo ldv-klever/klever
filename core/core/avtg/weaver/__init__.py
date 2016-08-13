@@ -21,7 +21,7 @@ class Weaver(core.avtg.plugins.Plugin):
                 if 'cc full desc file' in cc_extra_full_desc_file:
                     with open(os.path.join(self.conf['main working directory'],
                                            cc_extra_full_desc_file['cc full desc file']),
-                              encoding='ascii') as fp:
+                              encoding='utf8') as fp:
                         cc_full_desc = json.load(fp)
 
                     self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))

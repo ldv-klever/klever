@@ -77,7 +77,7 @@ class SeparatedStrategy(CommonStrategy):
                     if match:
                         is_incomplete = False
             if is_incomplete:
-                with open('unsafe-incomplete.txt', 'w', encoding='ascii') as fp:
+                with open('unsafe-incomplete.txt', 'w', encoding='utf8') as fp:
                     fp.write('Unsafe-incomplete')
                 core.utils.report(self.logger,
                                   'unknown',
@@ -108,7 +108,7 @@ class SeparatedStrategy(CommonStrategy):
             if len(self.conf['abstract task desc']['entry points']) > 1:
                 raise NotImplementedError('Several entry points are not supported')
 
-            with open('unreach-call.prp', 'w', encoding='ascii') as fp:
+            with open('unreach-call.prp', 'w', encoding='utf8') as fp:
                 fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                     self.conf['abstract task desc']['entry points'][0]))
 
@@ -157,7 +157,7 @@ class SeparatedStrategy(CommonStrategy):
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
-            with open('task.json', 'w', encoding='ascii') as fp:
+            with open('task.json', 'w', encoding='utf8') as fp:
                 json.dump(self.task_desc, fp, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
@@ -195,7 +195,7 @@ class SeparatedStrategy(CommonStrategy):
 
                 self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-                with open('task error.txt', 'w', encoding='ascii') as fp:
+                with open('task error.txt', 'w', encoding='utf8') as fp:
                     fp.write(task_error)
 
                 core.utils.report(self.logger,
@@ -220,7 +220,7 @@ class SeparatedStrategy(CommonStrategy):
                 with tarfile.open("decision result files.tar.gz") as tar:
                     tar.extractall()
 
-                with open('decision results.json', encoding='ascii') as fp:
+                with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind if bug_kind else '')

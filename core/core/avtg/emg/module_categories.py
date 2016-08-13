@@ -318,7 +318,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #self.logger.info("First convert specification to json and then save")
         #content = json.dumps(self, indent=4, sort_keys=True, cls=SpecEncoder)
         #
-        #with open(file, "w", encoding="ascii") as fh:
+        #with open(file, "w", encoding="utf8") as fh:
         #    fh.write(content)
 
     ####################################################################################################################

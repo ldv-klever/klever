@@ -21,8 +21,8 @@ class MPVBK(MPV):
                     counter += 1
                     preprocessed_automaton = "{0}.{1}.spc".format(automaton, bug_kind)
 
-                    with open(preprocessed_automaton, 'w', encoding='ascii') as fp_out, \
-                        open(automaton, encoding='ascii') as fp_in:
+                    with open(preprocessed_automaton, 'w', encoding='utf8') as fp_out, \
+                        open(automaton, encoding='utf8') as fp_in:
                         for line in fp_in:
                             res = re.search(r'ERROR\(\"(.+)\"\);', line)
                             if res:

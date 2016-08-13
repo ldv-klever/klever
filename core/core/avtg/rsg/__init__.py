@@ -174,8 +174,8 @@ class RSG(core.avtg.plugins.Plugin):
                     preprocessed_automaton = '{0}.{1}.spc'.format(
                         automaton_short,
                         re.sub(r'\W', '_', model['rule specification identifier']))
-                    with open(automaton, encoding='ascii') as fp_in, \
-                            open(preprocessed_automaton, 'w', encoding='ascii') as fp_out:
+                    with open(automaton, encoding='utf8') as fp_in, \
+                            open(preprocessed_automaton, 'w', encoding='utf8') as fp_out:
                         for line in fp_in:
                             fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
                                                 re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|'
@@ -282,7 +282,7 @@ class RSG(core.avtg.plugins.Plugin):
                     os.path.splitext(os.path.basename(model['bug kinds preprocessed C file']))[0], suffix))
 
                 self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
-                with open(full_desc_file, 'w', encoding='ascii') as fp:
+                with open(full_desc_file, 'w', encoding='utf8') as fp:
                     json.dump({
                         'cwd': self.conf['shadow source tree'],
                         # Input and output file paths should be relative to source tree root since compilation options

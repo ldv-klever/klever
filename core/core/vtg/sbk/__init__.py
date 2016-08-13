@@ -35,7 +35,7 @@ class SBK(SeparatedStrategy):
                         original_automaton = extra_c_file['automaton']
                         automaton_name = bug_kind + ".spc"
                         self.automaton_file = automaton_name
-                        with open(automaton_name, 'w', encoding='ascii') as fp_out, \
+                        with open(automaton_name, 'w', encoding='utf8') as fp_out, \
                                 open(original_automaton) as fp_in:
                             for line in fp_in:
                                 res = re.search(r'ERROR\(\"(.+)\"\);', line)

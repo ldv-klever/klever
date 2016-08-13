@@ -62,7 +62,7 @@ class Core(core.utils.CallbacksCaller):
             self.exit_code = 1
         except Exception:
             if self.mqs:
-                with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                with open('problem desc.txt', 'w', encoding='utf8') as fp:
                     traceback.print_exc(file=fp)
 
                 if os.path.isfile('problem desc.txt'):
@@ -140,7 +140,7 @@ class Core(core.utils.CallbacksCaller):
         conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(conf_file, encoding='ascii') as fp:
+        with open(conf_file, encoding='utf8') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -171,7 +171,7 @@ class Core(core.utils.CallbacksCaller):
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='ascii')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
 
     def change_work_dir(self):
         # Change working directory forever.

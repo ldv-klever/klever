@@ -205,14 +205,14 @@ class LKBCE(core.components.Component):
                 if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
                         self.linux_kernel['prepared to build ext modules']:
                     with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
-                              encoding='ascii') as fp:
+                              encoding='utf8') as fp:
                         fp.write(self.linux_kernel['conf'])
 
             if build_target[0] == 'modules_prepare':
                 self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
-        with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='ascii') as fp:
+        with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='utf8') as fp:
             fp.write('\n')
 
     def extract_all_linux_kernel_mod_deps_function(self):
@@ -284,7 +284,7 @@ class LKBCE(core.components.Component):
     def check_preparation_for_building_external_modules(self):
         prepared_ext_modules_conf_file = os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf')
         if 'external modules' in self.conf['Linux kernel'] and os.path.isfile(prepared_ext_modules_conf_file):
-            with open(prepared_ext_modules_conf_file, encoding='ascii') as fp:
+            with open(prepared_ext_modules_conf_file, encoding='utf8') as fp:
                 if fp.readline().rstrip() == self.linux_kernel['conf']:
                     self.linux_kernel['prepared to build ext modules'] = True
 
@@ -431,7 +431,7 @@ class LKBCE(core.components.Component):
         while True:
             time.sleep(1)
 
-            with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'r+', encoding='ascii') as fp:
+            with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'r+', encoding='utf8') as fp:
                 # Move to previous end of file.
                 fp.seek(offset)
 

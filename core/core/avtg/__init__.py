@@ -467,7 +467,7 @@ class AVTG(core.components.Component):
                 break
 
             with open(os.path.join(self.conf['main working directory'], verification_obj_desc_file),
-                      encoding='ascii') as fp:
+                      encoding='utf8') as fp:
                 verification_obj_desc = json.load(fp)
 
             if not self.rule_spec_descs:
@@ -538,7 +538,7 @@ class AVTG(core.components.Component):
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
-                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='ascii') as fh:
+                with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fh:
                     command = json.load(fh)
                 in_file = command['in files'][0]
                 grp['cc extra full desc files'].append({'cc full desc file': cc_full_desc_file, "in file": in_file})

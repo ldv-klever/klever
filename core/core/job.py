@@ -132,7 +132,7 @@ class Job(core.utils.CallbacksCaller):
                             raise FileExistsError(
                                 'Components configuration file "conf.json" already exists')
                         self.logger.debug('Create components configuration file "conf.json"')
-                        with open('conf.json', 'w', encoding='ascii') as fp:
+                        with open('conf.json', 'w', encoding='utf8') as fp:
                             json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
 
                     core.utils.report(self.logger,
@@ -188,7 +188,7 @@ class Job(core.utils.CallbacksCaller):
             except Exception:
                 if self.name:
                     if self.mqs:
-                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                        with open('problem desc.txt', 'w', encoding='utf8') as fp:
                             traceback.print_exc(file=fp)
 
                         if os.path.isfile('problem desc.txt'):
@@ -232,14 +232,14 @@ class Job(core.utils.CallbacksCaller):
 
     def get_class(self):
         self.logger.info('Get job class')
-        with open(self.CLASS_FILE, encoding='ascii') as fp:
+        with open(self.CLASS_FILE, encoding='utf8') as fp:
             self.type = fp.read()
         self.logger.debug('Job class is "{0}"'.format(self.type))
 
     def get_common_components_conf(self, core_conf):
         self.logger.info('Get components common configuration')
 
-        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
+        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='utf8') as fp:
             self.components_common_conf = json.load(fp)
 
         # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
@@ -251,7 +251,7 @@ class Job(core.utils.CallbacksCaller):
                 raise FileExistsError(
                     'Components common configuration file "components common conf.json" already exists')
             self.logger.debug('Create components common configuration file "components common conf.json"')
-            with open('components common conf.json', 'w', encoding='ascii') as fp:
+            with open('components common conf.json', 'w', encoding='utf8') as fp:
                 json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
 
     def get_sub_jobs(self):

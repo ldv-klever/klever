@@ -51,7 +51,7 @@ class EMG(core.avtg.plugins.Plugin):
         vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
         if 'EMG instances' in self.conf:
             with open(core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                                  self.conf['EMG instances']), encoding='ascii') as fp:
+                                                  self.conf['EMG instances']), encoding='utf8') as fp:
                 emg_instances = json.load(fp)
             if vo_identifier in emg_instances:
                 tr.instance_maps = emg_instances[vo_identifier]
@@ -118,7 +118,7 @@ class EMG(core.avtg.plugins.Plugin):
                 for file in files:
                     self.logger.info("Search for {} file {}".format(file, file_type))
                     path = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
-                    with open(path, encoding="ascii") as fh:
+                    with open(path, encoding="utf8") as fh:
                         lines.extend(fh.readlines())
                     lines.append("\n")
             self.logger.info("{} additional {} files are successfully imported for further importing in the model".
@@ -134,7 +134,7 @@ class EMG(core.avtg.plugins.Plugin):
             analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
             self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
 
-            with open(analysis_file, encoding="ascii") as fh:
+            with open(analysis_file, encoding="utf8") as fh:
                 analysis = json.loads(fh.read())
         else:
             self.logger.warning("Cannot find any results of source analysis provided from SA plugin")
@@ -179,7 +179,7 @@ class EMG(core.avtg.plugins.Plugin):
         for file in files:
             if self.specification_extension_re.search(file):
                 logger.info("Import content of specification file {}".format(file))
-                with open(file, encoding="ascii") as fh:
+                with open(file, encoding="utf8") as fh:
                     spec = json.loads(fh.read())
 
                 logger.info("Going to analyze content of specification file {}".format(file))
@@ -212,7 +212,7 @@ class EMG(core.avtg.plugins.Plugin):
     def __get_json_content(self, conf, prop):
         file = self.__get_path(conf, prop)
         if file:
-            with open(file, encoding="ascii") as fh:
+            with open(file, encoding="utf8") as fh:
                 content = json.loads(fh.read())
             return content
         else:

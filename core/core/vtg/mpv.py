@@ -187,7 +187,7 @@ class MPV(CommonStrategy):
 
     def process_global_error(self, task_error):
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
-        with open('task error.txt', 'w', encoding='ascii') as fp:
+        with open('task error.txt', 'w', encoding='utf8') as fp:
             fp.write(task_error)
         core.utils.report(self.logger,
                           'unknown',
@@ -230,7 +230,7 @@ class MPV(CommonStrategy):
                 with tarfile.open("decision result files.tar.gz") as tar:
                     tar.extractall()
 
-                with open('decision results.json', encoding='ascii') as fp:
+                with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification'.format(self.id)
@@ -240,7 +240,7 @@ class MPV(CommonStrategy):
                 results = {}
                 is_stats_found = False
                 log_file = self.get_verifier_log_file(False)
-                with open(log_file, encoding='ascii') as fp:
+                with open(log_file, encoding='utf8') as fp:
                     for line in fp:
                         result = re.search(self.verifier_results_regexp, line)
                         if result:

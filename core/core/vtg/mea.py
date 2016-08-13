@@ -185,7 +185,7 @@ class MEA:
             stored_error_traces_for_bug_kind = []
 
         # Prepare internal representation of model functions call tree for the selected error trace.
-        with open(new_error_trace, encoding='ascii') as fp:
+        with open(new_error_trace, encoding='utf8') as fp:
             try:
                 dom = minidom.parse(fp)
             except:

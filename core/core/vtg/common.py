@@ -445,7 +445,7 @@ class CommonStrategy(core.components.Component):
         else:
             # Prepare file to send it with unknown report.
             if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                with open('error.txt', 'w', encoding='ascii') as fp:
+                with open('error.txt', 'w', encoding='utf8') as fp:
                     fp.write(decision_results['status'])
             else:
                 log_file = self.get_verifier_log_file(False)

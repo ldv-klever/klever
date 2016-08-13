@@ -28,7 +28,7 @@ class BATCH(SBT):
         automaton_name = self.conf['abstract task desc']['attrs'][1]['rule specification'] + ".spc"
         self.automaton_file = automaton_name
 
-        with open(automaton_name, 'w', encoding='ascii') as fp:
+        with open(automaton_name, 'w', encoding='utf8') as fp:
             for line in united_automaton:
                 fp.write('{0}'.format(line))
         self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})

@@ -253,7 +253,7 @@ class MAV(CommonStrategy):
                         is_incomplete = True
             if is_incomplete:
                 name = 'unsafe-incomplete{0}.txt'.format(bug_kind)
-                with open(name, 'w', encoding='ascii') as fp:
+                with open(name, 'w', encoding='utf8') as fp:
                     fp.write('Unsafe-incomplete')
                 core.utils.report(self.logger,
                                   'unknown',
@@ -272,7 +272,7 @@ class MAV(CommonStrategy):
 
     def process_global_error(self, task_error):
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
-        with open('task error.txt', 'w', encoding='ascii') as fp:
+        with open('task error.txt', 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
         core.utils.report(self.logger,
@@ -326,7 +326,7 @@ class MAV(CommonStrategy):
                 with tarfile.open("decision result files.tar.gz") as tar:
                     tar.extractall()
 
-                with open('decision results.json', encoding='ascii') as fp:
+                with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)
 
                 verification_report_id = '{0}/verification{1}'.format(self.id, iteration)
@@ -335,7 +335,7 @@ class MAV(CommonStrategy):
                 # Parse file with results.
                 is_new_verdicts = False
                 try:
-                    with open(self.path_to_file_with_results, encoding='ascii') as fp:
+                    with open(self.path_to_file_with_results, encoding='utf8') as fp:
                         for line in fp:
                             result = re.search(self.verifier_results_regexp, line)
                             if result:
@@ -358,7 +358,7 @@ class MAV(CommonStrategy):
 
                 except FileNotFoundError:
                     log_file = self.get_verifier_log_file()
-                    with open(log_file, encoding='ascii') as fp:
+                    with open(log_file, encoding='utf8') as fp:
                         content = fp.readlines()
                     task_error = content
                     self.process_global_error(task_error)

@@ -1752,7 +1752,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 name = "aspects/ldv_{}.aspect".format(os.path.splitext(
                     os.path.basename(cc_extra_full_desc_file["in file"]))[0])
-                with open(name, "w", encoding="ascii") as fh:
+                with open(name, "w", encoding="utf8") as fh:
                     fh.writelines(lines)
 
                 path = os.path.relpath(name, self.conf['main working directory'])

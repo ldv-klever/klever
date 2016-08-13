@@ -30,7 +30,7 @@ class ASE(core.avtg.plugins.Plugin):
             if os.path.isfile(arg_signs_file):
                 self.logger.info('Process obtained argument signatures from file "{0}"'.format(arg_signs_file))
                 # We could obtain the same argument signatures, so remove duplicates.
-                with open(arg_signs_file, encoding='ascii') as fp:
+                with open(arg_signs_file, encoding='utf8') as fp:
                     arg_signs = set(fp.read().splitlines())
                 self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
@@ -68,7 +68,7 @@ class ASE(core.avtg.plugins.Plugin):
 
                 for cc_extra_full_desc_file in grp['cc extra full desc files']:
                     with open(os.path.join(self.conf['main working directory'],
-                                           cc_extra_full_desc_file['cc full desc file']), encoding='ascii') as fp:
+                                           cc_extra_full_desc_file['cc full desc file']), encoding='utf8') as fp:
                         cc_full_desc = json.load(fp)
 
                     self.logger.info('Request argument signatures for C file "{0}"'.format(cc_full_desc['in files'][0]))

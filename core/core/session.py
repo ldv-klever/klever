@@ -58,7 +58,7 @@ class Session:
 
     def start_job_decision(self, job, start_report_file):
         # TODO: report is likely should be compressed.
-        with open(start_report_file, encoding='ascii') as fp:
+        with open(start_report_file, encoding='utf8') as fp:
             resp = self.__request('jobs/decide_job/', {
                 'job format': job.FORMAT,
                 'report': fp.read()
@@ -99,7 +99,7 @@ class Session:
 
     def upload_report(self, report, archive=None):
         # TODO: report is likely should be compressed.
-        with open(report, encoding='ascii') as fp:
+        with open(report, encoding='utf8') as fp:
             if archive:
                 self.__request('reports/upload/',
                                {'report': fp.read()},

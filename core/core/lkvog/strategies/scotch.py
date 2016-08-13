@@ -108,7 +108,7 @@ class Scotch(AbstractStrategy):
         self.logger.debug("Import partitioning results from the file")
 
         partitioning = {}
-        with open(self.scotch_out, encoding='ascii') as fp:
+        with open(self.scotch_out, encoding='utf8') as fp:
             lines = fp.readlines()
             for line in lines[1:]:
                 line = line.rstrip("\n")
