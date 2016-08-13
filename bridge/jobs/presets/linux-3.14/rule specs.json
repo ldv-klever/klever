@@ -550,6 +550,15 @@
       ]},
       "RSG": {"models": {"$linux/clk1.c": {"bug kinds": ["linux:clk1::more at exit"]}}}
     },
+    "linux:dma": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/dma.c": { "bug kinds": [
+        "linux:dma::more initial at exit",
+        "linux:dma::double map",
+        "linux:dma::unmap before map"
+      ]}}}
+    },
     "linux:clk2": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
