@@ -75,7 +75,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
         User.objects.create_user(username='service2', password='service2')
@@ -83,7 +84,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
 

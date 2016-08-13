@@ -52,7 +52,8 @@ class UploadReport(object):
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
                     or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                return 'Resources have wrong format: %s' % json.dumps(data['resources'])
+                return 'Resources have wrong format: %s' % json.dumps(data['resources'], ensure_ascii=False,
+                                                                      sort_keys=True, indent=4)
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
@@ -241,7 +242,9 @@ class UploadReport(object):
             report.finish_date = report.start_date
 
         if 'comp' in self.data:
-            report.computer = Computer.objects.get_or_create(description=json.dumps(self.data['comp']))[0]
+            report.computer = Computer.objects.get_or_create(description=json.dumps(self.data['comp'],
+                                                                                    ensure_ascii=False, sort_keys=True,
+                                                                                    indent=4))[0]
         else:
             report.computer = self.parent.computer
 

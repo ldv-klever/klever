@@ -60,7 +60,7 @@ WSGI_APPLICATION = 'bridge.wsgi.application'
 
 # In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2" or "django.db.backends.mysql"
 DATABASES = {
-    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'))),
+    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
 }
 
 LANGUAGE_CODE = 'en-us'

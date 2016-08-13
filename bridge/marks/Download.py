@@ -41,7 +41,7 @@ class CreateMarkTar(object):
             t.size = len(file_content)
             jobtar.addfile(t, BytesIO(file_content))
 
-        marktar_obj = tarfile.open(fileobj=self.tempfile, mode='w:gz')
+        marktar_obj = tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8')
         for markversion in self.mark.versions.all():
             version_data = {
                 'status': markversion.status,
@@ -67,7 +67,8 @@ class CreateMarkTar(object):
                         'value': attr.attr.value,
                         'is_compare': attr.is_compare
                     })
-            write_file_str(marktar_obj, 'version-%s' % markversion.version, json.dumps(version_data))
+            write_file_str(marktar_obj, 'version-%s' % markversion.version,
+                           json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4))
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -76,7 +77,7 @@ class CreateMarkTar(object):
         }
         if self.type == 'unknown':
             common_data['component'] = self.mark.component.name
-        write_file_str(marktar_obj, 'markdata', json.dumps(common_data))
+        write_file_str(marktar_obj, 'markdata', json.dumps(common_data, ensure_ascii=False, sort_keys=True, indent=4))
         if self.type == 'unsafe':
             marktar_obj.add(os.path.join(settings.MEDIA_ROOT, self.mark.error_trace.file.name), arcname='error-trace')
         marktar_obj.close()
@@ -93,7 +94,7 @@ class AllMarksTar(object):
         self.name = 'Marks--%s-%s-%s.tar.gz' % (curr_time.day, curr_time.month, curr_time.year)
 
     def __create_tar(self):
-        with tarfile.open(fileobj=self.tempfile, mode='w:gz') as arch:
+        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as arch:
             for mark in MarkSafe.objects.all():
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
@@ -282,7 +283,7 @@ class ReadTarMark(object):
                 return 0
 
         inmemory = BytesIO(self.tar_arch.read())
-        marktar_file = tarfile.open(fileobj=inmemory, mode='r')
+        marktar_file = tarfile.open(fileobj=inmemory, mode='r', encoding='utf8')
         mark_data = None
         err_trace = None
 

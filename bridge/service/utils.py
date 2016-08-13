@@ -65,7 +65,7 @@ class ScheduleTask(object):
         self.progress.save()
         new_description = json.loads(task.description.decode('utf8'))
         new_description['id'] = task.pk
-        task.description = json.dumps(new_description).encode('utf8')
+        task.description = json.dumps(new_description, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         task.save()
         return task.pk
 
@@ -512,7 +512,7 @@ class GetTasks(object):
                 elif progress.job.status == JOB_STATUS[6][0]:
                     new_data['jobs']['cancelled'].append(progress.job.identifier)
         try:
-            return json.dumps(new_data)
+            return json.dumps(new_data, ensure_ascii=False, sort_keys=True, indent=4)
         except ValueError:
             self.error = "Can't dump json data"
             return None
@@ -926,12 +926,12 @@ class StartJobDecision(object):
         return SolvingProgress.objects.create(
             job=self.job, priority=self.data[0][0],
             scheduler=self.job_scheduler,
-            configuration=json.dumps(self.klever_core_data).encode('utf8')
+            configuration=json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         )
 
     def __save_configuration(self):
         m = BytesIO()
-        m.write(json.dumps(self.klever_core_data, sort_keys=True, indent=4).encode('utf8'))
+        m.write(json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
         m.seek(0)
         check_sum = file_checksum(m)
         try:

@@ -112,7 +112,7 @@ class MarkChangesTable(object):
             'mark_id': self.mark.pk,
             'columns': self.columns,
             'values': self.values
-        })
+        }, ensure_ascii=False, sort_keys=True, indent=4)
         cache.save()
         return cache.identifier
 

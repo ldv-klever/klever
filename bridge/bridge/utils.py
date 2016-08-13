@@ -126,7 +126,7 @@ def extract_tar_temp(archive):
         for chunk in archive.chunks():
             fp.write(chunk)
         fp.seek(0)
-        with tarfile.open(fileobj=fp, mode='r:gz') as tar:
+        with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
             tmp_dir_name = tempfile.TemporaryDirectory()
             tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
@@ -179,7 +179,7 @@ class ArchiveFileContent(object):
 
     def __extract_file_content(self):
         with File.objects.get(pk=self._file.pk).file as fp:
-            with tarfile.open(fileobj=fp, mode='r:gz') as arch:
+            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
                 for f in arch.getmembers():
                     if f.isreg():
                         if self._name is not None and f.name != self._name:

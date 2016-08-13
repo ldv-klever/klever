@@ -522,14 +522,16 @@ def get_tag_parents(request):
         return JsonResponse({'error': 'Unknown error'})
     if 'tag_id' not in request.POST:
         if request.POST['tag_type'] == 'unsafe':
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')))})
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
+                                                       ensure_ascii=False, sort_keys=True, indent=4)})
         else:
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')))})
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
+                                                       ensure_ascii=False, sort_keys=True, indent=4)})
     res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
     if res.error is not None:
         return JsonResponse({'error': str(res.error)})
     return JsonResponse({
-        'parents': json.dumps(res.parents_ids),
+        'parents': json.dumps(res.parents_ids, ensure_ascii=False, sort_keys=True, indent=4),
         'current': res.tag.parent_id if res.tag.parent_id is not None else 0
     })
 
@@ -597,8 +599,8 @@ def get_tags_data(request):
     if res.error is not None:
         return JsonResponse({'error': str(res.error)})
     return JsonResponse({
-        'available': json.dumps(res.available),
-        'selected': json.dumps(res.selected),
+        'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
+        'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
         'tree': get_template('marks/MarkTagsTree.html').render({
             'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
         })
@@ -618,7 +620,7 @@ def download_tags(request, tags_type):
             tag_data['parent'] = tag.parent.tag
         tags_data.append(tag_data)
     fp = BytesIO()
-    fp.write(json.dumps(tags_data, sort_keys=True, indent=4).encode('utf8'))
+    fp.write(json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
     fp.seek(0)
     tags_file_name = 'Tags-%s.json' % tags_type
     mimetype = mimetypes.guess_type(os.path.basename(tags_file_name))[0]

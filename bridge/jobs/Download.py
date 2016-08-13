@@ -51,7 +51,7 @@ class KleverCoreDownloadJob(object):
                     'src': src
                 })
 
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8')
         write_file_str(jobtar_obj, 'format', str(job.format))
         for job_class in JOB_CLASSES:
             if job_class[0] == job.type:
@@ -84,10 +84,10 @@ class DownloadJob(object):
 
         files_in_tar = {}
         self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        with tarfile.open(fileobj=self.tempfile, mode='w:gz') as jobtar_obj:
+        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as jobtar_obj:
 
             def add_json(file_name, data):
-                file_content = json.dumps(data, indent=4).encode('utf-8')
+                file_content = json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
                 t = tarfile.TarInfo(file_name)
                 t.size = len(file_content)
                 jobtar_obj.addfile(t, BytesIO(file_content))
@@ -494,7 +494,7 @@ class UploadReports(object):
         ))
 
         from tools.utils import Recalculation
-        Recalculation('all', json.dumps([self.job.pk]))
+        Recalculation('all', json.dumps([self.job.pk], ensure_ascii=False, sort_keys=True, indent=4))
 
     def __create_report_component(self, data):
         parent = None

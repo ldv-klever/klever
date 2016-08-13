@@ -41,7 +41,8 @@ class ReportTree(object):
             for ma in main_attrs:
                 if ma.attr.name.name in self.attrs:
                     attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
+                                  indent=4)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {
                     'ids': [u.pk],
@@ -66,7 +67,8 @@ class ReportTree(object):
             for ma in main_attrs:
                 if ma.attr.name.name in self.attrs:
                     attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
+                                  indent=4)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {
                     'ids': [s.pk],
@@ -91,7 +93,8 @@ class ReportTree(object):
             for ma in main_attrs:
                 if ma.attr.name.name in self.attrs:
                     attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs))
+            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
+                                  indent=4)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {
                     'ids': [f.pk],
@@ -148,7 +151,7 @@ class CompareTree(object):
         CompareJobsInfo.objects.filter(user=self.user).delete()
         info = CompareJobsInfo.objects.create(
             user=self.user, root1=j1.reportroot, root2=j2.reportroot,
-            files_diff=json.dumps(CompareFileSet(j1, j2).data)
+            files_diff=json.dumps(CompareFileSet(j1, j2).data, ensure_ascii=False, sort_keys=True, indent=4)
         )
         for_cache = []
         for x in self.attr_values:
@@ -175,7 +178,8 @@ class CompareTree(object):
             for_cache.append(CompareJobsCache(
                 info=info, attr_values=x,
                 verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
-                reports1=json.dumps(ids1), reports2=json.dumps(ids2)
+                reports1=json.dumps(ids1, ensure_ascii=False, sort_keys=True, indent=4),
+                reports2=json.dumps(ids2, ensure_ascii=False, sort_keys=True, indent=4)
             ))
         CompareJobsCache.objects.bulk_create(for_cache)
 
@@ -265,7 +269,7 @@ class ComparisonData(object):
     def __get_data(self, verdict=None, search_attrs=None):
         if search_attrs is not None:
             try:
-                search_attrs = json.dumps(json.loads(search_attrs))
+                search_attrs = json.dumps(json.loads(search_attrs), ensure_ascii=False, sort_keys=True, indent=4)
             except ValueError:
                 self.error = 'Unknown error'
                 return None

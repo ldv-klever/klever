@@ -589,7 +589,7 @@ def download_jobs(request):
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
     arch_tmp = tempfile.TemporaryFile()
-    with tarfile.open(fileobj=arch_tmp, mode='w:gz') as jobs_archive:
+    with tarfile.open(fileobj=arch_tmp, mode='w:gz', encoding='utf8') as jobs_archive:
         for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
             if not JobAccess(request.user, job).can_download():
                 return HttpResponseRedirect(
