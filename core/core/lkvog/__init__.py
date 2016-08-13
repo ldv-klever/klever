@@ -16,7 +16,7 @@ import core.utils
 
 def before_launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
-    context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
+    context.mqs['Linux kernel build cmd desc files'] = multiprocessing.Queue()
     context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
@@ -28,13 +28,12 @@ def after_set_linux_kernel_attrs(context):
 
 
 def after_get_linux_kernel_build_cmd_desc(context):
-    with open(context.linux_kernel['build cmd desc file'], encoding='utf8') as fp:
-        context.mqs['Linux kernel build cmd descs'].put(json.load(fp))
+    context.mqs['Linux kernel build cmd desc files'].put(context.linux_kernel['build cmd desc file'])
 
 
 def after_get_all_linux_kernel_build_cmd_descs(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
-    context.mqs['Linux kernel build cmd descs'].put(None)
+    context.mqs['Linux kernel build cmd desc files'].put(None)
 
 
 class LKVOG(core.components.Component):
@@ -324,18 +323,21 @@ class LKVOG(core.components.Component):
         self.logger.info('Process all Linux kernel build command decriptions')
 
         while True:
-            desc = self.mqs['Linux kernel build cmd descs'].get()
+            desc_file = self.mqs['Linux kernel build cmd desc files'].get()
 
-            if desc is None:
+            if desc_file is None:
                 self.logger.debug('Linux kernel build command descriptions message queue was terminated')
-                self.mqs['Linux kernel build cmd descs'].close()
+                self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
                 self.linux_kernel_module_names_mq.put(None)
                 break
 
-            self.process_linux_kernel_build_cmd_desc(desc)
+            self.process_linux_kernel_build_cmd_desc(desc_file)
 
-    def process_linux_kernel_build_cmd_desc(self, desc):
+    def process_linux_kernel_build_cmd_desc(self, desc_file):
+        with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
+            desc = json.load(fp)
+
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
                                                                                  '(output file is {0})'.format(

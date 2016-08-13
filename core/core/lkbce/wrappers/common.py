@@ -142,7 +142,7 @@ class Command:
 
     def enqueue(self):
         with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
-            fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
+            fp.write(os.path.relpath(self.desc_file, os.environ['KLEVER_MAIN_WORK_DIR']) + '\n')
 
     def filter(self):
         # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
