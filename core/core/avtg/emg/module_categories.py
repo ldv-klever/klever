@@ -316,7 +316,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         raise NotImplementedError
         # todo: export specification (issue 6561)
         #self.logger.info("First convert specification to json and then save")
-        #content = json.dumps(self, cls=SpecEncoder)
+        #content = json.dumps(self, ensure_ascii=False, sort_keys=True, indent=4, cls=SpecEncoder)
         #
         #with open(file, "w", encoding="utf8") as fh:
         #    fh.write(content)

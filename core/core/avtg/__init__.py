@@ -506,7 +506,7 @@ class AVTG(core.components.Component):
                               'data': json.dumps({
                                     'total number of abstract verification task descriptions to be generated in ideal':
                                     self.abstract_task_descs_num.value
-                              })
+                              }, ensure_ascii=False, sort_keys=True, indent=4)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -620,7 +620,7 @@ class AVTG(core.components.Component):
                                       'data': json.dumps({
                                           'faulty generated abstract verification task descriptions':
                                               self.failed_abstract_task_desc_num.value
-                                      })
+                                      }, ensure_ascii=False, sort_keys=True, indent=4)
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'],

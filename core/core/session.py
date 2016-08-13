@@ -71,7 +71,7 @@ class Session:
 
     def schedule_task(self, task_desc):
         resp = self.__request('service/schedule_task/',
-                              {'description': json.dumps(task_desc)},
+                              {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
                               files={'file': open('task files.tar.gz', 'rb')})
         return resp.json()['task id']
 

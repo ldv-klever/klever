@@ -72,7 +72,7 @@ class LKVOG(core.components.Component):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(self.loc)
+                              'data': json.dumps(self.loc, ensure_ascii=False, sort_keys=True, indent=4)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])

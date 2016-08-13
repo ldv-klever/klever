@@ -172,7 +172,7 @@ class SeparatedStrategy(CommonStrategy):
                               'id': self.id,
                               'data': json.dumps({
                                   'the number of verification tasks prepared for abstract verification task': 1
-                              })
+                              }, ensure_ascii=False, sort_keys=True, indent=4)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])

@@ -88,7 +88,7 @@ class EMG(core.avtg.plugins.Plugin):
         instance_map_file = 'instance map.json'
         self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
         with open(instance_map_file, "w", encoding="utf8") as fh:
-            fh.writelines(json.dumps(tr.instance_maps, sort_keys=True, indent=4))
+            fh.writelines(json.dumps(tr.instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
         # Send data to the server
         self.logger.info("Send data on generated instances to server")
@@ -97,7 +97,8 @@ class EMG(core.avtg.plugins.Plugin):
                           {
                               'id': self.id,
                               'data': json.dumps(
-                                  {self.abstract_task_desc['attrs'][0]['verification object']: tr.instance_maps}
+                                  {self.abstract_task_desc['attrs'][0]['verification object']: tr.instance_maps},
+                                  ensure_ascii=False, sort_keys=True, indent=4
                               )
                           },
                           self.mqs['report files'],

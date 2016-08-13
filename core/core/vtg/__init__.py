@@ -187,7 +187,7 @@ class VTG(core.components.Component):
                                           'data': json.dumps({
                                               'faulty processed abstract verification task descriptions':
                                                   self.faulty_processed_abstract_task_descs_num.value
-                                          })
+                                          }, ensure_ascii=False, sort_keys=True, indent=4)
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'],
