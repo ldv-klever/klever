@@ -36,7 +36,7 @@ class SBK(SeparatedStrategy):
                         automaton_name = bug_kind + ".spc"
                         self.automaton_file = automaton_name
                         with open(automaton_name, 'w', encoding='utf8') as fp_out, \
-                                open(original_automaton) as fp_in:
+                                open(original_automaton, encoding='utf8') as fp_in:
                             for line in fp_in:
                                 res = re.search(r'ERROR\(\"(.+)\"\);', line)
                                 if res:
@@ -62,7 +62,7 @@ class SBK(SeparatedStrategy):
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
         # different bug kinds.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
             fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
                 re.sub(r'\W', '_', bug_kind)))

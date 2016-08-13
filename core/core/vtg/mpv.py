@@ -203,7 +203,7 @@ class MPV(CommonStrategy):
         self.verification_status = 'unknown'
 
     def get_violated_property(self, file):
-        for line in reversed(list(open(file))):
+        for line in reversed(list(open(file, encoding='utf8'))):
             result = re.search(r"<data key=\"violatedProperty\">(.*).spc</data>", line)
             if result:
                 return result.group(1)

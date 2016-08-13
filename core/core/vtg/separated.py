@@ -71,7 +71,7 @@ class SeparatedStrategy(CommonStrategy):
             # TODO: fix this.
             is_incomplete = True
             log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
+            with open(log_file, encoding='utf8') as fp:
                 for line in fp:
                     match = re.search(r'Verification result: FALSE', line)
                     if match:

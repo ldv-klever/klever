@@ -26,7 +26,7 @@ class MBK(MAV):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Create file with all checked asserts.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* This file was generated for Multi-Aspect Verification*/\n')
             for bug_kind, function in self.assert_function.items():
                 fp.write('void {0}{1}(void);\n'.format(self.error_function_prefix, function))

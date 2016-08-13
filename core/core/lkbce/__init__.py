@@ -71,7 +71,7 @@ class LKBCE(core.components.Component):
             self.configure_linux_kernel()
             # Always create Linux kernel raw build commands file prior to its reading in
             # self.process_all_linux_kernel_raw_build_cmds().
-            with open(self.linux_kernel['build cmd descs file'], 'w'):
+            with open(self.linux_kernel['build cmd descs file'], 'w', encoding='utf8'):
                 pass
 
             self.extract_module_files()
@@ -108,13 +108,13 @@ class LKBCE(core.components.Component):
         if 'module dependencies file' in self.conf['Linux kernel']:
             dependencies_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
                                                self.conf['Linux kernel']['module dependencies file'])
-            with open(dependencies_file) as fp:
+            with open(dependencies_file, encoding='utf8') as fp:
                 self.parse_linux_kernel_mod_function_deps(fp, True)
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
         if 'module sizes file' in self.conf['Linux kernel']:
             sizes_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
                                                      self.conf['Linux kernel']['module sizes file'])
-            with open(sizes_file) as fp:
+            with open(sizes_file, encoding='utf8') as fp:
                 self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands

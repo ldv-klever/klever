@@ -387,7 +387,7 @@ class LKVOG(core.components.Component):
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
         for cc_full_desc_file in cc_full_desc_files:
-            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
+            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
                 cc_full_desc = json.load(fp)
             for file in cc_full_desc['in files']:
                 # Simple file's line counter

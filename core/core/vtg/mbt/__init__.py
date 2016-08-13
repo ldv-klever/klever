@@ -42,7 +42,7 @@ class MBT(MAV):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Create file with all checked asserts.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* This file was generated for Multi-Aspect Verification*/\n')
             for rule_specification, bug_kinds in self.assert_to_bug_kinds.items():
                 error_function_for_rule_specification = "{0}".format(re.sub(r'\W', '_', rule_specification))

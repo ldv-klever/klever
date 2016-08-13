@@ -40,7 +40,7 @@ class SBT(SeparatedStrategy):
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
         # different bug kinds.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
             for bug_kind in bug_kinds:
                 fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(

@@ -115,7 +115,7 @@ class MAV(CommonStrategy):
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
-        with open(self.path_to_property_automata, 'w') as fp:
+        with open(self.path_to_property_automata, 'w', encoding='utf8') as fp:
             fp.write('//This file with property automaton was generated for Multi-Aspect Verification.\n')
             fp.write('CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n')
             fp.write('INITIAL STATE Init;\n')
@@ -241,7 +241,7 @@ class MAV(CommonStrategy):
             # TODO: fix this.
             is_incomplete = False
             log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
+            with open(log_file, encoding='utf8') as fp:
                 for line in fp:
                     match = re.search(r'Assert \[(.+)\] has exhausted its', line)
                     if match:
@@ -294,7 +294,7 @@ class MAV(CommonStrategy):
             self.assert_function.__delitem__(assertion)
 
     def get_violated_property(self, file):
-        for line in reversed(list(open(file))):
+        for line in reversed(list(open(file, encoding='utf8'))):
             result = re.search(r"<data key=\"violatedProperty\">(.*)</data>", line)
             if result:
                 return result.group(1)

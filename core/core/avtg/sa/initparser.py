@@ -57,7 +57,7 @@ def extract_list(tokens, index, level):
 
 
 def parse_initializations(file):
-    with open(file) as fd:
+    with open(file, encoding='utf8') as fd:
         text = fd.read()
     string_tokens = re.sub('\n([ |\t]*(?:declaration|value|(?:field[ ]declaration)|(?:array[ ]element[ ]index))[:])',
                            '%klever_sep%\g<1>',
