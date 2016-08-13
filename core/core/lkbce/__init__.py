@@ -147,7 +147,7 @@ class LKBCE(core.components.Component):
                                 symlinks=True)
             elif os.path.isfile(self.linux_kernel['ext modules src']):
                 self.logger.debug('External Linux kernel modules source code is provided in form of archive')
-                with tarfile.open(self.linux_kernel['ext modules src']) as TarFile:
+                with tarfile.open(self.linux_kernel['ext modules src'], encoding='utf8') as TarFile:
                     TarFile.extractall(self.linux_kernel['ext modules work src tree'])
 
             self.logger.info('Make canonical working source tree of external Linux kernel modules')
@@ -414,7 +414,7 @@ class LKBCE(core.components.Component):
                                            cwd=self.linux_kernel['work src tree'])
         elif os.path.isfile(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of archive')
-            with tarfile.open(self.linux_kernel['src']) as TarFile:
+            with tarfile.open(self.linux_kernel['src'], encoding='utf8') as TarFile:
                 TarFile.extractall(self.linux_kernel['work src tree'])
 
     def make_canonical_linux_kernel_work_src_tree(self):

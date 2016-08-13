@@ -135,7 +135,7 @@ class SeparatedStrategy(CommonStrategy):
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
-        with tarfile.open('task files.tar.gz', 'w:gz') as tar:
+        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
             if self.automaton_file:
                 tar.add(self.automaton_file)
             for file in self.task_desc['files']:
@@ -217,7 +217,7 @@ class SeparatedStrategy(CommonStrategy):
 
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz") as tar:
+                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
                     tar.extractall()
 
                 with open('decision results.json', encoding='utf8') as fp:

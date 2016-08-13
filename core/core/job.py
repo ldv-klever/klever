@@ -339,7 +339,7 @@ class Job(core.utils.CallbacksCaller):
 
     def extract_archive(self):
         self.logger.info('Extract job archive "{0}" to directory "{1}"'.format(self.ARCHIVE, self.DIR))
-        with tarfile.open(self.ARCHIVE) as TarFile:
+        with tarfile.open(self.ARCHIVE, encoding='utf8') as TarFile:
             TarFile.extractall(self.DIR)
 
     def launch_sub_job_components(self):

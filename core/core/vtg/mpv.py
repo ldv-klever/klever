@@ -100,7 +100,7 @@ class MPV(CommonStrategy):
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
-        with tarfile.open('task files.tar.gz', 'w:gz') as tar:
+        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
             for assertion, automaton in self.property_automata.items():
                 path_to_file = assertion + '.spc'
                 if os.path.isfile(path_to_file):
@@ -227,7 +227,7 @@ class MPV(CommonStrategy):
             if task_status == 'FINISHED':
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz") as tar:
+                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
                     tar.extractall()
 
                 with open('decision results.json', encoding='utf8') as fp:
