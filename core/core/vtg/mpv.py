@@ -42,6 +42,9 @@ class MPVStrategy(Enum):
     Relevance = [
         {"-setprop": "analysis.mpa.partition.operator=RelevanceThenIrrelevantThenRelevantOperator"}
     ]
+    Sep = [
+        {"-setprop": "analysis.mpa.partition.operator=OneForEachOperator"}
+    ]
 
 
 # This class implements Multi-Property Verification (MPV) strategies.
