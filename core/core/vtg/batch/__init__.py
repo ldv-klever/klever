@@ -25,6 +25,7 @@ class BATCH(SBT):
                     with open(original_automaton) as fp_in:
                         for line in fp_in:
                             fp_out.write('{0}'.format(line))
+                    fp_out.write('{0}'.format('\n'))
 
         self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})
         self.automaton_file = automaton_name
@@ -36,7 +37,7 @@ class BATCH(SBT):
             if 'bug kinds' in extra_c_file:
                 asserts += 1
 
-        # Set time limits for Separated strategy.
+        # Set time limits for BATCH strategy.
         time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point
         # Soft time limit.
         self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
