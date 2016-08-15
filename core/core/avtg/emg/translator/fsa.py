@@ -606,42 +606,41 @@ class Automaton:
                     label_params = []
                     cb_statements = []
 
-                    # Determine parameters
-                    for index in range(len(signature.points.parameters)):
-                        parameter = signature.points.parameters[index]
-
-                        if type(parameter) is not str:
-                            expression = None
-
-                            # Search access
-                            for access_parameter in st.action.parameters[index:]:
-                                accesses = self.process.resolve_access(access_parameter)
-                                for acc in accesses:
-                                    if acc.list_interface and len(acc.list_interface) > 0 and \
-                                            (acc.list_interface[-1].declaration.compare(parameter) or
-                                             acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                                        expression = acc.access_with_variable(
-                                            self.determine_variable(acc.label, acc.list_interface[0].identifier))
-                                        break
-                                if expression:
+                    # Try to match action parameters
+                    found_positions = dict()
+                    for label_index in range(len(st.action.parameters)):
+                        accesses = self.process.resolve_access(st.action.parameters[label_index])
+                        for acc in (a for a in accesses if a.list_interface and len(a.list_interface) > 0):
+                            for position in (p for p in list(range(len(signature.points.parameters)))[label_index:]
+                                             if p not in found_positions):
+                                parameter = signature.points.parameters[position]
+                                if (acc.list_interface[-1].declaration.compare(parameter) or
+                                        acc.list_interface[-1].declaration.pointer_alias(parameter)):
+                                    expression = acc.access_with_variable(
+                                        self.determine_variable(acc.label, acc.list_interface[0].identifier))
+                                    found_positions[position] = expression
                                     break
 
-                            # Generate new variable
-                            if not expression:
-                                if type(signature.points.parameters[index]) is not Primitive and \
-                                        type(signature.points.parameters[index]) is not Pointer:
-                                    param_signature = signature.points.parameters[index].take_pointer
-                                    pointer_params.append(index)
-                                else:
-                                    param_signature = signature.points.parameters[index]
+                    # Fulfil rest parameters
+                    for index in range(len(signature.points.parameters)):
+                        if type(signature.points.parameters[index]) is not str and index not in found_positions:
+                            if type(signature.points.parameters[index]) is not Primitive and \
+                                    type(signature.points.parameters[index]) is not Pointer:
+                                param_signature = signature.points.parameters[index].take_pointer
+                                pointer_params.append(index)
+                            else:
+                                param_signature = signature.points.parameters[index]
 
-                                lb, var = self.new_param("ldv_param_{}_{}".format(st.identifier, index),
-                                                         param_signature, None)
-                                label_params.append(lb)
-                                expression = var.name
+                            lb, var = self.new_param("ldv_param_{}_{}".format(st.identifier, index),
+                                                     param_signature, None)
+                            label_params.append(lb)
+                            expression = var.name
 
                             # Add string
-                            params.append(expression)
+                            found_positions[index] = expression
+
+                    # Print params
+                    params = [found_positions[i] for i in sorted(found_positions.keys())]
 
                     # Add precondition and postcondition
                     if len(label_params) > 0:
