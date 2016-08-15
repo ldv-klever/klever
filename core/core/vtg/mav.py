@@ -195,8 +195,8 @@ class MAV(CommonStrategy):
         # By default no preset is specified. In this case it is expected, that the user
         # will specify required limitation with verifier options.
         selected_preset = None
-        if 'mav_preset' in self.conf['VTG strategy']['verifier']:
-            specified_preset = self.conf['VTG strategy']['verifier']['mav_preset']
+        if 'MAV preset' in self.conf['VTG strategy']['verifier']:
+            specified_preset = self.conf['VTG strategy']['verifier']['MAV preset']
             for preset in MAVPreset:
                 if preset.name == specified_preset:
                     selected_preset = preset

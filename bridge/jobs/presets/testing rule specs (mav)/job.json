@@ -43,11 +43,11 @@
     "RSG strategy": "instrumentation",
     "common aspect": "linux/common.aspect",
     "VTG strategy": {
-      "name": "multiple aspect verification rules",
+      "name": "multi aspect verification rules",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",
-        "mav_preset": "L1",
+        "MAV preset": "L1",
         "relaunch": "external",
         "mea": false
       },
