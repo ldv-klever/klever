@@ -378,7 +378,7 @@ class MAV(CommonStrategy):
                 else:
                     # Verifier failed before even starting verification.
                     # Create only one Unknown report for strategy.
-                    log_file = self.get_verifier_log_file()
+                    log_file = self.get_verifier_log_file(False)
                     with open(log_file, encoding='ascii') as fp:
                         content = fp.readlines()
                     task_error = content
