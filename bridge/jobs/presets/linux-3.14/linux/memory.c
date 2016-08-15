@@ -19,7 +19,7 @@ void ldv_after_alloc(void *res)
 /* MODEL_FUNC_DEF Allocate a non zero "memory", but can return PTR_ERR. */
 void* ldv_nonzero_alloc(size_t size)
 {
-	void* res = ldv_malloc(size);
+	void *res = ldv_malloc(size);
 	ldv_after_alloc(res);
 	// Functions, like memdup_user returns either valid pointer, or ptr_err.
 	ldv_assume(res != 0);
@@ -42,6 +42,6 @@ void ldv_memory_free(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Nothing should be allocated at the end. */
-	ldv_assert("linux:alloc:resource:more at exit", ldv_alloc_count <= 0);
-	ldv_assert("linux:alloc:resource:less at exit", ldv_alloc_count >= 0);
+	ldv_assert("linux:alloc:resource::more at exit", ldv_alloc_count <= 0);
+	ldv_assert("linux:alloc:resource::less at exit", ldv_alloc_count >= 0);
 }

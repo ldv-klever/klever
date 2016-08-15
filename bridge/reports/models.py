@@ -24,6 +24,7 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
+    safes = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'report_root'
@@ -89,8 +90,8 @@ class ReportUnsafe(Report):
 
 
 class ReportSafe(Report):
-    archive = models.ForeignKey(File)
-    proof = models.CharField(max_length=128)
+    archive = models.ForeignKey(File, null=True)
+    proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
@@ -146,6 +147,17 @@ class ComponentResource(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_resource'
+
+
+class LightResource(models.Model):
+    report = models.ForeignKey(ReportRoot)
+    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
+    cpu_time = models.BigIntegerField()
+    wall_time = models.BigIntegerField()
+    memory = models.BigIntegerField()
+
+    class Meta:
+        db_table = 'cache_report_light_resource'
 
 
 class ComponentUnknown(models.Model):

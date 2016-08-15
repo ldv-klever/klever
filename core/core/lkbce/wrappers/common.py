@@ -73,7 +73,7 @@ class Command:
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
             os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
-            with core.utils.LockedOpen(dest_dep, 'a', encoding='ascii'):
+            with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
                         continue
@@ -116,8 +116,8 @@ class Command:
                 else:
                     break
 
-            with open(full_desc_file, 'w', encoding='ascii') as fp:
-                json.dump(full_desc, fp, sort_keys=True, indent=4)
+            with open(full_desc_file, 'w', encoding='utf8') as fp:
+                json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -137,12 +137,12 @@ class Command:
             else:
                 break
 
-        with open(self.desc_file, 'w', encoding='ascii') as fp:
-            json.dump(desc, fp, sort_keys=True, indent=4)
+        with open(self.desc_file, 'w', encoding='utf8') as fp:
+            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def enqueue(self):
-        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
-            fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
+        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
+            fp.write(os.path.relpath(self.desc_file, os.environ['KLEVER_MAIN_WORK_DIR']) + '\n')
 
     def filter(self):
         # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
@@ -185,7 +185,7 @@ class Command:
                 self.dump()
                 self.enqueue()
         except Exception:
-            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
+            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
                 fp.write('KLEVER FATAL ERROR\n')
             raise
 

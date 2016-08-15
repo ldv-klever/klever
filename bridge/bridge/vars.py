@@ -41,11 +41,7 @@ USER_ROLES = (
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Validation on Linux kernel modules')),
-    ('2', _('Verification of commits in Linux kernel Git repositories')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
-    ('4', _('Verification of C programs')),
-    ('5', _('Validation on C programs')),
 )
 
 COMPARE_VERDICT = (
@@ -381,20 +377,12 @@ TASK_STATUS = (
 MARKS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Rule specification', 'Verification object'],
     JOB_CLASSES[1][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[2][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[3][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[4][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[5][0]: ['Rule specification', 'Verification object'],
 }
 
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[2][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[3][0]: ['Commit', 'Verification object', 'Rule specification'],
-    JOB_CLASSES[4][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[5][0]: ['Verification object', 'Rule specification']
+    JOB_CLASSES[1][0]: ['Commit', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.

@@ -39,6 +39,11 @@ class MEA:
         self.logger.info('Checking for all violations of bug kinds by '
                          'means of Multiple Error Analysis')
 
+        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
+                self.conf['VTG strategy']['verifier']['options']:
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+
         # Internal Filter.
         if 'mea internal filter' in self.conf['VTG strategy']['verifier']:
             internal_filter = self.conf['VTG strategy']['verifier']['mea internal filter']
@@ -180,7 +185,7 @@ class MEA:
             stored_error_traces_for_bug_kind = []
 
         # Prepare internal representation of model functions call tree for the selected error trace.
-        with open(new_error_trace, encoding='ascii') as fp:
+        with open(new_error_trace, encoding='utf8') as fp:
             try:
                 dom = minidom.parse(fp)
             except:

@@ -159,7 +159,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('ascii').rstrip()
+                line = line.decode('utf8').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)
@@ -214,7 +214,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
-        with open('problem desc.txt', 'a', encoding='ascii') as fp:
+        with open('problem desc.txt', 'a', encoding='utf8') as fp:
             fp.write('\n'.join(err_q.output))
         raise CommandError('"{0}" failed'.format(cmd))
 
@@ -371,7 +371,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log.txt', encoding='ascii')
+            handler = logging.FileHandler('log.txt', encoding='utf8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -501,7 +501,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     if 'files' in report and report['files']:
         report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        with tarfile.open(report_files_archive, 'w:gz') as tar:
+        with tarfile.open(report_files_archive, 'w:gz', encoding='utf8') as tar:
             for file in report['files']:
                 tar.add(file)
         del (report['files'])
@@ -513,8 +513,8 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-    with open(report_file, 'w', encoding='ascii') as fp:
-        json.dump(report, fp, sort_keys=True, indent=4)
+    with open(report_file, 'w', encoding='utf8') as fp:
+        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
 

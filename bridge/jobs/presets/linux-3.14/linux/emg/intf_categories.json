@@ -2,115 +2,239 @@
   "kernel functions": {
     "usb_reset_device": {
       "signature": "int usb_reset_device(struct usb_device)",
-      "header": "include/linux/usb.h"
+      "header": "linux/usb.h"
     },
     "usb_register_driver": {
       "signature": "int usb_register_driver(*%usb.usb_driver%, $, $)",
-      "header": "include/linux/usb.h"
+      "header": "linux/usb.h"
     },
     "usb_deregister": {
-      "signature": "$ usb_deregister(*%usb.usb_driver%)",
-      "header": "include/linux/usb.h"
+      "signature": "void usb_deregister(*%usb.usb_driver%)",
+      "header": "linux/usb.h"
+    },
+    "usb_serial_register_drivers": {
+      "signature": "int usb_serial_register_drivers($, $, %usb_serial.usb_device_id%)",
+      "headers": ["linux/usb.h", "linux/usb/serial.h"]
+    },
+    "usb_serial_deregister_drivers": {
+      "signature": "void usb_serial_deregister_drivers($)",
+      "headers": ["linux/usb.h", "linux/usb/serial.h"]
     },
     "platform_driver_unregister": {
-      "signature": "$ platform_driver_unregister(*%platform.platform_driver%)",
-      "header": "include/linux/platform_device.h"
+      "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
+      "header": "linux/platform_device.h"
     },
     "platform_driver_probe": {
-      "signature": "$ platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
-      "header": "include/linux/platform_device.h"
+      "signature": "int platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
+      "header": "linux/platform_device.h"
     },
     "platform_driver_register": {
-      "signature": "$ platform_driver_register(*%platform.platform_driver%)",
-      "header": "include/linux/platform_device.h"
+      "signature": "int platform_driver_register(*%platform.platform_driver%)",
+      "header": "linux/platform_device.h"
     },
-    "alloc_netdev": {
-      "signature": "*%net.net_device% alloc_netdev($, $, $, %net.setup%)",
-      "header": "include/linux/netdevice.h"
+    "alloc_etherdev_mqs": {
+      "signature": "*%net.net_device% alloc_etherdev_mqs($, $, $)",
+      "header": "linux/etherdevice.h"
+    },
+    "alloc_netdev_mqs": {
+      "signature": "*%net.net_device% alloc_netdev_mqs($, $, %net.setup%, $, $)",
+      "header": "linux/netdevice.h"
     },
     "register_netdev": {
-      "signature": "$ register_netdev(*%net.net_device%)",
-      "header": "include/linux/netdevice.h"
+      "signature": "int register_netdev(*%net.net_device%)",
+      "header": "linux/netdevice.h"
     },
     "unregister_netdev": {
-      "signature": "$ unregister_netdev(*%net.net_device%)",
-      "header": "include/linux/netdevice.h"
+      "signature": "void unregister_netdev(*%net.net_device%)",
+      "header": "linux/netdevice.h"
     },
     "free_netdev": {
-      "signature": "$ free_netdev(*%net.net_device%)",
-      "header": "include/linux/netdevice.h"
+      "signature": "void free_netdev(*%net.net_device%)",
+      "header": "linux/netdevice.h"
     },
     "mod_timer": {
-      "signature": "$ mod_timer(*%timer.timer_list%, $)",
-      "header": "include/linux/timer.h"
+      "signature": "int mod_timer(*%timer.timer_list%, $)",
+      "header": "linux/timer.h"
     },
     "mod_timer_pinned": {
       "signature": "int mod_timer_pinned(*%timer.timer_list%, $)",
-      "header": "include/linux/timer.h"
+      "header": "linux/timer.h"
     },
     "mod_timer_pending": {
       "signature": "int mod_timer_pending(*%timer.timer_list%, $)",
-      "header": "include/linux/timer.h"
+      "header": "linux/timer.h"
     },
     "del_timer": {
       "signature": "int del_timer(*%timer.timer_list%)",
-      "header": "include/linux/timer.h"
+      "header": "linux/timer.h"
     },
     "del_timer_sync": {
       "signature": "int del_timer_sync(*%timer.timer_list%)",
-      "header": "include/linux/timer.h"
+      "header": "linux/timer.h"
     },
     "try_to_del_timer_sync": {
       "signature": "int try_to_del_timer_sync(*%timer.timer_list%)",
-      "header": "include/linux/timer.h"
+      "header": "linux/timer.h"
     },
     "request_threaded_irq": {
       "signature": "int request_threaded_irq(%interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/interrupt.h"
+      "header": "linux/interrupt.h"
     },
     "request_irq": {
       "signature": "int request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
-      "header": "include/linux/interrupt.h"
-    },
-    "seq_open_private": {
-      "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
-      "header": "include/linux/seq_file.h"
-    },
-    "seq_release_private": {
-      "signature": "int seq_release_private($, %seq_operations.file%)",
-      "header": "include/linux/seq_file.h"
-    },
-    "seq_open": {
-      "signature": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
-      "header": "include/linux/seq_file.h"
-    },
-    "seq_release": {
-      "signature": "int seq_release($, %seq_operations.file%)",
-      "header": "include/linux/seq_file.h"
+      "header": "linux/interrupt.h"
     },
     "devm_request_threaded_irq": {
       "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
-      "header": "include/linux/interrupt.h"
+      "header": "linux/interrupt.h"
+    },
+    "request_percpu_irq": {
+      "signature": "int request_percpu_irq(%interrupt.line%, %interrupt.handler%, $, %interrupt.data%)",
+      "header": "linux/interrupt.h"
     },
     "free_irq": {
-      "signature": "$ free_irq(%interrupt.line%, %interrupt.data%)",
-      "header": "include/linux/interrupt.h"
+      "signature": "void free_irq(%interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "devm_free_irq": {
+      "signature": "void devm_free_irq($, %interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "free_percpu_irq": {
+      "signature": "void free_percpu_irq(%interrupt.line%, %interrupt.data%)",
+      "header": "linux/interrupt.h"
+    },
+    "seq_open_private": {
+      "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
+      "header": "linux/seq_file.h"
+    },
+    "seq_release_private": {
+      "signature": "int seq_release_private($, %seq_operations.file%)",
+      "header": "linux/seq_file.h"
+    },
+    "seq_open": {
+      "signature": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
+      "header": "linux/seq_file.h"
+    },
+    "seq_release": {
+      "signature": "int seq_release($, %seq_operations.file%)",
+      "header": "linux/seq_file.h"
     },
     "i2c_register_driver": {
       "signature": "int i2c_register_driver($, *%i2c.i2c_driver%)",
-      "header": "include/linux/i2c.h"
+      "header": "linux/i2c.h"
     },
     "i2c_del_driver": {
       "signature": "void i2c_del_driver(*%i2c.i2c_driver%)",
-      "header": "include/linux/i2c.h"
+      "header": "linux/i2c.h"
     },
     "transport_subsystem_register": {
       "signature": "int transport_subsystem_register(*%se_subsystem.se_subsystem_api%)",
-      "header": "include/target/target_core_backend.h"
+      "header": "target/target_core_backend.h"
     },
     "transport_subsystem_release": {
       "signature": "void transport_subsystem_release(*%se_subsystem.se_subsystem_api%)",
-      "header": "include/target/target_core_backend.h"
+      "header": "target/target_core_backend.h"
+    },
+    "cdev_init": {
+      "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_register": {
+      "signature": "int misc_register(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
+    },
+    "cdev_del": {
+      "signature": "void cdev_del(*%file_operations.cdev%)",
+      "header": "linux/cdev.h"
+    },
+    "misc_deregister": {
+      "signature": "void misc_deregister(*%file_operations.miscdevice%)",
+      "header": "linux/miscdevice.h"
+    },
+    "ieee80211_alloc_hw": {
+      "signature": "*%ieee80211.ieee80211_hw% ieee80211_alloc_hw($, *%ieee80211.ieee80211_ops%)",
+      "header": "net/mac80211.h"
+    },
+    "ieee80211_free_hw": {
+      "signature": "void ieee80211_free_hw(*%ieee80211.ieee80211_hw%)",
+      "header": "net/mac80211.h"
+    },
+    "iio_triggered_buffer_setup": {
+      "signature": "int iio_triggered_buffer_setup(%iio_triggered_buffer.dev%, %iio_triggered_buffer.handler%, %iio_triggered_buffer.thread%, $)",
+      "header": "linux/iio/triggered_buffer.h"
+    },
+    "iio_triggered_buffer_cleanup": {
+      "signature": "void iio_triggered_buffer_cleanup(%iio_triggered_buffer.dev%)",
+      "header": "linux/iio/triggered_buffer.h"
+    },
+    "rtc_device_register": {
+      "signature": "*%rtc.rtc_device% rtc_device_register($, %rtc.device%, *%rtc.rtc_class_ops%, $)",
+      "header": "linux/rtc.h"
+    },
+    "rtc_device_unregister": {
+      "signature": "void rtc_device_unregister(%rtc.rtc_device%)",
+      "header": "linux/rtc.h"
+    },
+    "scsi_add_host_with_dma": {
+      "signature": "int scsi_add_host_with_dma(*%scsi_host_template.host%, $, $)",
+      "header": "scsi/scsi_host.h"
+    },
+    "scsi_add_host": {
+      "signature": "int scsi_add_host(*%scsi_host_template.host%, $)",
+      "header": "scsi/scsi_host.h"
+    },
+    "scsi_host_alloc": {
+      "signature": "*%scsi_host_template.host% scsi_host_alloc(*%scsi_host_template.scsi_host_template%, $)",
+      "header": "scsi/scsi_host.h"
+    },
+    "scsi_remove_host": {
+      "signature": "void scsi_remove_host(*%scsi_host_template.host%)",
+      "header": "scsi/scsi_host.h"
+    },
+    "scsi_register": {
+      "signature": "*%scsi_host_template.host% scsi_register(*%scsi_host_template.host%, $)",
+      "header": "scsi/scsi_host.h"
+    },
+    "scsi_unregister": {
+      "signature": "void scsi_unregister(*%scsi_host_template.host%)",
+      "header": "scsi/scsi_host.h"
+    },
+    "alloc_tty_driver": {
+      "signature": "%tty.tty_driver% alloc_tty_driver($)",
+      "header": "linux/tty_driver.h"
+    },
+    "tty_set_operations": {
+      "signature": "void tty_set_operations(%tty.tty_driver%, *%tty.tty_operations%)",
+      "header": "linux/tty_driver.h"
+    },
+    "tty_register_driver": {
+      "signature": "int tty_register_driver(%tty.tty_driver%)",
+      "header": "linux/tty.h"
+    },
+    "tty_port_init": {
+      "signature": "void tty_port_init(%tty.tty_port%)",
+      "header": "linux/tty.h"
+    },
+    "tty_port_register_device": {
+      "signature": "struct device *tty_port_register_device(%tty.tty_port%, %tty.tty_driver%, $, $)",
+      "header": "linux/tty.h"
+    },
+    "tty_unregister_device": {
+      "signature": "void tty_unregister_device(%tty.tty_driver%, $)",
+      "header": "linux/tty.h"
+    },
+    "tty_port_destroy": {
+      "signature": "void tty_port_destroy(%tty.tty_port%)",
+      "header": "linux/tty.h"
+    },
+    "tty_unregister_driver": {
+      "signature": "int tty_unregister_driver(%tty.tty_driver%)",
+      "header": "linux/tty.h"
+    },
+    "put_tty_driver": {
+      "signature": "void put_tty_driver(%tty.tty_driver%)",
+      "header": "linux/tty_driver.h"
     }
   },
   "kernel macro-functions": {},
@@ -118,7 +242,7 @@
     "usb": {
       "containers": {
         "usb_driver": {
-          "header": "include/linux/usb.h",
+          "header": "linux/usb.h",
           "signature": "struct usb_driver driver",
           "fields": {
             "probe": "%usb.probe%",
@@ -153,7 +277,97 @@
       "resources": {
         "usb_interface": {
           "signature": "struct usb_interface *usb_interface",
-          "header": "include/linux/usb.h",
+          "header": "linux/usb.h",
+          "implemented in kernel": true
+        }
+      }
+    },
+    "usb_serial": {
+      "containers": {
+        "usb_serial_driver": {
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
+          "signature": "struct usb_serial_driver driver",
+          "fields": {
+            "probe": "%usb_serial.probe%",
+            "attach": "%usb_serial.attach%",
+            "disconnect": "%usb_serial.disconnect%",
+            "release": "%usb_serial.release%",
+            "suspend": "%usb_serial.suspend%",
+            "resume": "%usb_serial.resume%",
+            "reset_resume": "%usb_serial.reset_resume%",
+            "port_probe": "%usb_serial.port_probe%",
+            "port_remove": "%usb_serial.port_remove%",
+            "open": "%usb_serial.open%",
+            "close": "%usb_serial.close%",
+            "write": "%usb_serial.write%",
+            "write_room": "%usb_serial.write_room%",
+            "ioctl": "%usb_serial.ioctl%"
+          }
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe)(%usb_serial.usb_serial%, %usb_serial.usb_device_id%)"
+        },
+        "attach": {
+          "signature": "int (*attach)(%usb_serial.usb_serial%)"
+        },
+        "disconnect": {
+          "signature": "void (*disconnect)(%usb_serial.usb_serial%)"
+        },
+        "release": {
+          "signature": "void (*release)(%usb_serial.usb_serial%)"
+        },
+        "suspend": {
+          "signature": "int (*suspend)(%usb_serial.usb_serial%, pm_message_t message)"
+        },
+        "resume": {
+          "signature": "int (*resume)(%usb_serial.usb_serial%)"
+        },
+        "reset_resume": {
+          "signature": "int (*reset_resume)(%usb_serial.usb_serial%)"
+        },
+        "port_probe": {
+          "signature": "int (*port_probe)(%usb_serial.usb_serial_port%)"
+        },
+        "port_remove": {
+          "signature": "int (*port_remove)(%usb_serial.usb_serial_port%)"
+        },
+        "open": {
+          "signature": "int (*open)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%)"
+        },
+        "close": {
+          "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+        },
+        "write": {
+          "signature": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
+        },
+        "write_room": {
+          "signature": "int (*write_room)(%usb_serial.tty_struct%)"
+        },
+        "ioctl": {
+          "signature": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
+        }
+      },
+      "resources": {
+        "usb_device_id": {
+          "signature": "const struct usb_device_id *id",
+          "header": "linux/mod_devicetable.h",
+          "implemented in kernel": false
+        },
+        "usb_serial": {
+          "signature": "struct usb_serial *serial",
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
+          "implemented in kernel": true
+        },
+        "usb_serial_port": {
+          "signature": "struct usb_serial_port *port",
+          "headers": ["linux/usb.h", "linux/usb/serial.h"],
+          "implemented in kernel": true
+        },
+        "tty_struct": {
+          "signature": "struct tty_struct *str",
+          "header": "linux/tty.h",
           "implemented in kernel": true
         }
       }
@@ -162,7 +376,7 @@
       "containers": {
         "net_device": {
           "signature": "struct net_device net_device",
-          "header": "include/linux/netdevice.h",
+          "header": "linux/netdevice.h",
           "fields": {
             "netdev_ops": "*%net.net_device_ops%",
             "ethtool_ops": "*%net.ethtool_ops%"
@@ -170,7 +384,7 @@
         },
         "net_device_ops": {
           "signature": "struct net_device_ops net_device_ops",
-          "header": "include/linux/netdevice.h",
+          "header": "linux/netdevice.h",
           "fields": {
             "ndo_open": "%net.ndo_open%",
             "ndo_stop": "%net.ndo_stop%"
@@ -178,7 +392,7 @@
         },
         "ethtool_ops": {
           "signature": "struct ethtool_ops ethtool_ops",
-          "header": "include/linux/netdevice.h"
+          "header": "linux/netdevice.h"
         }
       },
       "callbacks": {
@@ -189,7 +403,40 @@
           "signature": "int (*ndo_stop)(*%net.net_device%)"
         },
         "setup": {
-          "signature": "$ (*setup)(*%net.net_device%)"
+          "signature": "void (*setup)(*%net.net_device%)"
+        }
+      }
+    },
+    "ieee80211": {
+      "containers": {
+        "ieee80211_ops": {
+          "signature": "struct ieee80211_ops a",
+          "header": "net/mac80211.h",
+          "fields": {
+            "start": "%ieee80211.start%",
+            "stop": "%ieee80211.stop%",
+            "suspend": "%ieee80211.suspend%",
+            "resume": "%ieee80211.resume%"
+          }
+        }
+      },
+      "callbacks": {
+        "start": {
+          "signature": "int (*start)(%ieee80211.ieee80211_hw%)"
+        },
+        "stop": {
+          "signature": "void (*stop)(%ieee80211.ieee80211_hw%)"
+        },
+        "suspend": {
+          "signature": "int (*suspend)(%ieee80211.ieee80211_hw%, $)"
+        },
+        "resume": {
+          "signature": "int (*resume)(%ieee80211.ieee80211_hw%)"
+        }
+      },
+      "resources": {
+        "ieee80211_hw": {
+          "signature": "struct ieee80211_hw *a"
         }
       }
     },
@@ -197,7 +444,7 @@
       "containers": {
         "proto_ops": {
           "signature": "struct proto_ops ops",
-          "header": "include/linux/net.h",
+          "header": "linux/net.h",
           "fields": {
             "bind": "%proto.probe%",
             "release": "%proto.release%"
@@ -222,7 +469,7 @@
       "containers": {
         "device_driver": {
           "signature": "struct device_driver driver",
-          "header": "include/linux/device.h"
+          "header": "linux/device.h"
         }
       }
     },
@@ -230,7 +477,7 @@
       "containers": {
         "dev_pm_ops": {
           "signature": "struct dev_pm_ops",
-          "header": "include/linux/linux/pm.h",
+          "header": "linux/pm.h",
           "fields": {
             "prepare": "%pm.prepare%",
             "complete": "%pm.complete%",
@@ -340,7 +587,7 @@
       "containers": {
         "platform_driver": {
           "signature": "struct platform_driver driver",
-          "header": "include/linux/platform_device.h",
+          "header": "linux/platform_device.h",
           "fields": {
             "probe": "%platform.probe%",
             "remove": "%platform.release%"
@@ -350,7 +597,7 @@
       "resources": {
         "platform_device": {
           "signature": "struct platform_device *device",
-          "header": "include/linux/platform_device.h",
+          "header": "linux/platform_device.h",
           "implemented in kernel": true
         }
       },
@@ -363,14 +610,80 @@
         }
       }
     },
+    "pci": {
+      "containers": {
+        "pci_driver": {
+          "signature": "struct pci_driver driver",
+          "header": "linux/pci.h",
+          "fields": {
+            "probe": "%pci.probe%",
+            "remove": "%pci.release%",
+            "suspend": "%pci.suspend%",
+            "suspend_late": "%pci.suspend_late%",
+            "resume_early": "%pci.resume_early%",
+            "resume": "%pci.resume%",
+            "shutdown": "%pci.shutdown%"
+          }
+        }
+      },
+      "resources": {
+        "dev": {
+          "signature": "struct pci_dev *dev",
+          "header": "linux/pci.h",
+          "implemented in kernel": true
+        },
+        "pm_message": {
+          "signature": "pm_message_t state",
+          "header": "linux/pm.h"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe)(%pci.dev%, $)"
+        },
+        "release": {
+          "signature": "void (*release)(%pci.dev%)"
+        },
+        "suspend": {
+          "signature": "int (*suspend)(%pci.dev%, %pci.pm_message%)"
+        },
+        "suspend_late": {
+          "signature": "int (*suspend_late)(%pci.dev%, %pci.pm_message%)"
+        },
+        "resume_early": {
+          "signature": "int (*resume_early)(%pci.dev%)"
+        },
+        "resume": {
+          "signature": "int (*resume)(%pci.dev%)"
+        },
+        "shutdown": {
+          "signature": "void (*shutdown)(%pci.dev%)"
+        }
+      }
+    },
     "file_operations": {
       "containers": {
         "file_operations": {
           "signature": "struct file_operations ops",
-          "header": "include/linux/fs.h",
+          "header": "linux/fs.h",
           "fields": {
             "release": "%file_operations.release%",
-            "open": "%file_operations.probe%"
+            "open": "%file_operations.probe%",
+            "write": "%file_operations.write%"
+          }
+        },
+        "cdev": {
+          "signature": "struct cdev cdev",
+          "header": "linux/cdev.h",
+          "fields": {
+            "ops": "*%file_operations.file_operations%"
+          }
+        },
+        "miscdevice": {
+          "signature": "struct miscdevice dev",
+          "header": "linux/miscdevice.h",
+          "fields": {
+            "fops": "*%file_operations.file_operations%"
           }
         }
       },
@@ -380,6 +693,9 @@
         },
         "inode": {
           "signature": "struct inode *inode"
+        },
+        "write_size": {
+          "signature": "size_t cnt"
         }
       },
       "callbacks": {
@@ -388,6 +704,34 @@
         },
         "release": {
           "signature": "$ (*release) (%file_operations.inode%, %file_operations.file%)"
+        },
+        "write": {
+          "signature": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
+        }
+      }
+    },
+    "v4l2_file_operations": {
+      "containers": {
+        "v4l2_file_operations": {
+          "signature": "struct v4l2_file_operations ops",
+          "header": "media/v4l2-dev.h",
+          "fields": {
+            "release": "%v4l2_file_operations.release%",
+            "open": "%v4l2_file_operations.probe%"
+          }
+        }
+      },
+      "resources": {
+        "file": {
+          "signature": "struct file *file"
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe) (%v4l2_file_operations.file%)"
+        },
+        "release": {
+          "signature": "$ (*release) (%v4l2_file_operations.file%)"
         }
       }
     },
@@ -395,7 +739,7 @@
       "containers": {
         "i2c_driver": {
           "signature": "struct i2c_driver driver",
-          "header": "include/linux/i2c.h",
+          "header": "linux/i2c.h",
           "fields": {
             "remove": "%i2c.release%"
           }
@@ -416,7 +760,7 @@
       "containers": {
         "Qdisc_ops": {
           "signature": "struct Qdisc_ops ops",
-          "header": "include/net/sch_generic.h",
+          "header": "net/sch_generic.h",
           "fields": {
             "init": "%Qdisc.probe%",
             "destroy": "%Qdisc.release%"
@@ -441,7 +785,7 @@
       "containers": {
         "se_subsystem_api": {
           "signature": "struct se_subsystem_api ops",
-          "header": "include/target/target_core_backend.h",
+          "header": "target/target_core_backend.h",
           "fields": {
             "alloc_device": "%se_subsystem.alloc%",
             "free_device": "%se_subsystem.free%",
@@ -477,7 +821,7 @@
       "containers": {
         "seq_operations": {
           "signature": "struct seq_operations ops",
-          "header": "include/linux/seq_file.h",
+          "header": "linux/seq_file.h",
           "fields": {
             "start": "%seq_operations.start%",
             "stop": "%seq_operations.stop%",
@@ -514,7 +858,7 @@
       "containers": {
         "timer_list": {
           "signature": "struct timer_list list",
-          "header": "include/linux/timer.h",
+          "header": "linux/timer.h",
           "fields": {
             "data": "%timer.data%",
             "function": "%timer.handler%"
@@ -551,6 +895,188 @@
         },
         "thread": {
           "signature": "irqreturn_t (*thread)(%interrupt.line%, %interrupt.data%)"
+        }
+      }
+    },
+    "iio_triggered_buffer": {
+      "extensible": false,
+      "containers": {},
+      "resources": {
+        "line": {
+          "signature": "int line"
+        },
+        "data": {
+          "signature": "void *data"
+        },
+        "dev": {
+          "signature": "struct iio_dev *dev",
+          "header": "linux/iio/iio.h"
+        }
+      },
+      "callbacks": {
+        "handler": {
+          "signature": "irqreturn_t (*handler)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)",
+          "interrupt context": true
+        },
+        "thread": {
+          "signature": "irqreturn_t (*thread)(%iio_triggered_buffer.line%, %iio_triggered_buffer.data%)"
+        }
+      }
+    },
+    "rtc": {
+      "containers": {
+        "rtc_class_ops": {
+          "signature": "struct rtc_class_ops ops",
+          "header": "linux/rtc.h",
+          "fields": {
+            "open": "%rtc.probe%",
+            "release": "%rtc.release%"
+          }
+        },
+        "rtc_device": {
+          "signature": "struct rtc_device dev",
+          "header": "linux/rtc.h",
+          "fields": {
+            "ops": "*%rtc.rtc_class_ops%"
+          }
+        }
+      },
+      "callbacks": {
+        "probe": {
+          "signature": "int (*probe)(%rtc.device%)"
+        },
+        "release": {
+          "signature": "void (*release)(%rtc.device%)"
+        }
+      },
+      "resources": {
+        "device": {
+          "signature": "struct device *dev",
+          "header": "linux/device.h",
+          "implemented in kernel": true
+        }
+      }
+    },
+    "scsi_host_template": {
+      "containers": {
+        "scsi_host_template": {
+          "signature": "struct scsi_host_template ops",
+          "header": "scsi/scsi_host.h",
+          "fields": {
+            "detect": "%scsi_host_template.probe%",
+            "release": "%scsi_host_template.release%"
+          }
+        },
+        "host": {
+          "signature": "struct Scsi_Host host",
+          "header": "scsi/scsi_host.h",
+          "fields": {
+            "hostt": "*%scsi_host_template.scsi_host_template%"
+          }
+        }
+      },
+      "callbacks": {
+        "release": {
+          "signature": "int (* release)(*%scsi_host_template.host%)"
+        },
+        "probe": {
+          "signature": "int (* probe)(*%scsi_host_template.host%)"
+        }
+      }
+    },
+    "tty": {
+      "containers": {
+        "tty_port_operations": {
+          "signature": "struct tty_port_operations ops",
+          "header": "linux/tty.h",
+          "fields": {
+            "shutdown": "%tty.port_shutdown%",
+            "activate": "%tty.port_activate%"
+          }
+        },
+        "tty_operations": {
+          "signature": "struct tty_operations ops",
+          "header": "linux/tty_driver.h",
+          "fields": {
+            "lookup": "%tty.lookup%",
+            "install": "%tty.install%",
+            "remove": "%tty.remove%",
+            "open": "%tty.open%",
+            "close": "%tty.close%",
+            "shutdown": "%tty.shutdown%",
+            "cleanup": "%tty.cleanup%",
+            "set_termios": "%tty.set_termios%",
+            "throttle": "%tty.throttle%",
+            "unthrottle": "%tty.unthrottle%",
+            "stop": "%tty.stop%",
+            "start": "%tty.start%",
+            "set_termiox": "%tty.set_termiox%"
+          }
+        }
+      },
+      "callbacks": {
+        "port_shutdown": {
+          "signature": "void (*port_shutdown)(%tty.tty_port%)"
+        },
+        "port_activate": {
+          "signature": "int (*port_activate)(%tty.tty_port%, %tty.tty_struct%)"
+        },
+        "lookup": {
+          "signature": "%tty.tty_struct% (*lookup)(%tty.tty_driver%, int idx)"
+        },
+        "install": {
+          "signature": "int  (*install)(%tty.tty_driver%, %tty.tty_struct%)"
+        },
+        "remove": {
+          "signature": "void (*remove)(%tty.tty_driver%, %tty.tty_struct%)"
+        },
+        "open": {
+          "signature": "int  (*open)(%tty.tty_struct%, %tty.file%)"
+        },
+        "close": {
+          "signature": "void (*close)(%tty.tty_struct%, %tty.file%)"
+        },
+        "shutdown": {
+          "signature": "void (*shutdown)(%tty.tty_struct%)"
+        },
+        "cleanup": {
+          "signature": "void (*cleanup)(%tty.tty_struct%)"
+        },
+        "set_termios": {
+          "signature": "void (*set_termios)(%tty.tty_struct%, struct ktermios * old)"
+        },
+        "throttle": {
+          "signature": "void (*throttle)(%tty.tty_struct%)"
+        },
+        "unthrottle": {
+          "signature": "void (*unthrottle)(%tty.tty_struct%)"
+        },
+        "stop": {
+          "signature": "void (*stop)(%tty.tty_struct%)"
+        },
+        "start": {
+          "signature": "void (*start)(%tty.tty_struct%)"
+        },
+        "set_termiox": {
+          "signature": "int (*set_termiox)(%tty.tty_struct%, struct termiox *tnew)"
+        }
+      },
+      "resources": {
+        "tty_struct": {
+          "signature": "struct tty_struct *str",
+          "header": "linux/tty.h"
+        },
+        "tty_port": {
+          "signature": "struct tty_port *port",
+          "header": "linux/tty.h"
+        },
+        "tty_driver": {
+          "signature": "struct tty_driver *driver",
+          "header": "linux/tty_driver.h"
+        },
+        "file": {
+          "signature": "struct file *port",
+          "header": "linux/fs.h"
         }
       }
     }

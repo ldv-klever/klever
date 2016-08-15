@@ -15,7 +15,7 @@ from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
-from reports.UploadReport import UploadReport
+from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
@@ -219,7 +219,8 @@ def show_job(request, job_id=None):
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
             'can_download': job_access.can_download(),
-            'can_stop': job_access.can_stop()
+            'can_stop': job_access.can_stop(),
+            'can_collapse': job_access.can_collapse()
         }
     )
 
@@ -258,6 +259,7 @@ def get_job_data(request):
         'can_decide': job_access.can_decide(),
         'can_download': job_access.can_download(),
         'can_stop': job_access.can_stop(),
+        'can_collapse': job_access.can_collapse(),
         'jobstatus': job.status,
         'jobstatus_text': job.get_status_display() + '',
         'job_history': loader.get_template('jobs/jobRunHistory.html').render({
@@ -587,7 +589,7 @@ def download_jobs(request):
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
     arch_tmp = tempfile.TemporaryFile()
-    with tarfile.open(fileobj=arch_tmp, mode='w:gz') as jobs_archive:
+    with tarfile.open(fileobj=arch_tmp, mode='w:gz', encoding='utf8') as jobs_archive:
         for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
             if not JobAccess(request.user, job).can_download():
                 return HttpResponseRedirect(
@@ -932,3 +934,18 @@ def get_def_start_job_val(request):
             }))
         })
     return JsonResponse({'error': 'Unknown error'})
+
+
+@login_required
+def collapse_reports(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        job = Job.objects.get(pk=request.POST.get('job_id', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    if not JobAccess(request.user, job).can_collapse():
+        return JsonResponse({'error': _("You don't have an access to collapse reports")})
+    CollapseReports(job)
+    return JsonResponse({})

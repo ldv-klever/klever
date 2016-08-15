@@ -104,7 +104,8 @@ class GetConvertedErrorTrace(object):
                 self.error = res.error
                 return None
             et_file = file_get_or_create(
-                BytesIO(json.dumps(res.pattern_error_trace, indent=4).encode('utf8')), ET_FILE_NAME
+                BytesIO(json.dumps(res.pattern_error_trace,
+                                   ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')), ET_FILE_NAME
             )[0]
             ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
             self._parsed_trace = res.pattern_error_trace

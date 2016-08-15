@@ -32,18 +32,19 @@ class SBK(SeparatedStrategy):
             if 'bug kinds' in extra_c_file:
                 for found_bug_kind in extra_c_file['bug kinds']:
                     if found_bug_kind == bug_kind:
-                        automaton = extra_c_file['automaton']
+                        original_automaton = extra_c_file['automaton']
                         automaton_name = bug_kind + ".spc"
                         self.automaton_file = automaton_name
-                        with open(automaton_name, 'w', encoding='ascii') as fp:
-                            for line in automaton:
+                        with open(automaton_name, 'w', encoding='utf8') as fp_out, \
+                                open(original_automaton, encoding='utf8') as fp_in:
+                            for line in fp_in:
                                 res = re.search(r'ERROR\(\"(.+)\"\);', line)
                                 if res:
                                     current_bug_kind = res.group(1)
                                     if not current_bug_kind == bug_kind:
                                         line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO Stop;', line)
                                         self.logger.debug('Removing bug kind {0}'.format(current_bug_kind))
-                                fp.write('{0}'.format(line))
+                                fp_out.write('{0}'.format(line))
                         # Remove old '-spec' options from configuration.
                         tmp_verifier_options = []
                         for y in self.conf['VTG strategy']['verifier']['options']:
@@ -61,7 +62,7 @@ class SBK(SeparatedStrategy):
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
         # different bug kinds.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
             fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
                 re.sub(r'\W', '_', bug_kind)))

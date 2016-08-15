@@ -30,11 +30,20 @@ int ldv_pre_register_netdev(void)
 	}
 }
 
+/* MODEL_FUNC_DEF Reset error counter from previous calls */
+void ldv_reset_error_counter(void)
+{
+	/* CHANGE_STATE Reset counter */
+	ldv_probe_state = LDV_PROBE_ZERO_STATE;
+}
+
 /* MODEL_FUNC_DEF Check that error code was properly propagated in probe() */
 void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR) {
 		/* ASSERT Errors of register_netdev() should be properly propagated */
-		ldv_assert("linux:netdev:wrong return value", retval != 0);
+		ldv_assert("linux:netdev::wrong return value", retval != 0);
 	}
+	/* OTHER Prevent error counter from being checked in other functions */
+	ldv_reset_error_counter();
 }

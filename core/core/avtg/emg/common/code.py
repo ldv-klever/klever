@@ -98,10 +98,10 @@ class FunctionModels:
         if 'allocate with sizeof' in translation_conf and translation_conf['allocate with sizeof']:
             self.use_sizeof = True
 
-    # todo: implement all models
     mem_function_map = {
-        "ALLOC": "ldv_malloc",
-        "ZALLOC": "ldv_malloc"
+        # TODO: switch to correct memory allocation function when sizes will be known.
+        "ALLOC": "__ldv_malloc_unknown_size",
+        "ZALLOC": "ldv_zalloc"
     }
     free_function_map = {
         "FREE": "ldv_free"

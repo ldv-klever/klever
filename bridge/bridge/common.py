@@ -60,7 +60,7 @@ WSGI_APPLICATION = 'bridge.wsgi.application'
 
 # In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2" or "django.db.backends.mysql"
 DATABASES = {
-    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'))),
+    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
 }
 
 LANGUAGE_CODE = 'en-us'
@@ -133,6 +133,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   allow local source directories use - True or False,
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
+#   lightweight decision - True of False.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
@@ -141,7 +142,7 @@ DEF_KLEVER_CORE_MODES = [
             'slow',
             [1.0, 2, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False
+            False, False, False, False, False, False, True
         ]
     },
     {
@@ -150,7 +151,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True
+            True, True, False, True, True, True, False
         ]
     },
     {
@@ -159,7 +160,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True
+            True, True, True, True, True, True, False
         ]
     },
 ]

@@ -42,18 +42,9 @@ class SeparatedStrategy(CommonStrategy):
     def print_strategy_information(self):
         pass
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
-        if self.resources_written:
-            # In MAV we write resource statistics only for 1 verdict.
-            decision_results['resources'] = {
-                "CPU time": 0,
-                "memory size": 0,
-                "wall time": 0}
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
         log_file = self.get_verifier_log_file()
-        if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
-
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -65,7 +56,7 @@ class SeparatedStrategy(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
                                   [self.automaton_file] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
@@ -74,18 +65,19 @@ class SeparatedStrategy(CommonStrategy):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'],
-                          suffix)
-        if not self.resources_written and decision_results['status'] == 'unsafe' and self.mea:
+                          bug_kind)
+        if decision_results['status'] == 'unsafe' and self.mea:
             # Unsafe-incomplete.
+            # TODO: fix this.
             is_incomplete = True
             log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
+            with open(log_file, encoding='utf8') as fp:
                 for line in fp:
                     match = re.search(r'Verification result: FALSE', line)
                     if match:
                         is_incomplete = False
             if is_incomplete:
-                with open('unsafe-incomplete.txt', 'w', encoding='ascii') as fp:
+                with open('unsafe-incomplete.txt', 'w', encoding='utf8') as fp:
                     fp.write('Unsafe-incomplete')
                 core.utils.report(self.logger,
                                   'unknown',
@@ -97,10 +89,7 @@ class SeparatedStrategy(CommonStrategy):
                                       'files': ['unsafe-incomplete.txt']
                                   },
                                   self.mqs['report files'],
-                                  self.conf['main working directory'],
-                                  suffix)
-        self.resources_written = True
-
+                                  self.conf['main working directory'])
 
     @abstractclassmethod
     def prepare_property_automaton(self, bug_kind=None):
@@ -119,7 +108,7 @@ class SeparatedStrategy(CommonStrategy):
             if len(self.conf['abstract task desc']['entry points']) > 1:
                 raise NotImplementedError('Several entry points are not supported')
 
-            with open('unreach-call.prp', 'w', encoding='ascii') as fp:
+            with open('unreach-call.prp', 'w', encoding='utf8') as fp:
                 fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                     self.conf['abstract task desc']['entry points'][0]))
 
@@ -139,11 +128,14 @@ class SeparatedStrategy(CommonStrategy):
                     {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
         if self.mpv:
             self.add_option_for_entry_point()
+        else:
+            # Specify default configuration.
+            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
-        with tarfile.open('task files.tar.gz', 'w:gz') as tar:
+        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
             if self.automaton_file:
                 tar.add(self.automaton_file)
             for file in self.task_desc['files']:
@@ -165,14 +157,26 @@ class SeparatedStrategy(CommonStrategy):
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
-            with open('task.json', 'w', encoding='ascii') as fp:
-                json.dump(self.task_desc, fp, sort_keys=True, indent=4)
+            with open('task.json', 'w', encoding='utf8') as fp:
+                json.dump(self.task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         self.prepare_verification_task_files_archive()
         self.decide_verification_task(bug_kind)
 
     def decide_verification_task(self, bug_kind=None):
         self.logger.info('Decide verification task')
+
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                  'the number of verification tasks prepared for abstract verification task': 1
+                              }, ensure_ascii=False, sort_keys=True, indent=4)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
+
         self.verification_status = None
 
         if not self.automaton_file:
@@ -191,7 +195,7 @@ class SeparatedStrategy(CommonStrategy):
 
                 self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-                with open('task error.txt', 'w', encoding='ascii') as fp:
+                with open('task error.txt', 'w', encoding='utf8') as fp:
                     fp.write(task_error)
 
                 core.utils.report(self.logger,
@@ -213,11 +217,14 @@ class SeparatedStrategy(CommonStrategy):
 
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz") as tar:
+                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
                     tar.extractall()
 
-                with open('decision results.json', encoding='ascii') as fp:
+                with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)
+
+                verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind if bug_kind else '')
+                self.create_verification_report(verification_report_id, decision_results, bug_kind)
 
                 if self.mea:
                     all_found_error_traces = glob.glob(self.path_to_error_traces)
@@ -225,12 +232,17 @@ class SeparatedStrategy(CommonStrategy):
                         decision_results['status'] = 'unsafe'
                     if decision_results['status'] == 'unsafe':
                         for error_trace in all_found_error_traces:
-                            self.process_single_verdict(decision_results, assertion=bug_kind,
+                            self.process_single_verdict(decision_results, verification_report_id,
+                                                        assertion=bug_kind,
                                                         specified_error_trace=error_trace)
                     else:
-                        self.process_single_verdict(decision_results, assertion=bug_kind)
+                        self.process_single_verdict(decision_results, verification_report_id,
+                                                    assertion=bug_kind)
                 else:
-                    self.process_single_verdict(decision_results, assertion=bug_kind)
+                    self.process_single_verdict(decision_results, verification_report_id,
+                                                assertion=bug_kind)
+
+                self.create_verification_finish_report(verification_report_id, bug_kind)
                 break
 
             time.sleep(1)

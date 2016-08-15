@@ -71,7 +71,7 @@ class LKBCE(core.components.Component):
             self.configure_linux_kernel()
             # Always create Linux kernel raw build commands file prior to its reading in
             # self.process_all_linux_kernel_raw_build_cmds().
-            with open(self.linux_kernel['build cmd descs file'], 'w'):
+            with open(self.linux_kernel['build cmd descs file'], 'w', encoding='utf8'):
                 pass
 
             self.extract_module_files()
@@ -108,13 +108,13 @@ class LKBCE(core.components.Component):
         if 'module dependencies file' in self.conf['Linux kernel']:
             dependencies_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
                                                self.conf['Linux kernel']['module dependencies file'])
-            with open(dependencies_file) as fp:
+            with open(dependencies_file, encoding='utf8') as fp:
                 self.parse_linux_kernel_mod_function_deps(fp, True)
                 self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
         if 'module sizes file' in self.conf['Linux kernel']:
             sizes_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
                                                      self.conf['Linux kernel']['module sizes file'])
-            with open(sizes_file) as fp:
+            with open(sizes_file, encoding='utf8') as fp:
                 self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands
@@ -123,7 +123,9 @@ class LKBCE(core.components.Component):
         self.logger.info('Build Linux kernel')
 
         # First of all collect all targets to be built.
-        build_targets = []
+        # Always prepare for building modules since it brings all necessary headers that can be included from ones
+        # required for model headers that should be copied before any real module will be built.
+        build_targets = [('modules_prepare',)]
 
         if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
             build_targets.append(('all',))
@@ -145,14 +147,11 @@ class LKBCE(core.components.Component):
                                 symlinks=True)
             elif os.path.isfile(self.linux_kernel['ext modules src']):
                 self.logger.debug('External Linux kernel modules source code is provided in form of archive')
-                with tarfile.open(self.linux_kernel['ext modules src']) as TarFile:
+                with tarfile.open(self.linux_kernel['ext modules src'], encoding='utf8') as TarFile:
                     TarFile.extractall(self.linux_kernel['ext modules work src tree'])
 
             self.logger.info('Make canonical working source tree of external Linux kernel modules')
             self.__make_canonical_work_src_tree(self.linux_kernel['ext modules work src tree'])
-
-            # Linux kernel external modules always require this preparation.
-            build_targets.append(('modules_prepare',))
 
             if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
                 build_targets.append(('M=ext-modules', 'modules'))
@@ -179,10 +178,6 @@ class LKBCE(core.components.Component):
                                              if 'external modules' in self.conf['Linux kernel'] else (modules_set,))
                     # Otherwise it is directory that can contain modules.
                     else:
-                        # Add "modules_prepare" target once.
-                        if not build_targets or build_targets[0] != ('modules_prepare',):
-                            build_targets.insert(0, ('modules_prepare',))
-
                         modules_dir = os.path.join('ext-modules', modules_set) \
                             if 'external modules' in self.conf['Linux kernel'] else modules_set
 
@@ -210,14 +205,14 @@ class LKBCE(core.components.Component):
                 if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
                         self.linux_kernel['prepared to build ext modules']:
                     with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
-                              encoding='ascii') as fp:
+                              encoding='utf8') as fp:
                         fp.write(self.linux_kernel['conf'])
 
             if build_target[0] == 'modules_prepare':
                 self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
-        with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='ascii') as fp:
+        with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='utf8') as fp:
             fp.write('\n')
 
     def extract_all_linux_kernel_mod_deps_function(self):
@@ -289,7 +284,7 @@ class LKBCE(core.components.Component):
     def check_preparation_for_building_external_modules(self):
         prepared_ext_modules_conf_file = os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf')
         if 'external modules' in self.conf['Linux kernel'] and os.path.isfile(prepared_ext_modules_conf_file):
-            with open(prepared_ext_modules_conf_file, encoding='ascii') as fp:
+            with open(prepared_ext_modules_conf_file, encoding='utf8') as fp:
                 if fp.readline().rstrip() == self.linux_kernel['conf']:
                     self.linux_kernel['prepared to build ext modules'] = True
 
@@ -419,7 +414,7 @@ class LKBCE(core.components.Component):
                                            cwd=self.linux_kernel['work src tree'])
         elif os.path.isfile(self.linux_kernel['src']):
             self.logger.debug('Linux kernel source code is provided in form of archive')
-            with tarfile.open(self.linux_kernel['src']) as TarFile:
+            with tarfile.open(self.linux_kernel['src'], encoding='utf8') as TarFile:
                 TarFile.extractall(self.linux_kernel['work src tree'])
 
     def make_canonical_linux_kernel_work_src_tree(self):
@@ -436,7 +431,7 @@ class LKBCE(core.components.Component):
         while True:
             time.sleep(1)
 
-            with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'r+', encoding='ascii') as fp:
+            with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'r+', encoding='utf8') as fp:
                 # Move to previous end of file.
                 fp.seek(offset)
 

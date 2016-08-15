@@ -30,7 +30,7 @@ void *ldv_create_class(void)
 	/* ASSERT Get blk request just in case when an error did not happen */
 	if (!ldv_is_err(is_got)) {
 		/* ASSERT Registring usb gadget class is only allowed if usb gadget is not registered */
-		ldv_assert("linux:usb:gadget:class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+		ldv_assert("linux:usb:gadget::class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
 
 	/* RETURN Return obtained blk request */
@@ -48,7 +48,7 @@ int ldv_register_class(void)
 	/* ASSERT Get blk request just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Registering usb gadget class is only allowed if usb gadget is not registered */
-		ldv_assert("linux:usb:gadget:class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+		ldv_assert("linux:usb:gadget::class registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
 
 	/* RETURN Return registration status (0 is success) */
@@ -59,7 +59,7 @@ int ldv_register_class(void)
 void ldv_unregister_class(void)
 {
 	/* ASSERT Unregistering usb gadget class is only allowed if usb gadget is not registered */
-	ldv_assert("linux:usb:gadget:class deregistration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+	ldv_assert("linux:usb:gadget::class deregistration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 }
 
 void ldv_destroy_class(struct class *cls)
@@ -80,7 +80,7 @@ int ldv_register_chrdev(int major)
 	/* ASSERT Register chrdev just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Usb gadget should be unregistered at this point */
-		ldv_assert("linux:usb:gadget:chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+		ldv_assert("linux:usb:gadget::chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 		if (major == 0) {
 			/* OTHER Function returns allocated major number */
 			is_reg = ldv_undef_int();
@@ -103,7 +103,7 @@ int ldv_register_chrdev_region(void)
 	/* ASSERT Register chrdev just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Usb gadget should be unregistered at this point */
-		ldv_assert("linux:usb:gadget:chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+		ldv_assert("linux:usb:gadget::chrdev registration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 	}
 
 	/* RETURN Return registration status (0 is success) */
@@ -114,7 +114,7 @@ int ldv_register_chrdev_region(void)
 void ldv_unregister_chrdev_region(void)
 {
 	/* ASSERT Usb gadget should not be registered at this point */
-	ldv_assert("linux:usb:gadget:chrdev deregistration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+	ldv_assert("linux:usb:gadget::chrdev deregistration with usb gadget", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 }
 
 /* MODEL_FUNC_DEF Check that usb gadget was not registered and register it */
@@ -128,7 +128,7 @@ int ldv_register_usb_gadget(void)
 	/* ASSERT Register usb gadget just in case when an error did not happen */
 	if (!is_reg) {
 		/* ASSERT Gadget should not be registered at this point */
-		ldv_assert("linux:usb:gadget:double usb gadget registration", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+		ldv_assert("linux:usb:gadget::double usb gadget registration", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 		/* CHANGE_STATE Register usb gadget */
 		ldv_usb_gadget = LDV_USB_GADGET_REGISTERED;
 	}
@@ -141,7 +141,7 @@ int ldv_register_usb_gadget(void)
 void ldv_unregister_usb_gadget(void)
 {
 	/* ASSERT Usb gadget should be registered at this point */
-	ldv_assert("linux:usb:gadget:double usb gadget deregistration", ldv_usb_gadget == LDV_USB_GADGET_REGISTERED);
+	ldv_assert("linux:usb:gadget::double usb gadget deregistration", ldv_usb_gadget == LDV_USB_GADGET_REGISTERED);
 	/* CHANGE_STATE Unregister usb gadget */
 	ldv_usb_gadget = LDV_USB_GADGET_ZERO_STATE;
 }
@@ -150,5 +150,5 @@ void ldv_unregister_usb_gadget(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT Usb gadget should be unregistered at the end */
-	ldv_assert("linux:usb:gadget:usb gadget registered at exit", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
+	ldv_assert("linux:usb:gadget::usb gadget registered at exit", ldv_usb_gadget == LDV_USB_GADGET_ZERO_STATE);
 }

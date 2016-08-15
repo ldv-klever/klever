@@ -28,9 +28,9 @@ void ldv_usb_put_dev(struct usb_device *dev)
 	/* OTHER Whether USB device is not NULL */
 	if (dev) {
 		/* ASSERT USB device reference counter must be incremented */
-		ldv_assert("linux:usb:resource:ref:unincremented counter decrement", ldv_map_contains_key(LDV_USB_DEV_REF_COUNTS, dev));
+		ldv_assert("linux:usb:dev::unincremented counter decrement", ldv_map_contains_key(LDV_USB_DEV_REF_COUNTS, dev));
 		/* ASSERT USB device reference counter must be incremented */
-		ldv_assert("linux:usb:resource:ref:less initial decrement", ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) > 0);
+		ldv_assert("linux:usb:dev::less initial decrement", ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) > 0);
 		/* CHANGE_STATE Decrement USB device reference counter */
 		ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) > 1
 			? ldv_map_put(LDV_USB_DEV_REF_COUNTS, dev, ldv_map_get(LDV_USB_DEV_REF_COUNTS, dev) - 1)
@@ -44,7 +44,7 @@ void ldv_check_return_value_probe(int retval)
 	/* OTHER probe() finished unsuccessfully and returned error code */
 	if (retval) {
 		/* ASSERT USB device reference counter should not be increased */
-		ldv_assert("linux:usb:resource:ref:probe failed", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
+		ldv_assert("linux:usb:dev::probe failed", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
 	}
 }
 
@@ -59,5 +59,5 @@ void ldv_initialize(void)
 void ldv_check_final_state(void)
 {
 	/* ASSERT All incremented USB device reference counters must be decremented at the end */
-	ldv_assert("linux:usb:resource:ref:more initial at exit", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
+	ldv_assert("linux:usb:dev::more initial at exit", ldv_map_is_empty(LDV_USB_DEV_REF_COUNTS));
 }

@@ -2,18 +2,19 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-stable",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "specifications set": "Linux 3.14 (base)",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "version": "20376"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -29,11 +30,12 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753~"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+        "Git repository": {"commit": "bcb4a75bde38~"},
+        "modules": ["drivers/hid/hid.ko"]
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -41,7 +43,7 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -49,23 +51,56 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
         "Git repository": {"commit": "e4c7f259c5be~"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:alloc:spinlock"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "5c256d215753"},
-        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+        "Git repository": {"commit": "448356262f56~"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "d8e172f3c0a5"},
+        "modules": ["drivers/spi/spi-imx.ko"]
+      },
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bff71889260f~"},
+        "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
+      },
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "2ba4b92e8773~"},
+        "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
+      },
+      "rule specifications": ["linux:clk2"],
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bcb4a75bde38"},
+        "modules": ["drivers/hid/hid.ko"]
+      },
+      "specifications set": "Linux 3.5",
+      "rule specifications": ["linux:chrdev"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -73,7 +108,7 @@
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-cxusb.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -81,25 +116,61 @@
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
         "Git repository": {"commit": "e4c7f259c5be"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "safe",
-      "comment": "Non-target bug"
+      "rule specifications": ["linux:alloc:spinlock"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "Non-target bug"
+      }]
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38~"},
-        "modules": ["drivers/hid/hid.ko"]
+        "Git repository": {"commit": "448356262f56"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
       },
-      "rule specifications": ["linux:chrdev"],
-      "ideal verdict": "unsafe",
-      "comment": "Quite complex module. Target bug can be found if manually comment complicated callback invocation."
+      "rule specifications": ["linux:alloc:irq"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "d8e172f3c0a5~"},
+        "modules": ["drivers/spi/spi-imx.ko"]
+      },
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "bff71889260f"},
+        "modules": ["drivers/staging/iio/adc/mxs-lradc.ko"]
+      },
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "2ba4b92e8773"},
+        "modules": ["drivers/usb/dwc2/dwc2_gadget.ko"]
+      },
+      "rule specifications": ["linux:clk2"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "5c256d215753~"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
@@ -107,8 +178,10 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Workqueues support (<a href='https://forge.ispras.ru/issues/6822'>feature #6822</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -120,8 +193,10 @@
         "drivers/leds/leds-lp5521.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
@@ -133,26 +208,22 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "[Verification objects generation] drivers/base/firmware_class.ko <a href='https://forge.ispras.ru/issues/7354'>Bug #7354</a>"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "448356262f56~"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
         "Git repository": {"commit": "7ce77510c9c7~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      "specifications set": "Linux 3.2",
+      "rule specifications": ["linux:alloc:spinlock"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Nonstandard environment models specification (<a href='https://forge.ispras.ru/issues/7439'>feature #7439</a>)"
+      }]
     },
     {
       "Linux kernel": {
@@ -164,8 +235,10 @@
         "drivers/w1/masters/ds2482.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe",
-      "comment": "???"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
@@ -173,8 +246,10 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe",
-      "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
+      }]
     },
     {
       "Linux kernel": {
@@ -182,8 +257,10 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "unsafe",
-      "comment": "[Environment model] Incomplete types (<a href='https://forge.ispras.ru/issues/7281'>bug #7281</a>)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "???"
+      }]
     },
     {
       "Linux kernel": {
@@ -192,12 +269,13 @@
       },
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "ideal verdict": "unsafe",
-      "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Rule specification] Different argument signatures are calculated for the same object (fundamental limitation of approach)"
+      }]
     },
     {
       "Linux kernel": {
@@ -208,17 +286,31 @@
         "sound/pci/emu10k1/snd-emu10k1.ko",
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe",
-      "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
+      }]
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "bcb4a75bde38"},
-        "modules": ["drivers/hid/hid.ko"]
+        "Git repository": {"commit": "c822fb57ba12~"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
       },
-      "rule specifications": ["linux:chrdev"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Rule specifications] dev_get_drvdata() and dev_set_drvdata() (<a href='https://forge.ispras.ru/issues/7352'>feature #7352</a>)"
+      }]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "5c256d215753"},
+        "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -226,7 +318,7 @@
         "modules": ["drivers/input/misc/arizona-haptics.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -238,7 +330,7 @@
         "drivers/leds/leds-lp5521.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -250,23 +342,16 @@
         "drivers/leds/leds-lp5523.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "448356262f56"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
-      "rule specifications": ["linux:alloc:spin lock"],
-      "ideal verdict": "safe"
+      "specifications set": "Linux 3.2",
+      "rule specifications": ["linux:alloc:spinlock"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -278,7 +363,7 @@
         "drivers/w1/masters/ds2482.ko"
       ]]}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -286,7 +371,7 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -294,8 +379,10 @@
         "modules": ["net/sunrpc/sunrpc.ko"]
       },
       "rule specifications": ["linux:module"],
-      "ideal verdict": "safe",
-      "comment": "See comment for unsafe"
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     },
     {
       "Linux kernel": {
@@ -303,13 +390,14 @@
         "modules": ["net/tipc/tipc.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe",
       "VTG strategy": {"verifier": {"options": [
-        {"-ldv": ""},
-        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA, cpa.callstack.CallstackCPA, cpa.value.ValueAnalysisCPA, cpa.predicate.PredicateCPA, cpa.conditions.path.PathConditionsCPA"},
+        {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
-      "comment": "See comment for unsafe"
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     },
     {
       "Linux kernel": {
@@ -320,8 +408,20 @@
         "sound/pci/emu10k1/snd-emu10k1.ko",
         "sound/pci/emu10k1/snd-emu10k1-synth.ko"
       ]]}},
+      "specifications set": "Linux 3.2",
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
+        "Git repository": {"commit": "c822fb57ba12"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
+      },
+      "rule specifications": ["linux:clk1"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     }
   ],
   "Source code > 25 KLOC": [
@@ -331,7 +431,7 @@
         "modules": ["fs/btrfs/btrfs.ko"]
       },
       "rule specifications": ["linux:rwlock"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -339,7 +439,7 @@
         "modules": ["fs/btrfs/btrfs.ko"]
       },
       "rule specifications": ["linux:rwlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -347,7 +447,7 @@
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -355,7 +455,7 @@
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -363,7 +463,7 @@
         "modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -371,7 +471,7 @@
         "modules": ["drivers/gpu/drm/i915/i915.ko"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -379,7 +479,7 @@
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -387,7 +487,7 @@
         "modules": ["drivers/gpu/drm/nouveau/nouveau.ko"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ],
   "Specific configuration (architecture)": [
@@ -397,7 +497,7 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -405,7 +505,7 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -413,7 +513,7 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -421,7 +521,7 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -429,7 +529,7 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {
@@ -437,49 +537,49 @@
         "modules": ["???"]
       },
       "rule specifications": ["linux:spinlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ],
   "Not a module": [
     {
       "Linux kernel": {"Git repository": {"commit": "c9bf87daad34~"}},
       "rule specifications": ["linux:rwlock"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "c9bf87daad34"}},
       "rule specifications": ["linux:rwlock"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "55a3dfcc84ab~"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "55a3dfcc84ab"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "b71635775a36~"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "b71635775a36"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "f673015a73e1~"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
     {
       "Linux kernel": {"Git repository": {"commit": "f673015a73e1"}},
       "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "ideal verdicts": [{"ideal verdict": "safe"}]
     }
   ]
 }

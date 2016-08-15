@@ -29,7 +29,7 @@ class Server(server.AbstractServer):
         :param tasks: String with JSON task set inside.
         :return: String with JSON task set received from the verification Gateway.
         """
-        data = {"jobs and tasks status": json.dumps(tasks)}
+        data = {"jobs and tasks status": json.dumps(tasks, ensure_ascii=False, sort_keys=True, indent=4)}
         ret = self.session.json_exchange("service/get_jobs_and_tasks/", data)
         return json.loads(ret["jobs and tasks status"])
 
@@ -52,7 +52,11 @@ class Server(server.AbstractServer):
         :param archive: Path to the zip archive to send.
         """
         self.session.push_archive("service/upload_solution/",
-                                  {"task id": identifier, "description": json.dumps(description)},
+                                  {
+                                      "task id": identifier,
+                                      "description": json.dumps(description, ensure_ascii=False, sort_keys=True,
+                                                                indent=4)
+                                  },
                                   archive)
 
     def submit_nodes(self, nodes):
@@ -60,7 +64,7 @@ class Server(server.AbstractServer):
         Send string with JSON description of nodes available for verification in VerifierCloud.
         :param nodes: String with JSON nodes description.
         """
-        data = {"nodes data": json.dumps(nodes)}
+        data = {"nodes data": json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)}
         self.session.json_exchange("service/update_nodes/", data)
 
     def submit_tools(self, tools):

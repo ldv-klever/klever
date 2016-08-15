@@ -4,7 +4,7 @@ import re
 def get_deps_from_gcc_deps_file(deps_file):
     deps = []
 
-    with open(deps_file, encoding='ascii') as fp:
+    with open(deps_file, encoding='utf8') as fp:
         match = re.match(r'[^:]+:(.+)', fp.readline())
         if match:
             first_dep_line = match.group(1)

@@ -85,6 +85,8 @@ function set_actions_for_scheduler_user() {
 
 $(document).ready(function () {
     $('.note-popup').popup();
+    $('#job_light_popup').popup();
+
     function collect_data() {
         return {
             data: JSON.stringify([
@@ -118,7 +120,8 @@ $(document).ready(function () {
                     $('#upload_other_checkbox').is(':checked'),
                     $('#allow_localdir_checkbox').is(':checked'),
                     $('#ignore_core_checkbox').is(':checked'),
-                    $('#ignore_failed_sub_jobs_checkbox').is(':checked')
+                    $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
+                    $('#is_job_light').is(':checked')
                 ]
             ]),
             job_id: $('#job_pk').val()

@@ -16,7 +16,7 @@ import core.utils
 
 def before_launch_sub_job_components(context):
     context.mqs['Linux kernel attrs'] = multiprocessing.Queue()
-    context.mqs['Linux kernel build cmd descs'] = multiprocessing.Queue()
+    context.mqs['Linux kernel build cmd desc files'] = multiprocessing.Queue()
     context.mqs['Linux kernel module dependencies'] = multiprocessing.Queue()
     context.mqs['Linux kernel module sizes'] = multiprocessing.Queue()
     context.mqs['Linux kernel modules'] = multiprocessing.Queue()
@@ -28,13 +28,12 @@ def after_set_linux_kernel_attrs(context):
 
 
 def after_get_linux_kernel_build_cmd_desc(context):
-    with open(context.linux_kernel['build cmd desc file'], encoding='ascii') as fp:
-        context.mqs['Linux kernel build cmd descs'].put(json.load(fp))
+    context.mqs['Linux kernel build cmd desc files'].put(context.linux_kernel['build cmd desc file'])
 
 
 def after_get_all_linux_kernel_build_cmd_descs(context):
     context.logger.info('Terminate Linux kernel build command descriptions message queue')
-    context.mqs['Linux kernel build cmd descs'].put(None)
+    context.mqs['Linux kernel build cmd desc files'].put(None)
 
 
 class LKVOG(core.components.Component):
@@ -52,6 +51,7 @@ class LKVOG(core.components.Component):
         self.loc = {}
         self.cc_full_descs_files = {}
         self.verification_obj_desc_file = None
+        self.verification_obj_desc_num = 0
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -71,7 +71,7 @@ class LKVOG(core.components.Component):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(self.loc)
+                              'data': json.dumps(self.loc, ensure_ascii=False, sort_keys=True, indent=4)
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -110,6 +110,8 @@ class LKVOG(core.components.Component):
             return False
 
     def generate_all_verification_obj_descs(self):
+        self.logger.info('Generate all verification object decriptions')
+
         strategy_name = self.conf['LKVOG strategy']['name']
 
         if 'all' in self.conf['Linux kernel']['modules'] and not len(self.conf['Linux kernel']['modules']) == 1:
@@ -258,9 +260,12 @@ class LKVOG(core.components.Component):
 
         self.send_loc_report()
 
+        self.logger.info('The total number of verification object descriptions is "{0}"'.format(
+            self.verification_obj_desc_num))
+
     def generate_verification_obj_desc(self):
-        self.logger.info(
-            'Generate Linux kernel verification object description for module "{0}"'.format(self.module['name']))
+        self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
+                         format(self.module['name'], self.verification_obj_desc_num + 1))
 
         self.verification_obj_desc = {}
 
@@ -308,25 +313,31 @@ class LKVOG(core.components.Component):
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
             self.module['name'], self.verification_obj_desc_file))
         os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
-        with open(self.verification_obj_desc_file, 'w', encoding='ascii') as fp:
-            json.dump(self.verification_obj_desc, fp, sort_keys=True, indent=4)
+        with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
+            json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        # Count the number of successfully generated verification object descriptions.
+        self.verification_obj_desc_num += 1
 
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
         while True:
-            desc = self.mqs['Linux kernel build cmd descs'].get()
+            desc_file = self.mqs['Linux kernel build cmd desc files'].get()
 
-            if desc is None:
+            if desc_file is None:
                 self.logger.debug('Linux kernel build command descriptions message queue was terminated')
-                self.mqs['Linux kernel build cmd descs'].close()
+                self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
                 self.linux_kernel_module_names_mq.put(None)
                 break
 
-            self.process_linux_kernel_build_cmd_desc(desc)
+            self.process_linux_kernel_build_cmd_desc(desc_file)
 
-    def process_linux_kernel_build_cmd_desc(self, desc):
+    def process_linux_kernel_build_cmd_desc(self, desc_file):
+        with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
+            desc = json.load(fp)
+
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
                                                                                  '(output file is {0})'.format(
@@ -378,7 +389,7 @@ class LKVOG(core.components.Component):
     def __get_module_loc(self, cc_full_desc_files):
         loc = 0
         for cc_full_desc_file in cc_full_desc_files:
-            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file)) as fp:
+            with open(os.path.join(self.conf['main working directory'], cc_full_desc_file), encoding='utf8') as fp:
                 cc_full_desc = json.load(fp)
             for file in cc_full_desc['in files']:
                 # Simple file's line counter

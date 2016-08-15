@@ -626,7 +626,7 @@ def error_trace_model_functions(error_trace):
         else:
             level -= 1
 
-    return json.dumps(call_tree)
+    return json.dumps(call_tree, ensure_ascii=False, sort_keys=True, indent=4)
 
 class ErrorTraceCallstackTree(object):
     def __init__(self, error_trace):

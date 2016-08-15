@@ -2,6 +2,7 @@
 
 import os
 import re
+import shutil
 
 from core.vtg.separated import SeparatedStrategy
 
@@ -20,14 +21,13 @@ class SBT(SeparatedStrategy):
     def prepare_property_automaton(self, bug_kind=None):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'automaton' in extra_c_file:
-                automaton = extra_c_file['automaton']
+                original_automaton = extra_c_file['automaton']
                 automaton_name = self.conf['abstract task desc']['attrs'][1]['rule specification'] + ".spc"
                 self.automaton_file = automaton_name
+                shutil.copy(original_automaton, automaton_name)
 
-                with open(automaton_name, 'w', encoding='ascii') as fp:
-                    for line in automaton:
-                        fp.write('{0}'.format(line))
-                self.conf['VTG strategy']['verifier']['options'].append({'-spec': automaton_name})
+                self.conf['VTG strategy']['verifier']['options'].\
+                    append({'-spec': automaton_name})
 
     def prepare_bug_kind_functions_file(self, bug_kind=None):
         if self.mpv:
@@ -40,7 +40,7 @@ class SBT(SeparatedStrategy):
 
         # Create bug kind function definitions that all call __VERIFIER_error() since this strategy doesn't distinguish
         # different bug kinds.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
             for bug_kind in bug_kinds:
                 fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(

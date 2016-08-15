@@ -79,11 +79,22 @@ class MAV(CommonStrategy):
             # Clear output directory since it is the same for all runs.
             if os.path.exists('output'):
                 shutil.rmtree('output')
-            self.decide_verification_task()
+            self.decide_verification_task(iterations)
             if self.is_finished:
                 break
         self.logger.info('Conditional Multi-Aspect Verification has been completed in {0} iteration(s)'.
                          format(iterations))
+
+        core.utils.report(self.logger,
+                          'data',
+                          {
+                              'id': self.id,
+                              'data': json.dumps({
+                                  'the number of verification tasks prepared for abstract verification task': iterations
+                              }, ensure_ascii=False, sort_keys=True, indent=4)
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'])
 
     @abstractclassmethod
     def print_strategy_information(self):
@@ -96,7 +107,7 @@ class MAV(CommonStrategy):
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
 
-        with tarfile.open('task files.tar.gz', 'w:gz') as tar:
+        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
             if os.path.isfile(self.path_to_property_automata):
                 tar.add(self.path_to_property_automata)
             for file in self.task_desc['files']:
@@ -104,7 +115,7 @@ class MAV(CommonStrategy):
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
-        with open(self.path_to_property_automata, 'w') as fp:
+        with open(self.path_to_property_automata, 'w', encoding='utf8') as fp:
             fp.write('//This file with property automaton was generated for Multi-Aspect Verification.\n')
             fp.write('CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n')
             fp.write('INITIAL STATE Init;\n')
@@ -116,6 +127,9 @@ class MAV(CommonStrategy):
 
     def add_verifier_options(self):
         self.logger.debug('Add common verifier options for MAV')
+
+        # Specify default configuration.
+        self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
         # Add entry point since we do not use property file.
         self.add_option_for_entry_point()
@@ -141,6 +155,10 @@ class MAV(CommonStrategy):
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})
+        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
+                self.conf['VTG strategy']['verifier']['options']:
+            self.conf['VTG strategy']['verifier']['options'].append(
+                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
 
         # Option for MEA.
         if self.mea:
@@ -195,17 +213,9 @@ class MAV(CommonStrategy):
     def prepare_bug_kind_functions_file(self):
         pass
 
-    def create_auxiliary_report(self, verification_report_id, decision_results, suffix):
+    def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-        if self.resources_written:
-            # In MAV we write resource statistics only for 1 verdict.
-            decision_results['resources'] = {
-                "CPU time": 0,
-                "memory size": 0,
-                "wall time": 0}
         log_file = self.get_verifier_log_file()
-        if decision_results['status'] == 'safe':
-            log_file = self.clear_safe_logs(log_file)
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -217,7 +227,7 @@ class MAV(CommonStrategy):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': log_file,
-                              'files': [log_file] + (
+                              'files': ([log_file] if log_file else []) + (
                                   ['benchmark.xml', self.path_to_property_automata] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
@@ -225,24 +235,25 @@ class MAV(CommonStrategy):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'],
-                          suffix)
-        if not self.resources_written_unsafe and decision_results['status'] == 'unsafe' and self.mea:
+                          bug_kind)
+        if decision_results['status'] == 'unsafe' and self.mea:
             # Unsafe-incomplete.
+            # TODO: fix this.
             is_incomplete = False
             log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
+            with open(log_file, encoding='utf8') as fp:
                 for line in fp:
                     match = re.search(r'Assert \[(.+)\] has exhausted its', line)
                     if match:
                         exhausted_assert = match.group(1)
-                        if exhausted_assert in suffix:
+                        if exhausted_assert in bug_kind:
                             is_incomplete = True
                     match = re.search(r'Shutdown requested', line)
                     if match:
                         is_incomplete = True
             if is_incomplete:
-                name = 'unsafe-incomplete{0}.txt'.format(suffix)
-                with open(name, 'w', encoding='ascii') as fp:
+                name = 'unsafe-incomplete{0}.txt'.format(bug_kind)
+                with open(name, 'w', encoding='utf8') as fp:
                     fp.write('Unsafe-incomplete')
                 core.utils.report(self.logger,
                                   'unknown',
@@ -255,13 +266,13 @@ class MAV(CommonStrategy):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'],
-                                  suffix)
+                                  bug_kind)
             self.resources_written_unsafe = True
         self.resources_written = True
 
     def process_global_error(self, task_error):
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
-        with open('task error.txt', 'w', encoding='ascii') as fp:
+        with open('task error.txt', 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
         core.utils.report(self.logger,
@@ -283,14 +294,14 @@ class MAV(CommonStrategy):
             self.assert_function.__delitem__(assertion)
 
     def get_violated_property(self, file):
-        for line in reversed(list(open(file))):
+        for line in reversed(list(open(file, encoding='utf8'))):
             result = re.search(r"<data key=\"violatedProperty\">(.*)</data>", line)
             if result:
                 return result.group(1)
         return None
 
     # TODO: Why it can not return anything?
-    def decide_verification_task(self):
+    def decide_verification_task(self, iteration):
         is_finished = True
         results = {}
         self.verification_status = None
@@ -312,16 +323,19 @@ class MAV(CommonStrategy):
 
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz") as tar:
+                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
                     tar.extractall()
 
-                with open('decision results.json', encoding='ascii') as fp:
+                with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)
+
+                verification_report_id = '{0}/verification{1}'.format(self.id, iteration)
+                self.create_verification_report(verification_report_id, decision_results, iteration)
 
                 # Parse file with results.
                 is_new_verdicts = False
                 try:
-                    with open(self.path_to_file_with_results, encoding='ascii') as fp:
+                    with open(self.path_to_file_with_results, encoding='utf8') as fp:
                         for line in fp:
                             result = re.search(self.verifier_results_regexp, line)
                             if result:
@@ -344,7 +358,7 @@ class MAV(CommonStrategy):
 
                 except FileNotFoundError:
                     log_file = self.get_verifier_log_file()
-                    with open(log_file, encoding='ascii') as fp:
+                    with open(log_file, encoding='utf8') as fp:
                         content = fp.readlines()
                     task_error = content
                     self.process_global_error(task_error)
@@ -374,13 +388,17 @@ class MAV(CommonStrategy):
                     if verdict == 'unsafe':
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == bug_kind:
-                                self.process_single_verdict(decision_results, assertion=bug_kind,
+                                self.process_single_verdict(decision_results, verification_report_id,
+                                                            assertion=bug_kind,
                                                             specified_error_trace=error_trace)
                                 self.remove_assertion(bug_kind)
                     else:  # Verdicts unknown or safe.
-                        self.process_single_verdict(decision_results, assertion=bug_kind)
+                        self.process_single_verdict(decision_results, verification_report_id,
+                                                    assertion=bug_kind)
                         if verdict != 'checking':
                             self.remove_assertion(bug_kind)
+
+                self.create_verification_finish_report(verification_report_id, iteration)
                 break
             time.sleep(1)
         self.is_finished = is_finished

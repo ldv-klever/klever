@@ -3,7 +3,7 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-struct mwl8k_priv *priv;
+struct ieee80211_hw *priv;
 
 static int ldv_start_callback(struct ieee80211_hw *hw)
 {

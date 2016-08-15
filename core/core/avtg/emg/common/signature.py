@@ -138,42 +138,43 @@ def refine_declaration(interfaces, declaration):
             return None
     elif type(declaration) is Function:
         refinement = False
+        new = copy.deepcopy(declaration)
 
         # Refine the same object
-        if declaration.return_value and not declaration.return_value.clean_declaration:
-            rv = refine_declaration(interfaces, declaration.return_value)
+        if new.return_value and not new.return_value.clean_declaration:
+            rv = refine_declaration(interfaces, new.return_value)
             if rv:
-                declaration.return_value = rv
+                new.return_value = rv
                 refinement = True
 
-        for index in range(len(declaration.parameters)):
-            if type(declaration.parameters[index]) is not str and \
-                    not declaration.parameters[index].clean_declaration:
-                pr = refine_declaration(interfaces, declaration.parameters[index])
+        for index in range(len(new.parameters)):
+            if type(new.parameters[index]) is not str and \
+                    not new.parameters[index].clean_declaration:
+                pr = refine_declaration(interfaces, new.parameters[index])
                 if pr:
-                    declaration.parameters[index] = pr
+                    new.parameters[index] = pr
                     refinement = True
 
         # Update identifier
-        if refinement and declaration.identifier in __type_collection:
-            declaration = __type_collection[declaration.identifier]
+        if refinement and new.identifier in __type_collection:
+            new = __type_collection[new.identifier]
         elif refinement:
-            __type_collection[declaration.identifier] = declaration
+            __type_collection[new.identifier] = new
 
         if refinement:
-            return declaration
+            return new
         else:
             return None
     elif type(declaration) is Pointer and type(declaration.points) is Function:
         refined = refine_declaration(interfaces, declaration.points)
         if refined:
-            declaration.points = refined
-            if declaration.identifier in __type_collection:
-                declaration = __type_collection[declaration.identifier]
+            ptr = refined.take_pointer
+            if ptr.identifier in __type_collection:
+                ptr = __type_collection[ptr.identifier]
             else:
-                __type_collection[declaration.identifier] = declaration
+                __type_collection[ptr.identifier] = ptr
 
-            return declaration
+            return ptr
         else:
             return None
     else:

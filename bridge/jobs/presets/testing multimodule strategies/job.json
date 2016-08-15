@@ -2,19 +2,18 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
-      "configuration": "defconfig",
-      "build kernel": false
+      "configuration": "defconfig"
     },
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "specifications set": "Linux 3.14 (base)",
     "unite rule specifications": false,
     "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "version": "20376"
       },
       "resource limits": {
         "wall time": 1000000,

@@ -6,7 +6,7 @@
   },
   "scheduler": {
     "type": "native",
-    "processes": 4,
+    "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": false,

@@ -2,12 +2,12 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
-      "configuration": "allmodconfig",
-      "build kernel": false
+      "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
+    "specifications set": "Linux 3.14 (base)",
     "rule specifications": ["linux:emg:test"],
     "unite rule specifications": false,
     "RSG strategy": "instrumentation",
@@ -15,13 +15,12 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "version": "20376"
       },
       "resource limits": {
         "wall time": 1000000,
         "CPU time": 900000,
-        "memory size": 10000000000,
+        "memory size": 5000000000,
         "CPU model": null,
         "number of CPU cores": 1,
         "result size": 1000000
@@ -40,7 +39,6 @@
           "atm_dev_invoke.ko"
         ]
       },
-      "ideal verdict": "safe",
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
@@ -484,36 +482,6 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/timer",
-        "modules": [
-          "setup_timer.ko",
-          "setup_deferrable_timer_on_stack.ko",
-          "setup_timer_on_stack.ko",
-          "init_timer.ko",
-          "init_timer_deferrable.ko",
-          "del_timer_sync.ko",
-          "del_timer.ko",
-          "try_to_del_timer_sync.ko",
-          "mod_timer_pending.ko",
-          "mod_timer_pinned.ko",
-          "setup_timer_invoke.ko",
-          "init_timer_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/setup_timer_invoke.ko"
-        },
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/init_timer_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/tty",
         "modules": [
           "tty_register_device.ko",
@@ -552,6 +520,56 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/usb_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/usb_serial_driver",
+        "modules": [
+          "usb_serial_callbacks.ko",
+          "usb_serial_deregister_drivers.ko",
+          "usb_serial_invoke.ko",
+          "usb_serial_register_drivers.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/usb_serial_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    }
+  ],
+  "Unsupported Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/timer",
+        "modules": [
+          "setup_timer.ko",
+          "setup_deferrable_timer_on_stack.ko",
+          "setup_timer_on_stack.ko",
+          "init_timer.ko",
+          "init_timer_deferrable.ko",
+          "del_timer_sync.ko",
+          "del_timer.ko",
+          "try_to_del_timer_sync.ko",
+          "mod_timer_pending.ko",
+          "mod_timer_pinned.ko",
+          "setup_timer_invoke.ko",
+          "init_timer_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/setup_timer_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/init_timer_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

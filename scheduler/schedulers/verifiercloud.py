@@ -159,8 +159,8 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         # TODO: Add more exceptions handling to make code more reliable
         with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
-                  encoding="ascii") as fp:
-            json.dump(description, fp, sort_keys=True, indent=4)
+                  encoding="utf8") as fp:
+            json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
         logging.debug("Prepare arguments of the task {}".format(identifier))
@@ -218,9 +218,9 @@ class Scheduler(schedulers.SchedulerExchange):
             with open(solution_file, 'wb') as sa:
                 sa.write(future.result())
         else:
-            logging.warning("Task has been finished but no data has been received for the task {}".
-                            format(identifier))
-            return "ERROR"
+            error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
@@ -253,7 +253,13 @@ class Scheduler(schedulers.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.submit_solution(identifier, solution_description, solution_archive)
+
+        try:
+            self.server.submit_solution(identifier, solution_description, solution_archive)
+        except Exception as err:
+            error_msg = "Cannot submit silution results of task {}: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
@@ -296,7 +302,7 @@ class Scheduler(schedulers.SchedulerExchange):
         termination.
         """
         logging.info("Terminate all runs")
-        self.wi.shutdown()
+        self.wi.shutdown(wait=False)
 
     def update_nodes(self):
         """

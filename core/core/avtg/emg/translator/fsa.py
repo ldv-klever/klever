@@ -1,5 +1,6 @@
 import copy
 import graphviz
+from operator import attrgetter
 
 from core.avtg.emg.common.signature import Primitive, Pointer
 from core.avtg.emg.common.code import Variable, FunctionModels
@@ -10,80 +11,80 @@ class FSA:
 
     def __init__(self, process):
         self.process = process
-        self.initial_states = set()
-        self.finite_states = set()
         self.states = set()
+        self._initial_states = set()
         self.__id_cnt = 0
 
         # Generate AST states
-        self.__generate_states(process)
-
-    def clone_state(self, node):
-        new_desc = copy.copy(node.desc)
-        new_id = self.__yield_id()
-
-        new_state = State(new_desc, new_id)
-        new_state.action = node.action
-
-        for pred in node.predecessors:
-            new_state.predecessors.add(pred)
-            pred.successors.add(new_state)
-
-        for succ in node.successors:
-            new_state.successors.add(succ)
-            succ.predecessors.add(new_state)
-
-        self.states.add(new_state)
-
-        return new_state
-
-    def new_state(self, action):
-        desc = {
-            'label': '<{}>'.format(action.name)
-        }
-        new = State(desc, self.__yield_id())
-        new.action = action
-        self.states.add(new)
-        return new
-
-    def add_new_predecessor(self, node, action):
-        new = self.new_state(action)
-
-        for pred in node.predecessors:
-            pred.successors.remove(node)
-            pred.successors.add(new)
-            new.predecessors.add(pred)
-
-        node.predecessors = set([new])
-        new.successors = set([node])
-
-        return new
-
-    def add_new_successor(self, node, action):
-        new = self.new_state(action)
-
-        for succ in node.successors:
-            succ.predecessors.remove(node)
-            succ.predecessors.add(new)
-            new.successors.add(succ)
-
-        node.successors = set([new])
-        new.predecessors = set([node])
-
-        return new
-
-    def __generate_states(self, process):
-        sb_asts = dict()
-        sb_processed = set()
+        sp_asts = dict()
+        sp_processed = set()
         asts = list()
+
+        # Generate states
+        def generate_nodes(self, process, pr_ast):
+            asts = [[pr_ast, True]]
+            initial_states = set()
+
+            while len(asts) > 0:
+                ast, initflag = asts.pop()
+
+                if ast['type'] == 'choice':
+                    for action in ast['actions']:
+                        asts.append([action, initflag])
+                elif ast['type'] == 'concatenation':
+                    for action in ast['actions']:
+                        if initflag:
+                            asts.append([action, initflag])
+                            initflag = False
+                        else:
+                            asts.append([action, initflag])
+                else:
+                    node = State(ast, self.__yield_id())
+
+                    if ast['name'] not in process.actions:
+                        raise KeyError("Process '{}' does not have action description '{}'".
+                                       format(process.name, ast['name']))
+                    node.action = process.actions[ast['name']]
+                    if type(process.actions[ast['name']]) is Receive:
+                        node.action.replicative = node.desc['replicative']
+                    if type(process.actions[ast['name']]) is Dispatch:
+                        node.action.broadcast = node.desc['broadcast']
+
+                    self.states.add(node)
+                    ast['node'] = node
+
+                    if initflag:
+                        initial_states.add(node)
+
+            return initial_states
 
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
             ast = copy.copy(process.actions[name].process_ast)
-            self.__generate_nodes(process, ast)
-            sb_asts[name] = ast
+            generate_nodes(self, process, ast)
+            sp_asts[name] = ast
         p_ast = copy.copy(process.process_ast)
-        self.initial_states = self.__generate_nodes(process, p_ast)
+        self._initial_states = generate_nodes(self, process, p_ast)
         asts.append([p_ast, None])
+
+        def resolve_last(pr_ast):
+            if not pr_ast:
+                return set()
+
+            asts = [pr_ast]
+            last = set()
+
+            while len(asts) > 0:
+                ast = asts.pop()
+
+                if ast['type'] == 'choice':
+                    for action in ast['actions']:
+                        asts.append(action)
+                elif ast['type'] == 'concatenation':
+                    asts.append(ast['actions'][-1])
+                else:
+                    last.add(ast['node'])
+
+            return last
 
         while len(asts) > 0:
             ast, prev = asts.pop()
@@ -98,67 +99,101 @@ class FSA:
             else:
                 if ast['type'] == 'subprocess':
                     pair = "{} {}".format(ast['name'], str(prev))
-                    if pair not in sb_processed:
-                        sb_processed.add(pair)
-                        asts.append([sb_asts[ast['name']], ast])
+                    if pair not in sp_processed:
+                        sp_processed.add(pair)
+                        asts.append([sp_asts[ast['name']], ast])
 
-                for pre_state in self.__resolve_last(prev):
-                    ast['node'].predecessors.add(pre_state)
-                    pre_state.successors.add(ast['node'])
+                last = resolve_last(prev)
+                if len(last) > 0 and prev['type'] != "subprocess":
+                    # Filter out subprocesses if there are
+                    last = [s for s in last if type(s.action) is not Subprocess]
 
-    def __resolve_last(self, pr_ast):
-        if not pr_ast:
-            return set()
+                for pre_state in last:
+                    ast['node'].insert_predecessor(pre_state)
 
-        asts = [pr_ast]
-        last = set()
+        # Normalize fsa to make life easier for code generators
+        # Keep subprocess states as jumb points
+        # Insert process and subprocess entry states
+        for subprocess in (a for a in self.process.actions.values() if type(a) is Subprocess):
+            new = self.__new_state(None)
 
-        while len(asts) > 0:
-            ast = asts.pop()
+            # Insert state
+            jump_states = sorted([s for s in self.states if s.action and s.action.name == subprocess.name],
+                                  key=attrgetter('identifier'))
+            for jump in jump_states:
+                for successor in jump.successors:
+                    successor.replace_predecessor(jump, new)
+                    jump.replace_successor(successor, new)
 
-            if ast['type'] == 'choice':
-                for action in ast['actions']:
-                    asts.append(action)
-            elif ast['type'] == 'concatenation':
-                asts.append(ast['actions'][-1])
-            else:
-                last.add(ast['node'])
+        # Add initial state if necessary
+        if len(self._initial_states) > 1:
+            new = self.__new_state(None)
+            for initial in self._initial_states:
+                initial.insert_predecessor(new)
 
-        return last
+            self._initial_states = set([new])
 
-    def __generate_nodes(self, process, pr_ast):
-        asts = [[pr_ast, True]]
-        initial_states = set()
+        return
 
-        while len(asts) > 0:
-            ast, initflag = asts.pop()
+    @property
+    def initial_states(self):
+        return sorted(self._initial_states, key=attrgetter('identifier'))
 
-            if ast['type'] == 'choice':
-                for action in ast['actions']:
-                    asts.append([action, initflag])
-            elif ast['type'] == 'concatenation':
-                for action in ast['actions']:
-                    if initflag:
-                        asts.append([action, initflag])
-                        initflag = False
-                    else:
-                        asts.append([action, initflag])
-            else:
-                node = State(ast, self.__yield_id())
+    def resolve_state(self, identifier):
+        for state in (s for s in self.states if s.identifier == identifier):
+            return state
 
-                node.action = process.actions[ast['name']]
-                if type(process.actions[ast['name']]) is Receive:
-                    node.action.replicative = node.desc['replicative']
-                if type(process.actions[ast['name']]) is Dispatch:
-                    node.action.broadcast = node.desc['broadcast']
+        raise KeyError("State '{}' does not exist in process '{}' of category '{}'".
+                       format(identifier, self.process.name, self.process.category))
 
-                self.states.add(node)
-                ast['node'] = node
+    def clone_state(self, node):
+        new_desc = copy.copy(node.desc)
+        new_id = self.__yield_id()
 
-                if initflag:
-                    initial_states.add(node)
+        new_state = State(new_desc, new_id)
+        new_state.action = node.action
 
-        return initial_states
+        for pred in node.predecessors:
+            new_state.insert_predecessor(pred)
+
+        for succ in node.successors:
+            new_state.insert_successor(succ)
+
+        self.states.add(new_state)
+
+        return new_state
+
+    def add_new_predecessor(self, node, action):
+        new = self.__new_state(action)
+
+        for pred in node.predecessors:
+            pred.replace_successor(node, new)
+
+        node.insert_predecessor(new)
+        return new
+
+    def add_new_successor(self, node, action):
+        new = self.__new_state(action)
+
+        for succ in node.successors:
+            succ.replace_predecessor(node, new)
+
+        node.insert_successor(new)
+        return new
+
+    def __new_state(self, action):
+        if action:
+            desc = {
+                'label': '<{}>'.format(action.name)
+            }
+        else:
+            desc = {
+                'label': 'Artificial state'
+            }
+        new = State(desc, self.__yield_id())
+        new.action = action
+        self.states.add(new)
+        return new
 
     def __yield_id(self):
         self.__id_cnt += 1
@@ -170,18 +205,52 @@ class State:
     def __init__(self, desc, identifier):
         self.identifier = identifier
         self.desc = desc
-        self.predecessors = set()
-        self.successors = set()
+        self._predecessors = set()
+        self._successors = set()
         self.action = None
         self.code = None
 
+    @property
+    def successors(self):
+        return sorted(self._successors, key=attrgetter('identifier'))
+
+    @property
+    def predecessors(self):
+        return sorted(self._predecessors, key=attrgetter('identifier'))
+
+    def insert_successor(self, new):
+        self.add_successor(new)
+        new.add_predecessor(self)
+
+    def insert_predecessor(self, new):
+        self.add_predecessor(new)
+        new.add_successor(self)
+
     def replace_successor(self, old, new):
-        self.successors.remove(old)
-        self.successors.add(new)
+        self.remove_successor(old)
+        old.remove_predecessor(self)
+        self.add_successor(new)
+        new.add_predecessor(self)
 
     def replace_predecessor(self, old, new):
-        self.predecessors.remove(old)
-        self.predecessors.add(new)
+        self.remove_predecessor(old)
+        old.remove_successor(self)
+        self.add_predecessor(new)
+        new.add_successor(self)
+
+    def add_successor(self, new):
+        self._successors.add(new)
+
+    def add_predecessor(self, new):
+        self._predecessors.add(new)
+
+    def remove_successor(self, old):
+        if old in self._successors:
+            self._successors.remove(old)
+
+    def remove_predecessor(self, old):
+        if old in self._predecessors:
+            self._predecessors.remove(old)
 
     def _relevant_checks(self):
         checks = []
@@ -384,7 +453,7 @@ class Automaton:
 
         subprocesses = {}
         for state in self.fsa.states:
-            label = "Action: {}\n".format(state.desc['label'])
+            label = "Action {}: {}\n".format(state.identifier, state.desc['label'])
 
             if 'guard' in state.code and len(state.code['guard']) > 0:
                 label += 'Guard: ' + ' && '.join(state.code['guard'])
@@ -438,10 +507,10 @@ class Automaton:
                             str(succ.identifier)
                     )
 
-        if len(self.fsa.initial_states) > 1:
+        if len(self.fsa._initial_states) > 1:
             name = 'Artificial initial state'
             graph.node(name, name)
-            for entry in self.fsa.initial_states:
+            for entry in self.fsa._initial_states:
                 graph.edge(
                     str(name),
                     str(entry.identifier)
@@ -452,7 +521,7 @@ class Automaton:
         graph.render()
         self.logger.debug("Graph image has been successfully rendered and saved")
 
-    def generate_code(self, analysis, model, translator, state):
+    def generate_meta_code(self, analysis, model, translator, state):
         base_case = {
             "guard": [],
             "body": [],
@@ -537,42 +606,41 @@ class Automaton:
                     label_params = []
                     cb_statements = []
 
-                    # Determine parameters
-                    for index in range(len(signature.points.parameters)):
-                        parameter = signature.points.parameters[index]
-
-                        if type(parameter) is not str:
-                            expression = None
-
-                            # Search access
-                            for access_parameter in st.action.parameters[index:]:
-                                accesses = self.process.resolve_access(access_parameter)
-                                for acc in accesses:
-                                    if acc.list_interface and len(acc.list_interface) > 0 and \
-                                            (acc.list_interface[-1].declaration.compare(parameter) or
-                                             acc.list_interface[-1].declaration.pointer_alias(parameter)):
-                                        expression = acc.access_with_variable(
-                                            self.determine_variable(acc.label, acc.list_interface[0].identifier))
-                                        break
-                                if expression:
+                    # Try to match action parameters
+                    found_positions = dict()
+                    for label_index in range(len(st.action.parameters)):
+                        accesses = self.process.resolve_access(st.action.parameters[label_index])
+                        for acc in (a for a in accesses if a.list_interface and len(a.list_interface) > 0):
+                            for position in (p for p in list(range(len(signature.points.parameters)))[label_index:]
+                                             if p not in found_positions):
+                                parameter = signature.points.parameters[position]
+                                if (acc.list_interface[-1].declaration.compare(parameter) or
+                                        acc.list_interface[-1].declaration.pointer_alias(parameter)):
+                                    expression = acc.access_with_variable(
+                                        self.determine_variable(acc.label, acc.list_interface[0].identifier))
+                                    found_positions[position] = expression
                                     break
 
-                            # Generate new variable
-                            if not expression:
-                                if type(signature.points.parameters[index]) is not Primitive and \
-                                        type(signature.points.parameters[index]) is not Pointer:
-                                    param_signature = signature.points.parameters[index].take_pointer
-                                    pointer_params.append(index)
-                                else:
-                                    param_signature = signature.points.parameters[index]
+                    # Fulfil rest parameters
+                    for index in range(len(signature.points.parameters)):
+                        if type(signature.points.parameters[index]) is not str and index not in found_positions:
+                            if type(signature.points.parameters[index]) is not Primitive and \
+                                    type(signature.points.parameters[index]) is not Pointer:
+                                param_signature = signature.points.parameters[index].take_pointer
+                                pointer_params.append(index)
+                            else:
+                                param_signature = signature.points.parameters[index]
 
-                                lb, var = self.new_param("ldv_param_{}_{}".format(st.identifier, index),
-                                                         param_signature, None)
-                                label_params.append(lb)
-                                expression = var.name
+                            lb, var = self.new_param("ldv_param_{}_{}".format(st.identifier, index),
+                                                     param_signature, None)
+                            label_params.append(lb)
+                            expression = var.name
 
                             # Add string
-                            params.append(expression)
+                            found_positions[index] = expression
+
+                    # Print params
+                    params = [found_positions[i] for i in sorted(found_positions.keys())]
 
                     # Add precondition and postcondition
                     if len(label_params) > 0:
@@ -585,12 +653,12 @@ class Automaton:
                         pre_name = 'pre_call_{}'.format(st.identifier)
                         pre_action = self.process.add_condition(pre_name, [], pre_statements)
                         pre_st = self.fsa.add_new_predecessor(st, pre_action)
-                        self.generate_code(analysis, model, translator, pre_st)
+                        self.generate_meta_code(analysis, model, translator, pre_st)
 
                         post_name = 'post_call_{}'.format(st.identifier)
                         post_action = self.process.add_condition(post_name, [], post_statements)
                         post_st = self.fsa.add_new_successor(st, post_action)
-                        self.generate_code(analysis, model, translator, post_st)
+                        self.generate_meta_code(analysis, model, translator, post_st)
 
                     # Generate return value assignment
                     ret_access = None
@@ -755,6 +823,13 @@ class Automaton:
                     cn = self.translation_models.text_processor(self, statement)
                     base_case["guard"].extend(cn)
 
+            state.code = base_case
+        elif state.action is None:
+            self.logger.debug("Prepare code for artificial state '{}' in automaton '{}' for process '{}' of category "
+                              "'{}'".format(state.identifier, self.identifier, self.process.name,
+                                            self.process.category))
+            # Generate comment
+            base_case["body"].append("/* Artificial state {} */".format(state.identifier))
             state.code = base_case
         else:
             raise ValueError("Unexpected state machine edge type: {}".format(state.action.type))

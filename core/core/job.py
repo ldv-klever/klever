@@ -46,7 +46,6 @@ class Job(core.utils.CallbacksCaller):
         self.components = []
         self.callbacks = {}
         self.component_processes = []
-        self.results = {}
 
     def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
@@ -128,6 +127,14 @@ class Job(core.utils.CallbacksCaller):
         with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
             try:
                 if self.name:
+                    if self.components_common_conf['keep intermediate files']:
+                        if os.path.isfile('conf.json'):
+                            raise FileExistsError(
+                                'Components configuration file "conf.json" already exists')
+                        self.logger.debug('Create components configuration file "conf.json"')
+                        with open('conf.json', 'w', encoding='utf8') as fp:
+                            json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
                     core.utils.report(self.logger,
                                       'start',
                                       {
@@ -153,10 +160,10 @@ class Job(core.utils.CallbacksCaller):
                                 "verification status": 'unknown'
                             })
 
-                    def after_decide_verification_task(context):
+                    def after_process_single_verdict(context):
                         context.mqs['verification statuses'].put({
                             "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
-                            "rule specification": context.conf['abstract task desc']['attrs'][1]['rule specification'],
+                            "rule specification": context.rule_specification,
                             "verification status": context.verification_status
                         })
 
@@ -168,7 +175,7 @@ class Job(core.utils.CallbacksCaller):
                                                        (
                                                            before_launch_sub_job_components,
                                                            after_generate_abstact_verification_task_desc,
-                                                           after_decide_verification_task,
+                                                           after_process_single_verdict,
                                                            after_generate_all_verification_tasks
                                                        ))
 
@@ -181,7 +188,7 @@ class Job(core.utils.CallbacksCaller):
             except Exception:
                 if self.name:
                     if self.mqs:
-                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                        with open('problem desc.txt', 'w', encoding='utf8') as fp:
                             traceback.print_exc(file=fp)
 
                         if os.path.isfile('problem desc.txt'):
@@ -225,14 +232,14 @@ class Job(core.utils.CallbacksCaller):
 
     def get_class(self):
         self.logger.info('Get job class')
-        with open(self.CLASS_FILE, encoding='ascii') as fp:
+        with open(self.CLASS_FILE, encoding='utf8') as fp:
             self.type = fp.read()
         self.logger.debug('Job class is "{0}"'.format(self.type))
 
     def get_common_components_conf(self, core_conf):
         self.logger.info('Get components common configuration')
 
-        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
+        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='utf8') as fp:
             self.components_common_conf = json.load(fp)
 
         # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
@@ -244,8 +251,8 @@ class Job(core.utils.CallbacksCaller):
                 raise FileExistsError(
                     'Components common configuration file "components common conf.json" already exists')
             self.logger.debug('Create components common configuration file "components common conf.json"')
-            with open('components common conf.json', 'w', encoding='ascii') as fp:
-                json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+            with open('components common conf.json', 'w', encoding='utf8') as fp:
+                json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def get_sub_jobs(self):
         self.logger.info('Get job sub-jobs')
@@ -261,6 +268,7 @@ class Job(core.utils.CallbacksCaller):
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                del (sub_job_components_common_conf['Sub-jobs'])
                 sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
 
                 self.logger.info('Get sub-job name and type')
@@ -331,7 +339,7 @@ class Job(core.utils.CallbacksCaller):
 
     def extract_archive(self):
         self.logger.info('Extract job archive "{0}" to directory "{1}"'.format(self.ARCHIVE, self.DIR))
-        with tarfile.open(self.ARCHIVE) as TarFile:
+        with tarfile.open(self.ARCHIVE, encoding='utf8') as TarFile:
             TarFile.extractall(self.DIR)
 
     def launch_sub_job_components(self):
@@ -398,17 +406,17 @@ class Job(core.utils.CallbacksCaller):
                 })
 
             with self.data_lock:
-                # Get previously processed results.
-                self.results = self.data.copy()
-
-                # Process new results.
-                self.results.update(self.__match_verification_statuses_and_ideal_verdicts(
+                # Common processing of new results.
+                self.data.update(self.__match_verification_statuses_and_ideal_verdicts(
                     verification_statuses, self.components_common_conf['ideal verdicts']))
+                # Without this we won't be able to reliably iterate over data since it is
+                # multiprocessing.Manager().dict().
+                results = self.data.copy()
 
                 if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                    self.process_validation_results()
+                    results = self.process_validation_results(results)
                 elif self.parent['type'] == 'Verification of Linux kernel modules':
-                    self.process_testing_results()
+                    results = self.process_testing_results(results)
                 else:
                     raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
@@ -416,28 +424,30 @@ class Job(core.utils.CallbacksCaller):
                                   'data',
                                   {
                                       'id': self.parent['id'],
-                                      'data': json.dumps(self.results)
+                                      'data': json.dumps(results, ensure_ascii=False, sort_keys=True, indent=4)
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
 
-                # Store processed results.
-                self.data.clear()
-                self.data.update(self.results)
-
-    def process_testing_results(self):
+    def process_testing_results(self, results):
         self.logger.info('Check whether tests passed')
-        for test in self.results:
-            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                test, self.results[test]['ideal verdict'], self.results[test]['verification status'],
-                ' ("{0}")'.format(self.results[test]['comment']) if self.results[test]['comment'] else ''))
 
-    def process_validation_results(self):
+        for test in results:
+            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
+                test, results[test]['ideal verdict'], results[test]['verification status'],
+                ' ("{0}")'.format(results[test]['comment']) if results[test]['comment'] else ''))
+
+        # Report results as is.
+        return results
+
+    def process_validation_results(self, results):
         self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
+
+        new_results = {}
 
         bug_results = {}
         bug_fix_results = {}
-        for name, results in self.results.items():
+        for name, results in results.items():
             # Corresponds to validation result before bug fix.
             if results['ideal verdict'] == 'unsafe':
                 bug_results[name] = results
@@ -447,17 +457,16 @@ class Job(core.utils.CallbacksCaller):
             else:
                 raise ValueError(
                     'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
-        self.results.clear()
 
         for bug_id, bug_result in bug_results.items():
-            found_bug_fix = False
+            found_bug_fix_result = None
             for bug_fix_id, bug_fix_result in bug_fix_results.items():
                 # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
                 # taken into account that all commit hashes have exactly 12 symbols.
                 if bug_id[:12] == bug_fix_id[:12] and (bug_id[13:] == bug_fix_id[12:]
                                                        if len(bug_id) > 12 and bug_id[12] == '~'
                                                        else bug_id[12:] == bug_fix_id[13:]):
-                    found_bug_fix = True
+                    found_bug_fix_result = bug_fix_result
                     break
 
             validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
@@ -467,18 +476,21 @@ class Job(core.utils.CallbacksCaller):
                 else '')
 
             # At least save validation result before bug fix.
-            self.results[bug_id] = {'before fix': bug_result}
+            new_results[bug_id] = {'before fix': bug_result}
 
-            if not found_bug_fix:
+            if not found_bug_fix_result:
                 self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(bug_id))
-                self.results[bug_id]['after fix'] = None
+                new_results[bug_id]['after fix'] = None
             else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(bug_fix_result['verification status'],
-                                                                       ' ("{0}")'.format(bug_fix_result['comment'])
-                                                                       if bug_fix_result['comment'] else '')
-                self.results[bug_id]['after fix'] = bug_fix_result
+                validation_res_msg += ', after fix is "{0}"{1}'.format(found_bug_fix_result['verification status'],
+                                                                       ' ("{0}")'.format(
+                                                                           found_bug_fix_result['comment'])
+                                                                       if found_bug_fix_result['comment'] else '')
+                new_results[bug_id]['after fix'] = found_bug_fix_result
 
             self.logger.info(validation_res_msg)
+
+        return new_results
 
     def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
         results = {}
@@ -543,7 +555,8 @@ class Job(core.utils.CallbacksCaller):
                         break
 
             if name not in results:
-                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}"'.format(
-                    verification_status))
+                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}", '
+                                 'verification object "{1}" and rule specification "{2}"'.
+                                 format(verification_status, verification_object, rule_specification))
 
         return results

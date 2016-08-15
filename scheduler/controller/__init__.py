@@ -111,8 +111,8 @@ def setup_consul(conf):
 
     consul_config_file = os.path.join(consul_work_dir, "config.json")
     logging.info("Save consul configuration file {}".format(consul_config_file))
-    with open(consul_config_file, "w", encoding="ascii") as fh:
-        fh.write(json.dumps(consul_config, sort_keys=True, indent=4))
+    with open(consul_config_file, "w", encoding="utf8") as fh:
+        fh.write(json.dumps(consul_config, ensure_ascii=False, sort_keys=True, indent=4))
 
     logging.debug("Extract system information and add it to the node information")
     node_configuration = os.path.join(os.path.abspath(os.path.curdir), "node configuration.json")
@@ -122,8 +122,8 @@ def setup_consul(conf):
         "node configuration": conf["node configuration"],
         "Klever Bridge": conf["Klever Bridge"]
     }
-    with open(node_configuration, "w", encoding="ascii") as fh:
-        fh.write(json.dumps(data, sort_keys=True, indent=4))
+    with open(node_configuration, "w", encoding="utf8") as fh:
+        fh.write(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
 
     # Add as an environment variable
     logging.info("Set environment variable {} as {}".

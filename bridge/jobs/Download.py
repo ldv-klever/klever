@@ -51,7 +51,7 @@ class KleverCoreDownloadJob(object):
                     'src': src
                 })
 
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8')
         write_file_str(jobtar_obj, 'format', str(job.format))
         for job_class in JOB_CLASSES:
             if job_class[0] == job.type:
@@ -84,10 +84,10 @@ class DownloadJob(object):
 
         files_in_tar = {}
         self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        with tarfile.open(fileobj=self.tempfile, mode='w:gz') as jobtar_obj:
+        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as jobtar_obj:
 
             def add_json(file_name, data):
-                file_content = json.dumps(data, indent=4).encode('utf-8')
+                file_content = json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
                 t = tarfile.TarInfo(file_name)
                 t.size = len(file_content)
                 jobtar_obj.addfile(t, BytesIO(file_content))
@@ -118,6 +118,7 @@ class DownloadJob(object):
                 'run_history': self.__add_run_history_files(jobtar_obj)
             })
             add_json('reports.json', ReportsData(self.job).reports)
+            add_json('LightWeightCache.json', LightWeightCache(self.job).data)
             self.__add_reports_files(jobtar_obj)
 
     def __add_reports_files(self, jobtar):
@@ -145,6 +146,27 @@ class DownloadJob(object):
                 ]
             })
         return data
+
+
+class LightWeightCache(object):
+    def __init__(self, job):
+        self.data = {}
+        try:
+            self.root = ReportRoot.objects.get(job=job)
+        except ObjectDoesNotExist:
+            return
+        self.data['safes'] = self.root.safes
+        if job.light:
+            self.data['resources'] = self.__get_light_resources()
+
+    def __get_light_resources(self):
+        res_data = []
+        for r in LightResource.objects.filter(report=self.root):
+            res_data.append({
+                'component': r.component.name if r.component is not None else None,
+                'wall_time': r.wall_time, 'cpu_time': r.cpu_time, 'memory': r.memory
+            })
+        return res_data
 
 
 class ReportsData(object):
@@ -194,6 +216,7 @@ class ReportsData(object):
             data['error_trace'] = report.error_trace
         elif isinstance(report, ReportUnknown):
             data['problem_description'] = report.problem_description
+            data['component'] = report.component.name
         return data
 
     def __reports_data(self):
@@ -237,6 +260,7 @@ class UploadJob(object):
         versions_data = {}
         report_files = {}
         run_history_files = {}
+        light_cache = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
                 if dir_path.endswith(JOBFILE_DIR):
@@ -253,6 +277,13 @@ class UploadJob(object):
                             jobdata = json.load(fp)
                     except Exception as e:
                         logger.exception("Can't parse job data: %s" % e)
+                        return _("The job archive is corrupted")
+                elif file_name == 'LightWeightCache.json':
+                    try:
+                        with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
+                            light_cache = json.load(fp)
+                    except Exception as e:
+                        logger.exception("Can't parse lightweight results data: %s" % e)
                         return _("The job archive is corrupted")
                 elif file_name == 'reports.json':
                     try:
@@ -396,7 +427,25 @@ class UploadJob(object):
             job.delete()
             return _("Uploading reports failed")
         self.job = job
+        self.__fill_lightweight_cache(light_cache)
         return None
+
+    def __fill_lightweight_cache(self, light_cache):
+        try:
+            root = ReportRoot.objects.get(job=self.job)
+        except ObjectDoesNotExist:
+            return
+        if 'safes' in light_cache:
+            root.safes = int(light_cache['safes'])
+            root.save()
+        if 'resources' in light_cache:
+            self.job.light = True
+            self.job.save()
+            LightResource.objects.bulk_create(list(LightResource(
+                report=root, wall_time=int(d['wall_time']), cpu_time=int(d['cpu_time']), memory=int(d['memory']),
+                component=Component.objects.get_or_create(name=d['component'])[0]
+                if d['component'] is not None else None
+            ) for d in light_cache['resources']))
 
 
 class UploadReports(object):
@@ -445,16 +494,19 @@ class UploadReports(object):
         ))
 
         from tools.utils import Recalculation
-        Recalculation('all', json.dumps([self.job.pk]))
+        Recalculation('all', json.dumps([self.job.pk], ensure_ascii=False, sort_keys=True, indent=4))
 
     def __create_report_component(self, data):
         parent = None
         if data.get('parent') is not None:
             parent = self._pk_map[data['parent']]
-        with open(self.files[(ReportComponent.__name__, data['pk'])], mode='rb') as fp:
-            archive = file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
-        if data['log'] is None:
-            raise ValueError('Component report without log was found')
+        if (ReportComponent.__name__, data['pk']) in self.files:
+            with open(self.files[(ReportComponent.__name__, data['pk'])], mode='rb') as fp:
+                archive = file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+        else:
+            archive = None
+        if 'log' not in data:
+            data['log'] = None
         report_datafile = None
         if data['data'] is not None:
             report_datafile = file_get_or_create(BytesIO(data['data'].encode('utf8')), 'report-data.json')[0]
@@ -473,12 +525,16 @@ class UploadReports(object):
         return self._pk_map[data['pk']].pk
 
     def __create_report_safe(self, data):
-        with open(self.files[(ReportSafe.__name__, data['pk'])], mode='rb') as fp:
-            return ReportSafe.objects.create(
-                root=self.job.reportroot, parent=self._pk_map[data['parent']],
-                identifier=data['identifier'], proof=data['proof'],
-                archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
-            ).pk
+        if (ReportSafe.__name__, data['pk']) in self.files:
+            with open(self.files[(ReportSafe.__name__, data['pk'])], mode='rb') as fp:
+                return ReportSafe.objects.create(
+                    root=self.job.reportroot, parent=self._pk_map[data['parent']],
+                    identifier=data['identifier'], proof=data['proof'],
+                    archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+                ).pk
+        return ReportSafe.objects.create(
+            root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier']
+        ).pk
 
     def __create_report_unknown(self, data):
         with open(self.files[(ReportUnknown.__name__, data['pk'])], mode='rb') as fp:
@@ -486,7 +542,7 @@ class UploadReports(object):
                 root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
                 problem_description=data['problem_description'],
                 archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0],
-                component=self._pk_map[data['parent']].component
+                component=Component.objects.get_or_create(name=data['component'])[0]
             ).pk
 
     def __create_report_unsafe(self, data):

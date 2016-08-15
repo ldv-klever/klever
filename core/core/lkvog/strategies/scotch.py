@@ -92,7 +92,7 @@ class Scotch(AbstractStrategy):
         count_e = int(sum(len(e) for e in dual_graph.values()))
 
         self.logger.debug('Dual graph contains {0} vertex and {1} edges'.format(count_v, count_e))
-        with open(self.graph_file, 'w') as gf:
+        with open(self.graph_file, 'w', encoding='utf8') as gf:
             gf.write('0\n{0} {1}\n0 000\n'.format(count_v, count_e))
             for key, value in sorted(dual_graph.items()):
                 gf.write('{0} {1}\n'.format(len(value), ' '.join([str(v) for v in value])))
@@ -108,7 +108,7 @@ class Scotch(AbstractStrategy):
         self.logger.debug("Import partitioning results from the file")
 
         partitioning = {}
-        with open(self.scotch_out, encoding='ascii') as fp:
+        with open(self.scotch_out, encoding='utf8') as fp:
             lines = fp.readlines()
             for line in lines[1:]:
                 line = line.rstrip("\n")

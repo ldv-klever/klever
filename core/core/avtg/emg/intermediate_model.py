@@ -29,7 +29,6 @@ class ProcessModel:
         self.entry_process = None
 
     def generate_event_model(self, analysis):
-        # todo: should work with multi-module analysis (issues #6558, #6563)
         self.logger.info("Generate model processes for Init and Exit module functions")
         self.__generate_entry(analysis)
 
@@ -45,7 +44,6 @@ class ProcessModel:
         self.__resolve_accesses(analysis)
 
     def __generate_entry(self, analysis):
-        # todo: Implement multimodule processes creation (issues #6563, #6571, #6558)
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'EMGentry'")
         ep = Process("EMGentry")
         ep.category = "entry"
@@ -57,7 +55,6 @@ class ProcessModel:
 
         # Generate init subprocess
         for filename, init_name in analysis.inits:
-            # todo: Add none instead of particular name (relevant to #6571)
             init_label = Label('init_{}'.format(init_name))
             init_label.value = "& {}".format(init_name)
             init_label.prior_signature = import_declaration("int (*f)(void)")
@@ -78,7 +75,6 @@ class ProcessModel:
 
         # Generate exit subprocess
         if len(analysis.exits) == 0:
-            # todo: Add none instead of particular name (relevant to #6571)
             self.logger.debug("There is no exit function found")
             exit_subprocess = Call('exit')
             exit_subprocess.callback = "%exit%"
@@ -196,7 +192,8 @@ class ProcessModel:
 
     def __import_kernel_models(self, analysis):
         for function in sorted(list(self.__abstr_model_processes.keys())):
-            if function in sorted(analysis.kernel_functions.keys()):
+            if function in analysis.kernel_functions:
+                function_obj = analysis.get_kernel_function(function)
                 self.logger.debug("Add model of function '{}' to an environment model".format(function))
                 new_process = self.__add_process(analysis, self.__abstr_model_processes[function], model=True)
                 new_process.category = "kernel models"
@@ -206,9 +203,9 @@ class ProcessModel:
                 for label in sorted(new_process.labels.keys()):
                     # Assign label-parameters
                     if new_process.labels[label].parameter and not new_process.labels[label].prior_signature:
-                        for index in range(len(analysis.kernel_functions[function].param_interfaces)):
-                            parameter = analysis.kernel_functions[function].param_interfaces[index]
-                            signature = analysis.kernel_functions[function].declaration.parameters[index]
+                        for index in range(len(function_obj.param_interfaces)):
+                            parameter = function_obj.param_interfaces[index]
+                            signature = function_obj.declaration.parameters[index]
 
                             if parameter and parameter.identifier in new_process.labels[label].interfaces:
                                 self.logger.debug("Set label {} signature according to interface {}".
@@ -217,8 +214,8 @@ class ProcessModel:
                                 break
                     elif not new_process.labels[label].parameter and new_process.labels[label].interfaces:
                         for interface in new_process.labels[label].interfaces:
-                            new_process.labels[label].set_declaration(interface,
-                                                                      analysis.interfaces[interface].declaration)
+                            interface_obj = analysis.get_intf(interface)
+                            new_process.labels[label].set_declaration(interface, interface_obj.declaration)
 
                     if new_process.labels[label].parameter and len(new_process.labels[label].interfaces) == 0:
                         raise ValueError("Cannot find a suitable signature for a label '{}' at function model '{}'".
@@ -228,7 +225,7 @@ class ProcessModel:
                     if new_process.labels[label].interfaces and len(new_process.labels[label].interfaces) > 0:
                         for interface in (i for i in new_process.labels[label].interfaces
                                           if i in analysis.interfaces):
-                            self.__assign_label_interface(new_process.labels[label], analysis.interfaces[interface])
+                            self.__assign_label_interface(new_process.labels[label], analysis.get_intf(interface))
 
     def __choose_processes(self, analysis, category):
         estimations = {}
@@ -309,16 +306,15 @@ class ProcessModel:
         self.logger.debug("Set interfaces for given labels")
         if label_map:
             for label in sorted(label_map["matched labels"].keys()):
-                for interface in [analysis.interfaces[name] for name
-                                  in sorted(label_map["matched labels"][label])
-                                  if name in analysis.interfaces]:
+                for interface in [analysis.get_or_restore_intf(name) for name
+                                  in sorted(label_map["matched labels"][label])]:
                     self.__assign_label_interface(new.labels[label], interface)
         else:
             for label in new.labels.values():
                 for interface in label.interfaces:
                     if not label.get_declaration(interface):
                         try:
-                            self.__assign_label_interface(label, analysis.interfaces[interface])
+                            self.__assign_label_interface(label, analysis.get_or_restore_intf(interface))
                         except KeyError:
                             self.logger.warning("Process '{}' for category '{}' cannot be added, since it contains"
                                                 "unknown interfaces for this verification object".
@@ -371,27 +367,29 @@ class ProcessModel:
 
                 if len(label.interfaces) > 0:
                     resolved = False
-                    for interface in [analysis.interfaces[name] for name in label.interfaces
-                                      if name in analysis.interfaces and
-                                      type(analysis.interfaces[name]) is not Resource]:
-                        if type(interface) is Container and len(tail) > 0:
-                            intfs = self.__resolve_interface(analysis, interface, tail, process, action)
+                    for interface in label.interfaces:
+                        interface_obj = analysis.get_or_restore_intf(interface)
+                        if type(interface_obj) is Container and len(tail) > 0:
+                            intfs = self.__resolve_interface(analysis, interface_obj, tail, process, action)
                             if intfs:
                                 intfs[-1].called = True
                                 resolved = True
                             else:
                                 self.logger.warning("Cannot resolve callback '{}' in description of process '{}'".
                                                     format(action.callback, process.name))
-                        elif type(interface) is Callback:
+                        elif type(interface_obj) is Callback:
                             self.logger.debug("Callback {} can be called in the model".
-                                              format(interface.identifier))
-                            interface.called = True
+                                              format(interface_obj.identifier))
+                            interface_obj.called = True
                             resolved = True
                     if not resolved:
                         raise ValueError("Cannot resolve callback '{}' in description of process '{}'".
                                          format(action.callback, process.name))
 
-    def __add_label_match(self, label_map, label, interface):
+    def __add_label_match(self, analysis, label_map, label, interface):
+        if analysis.is_removed_intf(interface):
+            analysis.get_or_restore_intf(interface)
+
         if label.name not in label_map["matched labels"]:
             self.logger.debug("Match label '{}' with interface '{}'".format(label.name, interface))
             label_map["matched labels"][label.name] = set([interface])
@@ -418,9 +416,9 @@ class ProcessModel:
                 intf_category, short_identifier = intf.split(".")
                 nc.add(intf_category)
 
-                if intf in analysis.interfaces and intf_category == category:
+                if (intf in analysis.interfaces or analysis.is_removed_intf(intf)) and intf_category == category:
                     ni.add(intf)
-                    self.__add_label_match(label_map, label, intf)
+                    self.__add_label_match(analysis, label_map, label, intf)
         label_map["native interfaces"] = len(ni)
 
         # Stop analysis if process tied with another category
@@ -442,30 +440,38 @@ class ProcessModel:
 
                 # Try to match container
                 if len(label.interfaces) > 0 and label.name not in label_map["matched labels"]:
-                    for interface in label.interfaces:
-                        if interface in analysis.interfaces and analysis.interfaces[interface].category == category:
-                            self.__add_label_match(label_map, label, interface)
+                    for interface in (interface for interface in label.interfaces if interface in analysis.interfaces or
+                                      analysis.is_removed_intf(interface)):
+                        interface_obj = analysis.get_intf(interface)
+
+                        if interface_obj.category == category:
+                            self.__add_label_match(analysis, label_map, label, interface)
                 elif len(label.interfaces) == 0 and not label.prior_signature and tail and label.container and \
                         label.name not in label_map["matched labels"]:
                     for container in analysis.containers(category):
                         interfaces = self.__resolve_interface(analysis, container, tail, process, action)
                         if interfaces:
-                            self.__add_label_match(label_map, label, container.identifier)
+                            self.__add_label_match(analysis, label_map, label, container.identifier)
 
                 # Try to match callback itself
                 functions = []
                 if label.name in label_map["matched labels"] and label.container:
                     for intf in sorted(label_map["matched labels"][label.name]):
-                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
+                        intfs = self.__resolve_interface(analysis, analysis.get_intf(intf), tail, process, action)
                         if intfs and type(intfs[-1]) is Callback:
                             functions.append(intfs[-1])
                 elif label.name in label_map["matched labels"] and label.callback:
                     if type(label_map["matched labels"][label.name]) is set:
-                        functions.extend([analysis.interfaces[name] for name in
+                        functions.extend([analysis.get_or_restore_intf(name) for name in
                                           sorted(label_map["matched labels"][label.name])
-                                          if name in analysis.interfaces])
-                    elif label_map["matched labels"][label.name] in analysis.interfaces:
-                        functions.append(analysis.interfaces[label_map["matched labels"][label.name]])
+                                          if name in analysis.interfaces or analysis.is_deleted_intf(name)])
+                    elif label_map["matched labels"][label.name] in analysis.interfaces or\
+                            analysis.is_removed_intf(label_map["matched labels"][label.name]):
+                        functions.append(analysis.get_intf(label_map["matched labels"][label.name]))
+
+                # Restore interfaces if necesary
+                for intf in (f for f in functions if analysis.is_removed_intf(f)):
+                    analysis.get_or_restore_intf(intf)
 
                 # Match parameters
                 for function in functions:
@@ -477,7 +483,7 @@ class ProcessModel:
                             for container in analysis.containers(category):
                                 interfaces = self.__resolve_interface(analysis, container, p_tail)
                                 if interfaces:
-                                    self.__add_label_match(label_map, p_label, container.identifier)
+                                    self.__add_label_match(analysis, label_map, p_label, container.identifier)
                                     pre_matched.add(interfaces[-1].identifier)
 
                         labels.append([p_label, p_tail])
@@ -490,16 +496,16 @@ class ProcessModel:
                                   set([label[0] for label in labels])
                         if len(matched) == 0 and f_intfs[pr].identifier not in pre_matched:
                             if len(labels) == len(f_intfs):
-                                self.__add_label_match(label_map, labels[pr][0], f_intfs[pr].identifier)
+                                self.__add_label_match(analysis, label_map, labels[pr][0], f_intfs[pr].identifier)
                             else:
                                 unmatched = [label[0] for label in labels
                                              if label[0].name not in label_map['matched labels'] and len(label[1]) == 0]
                                 if len(unmatched) > 0:
-                                    self.__add_label_match(label_map, unmatched[0], f_intfs[pr].identifier)
+                                    self.__add_label_match(analysis, label_map, unmatched[0], f_intfs[pr].identifier)
                                 else:
                                     rsrs = [label[0] for label in labels if label[0].resource]
                                     if len(rsrs) > 0:
-                                        self.__add_label_match(label_map, rsrs[-1], f_intfs[pr].identifier)
+                                        self.__add_label_match(analysis, label_map, rsrs[-1], f_intfs[pr].identifier)
 
             # After containers are matched try to match rest callbacks from category
             matched_containers = [cn for cn in process.containers if cn.name in label_map["matched labels"]]
@@ -507,17 +513,18 @@ class ProcessModel:
             if len(matched_containers) > 0 and len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for container in matched_containers:
-                        for container_intf in [analysis.interfaces[intf] for intf in
+                        for container_intf in [analysis.get_intf(intf) for intf in
                                                sorted(label_map["matched labels"][container.name])]:
                             for f_intf in [intf for intf in container_intf.field_interfaces.values()
                                            if type(intf) is Callback and not intf.called and
-                                           intf.identifier not in label_map['matched callbacks']]:
-                                self.__add_label_match(label_map, callback, f_intf.identifier)
+                                           intf.identifier not in label_map['matched callbacks'] and
+                                           intf.identifier in analysis.interfaces]:
+                                self.__add_label_match(analysis, label_map, callback, f_intf.identifier)
             if len(unmatched_callbacks) > 0:
                 for callback in unmatched_callbacks:
                     for intf in [intf for intf in analysis.callbacks(category)
                                  if not intf.called and intf.identifier not in label_map['matched callbacks']]:
-                        self.__add_label_match(label_map, callback, intf.identifier)
+                        self.__add_label_match(analysis, label_map, callback, intf.identifier)
 
             # Discard unmatched labels
             label_map["unmatched labels"] = [label for label in sorted(process.labels.keys())
@@ -548,7 +555,7 @@ class ProcessModel:
                     label_map["unmatched callbacks"].append(action.callback)
                 elif label.container and tail and label.name in label_map["matched labels"]:
                     for intf in sorted(label_map["matched labels"][label.name]):
-                        intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
+                        intfs = self.__resolve_interface(analysis, analysis.get_intf(intf), tail, process, action)
 
                         if not intfs and action.callback not in label_map["unmatched callbacks"]:
                             label_map["unmatched callbacks"].append(action.callback)
@@ -569,7 +576,7 @@ class ProcessModel:
             label, tail = process.extract_label_with_tail(action.callback)
             if label.container and tail and label.name in label_map["matched labels"]:
                 for intf in sorted(label_map["matched labels"][label.name]):
-                    intfs = self.__resolve_interface(analysis, analysis.interfaces[intf], tail, process, action)
+                    intfs = self.__resolve_interface(analysis, analysis.get_intf(intf), tail, process, action)
                     if intfs:
                         # Discard general callbacks match
                         for callback_label in [process.labels[name].name for name in sorted(process.labels.keys())
@@ -710,7 +717,7 @@ class ProcessModel:
                         if parameter:
                             suits.append(parameter)
                     elif label:
-                        suits.append(analysis.interfaces[intf])
+                        suits.append(analysis.get_intf(intf))
             else:
                 return False
 
@@ -792,7 +799,7 @@ class ProcessModel:
         if issubclass(type(interface), Interface):
             matched = [interface]
         elif type(interface) is str and interface in analysis.interfaces:
-            matched = [analysis.interfaces[interface]]
+            matched = [analysis.get_intf(interface)]
         elif type(interface) is str and interface not in analysis.interfaces:
             return None
         else:
@@ -807,17 +814,18 @@ class ProcessModel:
             field = tail[index]
 
             # Match using a container field name
-            intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces if name == field]
+            intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
+                    if name == field]
 
             # Match using an identifier
             if len(intf) == 0:
-                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier == field]
 
             # Math using an interface role
             if process and action and type(action) is Call and len(intf) == 0 and self.__roles_map and \
-                        field in self.__roles_map:
-                intf = [matched[-1].field_interfaces[name] for name in matched[-1].field_interfaces
+                    field in self.__roles_map:
+                intf = [matched[-1].field_interfaces[name] for name in sorted(matched[-1].field_interfaces.keys())
                         if matched[-1].field_interfaces[name].short_identifier in self.__roles_map[field] and
                         type(matched[-1].field_interfaces[name]) is Callback]
 
@@ -899,8 +907,8 @@ class ProcessModel:
                                 # Add also label itself
                                 laccess = Access(label_access)
                                 laccess.label = label
-                                laccess.interface = analysis.interfaces[interface]
-                                laccess.list_interface = [analysis.interfaces[interface]]
+                                laccess.interface = analysis.get_intf(interface)
+                                laccess.list_interface = [analysis.get_intf(interface)]
                                 laccess.list_access = [label.name]
 
                                 if laccess.expression not in accesses:
@@ -933,9 +941,9 @@ class ProcessModel:
                                     new.list_access = list_access
                                     new.list_interface = intfs
                             else:
-                                new.interface = analysis.interfaces[interface]
+                                new.interface = analysis.get_intf(interface)
                                 new.list_access = [label.name]
-                                new.list_interface = [analysis.interfaces[interface]]
+                                new.list_interface = [analysis.get_intf(interface)]
 
                             # Complete list accesses if possible
                             if new.interface:

@@ -20,7 +20,10 @@ class MBT(MAV):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
             if 'bug kinds' in extra_c_file:
                 bug_kinds_for_rule_specification = extra_c_file['bug kinds']
-                common_bug_kind = os.path.commonprefix(bug_kinds_for_rule_specification)
+                common_bug_kind = bug_kinds_for_rule_specification[0]
+                rule = self.parse_bug_kind(common_bug_kind)
+                if rule:
+                    common_bug_kind = rule
                 self.assert_to_bug_kinds[common_bug_kind] = bug_kinds_for_rule_specification
                 bug_kinds.append(common_bug_kind)
         return bug_kinds
@@ -39,7 +42,7 @@ class MBT(MAV):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
 
         # Create file with all checked asserts.
-        with open('bug kind funcs.c', 'w') as fp:
+        with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* This file was generated for Multi-Aspect Verification*/\n')
             for rule_specification, bug_kinds in self.assert_to_bug_kinds.items():
                 error_function_for_rule_specification = "{0}".format(re.sub(r'\W', '_', rule_specification))

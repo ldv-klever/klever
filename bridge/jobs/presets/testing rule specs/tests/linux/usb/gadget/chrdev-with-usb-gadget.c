@@ -13,8 +13,8 @@ static int __init init(void)
 	if (!usb_gadget_probe_driver(cur_driver)) {
 		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
 			usb_gadget_unregister_driver(cur_driver);
+			unregister_chrdev_region(dev, count);
 		}
-		unregister_chrdev_region(dev, count);
 	}
 
 	return 0;
