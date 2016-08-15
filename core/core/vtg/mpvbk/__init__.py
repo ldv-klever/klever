@@ -37,7 +37,6 @@ class MPVBK(MPV):
                                 line = re.sub(old_name, new_name, line)
                             fp_out.write(line)
                     self.property_automata[bug_kind] = preprocessed_automaton
-                    print(preprocessed_automaton)
         self.logger.debug('Multi-Property Verification will check "{0}" properties'.
                           format(self.property_automata.__len__()))
 
