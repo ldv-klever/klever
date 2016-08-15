@@ -4,6 +4,7 @@ import importlib
 import json
 import multiprocessing
 import os
+import re
 
 import core.components
 import core.utils
@@ -108,6 +109,13 @@ class VTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
+    def parse_bug_kind(self, bug_kind):
+        match = re.search(r'(.+)::(.*)', bug_kind)
+        if match:
+            return match.groups()[0]
+        else:
+            return ''
+
     def _generate_verification_tasks(self):
         while True:
             abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
@@ -140,6 +148,23 @@ class VTG(core.components.Component):
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc
+
+            asserts = 0
+            latest_assert = None
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if 'bug kinds' in extra_c_file:
+                    asserts += 1
+                    common_bug_kind = extra_c_file['bug kinds'][0]
+                    latest_assert = self.parse_bug_kind(common_bug_kind)
+
+            if (self.strategy_name == 'mavr' or self.strategy_name == 'mpvr') and asserts == 1:
+                self.logger.info('Changing "{0}" strategy to SR'.format(self.strategy_name))
+                self.conf['unite rule specifications'] = False
+                self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
+                self.conf['unite rule specifications'] = False
+                self.conf['abstract task desc']['attrs'][1]['rule specification'] = latest_assert
+
+
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
