@@ -5,7 +5,7 @@ import re
 from core.vtg.mpv import MPV
 
 
-# Multy-Property Verification Bug Kinds.
+# Multy-Property Verification with Bug Kinds.
 class MPVBK(MPV):
 
     def print_strategy_information(self):
@@ -19,10 +19,10 @@ class MPVBK(MPV):
                 automaton = extra_c_file['automaton']
                 for bug_kind in extra_c_file['bug kinds']:
                     counter += 1
-                    preprocessed_automaton = "{0}.{1}.spc".format(automaton, bug_kind)
+                    preprocessed_automaton = "{0}.spc".format(bug_kind)
 
                     with open(preprocessed_automaton, 'w', encoding='ascii') as fp_out, \
-                        open(automaton, encoding='ascii') as fp_in:
+                            open(automaton, encoding='ascii') as fp_in:
                         for line in fp_in:
                             res = re.search(r'ERROR\(\"(.+)\"\);', line)
                             if res:
@@ -37,5 +37,9 @@ class MPVBK(MPV):
                                 line = re.sub(old_name, new_name, line)
                             fp_out.write(line)
                     self.property_automata[bug_kind] = preprocessed_automaton
+                    print(preprocessed_automaton)
         self.logger.debug('Multi-Property Verification will check "{0}" properties'.
                           format(self.property_automata.__len__()))
+
+    def create_property_automata(self):
+        pass

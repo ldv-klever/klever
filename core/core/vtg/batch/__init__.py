@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
-from core.vtg.sbt import SBT
+from core.vtg.sbt import SR
 
 
 # This strategy is aimed at creating 1 verification tasks for all
-# specified bug types.
-class BATCH(SBT):
+# specified rules.
+class BATCH(SR):
 
     def perform_sanity_checks(self):
         if 'unite rule specifications' not in self.conf or not self.conf['unite rule specifications']:

@@ -6,8 +6,8 @@ import re
 from core.vtg.mav import MAV
 
 
-# Multiple Bug Types.
-class MBT(MAV):
+# Multiple-Aspect Verification with Rules.
+class MAVR(MAV):
 
     assert_to_bug_kinds = {}
 

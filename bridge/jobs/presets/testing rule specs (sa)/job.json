@@ -10,7 +10,7 @@
     "unite rule specifications": false,
     "RSG strategy": "property automaton",
     "VTG strategy": {
-      "name": "separated bug type",
+      "name": "separated rules",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",

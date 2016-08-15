@@ -10,7 +10,7 @@
     "unite rule specifications": false,
     "RSG strategy": "instrumentation",
     "VTG strategy": {
-      "name": "separated bug type",
+      "name": "separated rules",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376"

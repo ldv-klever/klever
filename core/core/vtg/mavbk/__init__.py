@@ -6,8 +6,8 @@ import re
 from core.vtg.mav import MAV
 
 
-# Multiple Bug Kinds.
-class MBK(MAV):
+# Multiple-Aspect Verification with Bug Kinds.
+class MAVBK(MAV):
 
     def print_strategy_information(self):
         self.logger.info('Launch strategy "Multiple Bug Kinds"')

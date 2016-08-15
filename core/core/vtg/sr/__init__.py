@@ -7,10 +7,10 @@ import shutil
 from core.vtg.separated import SeparatedStrategy
 
 
-# Separated Bug Types.
-# This strategy is aimed at merging all bug kinds inside each bug type
-# and at checking each bug type as a separated verification run.
-class SBT(SeparatedStrategy):
+# Separated Rules.
+# This strategy is aimed at merging all bug kinds inside each rule
+# and at checking each rule separately.
+class SR(SeparatedStrategy):
     def print_strategy_information(self):
         self.logger.info('Launch strategy "Single Bug Type"')
         self.logger.info('Generate one verification task for each bug type')

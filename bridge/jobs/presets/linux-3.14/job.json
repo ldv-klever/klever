@@ -11,14 +11,14 @@
   "unite rule specifications": false,
   "RSG strategy": "instrumentation",
   "VTG strategy": {
-    "name": "single bug type",
+    "name": "separated rules",
     "verifier": {
       "name": "CPAchecker",
       "version": "20376"
     },
     "resource limits": {
       "wall time": 1000000,
-      "CPU time limit PER 1 rule PER 1 module PER 1 entry point": 900000,
+      "CPU time": 900000,
       "memory size": 10000000000,
       "CPU model": null,
       "number of CPU cores": 1,

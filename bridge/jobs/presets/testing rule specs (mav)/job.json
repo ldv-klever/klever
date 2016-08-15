@@ -43,7 +43,7 @@
     "RSG strategy": "instrumentation",
     "common aspect": "linux/common.aspect",
     "VTG strategy": {
-      "name": "multiple bug types",
+      "name": "multiple aspect verification rules",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",

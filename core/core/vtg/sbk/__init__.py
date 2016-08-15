@@ -9,7 +9,7 @@ from core.vtg.separated import SeparatedStrategy
 
 # Separated Bug Kinds.
 # This strategy is aimed at creating verification tasks for each
-# bug kind and at solving them as separated verification runs.
+# bug kind and at checking them as separated verification runs.
 class SBK(SeparatedStrategy):
 
     src_files = []

@@ -5,8 +5,8 @@ import os
 from core.vtg.mpv import MPV
 
 
-# Multy-Property Verification Bug Types.
-class MPVBT(MPV):
+# Multy-Property Verification with Rules.
+class MPVR(MPV):
 
     def print_strategy_information(self):
         self.logger.info('Launch strategy "Multy-Property Verification Bug Types"')
