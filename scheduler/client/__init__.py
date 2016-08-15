@@ -122,9 +122,25 @@ def solve_task(conf):
     if "cpachecker location" in conf["client"]:
         logging.info("Add CPAchecker bin location to path {}".format(conf["client"]["cpachecker location"]))
         os.environ["PATH"] = "{}:{}".format(conf["client"]["cpachecker location"], os.environ["PATH"])
+        cpachecker_location = conf["client"]["cpachecker location"]
         logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
     else:
-        raise KeyError("Provide configuration option 'client''cpachecker location' as path to CPAchecker executables")
+        if "verifiers" in conf["client"]:
+            verifier_found = False
+            for verifier in conf["client"]["verifiers"]:
+                print(verifier)
+                alias = verifier['alias']
+                location = verifier['location']
+                if conf["verifier"]["alias"].lower() == alias:
+                    os.environ["PATH"] = "{}:{}".format(location, os.environ["PATH"])
+                    cpachecker_location = location
+                    verifier_found = True
+                    break
+            if not verifier_found:
+                raise KeyError("Specified verifier alias '{0}' is not supported".format(conf["verifier"]["alias"].lower()))
+        else:
+            raise KeyError("Provide configuration option 'client''cpachecker location' or "
+                           "'verifiers' as path to CPAchecker executables")
 
     benchexec = BenchExec()
 
@@ -173,7 +189,7 @@ def solve_task(conf):
 
     # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
     # around its binary.
-    os.symlink(os.path.join(conf["client"]["cpachecker location"], os.pardir, 'config'), 'config')
+    os.symlink(os.path.join(cpachecker_location, os.pardir, 'config'), 'config')
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
