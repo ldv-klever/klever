@@ -136,7 +136,8 @@
                     "linux/rtc.h",
                     "scsi/scsi_host.h",
                     "linux/tty.h",
-                    "linux/tty_driver.h"
+                    "linux/tty_driver.h",
+                    "linux/pagemap.h"
                   ],
                   "Linux 3.5": {
                     "exclude": ["linux/iio/triggered_buffer.h"]

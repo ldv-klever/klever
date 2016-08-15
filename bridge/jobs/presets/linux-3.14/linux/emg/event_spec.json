@@ -2036,7 +2036,7 @@
         "callback": {
           "callback": true
         },
-        "probed": {
+        "ret": {
           "signature": "int a",
           "value": "1"
         }
@@ -2044,10 +2044,10 @@
       "process": "(!register).<init>.{main}",
       "actions": {
         "main": {
-          "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+          "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
         },
         "call": {
-          "process": "[callback].{call} | [release].<after_release>.{main}"
+          "process": "[callback].{call} | [release].{main}"
         },
         "register": {
           "parameters": [
@@ -2077,9 +2077,9 @@
           "parameters": [
             "%resource%"
           ],
-          "callback return value": "%probed%",
+          "callback return value": "%ret%",
           "post-call": [
-            "%probed% = ldv_post_probe(%probed%);"
+            "%ret% = ldv_post_probe(%ret%);"
           ]
         },
         "init": {
@@ -2092,16 +2092,102 @@
             "$FREE(%resource%);"
           ]
         },
-        "after_release": {
-          "statements": [
-            "%probed% = 1;"
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
+        }
+      }
+    },
+    "file_operations_instance": {
+      "headers": ["linux/fs.h", "linux/pagemap.h"],
+      "labels": {
+        "container": {
+          "container": true,
+          "interface": ["file_operations.file_operations"]
+        },
+        "resource": {
+          "resource": true
+        },
+        "callback": {
+          "callback": true
+        },
+        "ret": {
+          "signature": "int a",
+          "value": "1"
+        },
+        "size_cnt": {
+          "resource": true,
+          "interface": ["file_operations.write_size"]
+        }
+      },
+      "process": "(!register).<init>.{main}",
+      "actions": {
+        "main": {
+          "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
+        },
+        "call": {
+          "process": "([callback] | [write]).{call} | [release].{main}"
+        },
+        "register": {
+          "parameters": [
+            "%container%"
           ]
         },
-        "positive_probe": {
-          "condition": ["%probed% == 0"]
+        "deregister": {
+          "condition": ["%container% == $ARG1"],
+          "parameters": [
+            "%container%"
+          ]
         },
-        "negative_probe": {
-          "condition": ["%probed% != 0"]
+        "callback": {
+          "callback": "%callback%",
+          "parameters": [
+            "%resource%","%size_cnt%"
+          ]
+        },
+        "release": {
+          "callback": "%container.release%",
+          "parameters": [
+            "%resource%"
+          ]
+        },
+        "probe": {
+          "callback": "%container.probe%",
+          "parameters": [
+            "%resource%"
+          ],
+          "callback return value": "%ret%",
+          "post-call": [
+            "%ret% = ldv_post_probe(%ret%);"
+          ]
+        },
+        "write": {
+          "callback": "%container.write%",
+          "parameters": [
+            "%resource%","%size_cnt%"
+          ],
+          "pre-call": [
+            "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
+          ]
+        },
+        "init": {
+          "statements": [
+            "%resource% = $ALLOC(%resource%);",
+            "%size_cnt% = ldv_undef_int();"
+          ]
+        },
+        "free": {
+          "statements": [
+            "$FREE(%resource%);"
+          ]
+        },
+        "y_ret": {
+          "condition": ["%ret% == 0"]
+        },
+        "n_ret": {
+          "condition": ["%ret% != 0"]
         }
       }
     },

@@ -668,7 +668,8 @@
           "header": "linux/fs.h",
           "fields": {
             "release": "%file_operations.release%",
-            "open": "%file_operations.probe%"
+            "open": "%file_operations.probe%",
+            "write": "%file_operations.write%"
           }
         },
         "cdev": {
@@ -692,6 +693,9 @@
         },
         "inode": {
           "signature": "struct inode *inode"
+        },
+        "write_size": {
+          "signature": "size_t cnt"
         }
       },
       "callbacks": {
@@ -700,6 +704,9 @@
         },
         "release": {
           "signature": "$ (*release) (%file_operations.inode%, %file_operations.file%)"
+        },
+        "write": {
+          "signature": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
         }
       }
     },
