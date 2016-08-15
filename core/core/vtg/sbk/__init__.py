@@ -7,6 +7,7 @@ import shutil
 from core.vtg.separated import SeparatedStrategy
 
 
+# Separated Bug Kinds.
 # This strategy is aimed at creating verification tasks for each
 # bug kind and at solving them as separated verification runs.
 class SBK(SeparatedStrategy):

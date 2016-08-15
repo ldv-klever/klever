@@ -14,7 +14,7 @@ import core.utils
 from core.vtg.common import CommonStrategy
 
 
-# This class represent sequential VTG strategies.
+# This class represent separated VTG strategies.
 class SeparatedStrategy(CommonStrategy):
 
     __metaclass__ = ABCMeta
