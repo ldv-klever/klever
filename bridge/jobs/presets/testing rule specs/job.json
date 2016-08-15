@@ -199,6 +199,7 @@
           "nonatomic-lock.ko",
           "nonatomic-lock-for-reset.ko",
           "nonatomic-trylock.ko",
+          "nonatomic-trylock-2.ko",
           "safe.ko"
         ]
       },

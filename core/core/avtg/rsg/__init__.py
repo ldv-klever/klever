@@ -69,9 +69,6 @@ class RSG(core.avtg.plugins.Plugin):
                                             automata[generated_model_c_file] = generated_model_automaton_file
                                             self.logger.debug('Get model with automaton file "{0}"'.
                                                               format(automaton))
-                                else:
-                                    raise ValueError('Automaton does not exist for "{0}" model'.
-                                                     format(generated_model_c_file))
                     if not is_generated_model_c_file_found:
                         raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
             # Like common models processed below.

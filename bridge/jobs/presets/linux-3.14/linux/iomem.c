@@ -5,7 +5,7 @@
 int ldv_iomem = 0;
 
 /* MODEL_FUNC_DEF Create some io-memory map for specified address */
-void *ldv_io_mem_remap(void)
+void *ldv_io_mem_remap(void *dummy)
 {
 	void *ptr = ldv_undef_ptr();
 	/* OTHER Choose an arbitrary return value. */

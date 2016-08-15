@@ -1,7 +1,7 @@
 before: file ("$this")
 {
 int ldv_register_chrdev(int major);
-int ldv_register_chrdev_region(void);
+int ldv_register_chrdev_region(void *);
 void ldv_unregister_chrdev_region(void);
 }
 
@@ -9,7 +9,7 @@ after: call(int alloc_chrdev_region(..)) ||
        call(int register_chrdev_region(..))
 {
 	/* ASPECT_FUNC_CALL Check that chrdev region was not registered and register it */
-	return ldv_register_chrdev_region();
+	return ldv_register_chrdev_region($arg1);
 }
 
 after: execution(static inline int register_chrdev(unsigned int major, ..))

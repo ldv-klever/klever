@@ -2,15 +2,17 @@
 
 before: file ("$this")
 {
+struct usb_device;
+
 extern void ldv_usb_lock_device(void);
 extern void ldv_usb_unlock_device(void);
-extern int ldv_usb_trylock_device(void);
-extern int ldv_usb_lock_device_for_reset(void);
+extern int ldv_usb_trylock_device(struct usb_device *);
+extern int ldv_usb_lock_device_for_reset(struct usb_device *);
 }
 
-around: call(int usb_lock_device_for_reset(..))
+around: call(int usb_lock_device_for_reset(struct usb_device *udev, ..))
 {
-	return ldv_usb_lock_device_for_reset();
+	return ldv_usb_lock_device_for_reset(udev);
 }
 
 around: define(usb_lock_device(udev))
@@ -25,5 +27,5 @@ around: define(usb_unlock_device(udev))
 
 around: define(usb_trylock_device(udev))
 {
-	ldv_usb_trylock_device()
+	ldv_usb_trylock_device(udev)
 }

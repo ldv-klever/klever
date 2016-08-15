@@ -4,6 +4,7 @@
 #include <verifier/nondet.h>
 
 struct class;
+struct usb_gadget_driver;
 
 /* There are 2 possible states of usb gadget registration. */
 enum
@@ -17,7 +18,7 @@ int ldv_usb_gadget = LDV_USB_GADGET_ZERO_STATE;
 
 
 /* MODEL_FUNC_DEF Check that class was not registered. Then create and register class for it */
-void *ldv_create_class(void)
+void *ldv_create_class(struct class *cls)
 {
 	void *is_got;
 
@@ -38,7 +39,7 @@ void *ldv_create_class(void)
 }
 
 /* MODEL_FUNC_DEF Check that class was not registered and register class for it */
-int ldv_register_class(void)
+int ldv_register_class(struct class *cls)
 {
 	int is_reg;
 
@@ -93,7 +94,7 @@ int ldv_register_chrdev(int major)
 }
 
 /* MODEL_FUNC_DEF Check that chrdev region was not registered and register it */
-int ldv_register_chrdev_region(void)
+int ldv_register_chrdev_region(void *dummy)
 {
 	int is_reg;
 
@@ -118,7 +119,7 @@ void ldv_unregister_chrdev_region(void)
 }
 
 /* MODEL_FUNC_DEF Check that usb gadget was not registered and register it */
-int ldv_register_usb_gadget(void)
+int ldv_register_usb_gadget(struct usb_gadget_driver *driver)
 {
 	int is_reg;
 

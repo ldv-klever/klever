@@ -4,25 +4,26 @@ before: file("$this")
 #include <verifier/nondet.h>
 
 struct urb;
-struct urb *ldv_usb_alloc_urb(void);
-void *ldv_usb_alloc_coherent(void);
+struct urb *ldv_usb_alloc_urb(int);
+void *ldv_usb_alloc_coherent(void *);
 }
 
 /*68-69 inside 10-43-77*/
 
-around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
+around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
 {
-	struct urb *res = ldv_usb_alloc_urb();
+	struct urb *res = ldv_usb_alloc_urb(iso_packets);
 	ldv_assume(!ldv_is_err(res));
-	ldv_check_alloc_flags(flags);
+	ldv_check_alloc_flags(mem_flags);
 	return res;
 }
 
-around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
+around: call(void *usb_alloc_coherent(struct usb_device *dev, size_t size,
+                                      gfp_t mem_flags, dma_addr_t *dma))
 {
-	void *res = ldv_usb_alloc_coherent();
+	void *res = ldv_usb_alloc_coherent(dev);
 	ldv_assume(!ldv_is_err(res));
-	ldv_check_alloc_flags(flags);
+	ldv_check_alloc_flags(mem_flags);
 	return res;
 }
 

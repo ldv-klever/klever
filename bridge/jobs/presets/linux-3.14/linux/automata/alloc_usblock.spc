@@ -13,4 +13,7 @@ STATE USEALL Locked :
   MATCH CALL {ldv_check_alloc_flags($1)} -> ASSUME {((int)$1)==16} GOTO Locked;
   MATCH CALL {ldv_check_alloc_nonatomic($?)} ->  ERROR("linux:alloc:usb lock::nonatomic");
 
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
 END AUTOMATON

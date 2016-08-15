@@ -13,4 +13,7 @@ STATE USEALL Inc :
   MATCH CALL {ldv_check_for_read_section($?)} -> ERROR("linux:rculockbh::locked at read section");
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:rculockbh::locked at exit");
 
+STATE USEFIRST Stop :
+  TRUE -> GOTO Stop;
+
 END AUTOMATON

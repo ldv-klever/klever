@@ -14,7 +14,6 @@ STATE USEALL Locked :
   MATCH RETURN {$1=ldv_rtnl_is_locked($?)} -> SPLIT {((int)$1) == 1} GOTO Locked NEGATION GOTO Stop;
   MATCH CALL {ldv_rtnl_unlock($?)} -> GOTO Unlocked;
   MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:rtnl::lock on exit");
-  MATCH CALL {ldv_check_final_state($?)} -> ERROR("linux:rtnl::lock on exit");
 
 STATE USEFIRST Stop :
   TRUE -> GOTO Stop;

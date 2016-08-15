@@ -5,7 +5,7 @@
 int ldv_sysfs = 0;
 
 /* MODEL_FUNC_DEF Create sysfs group. */
-int ldv_sysfs_create_group(void)
+int ldv_sysfs_create_group(void *dummy)
 {
 	/* OTHER Choose an arbitrary return value. */
 	int res = ldv_undef_int_nonpositive();

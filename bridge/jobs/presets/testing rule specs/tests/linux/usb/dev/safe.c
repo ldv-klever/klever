@@ -21,10 +21,9 @@ static int set(void)
 
 static int __init init(void)
 {
-	struct usb_device *udev_1;
-	struct usb_device *udev_2;
-	udev_1 = usb_get_dev(udev_1);
-	udev_2 = usb_get_dev(udev_2);
+	struct usb_device *udev_1, *udev_2, *udev_3, *udev_4;
+	udev_3 = usb_get_dev(udev_1);
+	udev_4 = usb_get_dev(udev_2);
 
 	if (udev_1) {
 		usb_put_dev(udev_1);

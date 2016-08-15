@@ -14,7 +14,7 @@ enum {
 static int ldv_disk_state = LDV_NO_DISK;
 
 /* MODEL_FUNC_DEF Allocate gendisk. */
-struct gendisk *ldv_alloc_disk(void)
+struct gendisk *ldv_alloc_disk(int dummy)
 {
 	/* ASSERT Gendisk should not be allocated twice. */
 	ldv_assert("linux:gendisk::double allocation", ldv_disk_state == LDV_NO_DISK);

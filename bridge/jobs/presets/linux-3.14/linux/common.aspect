@@ -50,43 +50,43 @@ void ldv_linux_usb_dev_initialize(void);
 void ldv_linux_bitops_initialize(void);
 
 struct urb;
-void *ldv_linux_usb_coherent_usb_alloc_coherent(void);
-struct urb *ldv_linux_usb_urb_usb_alloc_urb(void);
+void *ldv_linux_usb_coherent_usb_alloc_coherent(void *);
+struct urb *ldv_linux_usb_urb_usb_alloc_urb(int);
 
 /*106-107-108*/
 
-void *ldv_linux_usb_gadget_create_class(void);
-void *ldv_linux_class_create_class(void);
-int ldv_linux_usb_gadget_register_class(void);
-int ldv_linux_class_register_class(void);
+struct class;
+
+void *ldv_linux_usb_gadget_create_class(struct class *cls);
+void *ldv_linux_class_create_class(struct class *cls);
+int ldv_linux_usb_gadget_register_class(struct class *cls);
+int ldv_linux_class_register_class(struct class *cls);
 
 int ldv_linux_usb_gadget_register_chrdev(int major);
 int ldv_linux_chrdev_register_chrdev(int major);
-int ldv_linux_usb_gadget_register_chrdev_region(void);
-int ldv_linux_chrdev_register_chrdev_region(void);
+int ldv_linux_usb_gadget_register_chrdev_region(void *);
+int ldv_linux_chrdev_register_chrdev_region(void *);
 
 void ldv_linux_usb_gadget_unregister_chrdev_region(void);
 void ldv_linux_chrdev_unregister_chrdev_region(void);
-
-struct class;
 
 void ldv_linux_usb_gadget_unregister_class(void);
 void ldv_linux_usb_gadget_destroy_class(struct class *cls);
 void ldv_linux_class_unregister_class(void);
 void ldv_linux_class_destroy_class(struct class *cls);
 
-void *ldv_create_class(void)
+void *ldv_create_class(struct class *cls)
 {
-	void *res1 = ldv_linux_usb_gadget_create_class();
-	void *res2 = ldv_linux_class_create_class();
+	void *res1 = ldv_linux_usb_gadget_create_class(cls);
+	void *res2 = ldv_linux_class_create_class(cls);
 	ldv_assume(res1 == res2);
 	return res1;
 }
 
-int ldv_register_class(void)
+int ldv_register_class(struct class *cls)
 {
-	int res1 = ldv_linux_usb_gadget_register_class();
-	int res2 = ldv_linux_class_register_class();
+	int res1 = ldv_linux_usb_gadget_register_class(cls);
+	int res2 = ldv_linux_class_register_class(cls);
 	ldv_assume(res1 == res2);
 	return res1;
 }
@@ -173,23 +173,24 @@ before: call(void ldv_pre_probe(..)) ||
 
 /*68-69 inside 10-43-77*/
 
-around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
+around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
 {
-	struct urb *res = ldv_linux_usb_urb_usb_alloc_urb();
+	struct urb *res = ldv_linux_usb_urb_usb_alloc_urb(iso_packets);
 	ldv_assume(!ldv_is_err(res));
-	ldv_linux_alloc_irq_check_alloc_flags(flags);
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+	ldv_linux_alloc_irq_check_alloc_flags(mem_flags);
+	ldv_linux_alloc_spin_lock_check_alloc_flags(mem_flags);
+	ldv_linux_alloc_usb_lock_check_alloc_flags(mem_flags);
 	return res;
 }
 
-around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
+around: call(void *usb_alloc_coherent(struct usb_device *dev, size_t size,
+                                      gfp_t mem_flags, dma_addr_t *dma))
 {
-	void *res = ldv_linux_usb_coherent_usb_alloc_coherent();
+	void *res = ldv_linux_usb_coherent_usb_alloc_coherent(dev);
 	ldv_assume(!ldv_is_err(res));
-	ldv_linux_alloc_irq_check_alloc_flags(flags);
-	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
-	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+	ldv_linux_alloc_irq_check_alloc_flags(mem_flags);
+	ldv_linux_alloc_spin_lock_check_alloc_flags(mem_flags);
+	ldv_linux_alloc_usb_lock_check_alloc_flags(mem_flags);
 	return res;
 }
 
@@ -197,12 +198,12 @@ around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
 
 around: define(class_create(owner, name))
 {
-ldv_create_class()
+ldv_create_class(owner)
 }
 
 around: define(class_register(class))
 {
-ldv_register_class()
+ldv_register_class(class)
 }
 
 around: call(void class_destroy(struct class *cls))
@@ -220,8 +221,8 @@ after: call(void class_unregister(..))
 after: call(int alloc_chrdev_region(..)) ||
        call(int register_chrdev_region(..))
 {
-	int res1 = ldv_linux_usb_gadget_register_chrdev_region();
-	int res2 = ldv_linux_chrdev_register_chrdev_region();
+	int res1 = ldv_linux_usb_gadget_register_chrdev_region($arg1);
+	int res2 = ldv_linux_chrdev_register_chrdev_region($arg1);
 	ldv_assume(res1 == res2);
 	return res1;
 }

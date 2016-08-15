@@ -1,6 +1,6 @@
 before: file("$this")
 {
-void *ldv_io_mem_remap(void);
+void *ldv_io_mem_remap(void *);
 void ldv_io_mem_unmap(void);
 }
 
@@ -13,7 +13,7 @@ around: call(void *ioremap(..)) ||
         execution(static inline void *ioremap_nocache(..))
 {
 	/* ASPECT_FUNC_CALL Create some io-memory map for specified address */
-	return ldv_io_mem_remap();
+	return ldv_io_mem_remap($arg1);
 }
 
 around: call(void iounmap(..)) ||
@@ -29,5 +29,5 @@ around: define(ioremap(address, object)) ||
         define(ioremap_nocache(address, offset)) ||
         define(ioremap_wc(address, offset))
 {
-ldv_io_mem_remap()
+ldv_io_mem_remap(address)
 }
