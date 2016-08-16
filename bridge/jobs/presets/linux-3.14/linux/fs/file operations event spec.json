@@ -1,0 +1,251 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "misc_register": {
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "miscdevice": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.miscdevice"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%miscdevice% = $arg1;",
+              "%file_operations% = %miscdevice%->fops;"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          }
+        }
+      },
+      "misc_deregister": {
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "miscdevice": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.miscdevice"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "condition": [],
+            "statements": [
+              "%miscdevice% = $arg1;",
+              "%file_operations% = %miscdevice%->fops;"
+            ]
+          }
+        }
+      },
+      "cdev_init": {
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "cdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.cdev"
+            ]
+          }
+        },
+        "process": "<assign>.[register]",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "condition": [],
+            "statements": [
+              "%cdev% = $arg1;",
+              "%file_operations% = $arg2;",
+              "%cdev%->ops = %file_operations%;"
+            ]
+          }
+        }
+      },
+      "cdev_del": {
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "cdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.cdev"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "condition": [],
+            "statements": [
+              "%cdev% = $arg1;",
+              "%file_operations% = %cdev%->ops;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "file_operations_instance": {
+        "headers": [
+          "linux/fs.h",
+          "linux/pagemap.h"
+        ],
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          },
+          "size_cnt": {
+            "resource": true,
+            "interface": [
+              "file_operations.write_size"
+            ]
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "actions": {
+          "main": {
+            "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
+          },
+          "call": {
+            "process": "([callback] | [write]).{call} | [release].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%",
+              "%size_cnt%"
+            ]
+          },
+          "release": {
+            "callback": "%container.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "probe": {
+            "callback": "%container.probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "write": {
+            "callback": "%container.write%",
+            "parameters": [
+              "%resource%",
+              "%size_cnt%"
+            ],
+            "pre-call": [
+              "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%resource% = $ALLOC(%resource%);",
+              "%size_cnt% = ldv_undef_int();"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "y_ret": {
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "condition": [
+              "%ret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

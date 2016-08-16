@@ -1,0 +1,183 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "alloc_etherdev_mqs": {
+        "labels": {
+          "netdev": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "net.net_device"
+            ]
+          }
+        },
+        "process": "<alloc>.<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);"
+            ]
+          },
+          "success": {
+            "statements": [
+              "return %netdev%;"
+            ]
+          },
+          "fail": {
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "alloc_netdev_mqs": {
+        "labels": {
+          "netdev": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "net.net_device"
+            ]
+          },
+          "setup": {
+            "callback": true,
+            "parameter": true,
+            "interface": [
+              "net.setup"
+            ]
+          }
+        },
+        "process": "<alloc>.[setup].<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "statements": [
+              "%netdev% = $ALLOC(%netdev%);",
+              "%setup% = $arg3;"
+            ]
+          },
+          "setup": {
+            "callback": "%setup%",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "success": {
+            "statements": [
+              "return %netdev%;"
+            ]
+          },
+          "fail": {
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "free_netdev": {
+        "labels": {
+          "netdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "net.net_device"
+            ]
+          }
+        },
+        "process": "<free>",
+        "actions": {
+          "free": {
+            "statements": [
+              "%netdev% = $arg1;",
+              "$FREE(%netdev%);"
+            ]
+          }
+        }
+      },
+      "register_netdev": {
+        "labels": {
+          "netdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "net.net_device"
+            ]
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "<pre>.(<y_ret>.[open].(<y_ret>.[register] | <n_ret>) | <n_ret>).<return>",
+        "actions": {
+          "pre": {
+            "statements": [
+              "%ret% = ldv_pre_register_netdev();",
+              "%netdev% = $arg1;"
+            ]
+          },
+          "open": {
+            "callback": "%netdev.net_device_ops.ndo_open%",
+            "parameters": [
+              "%netdev%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %ret%;"
+            ]
+          },
+          "y_ret": {
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "condition": [
+              "%ret% != 0"
+            ]
+          }
+        }
+      },
+      "unregister_netdev": {
+        "labels": {
+          "netdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "net.net_device"
+            ]
+          }
+        },
+        "process": "<assign>.[stop].[deregister]",
+        "actions": {
+          "stop": {
+            "callback": "%netdev.net_device_ops.ndo_stop%",
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%netdev%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%netdev% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {}
+  }
+}

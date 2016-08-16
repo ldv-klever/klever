@@ -1,0 +1,175 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "transport_subsystem_register": {
+        "labels": {
+          "se_subsystem_api": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "se_subsystem.se_subsystem_api"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%se_subsystem_api%"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%se_subsystem_api% = $arg1;"
+            ]
+          }
+        }
+      },
+      "transport_subsystem_release": {
+        "labels": {
+          "se_subsystem_api": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "se_subsystem.se_subsystem_api"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%se_subsystem_api%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%se_subsystem_api% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "transport_instance": {
+        "labels": {
+          "se_subsystem_api": {
+            "container": true,
+            "interface": [
+              "se_subsystem.se_subsystem_api"
+            ]
+          },
+          "se_hba": {
+            "resource": true,
+            "interface": [
+              "se_subsystem.se_hba"
+            ]
+          },
+          "se_device": {
+            "interface": [
+              "se_subsystem.se_device"
+            ]
+          },
+          "callback": {
+            "resource": true,
+            "callback": true
+          },
+          "allocated": {
+            "signature": "int a",
+            "value": "0"
+          }
+        },
+        "process": "(!register).<init>.[alloc].<post_alloc>.{call}",
+        "actions": {
+          "call": {
+            "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [alloc].<post_alloc>.{call})"
+          },
+          "register": {
+            "parameters": [
+              "%se_subsystem_api%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%se_subsystem_api% == $ARG1"
+            ],
+            "parameters": [
+              "%se_subsystem_api%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%se_hba%",
+              "%se_device%"
+            ]
+          },
+          "se_free": {
+            "callback": "%se_subsystem_api.free%",
+            "parameters": [
+              "%se_device%"
+            ]
+          },
+          "alloc": {
+            "callback": "%se_subsystem_api.alloc%",
+            "parameters": [
+              "%se_hba%"
+            ],
+            "callback return value": "%se_device%"
+          },
+          "attach_hba": {
+            "callback": "%se_subsystem_api.attach_hba%",
+            "parameters": [
+              "%se_hba%"
+            ]
+          },
+          "detach_hba": {
+            "callback": "%se_subsystem_api.detach_hba%",
+            "parameters": [
+              "%se_hba%"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%se_hba% = $ALLOC(%se_hba%);"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%se_hba%);"
+            ]
+          },
+          "after_free": {
+            "statements": [
+              "%allocated% = 0;"
+            ]
+          },
+          "post_alloc": {
+            "statements": [
+              "if (%se_device%)",
+              " %allocated% = 1;"
+            ]
+          },
+          "positive_alloc": {
+            "condition": [
+              "%allocated% == 1"
+            ]
+          },
+          "negative_alloc": {
+            "condition": [
+              "%allocated% != 1"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
