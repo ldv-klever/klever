@@ -202,8 +202,10 @@ class EMG(core.avtg.plugins.Plugin):
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         # Merge specifications
-        interface_spec = self.merge_spec_versions(interface_specifications, self.conf['specifications set'])
-        event_categories_spec = self.merge_spec_versions(event_specifications, self.conf['specifications set'])
+        interface_spec = self.__merge_spec_versions(interface_specifications, self.conf['specifications set'])
+        self.__save_collection(logger, interface_spec, 'intf_spec.json')
+        event_categories_spec = self.__merge_spec_versions(event_specifications, self.conf['specifications set'])
+        self.__save_collection(logger, event_categories_spec, 'event_spec.json')
 
         # toso: search for module categories specification
         return interface_spec, None, event_categories_spec
@@ -224,7 +226,7 @@ class EMG(core.avtg.plugins.Plugin):
         else:
             return None
 
-    def merge_spec_versions(self, collection, user_tag):
+    def __merge_spec_versions(self, collection, user_tag):
         # Copy data to a final spec
         def import_specification(spec, final_spec):
             for tag in spec:
@@ -260,5 +262,10 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Return final specification
         return final_specification
+
+    def __save_collection(self, logger, collection, file):
+        logger.info("Print final merged specification to '{}'".format(file))
+        with open(file, "w", encoding="utf8") as fh:
+            json.dump(collection, fh, ensure_ascii=False, sort_keys=True, indent=4)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
