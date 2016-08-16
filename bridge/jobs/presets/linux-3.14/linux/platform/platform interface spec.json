@@ -1,0 +1,47 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "platform_driver_unregister": {
+        "signature": "void platform_driver_unregister(*%platform.platform_driver%)",
+        "header": "linux/platform_device.h"
+      },
+      "platform_driver_probe": {
+        "signature": "int platform_driver_probe(*%platform.platform_driver%, %platform.probe%)",
+        "header": "linux/platform_device.h"
+      },
+      "platform_driver_register": {
+        "signature": "int platform_driver_register(*%platform.platform_driver%)",
+        "header": "linux/platform_device.h"
+      }
+    },
+    "categories": {
+      "platform": {
+        "containers": {
+          "platform_driver": {
+            "signature": "struct platform_driver driver",
+            "header": "linux/platform_device.h",
+            "fields": {
+              "probe": "%platform.probe%",
+              "remove": "%platform.release%"
+            }
+          }
+        },
+        "resources": {
+          "platform_device": {
+            "signature": "struct platform_device *device",
+            "header": "linux/platform_device.h",
+            "implemented in kernel": true
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "signature": "int (*probe)(%platform.platform_device%)"
+          },
+          "release": {
+            "signature": "int (*release)(%platform.platform_device%)"
+          }
+        }
+      }
+    }
+  }
+}

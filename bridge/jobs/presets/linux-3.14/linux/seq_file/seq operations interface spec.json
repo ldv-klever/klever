@@ -1,0 +1,60 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "seq_open_private": {
+        "signature": "int seq_open_private(%seq_operations.file%, *%seq_operations.seq_operations%, $)",
+        "header": "linux/seq_file.h"
+      },
+      "seq_release_private": {
+        "signature": "int seq_release_private($, %seq_operations.file%)",
+        "header": "linux/seq_file.h"
+      },
+      "seq_open": {
+        "signature": "int seq_open(%seq_operations.file%, *%seq_operations.seq_operations%)",
+        "header": "linux/seq_file.h"
+      },
+      "seq_release": {
+        "signature": "int seq_release($, %seq_operations.file%)",
+        "header": "linux/seq_file.h"
+      }
+    },
+    "categories": {
+      "seq_operations": {
+        "containers": {
+          "seq_operations": {
+            "signature": "struct seq_operations ops",
+            "header": "linux/seq_file.h",
+            "fields": {
+              "start": "%seq_operations.start%",
+              "stop": "%seq_operations.stop%",
+              "next": "%seq_operations.next%",
+              "show": "%seq_operations.show%"
+            }
+          }
+        },
+        "resources": {
+          "seq_file": {
+            "signature": "struct seq_file *file"
+          },
+          "file": {
+            "signature": "struct file *file"
+          }
+        },
+        "callbacks": {
+          "start": {
+            "signature": "void * (*start)(%seq_operations.seq_file%, $)"
+          },
+          "stop": {
+            "signature": "void (*stop)(%seq_operations.seq_file%, $)"
+          },
+          "next": {
+            "signature": "void * (*next)(%seq_operations.seq_file%, $, $)"
+          },
+          "show": {
+            "signature": "int (*show)(%seq_operations.seq_file%, $)"
+          }
+        }
+      }
+    }
+  }
+}
