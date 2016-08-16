@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import glob
 
 import core.avtg.plugins
 import core.utils
@@ -161,46 +162,51 @@ class EMG(core.avtg.plugins.Plugin):
 
     def __get_specs(self, logger, directory):
         """
-        Fins in the given directory two JSON specifications: interface categories specification and event categories
-        specifications.
+        todo: Update.
         :param logger: Logger object.
         :param directory: Provided directory with files.
         :return: Dictionaries with interface categories specification and event categories specifications.
         """
-        interface_spec = None
-        module_interface_spec = None
-        event_categories_spec = None
+        logger.info('Search for event and interface categories specifications in {}'.format(directory))
+        interface_specifications = list()
+        event_specifications = list()
 
-        files = [os.path.join(directory, name) for name in sorted(os.listdir(directory))]
-        if len(files) < 2:
-            FileNotFoundError("Environment model generator expects no less than 2 specifications but found only {}".
-                              format(len(files)))
+        # Find all json files
+        file_candidates = set()
+        for root, dirs, files in os.walk(directory):
+            # Check only full pathes to files
+            if len(dirs) == 0:
+                json_files = glob.glob('{}/*.json'.format(root))
+                file_candidates.update(json_files)
 
-        for file in files:
-            if self.specification_extension_re.search(file):
-                logger.info("Import content of specification file {}".format(file))
-                with open(file, encoding="utf8") as fh:
-                    spec = json.loads(fh.read())
+        # Filter specifications
+        for file in sorted(file_candidates):
+            with open(file, encoding="utf8") as fh:
+                content = json.loads(fh.read())
 
-                logger.info("Going to analyze content of specification file {}".format(file))
+            for tag in content:
+                if "categories" in content[tag] or "kernel functions" in content[tag]:
+                    logger.debug("Specification file {} is treated as interface categories specification".format(file))
+                    interface_specifications.append(content)
+                elif "environment processes" in content[tag] or "kernel model" in content[tag]:
+                    logger.debug("Specification file {} is treated as event categories specification".format(file))
+                    event_specifications.append(content)
+                else:
+                    logger.debug("File '{}' is not recognized as a EMG specification".format(file))
+                break
 
-                if "categories" in spec and "interface implementations" in spec:
-                    # todo: not supported yet
-                    logger.info("Specification file {} is treated as module interface specification".format(file))
-                    module_interface_spec = spec
-                elif "categories" in spec and "interface implementations" not in spec:
-                    logger.info("Specification file {} is treated as interface categories specification".format(file))
-                    interface_spec = spec
-                elif "environment processes" in spec:
-                    logger.info("Specification file {} is treated as event categories specification".format(file))
-                    event_categories_spec = spec
-
-        if not interface_spec:
+        # Check presence of specifications
+        if len(interface_specifications) == 0:
             raise FileNotFoundError("Environment model generator missed an interface categories specification")
-        elif not event_categories_spec:
+        elif len(event_specifications) == 0:
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
-        return interface_spec, module_interface_spec, event_categories_spec
+        # Merge specifications
+        interface_spec = self.merge_spec_versions(interface_specifications, self.conf['specifications set'])
+        event_categories_spec = self.merge_spec_versions(event_specifications, self.conf['specifications set'])
+
+        # toso: search for module categories specification
+        return interface_spec, None, event_categories_spec
 
     def __get_path(self, conf, prop):
         if prop in conf:
@@ -217,5 +223,42 @@ class EMG(core.avtg.plugins.Plugin):
             return content
         else:
             return None
+
+    def merge_spec_versions(self, collection, user_tag):
+        # Copy data to a final spec
+        def import_specification(spec, final_spec):
+            for tag in spec:
+                if tag not in final_spec:
+                    final_spec[tag] = spec[tag]
+                else:
+                    for new_tag in spec[tag]:
+                        if new_tag in final_spec[tag]:
+                            raise KeyError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG specification".format(new_tag, tag))
+                        final_spec[tag][new_tag] = spec[tag][new_tag]
+
+        def match_default_tag(entry):
+            dt = re.compile('\(base\)')
+
+            for tag in entry:
+                if dt.search(tag):
+                    return tag
+
+            return None
+
+        final_specification = dict()
+
+        # Import each entry
+        for entry in collection:
+            if user_tag in entry:
+                # Find provided by a user tag
+                import_specification(entry[user_tag], final_specification)
+            else:
+                # Search for a default tag
+                dt = match_default_tag(entry)
+                if dt:
+                    import_specification(entry[dt], final_specification)
+
+        # Return final specification
+        return final_specification
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

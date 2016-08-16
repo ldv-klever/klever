@@ -16,7 +16,7 @@
         },
         {
           "EMG": {
-            "specifications directory": "linux/emg",
+            "specifications directory": "linux/",
             "entry point": "entry_point",
             "translator": "default",
             "callstack deep search": 3,
