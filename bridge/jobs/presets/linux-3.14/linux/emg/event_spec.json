@@ -2930,10 +2930,10 @@
       "process": "(!register).<init>.{main}",
       "actions": {
         "main": {
-          "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.[remove].(deregister)"
+          "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
         },
         "call": {
-          "process": "[callback].{call} | [release].{main}"
+          "process": "[callback].{call} | [release].[remove].{main}"
         },
         "register": {
           "parameters": [
