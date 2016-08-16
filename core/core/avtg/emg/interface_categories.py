@@ -403,7 +403,7 @@ class CategoriesSpecification:
     def __import_interfaces(self, category_name, identifier, desc, constructor):
         if "{}.{}".format(category_name, identifier) not in self.interfaces:
             self.logger.debug("Import described interface description '{}.{}'".format(category_name, identifier))
-            interface = constructor(category_name, identifier)
+            interface = constructor(category_name, identifier, manually_specified=True)
             self._set_intf(interface)
         else:
             raise ValueError('Interface {} is described twice'.format(identifier.identifier))

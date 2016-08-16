@@ -1,16 +1,17 @@
 class Interface:
-    def _common_declaration(self, category, identifier):
+    def _common_declaration(self, category, identifier, manually_specified=False):
         self.category = category
         self.short_identifier = identifier
         self.identifier = "{}.{}".format(category, identifier)
+        self.manually_specified = manually_specified
         self.declaration = None
         self.header = None
         self.implemented_in_kernel = False
 
 
 class Container(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
         self.element_interface = None
         self.field_interfaces = {}
 
@@ -28,8 +29,8 @@ class Container(Interface):
 
 
 class Callback(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
         self.param_interfaces = []
         self.rv_interface = False
         self.called = False
@@ -37,8 +38,8 @@ class Callback(Interface):
 
 
 class Resource(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
 
 
 class KernelFunction(Interface):
