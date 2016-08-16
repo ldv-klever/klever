@@ -1325,7 +1325,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             return tab
 
         def require_merge(state, processed_states, condition):
-            if state.identifier in condition['terminals'] and len(set(condition['terminals']) - processed_states) == 0:
+            if len(condition['pending']) == 0 and state.identifier in condition['terminals'] and len(set(condition['terminals']) - processed_states) == 0:
                 return True
             else:
                 return False
