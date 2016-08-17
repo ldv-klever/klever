@@ -1,4 +1,4 @@
-#include <verifier/common.h>
+#include <verifier/memory.h>
 
 long ldv_is_err(const void *ptr)
 {
