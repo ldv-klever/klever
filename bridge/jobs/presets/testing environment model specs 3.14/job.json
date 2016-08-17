@@ -1,7 +1,7 @@
 {
   "Common": {
     "Linux kernel": {
-      "source": "linux-3.14",
+      "source": "linux-4.6.7",
       "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
