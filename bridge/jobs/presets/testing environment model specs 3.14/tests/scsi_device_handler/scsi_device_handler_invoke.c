@@ -15,7 +15,6 @@ static void ldv_detach(struct scsi_device *sdev)
 }
 
 static struct scsi_device_handler ldv_test_struct = {
-	.name =	"ldv-test",
 	.attach = ldv_attach,
 	.detach = ldv_detach,
 };
