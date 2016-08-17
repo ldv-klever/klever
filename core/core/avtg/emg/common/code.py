@@ -100,7 +100,8 @@ class FunctionModels:
 
     mem_function_map = {
         # TODO: switch to correct memory allocation function when sizes will be known.
-        "ALLOC": "__ldv_malloc_unknown_size",
+        "ALLOC": "ldv_xmalloc",
+        "UALLOC": "ldv_xmalloc_unknown_size",
         "ZALLOC": "ldv_zalloc"
     }
     free_function_map = {
@@ -142,7 +143,10 @@ class FunctionModels:
 
                 accesses = automaton.process.resolve_access('%{}%'.format(access))
                 for access in accesses:
+                    ualloc_flag = True
                     if access.interface:
+                        if access.interface.manually_specified:
+                            ualloc_flag = False
                         signature = access.label.get_declaration(access.interface.identifier)
                     else:
                         signature = access.label.prior_signature
@@ -155,6 +159,7 @@ class FunctionModels:
 
                         if type(var.declaration) is Pointer:
                             self.signature = var.declaration
+                            self.ualloc_flag = ualloc_flag
                             new = self.mem_function_re.sub(replacement, statement)
                             new = access.replace_with_variable(new, var)
                             stms.append(new)
@@ -194,16 +199,21 @@ class FunctionModels:
 
     def _replace_mem_call(self, match):
         function, label_name, flag = match.groups()
+        size = '0'
+
         if function not in self.mem_function_map:
             raise NotImplementedError("Model of {} is not supported".format(function))
         elif not self.mem_function_map[function]:
             raise NotImplementedError("Set implementation for the function {}".format(function))
 
         if type(self.signature) is Pointer:
-            if self.use_sizeof:
-                return "{}(sizeof({}))".format(self.mem_function_map[function], self.signature.points.to_string(''))
-            else:
-                return "{}(sizeof({}))".format(self.mem_function_map[function], '0')
+            if function == 'ALLOC' and self.ualloc_flag:
+                # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
+                function = 'UALLOC'
+            if function != 'UALLOC' and self.use_sizeof:
+                size = 'sizeof({})'.format(self.signature.points.to_string(''))
+
+            return "{}({})".format(self.mem_function_map[function], size)
         else:
             raise ValueError('This is not a pointer')
 

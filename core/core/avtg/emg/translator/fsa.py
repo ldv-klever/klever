@@ -647,7 +647,7 @@ class Automaton:
                         pre_statements = []
                         post_statements = []
                         for label in sorted(list(set(label_params)), key=lambda lb: lb.name):
-                            pre_statements.append('%{}% = $ALLOC(%{}%);'.format(label.name, label.name))
+                            pre_statements.append('%{}% = $UALLOC(%{}%);'.format(label.name, label.name))
                             post_statements.append('$FREE(%{}%);'.format(label.name))
 
                         pre_name = 'pre_call_{}'.format(st.identifier)
