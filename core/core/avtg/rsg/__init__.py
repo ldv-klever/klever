@@ -123,6 +123,7 @@ class RSG(core.avtg.plugins.Plugin):
         os.makedirs('models')
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
+        model_functions = {}
         for model_c_file in models:
             model = models[model_c_file]
 
@@ -163,6 +164,28 @@ class RSG(core.avtg.plugins.Plugin):
                 preprocessed_aspect = '{0}.{1}.aspect'.format(
                     aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
+
+                model_functions_for_rule = set()
+                with open(aspect, encoding='ascii') as fp_in:
+                    for line in fp_in:
+                        result = re.search(r"execution\(static inline (.+) ([\S]+)\((.+)\)\)", line)
+                        intercepted = None
+                        if result:
+                            intercepted = result.group(2)
+                            if intercepted.startswith('*'):
+                                intercepted = intercepted[1:]
+                        result = re.search(r"call\((.+) ([\S]+)\((.+)\)\)", line)
+                        if result:
+                            intercepted = result.group(2)
+                            if intercepted.startswith('*'):
+                                intercepted = intercepted[1:]
+                        result = re.search(r"define\(([\S]+)\((.+)\)\)", line)
+                        if result:
+                            intercepted = result.group(1)
+                        if intercepted:
+                            model_functions_for_rule.add(intercepted)
+                model_functions[model['rule specification identifier']] = model_functions_for_rule
+
                 if self.conf['RSG strategy'] == 'instrumentation':
                     with open(aspect, encoding='ascii') as fp_in, \
                             open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
@@ -186,6 +209,9 @@ class RSG(core.avtg.plugins.Plugin):
                         (model_c_file not in automata):
                     model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
+
+        for rule, funcs in model_functions.items():
+            self.logger.info('{0}: {1}'.format(rule, funcs))
 
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
