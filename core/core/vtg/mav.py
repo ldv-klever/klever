@@ -52,7 +52,7 @@ class MAV(CommonStrategy):
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
     resources_written = False
     resources_written_unsafe = False
-    # Possible values: internal, external, no.
+    # Possible values: internal, external, no (only for Global strategy).
     relaunch = "internal"
     is_finished = False  # TODO: work-around.
 
@@ -181,6 +181,7 @@ class MAV(CommonStrategy):
             # Set time limits for external MAV.
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
         else:
+            relaunch = 'no'
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
 
         # Soft time limit.
@@ -385,6 +386,15 @@ class MAV(CommonStrategy):
                     self.process_global_error(''.join(task_error))
                     break
 
+                if self.relaunch == 'no':
+                    path_to_cmav_log = self.get_verifier_log_file(False)
+                    with open(path_to_cmav_log) as f_res:
+                        for line in f_res:
+                            result = re.search(r'Assert \[(\S+)\] has exhausted its Assert Time Limit', line)
+                            if result:
+                                rule = result.group(1)
+                                results[rule] = 'unknown-complete'
+
                 # No new transitions -> change all checking verdicts to unknown.
                 if not is_new_verdicts:
                     self.logger.info('No new verdicts were obtained during this iteration')
@@ -414,7 +424,15 @@ class MAV(CommonStrategy):
                                                             specified_error_trace=error_trace)
                                 self.remove_assertion(bug_kind)
                     else:  # Verdicts unknown or safe.
-                        self.process_single_verdict(decision_results, verification_report_id,
+                        if self.relaunch == 'no':
+                            if verdict == 'unknown-complete' or verdict == 'safe':
+                                self.process_single_verdict(decision_results, verification_report_id,
+                                                    assertion=bug_kind)
+                            else:
+                                # Do not create reports for 'incomplete' Unknown.
+                                pass
+                        else:
+                            self.process_single_verdict(decision_results, verification_report_id,
                                                     assertion=bug_kind)
                         if verdict != 'checking':
                             self.remove_assertion(bug_kind)
@@ -423,5 +441,3 @@ class MAV(CommonStrategy):
                 break
             time.sleep(1)
         self.is_finished = is_finished
-
-
