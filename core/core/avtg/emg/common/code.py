@@ -101,7 +101,7 @@ class FunctionModels:
     mem_function_map = {
         # TODO: switch to correct memory allocation function when sizes will be known.
         "ALLOC": "ldv_xmalloc",
-        "UALLOC": "__ldv_malloc_unknown_size",
+        "UALLOC": "ldv_xmalloc_unknown_size",
         "ZALLOC": "ldv_zalloc"
     }
     free_function_map = {
