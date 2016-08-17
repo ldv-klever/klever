@@ -7,7 +7,7 @@
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
-    "specifications set": "Linux 3.14 (base)",
+    "specifications set": "Linux 4.6.7",
     "rule specifications": ["linux:emg:test"],
     "unite rule specifications": false,
     "RSG strategy": "instrumentation",
@@ -29,25 +29,6 @@
     }
   },
   "Sub-jobs": [
-    {
-      "Linux kernel": {
-        "external modules": "tests/iio_triggered_buffer",
-        "modules": [
-          "iio_triggered_buffer_setup.ko",
-          "iio_triggered_buffer_cleanup.ko",
-          "iio_triggered_buffer_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/iio_triggered_buffer_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    }
-  ],
-  "Sub-jobs~": [
     {
       "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
@@ -426,16 +407,16 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/se_subsystem_api",
+        "external modules": "tests/target_backend",
         "modules": [
-          "se_callbacks.ko",
-          "se_invoke.ko"
+          "target_backend_callbacks.ko",
+          "target_backend_invoke.ko"
         ]
       },
       "ideal verdicts": [
         {
           "ideal verdict": "unsafe",
-          "verification object": "ext-modules/se_invoke.ko"
+          "verification object": "ext-modules/target_backend_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]
