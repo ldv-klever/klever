@@ -27,7 +27,4 @@ extern long __builtin_expect(long exp, long c);
  */
 extern void __builtin_trap(void);
 
-/* Pointers greater then this number correspond to errors. */
-#define LDV_PTR_MAX 201200
-
 #endif /* __VERIFIER_COMMON_H */
