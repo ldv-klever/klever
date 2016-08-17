@@ -59,7 +59,8 @@ class RSG(core.avtg.plugins.Plugin):
                             models[generated_model_c_file] = self.conf['models'][model_c_file]
                             is_generated_model_c_file_found = True
                             # Get all property automata.
-                            if self.conf['RSG strategy'] == 'property automaton':
+                            if self.conf['RSG strategy'] == 'property automaton' \
+                                    or self.conf['RSG strategy'] == 'global':
                                 if 'automaton' in self.conf['models'][model_c_file]:
                                     automaton = self.conf['models'][model_c_file]['automaton']
                                     for generated_model_automaton_file in generated_models:
@@ -80,7 +81,7 @@ class RSG(core.avtg.plugins.Plugin):
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
                     models[model_c_file_realpath] = self.conf['models'][model_c_file]
                     # Get all property automata.
-                    if self.conf['RSG strategy'] == 'property automaton':
+                    if self.conf['RSG strategy'] == 'property automaton' or self.conf['RSG strategy'] == 'global':
                         for elem in self.conf['models'][model_c_file]:
                             if elem == 'automaton':
                                 if self.conf['models'][model_c_file][elem].startswith('$'):
@@ -139,7 +140,7 @@ class RSG(core.avtg.plugins.Plugin):
                     'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
                     .format(rule_spec_prefix, model_c_file))
 
-                if self.conf['RSG strategy'] == 'instrumentation':
+                if self.conf['RSG strategy'] == 'instrumentation' or self.conf['RSG strategy'] == 'global':
                     model_c_file_short = os.path.splitext(os.path.basename(model_c_file))[0]
                     preprocessed_model_c_file = '{0}.{1}.c'.format(
                         model_c_file_short,
@@ -186,7 +187,7 @@ class RSG(core.avtg.plugins.Plugin):
                             model_functions_for_rule.add(intercepted)
                 model_functions[model['rule specification identifier']] = model_functions_for_rule
 
-                if self.conf['RSG strategy'] == 'instrumentation':
+                if self.conf['RSG strategy'] == 'instrumentation' or self.conf['RSG strategy'] == 'global':
                     with open(aspect, encoding='ascii') as fp_in, \
                             open(preprocessed_aspect, 'w', encoding='ascii') as fp_out:
                         # Specify original location to avoid references to generated aspects in error traces.
@@ -204,9 +205,25 @@ class RSG(core.avtg.plugins.Plugin):
                     shutil.copy(aspect, preprocessed_aspect)
                     aspects.append(preprocessed_aspect)
 
+                if self.conf['RSG strategy'] == 'global':
+                    if model_c_file in automata:
+                        automaton = automata[model_c_file]
+                        automaton_short = os.path.splitext(os.path.basename(automaton))[0]
+                        preprocessed_automaton = '{0}.{1}.spc'.format(
+                            automaton_short,
+                            re.sub(r'\W', '_', model['rule specification identifier']))
+                        with open(automaton, encoding='ascii') as fp_in, \
+                                open(preprocessed_automaton, 'w', encoding='ascii') as fp_out:
+                            for line in fp_in:
+                                fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
+                                                    re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
+                                                           r'exclusive|zalloc|malloc|pre)',
+                                                           rule_spec_prefix, line)))
+                        automata[model_c_file] = os.path.abspath(preprocessed_automaton)
+
             else:
                 if (self.conf['RSG strategy'] == 'instrumentation') or \
-                        (model_c_file not in automata):
+                        (model_c_file not in automata) or self.conf['RSG strategy'] == 'global':
                     model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
 
@@ -236,7 +253,8 @@ class RSG(core.avtg.plugins.Plugin):
         for model_c_file in models:
             model = models[model_c_file]
 
-            if self.conf['RSG strategy'] == 'instrumentation' or model_c_file not in automata:
+            if self.conf['RSG strategy'] == 'instrumentation' or model_c_file not in automata \
+                    or self.conf['RSG strategy'] == 'global' :
                 if 'bug kinds' in model:
                     self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
                     # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule

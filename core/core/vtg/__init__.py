@@ -4,6 +4,8 @@ import importlib
 import json
 import multiprocessing
 import os
+import glob
+import shutil
 import re
 
 import core.components
@@ -36,6 +38,9 @@ def after_generate_all_abstract_verification_task_descs(context):
 
 
 class VTG(core.components.Component):
+
+    verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
+
     def generate_verification_tasks(self):
         self.strategy_name = None
         self.strategy = None
@@ -64,12 +69,15 @@ class VTG(core.components.Component):
 
         self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
-        try:
-            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
-                                    self.strategy_name.upper())
-        except ImportError:
-            raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
-
+        if self.strategy_name == "g":
+            # Global
+            self.logger.info('Using GLOBAL strategy')
+        else:
+            try:
+                self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
+                                        self.strategy_name.upper())
+            except ImportError:
+                raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
 
     def get_common_prj_attrs(self):
         self.logger.info('Get common project atributes')
@@ -82,8 +90,12 @@ class VTG(core.components.Component):
         self.logger.info('Generate all verification tasks')
 
         subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
-        for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-            subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
+        if self.strategy_name == "g":
+            for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
+                subcomponents.append(('Worker {0}'.format(i), self._generate_global_verification_tasks))
+        else:
+            for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
+                subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
 
         self.launch_subcomponents(*subcomponents)
 
@@ -161,10 +173,7 @@ class VTG(core.components.Component):
                 self.logger.info('Changing "{0}" strategy to SR'.format(self.strategy_name))
                 self.conf['unite rule specifications'] = False
                 self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
-                self.conf['unite rule specifications'] = False
                 self.conf['abstract task desc']['attrs'][1]['rule specification'] = latest_assert
-
-
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
@@ -176,3 +185,234 @@ class VTG(core.components.Component):
             # tasks. Do not print information on failure since it will be printed automatically by core.components.
             except core.components.ComponentError:
                 pass
+
+    def _generate_global_verification_tasks(self):
+        while True:
+            abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
+
+            if abstract_task_desc_file_and_num is None:
+                self.logger.debug('Abstract verification task descriptions message queue was terminated')
+                break
+
+            abstract_task_desc_file = os.path.join(self.conf['main working directory'],
+                                                   abstract_task_desc_file_and_num['desc file'])
+
+            with open(abstract_task_desc_file, encoding='ascii') as fp:
+                abstract_task_desc = json.load(fp)
+
+            if not self.conf['keep intermediate files']:
+                os.remove(abstract_task_desc_file)
+
+            # Print progress in form of "the number of already generated abstract verification task descriptions/the
+            # number of all abstract verification task descriptions". The latter may be omitted for early abstract
+            # verification task descriptions because of it isn't known until the end of AVTG operation.
+            self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
+                    abstract_task_desc['id'], abstract_task_desc_file_and_num['num'],
+                    '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
+
+            attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
+            work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name, 'step1')
+            os.makedirs(work_dir)
+            self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+            self.conf['abstract task desc'] = abstract_task_desc
+
+            # Step 1. external CMAV L1 with only 1 iteration.
+            self.logger.info('Execute step 1: Launch CMAV L1 with only 1 iteration')
+
+            asserts = 0
+            latest_assert = None
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if 'bug kinds' in extra_c_file:
+                    asserts += 1
+                    common_bug_kind = extra_c_file['bug kinds'][0]
+                    latest_assert = self.parse_bug_kind(common_bug_kind)
+
+            self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
+            self.conf['unite rule specifications'] = True
+            self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
+            self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
+            self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+            self.conf['RSG strategy'] = 'instrumentation'
+            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                              '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
+                              work_dir, abstract_task_desc['attrs'], True, True)
+            try:
+                p.start()
+                p.join()
+            # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
+            # tasks. Do not print information on failure since it will be printed automatically by core.components.
+            except core.components.ComponentError:
+                pass
+
+            self.logger.info('Step 1 of Global strategy has been completed')
+            path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
+            self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
+            log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
+            path_to_cmav_log = log_files[0]
+            self.logger.debug('Path to CMAV log file is "{0}"'.format(path_to_cmav_log))
+
+            results = {}
+            unknown_reasons = {}
+            is_completed = True
+            is_good_results = False
+
+            # Analyse results file.
+            if os.path.isfile(path_to_cmav_results):
+                with open(path_to_cmav_results) as f_res:
+                    for line in f_res:
+                        result = re.search(self.verifier_results_regexp, line)
+                        if result:
+                            bug_kind = result.group(1)
+                            verdict = result.group(3).lower()
+                            if verdict == 'safe':
+                                is_good_results = True
+                            if verdict == 'safe' or verdict == 'unsafe':
+                                results[bug_kind] = verdict
+                            elif verdict == 'unknown':
+                                is_completed = False
+                                results[bug_kind] = 'unknown-incomplete'
+                            else:
+                                is_completed = False
+                                results[bug_kind] = 'checking'
+                        else:
+                            result = re.search(r'\[(.+)\]', line)
+                            if result:
+                                # LCA here.
+                                LCA = result.group(1)
+                                if results[LCA] == 'checking':
+                                    results[LCA] = 'unknown-incomplete'
+                                    unknown_reasons[LCA] = 'LCA'
+            else:
+                raise NotImplementedError('TODO: no results file')
+
+            # Analyse log file.
+            if not is_completed:
+                if os.path.isfile(path_to_cmav_log):
+                    with open(path_to_cmav_log) as f_res:
+                        for line in f_res:
+                            result = re.search(r'Assert \[(\S+)\] has exhausted its Basic Interval Time Limit', line)
+                            if result:
+                                rule = result.group(1)
+                                unknown_reasons[rule] = 'BITL'
+                            result = re.search(r'Assert \[(\S+)\] has exhausted its Assert Time Limit', line)
+                            if result:
+                                rule = result.group(1)
+                                unknown_reasons[rule] = 'ATL'
+                                results[rule] = 'unknown'
+                            result = re.search(r'Error: First Interval Time Limit has been exhausted', line)
+                            if result:
+                                for rule, verdict in results.items():
+                                    if verdict != 'unsafe':
+                                        results[rule] = 'checking'
+                else:
+                    raise NotImplementedError('TODO: no log file')
+
+            # Results of Step 1.
+            is_completed = True
+            number_of_separated = 0
+            for rule, verdict in results.items():
+                if verdict == 'checking' or verdict == 'unknown-incomplete':
+                    is_completed = False
+                self.logger.info('Rule "{0}" got verdict "{1}"'.format(rule, verdict))
+                if verdict == 'unknown':
+                    self.logger.info('Rule "{0}" got unknown verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                if verdict == 'unknown-incomplete':
+                    self.logger.info('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                    number_of_separated += 1
+            self.logger.info('Is Step 2 required: "{0}"'.format(number_of_separated > 0))
+            self.logger.info('Is Step 3 required: "{0}"'.format(not is_good_results))
+
+            if not is_completed:
+                old_extra_c_files = self.conf['abstract task desc']['extra C files']
+                if number_of_separated >= 1:
+                    self.logger.info('Execute step 2')
+                    extra_c_files = []
+                    for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                        if 'bug kinds' in extra_c_file:
+                            common_bug_kind = extra_c_file['bug kinds'][0]
+                            rule = self.parse_bug_kind(common_bug_kind)
+                            verdict = results[rule]
+                            if verdict == 'unknown-incomplete':
+                                self.logger.info('Rule "{0}" will be rechecked separately'.format(rule))
+                                extra_c_files.append(extra_c_file)
+                        else:
+                            extra_c_files.append(extra_c_file)
+
+                    self.conf['abstract task desc']['extra C files'] = extra_c_files
+
+                    if number_of_separated == 1:
+                        self.logger.info('Only one rule should be checked separatetly, therefore SR will be used')
+                        self.conf['unite rule specifications'] = False
+                        self.conf['RSG strategy'] = 'property automaton'
+                        self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
+                        self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-spa': ''}]
+                        self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
+                        for rule, verdict in results.items():
+                            if verdict == 'unknown-incomplete':
+                                self.conf['abstract task desc']['attrs'][1]['rule specification'] = rule
+                    else:
+                        self.logger.info('Using MPV-Sep')
+                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
+                        self.conf['RSG strategy'] = 'property automaton'
+                        self.conf['unite rule specifications'] = True
+                        self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
+                        self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
+                        self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+
+                    work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name, 'step2')
+                    os.makedirs(work_dir)
+                    self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+                    p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                      '{0}/{1}/{2}/step2'.format(*list(attr_vals) + [self.strategy_name]),
+                                      work_dir, abstract_task_desc['attrs'], True, True)
+                    try:
+                        p.start()
+                        p.join()
+                    except core.components.ComponentError:
+                        pass
+                else:
+                    self.logger.info('Step 2 is not required')
+
+                if not is_good_results:
+                    self.logger.info('Execute step 3')
+                    extra_c_files = []
+                    for extra_c_file in old_extra_c_files:
+                        if 'bug kinds' in extra_c_file:
+                            common_bug_kind = extra_c_file['bug kinds'][0]
+                            rule = self.parse_bug_kind(common_bug_kind)
+                            verdict = results[rule]
+                            if verdict == 'checking':
+                                self.logger.info('Rule "{0}" will be rechecked'.format(rule))
+                                extra_c_files.append(extra_c_file)
+                        else:
+                            extra_c_files.append(extra_c_file)
+
+                    self.conf['abstract task desc']['extra C files'] = extra_c_files
+
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
+                    self.conf['RSG strategy'] = 'property automaton'
+                    self.conf['unite rule specifications'] = True
+                    self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
+                    self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
+                    self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+
+                    work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name, 'step3')
+                    os.makedirs(work_dir)
+                    self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+                    p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                      '{0}/{1}/{2}/step3'.format(*list(attr_vals) + [self.strategy_name]),
+                                      work_dir, abstract_task_desc['attrs'], True, True)
+                    try:
+                        p.start()
+                        p.join()
+                    except core.components.ComponentError:
+                        pass
