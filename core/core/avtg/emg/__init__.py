@@ -175,9 +175,8 @@ class EMG(core.avtg.plugins.Plugin):
         file_candidates = set()
         for root, dirs, files in os.walk(directory):
             # Check only full pathes to files
-            if len(dirs) == 0:
-                json_files = glob.glob('{}/*.json'.format(root))
-                file_candidates.update(json_files)
+            json_files = glob.glob('{}/*.json'.format(root))
+            file_candidates.update(json_files)
 
         # Filter specifications
         for file in sorted(file_candidates):
