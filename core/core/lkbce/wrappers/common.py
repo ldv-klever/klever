@@ -44,14 +44,13 @@ class Command:
             return
 
         # We assume that dependency files are generated for all C source files.
-        base_name = "{}.d".format(os.path.basename(self.out_file))
+        base_name = '{0}.d'.format(os.path.basename(self.out_file))
         if base_name[0] != '.':
             base_name = '.' + base_name
         deps_file = os.path.join(os.path.dirname(self.out_file), base_name)
         if not os.path.isfile(deps_file):
-            cmd = ['aspectator'] + self.opts + ['-Wp,-MD,{}'.format(deps_file)]
-            p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+            p = subprocess.Popen(['aspectator'] + self.opts + ['-Wp,-MD,{0}'.format(deps_file)],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if p.wait():
                 raise RuntimeError('Getting dependencies failed')
 
