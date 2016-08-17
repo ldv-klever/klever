@@ -44,16 +44,13 @@ class Command:
             return
 
         # We assume that dependency files are generated for all C source files.
-        deps_file = None
-        for opt in self.other_opts:
-            match = re.search(r'-MD,(.+)', opt)
-            if match:
-                deps_file = match.group(1)
-                break
-        if not deps_file:
-            # Generate them by ourselves if not so.
-            deps_file = self.out_file + '.d'
-            p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
+        base_name = "{}.d".format(os.path.basename(self.out_file))
+        if base_name[0] != '.':
+            base_name = '.' + base_name
+        deps_file = os.path.join(os.path.dirname(self.out_file), base_name)
+        if not os.path.isfile(deps_file):
+            cmd = ['aspectator'] + self.opts + ['-Wp,-MD,{}'.format(deps_file)]
+            p = subprocess.Popen(cmd, stdout=subprocess.DEVNULL,
                                  stderr=subprocess.DEVNULL)
             if p.wait():
                 raise RuntimeError('Getting dependencies failed')
@@ -266,7 +263,7 @@ class Command:
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
-        original_opts = self.opts
+        original_opts = list(self.opts)
         if '-o' in original_opts:
             original_opts.remove('-o')
         resulting_opts = self.in_files + self.other_opts
