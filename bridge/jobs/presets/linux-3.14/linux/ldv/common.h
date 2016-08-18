@@ -56,6 +56,7 @@ extern int ldv_post_init(int init_ret_val);
  * before calling module probe callbacks.
  */
 extern void ldv_pre_probe(void);
+
 /**
  * ldv_post_probe() - perform some actions and checks specific for rule
  *                    specifications after calling module probe callbacks.
@@ -65,6 +66,13 @@ extern void ldv_pre_probe(void);
  */
 extern int ldv_post_probe(int probe_ret_val);
 
+/**
+ * ldv_filter_err_code() - filter positive return values after a call of module callbacks.
+ * @ret_val:	           Return value of module callback.
+ *
+ * ldv_filter_err_code() is very like ldv_post_init().
+ */
+extern int ldv_filter_err_code(int ret_val);
 
 /**
  * ldv_pre_usb_register_driver() - perform some actions and checks specific for

@@ -150,6 +150,9 @@
               "%device%"
             ],
             "callback return value": "%ret%",
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
             ]

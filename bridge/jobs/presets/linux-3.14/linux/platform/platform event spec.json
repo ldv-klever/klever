@@ -158,6 +158,9 @@
               "%resource%"
             ],
             "callback return value": "%probed%",
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "post-call": [
               "%probed% = ldv_post_probe(%probed%);"
             ]
@@ -354,6 +357,9 @@
             "callback": "%container.probe%",
             "parameters": [
               "%resource%"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
             ],
             "callback return value": "%probed%",
             "post-call": [
