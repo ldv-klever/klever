@@ -14,7 +14,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376"
+        "version": "22517"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -307,7 +307,7 @@
       "rule specifications": ["linux:clk1"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "[Rule specifications] dev_get_drvdata() and dev_set_drvdata() (<a href='https://forge.ispras.ru/issues/7352'>feature #7352</a>)"
+        "comment": "[Rule specifications] spi_alloc_master() (<a href='https://forge.ispras.ru/issues/7481'>feature #7481</a>)"
       }]
     },
     {

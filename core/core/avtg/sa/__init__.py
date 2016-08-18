@@ -221,7 +221,8 @@ class SA(core.avtg.plugins.Plugin):
         global_file = "global.txt"
         self.logger.debug("Extract global variables from {}".format(global_file))
         # todo: add some logging here
-        self.collection["global variable initializations"] = parse_initializations(global_file)
+        if os.path.isfile(global_file):
+            self.collection["global variable initializations"] = parse_initializations(global_file)
 
         # export_file = "exported-symbols.txt"
         # self.logger.info("Extract export symbols from {}".format(export_file))

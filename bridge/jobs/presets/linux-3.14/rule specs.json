@@ -51,7 +51,7 @@
                 "unions": false,
                 "primitives": false
               },
-              "allocate with sizeof": false,
+              "allocate with sizeof": true,
               "allocate external": false
             },
             "additional aspects": ["linux/emg/emg.aspect"]

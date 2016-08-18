@@ -48,7 +48,7 @@
       "name": "multiple bug types",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376",
+        "version": "22517",
         "mav_preset": "L1",
         "relaunch": "external",
         "mea": false
