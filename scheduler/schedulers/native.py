@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -425,22 +425,3 @@ class Scheduler(schedulers.SchedulerExchange):
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

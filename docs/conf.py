@@ -16,8 +16,6 @@
 # limitations under the License.
 #
 
-# -*- coding: utf-8 -*-
-#
 # Klever documentation build configuration file, created by
 # sphinx-quickstart on Wed Jul 29 16:08:33 2015.
 #

@@ -1,6 +1,7 @@
 /*
- * Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
  * Institute for System Programming of the Russian Academy of Sciences
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/module.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/emg/test_model.h>

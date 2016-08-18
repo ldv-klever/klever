@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
 from __future__ import unicode_literals
 
 from django.db import migrations, models
