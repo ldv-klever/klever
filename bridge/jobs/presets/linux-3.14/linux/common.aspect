@@ -38,10 +38,12 @@ void ldv_linux_netdev_reset_error_counter(void);
 
 void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
 void ldv_linux_alloc_spin_lock_check_alloc_flags(gfp_t flags);
+void ldv_linux_spinlock_check_alloc_flags(gfp_t flags);
 void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
 
 void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
 void ldv_linux_alloc_spin_lock_check_alloc_nonatomic(void);
+void ldv_linux_spinlock_check_alloc_nonatomic(void);
 void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
 
 void ldv_linux_mutex_initialize(void);
@@ -95,6 +97,7 @@ void ldv_check_alloc_flags(gfp_t flags)
 {
 	ldv_linux_alloc_irq_check_alloc_flags(flags);
 	ldv_linux_alloc_spin_lock_check_alloc_flags(flags);
+	ldv_linux_spinlock_check_alloc_flags(flags);
 	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
 }
 
@@ -109,6 +112,7 @@ void ldv_check_alloc_nonatomic(void)
 {
 	ldv_linux_alloc_irq_check_alloc_nonatomic();
 	ldv_linux_alloc_spin_lock_check_alloc_nonatomic();
+	ldv_linux_spinlock_check_alloc_nonatomic();
 	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
 }
 
@@ -179,6 +183,7 @@ around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
 	ldv_assume(!ldv_is_err(res));
 	ldv_linux_alloc_irq_check_alloc_flags(mem_flags);
 	ldv_linux_alloc_spin_lock_check_alloc_flags(mem_flags);
+	ldv_linux_spinlock_check_alloc_flags(mem_flags);
 	ldv_linux_alloc_usb_lock_check_alloc_flags(mem_flags);
 	return res;
 }
@@ -190,6 +195,7 @@ around: call(void *usb_alloc_coherent(struct usb_device *dev, size_t size,
 	ldv_assume(!ldv_is_err(res));
 	ldv_linux_alloc_irq_check_alloc_flags(mem_flags);
 	ldv_linux_alloc_spin_lock_check_alloc_flags(mem_flags);
+	ldv_linux_spinlock_check_alloc_flags(mem_flags);
 	ldv_linux_alloc_usb_lock_check_alloc_flags(mem_flags);
 	return res;
 }

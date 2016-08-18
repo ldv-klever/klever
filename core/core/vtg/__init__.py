@@ -206,7 +206,7 @@ class VTG(core.components.Component):
             # Print progress in form of "the number of already generated abstract verification task descriptions/the
             # number of all abstract verification task descriptions". The latter may be omitted for early abstract
             # verification task descriptions because of it isn't known until the end of AVTG operation.
-            self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
+            self.logger.debug('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
                     abstract_task_desc['id'], abstract_task_desc_file_and_num['num'],
                     '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
 
@@ -220,7 +220,8 @@ class VTG(core.components.Component):
             self.conf['abstract task desc'] = abstract_task_desc
 
             # Step 1. external CMAV L1 with only 1 iteration.
-            self.logger.info('Execute step 1: Launch CMAV L1 with only 1 iteration')
+            self.logger.info('GLOBAL: Execute step 1')
+            self.logger.info('GLOBAL: Launch CMAV L1 with only 1 iteration')
 
             asserts = 0
             latest_assert = None
@@ -247,7 +248,7 @@ class VTG(core.components.Component):
             except core.components.ComponentError:
                 pass
 
-            self.logger.info('Step 1 of Global strategy has been completed')
+            self.logger.info('GLOBAL: Step 1 has been completed')
             path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
             self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
             log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
@@ -316,27 +317,27 @@ class VTG(core.components.Component):
             for rule, verdict in results.items():
                 if verdict == 'checking' or verdict == 'unknown-incomplete':
                     is_completed = False
-                self.logger.info('Rule "{0}" got verdict "{1}"'.format(rule, verdict))
+                self.logger.debug('Rule "{0}" got verdict "{1}"'.format(rule, verdict))
                 if verdict == 'unknown':
-                    self.logger.info('Rule "{0}" got unknown verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                    self.logger.debug('Rule "{0}" got unknown verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
                 if verdict == 'unknown-incomplete':
-                    self.logger.info('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                    self.logger.debug('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
                     number_of_separated += 1
-            self.logger.info('Is Step 2 required: "{0}"'.format(number_of_separated > 0))
-            self.logger.info('Is Step 3 required: "{0}"'.format(not is_good_results))
 
             if not is_completed:
                 old_extra_c_files = self.conf['abstract task desc']['extra C files']
                 if number_of_separated >= 1:
-                    self.logger.info('Execute step 2')
+                    self.logger.info('GLOBAL: Execute step 2')
                     extra_c_files = []
                     for extra_c_file in self.conf['abstract task desc']['extra C files']:
                         if 'bug kinds' in extra_c_file:
+                            if 'C file' in extra_c_file:
+                                del extra_c_file['C file']
                             common_bug_kind = extra_c_file['bug kinds'][0]
                             rule = self.parse_bug_kind(common_bug_kind)
                             verdict = results[rule]
                             if verdict == 'unknown-incomplete':
-                                self.logger.info('Rule "{0}" will be rechecked separately'.format(rule))
+                                self.logger.debug('Rule "{0}" will be rechecked separately'.format(rule))
                                 extra_c_files.append(extra_c_file)
                         else:
                             extra_c_files.append(extra_c_file)
@@ -344,7 +345,7 @@ class VTG(core.components.Component):
                     self.conf['abstract task desc']['extra C files'] = extra_c_files
 
                     if number_of_separated == 1:
-                        self.logger.info('Only one rule should be checked separatetly, therefore SR will be used')
+                        self.logger.info('GLOBAL: Launch SR')
                         self.conf['unite rule specifications'] = False
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
@@ -354,7 +355,7 @@ class VTG(core.components.Component):
                             if verdict == 'unknown-incomplete':
                                 self.conf['abstract task desc']['attrs'][1]['rule specification'] = rule
                     else:
-                        self.logger.info('Using MPV-Sep')
+                        self.logger.info('GLOBAL: Launch MPV-Sep')
                         self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['unite rule specifications'] = True
@@ -376,19 +377,23 @@ class VTG(core.components.Component):
                         p.join()
                     except core.components.ComponentError:
                         pass
+                    self.logger.info('GLOBAL: Step 2 has been completed')
                 else:
-                    self.logger.info('Step 2 is not required')
+                    self.logger.info('GLOBAL: Step 2 is not required')
 
                 if not is_good_results:
-                    self.logger.info('Execute step 3')
+                    self.logger.info('GLOBAL: Execute step 3')
+                    self.logger.info('GLOBAL: Launch MPV-Relevance')
                     extra_c_files = []
                     for extra_c_file in old_extra_c_files:
                         if 'bug kinds' in extra_c_file:
+                            if 'C file' in extra_c_file:
+                                del extra_c_file['C file']
                             common_bug_kind = extra_c_file['bug kinds'][0]
                             rule = self.parse_bug_kind(common_bug_kind)
                             verdict = results[rule]
                             if verdict == 'checking':
-                                self.logger.info('Rule "{0}" will be rechecked'.format(rule))
+                                self.logger.debug('Rule "{0}" will be rechecked'.format(rule))
                                 extra_c_files.append(extra_c_file)
                         else:
                             extra_c_files.append(extra_c_file)
@@ -416,3 +421,8 @@ class VTG(core.components.Component):
                         p.join()
                     except core.components.ComponentError:
                         pass
+                    self.logger.info('GLOBAL: Step 3 has been completed')
+                else:
+                    self.logger.info('GLOBAL: Step 3 is not required')
+
+            self.logger.info('GLOBAL: All steps have been completed')
