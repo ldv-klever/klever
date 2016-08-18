@@ -121,9 +121,7 @@
               "%netdev%"
             ],
             "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
-            ]
+            "post-call": []
           },
           "register": {
             "parameters": [
@@ -302,9 +300,7 @@
               "%netdev%"
             ],
             "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
-            ]
+            "post-call": []
           },
           "register": {
             "parameters": [

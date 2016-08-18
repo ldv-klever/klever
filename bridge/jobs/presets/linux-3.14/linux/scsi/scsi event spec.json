@@ -153,6 +153,9 @@
             "parameters": [
               "%host%"
             ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"

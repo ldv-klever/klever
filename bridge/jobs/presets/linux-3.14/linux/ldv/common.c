@@ -21,3 +21,9 @@ int ldv_post_probe(int probe_ret_val)
 {
 	return ldv_filter_positive_int(probe_ret_val);
 }
+
+/* Like ldv_post_init(). */
+int ldv_filter_err_code(int ret_val)
+{
+	return ldv_filter_positive_int(ret_val);
+}

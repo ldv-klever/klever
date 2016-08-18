@@ -131,6 +131,9 @@
             "parameters": [
               "%resource%"
             ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "callback return value": "%probe_retval%",
             "post-call": [
               "%probe_retval% = ldv_post_probe(%probe_retval%);"
