@@ -19,8 +19,6 @@
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-int flip_a_coin;
-
 static int ldv_attach(struct scsi_device *sdev)
 {
 	ldv_invoke_callback();
@@ -33,27 +31,28 @@ static void ldv_detach(struct scsi_device *sdev)
 }
 
 static struct scsi_device_handler ldv_test_struct = {
-	.name =	"ldv-test",
 	.attach = ldv_attach,
 	.detach = ldv_detach,
 };
 
 static int __init test_init(void)
 {
+    int flip_a_coin;
+
 	flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
-        return scsi_register_device_handler(&ldv_test_struct);
+        if (!scsi_register_device_handler(&ldv_test_struct)) {
+            scsi_unregister_device_handler(&ldv_test_struct);
+            ldv_deregister();
+        }
     }
     return 0;
 }
 
 static void __exit test_exit(void)
 {
-	if (flip_a_coin) {
-        scsi_unregister_device_handler(&ldv_test_struct);
-        ldv_deregister();
-    }
+	/* pass */
 }
 
 module_init(test_init);

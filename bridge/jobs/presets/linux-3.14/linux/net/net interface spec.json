@@ -59,5 +59,66 @@
         }
       }
     }
+  },
+  "Linux 4.6.7": {
+    "kernel functions": {
+      "alloc_etherdev_mqs": {
+        "signature": "*%net.net_device% alloc_etherdev_mqs($, $, $)",
+        "header": "linux/etherdevice.h"
+      },
+      "alloc_netdev_mqs": {
+        "signature": "*%net.net_device% alloc_netdev_mqs($, $, $, %net.setup%, $, $)",
+        "header": "linux/netdevice.h"
+      },
+      "register_netdev": {
+        "signature": "int register_netdev(*%net.net_device%)",
+        "header": "linux/netdevice.h"
+      },
+      "unregister_netdev": {
+        "signature": "void unregister_netdev(*%net.net_device%)",
+        "header": "linux/netdevice.h"
+      },
+      "free_netdev": {
+        "signature": "void free_netdev(*%net.net_device%)",
+        "header": "linux/netdevice.h"
+      }
+    },
+    "categories": {
+      "net": {
+        "containers": {
+          "net_device": {
+            "signature": "struct net_device net_device",
+            "header": "linux/netdevice.h",
+            "fields": {
+              "netdev_ops": "*%net.net_device_ops%",
+              "ethtool_ops": "*%net.ethtool_ops%"
+            }
+          },
+          "net_device_ops": {
+            "signature": "struct net_device_ops net_device_ops",
+            "header": "linux/netdevice.h",
+            "fields": {
+              "ndo_open": "%net.ndo_open%",
+              "ndo_stop": "%net.ndo_stop%"
+            }
+          },
+          "ethtool_ops": {
+            "signature": "struct ethtool_ops ethtool_ops",
+            "header": "linux/netdevice.h"
+          }
+        },
+        "callbacks": {
+          "ndo_open": {
+            "signature": "int (*ndo_open)(*%net.net_device%)"
+          },
+          "ndo_stop": {
+            "signature": "int (*ndo_stop)(*%net.net_device%)"
+          },
+          "setup": {
+            "signature": "void (*setup)(*%net.net_device%)"
+          }
+        }
+      }
+    }
   }
 }
