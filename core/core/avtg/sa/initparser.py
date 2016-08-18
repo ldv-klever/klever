@@ -1,5 +1,3 @@
-import re
-# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
@@ -16,6 +14,8 @@ import re
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+import re
 
 WHOLE_INDENT = re.compile('^(\s*)')
 
