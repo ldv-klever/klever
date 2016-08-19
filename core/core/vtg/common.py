@@ -595,7 +595,7 @@ class CommonStrategy(core.components.Component):
             # general memory size limit if users don't specify their own sizes.
             if '-heap' not in [list(opt.keys())[0] for opt in self.conf['VTG strategy']['verifier']['options']]:
                 self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
-                    round(3 * self.conf['VTG strategy']['resource limits']['memory size'] / (4 * 1000 ** 2)))})
+                    round(13 * self.conf['VTG strategy']['resource limits']['memory size'] / (15 * 1000 ** 2)))})
 
             if 'bit precision analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'].extend([
