@@ -236,6 +236,7 @@ class VTG(core.components.Component):
             self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
             self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
             self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+            self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
             self.conf['RSG strategy'] = 'instrumentation'
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
@@ -252,13 +253,15 @@ class VTG(core.components.Component):
             path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
             self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
             log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
-            path_to_cmav_log = log_files[0]
-            self.logger.debug('Path to CMAV log file is "{0}"'.format(path_to_cmav_log))
+            if log_files:
+                path_to_cmav_log = log_files[0]
+                self.logger.debug('Path to CMAV log file is "{0}"'.format(path_to_cmav_log))
 
             results = {}
             unknown_reasons = {}
             is_completed = True
             is_good_results = False
+            is_error = False
 
             # Analyse results file.
             if os.path.isfile(path_to_cmav_results):
@@ -287,11 +290,14 @@ class VTG(core.components.Component):
                                     results[LCA] = 'unknown-incomplete'
                                     unknown_reasons[LCA] = 'LCA'
             else:
-                raise NotImplementedError('TODO: no results file')
+                # Verifier failed before even starting verification.
+                # There is nothing to be done - strategy should stop.
+                self.logger.info('GLOBAL: Stop due to global error: no results file')
+                is_error = True
 
             # Analyse log file.
             if not is_completed:
-                if os.path.isfile(path_to_cmav_log):
+                if path_to_cmav_log and os.path.isfile(path_to_cmav_log):
                     with open(path_to_cmav_log) as f_res:
                         for line in f_res:
                             result = re.search(r'Assert \[(\S+)\] has exhausted its Basic Interval Time Limit', line)
@@ -309,7 +315,9 @@ class VTG(core.components.Component):
                                     if verdict != 'unsafe':
                                         results[rule] = 'checking'
                 else:
-                    raise NotImplementedError('TODO: no log file')
+                    # It should not be reached, but we should process it anyway.
+                    self.logger.info('GLOBAL: Stop due to global error: no log file')
+                    is_error = True
 
             # Results of Step 1.
             is_completed = True
@@ -324,7 +332,7 @@ class VTG(core.components.Component):
                     self.logger.debug('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
                     number_of_separated += 1
 
-            if not is_completed:
+            if not is_completed and not is_error:
                 old_extra_c_files = self.conf['abstract task desc']['extra C files']
                 if number_of_separated >= 1:
                     self.logger.info('GLOBAL: Execute step 2')
