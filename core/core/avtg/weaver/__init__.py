@@ -144,6 +144,8 @@ class Weaver(core.avtg.plugins.Plugin):
                     extra_c_file['bug kinds'] = cc_extra_full_desc_file['bug kinds']
                 if 'automaton' in cc_extra_full_desc_file:
                     extra_c_file['automaton'] = cc_extra_full_desc_file['automaton']
+                if 'relevant' in cc_extra_full_desc_file:
+                    extra_c_file['relevant'] = cc_extra_full_desc_file['relevant']
                 self.abstract_task_desc['extra C files'].append(extra_c_file)
 
         # These sections won't be reffered any more.

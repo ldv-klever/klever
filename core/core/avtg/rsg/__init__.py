@@ -38,6 +38,22 @@ class RSG(core.avtg.plugins.Plugin):
 
     main = generate_rule_specification
 
+    def decide_relevance(self, intercepted_functions):
+        for grp in self.abstract_task_desc['grps']:
+            for cc_extra_full_desc_file in grp['cc extra full desc files']:
+                with open(os.path.join(self.conf['main working directory'],
+                                       cc_extra_full_desc_file['cc full desc file']), encoding='ascii') as fp:
+                    cc_full_desc = json.load(fp)
+                    with open(os.path.join(self.conf['main working directory'],
+                                           self.conf['shadow source tree'],
+                                           cc_full_desc['in files'][0])) as source:
+                        for line in source:
+                            for intercepted in intercepted_functions:
+                                result = re.search(intercepted, line)
+                                if result:
+                                    return True
+        return False
+
     def add_models(self, generated_models):
         self.logger.info('Add models to abstract verification task description')
 
@@ -124,7 +140,7 @@ class RSG(core.avtg.plugins.Plugin):
         os.makedirs('models')
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
-        model_functions = {}
+        relevant_rules = []
         for model_c_file in models:
             model = models[model_c_file]
 
@@ -170,7 +186,7 @@ class RSG(core.avtg.plugins.Plugin):
                     aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
 
-                model_functions_for_rule = set()
+                intercepted_functions = set()
                 with open(aspect, encoding='ascii') as fp_in:
                     for line in fp_in:
                         result = re.search(r"execution\(static inline (.+) ([\S]+)\((.+)\)\)", line)
@@ -188,8 +204,9 @@ class RSG(core.avtg.plugins.Plugin):
                         if result:
                             intercepted = result.group(1)
                         if intercepted:
-                            model_functions_for_rule.add(intercepted)
-                model_functions[model['rule specification identifier']] = model_functions_for_rule
+                            intercepted_functions.add(intercepted)
+                if self.decide_relevance(intercepted_functions):
+                    relevant_rules.append(model_c_file)
 
                 if self.conf['RSG strategy'] == 'instrumentation' or self.conf['RSG strategy'] == 'global':
                     with open(aspect, encoding='ascii') as fp_in, \
@@ -231,9 +248,6 @@ class RSG(core.avtg.plugins.Plugin):
                         (model_c_file not in automata) or self.conf['RSG strategy'] == 'global':
                     model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
-
-        for rule, funcs in model_functions.items():
-            self.logger.info('{0}: {1}'.format(rule, funcs))
 
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
@@ -350,6 +364,11 @@ class RSG(core.avtg.plugins.Plugin):
                 }
             if model_c_file in automata:
                 cc_extra_full_desc_file['automaton'] = automata[model_c_file]
+
+            if model_c_file in relevant_rules:
+                cc_extra_full_desc_file['relevant'] = True
+            else:
+                cc_extra_full_desc_file['relevant'] = False
 
             if 'bug kinds' in model:
                 cc_extra_full_desc_file['bug kinds'] = model['bug kinds']

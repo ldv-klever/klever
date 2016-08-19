@@ -88,6 +88,7 @@ class VTG(core.components.Component):
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
+        self.time_limit = self.conf['VTG strategy']['resource limits']['CPU time']
 
         subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
         if self.strategy_name == "g":
@@ -223,13 +224,18 @@ class VTG(core.components.Component):
             self.logger.info('GLOBAL: Execute step 1')
             self.logger.info('GLOBAL: Launch CMAV L1 with only 1 iteration')
 
-            asserts = 0
-            latest_assert = None
+            relevant = []
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
                 if 'bug kinds' in extra_c_file:
-                    asserts += 1
                     common_bug_kind = extra_c_file['bug kinds'][0]
                     latest_assert = self.parse_bug_kind(common_bug_kind)
+                if 'relevant' in extra_c_file and 'bug kinds' in extra_c_file:
+                    common_bug_kind = extra_c_file['bug kinds'][0]
+                    latest_assert = self.parse_bug_kind(common_bug_kind)
+                    if extra_c_file['relevant']:
+                        relevant.append(latest_assert)
+
+            # TODO: information about relevant rules can be used.
 
             self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
             self.conf['unite rule specifications'] = True
@@ -237,6 +243,7 @@ class VTG(core.components.Component):
             self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
             self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
             self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
+            self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
             self.conf['RSG strategy'] = 'instrumentation'
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
@@ -360,6 +367,7 @@ class VTG(core.components.Component):
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-spa': ''}]
+                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
                         self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
                         for rule, verdict in results.items():
                             if verdict == 'unknown-incomplete':
@@ -372,6 +380,7 @@ class VTG(core.components.Component):
                         self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
@@ -416,6 +425,7 @@ class VTG(core.components.Component):
                     self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
                     self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                     self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+                    self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
