@@ -32,7 +32,8 @@ CPAchecker_preset_params = ['-config',
                             '-verbose',
                             '-printUsedOptions',
                             '-help',
-                            '-stats'
+                            '-stats',
+                            '-heap'
                             ]
 
 # This is an abstract class for VTG strategy.
