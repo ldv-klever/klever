@@ -313,7 +313,7 @@
             "linux:usb:dev::less initial decrement",
             "linux:usb:dev::more initial at exit",
             "linux:usb:dev::probe failed"
-          ]
+          ]}
         }
       }
     },
