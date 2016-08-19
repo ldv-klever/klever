@@ -300,11 +300,11 @@ class VTG(core.components.Component):
                 if path_to_cmav_log and os.path.isfile(path_to_cmav_log):
                     with open(path_to_cmav_log) as f_res:
                         for line in f_res:
-                            result = re.search(r'Assert \[(\S+)\] has exhausted its Basic Interval Time Limit', line)
+                            result = re.search(r'Assert \[(.+)\] has exhausted its Basic Interval Time Limit', line)
                             if result:
                                 rule = result.group(1)
                                 unknown_reasons[rule] = 'BITL'
-                            result = re.search(r'Assert \[(\S+)\] has exhausted its Assert Time Limit', line)
+                            result = re.search(r'Assert \[(.+)\] has exhausted its Assert Time Limit', line)
                             if result:
                                 rule = result.group(1)
                                 unknown_reasons[rule] = 'ATL'
@@ -327,9 +327,11 @@ class VTG(core.components.Component):
                     is_completed = False
                 self.logger.debug('Rule "{0}" got verdict "{1}"'.format(rule, verdict))
                 if verdict == 'unknown':
-                    self.logger.debug('Rule "{0}" got unknown verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                    if rule in unknown_reasons:
+                        self.logger.debug('Rule "{0}" got unknown verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
                 if verdict == 'unknown-incomplete':
-                    self.logger.debug('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
+                    if rule in unknown_reasons:
+                        self.logger.debug('Rule "{0}" got unknown-incomplete verdict due to "{1}"'.format(rule, unknown_reasons[rule]))
                     number_of_separated += 1
 
             if not is_completed and not is_error:
