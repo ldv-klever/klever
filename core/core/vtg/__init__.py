@@ -40,6 +40,7 @@ def after_generate_all_abstract_verification_task_descs(context):
 class VTG(core.components.Component):
 
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
+    xi = 5  # TODO:should be placed outside
 
     def generate_verification_tasks(self):
         self.strategy_name = None
@@ -88,7 +89,6 @@ class VTG(core.components.Component):
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')
-        self.time_limit = self.conf['VTG strategy']['resource limits']['CPU time']
 
         subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
         if self.strategy_name == "g":
@@ -226,105 +226,117 @@ class VTG(core.components.Component):
 
             relevant = []
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                if 'bug kinds' in extra_c_file:
-                    common_bug_kind = extra_c_file['bug kinds'][0]
-                    latest_assert = self.parse_bug_kind(common_bug_kind)
                 if 'relevant' in extra_c_file and 'bug kinds' in extra_c_file:
                     common_bug_kind = extra_c_file['bug kinds'][0]
                     latest_assert = self.parse_bug_kind(common_bug_kind)
                     if extra_c_file['relevant']:
                         relevant.append(latest_assert)
 
-            # TODO: information about relevant rules can be used.
-
-            self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
-            self.conf['unite rule specifications'] = True
-            self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
-            self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
-            self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
-            self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
-            self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
-            self.conf['RSG strategy'] = 'instrumentation'
-            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
-                              '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
-                              work_dir, abstract_task_desc['attrs'], True, True)
-            try:
-                p.start()
-                p.join()
-            # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
-            # tasks. Do not print information on failure since it will be printed automatically by core.components.
-            except core.components.ComponentError:
-                pass
-
-            self.logger.info('GLOBAL: Step 1 has been completed')
-            path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
-            self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
-            log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
-            if log_files:
-                path_to_cmav_log = log_files[0]
-                self.logger.debug('Path to CMAV log file is "{0}"'.format(path_to_cmav_log))
+            self.logger.info('GLOBAL: Got {0} most likely relevant rules'.format(len(relevant)))
 
             results = {}
             unknown_reasons = {}
             is_completed = True
             is_good_results = False
             is_error = False
-
-            # Analyse results file.
-            if os.path.isfile(path_to_cmav_results):
-                with open(path_to_cmav_results) as f_res:
-                    for line in f_res:
-                        result = re.search(self.verifier_results_regexp, line)
-                        if result:
-                            bug_kind = result.group(1)
-                            verdict = result.group(3).lower()
-                            if verdict == 'safe':
-                                is_good_results = True
-                            if verdict == 'safe' or verdict == 'unsafe':
-                                results[bug_kind] = verdict
-                            elif verdict == 'unknown':
-                                is_completed = False
-                                results[bug_kind] = 'unknown-incomplete'
-                            else:
-                                is_completed = False
-                                results[bug_kind] = 'checking'
+            is_skip_1_step = False
+            if len(relevant) >= self.xi:
+                # The task is too complex, so skip step 1.
+                is_skip_1_step = True
+                is_completed = False
+                is_good_results = False
+                self.logger.info('GLOBAL: Skipping step 1 due to too complex task')
+                for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                    if 'bug kinds' in extra_c_file:
+                        common_bug_kind = extra_c_file['bug kinds'][0]
+                        latest_assert = self.parse_bug_kind(common_bug_kind)
+                        if latest_assert in relevant:
+                            results[latest_assert] = 'unknown-incomplete'
                         else:
-                            result = re.search(r'\[(.+)\]', line)
-                            if result:
-                                # LCA here.
-                                LCA = result.group(1)
-                                if results[LCA] == 'checking':
-                                    results[LCA] = 'unknown-incomplete'
-                                    unknown_reasons[LCA] = 'LCA'
-            else:
-                # Verifier failed before even starting verification.
-                # There is nothing to be done - strategy should stop.
-                self.logger.info('GLOBAL: Stop due to global error: no results file')
-                is_error = True
+                            results[latest_assert] = 'checking'
 
-            # Analyse log file.
-            if not is_completed:
-                if path_to_cmav_log and os.path.isfile(path_to_cmav_log):
-                    with open(path_to_cmav_log) as f_res:
+            if not is_skip_1_step:
+                self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
+                self.conf['unite rule specifications'] = True
+                self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
+                self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
+                self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
+                self.conf['RSG strategy'] = 'instrumentation'
+                p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                  '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
+                                  work_dir, abstract_task_desc['attrs'], True, True)
+                try:
+                    p.start()
+                    p.join()
+                # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
+                # tasks. Do not print information on failure since it will be printed automatically by core.components.
+                except core.components.ComponentError:
+                    pass
+
+                self.logger.info('GLOBAL: Step 1 has been completed')
+                path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
+                self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
+                log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
+                if log_files:
+                    path_to_cmav_log = log_files[0]
+                    self.logger.debug('Path to CMAV log file is "{0}"'.format(path_to_cmav_log))
+
+                # Analyse results file.
+                if os.path.isfile(path_to_cmav_results):
+                    with open(path_to_cmav_results) as f_res:
                         for line in f_res:
-                            result = re.search(r'Assert \[(.+)\] has exhausted its Basic Interval Time Limit', line)
+                            result = re.search(self.verifier_results_regexp, line)
                             if result:
-                                rule = result.group(1)
-                                unknown_reasons[rule] = 'BITL'
-                            result = re.search(r'Assert \[(.+)\] has exhausted its Assert Time Limit', line)
-                            if result:
-                                rule = result.group(1)
-                                unknown_reasons[rule] = 'ATL'
-                                results[rule] = 'unknown'
-                            result = re.search(r'Error: First Interval Time Limit has been exhausted', line)
-                            if result:
-                                for rule, verdict in results.items():
-                                    if verdict != 'unsafe':
-                                        results[rule] = 'checking'
+                                bug_kind = result.group(1)
+                                verdict = result.group(3).lower()
+                                if verdict == 'safe':
+                                    is_good_results = True
+                                if verdict == 'safe' or verdict == 'unsafe':
+                                    results[bug_kind] = verdict
+                                elif verdict == 'unknown':
+                                    is_completed = False
+                                    results[bug_kind] = 'unknown-incomplete'
+                                else:
+                                    is_completed = False
+                                    results[bug_kind] = 'checking'
+                            else:
+                                result = re.search(r'\[(.+)\]', line)
+                                if result:
+                                    # LCA here.
+                                    LCA = result.group(1)
+                                    if results[LCA] == 'checking':
+                                        results[LCA] = 'unknown-incomplete'
+                                        unknown_reasons[LCA] = 'LCA'
                 else:
-                    # It should not be reached, but we should process it anyway.
-                    self.logger.info('GLOBAL: Stop due to global error: no log file')
+                    # Verifier failed before even starting verification.
+                    # There is nothing to be done - strategy should stop.
+                    self.logger.info('GLOBAL: Stop due to global error: no results file')
                     is_error = True
+
+                # Analyse log file.
+                if not is_completed:
+                    if path_to_cmav_log and os.path.isfile(path_to_cmav_log):
+                        with open(path_to_cmav_log) as f_res:
+                            for line in f_res:
+                                result = re.search(r'Assert \[(.+)\] has exhausted its Basic Interval Time Limit', line)
+                                if result:
+                                    rule = result.group(1)
+                                    unknown_reasons[rule] = 'BITL'
+                                result = re.search(r'Assert \[(.+)\] has exhausted its Assert Time Limit', line)
+                                if result:
+                                    rule = result.group(1)
+                                    unknown_reasons[rule] = 'ATL'
+                                    results[rule] = 'unknown'
+                                result = re.search(r'Error: First Interval Time Limit has been exhausted', line)
+                                if result:
+                                    for rule, verdict in results.items():
+                                        if verdict != 'unsafe':
+                                            results[rule] = 'checking'
+                    else:
+                        # It should not be reached, but we should process it anyway.
+                        self.logger.info('GLOBAL: Stop due to global error: no log file')
+                        is_error = True
 
             # Results of Step 1.
             is_completed = True
@@ -367,7 +379,6 @@ class VTG(core.components.Component):
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-spa': ''}]
-                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
                         self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
                         for rule, verdict in results.items():
                             if verdict == 'unknown-incomplete':
@@ -380,7 +391,6 @@ class VTG(core.components.Component):
                         self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
-                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
@@ -425,7 +435,6 @@ class VTG(core.components.Component):
                     self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
                     self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                     self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
-                    self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
