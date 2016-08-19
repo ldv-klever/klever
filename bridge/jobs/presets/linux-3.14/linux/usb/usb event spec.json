@@ -82,7 +82,14 @@
             ]
           },
           "resource": {
-            "resource": true
+            "interface": [
+              "usb.usb_interface"
+            ]
+          },
+          "usb_device": {
+            "interface": [
+              "usb.usb_device"
+            ]
           },
           "reset_flag": {
             "signature": "bool a",
@@ -112,12 +119,15 @@
           },
           "alloc": {
             "statements": [
-              "%resource% = $ALLOC(%resource%);"
+              "%resource% = $ALLOC(%resource%);",
+              "%usb_device% = $ALLOC(%usb_device%);",
+              "%resource%->dev.parent = & %usb_device%->dev;"
             ]
           },
           "free": {
             "statements": [
-              "$FREE(%resource%);"
+              "$FREE(%resource%);",
+              "$FREE(%usb_device%);"
             ]
           },
           "callback": {
