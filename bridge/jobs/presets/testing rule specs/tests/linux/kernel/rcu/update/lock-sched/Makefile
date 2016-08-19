@@ -1,0 +1,1 @@
+obj-m += safe.o rcu-sched-more-unlocks.o rcu-sched-lock-at-read.o rcu-sched-lock-at-exit.o

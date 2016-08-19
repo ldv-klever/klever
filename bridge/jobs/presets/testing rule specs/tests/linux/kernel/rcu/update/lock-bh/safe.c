@@ -15,36 +15,17 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/fs.h>
-#include <linux/usb/gadget.h>
+#include <linux/rcupdate.h>
 
-static int __init init(void)
+int __init my_init(void)
 {
-	struct class *cur_class;
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
+	rcu_read_lock_bh();
+	rcu_read_unlock_bh();
 
-	if (!usb_gadget_probe_driver(cur_driver)) {
-		usb_gadget_unregister_driver(cur_driver);
-	}
-
-	// All at once.
-	if (class_register(cur_class) == 0) {
-		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
-			if (!usb_gadget_probe_driver(cur_driver)) {
-				usb_gadget_unregister_driver(cur_driver);
-			}
-			unregister_chrdev_region(dev, count);
-		}
-		class_destroy(cur_class);
-	}
+	rcu_barrier_bh();
 
 	return 0;
 }
 
-module_init(init);
+module_init(my_init);

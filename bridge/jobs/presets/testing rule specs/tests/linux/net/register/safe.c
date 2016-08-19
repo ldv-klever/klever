@@ -17,34 +17,31 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/device.h>
-#include <linux/fs.h>
-#include <linux/usb/gadget.h>
+#include <linux/usb.h>
+#include <linux/netdevice.h>
 
-static int __init init(void)
+
+static int ldv_usb_probe(struct usb_interface *interface,
+                         const struct usb_device_id *id)
 {
-	struct class *cur_class;
-	dev_t *dev;
-	const struct file_operations *fops;
-	unsigned int baseminor, count;
-	struct usb_gadget_driver *cur_driver;
+	int err;
+	struct net_device *ldv_net_device;
 
-	if (!usb_gadget_probe_driver(cur_driver)) {
-		usb_gadget_unregister_driver(cur_driver);
-	}
-
-	// All at once.
-	if (class_register(cur_class) == 0) {
-		if (!alloc_chrdev_region(dev, baseminor, count, "test__")) {
-			if (!usb_gadget_probe_driver(cur_driver)) {
-				usb_gadget_unregister_driver(cur_driver);
-			}
-			unregister_chrdev_region(dev, count);
-		}
-		class_destroy(cur_class);
+	err = register_netdev(ldv_net_device);
+	if (err < 0) {
+		return err;
 	}
 
 	return 0;
+}
+
+static struct usb_driver ldv_usb_driver = {
+	.probe = ldv_usb_probe
+};
+
+static int __init init(void)
+{
+	return usb_register(&ldv_usb_driver);
 }
 
 module_init(init);

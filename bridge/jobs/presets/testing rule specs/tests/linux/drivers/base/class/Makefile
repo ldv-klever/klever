@@ -1,0 +1,1 @@
+obj-m += created-at-exit.o safe.o class-registered-at-exit.o unregister-class.o

@@ -1,0 +1,56 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <verifier/common.h>
+
+enum
+{
+	LDV_NOT_DECLARED,
+	LDV_DECLARED,
+	LDV_COMPLETED,
+};
+
+// for arg_sign in completion_arg_signs
+
+static int ldv_completion{{ arg_sign.id }} = LDV_NOT_DECLARED;
+
+/* MODEL_FUNC_DEF Initialize completion */
+void ldv_init_completion{{ arg_sign.id }}(void)
+{
+	/* CHANGE_STATE init {{ arg_sign.text }}. */
+	ldv_completion{{ arg_sign.id }} = LDV_DECLARED;
+}
+
+/* MODEL_FUNC_DEF Check if completion was not initialized and initialize completion */
+void ldv_init_completion_macro{{ arg_sign.id }}(void)
+{
+	/* ASSERT Check if {{ arg_sign.text }} is declared.*/
+	ldv_assert("linux:kernel:sched:comletion::double init", ldv_completion{{ arg_sign.id }} != LDV_NOT_DECLARED);
+	/* CHANGE_STATE init {{ arg_sign.text }}. */
+	ldv_completion{{ arg_sign.id }} = LDV_DECLARED;
+}
+
+/* MODEL_FUNC_DEF Check if completion was initialized and wait for it */
+void ldv_wait_for_completion{{ arg_sign.id }}(void)
+{
+	/* ASSERT Check if there was declaration for {{ arg_sign.text }}.*/
+	ldv_assert("linux:kernel:sched:comletion::wait without init", ldv_completion{{ arg_sign.id }} != LDV_NOT_DECLARED);
+	/* CHANGE_STATE Set {{ arg_sign.text }} as completed. */
+	ldv_completion{{ arg_sign.id }} = LDV_COMPLETED;
+}
+
+// endfor
