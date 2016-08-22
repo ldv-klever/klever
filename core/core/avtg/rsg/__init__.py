@@ -44,14 +44,18 @@ class RSG(core.avtg.plugins.Plugin):
                 with open(os.path.join(self.conf['main working directory'],
                                        cc_extra_full_desc_file['cc full desc file']), encoding='ascii') as fp:
                     cc_full_desc = json.load(fp)
-                    with open(os.path.join(self.conf['main working directory'],
-                                           self.conf['shadow source tree'],
-                                           cc_full_desc['in files'][0])) as source:
-                        for line in source:
-                            for intercepted in intercepted_functions:
-                                result = re.search(intercepted, line)
-                                if result:
-                                    return True
+                    try:
+                        with open(os.path.join(self.conf['main working directory'],
+                                               self.conf['shadow source tree'],
+                                               cc_full_desc['in files'][0]),
+                                  encoding='ascii') as source:
+                            for line in source:
+                                for intercepted in intercepted_functions:
+                                    result = re.search(intercepted, line)
+                                    if result:
+                                        return True
+                    except:
+                        pass
         return False
 
     def add_models(self, generated_models):
@@ -152,7 +156,7 @@ class RSG(core.avtg.plugins.Plugin):
 
             if 'rule specification identifier' in model:
                 rule_spec_prefix = 'ldv_' + re.sub(r'\W', '_', model['rule specification identifier']) + '_'
-                self.logger.info(
+                self.logger.debug(
                     'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
                     .format(rule_spec_prefix, model_c_file))
 
@@ -189,15 +193,15 @@ class RSG(core.avtg.plugins.Plugin):
                 intercepted_functions = set()
                 with open(aspect, encoding='ascii') as fp_in:
                     for line in fp_in:
-                        result = re.search(r"execution\(static inline (.+) ([\S]+)\((.+)\)\)", line)
+                        result = re.search(r"execution(\s*)\((.+)(\s+)([\S]+)\((.+)\)\)", line)
                         intercepted = None
                         if result:
-                            intercepted = result.group(2)
+                            intercepted = result.group(4)
                             if intercepted.startswith('*'):
                                 intercepted = intercepted[1:]
-                        result = re.search(r"call\((.+) ([\S]+)\((.+)\)\)", line)
+                        result = re.search(r"call(\s*)\((.+)(\s+)([\S]+)\((.+)\)\)", line)
                         if result:
-                            intercepted = result.group(2)
+                            intercepted = result.group(4)
                             if intercepted.startswith('*'):
                                 intercepted = intercepted[1:]
                         result = re.search(r"define\(([\S]+)\((.+)\)\)", line)
