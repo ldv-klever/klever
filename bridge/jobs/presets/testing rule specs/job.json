@@ -250,18 +250,6 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/linux/kernel/rcu/srcu",
-        "modules": [
-          "safe.ko",
-          "srcu-more-unlocks.ko",
-          "srcu-lock-at-read.ko",
-          "srcu-lock-at-exit.ko"
-        ]
-      },
-      "rule specifications": ["linux:kernel:rcu:srcu"]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/linux/kernel/rcu/update/lock",
         "modules": [
           "safe.ko",
@@ -295,6 +283,18 @@
         ]
       },
       "rule specifications": ["linux:kernel:rcu:update:lock sched"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/linux/kernel/rcu/srcu",
+        "modules": [
+          "safe.ko",
+          "srcu-more-unlocks.ko",
+          "srcu-lock-at-read.ko",
+          "srcu-lock-at-exit.ko"
+        ]
+      },
+      "rule specifications": ["linux:kernel:rcu:srcu"]
     },
     {
       "Linux kernel": {
