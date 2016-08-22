@@ -170,10 +170,10 @@ class MAV(CommonStrategy):
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})
-        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
-                self.conf['VTG strategy']['verifier']['options']:
-            self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'counterexample.export.filters=NullCounterexampleFilter'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'counterexample.export.exportImmediately=true'})
 
         # Option for MEA.
         if self.mea:
