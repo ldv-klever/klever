@@ -17,6 +17,7 @@
 
 #include <linux/device.h>
 #include <verifier/memory.h>
+#include <verifier/nondet.h>
 
 struct device_private {
 	void *driver_data;
@@ -31,11 +32,12 @@ void *ldv_dev_get_drvdata(const struct device *dev)
 
 int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
-	if (!dev->p) {
-		dev->p = ldv_zalloc(sizeof(*dev->p));
-		if (!dev->p)
-			return -12;
+	int err = ldv_undef_int_nonpositive();
+
+	if (!err) {
+		dev->p = ldv_xzalloc(sizeof(*dev->p));
+		dev->p->driver_data = data;
 	}
-	dev->p->driver_data = data;
-	return 0;
+
+	return err;
 }
