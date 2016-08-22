@@ -558,7 +558,7 @@ class CommonStrategy(core.components.Component):
 
             # To allow to output multiple error traces if other options (configuration) will need this.
             self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+                {'-setprop': 'counterexample.export.graphml=witness.%d.graphml'})
 
             # Do not compress witnesses as, say, CPAchecker r20376 we still used did.
             self.conf['VTG strategy']['verifier']['options'].append(
