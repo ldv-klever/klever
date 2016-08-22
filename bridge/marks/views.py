@@ -651,6 +651,8 @@ def download_tags(request, tags_type):
 def upload_tags(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to create tags") + ''})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': 'Unknown error'})
     fp = None
