@@ -30,9 +30,12 @@ extern void *ldv_malloc(size_t size);
 extern void *ldv_calloc(size_t nmemb, size_t size);
 extern void *ldv_zalloc(size_t size);
 extern void ldv_free(void *s);
+
 void *ldv_xmalloc(size_t size);
+void *ldv_xzalloc(size_t size);
 
 extern void *external_allocated_data(void);
+
 extern void *ldv_malloc_unknown_size(void);
 extern void *ldv_calloc_unknown_size(void);
 extern void *ldv_zalloc_unknown_size(void);

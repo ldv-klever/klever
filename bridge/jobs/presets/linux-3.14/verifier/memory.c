@@ -70,6 +70,14 @@ void *ldv_xmalloc(size_t size)
     return res;
 }
 
+void *ldv_xzalloc(size_t size)
+{
+	void *res = calloc(1, size);
+	ldv_assume(res != NULL);
+	ldv_assume(!ldv_is_err(res));
+	return res;
+}
+
 void *ldv_malloc_unknown_size(void)
 {
 	if (ldv_undef_int()) {
