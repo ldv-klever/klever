@@ -417,6 +417,19 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/linux/usb/gadget",
+        "modules": [
+          "chrdev-with-usb-gadget.ko",
+          "class-with-usb-gadget.ko",
+          "usb-gadget-at-exit.ko",
+          "unregister-usb-gadget.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["linux:usb:gadget"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/usb/register",
         "modules": [
           "register.ko",
