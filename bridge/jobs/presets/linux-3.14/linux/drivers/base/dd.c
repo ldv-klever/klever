@@ -30,14 +30,15 @@ void *ldv_dev_get_drvdata(const struct device *dev)
 	return 0;
 }
 
+/* Do not return any error codes since callers usually don't check them. This
+ * is the case for, say, Linux 3.14 while in, say, Linux 4.7 there is no need
+ * in this model at all (and it will not be invoked - see aspect) since
+ * dev_set_drvdata() is static inline function that always returns
+ * successfully.
+ */
 int ldv_dev_set_drvdata(struct device *dev, void *data)
 {
-	int err = ldv_undef_int_nonpositive();
-
-	if (!err) {
-		dev->p = ldv_xzalloc(sizeof(*dev->p));
-		dev->p->driver_data = data;
-	}
-
-	return err;
+	dev->p = ldv_xzalloc(sizeof(*dev->p));
+	dev->p->driver_data = data;
+	return 0;
 }
