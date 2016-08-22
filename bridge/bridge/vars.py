@@ -40,7 +40,8 @@ ERRORS = {
     509: _("The tag was not found"),
     604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark")
+    602: _("You don't have an access to delete this mark"),
+    704: _("The attribute was not found")
 }
 
 LANGUAGES = (
@@ -60,6 +61,11 @@ JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
+
+ATTR_STATISTIC = {
+    '0': ['Rule specification'],
+    '3': ['Rule specification']
+}
 
 COMPARE_VERDICT = (
     ('0', _('Total safe')),

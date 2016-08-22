@@ -93,7 +93,7 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None, tag=None, problem=None, mark=None):
+                 component_id=None, verdict=None, tag=None, problem=None, mark=None, attr=None):
         self.component_id = component_id
         self.report = report
         self.user = user
@@ -102,6 +102,7 @@ class ReportTable(object):
         self.tag = tag
         self.problem = problem
         self.mark = mark
+        self.attr = attr
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -255,6 +256,9 @@ class ReportTable(object):
         elif self.mark is not None:
             leaf_filter = {list_types[self.type] + '__markreport_set__mark': self.mark}
             leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
+        elif self.attr is not None:
+            leaf_filter = {list_types[self.type] + '__attrs__attr': self.attr}
+            leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
         else:
             leaves_set = self.report.leaves.filter(~Q(**{list_types[self.type]: None}))
 
@@ -377,6 +381,9 @@ class ReportTable(object):
                 .filter(~Q(unknown=None) & Q(**filters))
         elif isinstance(self.mark, MarkUnknown):
             leaf_set = self.report.leaves.filter(unknown__markreport_set__mark=self.mark).distinct()\
+                .filter(~Q(unknown=None) & Q(**filters))
+        elif self.attr is not None:
+            leaf_set = self.report.leaves.filter(unknown__attrs__attr=self.attr).distinct()\
                 .filter(~Q(unknown=None) & Q(**filters))
         else:
             if self.problem == 0:

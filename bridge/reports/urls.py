@@ -30,6 +30,8 @@ urlpatterns = [
         views.report_list_by_verdict, name='list_verdict'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/mark/(?P<mark_id>[0-9]+)/$',
         views.report_list_by_mark, name='list_mark'),
+    url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/attr/(?P<attr_id>[0-9]+)/$',
+        views.report_list_by_attr, name='list_attr'),
     url(r'^(?P<leaf_type>unsafe|safe|unknown)/(?P<report_id>[0-9]+)/$', views.report_leaf, name='leaf'),
     url(r'^unsafe/(?P<report_id>[0-9]+)/etv/$', views.report_etv_full, name='etv'),
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/$',
