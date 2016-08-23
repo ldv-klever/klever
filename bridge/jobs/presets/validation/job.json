@@ -307,7 +307,7 @@
       "rule specifications": ["linux:drivers:clk1"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "[Rule specifications] spi_alloc_master() (<a href='https://forge.ispras.ru/issues/7481'>feature #7481</a>)"
+        "comment": "???"
       }]
     },
     {
