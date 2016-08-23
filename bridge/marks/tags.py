@@ -24,9 +24,8 @@ from bridge.utils import logger
 from marks.models import SafeTag, UnsafeTag
 
 
-# TODO: who can edit or create tags?
 def can_edit_tags(user):
-    if user.extended.role == USER_ROLES[2][0]:
+    if user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
         return True
     return False
 
@@ -399,7 +398,7 @@ class CreateTagsFromFile(object):
                 self.error = _("The tag name length must be 1-32 (%(name)s)") % {'name': tag_name}
                 return
             if tag_name in newtags:
-                self.error = _("Thename must be unique (%(name)s)") % {'name': tag_name}
+                self.error = _("The name must be unique (%(name)s)") % {'name': tag_name}
                 return
 
             parent = data.get('parent', None)
