@@ -25,33 +25,33 @@ struct net_device dev;
 
 static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 static struct ethtool_ops ops = {
-    .set_settings = set_settings
+	.set_settings = set_settings
 };
 
 static int __init ldv_init(void)
 {
-    int flip_a_coin;
+	int flip_a_coin;
 
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        netdev_set_default_ethtool_ops(&dev, &ops);
-        ldv_register();
-        if (!register_netdev(&dev)) {
-            unregister_netdev(&dev);
-            ldv_deregister();
-        }
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		netdev_set_default_ethtool_ops(&dev, &ops);
+		ldv_register();
+		if (!register_netdev(&dev)) {
+			unregister_netdev(&dev);
+			ldv_deregister();
+		}
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    /* pass */
+	/* pass */
 }
 
 module_init(ldv_init);
