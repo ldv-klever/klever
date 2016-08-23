@@ -55,6 +55,10 @@ void ldv_linux_drivers_base_class_destroy_class(struct class *cls);
 void ldv_linux_drivers_base_class_check_final_state(void);
 @endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
 
+@ifdef LDV_LINUX_DRIVERS_BASE_DMA_MAPPING
+void ldv_linux_drivers_base_dma_mapping_check_final_state(void);
+@endif /* LDV_LINUX_DRIVERS_BASE_DMA_MAPPING */
+
 @ifdef LDV_LINUX_FS_CHAR_DEV
 int ldv_linux_fs_char_dev_register_chrdev(int major);
 int ldv_linux_fs_char_dev_register_chrdev_region(void);
@@ -385,6 +389,10 @@ around: call(void ldv_check_final_state(void))
 @ifdef LDV_LINUX_DRIVERS_BASE_CLASS
 	ldv_linux_drivers_base_class_check_final_state();
 @endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
+
+@ifdef LDV_LINUX_DRIVERS_BASE_DMA_MAPPING
+	ldv_linux_drivers_base_dma_mapping_check_final_state();
+@endif /* LDV_LINUX_DRIVERS_BASE_DMA_MAPPING */
 
 @ifdef LDV_LINUX_FS_CHAR_DEV
 	ldv_linux_fs_char_dev_check_final_state();
