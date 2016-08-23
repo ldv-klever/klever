@@ -435,8 +435,8 @@
       }},
       "RSG": {"models": {"$linux/kernel/sched/completion.c": {
           "bug kinds": [
-            "linux:kernel:sched:comletion::double init",
-            "linux:kernel:sched:comletion::wait without init"
+            "linux:kernel:sched:completion::double init",
+            "linux:kernel:sched:completion::wait without init"
           ]
       }}}
     },
