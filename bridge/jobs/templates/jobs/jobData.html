@@ -34,7 +34,7 @@
                     </div>
                 {% endif %}
                 {% if reportdata.view_data.unsafes_attr_stat|length %}
-                    <h5 class="header">{% trans 'Attributes statistic' %}</h5>
+                    <h5 class="header">{% trans 'Statistics' %}</h5>
                     <div class="ui small list">
                         {% for uas in reportdata.view_data.unsafes_attr_stat %}
                             <div class="item">
@@ -88,7 +88,7 @@
                     </div>
                 {% endif %}
                 {% if reportdata.view_data.safes_attr_stat|length %}
-                    <h5 class="header">{% trans 'Attributes statistic' %}</h5>
+                    <h5 class="header">{% trans 'Statistics' %}</h5>
                     <div class="ui small list">
                         {% for sas in reportdata.view_data.safes_attr_stat %}
                             <div class="item">
@@ -159,7 +159,7 @@
                 {% endfor %}
             </div>
             {% if reportdata.view_data.unknowns_attr_stat|length %}
-                <h5 class="header">{% trans 'Attributes statistic' %}</h5>
+                <h5 class="header">{% trans 'Statistics' %}</h5>
                 <div class="ui small list">
                     {% for uas in reportdata.view_data.unknowns_attr_stat %}
                         <div class="item">
