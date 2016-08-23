@@ -20,22 +20,6 @@ before: file("$this")
 #include <linux/types.h>
 #include <verifier/common.h>
 
-@ifdef LDV_LINUX_MUTEX
-void ldv_linux_mutex_initialize(void);
-void ldv_linux_mutex_check_final_state(void);
-@endif /* LDV_LINUX_MUTEX */
-
-@ifdef LDV_LINUX_SPINLOCK
-void ldv_linux_spinlock_initialize(void);
-void ldv_linux_spinlock_check_final_state(void);
-@endif /*LDV_LINUX_USB_DEV */
-
-@ifdef LDV_LINUX_USB_DEV
-void ldv_linux_usb_dev_initialize(void);
-void ldv_linux_usb_dev_check_return_value_probe(int retval);
-void ldv_linux_usb_dev_check_final_state(void);
-@endif /* LDV_LINUX_USB_DEV */
-
 @ifdef LDV_LINUX_MODULE
 void ldv_linux_module_check_final_state(void);
 @endif /* LDV_LINUX_MODULE */
