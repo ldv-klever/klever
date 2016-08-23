@@ -22,9 +22,9 @@
 static int __init init(void)
 {
 	struct sock *sk1;
-        struct sock *sk2;
+	struct sock *sk2;
 
-        lock_sock(sk1);
+	lock_sock(sk1);
 	lock_sock_nested(sk2,1);
 	release_sock(sk1);
 	release_sock(sk2);
