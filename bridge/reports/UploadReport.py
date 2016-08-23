@@ -377,6 +377,8 @@ class UploadReport(object):
         report.save()
 
         self.__collect_attrs(report)
+        if 'attrs' in self.data:
+            self.ordered_attrs += save_attrs(report, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
 
         parent = self.parent
@@ -421,6 +423,8 @@ class UploadReport(object):
         report.save()
 
         self.__collect_attrs(report)
+        if 'attrs' in self.data:
+            self.ordered_attrs += save_attrs(report, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
 
         report.parent = ReportComponent.objects.get(parent=None, root=self.root)
