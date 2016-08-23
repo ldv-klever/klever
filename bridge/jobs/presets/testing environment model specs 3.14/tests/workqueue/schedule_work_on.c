@@ -32,13 +32,13 @@ static int __init ldv_init(void)
 {
     int cpu = 1;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
-	    INIT_WORK(&work, ldv_handler);
+        INIT_WORK(&work, ldv_handler);
         ldv_register();
-	    schedule_work_on(cpu, &work);
-	}
-	return 0;
+        schedule_work_on(cpu, &work);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
@@ -51,4 +51,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

@@ -31,17 +31,17 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
-	    INIT_WORK(&work, ldv_handler);
-	    queue_work(queue, &work);
-	}
-	return 0;
+        INIT_WORK(&work, ldv_handler);
+        queue_work(queue, &work);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)

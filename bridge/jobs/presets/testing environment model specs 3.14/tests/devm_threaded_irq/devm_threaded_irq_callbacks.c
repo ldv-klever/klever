@@ -28,7 +28,7 @@ int flip_a_coin;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
-	int res;
+    int res;
 
     ldv_invoke_callback();
     res = ldv_undef_int();
@@ -39,13 +39,13 @@ static irqreturn_t irq_handler(int irq_id, void * data)
 
 static irqreturn_t irq_thread(int irq_id, void * data)
 {
-	ldv_release_down();
+    ldv_release_down();
     ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return devm_request_threaded_irq(dev, irq_id,irq_handler, irq_thread, NULL, "ldv interrupt", data);
@@ -63,4 +63,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

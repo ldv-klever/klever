@@ -24,7 +24,7 @@ int flip_a_coin;
 
 static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
-	int res;
+    int res;
 
     ldv_invoke_callback();
     res = ldv_undef_int();
@@ -35,20 +35,20 @@ static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 
 static void ldv_dtr(struct dm_target *ti)
 {
-	ldv_release_down();
+    ldv_release_down();
     ldv_invoke_callback();
 }
 
 static struct target_type ldv_target = {
-	.name	     = "ldv",
-	.module      = THIS_MODULE,
-	.ctr	     = ldv_ctr,
-	.dtr	     = ldv_dtr,
+    .name        = "ldv",
+    .module      = THIS_MODULE,
+    .ctr         = ldv_ctr,
+    .dtr         = ldv_dtr,
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return dm_register_target(&ldv_target);
@@ -58,7 +58,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         dm_unregister_target(&ldv_target);
         ldv_deregister();
     }

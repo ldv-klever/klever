@@ -45,25 +45,25 @@ static struct tty_operations ldv_tty_ops = {
 
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {
-	.activate = ldv_activate,
-	.shutdown = ldv_shutdown,
+    .activate = ldv_activate,
+    .shutdown = ldv_shutdown,
 };
 
 static int __init ldv_init(void)
 {
-	int res;
+    int res;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         driver = alloc_tty_driver(lines);
         if (driver) {
@@ -86,7 +86,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         tty_unregister_device(driver, index);
         tty_port_destroy(&port);
         tty_unregister_driver(driver);

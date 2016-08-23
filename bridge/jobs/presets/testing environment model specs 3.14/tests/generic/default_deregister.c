@@ -32,8 +32,8 @@ void ldv_disconnect(struct ldv_resource *arg)
 }
 
 static struct ldv_driver ops = {
-	.probe = ldv_probe,
-	.disconnect = ldv_disconnect
+    .probe = ldv_probe,
+    .disconnect = ldv_disconnect
 };
 
 static int __init ldv_init(void)
@@ -53,7 +53,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	/* pass */
+    /* pass */
 }
 
 module_init(ldv_init);

@@ -45,26 +45,26 @@ static struct tty_operations ldv_tty_ops = {
 
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
-	/* pass */
+    /* pass */
     return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
 {
-	/* pass */
+    /* pass */
 }
 
 static const struct tty_port_operations ldv_tty_port_ops = {
-	.activate = ldv_activate,
-	.shutdown = ldv_shutdown,
+    .activate = ldv_activate,
+    .shutdown = ldv_shutdown,
 };
 
 static int __init ldv_init(void)
 {
-	int res;
-	int flip_a_coin;
+    int res;
+    int flip_a_coin;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         driver = alloc_tty_driver(lines);
         if (driver) {

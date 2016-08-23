@@ -29,9 +29,9 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
-	INIT_WORK(&work, ldv_handler);
+    INIT_WORK(&work, ldv_handler);
     schedule_work(&work);
-	return 0;
+    return 0;
 }
 
 static void __exit ldv_exit(void)
@@ -41,4 +41,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

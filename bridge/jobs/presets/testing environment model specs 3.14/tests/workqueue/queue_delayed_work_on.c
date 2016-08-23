@@ -34,17 +34,17 @@ static int __init ldv_init(void)
     int cpu = 1;
     int delay = ldv_undef_int();
 
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
-	    INIT_DELAYED_WORK(&work, ldv_handler);
-	    queue_delayed_work_on(cpu, queue, &work, delay);
-	}
-	return 0;
+        INIT_DELAYED_WORK(&work, ldv_handler);
+        queue_delayed_work_on(cpu, queue, &work, delay);
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)

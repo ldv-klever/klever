@@ -31,9 +31,9 @@ static int __init ldv_init(void)
 {
     int cpu = 1;
 
-	INIT_WORK(&work, ldv_handler);
+    INIT_WORK(&work, ldv_handler);
     schedule_work_on(cpu, &work);
-	return 0;
+    return 0;
 }
 
 static void __exit ldv_exit(void)
@@ -43,4 +43,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

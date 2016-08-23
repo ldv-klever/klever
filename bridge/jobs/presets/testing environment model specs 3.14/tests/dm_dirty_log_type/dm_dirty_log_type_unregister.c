@@ -19,7 +19,7 @@
 #include <linux/dm-dirty-log.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
- 
+
 int flip_a_coin;
 
 static int ldv_ctr(struct dm_dirty_log *log, struct dm_target *ti, unsigned argc, char **argv)

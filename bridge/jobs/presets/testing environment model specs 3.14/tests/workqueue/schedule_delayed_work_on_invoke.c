@@ -32,9 +32,9 @@ static int __init ldv_init(void)
     int cpu = 1;
     int delay = ldv_undef_int();
 
-	INIT_DELAYED_WORK(&work, ldv_handler);
+    INIT_DELAYED_WORK(&work, ldv_handler);
     schedule_delayed_work_on(cpu, &work, delay);
-	return 0;
+    return 0;
 }
 
 static void __exit ldv_exit(void)

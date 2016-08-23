@@ -28,7 +28,7 @@ int flip_a_coin;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return IRQ_WAKE_THREAD;
 }
 
@@ -50,7 +50,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         devm_free_irq(dev, irq_id, data);
         ldv_deregister();
     }
@@ -58,4 +58,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

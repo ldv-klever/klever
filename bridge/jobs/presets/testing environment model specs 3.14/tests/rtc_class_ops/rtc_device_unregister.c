@@ -26,19 +26,19 @@ struct rtc_device *rtc;
 
 static int ldv_read_time(struct device *dev, struct rtc_time *tm)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static const struct rtc_class_ops ldv_ops = {
-	.read_time = ldv_read_time,
+    .read_time = ldv_read_time,
 };
 
 static int __init ldv_init(void)
 {
-	int flip_a_coin;
+    int flip_a_coin;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         rtc = rtc_device_register("rtc-ldv", &dev, &ldv_ops, THIS_MODULE);
@@ -54,7 +54,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	/* pass */
+    /* pass */
 }
 
 module_init(ldv_init);

@@ -25,15 +25,15 @@ unsigned long data;
 
 void ldv_handler(unsigned long data)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
 {
     int flip_a_coin;
 
-	setup_timer(&ldv_timer, ldv_handler, data);
-	flip_a_coin = ldv_undef_int();
+    setup_timer(&ldv_timer, ldv_handler, data);
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         if (!mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200))) {

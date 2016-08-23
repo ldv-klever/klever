@@ -31,9 +31,9 @@ static int __init ldv_init(void)
 {
     int delay = ldv_undef_int();
 
-	INIT_DELAYED_WORK(&work, ldv_handler);
+    INIT_DELAYED_WORK(&work, ldv_handler);
     schedule_delayed_work(&work, delay);
-	return 0;
+    return 0;
 }
 
 static void __exit ldv_exit(void)

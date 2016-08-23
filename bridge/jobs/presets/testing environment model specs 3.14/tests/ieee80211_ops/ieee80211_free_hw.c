@@ -24,25 +24,25 @@ struct ieee80211_hw *priv;
 
 static int ldv_start_callback(struct ieee80211_hw *hw)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static void ldv_stop_callback(struct ieee80211_hw *hw)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
 }
 
 static const struct ieee80211_ops ldv_ops = {
-	.start			= ldv_start_callback,
-	.stop			= ldv_stop_callback
+    .start            = ldv_start_callback,
+    .stop            = ldv_stop_callback
 };
 
 static int __init ldv_init(void)
 {
-	int flip_a_coin;
+    int flip_a_coin;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         priv = ieee80211_alloc_hw(sizeof(struct ieee80211_ops), &ldv_ops);
@@ -56,7 +56,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	/* pass */
+    /* pass */
 }
 
 module_init(ldv_init);

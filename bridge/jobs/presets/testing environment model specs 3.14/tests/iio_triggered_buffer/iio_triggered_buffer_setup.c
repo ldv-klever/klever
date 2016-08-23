@@ -28,12 +28,12 @@ struct iio_dev * dev;
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
     ldv_invoke_callback();
-	return IRQ_HANDLED;
+    return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return iio_triggered_buffer_setup(dev, irq_handler, NULL, NULL);
@@ -43,7 +43,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         iio_triggered_buffer_cleanup(dev);
         ldv_deregister();
     }
@@ -51,4 +51,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

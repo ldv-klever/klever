@@ -36,21 +36,21 @@ static int ldvprobe(struct platform_device *op)
 
 static int ldvremove(struct platform_device *op)
 {
-	ldv_release_completely();
+    ldv_release_completely();
     ldv_invoke_callback();
     return 0;
 }
 
 static int test_suspend(struct device *dev)
 {
-	ldv_probe_up();
+    ldv_probe_up();
     ldv_invoke_middle_callback();
     return 0;
 }
 
 static int test_resume(struct device *dev)
 {
-	ldv_release_down();
+    ldv_release_down();
     ldv_invoke_middle_callback();
     return 0;
 }
@@ -58,18 +58,18 @@ static int test_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(test_pm_ops, test_suspend, test_resume);
 
 static struct platform_driver ldv_platform_driver = {
-	.probe = ldvprobe,
-	.remove = ldvremove,
-	.driver = {
-		.name = "ldv",
-		.owner = THIS_MODULE,
-		.pm = &test_pm_ops
-	},
+    .probe = ldvprobe,
+    .remove = ldvremove,
+    .driver = {
+        .name = "ldv",
+        .owner = THIS_MODULE,
+        .pm = &test_pm_ops
+    },
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return platform_driver_register(&ldv_platform_driver);
@@ -79,7 +79,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         platform_driver_unregister(&ldv_platform_driver);
         ldv_deregister();
     }
@@ -87,4 +87,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

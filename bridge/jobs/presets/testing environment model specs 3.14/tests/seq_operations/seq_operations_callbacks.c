@@ -33,18 +33,18 @@ static void *ldv_start_callback(struct seq_file *file, loff_t *pos)
 
 static void ldv_stop_callback(struct seq_file *file, void *iter_ptr)
 {
-	ldv_release_down();
+    ldv_release_down();
     ldv_invoke_callback();
 }
 
 static const struct seq_operations ldv_ops = {
-	.start = ldv_start_callback,
-	.stop  = ldv_stop_callback,
+    .start = ldv_start_callback,
+    .stop  = ldv_stop_callback,
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return seq_open(file, &ldv_ops);
@@ -54,7 +54,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         seq_release(inode,file);
         ldv_deregister();
     }

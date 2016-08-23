@@ -24,7 +24,7 @@ int flip_a_coin;
 
 static int run(struct mddev *mddev)
 {
-	int res;
+    int res;
 
     ldv_invoke_callback();
     res = ldv_undef_int();
@@ -35,21 +35,21 @@ static int run(struct mddev *mddev)
 
 static int stop(struct mddev *mddev)
 {
-	ldv_release_down();
+    ldv_release_down();
     ldv_invoke_callback();
     return 0;
 }
 
 static struct md_personality ldv_personality =
 {
-	.name		= "ldv",
-	.run		= run,
-	.stop		= stop,
+    .name        = "ldv",
+    .run        = run,
+    .stop        = stop,
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return register_md_personality(&ldv_personality);
@@ -59,7 +59,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         unregister_md_personality(&ldv_personality);
         ldv_deregister();
     }

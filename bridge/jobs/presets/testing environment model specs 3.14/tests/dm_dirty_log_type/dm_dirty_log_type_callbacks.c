@@ -21,7 +21,7 @@
 #include <verifier/nondet.h>
 
 int flip_a_coin;
- 
+
 static int ldv_ctr(struct dm_dirty_log *log, struct dm_target *ti, unsigned argc, char **argv)
 {
     int res;

@@ -30,10 +30,10 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
-	int flip_a_coin;
+    int flip_a_coin;
 
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     ldv_register();
@@ -44,8 +44,8 @@ static int __init ldv_init(void)
     if (flip_a_coin) {
         flush_scheduled_work();
         ldv_deregister();
-	}
-	return 0;
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)
@@ -55,4 +55,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

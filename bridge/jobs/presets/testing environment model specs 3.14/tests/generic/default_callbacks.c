@@ -40,8 +40,8 @@ void ldv_disconnect(struct ldv_resource *arg)
 }
 
 static struct ldv_driver ops = {
-	.probe = & ldv_probe,
-	.disconnect = & ldv_disconnect
+    .probe = & ldv_probe,
+    .disconnect = & ldv_disconnect
 };
 
 int __init ldv_init(void)
@@ -56,7 +56,7 @@ int __init ldv_init(void)
 
 void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         ldv_driver_deregister(& ops);
         ldv_deregister();
     }

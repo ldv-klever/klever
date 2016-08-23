@@ -69,23 +69,23 @@ static int ldv_resume(struct pci_dev *dev)
 
 static void ldv_shutdown(struct pci_dev *dev)
 {
-	ldv_invoke_middle_callback();
+    ldv_invoke_middle_callback();
 }
 
 static struct pci_driver ldv_driver = {
-	.name =	"ldv-test",
-	.probe = ldv_probe,
-	.remove = ldv_remove,
-	.suspend = ldv_suspend,
-	.suspend_late = ldv_suspend_later,
-	.resume_early = ldv_resume_early,
-	.resume = ldv_resume,
-	.shutdown = ldv_shutdown
+    .name =    "ldv-test",
+    .probe = ldv_probe,
+    .remove = ldv_remove,
+    .suspend = ldv_suspend,
+    .suspend_late = ldv_suspend_later,
+    .resume_early = ldv_resume_early,
+    .resume = ldv_resume,
+    .shutdown = ldv_shutdown
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return pci_register_driver(&ldv_driver);
@@ -95,7 +95,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         pci_unregister_driver(&ldv_driver);
         ldv_deregister();
     }

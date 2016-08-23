@@ -32,8 +32,8 @@ static int __init ldv_init(void)
 {
     int flip_a_coin;
 
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     flip_a_coin = ldv_undef_int();
@@ -42,10 +42,10 @@ static int __init ldv_init(void)
     queue_work(queue, &work);
 
     if (flip_a_coin) {
-	    drain_workqueue(queue);
-	    ldv_deregister();
-	}
-	return 0;
+        drain_workqueue(queue);
+        ldv_deregister();
+    }
+    return 0;
 }
 
 static void __exit ldv_exit(void)

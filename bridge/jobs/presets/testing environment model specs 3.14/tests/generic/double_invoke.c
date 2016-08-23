@@ -39,11 +39,11 @@ void ldv_handler2(struct ldv_resource *arg)
 
 
 static struct ldv_driver ops1 = {
-	.handler = & ldv_handler1,
+    .handler = & ldv_handler1,
 };
 
 static struct ldv_driver ops2 = {
-	.handler = & ldv_handler2,
+    .handler = & ldv_handler2,
 };
 
 static int __init ldv_init(void)
@@ -53,28 +53,28 @@ static int __init ldv_init(void)
 
     res1 = ldv_driver_register(& ops1);
     res2 = ldv_driver_register(& ops2);
-	if (!res1 && !res2) {
-	    return 0;
-	}
-	if (!res1 && res2) {
-	    ldv_driver_deregister(& ops1);
-	    return res2;
-	}
-	if (res1 && !res2) {
-	    ldv_driver_deregister(& ops2);
-	    return res1;
-	}
-	if (res1 && res2) {
-	    ldv_driver_deregister(& ops1);
-	    ldv_driver_deregister(& ops2);
-	    return res1;
-	}
+    if (!res1 && !res2) {
+        return 0;
+    }
+    if (!res1 && res2) {
+        ldv_driver_deregister(& ops1);
+        return res2;
+    }
+    if (res1 && !res2) {
+        ldv_driver_deregister(& ops2);
+        return res1;
+    }
+    if (res1 && res2) {
+        ldv_driver_deregister(& ops1);
+        ldv_driver_deregister(& ops2);
+        return res1;
+    }
 }
 
 static void __exit ldv_exit(void)
 {
-	ldv_driver_deregister(& ops1);
-	ldv_driver_deregister(& ops1);
+    ldv_driver_deregister(& ops1);
+    ldv_driver_deregister(& ops1);
 }
 
 module_init(ldv_init);

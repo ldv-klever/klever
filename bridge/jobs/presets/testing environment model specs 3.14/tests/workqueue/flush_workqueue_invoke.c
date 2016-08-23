@@ -30,8 +30,8 @@ static void ldv_handler(struct work_struct *work)
 
 static int __init ldv_init(void)
 {
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     INIT_WORK(&work, ldv_handler);
@@ -48,5 +48,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-
-

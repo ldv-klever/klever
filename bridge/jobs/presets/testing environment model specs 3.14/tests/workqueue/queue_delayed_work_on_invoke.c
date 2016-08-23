@@ -33,13 +33,13 @@ static int __init ldv_init(void)
     int cpu = 1;
     int delay = ldv_undef_int();
 
-	queue = alloc_workqueue("ldv_queue", 0, 0);
-	if (!queue)
+    queue = alloc_workqueue("ldv_queue", 0, 0);
+    if (!queue)
         return -ENOMEM;
 
     INIT_DELAYED_WORK(&work, ldv_handler);
     queue_delayed_work_on(cpu, queue, &work, delay);
-	return 0;
+    return 0;
 }
 
 static void __exit ldv_exit(void)

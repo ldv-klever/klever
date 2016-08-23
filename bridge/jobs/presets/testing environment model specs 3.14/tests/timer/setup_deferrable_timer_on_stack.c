@@ -26,13 +26,13 @@ unsigned long data;
 
 void ldv_handler(unsigned long data)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
 {
-	setup_deferrable_timer_on_stack(&ldv_timer, ldv_handler, data);
-	flip_a_coin = ldv_undef_int();
+    setup_deferrable_timer_on_stack(&ldv_timer, ldv_handler, data);
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
@@ -42,7 +42,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         del_timer(&ldv_timer);
         ldv_deregister();
     }

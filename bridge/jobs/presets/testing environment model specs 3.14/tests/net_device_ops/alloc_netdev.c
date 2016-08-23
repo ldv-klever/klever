@@ -32,13 +32,13 @@ static netdev_tx_t ldv_xmit(struct sk_buff *skb, struct net_device *dev)
 
 static int ldv_open(struct net_device *dev)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static int ldv_close(struct net_device *dev)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
@@ -48,14 +48,14 @@ static void ldv_setup(struct net_device *dev)
 }
 
 static const struct net_device_ops ldv_ops = {
-	.ndo_open	= ldv_open,
-	.ndo_stop	= ldv_close,
-	.ndo_start_xmit = ldv_xmit,
+    .ndo_open    = ldv_open,
+    .ndo_stop    = ldv_close,
+    .ndo_start_xmit = ldv_xmit,
 };
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         dev = alloc_netdev(sizeof(struct net_device_ops), "ldv_dev", ldv_setup);
         if (dev) {
@@ -71,7 +71,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
+    if (flip_a_coin) {
         unregister_netdev(dev);
         ldv_deregister();
     }

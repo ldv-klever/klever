@@ -22,30 +22,30 @@
 
 static int ldvprobe(struct platform_device *op)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static int ldvremove(struct platform_device *op)
 {
-	ldv_invoke_callback();
+    ldv_invoke_callback();
     return 0;
 }
 
 static struct platform_driver ldv_platform_driver = {
-	.probe = ldvprobe,
-	.remove = ldvremove,
-	.driver = {
-		.name = "ldv",
-		.owner = THIS_MODULE,
-	},
+    .probe = ldvprobe,
+    .remove = ldvremove,
+    .driver = {
+        .name = "ldv",
+        .owner = THIS_MODULE,
+    },
 };
 
 static int __init ldv_init(void)
 {
-	int flip_a_coin;
+    int flip_a_coin;
 
-	flip_a_coin = ldv_undef_int();
+    flip_a_coin = ldv_undef_int();
     if (flip_a_coin) {
         ldv_register();
         if (!platform_driver_register(&ldv_platform_driver)) {
@@ -58,7 +58,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-	/* pass */
+    /* pass */
 }
 
 module_init(ldv_init);
