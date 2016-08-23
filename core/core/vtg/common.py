@@ -198,9 +198,9 @@ class CommonStrategy(core.components.Component):
         if decision_results['status'] == 'checking':
             # Do not print any verdict for still checking tasks
             return
-        added_attrs = []
-        if assertion:
-            added_attrs.append({"Rule specification": assertion})
+        if not assertion:
+            assertion = self.rule_specification
+        added_attrs = [{"Rule specification": assertion}]
         path_to_witness = None
         if decision_results['status'] == 'unsafe':
             verification_report_id_unsafe = "{0}/unsafe/{1}".\
