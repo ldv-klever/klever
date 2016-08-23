@@ -17,7 +17,10 @@
 
 window.collect_jobview_data = function() {
     var data_values = [], filter_values = {},
-        available_data = ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+        available_data = [
+            'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
+            'unsafes_attr_stat', 'safes_attr_stat', 'unknowns_attr_stat'
+        ],
         available_filter_checkboxes = ['unknowns_total', 'unknowns_nomark', 'resource_total'],
         available_filters = ['unknown_component', 'unknown_problem', 'resource_component', 'safe_tag', 'unsafe_tag'];
 

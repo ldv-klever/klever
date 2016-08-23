@@ -21,13 +21,13 @@
                     <input type="checkbox" id="job_filter_checkbox__unknowns"{% if 'unknowns' in reportdata.view.data %} checked{% endif %}>
                     <label for="job_filter_checkbox__unknowns">{% trans 'Unknowns' %}</label>
                 </div>
-            </div>
-            <div class="eight wide column">
+                <br>
                 <div class="ui checkbox">
                     <input type="checkbox" id="job_filter_checkbox__resources"{% if 'resources' in reportdata.view.data %} checked{% endif %}>
                     <label for="job_filter_checkbox__resources">{% trans 'Consumed resources' %}</label>
                 </div>
-                <br>
+            </div>
+            <div class="eight wide column">
                 <div class="ui checkbox">
                     <input type="checkbox" id="job_filter_checkbox__tags_safe"{% if 'tags_safe' in reportdata.view.data %} checked{% endif %}>
                     <label for="job_filter_checkbox__tags_safe">{% trans 'Tags' %}/{% trans 'Safe' %}</label>
@@ -36,6 +36,21 @@
                 <div class="ui checkbox">
                     <input type="checkbox" id="job_filter_checkbox__tags_unsafe"{% if 'tags_unsafe' in reportdata.view.data %} checked{% endif %}>
                     <label for="job_filter_checkbox__tags_unsafe">{% trans 'Tags' %}/{% trans 'Unsafe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unsafes_attr_stat"{% if 'unsafes_attr_stat' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unsafes_attr_stat">{% trans 'Attributes statistic' %}/{% trans 'Unsafe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__safes_attr_stat"{% if 'safes_attr_stat' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__safes_attr_stat">{% trans 'Attributes statistic' %}/{% trans 'Safe' %}</label>
+                </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="job_filter_checkbox__unknowns_attr_stat"{% if 'unknowns_attr_stat' in reportdata.view.data %} checked{% endif %}>
+                    <label for="job_filter_checkbox__unknowns_attr_stat">{% trans 'Attributes statistic' %}/{% trans 'Unknown' %}</label>
                 </div>
             </div>
         </div>

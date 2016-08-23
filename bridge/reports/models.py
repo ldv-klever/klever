@@ -134,6 +134,18 @@ class ReportComponentLeaf(models.Model):
         db_table = 'cache_report_component_leaf'
 
 
+class AttrStatistic(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    name = models.ForeignKey(AttrName)
+    attr = models.ForeignKey(Attr, null=True)
+    safes = models.PositiveIntegerField(default=0)
+    unsafes = models.PositiveIntegerField(default=0)
+    unknowns = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_report_attr_statistic'
+
+
 class Verdict(models.Model):
     report = models.OneToOneField(ReportComponent)
     unsafe = models.PositiveIntegerField(default=0)

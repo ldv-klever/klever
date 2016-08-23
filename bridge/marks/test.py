@@ -828,6 +828,8 @@ class TestMarks(KleverTestCase):
         )
         self.assertEqual(response.status_code, 200)
 
+        # TODO: tests for 'reports:list_attr'
+
         # Download all marks
         response = self.client.get('/marks/download-all/')
         self.assertEqual(response.status_code, 200)
