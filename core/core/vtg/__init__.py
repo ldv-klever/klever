@@ -183,7 +183,7 @@ class VTG(core.components.Component):
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
-                              work_dir, abstract_task_desc['attrs'], True, True)
+                              work_dir, [abstract_task_desc['attrs'][0]], True, True)
             try:
                 p.start()
                 p.join()
