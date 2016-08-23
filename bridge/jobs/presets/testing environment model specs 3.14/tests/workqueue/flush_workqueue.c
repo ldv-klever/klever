@@ -25,32 +25,32 @@ static struct work_struct work;
 
 static void ldv_handler(struct work_struct *work)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
 {
-    int flip_a_coin;
+	int flip_a_coin;
 
-    queue = alloc_workqueue("ldv_queue", 0, 0);
-    if (!queue)
-        return -ENOMEM;
+	queue = alloc_workqueue("ldv_queue", 0, 0);
+	if (!queue)
+		return -ENOMEM;
 
-    ldv_register();
-    INIT_WORK(&work, ldv_handler);
-    schedule_work(&work);
+	ldv_register();
+	INIT_WORK(&work, ldv_handler);
+	schedule_work(&work);
 
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        flush_workqueue(queue);
-        ldv_deregister();
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		flush_workqueue(queue);
+		ldv_deregister();
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    destroy_workqueue(queue);
+	destroy_workqueue(queue);
 }
 
 module_init(ldv_init);

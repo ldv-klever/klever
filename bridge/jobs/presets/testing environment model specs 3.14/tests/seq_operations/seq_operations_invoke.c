@@ -25,28 +25,28 @@ struct inode *inode;
 
 static void *ldv_start_callback(struct seq_file *file, loff_t *pos)
 {
-    ldv_invoke_reached();
-    return 0;
+	ldv_invoke_reached();
+	return 0;
 }
 
 static void ldv_stop_callback(struct seq_file *file, void *iter_ptr)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static const struct seq_operations ldv_ops = {
-    .start = ldv_start_callback,
-    .stop  = ldv_stop_callback,
+	.start = ldv_start_callback,
+	.stop  = ldv_stop_callback,
 };
 
 static int __init ldv_init(void)
 {
-    return seq_open(file, &ldv_ops);
+	return seq_open(file, &ldv_ops);
 }
 
 static void __exit ldv_exit(void)
 {
-    seq_release(inode,file);
+	seq_release(inode,file);
 }
 
 module_init(ldv_init);

@@ -24,38 +24,38 @@ int flip_a_coin;
 
 static int ldv_ctr(struct dm_dirty_log *log, struct dm_target *ti, unsigned argc, char **argv)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 static void ldv_dtr(struct dm_dirty_log *log)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static struct dm_dirty_log_type ldv_type = {
-    .name = "ldv",
-    .module = THIS_MODULE,
-    .ctr = ldv_ctr,
-    .dtr = ldv_dtr
+	.name = "ldv",
+	.module = THIS_MODULE,
+	.ctr = ldv_ctr,
+	.dtr = ldv_dtr
 };
 
 static int __init ldv_init(void)
 {
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return dm_dirty_log_type_register(&ldv_type);
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return dm_dirty_log_type_register(&ldv_type);
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        dm_dirty_log_type_unregister(&ldv_type);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		dm_dirty_log_type_unregister(&ldv_type);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

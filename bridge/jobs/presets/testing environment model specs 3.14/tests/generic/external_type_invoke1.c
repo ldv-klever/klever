@@ -24,12 +24,12 @@ extern void wrapper_deregister(void);
 
 int __init ldv_init(void)
 {
-    return wrapper_register();
+	return wrapper_register();
 }
 
 void __exit ldv_exit(void)
 {
-    wrapper_deregister();
+	wrapper_deregister();
 }
 
 module_init(ldv_init);

@@ -25,28 +25,28 @@ struct device *dev;
 struct Scsi_Host *host;
 
 static int ldv_reset(struct scsi_cmnd *cmd){
-    ldv_invoke_reached();
-    return 0;
+	ldv_invoke_reached();
+	return 0;
 }
 
 static struct scsi_host_template ldv_template = {
-    .eh_bus_reset_handler   = ldv_reset,
+	.eh_bus_reset_handler   = ldv_reset,
 };
 
 static int __init ldv_init(void)
 {
-    host = scsi_host_alloc(&ldv_template, sizeof(void *));
-    if (host) {
-        ldv_register();
-        return scsi_add_host(host, dev);
-    }
-    else
-        return -ENOMEM;
+	host = scsi_host_alloc(&ldv_template, sizeof(void *));
+	if (host) {
+		ldv_register();
+		return scsi_add_host(host, dev);
+	}
+	else
+		return -ENOMEM;
 }
 
 static void __exit ldv_exit(void)
 {
-    scsi_unregister(host);
+	scsi_unregister(host);
 }
 
 module_init(ldv_init);

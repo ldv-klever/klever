@@ -26,29 +26,29 @@ unsigned long data;
 
 void ldv_handler(unsigned long data)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 static int __init ldv_init(void)
 {
-    ldv_timer.function = ldv_handler;
-    ldv_timer.data = data;
-    init_timer(&ldv_timer);
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
-    }
-    return 0;
+	ldv_timer.function = ldv_handler;
+	ldv_timer.data = data;
+	init_timer(&ldv_timer);
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        del_timer(&ldv_timer);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		del_timer(&ldv_timer);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

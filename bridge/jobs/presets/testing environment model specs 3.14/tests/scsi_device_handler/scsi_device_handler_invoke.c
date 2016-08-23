@@ -22,28 +22,28 @@
 
 static int ldv_attach(struct scsi_device *sdev)
 {
-    ldv_invoke_reached();
-    return 0;
+	ldv_invoke_reached();
+	return 0;
 }
 
 static void ldv_detach(struct scsi_device *sdev)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static struct scsi_device_handler ldv_test_struct = {
-    .attach = ldv_attach,
-    .detach = ldv_detach,
+	.attach = ldv_attach,
+	.detach = ldv_detach,
 };
 
 static int __init test_init(void)
 {
-    return scsi_register_device_handler(&ldv_test_struct);
+	return scsi_register_device_handler(&ldv_test_struct);
 }
 
 static void __exit test_exit(void)
 {
-    scsi_unregister_device_handler(&ldv_test_struct);
+	scsi_unregister_device_handler(&ldv_test_struct);
 }
 
 module_init(test_init);

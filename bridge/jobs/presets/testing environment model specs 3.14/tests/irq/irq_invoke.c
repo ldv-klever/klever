@@ -26,18 +26,18 @@ void * data;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
-    ldv_invoke_reached();
-    return IRQ_HANDLED;
+	ldv_invoke_reached();
+	return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)
 {
-    return request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
+	return request_irq(irq_id, irq_handler, 0, "ldv interrupt", data);
 }
 
 static void __exit ldv_exit(void)
 {
-    free_irq(irq_id, data);
+	free_irq(irq_id, data);
 }
 
 module_init(ldv_init);

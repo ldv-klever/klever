@@ -25,25 +25,25 @@ static struct work_struct work;
 
 static void ldv_handler(struct work_struct *work)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static int __init ldv_init(void)
 {
-    queue = alloc_workqueue("ldv_queue", 0, 0);
-    if (!queue)
-        return -ENOMEM;
+	queue = alloc_workqueue("ldv_queue", 0, 0);
+	if (!queue)
+		return -ENOMEM;
 
-    INIT_WORK(&work, ldv_handler);
-    schedule_work(&work);
+	INIT_WORK(&work, ldv_handler);
+	schedule_work(&work);
 
-    flush_workqueue(queue);
-    return 0;
+	flush_workqueue(queue);
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    destroy_workqueue(queue);
+	destroy_workqueue(queue);
 }
 
 module_init(ldv_init);

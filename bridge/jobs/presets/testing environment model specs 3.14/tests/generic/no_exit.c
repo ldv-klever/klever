@@ -22,16 +22,16 @@
 
 void ldv_handler(struct ldv_resource *arg)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static struct ldv_driver ops = {
-    .handler = ldv_handler,
+	.handler = ldv_handler,
 };
 
 static int __init ldv_init(void)
 {
-    return ldv_driver_register(& ops);
+	return ldv_driver_register(& ops);
 }
 
 module_init(ldv_init);

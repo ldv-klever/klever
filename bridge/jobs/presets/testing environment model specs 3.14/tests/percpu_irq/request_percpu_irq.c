@@ -26,26 +26,26 @@ void __percpu *percpu_dev_id;
 int flip_a_coin;
 
 static irqreturn_t irq_handler(int irq_id, void * data){
-    ldv_invoke_callback();
-    return IRQ_HANDLED;
+	ldv_invoke_callback();
+	return IRQ_HANDLED;
 }
 
 static int __init ldv_init(void)
 {
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return request_percpu_irq(irq_id, irq_handler, "ldv_dev", percpu_dev_id);
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return request_percpu_irq(irq_id, irq_handler, "ldv_dev", percpu_dev_id);
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        free_percpu_irq(irq_id, percpu_dev_id);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		free_percpu_irq(irq_id, percpu_dev_id);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

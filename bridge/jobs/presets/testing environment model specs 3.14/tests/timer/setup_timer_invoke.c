@@ -26,18 +26,18 @@ unsigned long data;
 
 void ldv_handler(unsigned long data)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static int __init ldv_init(void)
 {
-    setup_timer(&ldv_timer, ldv_handler, data);
-    return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
+	setup_timer(&ldv_timer, ldv_handler, data);
+	return mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200));
 }
 
 static void __exit ldv_exit(void)
 {
-    del_timer(&ldv_timer);
+	del_timer(&ldv_timer);
 }
 
 module_init(ldv_init);
