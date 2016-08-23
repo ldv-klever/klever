@@ -193,7 +193,8 @@ SAFE_VERDICTS = (
 
 VIEWJOB_DEF_VIEW = {
     # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'safes_attr_stat',
+             'unsafes_attr_stat', 'unknowns_attr_stat'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)
