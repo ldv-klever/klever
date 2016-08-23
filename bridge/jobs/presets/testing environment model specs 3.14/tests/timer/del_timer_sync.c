@@ -30,23 +30,23 @@ void ldv_handler(unsigned long data)
 
 static int __init ldv_init(void)
 {
-    int flip_a_coin;
+	int flip_a_coin;
 
 	setup_timer(&ldv_timer, ldv_handler, 0);
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        if (!mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200))) {
-            del_timer_sync(&ldv_timer);
-            ldv_deregister();
-        }
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		if (!mod_timer(&ldv_timer, jiffies + msecs_to_jiffies(200))) {
+			del_timer_sync(&ldv_timer);
+			ldv_deregister();
+		}
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    /* pass */
+	/* pass */
 }
 
 module_init(ldv_init);

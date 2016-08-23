@@ -26,7 +26,7 @@ struct Scsi_Host *host;
 
 static int ldv_reset(struct scsi_cmnd *cmd){
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static struct scsi_host_template ldv_template = {
@@ -36,12 +36,12 @@ static struct scsi_host_template ldv_template = {
 static int __init ldv_init(void)
 {
 	host = scsi_host_alloc(&ldv_template, sizeof(void *));
-    if (host) {
-        ldv_register();
-        return scsi_add_host(host, dev);
-    }
-    else
-        return -ENOMEM;
+	if (host) {
+		ldv_register();
+		return scsi_add_host(host, dev);
+	}
+	else
+		return -ENOMEM;
 }
 
 static void __exit ldv_exit(void)

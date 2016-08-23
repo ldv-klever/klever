@@ -24,13 +24,13 @@
 static int ldv_open(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static struct file_operations ldv_fops = {
@@ -45,16 +45,16 @@ static struct cdev ldv_cdev = {
 
 static int __init ldv_init(void)
 {
-    int flip_a_coin;
+	int flip_a_coin;
 
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        cdev_init(&ldv_cdev, &ldv_fops);
-        cdev_del(&ldv_cdev);
-        ldv_deregister();
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		cdev_init(&ldv_cdev, &ldv_fops);
+		cdev_del(&ldv_cdev);
+		ldv_deregister();
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)

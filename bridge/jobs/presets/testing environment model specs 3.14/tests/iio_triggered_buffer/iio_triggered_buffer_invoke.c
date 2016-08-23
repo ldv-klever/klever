@@ -26,7 +26,7 @@ struct iio_dev * dev;
 
 static irqreturn_t irq_handler(int irq_id, void * data)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 	return IRQ_HANDLED;
 }
 
@@ -42,4 +42,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

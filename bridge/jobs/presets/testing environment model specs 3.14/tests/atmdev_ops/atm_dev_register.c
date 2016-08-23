@@ -26,40 +26,40 @@ int flip_a_coin;
 
 static void ldv_close(struct atm_dev *dev)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 
 static int ldv_open(struct atm_vcc *vcc)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 static struct atmdev_ops ldv_ops = {
-    .open = ldv_open,
-    .close = ldv_close
+	.open = ldv_open,
+	.close = ldv_close
 };
 
 static int __init ldv_init(void)
 {
-    long *flags;
+	long *flags;
 
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags);
-    }
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return atm_dev_register("ldv", ldv_parent, &ldv_ops, ldv_undef_int(), flags);
+	}
 
-    return 0;
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        atm_dev_deregister(ldv_dev);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		atm_dev_deregister(ldv_dev);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

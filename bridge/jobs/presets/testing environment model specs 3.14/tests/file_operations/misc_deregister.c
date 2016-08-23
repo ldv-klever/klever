@@ -26,13 +26,13 @@ int flip_a_coin;
 static int ldv_open(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static struct file_operations ldv_fops = {
@@ -42,20 +42,20 @@ static struct file_operations ldv_fops = {
 };
 
 static struct miscdevice ldv_misc = {
-    .fops = & ldv_fops
+	.fops = & ldv_fops
 };
 
 static int __init ldv_init(void)
 {
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        if (!misc_register(&ldv_misc)) {
-            misc_deregister(&ldv_misc);
-            ldv_deregister();
-        }
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		if (!misc_register(&ldv_misc)) {
+			misc_deregister(&ldv_misc);
+			ldv_deregister();
+		}
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)

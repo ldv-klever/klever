@@ -16,7 +16,7 @@
  */
 
 struct ldv_resource {
-    int field;
+	int field;
 };
 
 struct ldv_driver {

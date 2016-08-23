@@ -26,13 +26,13 @@ int flip_a_coin;
 static int ldv_open(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static struct file_operations ldv_fops = {

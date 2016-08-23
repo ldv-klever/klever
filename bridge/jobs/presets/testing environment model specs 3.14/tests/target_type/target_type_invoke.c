@@ -23,7 +23,7 @@
 static int ldv_ctr(struct dm_target *ti, unsigned int argc, char **argv)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static void ldv_dtr(struct dm_target *ti)
@@ -32,10 +32,10 @@ static void ldv_dtr(struct dm_target *ti)
 }
 
 static struct target_type ldv_target = {
-	.name	     = "ldv",
-	.module      = THIS_MODULE,
-	.ctr	     = ldv_ctr,
-	.dtr	     = ldv_dtr,
+	.name		= "ldv",
+	.module	  = THIS_MODULE,
+	.ctr		 = ldv_ctr,
+	.dtr		 = ldv_dtr,
 };
 
 static int __init ldv_init(void)

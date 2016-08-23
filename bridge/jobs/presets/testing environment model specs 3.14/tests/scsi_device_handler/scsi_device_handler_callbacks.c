@@ -26,17 +26,17 @@ static int ldv_attach(struct scsi_device *sdev)
 {
 	int res;
 
-    ldv_invoke_callback();
-    res = ldv_undef_int();
-    if (!res)
-        ldv_probe_up();
-    return res;
+	ldv_invoke_callback();
+	res = ldv_undef_int();
+	if (!res)
+		ldv_probe_up();
+	return res;
 }
 
 static void ldv_detach(struct scsi_device *sdev)
 {
 	ldv_release_down();
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static struct scsi_device_handler ldv_test_struct = {
@@ -47,19 +47,19 @@ static struct scsi_device_handler ldv_test_struct = {
 static int __init test_init(void)
 {
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return scsi_register_device_handler(&ldv_test_struct);
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		return scsi_register_device_handler(&ldv_test_struct);
+	}
+	return 0;
 }
 
 static void __exit test_exit(void)
 {
 	if (flip_a_coin) {
-        scsi_unregister_device_handler(&ldv_test_struct);
-        ldv_deregister();
-    }
+		scsi_unregister_device_handler(&ldv_test_struct);
+		ldv_deregister();
+	}
 }
 
 module_init(test_init);

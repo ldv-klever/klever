@@ -25,7 +25,7 @@ static struct delayed_work work;
 
 static void ldv_handler(struct work_struct *work)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
@@ -35,24 +35,23 @@ static int __init ldv_init(void)
 
 	queue = alloc_workqueue("ldv_queue", 0, 0);
 	if (!queue)
-        return -ENOMEM;
+		return -ENOMEM;
 
-    ldv_register();
-    INIT_DELAYED_WORK(&work, ldv_handler);
-    queue_delayed_work(queue, &work, delay);
+	ldv_register();
+	INIT_DELAYED_WORK(&work, ldv_handler);
+	queue_delayed_work(queue, &work, delay);
 
-    if (flip_a_coin) {
-        flush_delayed_work(&work);
-        ldv_deregister();
+	if (flip_a_coin) {
+		flush_delayed_work(&work);
+		ldv_deregister();
 	}
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    destroy_workqueue(queue);
+	destroy_workqueue(queue);
 }
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

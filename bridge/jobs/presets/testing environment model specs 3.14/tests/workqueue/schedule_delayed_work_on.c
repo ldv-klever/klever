@@ -25,29 +25,29 @@ static struct delayed_work work;
 
 static void ldv_handler(struct work_struct *work)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static int __init ldv_init(void)
 {
-    int cpu = 1;
-    int delay = ldv_undef_int();
+	int cpu = 1;
+	int delay = ldv_undef_int();
 
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-	    INIT_DELAYED_WORK(&work, ldv_handler);
-        ldv_register();
-	    schedule_delayed_work_on(cpu, &work, delay);
+	if (flip_a_coin) {
+		INIT_DELAYED_WORK(&work, ldv_handler);
+		ldv_register();
+		schedule_delayed_work_on(cpu, &work, delay);
 	}
 	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        cancel_delayed_work_sync(&work);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		cancel_delayed_work_sync(&work);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

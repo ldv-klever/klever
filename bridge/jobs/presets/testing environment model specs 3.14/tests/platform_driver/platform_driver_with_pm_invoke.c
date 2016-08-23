@@ -34,13 +34,13 @@ static int ldvremove(struct platform_device *op)
 static int test_suspend(struct device *dev)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static int test_resume(struct device *dev)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static SIMPLE_DEV_PM_OPS(test_pm_ops, test_suspend, test_resume);
@@ -67,4 +67,3 @@ static void __exit ldv_exit(void)
 
 module_init(ldv_init);
 module_exit(ldv_exit);
-

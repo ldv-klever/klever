@@ -46,7 +46,7 @@ static int __init ldv_init(void)
 
 static void __exit ldv_exit(void)
 {
-    unregister_md_personality(&ldv_personality);
+	unregister_md_personality(&ldv_personality);
 }
 
 module_init(ldv_init);

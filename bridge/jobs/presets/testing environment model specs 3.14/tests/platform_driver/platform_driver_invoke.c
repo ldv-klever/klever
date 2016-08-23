@@ -23,13 +23,13 @@
 static int ldvprobe(struct platform_device *op)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static int ldvremove(struct platform_device *op)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static struct platform_driver ldv_platform_driver = {

@@ -24,13 +24,13 @@ int flip_a_coin;
 
 int ldv_probe(struct ldv_resource *arg)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 void ldv_disconnect(struct ldv_resource *arg)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static struct ldv_driver ops = {
@@ -40,20 +40,20 @@ static struct ldv_driver ops = {
 
 int __init ldv_init(void)
 {
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return ldv_driver_register(& ops);
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return ldv_driver_register(& ops);
+	}
+	return 0;
 }
 
 void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-        ldv_driver_deregister(& ops);
-        ldv_deregister();
-    }
+		ldv_driver_deregister(& ops);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

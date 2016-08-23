@@ -23,7 +23,7 @@
 static int ldv_attach(struct scsi_device *sdev)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static void ldv_detach(struct scsi_device *sdev)

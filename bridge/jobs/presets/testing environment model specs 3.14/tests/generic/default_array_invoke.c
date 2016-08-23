@@ -25,20 +25,20 @@ void ldv_driver_array_deregister(struct ldv_driver **ops);
 
 void handler1(struct ldv_resource *arg)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 void handler2(struct ldv_resource *arg)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static struct ldv_driver ops[2] = {
 	{
-	    .handler = & handler1
+		.handler = & handler1
 	},
 	{
-	    .handler = & handler2
+		.handler = & handler2
 	}
 };
 

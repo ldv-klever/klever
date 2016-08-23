@@ -22,17 +22,17 @@
 
 int flip_a_coin;
 unsigned int major;
- 
+
 static int ldv_open(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static int ldv_release(struct inode *inode, struct file *filp)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static struct file_operations ldv_fops = {
@@ -44,19 +44,19 @@ static struct file_operations ldv_fops = {
 static int __init ldv_init(void)
 {
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return register_chrdev(major, "ldv", &ldv_fops);
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		return register_chrdev(major, "ldv", &ldv_fops);
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-        unregister_chrdev(major, "ldv");
-        ldv_deregister();
-    }
+		unregister_chrdev(major, "ldv");
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

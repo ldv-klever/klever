@@ -23,7 +23,7 @@
 static int ldv_connect(struct serio *serio, struct serio_driver *drv)
 {
 	ldv_invoke_reached();
-    return 0;
+	return 0;
 }
 
 static void ldv_disconnect(struct serio *serio)

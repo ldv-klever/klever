@@ -30,23 +30,23 @@ unsigned int index;
 
 int ldv_open(struct tty_struct * tty, struct file * filp)
 {
-    return 0;
+	return 0;
 }
 
 void ldv_close(struct tty_struct * tty, struct file * filp)
 {
-    /* pass */
+	/* pass */
 }
 
 static struct tty_operations ldv_tty_ops = {
-    .open = ldv_open,
-    .close = ldv_close
+	.open = ldv_open,
+	.close = ldv_close
 };
 
 static int ldv_activate(struct tty_port *tport, struct tty_struct *tty)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static void ldv_shutdown(struct tty_port *tport)
@@ -64,35 +64,35 @@ static int __init ldv_init(void)
 	int res;
 
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        driver = alloc_tty_driver(lines);
-        if (driver) {
-            tty_set_operations(driver, &ldv_tty_ops);
-            res = tty_register_driver(driver);
-            if (res) {
-                put_tty_driver(driver);
-                return res;
-            }
-            else {
-                ldv_register();
-                tty_port_init(& port);
-                port.ops = & ldv_tty_port_ops;
-                tty_port_register_device(& port, driver, ldv_undef_int(), device);
-            }
-        }
-    }
-    return 0;
+	if (flip_a_coin) {
+		driver = alloc_tty_driver(lines);
+		if (driver) {
+			tty_set_operations(driver, &ldv_tty_ops);
+			res = tty_register_driver(driver);
+			if (res) {
+				put_tty_driver(driver);
+				return res;
+			}
+			else {
+				ldv_register();
+				tty_port_init(& port);
+				port.ops = & ldv_tty_port_ops;
+				tty_port_register_device(& port, driver, ldv_undef_int(), device);
+			}
+		}
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
 	if (flip_a_coin) {
-        tty_unregister_device(driver, index);
-        tty_port_destroy(&port);
-        tty_unregister_driver(driver);
-        put_tty_driver(driver);
-        ldv_deregister();
-    }
+		tty_unregister_device(driver, index);
+		tty_port_destroy(&port);
+		tty_unregister_driver(driver);
+		put_tty_driver(driver);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

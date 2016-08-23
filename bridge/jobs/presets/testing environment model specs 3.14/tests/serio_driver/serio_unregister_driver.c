@@ -23,7 +23,7 @@
 static int ldv_connect(struct serio *serio, struct serio_driver *drv)
 {
 	ldv_invoke_callback();
-    return 0;
+	return 0;
 }
 
 static void ldv_disconnect(struct serio *serio)
@@ -44,14 +44,14 @@ static int __init ldv_init(void)
 	int flip_a_coin;
 
 	flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        if (!serio_register_driver(&ldv_drv)) {
-            serio_unregister_driver(&ldv_drv);
-            ldv_deregister();
-        }
-    }
-    return 0;
+	if (flip_a_coin) {
+		ldv_register();
+		if (!serio_register_driver(&ldv_drv)) {
+			serio_unregister_driver(&ldv_drv);
+			ldv_deregister();
+		}
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)

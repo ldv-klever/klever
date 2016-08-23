@@ -28,40 +28,40 @@ const struct usb_device_id *id_table;
 
 int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
 {
-    ldv_invoke_callback();
-    return 0;
+	ldv_invoke_callback();
+	return 0;
 }
 
 void ldv_release(struct usb_serial *serial)
 {
-    ldv_invoke_callback();
+	ldv_invoke_callback();
 }
 
 static struct usb_serial_driver ldv_driver = {
-    .probe = ldv_probe,
-    .release = ldv_release,
+	.probe = ldv_probe,
+	.release = ldv_release,
 };
 
 static struct usb_serial_driver * const ldv_drivers[] = {
-         &ldv_driver, NULL
+		 &ldv_driver, NULL
 };
 
 static int __init ldv_init(void)
 {
-    flip_a_coin = ldv_undef_int();
-    if (flip_a_coin) {
-        ldv_register();
-        return usb_serial_register_drivers(ldv_drivers, "ldv_driver", id_table);
-    }
-    return 0;
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return usb_serial_register_drivers(ldv_drivers, "ldv_driver", id_table);
+	}
+	return 0;
 }
 
 static void __exit ldv_exit(void)
 {
-    if (flip_a_coin) {
-        usb_serial_deregister_drivers(ldv_drivers);
-        ldv_deregister();
-    }
+	if (flip_a_coin) {
+		usb_serial_deregister_drivers(ldv_drivers);
+		ldv_deregister();
+	}
 }
 
 module_init(ldv_init);

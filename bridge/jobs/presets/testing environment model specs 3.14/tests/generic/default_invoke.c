@@ -22,7 +22,7 @@
 
 void ldv_handler(struct ldv_resource *arg)
 {
-    ldv_invoke_reached();
+	ldv_invoke_reached();
 }
 
 static struct ldv_driver ops = {
