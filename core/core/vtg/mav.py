@@ -130,6 +130,7 @@ class MAV(CommonStrategy):
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
+        self.task_desc['specification file'] = self.path_to_property_automata
         with open(self.path_to_property_automata, 'w', encoding='utf8') as fp:
             fp.write('//This file with property automaton was generated for Multi-Aspect Verification.\n')
             fp.write('CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n')
