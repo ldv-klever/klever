@@ -55,6 +55,11 @@
             "signature": "struct usb_interface *usb_interface",
             "header": "linux/usb.h",
             "implemented in kernel": true
+          },
+          "usb_device": {
+            "signature": "struct usb_device *usb_device",
+            "header": "linux/usb.h",
+            "implemented in kernel": true
           }
         }
       }
