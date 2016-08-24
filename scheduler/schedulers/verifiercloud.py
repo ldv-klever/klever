@@ -15,9 +15,9 @@
 # limitations under the License.
 #
 
-import glob
 import json
 import os
+import re
 import sys
 import shutil
 import logging
@@ -80,8 +80,17 @@ class Run:
                 self.options.append(name)
                 self.options.append(option[name])
 
-        # Set source files and property
-        self.propertyfile = os.path.join(work_dir, description["property file"])
+        # Set source, property and specification files if so
+        # Some property file should be always specified
+        self.propertyfile = None
+        if "property file" in description:
+            # Update relative path so that VerifierCloud client will be able to find property file
+            self.propertyfile = os.path.join(work_dir, description["property file"])
+        elif "specification file" in description:
+            # Like with property file above
+            self.options = [re.sub(r'{0}'.format(description["specification file"]),
+                                   os.path.join(work_dir, description["specification file"]),
+                                   opt) for opt in self.options]
         self.sourcefiles = [os.path.join(work_dir, file) for file in description["files"]]
 
 
