@@ -63,6 +63,7 @@ class Job(core.utils.CallbacksCaller):
         self.components = []
         self.callbacks = {}
         self.component_processes = []
+        self.reporting_results_process = None
 
     def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
@@ -163,11 +164,10 @@ class Job(core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.components_common_conf['main working directory'])
 
-                # Specify callbacks to collect verification statuses from VTG. They will be used to
-                # calculate validation and testing results.
                 if 'ideal verdicts' in self.components_common_conf:
-                    def before_launch_sub_job_components(context):
-                        context.mqs['verification statuses'] = multiprocessing.Queue()
+                    # Create queue and specify callbacks to collect verification statuses from VTG. They will be used to
+                    # calculate validation and testing results.
+                    self.mqs['verification statuses'] = multiprocessing.Queue()
 
                     def after_generate_abstact_verification_task_desc(context):
                         if not context.abstract_task_desc_file:
@@ -190,11 +190,15 @@ class Job(core.utils.CallbacksCaller):
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
-                                                           before_launch_sub_job_components,
                                                            after_generate_abstact_verification_task_desc,
                                                            after_process_single_verdict,
                                                            after_generate_all_verification_tasks
                                                        ))
+
+                    # Start up parallel process for reporting results. Without this there can be deadlocks since queue
+                    # created and filled above can be overfilled that results in VTG processes will not terminate.
+                    self.reporting_results_process = multiprocessing.Process(target=self.report_results)
+                    self.reporting_results_process.start()
 
                 self.get_sub_job_components()
 
@@ -385,6 +389,9 @@ class Job(core.utils.CallbacksCaller):
 
                 if self.uploading_reports_process.exitcode:
                     raise RuntimeError('Uploading reports failed')
+
+                if self.reporting_results_process and self.reporting_results_process.exitcode:
+                    raise RuntimeError('Reporting results failed')
         except Exception:
             for p in self.component_processes:
                 # Do not terminate components that already exitted.
@@ -397,10 +404,12 @@ class Job(core.utils.CallbacksCaller):
 
             raise
         finally:
-            self.report_results()
+            self.logger.info('Wait for reporting all results')
+            self.reporting_results_process.join()
 
     def report_results(self):
-        if 'ideal verdicts' in self.components_common_conf:
+        # Process exceptions like for uploading reports.
+        try:
             verification_statuses = []
             while True:
                 verification_status = self.mqs['verification statuses'].get()
@@ -445,6 +454,9 @@ class Job(core.utils.CallbacksCaller):
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
+        except Exception as e:
+            self.logger.exception('Catch exception when reporting results')
+            exit(1)
 
     def process_testing_results(self, results):
         self.logger.info('Check whether tests passed')
