@@ -50,7 +50,7 @@
       "name": "multiple bug types",
       "verifier": {
         "name": "CPAchecker",
-        "version": "22517",
+        "version": "cmav-2:22966",
         "mav_preset": "L1",
         "relaunch": "external",
         "mea": false
