@@ -215,7 +215,8 @@ class Scheduler(schedulers.SchedulerExchange):
                               priority=run.priority,
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
-                              svn_revision=revision)
+                              svn_revision=revision,
+                              meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
     def solve_job(self, configuration):
         """
