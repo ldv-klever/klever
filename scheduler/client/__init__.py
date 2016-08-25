@@ -190,6 +190,9 @@ def solve_task(conf):
     # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
     statuses_map = {
         'false(reach)': 'unsafe',
+        'false(valid-free)': 'unsafe',
+        'false(valid-deref)': 'unsafe',
+        'false(valid-memtrack)': 'unsafe',
         'true': 'safe',
         'EXCEPTION': 'error',
         'ERROR': 'error',

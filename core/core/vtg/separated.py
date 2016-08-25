@@ -108,14 +108,24 @@ class SeparatedStrategy(CommonStrategy):
             if len(self.conf['abstract task desc']['entry points']) > 1:
                 raise NotImplementedError('Several entry points are not supported')
 
-            with open('unreach-call.prp', 'w', encoding='utf8') as fp:
-                fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
+            if 'verifier specifications' in self.conf['abstract task desc']:
+                with open('spec.prp', 'w', encoding='utf8') as fp:
+                    for spec in self.conf['abstract task desc']['verifier specifications']:
+                        fp.write('CHECK( init({0}()), {1} )\n'.format(
+                            self.conf['abstract task desc']['entry points'][0], spec))
+                self.task_desc['property file'] = 'spec.prp'
+                self.automaton_file = self.task_desc['property file']
+
+                self.logger.debug('Verifier property file was outputted to "spec.prp"')
+            else:
+                with open('unreach-call.prp', 'w', encoding='utf8') as fp:
+                    fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                     self.conf['abstract task desc']['entry points'][0]))
 
-            self.task_desc['property file'] = 'unreach-call.prp'
-            self.automaton_file = self.task_desc['property file']
+                self.task_desc['property file'] = 'unreach-call.prp'
+                self.automaton_file = self.task_desc['property file']
 
-            self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
+                self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
         else:
             self.logger.warning('Verifier property file was not prepared since entry points were not specified')
 
@@ -129,8 +139,10 @@ class SeparatedStrategy(CommonStrategy):
         if self.mpv:
             self.add_option_for_entry_point()
         else:
-            # Specify default configuration.
-            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+            if '-smg-ldv' not in self.conf['VTG strategy']['verifier']['options']:
+
+                # Specify default configuration.
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')

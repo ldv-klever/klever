@@ -13,6 +13,10 @@ class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
+        if 'verifier specifications' in self.conf:
+            self.logger.info('Verifier specifications are: '.join(self.conf['verifier specifications']))
+            self.abstract_task_desc['verifier specifications'] = self.conf['verifier specifications']
+
         if 'files' in self.abstract_task_desc:
             self.logger.info('Get generated aspects and models specified in abstract task description')
 

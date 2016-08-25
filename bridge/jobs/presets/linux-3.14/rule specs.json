@@ -570,6 +570,49 @@
         "linux:dma::double map",
         "linux:dma::unmap before map"
       ]}}}
+    },
+    "generic:memory": {
+      "description": "Memory safety verification",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {"linux/smg_memory.c": {}},
+        "verifier specifications": [
+          "LTL(G valid-free)",
+          "LTL(G valid-deref)",
+          "LTL(G valid-memtrack)"
+      ]},
+      "EMG" : {
+        "translation options": {
+          "dump automata graphs": false,
+          "direct control function calls": true,
+          "omit all states": true,
+          "nested automata": true,
+          "omit parallel composition": {
+            "dispatch": false,
+            "receive": false,
+            "call": false,
+            "condition": true
+          },
+          "instance modifier": 1,
+          "max instances number": 60,
+          "pointer initialization": {
+            "structures": true,
+            "arrays": true,
+            "functions": false,
+            "unions": false,
+            "primitives": false
+          },
+          "pointer free": {
+            "structures": true,
+            "arrays": true,
+            "functions": false,
+            "unions": false,
+            "primitives": false
+          },
+          "allocate with sizeof": false,
+          "allocate external": true
+        }
+      }
     }
   }
 }
