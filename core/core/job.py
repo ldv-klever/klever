@@ -404,8 +404,9 @@ class Job(core.utils.CallbacksCaller):
 
             raise
         finally:
-            self.logger.info('Wait for reporting all results')
-            self.reporting_results_process.join()
+            if self.reporting_results_process:
+                self.logger.info('Wait for reporting all results')
+                self.reporting_results_process.join()
 
     def report_results(self):
         # Process exceptions like for uploading reports.
