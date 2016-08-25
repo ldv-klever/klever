@@ -59,6 +59,7 @@
         "Git repository": {"commit": "214c97a12f1f"},
         "modules": ["drivers/media/usb/usbvision/usbvision.ko"]
       },
+      "specifications set": "Linux 3.5",
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{"ideal verdict": "unsafe"}]
     },
@@ -141,6 +142,7 @@
         "Git repository": {"commit": "e4c7f259c5be"},
         "modules": ["drivers/net/usb/kaweth.ko"]
       },
+      "specifications set": "Linux 3.5",
       "rule specifications": ["linux:alloc:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "safe",
