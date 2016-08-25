@@ -194,10 +194,6 @@ class CommonStrategy(core.components.Component):
 
     def process_single_verdict(self, decision_results, verification_report_id,
                                assertion=None, specified_error_trace=None):
-        # Add assertion if it was specified.
-        if decision_results['status'] == 'checking':
-            # Do not print any verdict for still checking tasks
-            return
         if not assertion:
             assertion = self.rule_specification
         added_attrs = [{"Rule specification": assertion}]

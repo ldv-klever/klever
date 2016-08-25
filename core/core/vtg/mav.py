@@ -406,14 +406,11 @@ class MAV(CommonStrategy):
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == bug_kind:
                                 self.process_single_verdict(decision_results, verification_report_id,
-                                                            assertion=bug_kind,
-                                                            specified_error_trace=error_trace)
+                                                            assertion=bug_kind, specified_error_trace=error_trace)
                                 self.remove_assertion(bug_kind)
-                    else:  # Verdicts unknown or safe.
-                        self.process_single_verdict(decision_results, verification_report_id,
-                                                    assertion=bug_kind)
-                        if verdict != 'checking':
-                            self.remove_assertion(bug_kind)
+                    elif verdict != 'checking':  # Verdicts unknown or safe.
+                        self.process_single_verdict(decision_results, verification_report_id, assertion=bug_kind)
+                        self.remove_assertion(bug_kind)
 
                 self.create_verification_finish_report(verification_report_id, iteration)
                 break
