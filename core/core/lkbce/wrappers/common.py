@@ -183,12 +183,7 @@ class Command:
 
         # Execute original build command.
         if self.name == 'gcc':
-            # Add one more search directory to find out rule specification specific headers. For instance, this is
-            # useful for test modules.
             self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
-            # Switch off all GCC optimizations that are pretty good for compiling code but can be too hard for
-            # verifiers, in particular for their front-ends.
-            self.opts.append('-O0')
         exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
