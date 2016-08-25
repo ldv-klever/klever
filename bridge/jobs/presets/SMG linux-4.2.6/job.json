@@ -1,0 +1,31 @@
+{
+  "Linux kernel": {
+    "source": "linux-4.2.6.tar.gz",
+    "configuration": "allmodconfig",
+    "modules": ["drivers/usb"]
+  },
+  "LKVOG strategy": {"name": "separate modules"},
+  "maximum verification object size": 30000,
+  "rule specifications DB": "rule specs.json",
+  "rule specifications": ["generic:memory"],
+  "unite rule specifications": false,
+  "specifications set": "Linux 3.14 (base)",
+  "RSG strategy": "instrumentation",
+  "VTG strategy": {
+    "name": "single bug type",
+    "verifier": {
+      "name": "CPAchecker",
+      "version": "",
+      "options": [{"-smg-ldv": "", "-setprop": "analysis.machineModel=LINUX64_BITFIELD"}]
+    },
+    "resource limits": {
+      "wall time": 1000000,
+      "CPU time": 900000,
+      "memory size": 5000000000,
+      "CPU model": null,
+      "number of CPU cores": 1,
+      "result size": 1000000
+    },
+    "merge source files": true
+  }
+}
