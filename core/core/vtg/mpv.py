@@ -8,7 +8,6 @@ import glob
 import re
 import shutil
 from enum import Enum
-from abc import abstractclassmethod, ABCMeta
 
 import core.components
 import core.session
@@ -50,8 +49,6 @@ class MPVStrategy(Enum):
 # This class implements Multi-Property Verification (MPV) strategies.
 class MPV(CommonStrategy):
 
-    __metaclass__ = ABCMeta
-
     delta = 200000
     psi = 4/3
     omega = 2/9
@@ -67,7 +64,7 @@ class MPV(CommonStrategy):
             raise AttributeError("MPV-strategies require property automata")
         if 'unite rule specifications' not in self.conf \
                 or not self.conf['unite rule specifications']:
-            raise AttributeError("MPV-strategies require united bug types")
+            raise AttributeError("MPV-strategies require united rules")
 
     def perform_preprocess_actions(self):
         self.logger.info('Starting Multi-Property Verification')
@@ -90,13 +87,22 @@ class MPV(CommonStrategy):
         self.decide_verification_task()
         self.logger.info('Multi-Property verification has been completed')
 
-    @abstractclassmethod
     def print_strategy_information(self):
-        pass
+        self.logger.info('Launch strategy "Multy-Property Verification"')
+        self.logger.info('Generate one verification task and check all rules at once by means of MPV')
 
-    @abstractclassmethod
     def create_asserts(self):
-        pass
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'bug kinds' in extra_c_file:
+                bug_kinds_for_rule_specification = extra_c_file['bug kinds']
+                common_bug_kind = bug_kinds_for_rule_specification[0]
+                rule = self.parse_bug_kind(common_bug_kind)
+                if rule:
+                    common_bug_kind = rule
+                automaton = extra_c_file['automaton']
+                self.property_automata[common_bug_kind] = automaton
+        self.logger.debug('Multi-Property Verification will check "{0}" properties'.
+                          format(self.property_automata.__len__()))
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')

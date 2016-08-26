@@ -8,7 +8,6 @@ import glob
 import re
 import shutil
 from enum import Enum
-from abc import abstractclassmethod, ABCMeta
 
 import core.components
 import core.session
@@ -40,8 +39,6 @@ class MAVPreset(Enum):
 # This class represent Multi-Aspect Verification (MAV) strategies.
 class MAV(CommonStrategy):
 
-    __metaclass__ = ABCMeta
-
     mu = 4/3
     path_to_file_with_results = 'output/mav_results_file'
     number_of_asserts = 0
@@ -55,6 +52,7 @@ class MAV(CommonStrategy):
     # Possible values: internal, external, no (only for Global strategy).
     relaunch = "internal"
     is_finished = False  # TODO: work-around.
+    assert_to_bug_kinds = {}
 
     def perform_sanity_checks(self):
         if self.mpv:
@@ -62,7 +60,7 @@ class MAV(CommonStrategy):
             raise AttributeError("MAV-strategies do not support property automata")
         if 'unite rule specifications' not in self.conf \
             or not self.conf['unite rule specifications']:
-            raise AttributeError("Current VTG strategy supports only united bug types")
+            raise AttributeError("Current VTG strategy supports only united rules")
 
     def perform_preprocess_actions(self):
         self.logger.info('Starting Multi-Aspect Verification')
@@ -97,13 +95,32 @@ class MAV(CommonStrategy):
         self.logger.info('Conditional Multi-Aspect Verification has been completed in {0} iteration(s)'.
                          format(iterations))
 
-    @abstractclassmethod
     def print_strategy_information(self):
-        pass
+        self.logger.info('Launch strategy "Multi-Aspect Verification"')
+        self.logger.info('Generate one verification task and check all bug types at once')
 
-    @abstractclassmethod
+    def get_all_bug_kinds(self):
+        bug_kinds = []
+        for extra_c_file in self.conf['abstract task desc']['extra C files']:
+            if 'bug kinds' in extra_c_file:
+                bug_kinds_for_rule_specification = extra_c_file['bug kinds']
+                common_bug_kind = bug_kinds_for_rule_specification[0]
+                rule = self.parse_bug_kind(common_bug_kind)
+                if rule:
+                    common_bug_kind = rule
+                self.assert_to_bug_kinds[common_bug_kind] = bug_kinds_for_rule_specification
+                bug_kinds.append(common_bug_kind)
+        return bug_kinds
+
     def create_asserts(self):
-        pass
+        self.logger.debug('Merging all bug kinds for each rule specification')
+        # Bug kind is rule specification.
+        bug_kinds = self.get_all_bug_kinds()
+        for bug_kind in bug_kinds:
+            self.number_of_asserts += 1
+            function = "{0}".format(re.sub(r'\W', '_', bug_kind))
+            self.assert_function[bug_kind] = function
+        self.logger.debug('Multi-Aspect Verification will check "{0}" asserts'.format(self.number_of_asserts))
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
@@ -231,9 +248,25 @@ class MAV(CommonStrategy):
             # Otherwise the user can easily break MAV with just one parameter.
             self.logger.debug('No MAV preset was specified, no limitations will be used')
 
-    @abstractclassmethod
     def prepare_bug_kind_functions_file(self):
-        pass
+        self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
+
+        # Create file with all checked asserts.
+        with open('bug kind funcs.c', 'w') as fp:
+            fp.write('/* This file was generated for Multi-Aspect Verification*/\n')
+            for rule_specification, bug_kinds in self.assert_to_bug_kinds.items():
+                error_function_for_rule_specification = "{0}".format(re.sub(r'\W', '_', rule_specification))
+                fp.write('void {0}{1}(void);\n'.format(self.error_function_prefix,
+                                                       error_function_for_rule_specification))
+                for bug_kind in bug_kinds:
+                    error_function_for_bug_kind = "{0}".format(re.sub(r'\W', '_', bug_kind))
+                    fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t{1}{2}();\n}}\n'.
+                        format(error_function_for_bug_kind, self.error_function_prefix,
+                               error_function_for_rule_specification))
+
+        # Add bug kind functions file to other abstract verification task files.
+        self.conf['abstract task desc']['extra C files'].append(
+            {'C file': os.path.abspath('bug kind funcs.c')})
 
     def create_verification_report(self, verification_report_id, decision_results, bug_kind=None):
         # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.

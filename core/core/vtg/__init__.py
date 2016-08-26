@@ -173,7 +173,7 @@ class VTG(core.components.Component):
                     common_bug_kind = extra_c_file['bug kinds'][0]
                     latest_assert = self.parse_bug_kind(common_bug_kind)
 
-            if (self.strategy_name == 'mavr' or self.strategy_name == 'mpvr') and asserts == 1:
+            if (self.strategy_name == 'mav' or self.strategy_name == 'mpv') and asserts == 1:
                 self.logger.info('Changing "{0}" strategy to SR'.format(self.strategy_name))
                 self.conf['unite rule specifications'] = False
                 self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
@@ -235,7 +235,7 @@ class VTG(core.components.Component):
             is_skip_1_step = False
 
             if not is_skip_1_step:
-                self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
+                self.strategy = getattr(importlib.import_module('.{0}'.format('mav'), 'core.vtg'), 'MAV')
                 self.conf['unite rule specifications'] = True
                 self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
                 self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
@@ -366,7 +366,7 @@ class VTG(core.components.Component):
                                 self.conf['abstract task desc']['attrs'][1]['rule specification'] = rule
                     else:
                         self.logger.info('SC: Launch MPV-Sep')
-                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
+                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['unite rule specifications'] = True
                         self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
@@ -411,7 +411,7 @@ class VTG(core.components.Component):
 
                     self.conf['abstract task desc']['extra C files'] = extra_c_files
 
-                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
                     self.conf['RSG strategy'] = 'property automaton'
                     self.conf['unite rule specifications'] = True
                     self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'

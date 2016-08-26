@@ -43,7 +43,7 @@
     "RSG strategy": "property automaton",
     "common aspect": "linux/common_mpv.aspect",
     "VTG strategy": {
-      "name": "multi property verification rules",
+      "name": "multi property verification",
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",

@@ -9,7 +9,7 @@ from core.vtg.mpv import MPV
 class MPVBK(MPV):
 
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Multy-Property Verification Bug Kinds"')
+        self.logger.info('Launch strategy "Multy-Property Verification with Bug Kinds"')
         self.logger.info('Generate one verification task and check all bug kinds at once by means of MPV')
 
     def create_asserts(self):
