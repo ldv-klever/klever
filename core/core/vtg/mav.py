@@ -181,8 +181,9 @@ class MAV(CommonStrategy):
             # Set time limits for external MAV.
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
         else:
-            relaunch = 'no'
-            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
+            # This is not full MAV and only can be used as a part of Sequential Combination.
+            self.relaunch = 'no'
+            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point
 
         # Soft time limit.
         self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(

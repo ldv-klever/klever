@@ -5,7 +5,6 @@ import json
 import multiprocessing
 import os
 import glob
-import shutil
 import re
 
 import core.components
@@ -41,12 +40,14 @@ class VTG(core.components.Component):
 
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
     xi = 5  # TODO:should be placed outside
+    phi = 1/2
 
     def generate_verification_tasks(self):
         self.strategy_name = None
         self.strategy = None
         self.common_prj_attrs = {}
         self.abstract_task_descs_num = multiprocessing.Value('i', 0)
+        self.time_limit = self.conf['VTG strategy']['resource limits']['CPU time']
 
         # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
         self.get_strategy()
@@ -263,6 +264,7 @@ class VTG(core.components.Component):
                 self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
                 self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
                 self.conf['RSG strategy'] = 'instrumentation'
+                self.conf['VTG strategy']['resource limits']['CPU time'] = round(self.phi * self.time_limit)
                 p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                   '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
                                   work_dir, abstract_task_desc['attrs'], True, True)
@@ -379,6 +381,7 @@ class VTG(core.components.Component):
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-spa': ''}]
+                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
                         self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
                         for rule, verdict in results.items():
                             if verdict == 'unknown-incomplete':
@@ -391,6 +394,7 @@ class VTG(core.components.Component):
                         self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+                        self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
@@ -435,6 +439,7 @@ class VTG(core.components.Component):
                     self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
                     self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                     self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+                    self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
 
                     work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
