@@ -11,6 +11,9 @@ import core.components
 import core.utils
 
 
+default_name = 'sc'
+
+
 def before_launch_sub_job_components(context):
     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['abstract task desc files and nums'] = multiprocessing.Queue()
@@ -70,9 +73,9 @@ class VTG(core.components.Component):
 
         self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
-        if self.strategy_name == "g":
-            # Global
-            self.logger.info('Using GLOBAL strategy')
+        if self.strategy_name == default_name:
+            # SC
+            self.logger.info('Using Sequential Combination (SC) of strategies')
         else:
             try:
                 self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
@@ -91,9 +94,9 @@ class VTG(core.components.Component):
         self.logger.info('Generate all verification tasks')
 
         subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
-        if self.strategy_name == "g":
+        if self.strategy_name == default_name:
             for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-                subcomponents.append(('Worker {0}'.format(i), self._generate_global_verification_tasks))
+                subcomponents.append(('Worker {0}'.format(i), self._generate_sc_verification_tasks))
         else:
             for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
                 subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
@@ -187,7 +190,7 @@ class VTG(core.components.Component):
             except core.components.ComponentError:
                 pass
 
-    def _generate_global_verification_tasks(self):
+    def _generate_sc_verification_tasks(self):
         while True:
             abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
 
@@ -221,8 +224,8 @@ class VTG(core.components.Component):
             self.conf['abstract task desc'] = abstract_task_desc
 
             # Step 1. external CMAV L1 with only 1 iteration.
-            self.logger.info('GLOBAL: Execute step 1')
-            self.logger.info('GLOBAL: Launch CMAV L1 with only 1 iteration')
+            self.logger.info('SC: Execute step 1')
+            self.logger.info('SC: Launch CMAV L1 with only 1 iteration')
 
             results = {}
             unknown_reasons = {}
@@ -251,7 +254,7 @@ class VTG(core.components.Component):
                 except core.components.ComponentError:
                     pass
 
-                self.logger.info('GLOBAL: Step 1 has been completed')
+                self.logger.info('SC: Step 1 has been completed')
                 path_to_cmav_results = '{0}/output/mav_results_file'.format(p.work_dir)
                 self.logger.debug('Path to CMAV results file is "{0}"'.format(path_to_cmav_results))
                 log_files = glob.glob(os.path.join(p.work_dir, 'output', 'benchmark*logfiles/*'))
@@ -288,7 +291,7 @@ class VTG(core.components.Component):
                 else:
                     # Verifier failed before even starting verification.
                     # There is nothing to be done - strategy should stop.
-                    self.logger.info('GLOBAL: Stop due to global error: no results file')
+                    self.logger.info('SC: Stop due to global error: no results file')
                     is_error = True
 
                 # Analyse log file.
@@ -312,7 +315,7 @@ class VTG(core.components.Component):
                                             results[rule] = 'checking'
                     else:
                         # It should not be reached, but we should process it anyway.
-                        self.logger.info('GLOBAL: Stop due to global error: no log file')
+                        self.logger.info('SC: Stop due to global error: no log file')
                         is_error = True
 
             # Results of Step 1.
@@ -333,7 +336,7 @@ class VTG(core.components.Component):
             if not is_completed and not is_error:
                 old_extra_c_files = self.conf['abstract task desc']['extra C files']
                 if number_of_separated >= 1:
-                    self.logger.info('GLOBAL: Execute step 2')
+                    self.logger.info('SC: Execute step 2')
                     extra_c_files = []
                     for extra_c_file in self.conf['abstract task desc']['extra C files']:
                         if 'bug kinds' in extra_c_file:
@@ -351,7 +354,7 @@ class VTG(core.components.Component):
                     self.conf['abstract task desc']['extra C files'] = extra_c_files
 
                     if number_of_separated == 1:
-                        self.logger.info('GLOBAL: Launch SR')
+                        self.logger.info('SC: Launch SR')
                         self.conf['unite rule specifications'] = False
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
@@ -362,7 +365,7 @@ class VTG(core.components.Component):
                             if verdict == 'unknown-incomplete':
                                 self.conf['abstract task desc']['attrs'][1]['rule specification'] = rule
                     else:
-                        self.logger.info('GLOBAL: Launch MPV-Sep')
+                        self.logger.info('SC: Launch MPV-Sep')
                         self.strategy = getattr(importlib.import_module('.{0}'.format('mpvr'), 'core.vtg'), 'MPVR')
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['unite rule specifications'] = True
@@ -385,13 +388,13 @@ class VTG(core.components.Component):
                         p.join()
                     except core.components.ComponentError:
                         pass
-                    self.logger.info('GLOBAL: Step 2 has been completed')
+                    self.logger.info('SC: Step 2 has been completed')
                 else:
-                    self.logger.info('GLOBAL: Step 2 is not required')
+                    self.logger.info('SC: Step 2 is not required')
 
                 if not is_good_results:
-                    self.logger.info('GLOBAL: Execute step 3')
-                    self.logger.info('GLOBAL: Launch MPV-Relevance')
+                    self.logger.info('SC: Execute step 3')
+                    self.logger.info('SC: Launch MPV-Relevance')
                     extra_c_files = []
                     for extra_c_file in old_extra_c_files:
                         if 'bug kinds' in extra_c_file:
@@ -430,8 +433,8 @@ class VTG(core.components.Component):
                         p.join()
                     except core.components.ComponentError:
                         pass
-                    self.logger.info('GLOBAL: Step 3 has been completed')
+                    self.logger.info('SC: Step 3 has been completed')
                 else:
-                    self.logger.info('GLOBAL: Step 3 is not required')
+                    self.logger.info('SC: Step 3 is not required')
 
-            self.logger.info('GLOBAL: All steps have been completed')
+            self.logger.info('SC: All steps have been completed')

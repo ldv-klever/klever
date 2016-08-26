@@ -11,6 +11,8 @@ import core.components
 import core.utils
 
 
+default_name = 'sequential combination'
+
 def before_launch_sub_job_components(context):
     context.mqs['AVTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
@@ -242,6 +244,12 @@ def _extract_rule_spec_descs(conf, logger):
         conf['rule specifications'] = rule_specs
         logger.debug('Following rule specifications will be checked "{0}"'.format(conf['rule specifications']))
 
+    # Default strategy (SC).
+    if conf['VTG strategy']['name'] == default_name and len(conf['rule specifications']) > 1:
+        logger.info('Using default strategy for verifying several rules')
+        conf['unite rule specifications'] = True
+        conf['RSG strategy'] = 'all'
+        conf['common aspect'] = 'linux/common.aspect'
     if 'unite rule specifications' in conf and conf['unite rule specifications']:
         _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
 
