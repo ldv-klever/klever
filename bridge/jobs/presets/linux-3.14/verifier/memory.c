@@ -25,6 +25,7 @@
 extern void *malloc(size_t size);
 extern void *calloc(size_t nmemb, size_t size);
 extern void free(void *);
+extern void *memset(void *s, int c, size_t n);
 
 void *ldv_malloc(size_t size)
 {
@@ -81,7 +82,7 @@ void *ldv_xzalloc(size_t size)
 void *ldv_malloc_unknown_size(void)
 {
 	if (ldv_undef_int()) {
-		void *res = ldv_undef_ptr();
+		void *res = external_allocated_data();
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
 		return res;
@@ -94,7 +95,8 @@ void *ldv_malloc_unknown_size(void)
 void *ldv_calloc_unknown_size(void)
 {
 	if (ldv_undef_int()) {
-		void *res = ldv_undef_ptr();
+		void *res = external_allocated_data();
+		memset(res, 0, sizeof(res));
 		ldv_assume(res != NULL);
 		ldv_assume(!ldv_is_err(res));
 		return res;

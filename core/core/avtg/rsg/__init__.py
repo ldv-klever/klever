@@ -28,8 +28,16 @@ class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
+        if 'verifier configuration' in self.conf:
+            self.logger.info('Verifier configuration is "{0}"'.format(self.conf['verifier configuration']))
+            self.abstract_task_desc['verifier configuration'] = self.conf['verifier configuration']
+
+        if 'verifier options' in self.conf:
+            self.logger.info('Verifier options are: {0}'.format(self.conf['verifier options']))
+            self.abstract_task_desc['verifier options'] = self.conf['verifier options']
+
         if 'verifier specifications' in self.conf:
-            self.logger.info('Verifier specifications are: '.join(self.conf['verifier specifications']))
+            self.logger.info('Verifier specifications are: {0}'.format(', '.join(self.conf['verifier specifications'])))
             self.abstract_task_desc['verifier specifications'] = self.conf['verifier specifications']
 
         if 'files' in self.abstract_task_desc:

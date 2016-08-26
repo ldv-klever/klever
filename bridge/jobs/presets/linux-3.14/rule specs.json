@@ -187,9 +187,54 @@
       "template": "Linux kernel modules"
     },
     "linux:emg:test": {
-      "description": "Rule specification intended for testing environment model specifications.",
+      "description": "Rule specification intended for testing environment model specifications and generator",
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
+    },
+    "generic:memory": {
+      "description": "Generic memory safety",
+      "template": "Linux kernel modules",
+      "EMG" : {
+        "translation options": {
+          "dump automata graphs": false,
+          "direct control function calls": true,
+          "omit all states": true,
+          "nested automata": true,
+          "omit parallel composition": {
+            "dispatch": false,
+            "receive": false,
+            "call": false,
+            "condition": true
+          },
+          "instance modifier": 1,
+          "max instances number": 60,
+          "pointer initialization": {
+            "structures": true,
+            "arrays": true,
+            "functions": false,
+            "unions": false,
+            "primitives": false
+          },
+          "pointer free": {
+            "structures": true,
+            "arrays": true,
+            "functions": false,
+            "unions": false,
+            "primitives": false
+          },
+          "allocate with sizeof": true,
+          "allocate external": true
+        }
+      },
+      "RSG": {
+        "models": {"generic/memory.c": {}},
+        "verifier configuration": "-smg-ldv",
+        "verifier options": [{"-setprop": "analysis.machineModel=LINUX64_BITFIELD"}],
+        "verifier specifications": [
+          "LTL(G valid-free)",
+          "LTL(G valid-deref)",
+          "LTL(G valid-memtrack)"
+      ]}
     },
     "linux:alloc:irq": {
       "description": "...",
@@ -568,49 +613,6 @@
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"
       ]}}}
-    },
-    "generic:memory": {
-      "description": "Memory safety verification",
-      "template": "Linux kernel modules",
-      "RSG": {
-        "models": {"linux/smg_memory.c": {}},
-        "verifier specifications": [
-          "LTL(G valid-free)",
-          "LTL(G valid-deref)",
-          "LTL(G valid-memtrack)"
-      ]},
-      "EMG" : {
-        "translation options": {
-          "dump automata graphs": false,
-          "direct control function calls": true,
-          "omit all states": true,
-          "nested automata": true,
-          "omit parallel composition": {
-            "dispatch": false,
-            "receive": false,
-            "call": false,
-            "condition": true
-          },
-          "instance modifier": 1,
-          "max instances number": 60,
-          "pointer initialization": {
-            "structures": true,
-            "arrays": true,
-            "functions": false,
-            "unions": false,
-            "primitives": false
-          },
-          "pointer free": {
-            "structures": true,
-            "arrays": true,
-            "functions": false,
-            "unions": false,
-            "primitives": false
-          },
-          "allocate with sizeof": false,
-          "allocate external": true
-        }
-      }
     }
   }
 }

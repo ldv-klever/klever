@@ -154,10 +154,18 @@ class SeparatedStrategy(CommonStrategy):
         if self.mpv:
             self.add_option_for_entry_point()
         else:
-            if '-smg-ldv' not in self.conf['VTG strategy']['verifier']['options']:
-
-                # Specify default configuration.
+            if 'verifier configuration' in self.conf['abstract task desc']:
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {self.conf['abstract task desc']['verifier configuration']: ''}
+                )
+            # Specify default CPAchecker configuration.
+            else:
                 self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+
+            if 'verifier options' in self.conf['abstract task desc']:
+                self.conf['VTG strategy']['verifier']['options'].extend(
+                    self.conf['abstract task desc']['verifier options']
+                )
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
