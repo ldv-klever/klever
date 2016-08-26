@@ -38,26 +38,6 @@ class RSG(core.avtg.plugins.Plugin):
 
     main = generate_rule_specification
 
-    def decide_relevance(self, intercepted_functions):
-        for grp in self.abstract_task_desc['grps']:
-            for cc_extra_full_desc_file in grp['cc extra full desc files']:
-                with open(os.path.join(self.conf['main working directory'],
-                                       cc_extra_full_desc_file['cc full desc file']), encoding='ascii') as fp:
-                    cc_full_desc = json.load(fp)
-                    try:
-                        with open(os.path.join(self.conf['main working directory'],
-                                               self.conf['shadow source tree'],
-                                               cc_full_desc['in files'][0]),
-                                  encoding='ascii') as source:
-                            for line in source:
-                                for intercepted in intercepted_functions:
-                                    result = re.search(intercepted, line)
-                                    if result:
-                                        return True
-                    except:
-                        pass
-        return False
-
     def add_models(self, generated_models):
         self.logger.info('Add models to abstract verification task description')
 
@@ -144,7 +124,6 @@ class RSG(core.avtg.plugins.Plugin):
         os.makedirs('models')
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
-        relevant_rules = []
         for model_c_file in models:
             model = models[model_c_file]
 
@@ -189,28 +168,6 @@ class RSG(core.avtg.plugins.Plugin):
                 preprocessed_aspect = '{0}.{1}.aspect'.format(
                     aspect_short,
                     re.sub(r'\W', '_', model['rule specification identifier']))
-
-                intercepted_functions = set()
-                with open(aspect, encoding='ascii') as fp_in:
-                    for line in fp_in:
-                        result = re.search(r"execution(\s*)\((.+)(\s+)([\S]+)\((.+)\)\)", line)
-                        intercepted = None
-                        if result:
-                            intercepted = result.group(4)
-                            if intercepted.startswith('*'):
-                                intercepted = intercepted[1:]
-                        result = re.search(r"call(\s*)\((.+)(\s+)([\S]+)\((.+)\)\)", line)
-                        if result:
-                            intercepted = result.group(4)
-                            if intercepted.startswith('*'):
-                                intercepted = intercepted[1:]
-                        result = re.search(r"define\(([\S]+)\((.+)\)\)", line)
-                        if result:
-                            intercepted = result.group(1)
-                        if intercepted:
-                            intercepted_functions.add(intercepted)
-                if self.decide_relevance(intercepted_functions):
-                    relevant_rules.append(model_c_file)
 
                 if self.conf['RSG strategy'] == 'instrumentation' or self.conf['RSG strategy'] == 'global':
                     with open(aspect, encoding='ascii') as fp_in, \
@@ -368,11 +325,6 @@ class RSG(core.avtg.plugins.Plugin):
                 }
             if model_c_file in automata:
                 cc_extra_full_desc_file['automaton'] = automata[model_c_file]
-
-            if model_c_file in relevant_rules:
-                cc_extra_full_desc_file['relevant'] = True
-            else:
-                cc_extra_full_desc_file['relevant'] = False
 
             if 'bug kinds' in model:
                 cc_extra_full_desc_file['bug kinds'] = model['bug kinds']

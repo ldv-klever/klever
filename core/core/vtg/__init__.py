@@ -39,7 +39,6 @@ def after_generate_all_abstract_verification_task_descs(context):
 class VTG(core.components.Component):
 
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
-    xi = 5  # TODO:should be placed outside
     phi = 1/2
 
     def generate_verification_tasks(self):
@@ -225,36 +224,12 @@ class VTG(core.components.Component):
             self.logger.info('GLOBAL: Execute step 1')
             self.logger.info('GLOBAL: Launch CMAV L1 with only 1 iteration')
 
-            relevant = []
-            for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                if 'relevant' in extra_c_file and 'bug kinds' in extra_c_file:
-                    common_bug_kind = extra_c_file['bug kinds'][0]
-                    latest_assert = self.parse_bug_kind(common_bug_kind)
-                    if extra_c_file['relevant']:
-                        relevant.append(latest_assert)
-
-            self.logger.info('GLOBAL: Got {0} most likely relevant rules'.format(len(relevant)))
-
             results = {}
             unknown_reasons = {}
             is_completed = True
             is_good_results = False
             is_error = False
             is_skip_1_step = False
-            if len(relevant) >= self.xi:
-                # The task is too complex, so skip step 1.
-                is_skip_1_step = True
-                is_completed = False
-                is_good_results = False
-                self.logger.info('GLOBAL: Skipping step 1 due to too complex task')
-                for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                    if 'bug kinds' in extra_c_file:
-                        common_bug_kind = extra_c_file['bug kinds'][0]
-                        latest_assert = self.parse_bug_kind(common_bug_kind)
-                        if latest_assert in relevant:
-                            results[latest_assert] = 'unknown-incomplete'
-                        else:
-                            results[latest_assert] = 'checking'
 
             if not is_skip_1_step:
                 self.strategy = getattr(importlib.import_module('.{0}'.format('mavr'), 'core.vtg'), 'MAVR')
