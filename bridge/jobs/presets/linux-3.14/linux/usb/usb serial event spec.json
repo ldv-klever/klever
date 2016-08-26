@@ -133,6 +133,9 @@
               "%resource%",
               "%usb_device_id%"
             ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -143,7 +146,10 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "disconnect": {
             "callback": "%driver.disconnect%",
@@ -180,7 +186,10 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "port_remove": {
             "callback": "%driver.port_remove%",
@@ -374,6 +383,9 @@
               "%resource%",
               "%usb_device_id%"
             ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
@@ -384,7 +396,10 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "disconnect": {
             "callback": "%driver.disconnect%",
@@ -415,7 +430,10 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "port_remove": {
             "callback": "%driver.port_remove%",

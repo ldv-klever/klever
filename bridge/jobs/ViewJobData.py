@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -5,7 +22,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import VIEWJOB_DEF_VIEW
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
-from reports.models import LightResource
+from reports.models import LightResource, AttrStatistic
 
 
 COLORS = {
@@ -66,7 +83,10 @@ class ViewJobData(object):
             'unknowns': self.__unknowns_info,
             'resources': self.__resource_info,
             'tags_safe': self.__safe_tags_info,
-            'tags_unsafe': self.__unsafe_tags_info
+            'tags_unsafe': self.__unsafe_tags_info,
+            'safes_attr_stat': self.__safes_attrs_statistic,
+            'unsafes_attr_stat': self.__unsafes_attrs_statistic,
+            'unknowns_attr_stat': self.__unknowns_attrs_statistic
         }
         for d in self.view['data']:
             if d in actions:
@@ -235,7 +255,7 @@ class ViewJobData(object):
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
-        if self.report.root.safes > 0:
+        if self.report.root.safes > 0 and self.report.parent is None:
             self.safes_total = [self.report.root.safes]
 
         safes_data = []
@@ -280,6 +300,32 @@ class ViewJobData(object):
                     'href': href
                 })
         return safes_data
+
+    def __safes_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, safes__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.safes
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = None
+                if not self.report.root.job.light:
+                    href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.safes, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic
 
     def __unsafes_info(self):
         try:
@@ -328,3 +374,51 @@ class ViewJobData(object):
                     'href': href
                 })
         return unsafes_data
+
+    def __unsafes_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, unsafes__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.unsafes
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = reverse('reports:list_attr', args=[self.report.pk, 'unsafes', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unsafes, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic
+
+    def __unknowns_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, unknowns__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.unknowns
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = reverse('reports:list_attr', args=[self.report.pk, 'unknowns', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unknowns, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic

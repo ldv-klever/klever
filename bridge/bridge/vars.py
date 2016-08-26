@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
@@ -23,7 +40,8 @@ ERRORS = {
     509: _("The tag was not found"),
     604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark")
+    602: _("You don't have an access to delete this mark"),
+    704: _("The attribute was not found")
 }
 
 LANGUAGES = (
@@ -43,6 +61,11 @@ JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
+
+ATTR_STATISTIC = {
+    '0': ['Rule specification'],
+    '3': ['Rule specification']
+}
 
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
@@ -170,7 +193,8 @@ SAFE_VERDICTS = (
 
 VIEWJOB_DEF_VIEW = {
     # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'safes_attr_stat',
+             'unsafes_attr_stat', 'unknowns_attr_stat'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)

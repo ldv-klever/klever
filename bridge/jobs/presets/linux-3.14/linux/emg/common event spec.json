@@ -91,7 +91,7 @@
             ],
             "callback return value": "%ret%",
             "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
+              "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
           "suspend": {
@@ -99,7 +99,10 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "resume": {
             "callback": "%container.resume%",
@@ -270,6 +273,9 @@
             "callback return value": "%ret%",
             "post-call": [
               "%ret% = ldv_post_probe(%ret%);"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
             ]
           },
           "suspend": {
@@ -277,14 +283,20 @@
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "suspend_late": {
             "callback": "%container.suspend_late%",
             "parameters": [
               "%resource%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
           },
           "resume_early": {
             "callback": "%container.resume_early%",
@@ -382,7 +394,7 @@
             ],
             "callback return value": "%ret%",
             "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
+              "%ret% = ldv_filter_err_code(%ret%);"
             ]
           },
           "init": {

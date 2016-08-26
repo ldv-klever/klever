@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -76,7 +93,7 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None, tag=None, problem=None, mark=None):
+                 component_id=None, verdict=None, tag=None, problem=None, mark=None, attr=None):
         self.component_id = component_id
         self.report = report
         self.user = user
@@ -85,6 +102,7 @@ class ReportTable(object):
         self.tag = tag
         self.problem = problem
         self.mark = mark
+        self.attr = attr
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -238,6 +256,9 @@ class ReportTable(object):
         elif self.mark is not None:
             leaf_filter = {list_types[self.type] + '__markreport_set__mark': self.mark}
             leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
+        elif self.attr is not None:
+            leaf_filter = {list_types[self.type] + '__attrs__attr': self.attr}
+            leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
         else:
             leaves_set = self.report.leaves.filter(~Q(**{list_types[self.type]: None}))
 
@@ -360,6 +381,9 @@ class ReportTable(object):
                 .filter(~Q(unknown=None) & Q(**filters))
         elif isinstance(self.mark, MarkUnknown):
             leaf_set = self.report.leaves.filter(unknown__markreport_set__mark=self.mark).distinct()\
+                .filter(~Q(unknown=None) & Q(**filters))
+        elif self.attr is not None:
+            leaf_set = self.report.leaves.filter(unknown__attrs__attr=self.attr).distinct()\
                 .filter(~Q(unknown=None) & Q(**filters))
         else:
             if self.problem == 0:

@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
@@ -109,7 +126,8 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=None, problem=None, mark=None):
+def report_list(request, report_id, ltype, component_id=None,
+                verdict=None, tag=None, problem=None, mark=None, attr=None):
     activate(request.user.extended.language)
 
     try:
@@ -137,6 +155,8 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                     break
         elif mark is not None:
             title = _('Safes marked by')
+        elif attr is not None:
+            title = _('Safes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
     elif ltype == 'unsafes':
         title = _("All unsafes")
         if tag is not None:
@@ -148,6 +168,8 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
                     break
         elif mark is not None:
             title = _('Unsafes marked by')
+        elif attr is not None:
+            title = _('Unsafes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
     else:
         title = _("All unknowns")
         if isinstance(problem, UnknownProblem):
@@ -156,6 +178,8 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
             title = string_concat(_("Unknowns without marks"))
         elif mark is not None:
             title = _('Unknowns marked by')
+        elif attr is not None:
+            title = _('Unknowns where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
     if mark is not None:
         title = string_concat(title, mark.identifier[:10])
 
@@ -173,7 +197,7 @@ def report_list(request, report_id, ltype, component_id=None, verdict=None, tag=
             'parents': get_parents(report),
             'TableData': ReportTable(
                 *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark),
+                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr),
             'view_type': list_types[ltype],
             'title': title
         }
@@ -205,10 +229,17 @@ def report_list_by_mark(request, report_id, ltype, mark_id):
         'unknowns': MarkUnknown
     }
     try:
-        mark = tables[ltype].objects.get(pk=mark_id)
+        return report_list(request, report_id, ltype, mark=tables[ltype].objects.get(pk=mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
-    return report_list(request, report_id, ltype, mark=mark)
+
+
+@login_required
+def report_list_by_attr(request, report_id, ltype, attr_id):
+    try:
+        return report_list(request, report_id, ltype, attr=Attr.objects.get(pk=attr_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[704]))
 
 
 @login_required

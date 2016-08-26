@@ -1,4 +1,19 @@
-#!/usr/bin/python3
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import json
 import os
@@ -115,6 +130,7 @@ class MAV(CommonStrategy):
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
+        self.task_desc['specification file'] = self.path_to_property_automata
         with open(self.path_to_property_automata, 'w', encoding='utf8') as fp:
             fp.write('//This file with property automaton was generated for Multi-Aspect Verification.\n')
             fp.write('CONTROL AUTOMATON MAV_ERROR_FUNCTIONS\n')
@@ -155,10 +171,10 @@ class MAV(CommonStrategy):
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})
-        if {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'} not in \
-                self.conf['VTG strategy']['verifier']['options']:
-            self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'cpa.arg.errorPath.exportImmediately=true'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'counterexample.export.filters=NullCounterexampleFilter'})
+        self.conf['VTG strategy']['verifier']['options'].append(
+            {'-setprop': 'counterexample.export.exportImmediately=true'})
 
         # Option for MEA.
         if self.mea:
@@ -228,7 +244,8 @@ class MAV(CommonStrategy):
                               'resources': decision_results['resources'],
                               'log': log_file,
                               'files': ([log_file] if log_file else []) + (
-                                  ['benchmark.xml', self.path_to_property_automata] + self.task_desc['files']
+                                  (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
+                                  [self.path_to_property_automata] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
@@ -389,14 +406,11 @@ class MAV(CommonStrategy):
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == bug_kind:
                                 self.process_single_verdict(decision_results, verification_report_id,
-                                                            assertion=bug_kind,
-                                                            specified_error_trace=error_trace)
+                                                            assertion=bug_kind, specified_error_trace=error_trace)
                                 self.remove_assertion(bug_kind)
-                    else:  # Verdicts unknown or safe.
-                        self.process_single_verdict(decision_results, verification_report_id,
-                                                    assertion=bug_kind)
-                        if verdict != 'checking':
-                            self.remove_assertion(bug_kind)
+                    elif verdict != 'checking':  # Verdicts unknown or safe.
+                        self.process_single_verdict(decision_results, verification_report_id, assertion=bug_kind)
+                        self.remove_assertion(bug_kind)
 
                 self.create_verification_finish_report(verification_report_id, iteration)
                 break

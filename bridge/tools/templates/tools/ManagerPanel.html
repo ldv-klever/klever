@@ -77,16 +77,17 @@
                     </thead>
                     <tbody>
                         {% for job in jobs %}
-                            <tr class="one wide column">
-                                <td>
-                                    <div class="ui checkbox">
-
-                                        <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
-                                        <label for="job__{{ job.pk }}">{{ job.name }}</label>
-                                    </div>
-                                </td>
-                                <td>{{ job.identifier }}</td>
-                            </tr>
+                            {% if not job.light and job.reportroot %}
+                                <tr class="one wide column">
+                                    <td>
+                                        <div class="ui checkbox">
+                                            <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
+                                            <label for="job__{{ job.pk }}">{{ job.name }}</label>
+                                        </div>
+                                    </td>
+                                    <td>{{ job.identifier }}</td>
+                                </tr>
+                            {% endif %}
                         {% endfor %}
                     </tbody>
                 </table>
@@ -95,7 +96,7 @@
                 <h3>{% trans 'Recalculate' %}:</h3>
                 <div id="recalc_for_all_jobs_checkbox" class="ui checkbox">
                     <input id="recalc_for_all_jobs" type="checkbox">
-                    <label for="recalc_for_all_jobs">{% trans 'All jobs' %}</label>
+                    <label for="recalc_for_all_jobs">{% trans 'All non-light jobs' %}</label>
                 </div>
                 <br><br>
                 <div class="ui vertical orange buttons">
@@ -105,6 +106,7 @@
                     <button id="recalc_unknown" class="ui button">{% trans 'Unknown marks cache' %}</button>
                     <button id="recalc_verdicts" class="ui button">{% trans 'Verdicts cache' %}</button>
                     <button id="recalc_resources" class="ui button">{% trans 'Resources cache' %}</button>
+                    <button id="recalc_attrs_stat" class="ui button">{% trans 'Attributes cache' %}</button>
                 </div>
                 <br><br>
                 <button id="recalc_all" class="ui red button">{% trans 'All caches' %}</button>

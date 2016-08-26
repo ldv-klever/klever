@@ -1,6 +1,23 @@
-import glob
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 import os
+import re
 import sys
 import shutil
 import logging
@@ -63,8 +80,17 @@ class Run:
                 self.options.append(name)
                 self.options.append(option[name])
 
-        # Set source files and property
-        self.propertyfile = os.path.join(work_dir, description["property file"])
+        # Set source, property and specification files if so
+        # Some property file should be always specified
+        self.propertyfile = None
+        if "property file" in description:
+            # Update relative path so that VerifierCloud client will be able to find property file
+            self.propertyfile = os.path.join(work_dir, description["property file"])
+        elif "specification file" in description:
+            # Like with property file above
+            self.options = [re.sub(r'{0}'.format(description["specification file"]),
+                                   os.path.join(work_dir, description["specification file"]),
+                                   opt) for opt in self.options]
         self.sourcefiles = [os.path.join(work_dir, file) for file in description["files"]]
 
 
@@ -189,7 +215,8 @@ class Scheduler(schedulers.SchedulerExchange):
                               priority=run.priority,
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
-                              svn_revision=revision)
+                              svn_revision=revision,
+                              meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
     def solve_job(self, configuration):
         """

@@ -1,4 +1,19 @@
-__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import logging
 import os
@@ -129,8 +144,8 @@ class Scheduler(schedulers.SchedulerExchange):
                 if self.__try_to_schedule("task", task["id"], task["description"]["resource limits"]):
                     new_tasks.append(task["id"])
                     self.__running_tasks += 1
+                    # Plan jobs
 
-        # Plan jobs
         if len(pending_jobs) > 0:
             # Sort to get high priority tasks at the beginning
             for job in [job for job in pending_jobs if job["id"] not in self.__reserved]:
@@ -146,15 +161,16 @@ class Scheduler(schedulers.SchedulerExchange):
         if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
             raise schedulers.SchedulerException(
                 "Host CPU model is not {} (has only {})".
-                format(desc["resource limits"]["CPU model"], self.__cpu_model))
+                    format(desc["resource limits"]["CPU model"], self.__cpu_model))
 
         if desc["resource limits"]["memory size"] > self.__ram_memory:
             raise schedulers.SchedulerException(
                 "Host does not have {} bytes of RAM memory (has only {} bytes)".
-                format(desc["resource limits"]["memory size"], self.__ram_memory))
+                    format(desc["resource limits"]["memory size"], self.__ram_memory))
 
-        # TODO: Disk space check
-        # TODO: number of CPU cores check
+            # TODO: Disk space check
+            # TODO: number of CPU cores check
+
 
     def __create_work_dir(self, entities, identifier):
         work_dir = os.path.join(self.work_dir, entities, identifier)
@@ -163,7 +179,6 @@ class Scheduler(schedulers.SchedulerExchange):
             os.makedirs(work_dir, exist_ok=True)
         else:
             os.makedirs(work_dir, exist_ok=False)
-
     # TODO: what these functions are intended for?
     def prepare_task(self, identifier, desc):
         self.__check_resource_limits(desc)
@@ -352,7 +367,7 @@ class Scheduler(schedulers.SchedulerExchange):
         url = self.__kv_url + "/v1/catalog/nodes"
         response = requests.get(url)
         if not response.ok:
-            raise "Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".\
+            raise "Cannot get list of connected nodes requesting {} (got status code: {} due to: {})". \
                 format(url, response.status_code, response.reason)
         nodes = response.json()
         if len(nodes) != 1:
@@ -391,9 +406,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Fill available resources
         if self.__cpu_model != node_status["CPU model"] or \
-           self.__cpu_cores != node_status["available CPU number"] or \
-           self.__ram_memory != node_status["available RAM memory"] or \
-           self.__disk_memory != node_status["available disk memory"]:
+                        self.__cpu_cores != node_status["available CPU number"] or \
+                        self.__ram_memory != node_status["available RAM memory"] or \
+                        self.__disk_memory != node_status["available disk memory"]:
             self.__cpu_model = node_status["CPU model"]
             self.__cpu_cores = node_status["available CPU number"]
             self.__ram_memory = node_status["available RAM memory"]
@@ -410,4 +425,3 @@ class Scheduler(schedulers.SchedulerExchange):
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
-

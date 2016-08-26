@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
@@ -7,9 +24,8 @@ from bridge.utils import logger
 from marks.models import SafeTag, UnsafeTag
 
 
-# TODO: who can edit or create tags?
 def can_edit_tags(user):
-    if user.extended.role == USER_ROLES[2][0]:
+    if user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
         return True
     return False
 
@@ -382,7 +398,7 @@ class CreateTagsFromFile(object):
                 self.error = _("The tag name length must be 1-32 (%(name)s)") % {'name': tag_name}
                 return
             if tag_name in newtags:
-                self.error = _("Thename must be unique (%(name)s)") % {'name': tag_name}
+                self.error = _("The name must be unique (%(name)s)") % {'name': tag_name}
                 return
 
             parent = data.get('parent', None)

@@ -1,4 +1,19 @@
-#!/usr/bin/python3
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import os
 import re
@@ -179,13 +194,9 @@ class CommonStrategy(core.components.Component):
 
     def process_single_verdict(self, decision_results, verification_report_id,
                                assertion=None, specified_error_trace=None):
-        # Add assertion if it was specified.
-        if decision_results['status'] == 'checking':
-            # Do not print any verdict for still checking tasks
-            return
-        added_attrs = []
-        if assertion:
-            added_attrs.append({"Rule specification": assertion})
+        if not assertion:
+            assertion = self.rule_specification
+        added_attrs = [{"Rule specification": assertion}]
         path_to_witness = None
         if decision_results['status'] == 'unsafe':
             verification_report_id_unsafe = "{0}/unsafe/{1}".\
@@ -543,7 +554,7 @@ class CommonStrategy(core.components.Component):
 
             # To allow to output multiple error traces if other options (configuration) will need this.
             self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
+                {'-setprop': 'counterexample.export.graphml=witness.%d.graphml'})
 
             # Do not compress witnesses as, say, CPAchecker r20376 we still used did.
             self.conf['VTG strategy']['verifier']['options'].append(

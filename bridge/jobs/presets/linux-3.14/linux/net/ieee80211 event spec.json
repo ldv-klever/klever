@@ -147,7 +147,7 @@
               "rtnl_lock();"
             ],
             "post-call": [
-              "%ret% = ldv_post_probe(%ret%);",
+              "%ret% = ldv_filter_err_code(%ret%);",
               "rtnl_unlock();"
             ],
             "callback return value": "%ret%"

@@ -1,61 +1,132 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 before: file("$this")
 {
 #include <linux/types.h>
 #include <verifier/common.h>
 
-@ifdef LDV_LINUX_MUTEX
-void ldv_linux_mutex_initialize(void);
-void ldv_linux_mutex_check_final_state(void);
-@endif /* LDV_LINUX_MUTEX */
+@ifdef LDV_LINUX_ALLOC_IRQ
+void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
+void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
+@endif /* LDV_LINUX_ALLOC_IRQ */
 
-@ifdef LDV_LINUX_SPINLOCK
-void ldv_linux_spinlock_initialize(void);
-void ldv_linux_spinlock_check_final_state(void);
-@endif /*LDV_LINUX_USB_DEV */
+@ifdef LDV_LINUX_ALLOC_USB_LOCK
+void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
+void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
+@endif /* LDV_LINUX_ALLOC_USB_LOCK */
 
-@ifdef LDV_LINUX_USB_DEV
-void ldv_linux_usb_dev_initialize(void);
-void ldv_linux_usb_dev_check_return_value_probe(int retval);
-void ldv_linux_usb_dev_check_final_state(void);
-@endif /* LDV_LINUX_USB_DEV */
+@ifdef LDV_LINUX_ARCH_IO
+void ldv_linux_arch_io_check_final_state(void);
+@endif /* LDV_LINUX_ARCH_IO */
 
-@ifdef LDV_LINUX_MODULE
-void ldv_linux_module_check_final_state(void);
-@endif /* LDV_LINUX_MODULE */
+@ifdef LDV_LINUX_BLOCK_GENHD
+void ldv_linux_block_genhd_check_final_state(void);
+@endif /* LDV_LINUX_BLOCK_GENHD */
 
-@ifdef LDV_LINUX_USB_URB
-struct urb *ldv_linux_usb_urb_usb_alloc_urb(void);
-void ldv_linux_usb_urb_check_final_state(void);
-@endif /* LDV_LINUX_USB_URB */
+@ifdef LDV_LINUX_BLOCK_QUEUE
+void ldv_linux_block_queue_check_final_state(void);
+@endif /* LDV_LINUX_BLOCK_QUEUE */
 
-@ifdef LDV_LINUX_USB_COHERENT
-void *ldv_linux_usb_coherent_usb_alloc_coherent(void);
-void ldv_linux_usb_coherent_check_final_state(void);
-@endif /* LDV_LINUX_USB_COHERENT */
+@ifdef LDV_LINUX_BLOCK_REQUEST
+void ldv_linux_block_request_check_final_state(void);
+@endif /* LDV_LINUX_BLOCK_REQUEST */
 
-@ifdef LDV_LINUX_RWLOCK
-void ldv_linux_rwlock_check_final_state(void);
-@endif /* LDV_LINUX_RWLOCK */
+@ifdef LDV_LINUX_DRIVERS_BASE_CLASS
+void *ldv_linux_drivers_base_class_create_class(void);
+int ldv_linux_drivers_base_class_register_class(void);
+void ldv_linux_drivers_base_class_unregister_class(void);
+struct class;
+void ldv_linux_drivers_base_class_destroy_class(struct class *cls);
+void ldv_linux_drivers_base_class_check_final_state(void);
+@endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
+
+@ifdef LDV_LINUX_DRIVERS_BASE_DMA_MAPPING
+void ldv_linux_drivers_base_dma_mapping_check_final_state(void);
+@endif /* LDV_LINUX_DRIVERS_BASE_DMA_MAPPING */
+
+@ifdef LDV_LINUX_FS_CHAR_DEV
+int ldv_linux_fs_char_dev_register_chrdev(int major);
+int ldv_linux_fs_char_dev_register_chrdev_region(void);
+void ldv_linux_fs_char_dev_unregister_chrdev_region(void);
+void ldv_linux_fs_char_dev_check_final_state(void);
+@endif /* LDV_LINUX_FS_CHAR_DEV */
+
+@ifdef LDV_LINUX_FS_SYSFS
+void ldv_linux_fs_sysfs_check_final_state(void);
+@endif /* LDV_LINUX_FS_SYSFS */
+
+@ifdef LDV_LINUX_KERNEL_LOCKING_RWLOCK
+void ldv_linux_kernel_locking_rwlock_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_LOCKING_RWLOCK */
+
+@ifdef LDV_LINUX_KERNEL_MODULE
+void ldv_linux_kernel_module_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_MODULE */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH
+void ldv_linux_kernel_rcu_update_lock_bh_check_for_read_section(void);
+void ldv_linux_kernel_rcu_update_lock_bh_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED
+void ldv_linux_kernel_rcu_update_lock_sched_check_for_read_section(void);
+void ldv_linux_kernel_rcu_update_lock_sched_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK
+void ldv_linux_kernel_rcu_update_lock_check_for_read_section(void);
+void ldv_linux_kernel_rcu_update_lock_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK */
+
+@ifdef LDV_LINUX_KERNEL_RCU_SRCU
+void ldv_linux_kernel_rcu_srcu_check_for_read_section(void);
+void ldv_linux_kernel_rcu_srcu_check_final_state(void);
+@endif /* LDV_LINUX_KERNEL_RCU_SRCU */
+
+@ifdef LDV_LINUX_LIB_FIND_BIT
+void ldv_linux_lib_find_bit_initialize(void);
+@endif /* LDV_LINUX_LIB_FIND_BIT*/
+
+@ifdef LDV_LINUX_LIB_IDR
+void ldv_linux_lib_idr_check_final_state(void);
+@endif /* LDV_LINUX_LIB_IDR */
 
 @ifdef LDV_LINUX_MMC_SDIO_FUNC
 void ldv_linux_mmc_sdio_func_check_final_state(void);
 @endif /* LDV_LINUX_MMC_SDIO_FUNC */
 
-@ifdef LDV_LINUX_CLASS
-void *ldv_linux_class_create_class(void);
-int ldv_linux_class_register_class(void);
-void ldv_linux_class_unregister_class(void);
-struct class;
-void ldv_linux_class_destroy_class(struct class *cls);
-void ldv_linux_class_check_final_state(void);
-@endif /* LDV_LINUX_CLASS */
+@ifdef LDV_LINUX_NET_REGISTER
+void ldv_linux_net_register_reset_error_counter(void);
+void ldv_linux_net_register_check_return_value_probe(int retval);
+@endif /* LDV_LINUX_NET_REGISTER */
 
-@ifdef LDV_LINUX_CHRDEV
-int ldv_linux_chrdev_register_chrdev(int major);
-int ldv_linux_chrdev_register_chrdev_region(void);
-void ldv_linux_chrdev_unregister_chrdev_region(void);
-void ldv_linux_chrdev_check_final_state(void);
-@endif /* LDV_LINUX_CHRDEV */
+@ifdef LDV_LINUX_NET_RTNETLINK
+void ldv_linux_net_rtnetlink_check_final_state(void);
+@endif /* LDV_LINUX_NET_RTNETLINK */
+
+@ifdef LDV_LINUX_NET_SOCK
+void ldv_linux_net_sock_check_final_state(void);
+@endif /* LDV_LINUX_NET_SOCK */
+
+@ifdef LDV_LINUX_USB_COHERENT
+void *ldv_linux_usb_coherent_usb_alloc_coherent(void);
+void ldv_linux_usb_coherent_check_final_state(void);
+@endif /* LDV_LINUX_USB_COHERENT */
 
 @ifdef LDV_LINUX_USB_GADGET
 void *ldv_linux_usb_gadget_create_class(void);
@@ -69,108 +140,26 @@ void ldv_linux_usb_gadget_unregister_chrdev_region(void);
 void ldv_linux_usb_gadget_check_final_state(void);
 @endif /* LDV_LINUX_USB_GADGET */
 
-@ifdef LDV_LINUX_BLK_REQUEST
-void ldv_linux_blk_request_check_final_state(void);
-@endif /* LDV_LINUX_BLK_REQUEST */
-
-@ifdef LDV_LINUX_RCULOCK
-void ldv_linux_rculock_check_for_read_section(void);
-void ldv_linux_rculock_check_final_state(void);
-@endif /* LDV_LINUX_RCULOCK */
-
-@ifdef LDV_LINUX_RCULOCKBH
-void ldv_linux_rculockbh_check_for_read_section(void);
-void ldv_linux_rculockbh_check_final_state(void);
-@endif /* LDV_LINUX_RCULOCKBH */
-
-@ifdef LDV_LINUX_RCULOCKSCHED
-void ldv_linux_rculocksched_check_for_read_section(void);
-void ldv_linux_rculocksched_check_final_state(void);
-@endif /* LDV_LINUX_RCULOCKSCHED */
-
-@ifdef LDV_LINUX_SRCULOCK
-void ldv_linux_srculock_check_for_read_section(void);
-void ldv_linux_srculock_check_final_state(void);
-@endif /* LDV_LINUX_SRCULOCK */
-
-@ifdef LDV_LINUX_SOCK
-void ldv_linux_sock_check_final_state(void);
-@endif /* LDV_LINUX_SOCK */
-
-@ifdef LDV_LINUX_RTNL
-void ldv_linux_rtnl_check_final_state(void);
-@endif /* LDV_LINUX_RTNL */
-
-@ifdef LDV_LINUX_SYSFS
-void ldv_linux_sysfs_check_final_state(void);
-@endif /* LDV_LINUX_SYSFS */
-
-@ifdef LDV_LINUX_IOMEM
-void ldv_linux_iomem_check_final_state(void);
-@endif /* LDV_LINUX_IOMEM */
-
-@ifdef LDV_LINUX_IDR
-void ldv_linux_idr_check_final_state(void);
-@endif /* LDV_LINUX_IDR */
-
-@ifdef LDV_LINUX_GENDISK
-void ldv_linux_gendisk_check_final_state(void);
-@endif /* LDV_LINUX_GENDISK */
-
-@ifdef LDV_LINUX_BLK_QUEUE
-void ldv_linux_blk_queue_check_final_state(void);
-@endif /* LDV_LINUX_BLK_QUEUE */
-
 @ifdef LDV_LINUX_USB_REGISTER
 void ldv_linux_usb_register_reset_error_counter(void);
 void ldv_linux_usb_register_check_return_value_probe(int retval);
 @endif /* LDV_LINUX_USB_REGISTER */
 
-@ifdef LDV_LINUX_NETDEV
-void ldv_linux_netdev_reset_error_counter(void);
-void ldv_linux_netdev_check_return_value_probe(int retval);
-@endif /* LDV_LINUX_NETDEV */
+@ifdef LDV_LINUX_USB_URB
+struct urb *ldv_linux_usb_urb_usb_alloc_urb(void);
+void ldv_linux_usb_urb_check_final_state(void);
+@endif /* LDV_LINUX_USB_URB */
 
+/* TODO: move this functions to commmon.c when it will be supported. */
+void ldv_check_alloc_nonatomic(void)
+{
 @ifdef LDV_LINUX_ALLOC_IRQ
-void ldv_linux_alloc_irq_check_alloc_flags(gfp_t flags);
-void ldv_linux_alloc_irq_check_alloc_nonatomic(void);
+	ldv_linux_alloc_irq_check_alloc_nonatomic();
 @endif /* LDV_LINUX_ALLOC_IRQ */
 
 @ifdef LDV_LINUX_ALLOC_USB_LOCK
-void ldv_linux_alloc_usb_lock_check_alloc_flags(gfp_t flags);
-void ldv_linux_alloc_usb_lock_check_alloc_nonatomic(void);
+	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
-
-@ifdef LDV_LINUX_BITOPS
-void ldv_linux_bitops_initialize(void);
-@endif /* LDV_LINUX_BITOPS */
-
-void *ldv_create_class(void)
-{
-@if defined(LDV_LINUX_CLASS) && defined(LDV_LINUX_USB_GADGET)
-	void *res1 = ldv_linux_class_create_class();
-	void *res2 = ldv_linux_usb_gadget_create_class();
-	ldv_assume(res1 == res2);
-	return res1;
-@elif defined(LDV_LINUX_CLASS)
-	return ldv_linux_class_create_class();
-@elif defined(LDV_LINUX_USB_GADGET)
-	return ldv_linux_usb_gadget_create_class();
-@endif /* LDV_LINUX_USB_GADGET */
-}
-
-int ldv_register_class(void)
-{
-@if defined(LDV_LINUX_CLASS) && defined(LDV_LINUX_USB_GADGET)
-	int res1 = ldv_linux_class_register_class();
-	int res2 = ldv_linux_usb_gadget_register_class();
-	ldv_assume(res1 == res2);
-	return res1;
-@elif defined(LDV_LINUX_CLASS)
-	return ldv_linux_class_register_class();
-@elif defined(LDV_LINUX_USB_GADGET)
-	return ldv_linux_usb_gadget_register_class();
-@endif /* LDV_LINUX_USB_GADGET */
 }
 
 void ldv_check_alloc_flags(gfp_t flags)
@@ -184,162 +173,157 @@ void ldv_check_alloc_flags(gfp_t flags)
 @endif /* LDV_LINUX_ALLOC_USB_LOCK */
 }
 
-void ldv_check_alloc_nonatomic(void)
-{
-@ifdef LDV_LINUX_ALLOC_IRQ
-	ldv_linux_alloc_irq_check_alloc_nonatomic();
-@endif /* LDV_LINUX_ALLOC_IRQ */
-
-@ifdef LDV_LINUX_ALLOC_USB_LOCK
-	ldv_linux_alloc_usb_lock_check_alloc_nonatomic();
-@endif /* LDV_LINUX_ALLOC_USB_LOCK */
-}
-
 void ldv_check_for_read_section(void)
 {
-@ifdef LDV_LINUX_RCULOCK
-	ldv_linux_rculock_check_for_read_section();
-@endif /* LDV_LINUX_RCULOCK */
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH
+	ldv_linux_kernel_rcu_update_lock_bh_check_for_read_section();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH */
 
-@ifdef LDV_LINUX_RCULOCKBH
-	ldv_linux_rculockbh_check_for_read_section();
-@endif /* LDV_LINUX_RCULOCKBH */
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED
+	ldv_linux_kernel_rcu_update_lock_sched_check_for_read_section();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED */
 
-@ifdef LDV_LINUX_RCULOCKSCHED
-	ldv_linux_rculocksched_check_for_read_section();
-@endif /* LDV_LINUX_RCULOCKSCHED */
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK
+	ldv_linux_kernel_rcu_update_lock_check_for_read_section();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK */
 
-@ifdef LDV_LINUX_SRCULOCK
-	ldv_linux_srculock_check_for_read_section();
-@endif /* LDV_LINUX_SRCULOCK */
+@ifdef LDV_LINUX_KERNEL_RCU_SRCU
+	ldv_linux_kernel_rcu_srcu_check_for_read_section();
+@endif /* LDV_LINUX_KERNEL_RCU_SRCU */
 }
-}
 
-around: call(void ldv_check_final_state(void))
+void *ldv_create_class(void)
 {
-@ifdef LDV_LINUX_MODULE
-	ldv_linux_module_check_final_state();
-@endif /* LDV_LINUX_MODULE */
-
-@ifdef LDV_LINUX_USB_URB
-	ldv_linux_usb_urb_check_final_state();
-@endif /* LDV_LINUX_USB_URB */
-
-@ifdef LDV_LINUX_USB_COHERENT
-	ldv_linux_usb_coherent_check_final_state();
-@endif /* LDV_LINUX_USB_COHERENT */
-
-@ifdef LDV_LINUX_RWLOCK
-	ldv_linux_rwlock_check_final_state();
-@endif /* LDV_LINUX_RWLOCK */
-
-@ifdef LDV_LINUX_MMC_SDIO_FUNC
-	ldv_linux_mmc_sdio_func_check_final_state();
-@endif /* LDV_LINUX_MMC_SDIO_FUNC */
-
-@ifdef LDV_LINUX_CLASS
-	ldv_linux_class_check_final_state();
-@endif /* LDV_LINUX_CLASS */
-
-@ifdef LDV_LINUX_CHRDEV
-	ldv_linux_chrdev_check_final_state();
-@endif /* LDV_LINUX_CHRDEV */
-
-@ifdef LDV_LINUX_USB_GADGET
-	ldv_linux_usb_gadget_check_final_state();
+@if defined(LDV_LINUX_DRIVERS_BASE_CLASS) && defined(LDV_LINUX_USB_GADGET)
+	void *res1 = ldv_linux_drivers_base_class_create_class();
+	void *res2 = ldv_linux_usb_gadget_create_class();
+	ldv_assume(res1 == res2);
+	return res1;
+@elif defined(LDV_LINUX_DRIVERS_BASE_CLASS)
+	return ldv_linux_drivers_base_class_create_class();
+@elif defined(LDV_LINUX_USB_GADGET)
+	return ldv_linux_usb_gadget_create_class();
 @endif /* LDV_LINUX_USB_GADGET */
-
-@ifdef LDV_LINUX_BLK_REQUEST
-	ldv_linux_blk_request_check_final_state();
-@endif /* LDV_LINUX_BLK_REQUEST */
-
-@ifdef LDV_LINUX_RCULOCK
-	ldv_linux_rculock_check_final_state();
-@endif /* LDV_LINUX_RCULOCK */
-
-@ifdef LDV_LINUX_RCULOCKBH
-	ldv_linux_rculockbh_check_final_state();
-@endif /* LDV_LINUX_RCULOCKBH */
-
-@ifdef LDV_LINUX_RCULOCKSCHED
-	ldv_linux_rculocksched_check_final_state();
-@endif /* LDV_LINUX_RCULOCKSCHED */
-
-@ifdef LDV_LINUX_SRCULOCK
-	ldv_linux_srculock_check_final_state();
-@endif /* LDV_LINUX_SRCULOCK */
-
-@ifdef LDV_LINUX_SOCK
-	ldv_linux_sock_check_final_state();
-@endif /* LDV_LINUX_SOCK */
-
-@ifdef LDV_LINUX_RTNL
-	ldv_linux_rtnl_check_final_state();
-@endif /* LDV_LINUX_RTNL */
-
-@ifdef LDV_LINUX_SYSFS
-	ldv_linux_sysfs_check_final_state();
-@endif /* LDV_LINUX_SYSFS */
-
-@ifdef LDV_LINUX_IOMEM
-	ldv_linux_iomem_check_final_state();
-@endif /* LDV_LINUX_IOMEM */
-
-@ifdef LDV_LINUX_IDR
-	ldv_linux_idr_check_final_state();
-@endif /* LDV_LINUX_IDR */
-
-@ifdef LDV_LINUX_GENDISK
-	ldv_linux_gendisk_check_final_state();
-@endif /* LDV_LINUX_GENDISK */
-
-@ifdef LDV_LINUX_BLK_QUEUE
-	ldv_linux_blk_queue_check_final_state();
-@endif /* LDV_LINUX_BLK_QUEUE */
 }
 
-before: call(void ldv_pre_probe(..)) ||
-        call(int ldv_post_init(..))
+int ldv_register_class(void)
 {
+@if defined(LDV_LINUX_DRIVERS_BASE_CLASS) && defined(LDV_LINUX_USB_GADGET)
+	int res1 = ldv_linux_drivers_base_class_register_class();
+	int res2 = ldv_linux_usb_gadget_register_class();
+	ldv_assume(res1 == res2);
+	return res1;
+@elif defined(LDV_LINUX_DRIVERS_BASE_CLASS)
+	return ldv_linux_drivers_base_class_register_class();
+@elif defined(LDV_LINUX_USB_GADGET)
+	return ldv_linux_usb_gadget_register_class();
+@endif /* LDV_LINUX_USB_GADGET */
+}
+}
+
+around: call(void ldv_initialize(void))
+{
+@ifdef LDV_LINUX_LIB_FIND_BIT
+	ldv_linux_lib_find_bit_initialize();
+@endif /* LDV_LINUX_LIB_FIND_BIT */
+}
+
+before: call(int ldv_post_init(..)) ||
+        call(void ldv_pre_probe(..))
+{
+@ifdef LDV_LINUX_NET_REGISTER
+	ldv_linux_net_register_reset_error_counter();
+@endif /* LDV_LINUX_NET_REGISTER */
+
 @ifdef LDV_LINUX_USB_REGISTER
 	ldv_linux_usb_register_reset_error_counter();
 @endif /* LDV_LINUX_USB_REGISTER */
-
-@ifdef LDV_LINUX_NETDEV
-	ldv_linux_netdev_reset_error_counter();
-@endif /* LDV_LINUX_NETDEV */
 }
 
 before: call(int ldv_post_probe(int retval))
 {
+@ifdef LDV_LINUX_NET_REGISTER
+	ldv_linux_net_register_check_return_value_probe(retval);
+@endif /* LDV_LINUX_NET_REGISTER */
+
 @ifdef LDV_LINUX_USB_REGISTER
 	ldv_linux_usb_register_check_return_value_probe(retval);
 @endif /* LDV_LINUX_USB_REGISTER */
-
-@ifdef LDV_LINUX_NETDEV
-	ldv_linux_netdev_check_return_value_probe(retval);
-@endif /* LDV_LINUX_NETDEV */
 }
 
-around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
+@if defined(LDV_LINUX_DRIVERS_BASE_CLASS) || defined(LDV_LINUX_USB_GADGET)
+around: define(class_create(owner, name))
 {
-@ifdef LDV_LINUX_USB_URB
-	struct urb *res = ldv_linux_usb_urb_usb_alloc_urb();
-	/* TODO: why this is modelled here? */
-	ldv_assume(!ldv_is_err(res));
-@endif /* LDV_LINUX_USB_URB */
+ldv_create_class()
+}
 
-@ifdef LDV_LINUX_ALLOC_IRQ
-	ldv_linux_alloc_irq_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_IRQ */
+around: define(class_register(class))
+{
+ldv_register_class()
+}
+@endif /* LDV_LINUX_DRIVERS_BASE_CLASS || LDV_LINUX_USB_GADGET */
 
-@ifdef LDV_LINUX_ALLOC_USB_LOCK
-	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
-@endif /* LDV_LINUX_ALLOC_USB_LOCK */
+around: call(void class_destroy(struct class *cls))
+{
+@ifdef LDV_LINUX_DRIVERS_BASE_CLASS
+	ldv_linux_drivers_base_class_destroy_class(cls);
+@endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
 
-@ifdef LDV_LINUX_USB_URB
-	return res;
-@endif /* LDV_LINUX_USB_URB */
+@ifdef LDV_LINUX_USB_GADGET
+	ldv_linux_usb_gadget_destroy_class(cls);
+@endif /* LDV_LINUX_USB_GADGET */
+}
+
+after: call(void class_unregister(..))
+{
+@ifdef LDV_LINUX_DRIVERS_BASE_CLASS
+	ldv_linux_drivers_base_class_unregister_class();
+@endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
+
+@ifdef LDV_LINUX_USB_GADGET
+	ldv_linux_usb_gadget_unregister_class();
+@endif /* LDV_LINUX_USB_GADGET */
+}
+
+after: call(int alloc_chrdev_region(..)) ||
+       call(int register_chrdev_region(..))
+{
+@if defined(LDV_LINUX_FS_CHAR_DEV) && defined(LDV_LINUX_USB_GADGET)
+	int res1 = ldv_linux_fs_char_dev_register_chrdev_region();
+	int res2 = ldv_linux_usb_gadget_register_chrdev_region();
+	ldv_assume(res1 == res2);
+	return res1;
+@elif defined(LDV_LINUX_FS_CHAR_DEV)
+	return ldv_linux_fs_char_dev_register_chrdev_region();
+@elif defined(LDV_LINUX_USB_GADGET)
+	return ldv_linux_usb_gadget_register_chrdev_region();
+@endif /* LDV_LINUX_USB_GADGET */
+}
+
+after: execution(static inline int register_chrdev(unsigned int major, ..))
+{
+@if defined(LDV_LINUX_FS_CHAR_DEV) && defined(LDV_LINUX_USB_GADGET)
+	int res1 = ldv_linux_fs_char_dev_register_chrdev(major);
+	int res2 = ldv_linux_usb_gadget_register_chrdev(major);
+	ldv_assume(res1 == res2);
+	return res1;
+@elif defined(LDV_LINUX_FS_CHAR_DEV)
+	return ldv_linux_fs_char_dev_register_chrdev(major);
+@elif defined(LDV_LINUX_USB_GADGET)
+	return ldv_linux_usb_gadget_register_chrdev(major);
+@endif /* LDV_LINUX_USB_GADGET */
+}
+
+after: call(void unregister_chrdev_region(..)) ||
+       execution(static inline void unregister_chrdev(..))
+{
+@ifdef LDV_LINUX_FS_CHAR_DEV
+	ldv_linux_fs_char_dev_unregister_chrdev_region();
+@endif /* LDV_LINUX_FS_CHAR_DEV */
+
+@ifdef LDV_LINUX_USB_GADGET
+	ldv_linux_usb_gadget_unregister_chrdev_region();
+@endif /* LDV_LINUX_USB_GADGET */
 }
 
 around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
@@ -363,84 +347,110 @@ around: call(void *usb_alloc_coherent(.., gfp_t flags, ..))
 @endif /* LDV_LINUX_USB_COHERENT */
 }
 
-@if defined(LDV_LINUX_CLASS) || defined(LDV_LINUX_USB_GADGET)
-around: define(class_create(owner, name))
+around: call(struct urb *usb_alloc_urb(.., gfp_t flags, ..))
 {
-ldv_create_class()
+@ifdef LDV_LINUX_USB_URB
+	struct urb *res = ldv_linux_usb_urb_usb_alloc_urb();
+	/* TODO: why this is modelled here? */
+	ldv_assume(!ldv_is_err(res));
+@endif /* LDV_LINUX_USB_URB */
+
+@ifdef LDV_LINUX_ALLOC_IRQ
+	ldv_linux_alloc_irq_check_alloc_flags(flags);
+@endif /* LDV_LINUX_ALLOC_IRQ */
+
+@ifdef LDV_LINUX_ALLOC_USB_LOCK
+	ldv_linux_alloc_usb_lock_check_alloc_flags(flags);
+@endif /* LDV_LINUX_ALLOC_USB_LOCK */
+
+@ifdef LDV_LINUX_USB_URB
+	return res;
+@endif /* LDV_LINUX_USB_URB */
 }
 
-around: define(class_register(class))
+around: call(void ldv_check_final_state(void))
 {
-ldv_register_class()
-}
-@endif /* LDV_LINUX_CLASS || LDV_LINUX_USB_GADGET */
+@ifdef LDV_LINUX_ARCH_IO
+	ldv_linux_arch_io_check_final_state();
+@endif /* LDV_LINUX_ARCH_IO */
 
-around: call(void class_destroy(struct class *cls))
-{
-@ifdef LDV_LINUX_CLASS
-	ldv_linux_class_destroy_class(cls);
-@endif /* LDV_LINUX_CLASS */
+@ifdef LDV_LINUX_BLOCK_GENHD
+	ldv_linux_block_genhd_check_final_state();
+@endif /* LDV_LINUX_BLOCK_GENHD */
+
+@ifdef LDV_LINUX_BLOCK_QUEUE
+	ldv_linux_block_queue_check_final_state();
+@endif /* LDV_LINUX_BLOCK_QUEUE */
+
+@ifdef LDV_LINUX_BLOCK_REQUEST
+	ldv_linux_block_request_check_final_state();
+@endif /* LDV_LINUX_BLOCK_REQUEST */
+
+@ifdef LDV_LINUX_DRIVERS_BASE_CLASS
+	ldv_linux_drivers_base_class_check_final_state();
+@endif /* LDV_LINUX_DRIVERS_BASE_CLASS */
+
+@ifdef LDV_LINUX_DRIVERS_BASE_DMA_MAPPING
+	ldv_linux_drivers_base_dma_mapping_check_final_state();
+@endif /* LDV_LINUX_DRIVERS_BASE_DMA_MAPPING */
+
+@ifdef LDV_LINUX_FS_CHAR_DEV
+	ldv_linux_fs_char_dev_check_final_state();
+@endif /* LDV_LINUX_FS_CHAR_DEV */
+
+@ifdef LDV_LINUX_FS_SYSFS
+	ldv_linux_fs_sysfs_check_final_state();
+@endif /* LDV_LINUX_FS_SYSFS */
+
+@ifdef LDV_LINUX_KERNEL_LOCKING_RWLOCK
+	ldv_linux_kernel_locking_rwlock_check_final_state();
+@endif /* LDV_LINUX_KERNEL_LOCKING_RWLOCK */
+
+@ifdef LDV_LINUX_KERNEL_MODULE
+	ldv_linux_kernel_module_check_final_state();
+@endif /* LDV_LINUX_KERNEL_MODULE */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH
+	ldv_linux_kernel_rcu_update_lock_bh_check_final_state();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_BH */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED
+	ldv_linux_kernel_rcu_update_lock_sched_check_final_state();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK_SCHED */
+
+@ifdef LDV_LINUX_KERNEL_RCU_UPDATE_LOCK
+	ldv_linux_kernel_rcu_update_lock_check_final_state();
+@endif /* LDV_LINUX_KERNEL_RCU_UPDATE_LOCK */
+
+@ifdef LDV_LINUX_KERNEL_RCU_SRCU
+	ldv_linux_kernel_rcu_srcu_check_final_state();
+@endif /* LDV_LINUX_KERNEL_RCU_SRCU */
+
+@ifdef LDV_LINUX_LIB_IDR
+	ldv_linux_lib_idr_check_final_state();
+@endif /* LDV_LINUX_LIB_IDR */
+
+@ifdef LDV_LINUX_MMC_SDIO_FUNC
+	ldv_linux_mmc_sdio_func_check_final_state();
+@endif /* LDV_LINUX_MMC_SDIO_FUNC */
+
+@ifdef LDV_LINUX_NET_RTNETLINK
+	ldv_linux_net_rtnetlink_check_final_state();
+@endif /* LDV_LINUX_NET_RTNETLINK */
+
+@ifdef LDV_LINUX_NET_SOCK
+	ldv_linux_net_sock_check_final_state();
+@endif /* LDV_LINUX_NET_SOCK */
+
+@ifdef LDV_LINUX_USB_COHERENT
+	ldv_linux_usb_coherent_check_final_state();
+@endif /* LDV_LINUX_USB_COHERENT */
 
 @ifdef LDV_LINUX_USB_GADGET
-	ldv_linux_usb_gadget_destroy_class(cls);
+	ldv_linux_usb_gadget_check_final_state();
 @endif /* LDV_LINUX_USB_GADGET */
-}
 
-after: call(void class_unregister(..))
-{
-@ifdef LDV_LINUX_CLASS
-	ldv_linux_class_unregister_class();
-@endif /* LDV_LINUX_CLASS */
-
-@ifdef LDV_LINUX_USB_GADGET
-	ldv_linux_usb_gadget_unregister_class();
-@endif /* LDV_LINUX_USB_GADGET */
-}
-
-after: call(int alloc_chrdev_region(..)) ||
-       call(int register_chrdev_region(..))
-{
-@if defined(LDV_LINUX_CHRDEV) && defined(LDV_LINUX_USB_GADGET)
-	int res1 = ldv_linux_chrdev_register_chrdev_region();
-	int res2 = ldv_linux_usb_gadget_register_chrdev_region();
-	ldv_assume(res1 == res2);
-	return res1;
-@elif defined(LDV_LINUX_CHRDEV)
-	return ldv_linux_chrdev_register_chrdev_region();
-@elif defined(LDV_LINUX_USB_GADGET)
-	return ldv_linux_usb_gadget_register_chrdev_region();
-@endif /* LDV_LINUX_USB_GADGET */
-}
-
-after: execution(static inline int register_chrdev(unsigned int major, ..))
-{
-@if defined(LDV_LINUX_CHRDEV) && defined(LDV_LINUX_USB_GADGET)
-	int res1 = ldv_linux_chrdev_register_chrdev(major);
-	int res2 = ldv_linux_usb_gadget_register_chrdev(major);
-	ldv_assume(res1 == res2);
-	return res1;
-@elif defined(LDV_LINUX_CHRDEV)
-	return ldv_linux_chrdev_register_chrdev(major);
-@elif defined(LDV_LINUX_USB_GADGET)
-	return ldv_linux_usb_gadget_register_chrdev(major);
-@endif /* LDV_LINUX_USB_GADGET */
-}
-
-after: call(void unregister_chrdev_region(..)) ||
-       execution(static inline void unregister_chrdev(..))
-{
-@ifdef LDV_LINUX_CHRDEV
-	ldv_linux_chrdev_unregister_chrdev_region();
-@endif /* LDV_LINUX_CHRDEV */
-
-@ifdef LDV_LINUX_USB_GADGET
-	ldv_linux_usb_gadget_unregister_chrdev_region();
-@endif /* LDV_LINUX_USB_GADGET */
-}
-
-around: call(void ldv_initialize(void))
-{
-@ifdef LDV_LINUX_BITOPS
-	ldv_linux_bitops_initialize();
-@endif /* LDV_LINUX_BITOPS */
+@ifdef LDV_LINUX_USB_URB
+	ldv_linux_usb_urb_check_final_state();
+@endif /* LDV_LINUX_USB_URB */
 }

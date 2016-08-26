@@ -1,6 +1,26 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 window.collect_jobview_data = function() {
     var data_values = [], filter_values = {},
-        available_data = ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+        available_data = [
+            'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
+            'unsafes_attr_stat', 'safes_attr_stat', 'unknowns_attr_stat'
+        ],
         available_filter_checkboxes = ['unknowns_total', 'unknowns_nomark', 'resource_total'],
         available_filters = ['unknown_component', 'unknown_problem', 'resource_component', 'safe_tag', 'unsafe_tag'];
 
