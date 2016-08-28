@@ -311,6 +311,10 @@ class Enum(Declaration):
 
     def __init__(self, ast):
         self.common_initialization(ast)
+        self.enumerators = []
+
+        if 'enumerators' in self._ast['specifiers']['type specifier']:
+            self.enumerators = self._ast['specifiers']['type specifier']['enumerators']
 
     @property
     def name(self):
@@ -325,10 +329,15 @@ class Enum(Declaration):
         return 'enum_{}'.format(self.name)
 
     def _to_string(self, replacement):
-        if replacement == '':
-            return "enum {}".format(self.name)
+        if not self.name:
+            name = '{ ' + ', '.join(self.enumerators) + ' }'
         else:
-            return "enum {} {}".format(self.name, replacement)
+            name = self.name
+
+        if replacement == '':
+            return "enum {}".format(name)
+        else:
+            return "enum {} {}".format(name, replacement)
 
 
 class Function(Declaration):
