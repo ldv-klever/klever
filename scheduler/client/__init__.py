@@ -188,7 +188,7 @@ def solve_task(conf):
     with open("benchmark.xml", "w", encoding="utf8") as fp:
         fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
 
-    os.makedirs("output")
+    os.makedirs("output".encode("utf8"))
 
     # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
     # around its binary.

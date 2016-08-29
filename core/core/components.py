@@ -67,7 +67,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         if self.separate_from_parent and not os.path.isdir(self.work_dir):
             self.logger.info(
                 'Create working directory "{0}" for component "{1}"'.format(self.work_dir, self.name))
-            os.makedirs(self.work_dir)
+            os.makedirs(self.work_dir.encode('utf8'))
 
         # Actually start process.
         multiprocessing.Process.start(self)

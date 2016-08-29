@@ -182,7 +182,7 @@ class Core(core.utils.CallbacksCaller):
         # - occupy working directory.
         shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['working directory'], exist_ok=True)
+        os.makedirs(self.conf['working directory'].encode('utf8'), exist_ok=True)
 
         check_another_instance()
 

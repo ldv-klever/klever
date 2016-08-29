@@ -85,7 +85,7 @@ class Command:
 
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
-            os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
+            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
             with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
@@ -118,7 +118,7 @@ class Command:
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
 
-            os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
+            os.makedirs(os.path.dirname(full_desc_file).encode('utf8'), exist_ok=True)
 
             full_desc_file_suffix = 2
             while True:
@@ -139,7 +139,7 @@ class Command:
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
 
-        os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.desc_file).encode('utf8'), exist_ok=True)
 
         desc_file_suffix = 2
         while True:

@@ -81,7 +81,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                         or not self.conf["scheduler"]["keep working directory"]):
             logging.info("Clean scheduler working directory {}".format(work_dir))
             shutil.rmtree(work_dir)
-        os.makedirs(work_dir, exist_ok=True)
+        os.makedirs(work_dir.encode("utf8"), exist_ok=True)
 
         if "iteration timeout" in self.conf["scheduler"]:
             self.__iteration_period = self.conf["scheduler"]["iteration timeout"]

@@ -327,7 +327,7 @@ class LKVOG(core.components.Component):
                 self.verification_obj_desc_file))
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
             self.module['name'], self.verification_obj_desc_file))
-        os.makedirs(os.path.dirname(self.verification_obj_desc_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.verification_obj_desc_file).encode('utf8'), exist_ok=True)
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 

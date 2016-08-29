@@ -60,7 +60,7 @@ def common_initialization(tool, conf=None):
         shutil.rmtree(conf["common"]['working directory'], True)
 
     logging.debug("Create working dir: {0}".format(conf["common"]['working directory']))
-    os.makedirs(conf["common"]['working directory'], exist_ok=True)
+    os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
 
     # Go to the working directory to avoid creating files elsewhere
     os.chdir(conf["common"]['working directory'])

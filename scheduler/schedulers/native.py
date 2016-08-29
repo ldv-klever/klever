@@ -176,9 +176,9 @@ class Scheduler(schedulers.SchedulerExchange):
         work_dir = os.path.join(self.work_dir, entities, identifier)
         logging.debug("Create working directory {}/{}".format(entities, identifier))
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir, exist_ok=True)
+            os.makedirs(work_dir.encode("utf8"), exist_ok=True)
         else:
-            os.makedirs(work_dir, exist_ok=False)
+            os.makedirs(work_dir.encode("utf8"), exist_ok=False)
     # TODO: what these functions are intended for?
     def prepare_task(self, identifier, desc):
         self.__check_resource_limits(desc)

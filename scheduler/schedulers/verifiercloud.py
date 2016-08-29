@@ -156,7 +156,7 @@ class Scheduler(schedulers.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         task_data_dir = os.path.join(task_work_dir, "data")
         logging.debug("Make directory for the task to solve {0}".format(task_data_dir))
-        os.makedirs(task_data_dir, exist_ok=True)
+        os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
 
         # Pull the task from the Verification gateway
         archive = os.path.join(task_work_dir, "task.tar.gz")
@@ -252,13 +252,13 @@ class Scheduler(schedulers.SchedulerExchange):
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
         logging.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
-        os.makedirs(task_solution_dir, exist_ok=True)
+        os.makedirs(task_solution_dir.encode("utf8"), exist_ok=True)
         logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
         # Simulate BenchExec behaviour when one input file is provided.
-        os.makedirs(os.path.join(task_solution_dir, "output", "benchmarklogfiles"))
+        os.makedirs(os.path.join(task_solution_dir, "output", "benchmarklogfiles").encode("utf8"))
         shutil.move(os.path.join(task_solution_dir, "output.log"),
                     os.path.join(task_solution_dir, "output", "benchmarklogfiles"))
         solution_description = os.path.join(task_solution_dir, "decision results.json")

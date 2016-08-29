@@ -543,7 +543,7 @@ class AVTG(core.components.Component):
                 if self.abstract_task_descs_num.value else ''))
 
         plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
-        os.makedirs(plugins_work_dir, exist_ok=True)
+        os.makedirs(plugins_work_dir.encode('utf8'), exist_ok=True)
         self.logger.debug('Plugins working directory is "{0}"'.format(plugins_work_dir))
 
         # Initial abstract verification task looks like corresponding verification object.

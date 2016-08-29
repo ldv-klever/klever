@@ -178,7 +178,7 @@ class VTG(core.components.Component):
             work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
                                     self.strategy_name)
-            os.makedirs(work_dir)
+            os.makedirs(work_dir.encode('utf8'))
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc

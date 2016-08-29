@@ -1699,7 +1699,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def __generate_aspects(self):
         aspect_dir = "aspects"
         self.logger.info("Create directory for aspect files {}".format("aspects"))
-        os.makedirs(aspect_dir, exist_ok=True)
+        os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
         for grp in self.task['grps']:
             # Generate function declarations

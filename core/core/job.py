@@ -139,7 +139,7 @@ class Job(core.utils.CallbacksCaller):
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
         if self.name:
-            os.makedirs(self.work_dir)
+            os.makedirs(self.work_dir.encode('utf8'))
 
         # Do not produce any reports until changing directory. Otherwise there can be races between various sub-jobs.
         with core.utils.Cd(self.work_dir if self.name else os.path.curdir):

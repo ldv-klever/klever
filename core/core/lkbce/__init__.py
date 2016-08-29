@@ -479,7 +479,7 @@ class LKBCE(core.components.Component):
 
         linux_kernel_work_src_tree = os.path.realpath(self.linux_kernel['work src tree'])
 
-        os.makedirs('model-headers')
+        os.makedirs('model-headers'.encode('utf8'))
 
         model_cc_opts_and_headers = self.mqs['model cc options and headers'].get()
 
@@ -523,7 +523,7 @@ class LKBCE(core.components.Component):
 
                 if not os.path.isfile(dest_dep):
                     self.logger.debug('Copy model header "{0}"'.format(dep))
-                    os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
+                    os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
                     shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
 
     def __make_canonical_work_src_tree(self, work_src_tree):

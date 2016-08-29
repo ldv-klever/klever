@@ -91,7 +91,7 @@ class Server(server.AbstractServer):
             # Generate ID and prepare dir
             task_id = str(uuid.uuid4())
             task_dir = os.path.join(work_dir, task_id)
-            os.makedirs(task_dir)
+            os.makedirs(task_dir.encode("utf8"))
 
             # Move data
             shutil.copyfile(os.path.join(location, source), os.path.join(task_dir, source))
@@ -156,10 +156,10 @@ class Server(server.AbstractServer):
             shutil.rmtree(self.work_dir, True)
 
             logging.info("Make directory for tasks {0}".format(task_work_dir))
-            os.makedirs(task_work_dir, exist_ok=True)
+            os.makedirs(task_work_dir.encode("utf8"), exist_ok=True)
 
             logging.debug("Create working dir for the test generator: {0}".format(self.work_dir))
-            os.makedirs(self.work_dir, exist_ok=True)
+            os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
             logging.info("Begin task preparation")
             for task_set in self.conf["task prototypes"]:
@@ -174,7 +174,7 @@ class Server(server.AbstractServer):
         logging.info("Clean solution dir for the test generator: {0}".format(self.solution_dir))
         shutil.rmtree(self.solution_dir, True)
         logging.info("Make directory for solutions {0}".format(task_work_dir))
-        os.makedirs(self.solution_dir, exist_ok=True)
+        os.makedirs(self.solution_dir.encode("utf8"), exist_ok=True)
 
     def exchange(self, tasks):
         """

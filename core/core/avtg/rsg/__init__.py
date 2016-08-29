@@ -143,7 +143,7 @@ class RSG(core.avtg.plugins.Plugin):
 
         # CC extra full description files will be put to this directory as well as corresponding intermediate and final
         # output files.
-        os.makedirs('models')
+        os.makedirs('models'.encode('utf8'))
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
         for model_c_file in models:
