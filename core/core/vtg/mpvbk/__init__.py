@@ -23,12 +23,16 @@ class MPVBK(MPV):
 
                     with open(preprocessed_automaton, 'w', encoding='ascii') as fp_out, \
                             open(automaton, encoding='ascii') as fp_in:
+                        cur_state = None
                         for line in fp_in:
+                            res = re.search(r'STATE (\w+)(\s*)(\w+)(\s*):', line)
+                            if res:
+                                cur_state = res.group(3)
                             res = re.search(r'ERROR\(\"(.+)\"\);', line)
                             if res:
                                 current_bug_kind = res.group(1)
                                 if not current_bug_kind == bug_kind:
-                                    line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO Stop;', line)
+                                    line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO {0};'.format(cur_state), line)
                                     self.logger.debug('Removing bug kind {0}'.format(current_bug_kind))
                             res = re.search(r'OBSERVER AUTOMATON (.+)', line)
                             if res:
