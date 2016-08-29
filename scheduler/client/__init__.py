@@ -105,6 +105,7 @@ def solve_job(conf):
     logging.info("Run Klever Core {}".format(bin))
     # Do this for deterministic python in job
     os.environ['PYTHONHASHSEED'] = "0"
+    os.environ['PYTHONIOENCODING'] = "utf8"
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
