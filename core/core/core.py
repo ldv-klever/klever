@@ -49,9 +49,6 @@ class Core(core.utils.CallbacksCaller):
 
     def main(self):
         try:
-            # Use English everywhere below.
-            os.environ['LANG'] = 'C'
-            os.environ['LC_ALL'] = 'C'
             # Remember approximate time of start to count wall time.
             self.start_time = time.time()
             self.get_conf()

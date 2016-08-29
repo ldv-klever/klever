@@ -106,6 +106,9 @@ def solve_job(conf):
     # Do this for deterministic python in job
     os.environ['PYTHONHASHSEED'] = "0"
     os.environ['PYTHONIOENCODING'] = "utf8"
+    os.environ['LC_LANG'] = "en_US"
+    os.environ['LC_ALL'] = "en_US.UTF8"
+    os.environ['LC_C'] = "en_US.UTF8"
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
