@@ -24,10 +24,21 @@ class MPVBK(MPV):
                     with open(preprocessed_automaton, 'w', encoding='ascii') as fp_out, \
                             open(automaton, encoding='ascii') as fp_in:
                         cur_state = None
+
+                        # TODO: in general case there may be more than 1 internal variable
+                        internal_var = None
                         for line in fp_in:
-                            res = re.search(r'STATE (\w+)(\s*)(\w+)(\s*):', line)
+                            # Current pattern for internal vars: ENTRY -> ENCODE {<type> <var><...>}
+                            if not internal_var:
+                                res = re.search(r'ENTRY(\s+)->(\s+)ENCODE(\s+)\{(\w+)(\s+)(\w+)(.*)\}', line)
+                                if res:
+                                    internal_var = res.group(6)
+                            if internal_var:
+                                line = re.sub(internal_var, '{0}_{1}'.format(internal_var, counter), line)
+                            # Current pattern for state declaration: STATE USEALL|USEFIRST <name> :
+                            res = re.search(r'STATE(\s*)(\w+)(\s*)(\w+)(\s*):', line)
                             if res:
-                                cur_state = res.group(3)
+                                cur_state = res.group(4)
                             res = re.search(r'ERROR\(\"(.+)\"\);', line)
                             if res:
                                 current_bug_kind = res.group(1)
