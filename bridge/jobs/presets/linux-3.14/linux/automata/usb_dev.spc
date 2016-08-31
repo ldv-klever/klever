@@ -9,6 +9,7 @@ STATE USEALL Init :
   MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0; ((struct usb_device *)$2) != 0} GOTO Stop;
   MATCH RETURN {$2=ldv_usb_get_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0; ((struct usb_device *)$2) == 0} GOTO Stop;
   
+  MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0} ERROR("linux:usb:dev::unincremented counter decrement");
   MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) != 0} ERROR("linux:usb:dev::less initial decrement");
   MATCH CALL {ldv_usb_put_dev($1)} -> ASSUME {((struct usb_device *)$1) == 0} GOTO Init;
 
