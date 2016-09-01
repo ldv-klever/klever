@@ -20,6 +20,7 @@ import os
 import shutil
 import json
 import concurrent.futures
+import multiprocessing
 import subprocess
 import requests
 import consulate
@@ -39,13 +40,15 @@ class Scheduler(schedulers.SchedulerExchange):
     __disk_memory = None
     __disk_memory = None
     __pool = None
-    __job_conf_prototype = {}
-    __task_conf_prototype = {}
+    __job_conf_prototype = dict()
+    __task_conf_prototype = dict()
     __reserved_ram_memory = 0
     __reserved_disk_memory = 0
     __running_tasks = 0
     __running_jobs = 0
     __reserved = {"jobs": {}, "tasks": {}}
+    __job_processes = dict()
+    __task_processes = dict()
 
     def launch(self):
         """Start scheduler loop."""
@@ -97,6 +100,9 @@ class Scheduler(schedulers.SchedulerExchange):
                 if not os.path.isfile(self.conf["scheduler"]["verification tools"][tool][version]):
                     raise ValueError("Cannot find script {} for verifier {} of the version {}".
                                      format(self.conf["scheduler"]["verification tools"][tool][version], tool, version))
+
+        # Check client bin
+        self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
         return super(Scheduler, self).launch()
 
@@ -155,192 +161,91 @@ class Scheduler(schedulers.SchedulerExchange):
 
         return new_tasks, new_jobs
 
-    def __check_resource_limits(self, desc):
-        logging.debug("Check resource limits")
-
-        if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
-            raise schedulers.SchedulerException(
-                "Host CPU model is not {} (has only {})".
-                    format(desc["resource limits"]["CPU model"], self.__cpu_model))
-
-        if desc["resource limits"]["memory size"] > self.__ram_memory:
-            raise schedulers.SchedulerException(
-                "Host does not have {} bytes of RAM memory (has only {} bytes)".
-                    format(desc["resource limits"]["memory size"], self.__ram_memory))
-
-            # TODO: Disk space check
-            # TODO: number of CPU cores check
-
-
-    def __create_work_dir(self, entities, identifier):
-        work_dir = os.path.join(self.work_dir, entities, identifier)
-        logging.debug("Create working directory {}/{}".format(entities, identifier))
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            os.makedirs(work_dir.encode("utf8"), exist_ok=True)
-        else:
-            os.makedirs(work_dir.encode("utf8"), exist_ok=False)
-    # TODO: what these functions are intended for?
-    def prepare_task(self, identifier, desc):
-        self.__check_resource_limits(desc)
-        self.__create_work_dir('tasks', identifier)
-
-    def prepare_job(self, identifier, desc):
+    def prepare_task(self, identifier, configuration):
         """
-        Prepare working directory before starting solution.
+        Prepare working directory with input files before starting a solution.
+
         :param identifier: Verification task identifier.
+        :param configuration: Task configuration.
+        """
+        self.__prepare_solution(identifier, configuration, mode='task')
+
+    def prepare_job(self, identifier, configuration):
+        """
+        Prepare working directory with input files before starting a solution.
+
+        :param identifier: Job identifier.
         :param configuration: Job configuration.
         """
-        self.__check_resource_limits(desc)
-        self.__create_work_dir('jobs', identifier)
+        self.__prepare_solution(identifier, configuration, mode='job')
 
-    def solve_task(self, identifier, desc, user, password):
-        # TODO: copy-paste from solve_job(). But it is worse. First we need to perform all preparation in prepare_job/task(). Second we shouldn't pass so many command-line arguments. Instead they could be stored in file, that has either default name or its name could be passed to client.
-        client_conf = self.__task_conf_prototype.copy()
-        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-        client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
-        client_conf["identifier"] = identifier
-        client_conf["common"]["working directory"] = task_work_dir
-        with open(os.path.join(task_work_dir, "task.json"), "w", encoding="utf8") as fp:
-            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
-        for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
-            client_conf[name] = desc[name]
-        # Property file may not be specified.
-        if "property file" in desc:
-            client_conf["property file"] = desc["property file"]
-        with open(os.path.join(task_work_dir, 'client.json'), 'w', encoding="utf8") as fp:
-            json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+    def solve_task(self, identifier, configuration, user, password):
+        """
+        Solve given verification task.
 
-        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
-
-        args = [client_bin, "TASK", json.dumps(client_conf, ensure_ascii=False, sort_keys=True, indent=4)]
-
-        logging.debug("Start task: {}".format(str(args)))
-
-        return self.__pool.submit(subprocess.call, args)
+        :param identifier: Task identifier.
+        :param configuration: Task configuration.
+        :param user: Username.
+        :param password: Password.
+        :return: Return Future object.
+        """
+        logging.debug("Start solution of task {}".format(identifier))
+        return self.__pool.submit(self.__execute, self.__task_processes[identifier])
 
     def solve_job(self, identifier, configuration):
         """
-        Solve given verification task.
+        Solve given verification job.
+
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
         """
-        logging.info("Going to start execution of the job {}".format(identifier))
-
-        # Generate configuration
-        klever_core_conf = configuration.copy()
-        del klever_core_conf["resource limits"]
-        klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
-        klever_core_conf["working directory"] = "klever-core-work-dir"
-        self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
-
-        client_conf = self.__job_conf_prototype.copy()
-        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-        logging.debug("Use working directory {} for job {}".format(job_work_dir, identifier))
-        client_conf["common"]["working directory"] = job_work_dir
-        client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
-        client_conf["resource limits"] = configuration["resource limits"]
-
-        # Prepare command
-        client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
-        args = [client_bin, "JOB", json.dumps(client_conf, ensure_ascii=False, sort_keys=True, indent=4)]
-        logging.debug("Start job: {}".format(str(args)))
-
-        return self.__pool.submit(subprocess.call, args)
+        logging.debug("Start solution of job {}".format(identifier))
+        return self.__pool.submit(self.__execute, self.__job_processes[identifier])
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
         super(Scheduler, self).flush()
 
     def process_task_result(self, identifier, future):
-        # TODO: merge with process_job_result().
-        # Job finished and resources should be marked as released
-        self.__reserved_ram_memory -= self.__reserved["tasks"][identifier]["memory size"]
-        self.__running_tasks -= 1
-        del self.__reserved["tasks"][identifier]
-
-        if "keep working directory" not in self.conf["scheduler"] or \
-                not self.conf["scheduler"]["keep working directory"]:
-            task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-            logging.debug("Clean task working directory {} for {}".format(task_work_dir, identifier))
-            shutil.rmtree(task_work_dir)
-
-        try:
-            result = future.result()
-            if result == 0:
-                return "FINISHED"
-            else:
-                error_msg = "Task finished with non-zero exit code: {}".format(result)
-                raise schedulers.SchedulerException(error_msg)
-        except Exception as err:
-            # TODO: this error holds some useless text.
-            error_msg = "Task {} terminated with an exception: {}".format(identifier, err)
-            logging.warning(error_msg)
-            raise schedulers.SchedulerException(error_msg)
-
-    def process_job_result(self, identifier, future):
         """
-        Process result and send results to the server.
+        Process task execution result, clean working directory and mark resources as released.
+
         :param identifier: Job identifier.
         :param future: Future object.
         :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
-        # Job finished and resources should be marked as released
-        self.__reserved_ram_memory -= self.__reserved["jobs"][identifier]["memory size"]
-        self.__running_jobs -= 1
-        del self.__reserved["jobs"][identifier]
+        return self.__check_solution(identifier, future, mode='task')
 
-        if "keep working directory" not in self.conf["scheduler"] or \
-                not self.conf["scheduler"]["keep working directory"]:
-            job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-            logging.debug("Clean job working directory {} for {}".format(job_work_dir, identifier))
-            shutil.rmtree(job_work_dir)
-
-        try:
-            result = future.result()
-            if result == 0:
-                return "FINISHED"
-            else:
-                error_msg = "Job finished with non-zero exit code: {}".format(result)
-                raise schedulers.SchedulerException(error_msg)
-        except Exception as err:
-            # TODO: this error holds some useless text.
-            error_msg = "Job {} terminated with an exception: {}".format(identifier, err)
-            logging.warning(error_msg)
-            raise schedulers.SchedulerException(error_msg)
-
-    def cancel_task(self, identifier):
-        # TODO: merge with cancel_job()
-        super(Scheduler, self).cancel_task(identifier)
-
-        logging.debug("Mark resources reserved for task {} as free".format(identifier))
-        self.__reserved_ram_memory -= self.__reserved["tasks"][identifier]["memory size"]
-        self.__running_tasks -= 1
-        del self.__reserved["tasks"][identifier]
-
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            return
-        task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
-        logging.debug("Clean job working directory {} for {}".format(task_work_dir, identifier))
-        shutil.rmtree(task_work_dir)
-
-    def cancel_job(self, identifier):
+    def process_job_result(self, identifier, future):
         """
-        Stop task solution.
-        :param identifier: Verification task ID.
+        Process job execution result, clean working directory and mark resources as released.
+
+        :param identifier: Job identifier.
+        :param future: Future object.
+        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
-        super(Scheduler, self).cancel_job(identifier)
+        return self.__check_solution(identifier, future, mode='job')
 
-        logging.debug("Mark resources reserved for job {} as free".format(identifier))
-        self.__reserved_ram_memory -= self.__reserved["jobs"][identifier]["memory size"]
-        self.__running_jobs -= 1
-        del self.__reserved["jobs"][identifier]
+    def cancel_task(self, identifier, future):
+        """
+        Cancel task and then get result, clean working directory and mark resources as released.
 
-        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            return
-        job_work_dir = os.path.join(self.work_dir, "jobs", identifier)
-        logging.debug("Clean job working directory {} for {}".format(job_work_dir, identifier))
-        shutil.rmtree(job_work_dir)
+        :param identifier: Task identifier.
+        :param future: Future object.
+        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        """
+        return self.__cancel_solution(identifier, future, mode='task')
+
+    def cancel_job(self, identifier, future):
+        """
+        Cancel job and then get result, clean working directory and mark resources as released.
+
+        :param identifier: Task identifier.
+        :param future: Future object.
+        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        """
+        return self.__cancel_solution(identifier, future, mode='job')
 
     def terminate(self):
         """
@@ -422,6 +327,211 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Dictionary with available verification tools.
         """
         pass
+
+    def __prepare_solution(self, identifier, configuration, mode='task'):
+        """
+        Generate working directory, configuration files and multiprocessing Process object to be ready to just run it.
+
+        :param identifier: Job or task identifier.
+        :param configuration: Dictionary.
+        :param mode: 'task' or 'job'.
+        :return: None
+        """
+        logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
+        self.__check_resource_limits(configuration)
+        if mode == 'task':
+            subdir = 'tasks'
+            args = [self.__client_bin, "TASK"]
+            client_conf = self.__task_conf_prototype.copy()
+        else:
+            subdir = 'jobs'
+            args = [self.__client_bin, "JOB"]
+            client_conf = self.__job_conf_prototype.copy()
+        self.__create_work_dir(subdir, identifier)
+        client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
+        client_conf["identifier"] = identifier
+        work_dir = os.path.join(self.work_dir, subdir, identifier)
+        file_name = os.path.join(work_dir, 'client.json')
+        args.extend(['--file', file_name])
+        self.__reserved[subdir][identifier] = dict()
+        process = multiprocessing.Process(None, subprocess.call, identifier, [args])
+
+        if mode == 'task':
+            client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
+            client_conf["identifier"] = identifier
+            client_conf["common"]["working directory"] = work_dir
+            with open(os.path.join(work_dir, "task.json"), "w", encoding="utf8") as fp:
+                json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
+            for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
+                client_conf[name] = configuration[name]
+            # Property file may not be specified.
+            if "property file" in configuration:
+                client_conf["property file"] = configuration["property file"]
+
+            self.__task_processes[identifier] = process
+        else:
+            klever_core_conf = configuration.copy()
+            del klever_core_conf["resource limits"]
+            klever_core_conf["Klever Bridge"] = self.conf["Klever Bridge"]
+            klever_core_conf["working directory"] = "klever-core-work-dir"
+            self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
+            client_conf["common"]["working directory"] = work_dir
+            client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
+            client_conf["resource limits"] = configuration["resource limits"]
+
+            self.__job_processes[identifier] = process
+
+        with open(file_name, 'w', encoding="utf8") as fp:
+            json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+    def __yield_future_result(self, future, identifier, mode):
+        """
+        Try to get result yielded by a future object.
+
+        :param future: Future object.
+        :param identifier: Identifier string.
+        :param mode: 'job' ot 'task'
+        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        """
+        try:
+            result = future.result()
+            if result == 0:
+                return "FINISHED"
+            else:
+                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier, result)
+                logging.warning(error_msg)
+                raise schedulers.SchedulerException(error_msg)
+        except Exception as err:
+            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
+
+    def __check_solution(self, identifier, future, mode='task'):
+        """
+        Process results of task or job solution.
+
+        :param identifier: Job or task identifier.
+        :param future: Future object.
+        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        """
+        logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
+        self.__postprocess_solution(identifier, mode)
+        return self.__yield_future_result(future, identifier, mode)
+
+    def __cancel_solution(self, identifier, future, mode='task'):
+        """
+        Terminate process solving a process or a task, mark resources as released, clean working directory.
+
+        :param identifier: Identifier of a job or a task.
+        :param future: Future object.
+        :param mode: 'task' or 'job'.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        """
+        logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
+        if mode == 'task':
+            process = self.__task_processes[identifier]
+        else:
+            process = self.__job_processes[identifier]
+        if process and process.pid:
+            try:
+                process.terminate()
+            except Exception:
+                logging.warning('Cannot terminate process {}'.format(process.pid))
+            process.join()
+        self.__postprocess_solution(identifier, mode)
+
+        # Get result of the future object
+        return self.__yield_future_result(future, identifier, mode)
+
+    def __postprocess_solution(self, identifier, mode):
+        """
+        Mark resources as released, clean working directory
+
+        :param identifier: Job or task identifier
+        :param mode: 'task' or 'job'.
+        :return: None
+        """
+        if mode == 'task':
+            subdir = 'tasks'
+            self.__running_tasks -= 1
+            del self.__task_processes[identifier]
+        else:
+            subdir = 'jobs'
+            self.__running_jobs -= 1
+            del self.__job_processes[identifier]
+        # Mark resources as released
+        self.__reserved_ram_memory -= self.__reserved[subdir][identifier]["memory size"]
+        del self.__reserved[subdir][identifier]
+
+        # Clean working directory
+        if "keep working directory" not in self.conf["scheduler"] or \
+                not self.conf["scheduler"]["keep working directory"]:
+            work_dir = os.path.join(self.work_dir, subdir, identifier)
+            logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
+            shutil.rmtree(work_dir)
+
+    @staticmethod
+    def __execute(process):
+        """
+        Common implementation for running of a multiprocessing process and waiting till its termination.
+
+        :param process: multiprocessing.Process
+        :return: None
+        """
+        process.start()
+        if process.pid:
+            process.join()
+            ec = process.exitcode
+            if ec is not None:
+                if ec == 0:
+                    return 0
+                else:
+                    if ec < 0:
+                        error_msg = 'Process {} killed by a signal {}'.\
+                                    format(process.pid, str(-ec))
+                    else:
+                        error_msg = 'Process {} exited with a non-zero exit code {}'.\
+                                    format(process.pid, str(ec))
+                    raise schedulers.SchedulerException(error_msg)
+        else:
+            raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
+
+    def __check_resource_limits(self, desc):
+        """
+        Check resource limitations provided with a job or a task configuration to be sure that it can be launched.
+
+        :param desc: Configuration dictionary.
+        :return: None
+        """
+        logging.debug("Check resource limits")
+
+        if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
+            raise schedulers.SchedulerException(
+                "Host CPU model is not {} (has only {})".
+                    format(desc["resource limits"]["CPU model"], self.__cpu_model))
+
+        if desc["resource limits"]["memory size"] > self.__ram_memory:
+            raise schedulers.SchedulerException(
+                "Host does not have {} bytes of RAM memory (has only {} bytes)".
+                    format(desc["resource limits"]["memory size"], self.__ram_memory))
+
+            # TODO: Disk space check
+            # TODO: number of CPU cores check
+
+    def __create_work_dir(self, entities, identifier):
+        """
+        Create working directory for a job or a task.
+
+        :param entities: Internal subdirectory name.
+        :param identifier: Job or task identifier string.
+        :return: None
+        """
+        work_dir = os.path.join(self.work_dir, entities, identifier)
+        logging.debug("Create working directory {}/{}".format(entities, identifier))
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            os.makedirs(work_dir.encode("utf8"), exist_ok=True)
+        else:
+            os.makedirs(work_dir.encode("utf8"), exist_ok=False)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
