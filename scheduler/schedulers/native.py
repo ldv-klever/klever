@@ -297,10 +297,10 @@ class Scheduler(schedulers.SchedulerExchange):
                     "status": "HEALTHY",
                     "workload": {
                         "reserved CPU number": 0,
-                        "reserved RAM memory": 0,
+                        "reserved RAM memory": self.__reserved_ram_memory,
                         "reserved disk memory": 0,
-                        "running verification jobs": 0,
-                        "running verification tasks": 0,
+                        "running verification jobs": self.__running_jobs,
+                        "running verification tasks": self.__running_tasks,
                         "available for jobs": node_status["available for jobs"],
                         "available for tasks": node_status["available for tasks"],
                     }
