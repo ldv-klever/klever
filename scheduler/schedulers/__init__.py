@@ -255,7 +255,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                                            scheduler_state["tasks"]["processing"])
                                 if task_id not in
                                 set(server_state["tasks"]["pending"] + scheduler_state["tasks"]["processing"])]:
-                    logging.debug("Cancel task {} with status {}".format(task_id, self.__tasks[task_id]))
+                    logging.debug("Cancel task {} with status {}".format(task_id, self.__tasks[task_id]['status']))
                     if "future" in self.__tasks[task_id]:
                         cancelled = self.__tasks[task_id]["future"].cancel()
                         if not cancelled:
@@ -267,7 +267,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                ["PENDING", "PROCESSING"] and
                                (job_id not in set(server_state["jobs"]["pending"]+server_state["jobs"]["processing"])
                                 or job_id in server_state["jobs"]["cancelled"])]:
-                    logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]))
+                    logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]['status']))
                     if "future" in self.__jobs[job_id]:
                         cancelled = self.__jobs[job_id]["future"].cancel()
                         if not cancelled:
@@ -369,19 +369,34 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     for job_id in jobs_to_start:
                         if "future" in self.__jobs[job_id] or self.__jobs[job_id]["status"] != "PENDING":
                             raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
-                        self.__jobs[job_id]["future"] = self.solve_job(job_id, self.__jobs[job_id]["configuration"])
-                        logging.info("Submitted job {}".format(job_id))
+                        try:
+                            self.__jobs[job_id]["future"]\
+                                = self.__attempts(self.solve_job, 3, 'start job {}'.format(job_id),
+                                                  (job_id,
+                                                   self.__jobs[job_id]["configuration"]))
+                        except SchedulerException as err:
+                            msg = "Cannot start job {}: {}".format(job_id, err)
+                            logging.warning(msg)
+                            self.__jobs[job_id]["status"] = "ERROR"
+                            self.__jobs[job_id]["error"] = msg
 
                     for task_id in tasks_to_start:
                         # This check is very helpful for debugging
                         if "future" in self.__tasks[task_id] or self.__tasks[task_id]["status"] != "PENDING":
                             raise ValueError("Attempt to scheduler running or processed task {}".format(task_id))
-                        self.__tasks[task_id]["future"] = self.solve_task(task_id,
-                                                                          self.__tasks[task_id]["description"],
-                                                                          self.__tasks[task_id]["user"],
-                                                                          self.__tasks[task_id]["password"])
-                        logging.info("Submitted task {}".format(task_id))
-                        self.__tasks[task_id]["status"] = "PROCESSING"
+                        try:
+                            self.__tasks[task_id]["future"]\
+                                = self.__attempts(self.solve_task, 3, 'start task {}'.format(task_id),
+                                                  (task_id,
+                                                   self.__tasks[task_id]["description"],
+                                                   self.__tasks[task_id]["user"],
+                                                   self.__tasks[task_id]["password"]))
+                            self.__tasks[task_id]["status"] = "PROCESSING"
+                        except SchedulerException as err:
+                            msg = "Cannot start task {}: {}".format(task_id, err)
+                            logging.warning(msg)
+                            self.__tasks[task_id]["status"] = "ERROR"
+                            self.__tasks[task_id]["error"] = msg
 
                     # Flushing tasks
                     logging.debug("Flush submitted tasks and jobs if necessary")
@@ -553,6 +568,24 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             logging.error("Cannot process results of task {}: {}".format(identifier, err))
             item["status"] = "ERROR"
             item["error"] = err
+
+    def __attempts(self, handler, attempts, action, args):
+        result = None
+        error = None
+        while attempts > 0:
+            try:
+                logging.info("Try to {}".format(action))
+                result = handler(*args)
+                break
+            except Exception as err:
+                logging.error("Failed to {}: {}".format(action, err))
+                time.sleep(30)
+                attempts -= 1
+                error = err
+        if attempts == 0 and error:
+            raise SchedulerException(error)
+
+        return result
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

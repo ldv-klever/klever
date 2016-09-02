@@ -404,6 +404,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param mode: 'job' ot 'task'
         :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
+        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             result = future.result()
             if result == 0:
@@ -446,6 +447,7 @@ class Scheduler(schedulers.SchedulerExchange):
         if process and process.pid:
             try:
                 os.kill(process.pid, signal.SIGTERM)
+                logging.debug("Wait till {} {} become terminated".format(mode, identifier))
                 process.join()
             except Exception as err:
                 logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
