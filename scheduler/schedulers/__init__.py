@@ -47,12 +47,6 @@ class SchedulerException(RuntimeError):
 class SchedulerExchange(metaclass=abc.ABCMeta):
     """Class provide general scheduler API."""
 
-    __tasks = {}
-    __jobs = {}
-    __nodes = None
-    __tools = None
-    __iteration_period = 1
-
     @staticmethod
     @abc.abstractstaticmethod
     def scheduler_type():
@@ -68,13 +62,28 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         self.conf = conf
         self.work_dir = os.path.abspath(work_dir)
-        self.server = get_gateway(conf, os.path.join(work_dir, "requests"))
+        self.init_scheduler()
+
+    @abc.abstractmethod
+    def init_scheduler(self):
+        self.__tasks = {}
+        self.__jobs = {}
+        self.__nodes = None
+        self.__tools = None
+        self.__iteration_period = 1
+        self.server = get_gateway(self.conf, os.path.join(self.work_dir, "requests"))
 
         # Check configuration completeness
         logging.debug("Check whether configuration contains all necessary data")
 
         # Initialize interaction
         self.server.register(self.scheduler_type())
+
+        # Reinitialization flag
+        if "production" in self.conf["scheduler"] and self.conf["scheduler"]["production"]:
+            self.production = True
+        else:
+            self.production = False
 
         # Clean working directory
         if os.path.isdir(self.work_dir) and ("keep working directory" not in self.conf["scheduler"]
@@ -86,7 +95,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         if "iteration timeout" in self.conf["scheduler"]:
             self.__iteration_period = self.conf["scheduler"]["iteration timeout"]
 
-        logging.info("Scheduler initialization has been successful")
+        logging.info("Scheduler base initialization has been successful")
 
     def __sort_priority(self, task):
         """
@@ -106,12 +115,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         else:
             raise ValueError("Unknown priority: {}".format(priority))
 
-    @abc.abstractmethod
     def launch(self):
         """Start scheduler loop."""
         logging.info("Start scheduler loop")
-        try:
-            while True:
+        while True:
+            try:
                 # Prepare scheduler state
                 logging.info("Start scheduling iteration with statuses exchange with the server")
                 scheduler_state = {
@@ -173,7 +181,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     if task_id in server_state["tasks"]["processing"]:
                         logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
                         server_state["tasks"]["processing"].remove(task_id)
-                        
+
                 # Ignore jobs which have been finished or cancelled
                 for job_id in [job_id for job_id in self.__jobs
                                if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
@@ -383,15 +391,26 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
                 logging.debug("Scheduler iteration has finished")
                 time.sleep(self.__iteration_period)
-        except KeyboardInterrupt:
-            logging.error("Scheduler execution is interrupted, cancel all running threads")
-            self.terminate()
-            exit(137)
+            except KeyboardInterrupt:
+                logging.error("Scheduler execution is interrupted, cancel all running threads")
+                self.terminate()
+                exit(137)
+            except Exception as err:
+                logging.error("An error occured: {}".format(err))
+                self.terminate()
+                if self.production:
+                    logging.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
+                    time.sleep(30)
+                    self.init_scheduler()
+                else:
+                    exit(1)
+
 
     @abc.abstractmethod
     def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
+
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
         :param processing_tasks: List with currently ongoing tasks.
@@ -405,6 +424,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def prepare_task(self, identifier, description):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
         """
@@ -414,6 +434,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
@@ -423,6 +444,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
+
         :param identifier: Verification task identifier.
         :param description: Verification task description dictionary.
         :param user: User name.
@@ -435,6 +457,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def solve_job(self, identifier, configuration):
         """
         Solve given verification task.
+
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
@@ -449,6 +472,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def process_task_result(self, identifier, future):
         """
         Process result and send results to the server.
+
         :param identifier:
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
@@ -459,6 +483,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def process_job_result(self, identifier, future):
         """
         Process result and send results to the server.
+
         :param identifier:
         :param future: Future object.
         :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
@@ -480,6 +505,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def cancel_task(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
@@ -489,8 +515,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def terminate(self):
         """
-        Abort solution of all running tasks and any other actions before
-        termination.
+        Abort solution of all running tasks and any other actions before termination.
         """
         # Stop tasks
         for task_id in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"]
@@ -504,8 +529,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes and
-        push it to the server.
+        Update statuses and configurations of available nodes and push it to the server.
 
         :return: Return True if nothing has changes
         """
@@ -514,8 +538,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_tools(self):
         """
-        Generate dictionary with verification tools available and
-        push it to the verification gate.
+        Generate dictionary with verification tools available and push it to the verification gate.
         """
         return
 

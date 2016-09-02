@@ -51,8 +51,9 @@ class Scheduler(schedulers.SchedulerExchange):
     __job_processes = dict()
     __task_processes = dict()
 
-    def launch(self):
-        """Start scheduler loop."""
+    def init_scheduler(self):
+        """Do VerifierCloud specific initialization"""
+        super(Scheduler, self).init_scheduler()
 
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
@@ -104,8 +105,6 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
-
-        return super(Scheduler, self).launch()
 
     @staticmethod
     def scheduler_type():

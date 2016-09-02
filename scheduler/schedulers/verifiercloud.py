@@ -102,8 +102,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
     wi = None
 
-    def launch(self):
-        """Start scheduler loop."""
+    def init_scheduler(self):
+        """Do VerifierCloud specific initialization"""
+        super(Scheduler, self).init_scheduler()
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
@@ -116,8 +117,6 @@ class Scheduler(schedulers.SchedulerExchange):
         from webclient import WebInterface
         self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
-        return super(Scheduler, self).launch()
-
     @staticmethod
     def scheduler_type():
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
@@ -125,7 +124,8 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
-        Get list of new tasks which can be launched during current scheduler iteration.
+        Get list of new tasks which can be launched during the current scheduler iteration.
+
         :param pending_tasks: List with all pending tasks.
         :param processing_tasks: List with currently ongoing tasks.
         :param sorter: Function which can by used for sorting tasks according to their priorities.
@@ -149,6 +149,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def prepare_task(self, identifier, description=None):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
         """
@@ -168,6 +169,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
@@ -177,6 +179,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
+
         :param identifier: Verification task identifier.
         :param description: Verification task description dictionary.
         :param user: User name.
@@ -221,6 +224,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def solve_job(self, configuration):
         """
         Solve given verification task.
+
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
@@ -235,6 +239,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def process_task_result(self, identifier, future):
         """
         Process result and send results to the verification gateway.
+
         :param identifier:
         :return: Status of the task after solution: FINISHED or ERROR.
         """
@@ -299,26 +304,33 @@ class Scheduler(schedulers.SchedulerExchange):
     def process_job_result(self, identifier, result):
         """
         Process result and send results to the server.
+
         :param identifier:
         :return: Status of the task after solution: FINISHED or ERROR.
         """
         # Cannot be called
         pass
 
-    def cancel_task(self, identifier):
+    def cancel_task(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         logging.debug("Cancel task {}".format(identifier))
         super(Scheduler, self).cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 
-    def cancel_job(self, identifier):
+    def cancel_job(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         # Cannot be called
         pass
@@ -329,7 +341,7 @@ class Scheduler(schedulers.SchedulerExchange):
         termination.
         """
         logging.info("Terminate all runs")
-        self.wi.shutdown(wait=False)
+        self.wi.shutdown()
 
     def update_nodes(self):
         """
@@ -342,6 +354,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         Generate dictionary with verification tools available and
         push it to the verification gate.
+
         :return: Dictionary with available verification tools.
         """
         # TODO: Implement proper revisions sending
