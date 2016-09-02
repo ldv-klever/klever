@@ -22,6 +22,7 @@ import os
 import re
 import sys
 import tarfile
+import signal
 from xml.etree import ElementTree
 from xml.dom import minidom
 
@@ -109,6 +110,12 @@ def solve_job(conf):
     os.environ['LC_LANG'] = "en_US"
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
+
+    def handler(a, b):
+        executor.stop()
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+        logging.info("Trying to kill the job")
+    signal.signal(signal.SIGTERM, handler)
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -200,6 +207,11 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
+    def handler(a, b):
+        benchexec.stop()
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+        logging.info("Trying to kill the task")
+    signal.signal(signal.SIGTERM, handler)
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
