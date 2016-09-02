@@ -24,6 +24,7 @@ import multiprocessing
 import subprocess
 import requests
 import consulate
+import signal
 
 import schedulers as schedulers
 
@@ -337,6 +338,17 @@ class Scheduler(schedulers.SchedulerExchange):
         :param mode: 'task' or 'job'.
         :return: None
         """
+        def thread(args):
+            prc = subprocess.Popen(args, preexec_fn=os.setsid)
+
+            def handler(arg1, arg2):
+                os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
+
+            signal.signal(signal.SIGTERM, handler)
+            signal.signal(signal.SIGINT, handler)
+            prc.communicate()
+
+
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         self.__check_resource_limits(configuration)
         if mode == 'task':
@@ -354,7 +366,7 @@ class Scheduler(schedulers.SchedulerExchange):
         file_name = os.path.join(work_dir, 'client.json')
         args.extend(['--file', file_name])
         self.__reserved[subdir][identifier] = dict()
-        process = multiprocessing.Process(None, subprocess.call, identifier, [args])
+        process = multiprocessing.Process(None, thread, identifier, [args])
 
         if mode == 'task':
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -434,10 +446,10 @@ class Scheduler(schedulers.SchedulerExchange):
             process = self.__job_processes[identifier]
         if process and process.pid:
             try:
-                process.terminate()
-            except Exception:
-                logging.warning('Cannot terminate process {}'.format(process.pid))
-            process.join()
+                os.kill(process.pid, signal.SIGTERM)
+                process.join()
+            except Exception as err:
+                logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
         self.__postprocess_solution(identifier, mode)
 
         # Get result of the future object
@@ -487,11 +499,11 @@ class Scheduler(schedulers.SchedulerExchange):
                     return 0
                 else:
                     if ec < 0:
-                        error_msg = 'Process {} killed by a signal {}'.\
-                                    format(process.pid, str(-ec))
+                        error_msg = 'Process {} killed by a signal {}'. \
+                            format(process.pid, str(-ec))
                     else:
-                        error_msg = 'Process {} exited with a non-zero exit code {}'.\
-                                    format(process.pid, str(ec))
+                        error_msg = 'Process {} exited with a non-zero exit code {}'. \
+                            format(process.pid, str(ec))
                     raise schedulers.SchedulerException(error_msg)
         else:
             raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
