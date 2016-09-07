@@ -36,7 +36,7 @@ class ComponentStopped(ChildProcessError):
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
+                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -49,6 +49,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.mqs = mqs
         self.locks = locks
         self.attrs = attrs
+        self.unknown_attrs = unknown_attrs
         # Create special message queue where child resources of processes separated from parents will be printed.
         if separate_from_parent:
             self.mqs.update({'child resources': multiprocessing.Queue()})
@@ -122,14 +123,17 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
 
             if self.separate_from_parent:
                 if os.path.isfile('problem desc.txt'):
+                    report = {
+                        'id': self.id + '/unknown',
+                        'parent id': self.id,
+                        'problem desc': 'problem desc.txt',
+                        'files': ['problem desc.txt']
+                    }
+                    if self.unknown_attrs:
+                        report.update({'attrs': self.unknown_attrs})
                     core.utils.report(self.logger,
                                       'unknown',
-                                      {
-                                          'id': self.id + '/unknown',
-                                          'parent id': self.id,
-                                          'problem desc': 'problem desc.txt',
-                                          'files': ['problem desc.txt']
-                                      },
+                                      report,
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
 

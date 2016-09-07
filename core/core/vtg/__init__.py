@@ -188,7 +188,14 @@ class VTG(core.components.Component):
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
-                              work_dir, [abstract_task_desc['attrs'][0]], True, True)
+                              work_dir,
+                              # Always report just verification object as attribute.
+                              attrs=[abstract_task_desc['attrs'][0]],
+                              # Rule specification will be added just in case of failures since otherwise it is added
+                              # somehow by strategies themselves.
+                              unknown_attrs=[abstract_task_desc['attrs'][1]],
+                              separate_from_parent=True,
+                              include_child_resources=True)
             try:
                 p.start()
                 p.join()
