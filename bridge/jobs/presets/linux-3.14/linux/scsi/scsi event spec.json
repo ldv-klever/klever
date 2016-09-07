@@ -39,7 +39,7 @@
           }
         }
       },
-      "scsi_add_host_with_dma, scsi_add_host, scsi_register": {
+      "scsi_register": {
         "labels": {
           "host": {
             "container": true,
@@ -69,6 +69,35 @@
           "fail": {
             "statements": [
               "return 0;"
+            ]
+          }
+        }
+      },
+      "scsi_add_host_with_dma, scsi_add_host": {
+        "labels": {
+          "host": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "scsi_host_template.host"
+            ]
+          }
+        },
+        "process": "<success>.[register] | <fail>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%host%"
+            ]
+          },
+          "success": {
+            "condition": [
+              "$res == 0"
+            ]
+          },
+          "fail": {
+            "condition": [
+              "$res != 0"
             ]
           }
         }

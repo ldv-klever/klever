@@ -484,10 +484,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
         elif not extern:
             self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
-            if variable.value and \
+            if variable.value and variable.file and \
                     ((type(variable.declaration) is Pointer and type(variable.declaration.points) is Function) or
                      type(variable.declaration) is Primitive):
-                self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
+                self.files[variable.file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
             elif not variable.value and type(variable.declaration) is Pointer:
                 if file not in self.__external_allocated:
                     self.__external_allocated[file] = []
@@ -1587,7 +1587,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
     def _state_sequence_code(self, analysis, automaton, state_block):
         first = True
         code = []
-        v_code = []
+        v_code = ["/* Control function based on process '{}' generated for interface category '{}' */".
+                  format(automaton.process.name, automaton.process.category)]
 
         for state in state_block:
             new_v_code, block = state.code['final block']
