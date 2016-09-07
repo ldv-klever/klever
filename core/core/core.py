@@ -100,6 +100,15 @@ class Core(core.utils.CallbacksCaller):
             # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
                 if self.mqs:
+                    self.logger.info('Terminate report files message queue')
+                    self.mqs['report files'].put(None)
+                    self.logger.info('Wait for uploading all reports except Core finish report')
+                    self.uploading_reports_process.join()
+
+                    # Create Core finish report just after other reports are uploaded. Otherwise time between creating
+                    # Core finish report and finishing uploading all reports won't be included into wall time of Core.
+                    self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
+                    self.uploading_reports_process.start()
                     core.utils.report(self.logger,
                                       'finish',
                                       {
@@ -111,12 +120,11 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'])
-
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
-
-                    self.logger.info('Wait for uploading all reports')
+                    self.logger.info('Wait for uploading Core finish report')
                     self.uploading_reports_process.join()
+
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
