@@ -413,11 +413,15 @@ class LKBCE(core.components.Component):
             if 'Git repository' in self.conf['Linux kernel']:
                 for commit_or_branch in ('commit', 'branch'):
                     if commit_or_branch in self.conf['Linux kernel']['Git repository']:
-                        self.logger.info('Checkout Linux kernel Git repository {0} "{1}"'.format(commit_or_branch,
-                                                                                                 self.conf[
-                                                                                                     'Linux kernel'][
-                                                                                                     'Git repository'][
-                                                                                                     commit_or_branch]))
+                        self.logger.info('Checkout Linux kernel Git repository {0} "{1}"'.
+                                         format(commit_or_branch,
+                                                self.conf['Linux kernel']['Git repository'][commit_or_branch]))
+                        # Always remove Git repository lock file .git/index.lock if it exists since it can remain after
+                        # some previous Git commands crashed. Isolating several instances of Klever Core working with
+                        # the same Linux kernel source code should be done somehow else in a more generic way.
+                        git_index_lock = os.path.join(self.linux_kernel['work src tree'], '.git', 'index.lock')
+                        if os.path.isfile(git_index_lock):
+                            os.remove(git_index_lock)
                         # In case of dirty Git working directory checkout may fail so clean up it first.
                         core.utils.execute(self.logger, ('git', 'clean', '-f', '-d'),
                                            cwd=self.linux_kernel['work src tree'])
