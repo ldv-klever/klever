@@ -16,6 +16,10 @@
       "misc_deregister": {
         "signature": "void misc_deregister(*%file_operations.miscdevice%)",
         "header": "linux/miscdevice.h"
+      },
+      "unregister_chrdev": {
+        "signature": "void unregister_chrdev($, $)",
+        "header": "linux/fs.h"
       }
     },
     "categories": {

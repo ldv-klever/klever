@@ -137,6 +137,25 @@
             ]
           }
         }
+      },
+      "unregister_chrdev": {
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          }
+        },
+        "process": "[@deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          }
+        }
       }
     },
     "environment processes": {
