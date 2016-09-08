@@ -1,0 +1,6 @@
+{
+  "function": "Cannot build access from given variable|list index out of range",
+  "pattern": "unable access",
+  "link": "http://forge.ispras.ru/issues/7560",
+  "description": "EMG cannot generate a pointer dereference."
+}
