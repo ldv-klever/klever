@@ -6,6 +6,7 @@ import multiprocessing
 import os
 import glob
 import re
+import copy
 
 import core.components
 import core.utils
@@ -43,6 +44,7 @@ class VTG(core.components.Component):
 
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
     phi = 1/2
+    is_bug_kinds = False
 
     def generate_verification_tasks(self):
         self.strategy_name = None
@@ -76,6 +78,8 @@ class VTG(core.components.Component):
         if self.strategy_name == default_name:
             # SC
             self.logger.info('Using Sequential Combination (SC) of strategies')
+            if 'bug kinds' in self.conf['VTG strategy'] and self.conf['VTG strategy']['bug kinds']:
+                self.is_bug_kinds = True
         else:
             try:
                 self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
@@ -235,7 +239,10 @@ class VTG(core.components.Component):
             is_skip_1_step = False
 
             if not is_skip_1_step:
-                self.strategy = getattr(importlib.import_module('.{0}'.format('mav'), 'core.vtg'), 'MAV')
+                if not self.is_bug_kinds:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mav'), 'core.vtg'), 'MAV')
+                else:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mavbk'), 'core.vtg'), 'MAVBK')
                 self.conf['unite rule specifications'] = True
                 self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
                 self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
@@ -334,7 +341,7 @@ class VTG(core.components.Component):
                     number_of_separated += 1
 
             if not is_completed and not is_error:
-                old_extra_c_files = self.conf['abstract task desc']['extra C files']
+                old_extra_c_files = copy.deepcopy(self.conf['abstract task desc']['extra C files'])
                 if number_of_separated >= 1:
                     self.logger.info('SC: Execute step 2')
                     extra_c_files = []
@@ -342,12 +349,22 @@ class VTG(core.components.Component):
                         if 'bug kinds' in extra_c_file:
                             if 'C file' in extra_c_file:
                                 del extra_c_file['C file']
-                            common_bug_kind = extra_c_file['bug kinds'][0]
-                            rule = self.parse_bug_kind(common_bug_kind)
-                            verdict = results[rule]
-                            if verdict == 'unknown-incomplete':
-                                self.logger.debug('Rule "{0}" will be rechecked separately'.format(rule))
-                                extra_c_files.append(extra_c_file)
+                            if not self.is_bug_kinds:
+                                common_bug_kind = extra_c_file['bug kinds'][0]
+                                rule = self.parse_bug_kind(common_bug_kind)
+                                verdict = results[rule]
+                                if verdict == 'unknown-incomplete':
+                                    self.logger.debug('Rule "{0}" will be rechecked separately'.format(rule))
+                                    extra_c_files.append(extra_c_file)
+                            else:
+                                adjusted_set_of_bug_kinds = []
+                                for bug_kind in extra_c_file['bug kinds']:
+                                    verdict = results[bug_kind]
+                                    if verdict == 'unknown-incomplete':
+                                        adjusted_set_of_bug_kinds.append(bug_kind)
+                                if adjusted_set_of_bug_kinds:
+                                    extra_c_file['bug kinds'] = adjusted_set_of_bug_kinds
+                                    extra_c_files.append(extra_c_file)
                         else:
                             extra_c_files.append(extra_c_file)
 
@@ -360,13 +377,19 @@ class VTG(core.components.Component):
                         self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
                         self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-spa': ''}]
                         self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
-                        self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
+                        if not self.is_bug_kinds:
+                            self.strategy = getattr(importlib.import_module('.{0}'.format('sr'), 'core.vtg'), 'SR')
+                        else:
+                            self.strategy = getattr(importlib.import_module('.{0}'.format('sbk'), 'core.vtg'), 'SBK')
                         for rule, verdict in results.items():
                             if verdict == 'unknown-incomplete':
                                 self.conf['abstract task desc']['attrs'][1]['rule specification'] = rule
                     else:
                         self.logger.info('SC: Launch MPV-Sep')
-                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
+                        if not self.is_bug_kinds:
+                            self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
+                        else:
+                            self.strategy = getattr(importlib.import_module('.{0}'.format('mpvbk'), 'core.vtg'), 'MPVBK')
                         self.conf['RSG strategy'] = 'property automaton'
                         self.conf['unite rule specifications'] = True
                         self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Sep'
@@ -400,18 +423,31 @@ class VTG(core.components.Component):
                         if 'bug kinds' in extra_c_file:
                             if 'C file' in extra_c_file:
                                 del extra_c_file['C file']
-                            common_bug_kind = extra_c_file['bug kinds'][0]
-                            rule = self.parse_bug_kind(common_bug_kind)
-                            verdict = results[rule]
-                            if verdict == 'checking':
-                                self.logger.debug('Rule "{0}" will be rechecked'.format(rule))
-                                extra_c_files.append(extra_c_file)
+                            if not self.is_bug_kinds:
+                                common_bug_kind = extra_c_file['bug kinds'][0]
+                                rule = self.parse_bug_kind(common_bug_kind)
+                                verdict = results[rule]
+                                if verdict == 'checking':
+                                    self.logger.debug('Rule "{0}" will be rechecked'.format(rule))
+                                    extra_c_files.append(extra_c_file)
+                            else:
+                                adjusted_set_of_bug_kinds = []
+                                for bug_kind in extra_c_file['bug kinds']:
+                                    verdict = results[bug_kind]
+                                    if verdict == 'checking':
+                                        adjusted_set_of_bug_kinds.append(bug_kind)
+                                if adjusted_set_of_bug_kinds:
+                                    extra_c_file['bug kinds'] = adjusted_set_of_bug_kinds
+                                    extra_c_files.append(extra_c_file)
                         else:
                             extra_c_files.append(extra_c_file)
 
                     self.conf['abstract task desc']['extra C files'] = extra_c_files
 
-                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
+                    if not self.is_bug_kinds:
+                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
+                    else:
+                        self.strategy = getattr(importlib.import_module('.{0}'.format('mpvbk'), 'core.vtg'), 'MPVBK')
                     self.conf['RSG strategy'] = 'property automaton'
                     self.conf['unite rule specifications'] = True
                     self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
