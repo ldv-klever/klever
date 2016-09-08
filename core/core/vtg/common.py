@@ -202,6 +202,24 @@ class CommonStrategy(core.components.Component):
         else:
             return ''
 
+    def process_unsafe_incomplete(self, verification_report_id, bug_kind):
+        self.logger.info('Assert {0} got unsafe-incomplete verdict'.format(bug_kind))
+        name = 'unsafe-incomplete{0}.txt'.format(bug_kind)
+        with open(name, 'w', encoding='ascii') as fp:
+            fp.write('Unsafe-incomplete')
+        core.utils.report(self.logger,
+                          'unknown',
+                          {
+                              'id': verification_report_id + '/unsafe-incomplete/{0}'.format(bug_kind),
+                              'parent id': verification_report_id,
+                              'attrs': [],
+                              'problem desc': name,
+                              'files': [name]
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'],
+                          bug_kind)
+
     def process_single_verdict(self, decision_results, verification_report_id,
                                assertion=None, specified_error_trace=None):
         # Add assertion if it was specified.
@@ -229,7 +247,6 @@ class CommonStrategy(core.components.Component):
                     if not assertion:
                         assertion = ''
                     assertion += "{0}".format(new_error_trace_number)
-                    self.logger.info(assertion)
                     added_attrs.append({"Error trace number": "{0}".format(new_error_trace_number)})
                 else:
                     self.logger.info('Error trace "{0}" is equivalent to one of the already processed'.

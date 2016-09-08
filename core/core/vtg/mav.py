@@ -291,39 +291,6 @@ class MAV(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           bug_kind)
-        if decision_results['status'] == 'unsafe' and self.mea:
-            # Unsafe-incomplete.
-            # TODO: fix this.
-            is_incomplete = False
-            log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
-                for line in fp:
-                    match = re.search(r'Assert \[(.+)\] has exhausted its', line)
-                    if match:
-                        exhausted_assert = match.group(1)
-                        if exhausted_assert in bug_kind:
-                            is_incomplete = True
-                    match = re.search(r'Shutdown requested', line)
-                    if match:
-                        is_incomplete = True
-            if is_incomplete:
-                name = 'unsafe-incomplete{0}.txt'.format(bug_kind)
-                with open(name, 'w', encoding='ascii') as fp:
-                    fp.write('Unsafe-incomplete')
-                core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'id': verification_report_id + '/unsafe-incomplete',
-                                      'parent id': verification_report_id,
-                                      'attrs': [],
-                                      'problem desc': name,
-                                      'files': [name]
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'],
-                                  bug_kind)
-            self.resources_written_unsafe = True
-        self.resources_written = True
 
     def process_global_error(self, task_error):
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
@@ -389,6 +356,7 @@ class MAV(CommonStrategy):
 
                 # Parse file with results.
                 is_new_verdicts = False
+                log_file = self.get_verifier_log_file(False)
                 if os.path.isfile(self.path_to_file_with_results):
                     with open(self.path_to_file_with_results, encoding='ascii') as fp:
                         for line in fp:
@@ -413,7 +381,6 @@ class MAV(CommonStrategy):
                 else:
                     # Verifier failed before even starting verification.
                     # Create only one Unknown report for strategy.
-                    log_file = self.get_verifier_log_file(False)
                     with open(log_file, encoding='ascii') as fp:
                         content = fp.readlines()
                     task_error = content
@@ -421,8 +388,7 @@ class MAV(CommonStrategy):
                     break
 
                 if self.relaunch == 'no':
-                    path_to_cmav_log = self.get_verifier_log_file(False)
-                    with open(path_to_cmav_log) as f_res:
+                    with open(log_file) as f_res:
                         for line in f_res:
                             result = re.search(r'Assert \[(\S+)\] has exhausted its Assert Time Limit', line)
                             if result:
@@ -451,12 +417,34 @@ class MAV(CommonStrategy):
                             verdict = 'unknown'
                     decision_results['status'] = verdict
                     if verdict == 'unsafe':
+                        # Process unsafe-incomplete.
+                        if self.mea:
+                            is_incomplete = False
+                            is_stopped = False
+                            with open(log_file) as fp:
+                                for line in fp:
+                                    match = re.search(r'Assert \[(.+)\] has exhausted its', line)
+                                    if match:
+                                        exhausted_assert = match.group(1)
+                                        if exhausted_assert in bug_kind:
+                                            is_incomplete = True
+                                    match = re.search(r'Shutdown requested', line)
+                                    if match:
+                                        is_incomplete = True
+                                    match = re.search(r'Stopping analysis \.\.\.', line)
+                                    if match:
+                                        is_stopped = True
+                            if not is_stopped:
+                                is_incomplete = True
+                            if is_incomplete:
+                                self.process_unsafe_incomplete(verification_report_id, bug_kind)
                         for error_trace in all_found_error_traces:
                             if witness_assert[error_trace] == bug_kind:
                                 self.process_single_verdict(decision_results, verification_report_id,
                                                             assertion=bug_kind,
                                                             specified_error_trace=error_trace)
                                 self.remove_assertion(bug_kind)
+
                     else:  # Verdicts unknown or safe.
                         if self.relaunch == 'no':
                             if verdict == 'unknown-complete' or verdict == 'safe':

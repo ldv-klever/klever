@@ -66,30 +66,6 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           bug_kind)
-        if decision_results['status'] == 'unsafe' and self.mea:
-            # Unsafe-incomplete.
-            # TODO: fix this.
-            is_incomplete = True
-            log_file = self.get_verifier_log_file()
-            with open(log_file) as fp:
-                for line in fp:
-                    match = re.search(r'Verification result: FALSE', line)
-                    if match:
-                        is_incomplete = False
-            if is_incomplete:
-                with open('unsafe-incomplete.txt', 'w', encoding='ascii') as fp:
-                    fp.write('Unsafe-incomplete')
-                core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'id': verification_report_id + '/unsafe-incomplete',
-                                      'parent id': verification_report_id,
-                                      'attrs': [],
-                                      'problem desc': 'unsafe-incomplete.txt',
-                                      'files': ['unsafe-incomplete.txt']
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'])
 
     @abstractclassmethod
     def prepare_property_automaton(self, bug_kind=None):
@@ -231,6 +207,16 @@ class SeparatedStrategy(CommonStrategy):
                     if all_found_error_traces:
                         decision_results['status'] = 'unsafe'
                     if decision_results['status'] == 'unsafe':
+                        # Process unsafe-incomplete.
+                        is_incomplete = True
+                        log_file = self.get_verifier_log_file(False)
+                        with open(log_file) as fp:
+                            for line in fp:
+                                match = re.search(r'Verification result: FALSE', line)
+                                if match:
+                                    is_incomplete = False
+                        if is_incomplete:
+                            self.process_unsafe_incomplete(verification_report_id, bug_kind)
                         for error_trace in all_found_error_traces:
                             self.process_single_verdict(decision_results, verification_report_id,
                                                         assertion=bug_kind,
