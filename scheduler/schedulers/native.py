@@ -345,7 +345,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
             signal.signal(signal.SIGTERM, handler)
             signal.signal(signal.SIGINT, handler)
-            prc.communicate()
+            prc.wait()
 
 
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
