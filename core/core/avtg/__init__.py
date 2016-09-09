@@ -600,8 +600,8 @@ class AVTG(core.components.Component):
 
                 p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                           '{0}/{1}/{2}'.format(*list(initial_attr_vals) + [plugin_desc['name']]),
-                                          os.path.join(plugins_work_dir, plugin_desc['name'].lower()), initial_attrs,
-                                          True, True)
+                                          os.path.join(plugins_work_dir, plugin_desc['name'].lower()),
+                                          attrs=initial_attrs, separate_from_parent=True, include_child_resources=True)
                 p.start()
                 p.join()
 

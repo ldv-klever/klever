@@ -194,8 +194,7 @@ class VTG(core.components.Component):
                               # Rule specification will be added just in case of failures since otherwise it is added
                               # somehow by strategies themselves.
                               unknown_attrs=[abstract_task_desc['attrs'][1]],
-                              separate_from_parent=True,
-                              include_child_resources=True)
+                              separate_from_parent=True, include_child_resources=True)
             try:
                 p.start()
                 p.join()
