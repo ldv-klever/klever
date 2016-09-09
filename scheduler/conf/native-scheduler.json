@@ -5,6 +5,7 @@
     "password": "password"
   },
   "scheduler": {
+    "production": true,
     "type": "native",
     "processes": 1.0,
     "process pool": false,
