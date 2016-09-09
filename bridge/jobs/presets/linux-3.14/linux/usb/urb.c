@@ -22,7 +22,7 @@
 
 struct urb;
 
-/* LDV_COMMENT_CHANGE_STATE Initialize allocated urb counter to zero. */
+/* CHANGE_STATE Initialize allocated urb counter to zero. */
 int ldv_urb_state = 0;
 
 /* MODEL_FUNC_DEF Allocates memory for urb request. */
