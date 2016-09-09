@@ -1,0 +1,4 @@
+{
+  "function": "core.utils.CommandError: \"cilly\\.asm\\.exe\" failed",
+  "pattern": "CIL failure"
+}

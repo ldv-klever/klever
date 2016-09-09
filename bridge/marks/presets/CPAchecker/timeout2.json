@@ -1,0 +1,4 @@
+{
+  "function": "Shutdown requested \\(The CPU-time limit of (.+) has elapsed.\\)",
+  "pattern": "Soft time limit"
+}

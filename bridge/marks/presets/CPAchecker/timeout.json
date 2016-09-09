@@ -1,4 +1,4 @@
 {
   "function": "CPU time exhausted",
-  "pattern": "Timeout"
+  "pattern": "Hard time limit"
 }

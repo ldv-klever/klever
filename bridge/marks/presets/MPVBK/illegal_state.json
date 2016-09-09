@@ -1,0 +1,4 @@
+{
+  "function": "java.lang.IllegalStateException",
+  "pattern": "IllegalState"
+}
