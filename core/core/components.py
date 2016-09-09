@@ -15,10 +15,11 @@
 # limitations under the License.
 #
 
+import glob
+import json
 import multiprocessing
 import os
 import signal
-import sys
 import time
 import traceback
 import types
@@ -27,10 +28,6 @@ import core.utils
 
 
 class ComponentError(ChildProcessError):
-    pass
-
-
-class ComponentStopped(ChildProcessError):
     pass
 
 
@@ -50,9 +47,6 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.locks = locks
         self.attrs = attrs
         self.unknown_attrs = unknown_attrs
-        # Create special message queue where child resources of processes separated from parents will be printed.
-        if separate_from_parent:
-            self.mqs.update({'child resources': multiprocessing.Queue()})
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
 
@@ -62,6 +56,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.work_dir = work_dir if work_dir else self.name.lower()
         # Component start time.
         self.start_time = 0
+        self.__pid = None
 
     def start(self):
         # Component working directory will be created in parent process.
@@ -81,6 +76,10 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         # Remember approximate time of start to count wall time.
         self.start_time = time.time()
 
+        # Remember component pid to distinguish it from its auxiliary subcomponents, e.g. synchronization managers,
+        # later during finalization on stopping.
+        self.__pid = os.getpid()
+
         # Specially process SIGTERM since it can be sent by parent when some other component(s) failed. Official
         # documentation says that exit handlers and finally clauses, etc., will not be executed. But we still need
         # to count consumed resources and create finish report - all this is done in self.__finalize().
@@ -91,10 +90,15 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
             os.chdir(self.work_dir)
 
         # Try to launch component.
+        exception = False
         try:
             if self.separate_from_parent:
                 # Get component specific logger.
                 self.logger = core.utils.get_logger(self.name, self.conf['logging'])
+
+                # Create special directory where child resources of processes separated from parents will be printed.
+                self.logger.info('Create child resources directory "child resources"')
+                os.makedirs('child resources'.encode('utf8'))
 
                 report = {
                     'id': self.id,
@@ -110,18 +114,24 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                   self.conf['main working directory'])
 
             self.main()
-        finally:
-            # Print information on exception to logs and as problem description. Do not consider component stopping.
-            if sys.exc_info()[0] and sys.exc_info()[0] != ComponentStopped:
-                exception_info = '{0}Raise exception:\n{1}'.format(self.__get_subcomponent_name(),
-                                                                   traceback.format_exc().rstrip())
-                self.logger.error(exception_info)
-                with open('problem desc.txt', 'a', encoding='utf8') as fp:
-                    if fp.tell():
-                        fp.write('\n')
-                    fp.write(exception_info)
+        except Exception:
+            exception = True
 
-            if self.separate_from_parent:
+            # Print information on exception to logs and as problem description.
+            exception_info = '{0}Raise exception:\n{1}'.format(self.__get_subcomponent_name(),
+                                                               traceback.format_exc().rstrip())
+            self.logger.error(exception_info)
+            with open('problem desc.txt', 'a', encoding='utf8') as fp:
+                if fp.tell():
+                    fp.write('\n')
+                fp.write(exception_info)
+        finally:
+            self.__finalize(exception=exception)
+
+    def __finalize(self, exception=False, stopped=False):
+        # Like in Core at least print information about unexpected exceptions in code below and properly exit.
+        try:
+            if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
                     report = {
                         'id': self.id + '/unknown',
@@ -137,19 +147,12 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
 
-                self.logger.info('Terminate child resources message queue')
-                self.mqs['child resources'].put(None)
-
                 all_child_resources = {}
-                while True:
-                    child_resources = self.mqs['child resources'].get()
-
-                    if child_resources is None:
-                        self.logger.debug('Child resources message queue was terminated')
-                        self.mqs['child resources'].close()
-                        break
-
-                    all_child_resources.update(child_resources)
+                for child_resources_file in glob.glob(os.path.join('child resources', '*')):
+                    with open(child_resources_file, encoding='utf8') as fp:
+                        child_resources = json.load(fp)
+                    all_child_resources[
+                        os.path.splitext(os.path.basename(child_resources_file))[0]] = child_resources
 
                 core.utils.report(self.logger,
                                   'finish',
@@ -167,16 +170,21 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
             else:
-                self.mqs['child resources'].put(
-                    {self.name: core.utils.count_consumed_resources(self.logger, self.start_time,
-                                                                    self.include_child_resources)})
-
-            if sys.exc_info()[0]:
+                with open(os.path.join('child resources', self.name + '.json'), 'w', encoding='utf8') as fp:
+                    json.dump(core.utils.count_consumed_resources(self.logger, self.start_time,
+                                                                  self.include_child_resources),
+                              fp, ensure_ascii=False, sort_keys=True, indent=4)
+        except Exception:
+            exception = True
+            self.logger.exception('Catch exception')
+        finally:
+            if stopped or exception:
                 # Treat component stopping as normal termination.
-                if sys.exc_info()[0] == ComponentStopped:
-                    sys.exit(0)
-                else:
-                    sys.exit(1)
+                exit_code = os.EX_SOFTWARE if exception else os.EX_OK
+                self.logger.info('Exit with code "{0}"'.format(exit_code))
+                # Do not perform any pre-exit operations like waiting for reading filled queues since this can lead to
+                # deadlocks.
+                os._exit(exit_code)
 
     def __get_subcomponent_name(self):
         return '' if self.separate_from_parent else '[{0}] '.format(self.name)
@@ -187,24 +195,31 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         # We need to send some signal to do interrupt execution of component. Otherwise it will continue its execution.
         os.kill(self.pid, signal.SIGUSR1)
 
-        self.join(None, True)
+        self.join(stopped=True)
 
     def __stop(self, signum, frame):
-        self.logger.debug('Stop all children')
-        # TODO: LKVOG uses Manager that is separate unnamed process.
+        self.logger.info('{0}Stop all children'.format(self.__get_subcomponent_name()))
         for child in multiprocessing.active_children():
+            self.logger.info('{0}Stop child "{1}"'.format(self.__get_subcomponent_name(), child.name))
             os.kill(child.pid, signal.SIGUSR1)
-            child.join()
+            # Such the errors can happen here most likely just when unexpected exceptions happen when exitting
+            # component. These exceptions are likely printed to logs but don't become unknown reports. In addition
+            # finish reports including these logs aren't created. So they are invisible for the most of users
+            # unfortunately. Nonetheless advanced users will examine logs manually when they will see status Corrupted
+            # that will be set because of absence of finish reports.
+            try:
+                child.join()
+            except ComponentError:
+                pass
 
         self.logger.error('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
         with open('problem desc.txt', 'a', encoding='utf8') as fp:
             if fp.tell():
                 fp.write('\n')
-            fp.write(
-                '{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name(), self.name))
+            fp.write('{0}Stop since some other component(s) likely failed'.format(self.__get_subcomponent_name()))
 
-        raise ComponentStopped
+        self.__finalize(stopped=True)
 
     def join(self, timeout=None, stopped=False):
         # Actually join process.
