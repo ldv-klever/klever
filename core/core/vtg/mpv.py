@@ -100,7 +100,25 @@ class MPV(CommonStrategy):
                 if rule:
                     common_bug_kind = rule
                 automaton = extra_c_file['automaton']
-                self.property_automata[common_bug_kind] = automaton
+
+                preprocessed_automaton = "automaton_{0}.spc".format(rule)
+                with open(preprocessed_automaton, 'w', encoding='ascii') as fp_out, \
+                        open(automaton, encoding='ascii') as fp_in:
+                    cur_state = None
+                    for line in fp_in:
+                        # Current pattern for state declaration: STATE USEALL|USEFIRST <name> :
+                        res = re.search(r'STATE(\s*)(\w+)(\s*)(\w+)(\s*):', line)
+                        if res:
+                            cur_state = res.group(4)
+                        res = re.search(r'ERROR\(\"(.+)\"\);', line)
+                        if res:
+                            current_bug_kind = res.group(1)
+                            if current_bug_kind not in bug_kinds_for_rule_specification:
+                                line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO {0};'.format(cur_state), line)
+                                self.logger.debug('Removing bug kind {0}'.format(current_bug_kind))
+                        fp_out.write(line)
+
+                self.property_automata[common_bug_kind] = preprocessed_automaton
         self.logger.debug('Multi-Property Verification will check "{0}" properties'.
                           format(self.property_automata.__len__()))
 

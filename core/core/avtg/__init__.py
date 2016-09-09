@@ -6,6 +6,7 @@ import json
 import multiprocessing
 import os
 import string
+import re
 
 import core.components
 import core.utils
@@ -212,13 +213,25 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
     conf['rule specifications'] = [new_rule_name_id]
 
 
+def parse_bug_kind(bug_kind):
+        match = re.search(r'(.+)::(.*)', bug_kind)
+        if match:
+            return match.groups()[0]
+        else:
+            return ''
+
 # This function is invoked to collect plugin callbacks.
 def _extract_rule_spec_descs(conf, logger):
     logger.info('Extract rule specificaction decriptions')
 
-    if 'rule specifications' not in conf:
-        logger.warning('Nothing will be verified since rule specifications are not specified')
-        return []
+    if 'bug kinds' in conf:
+        if 'rule specifications' in conf:
+            raise KeyError('Specified both rule specifications and bug kinds')
+        logger.info('Checking bug kinds')
+    else:
+        if 'rule specifications' not in conf:
+            logger.warning('Nothing will be verified since rule specifications are not specified')
+            return []
 
     # Read rule specification descriptions DB.
     with open(core.utils.find_file_or_dir(logger, conf['main working directory'], conf['rule specifications DB']),
@@ -227,6 +240,24 @@ def _extract_rule_spec_descs(conf, logger):
 
     if 'rule specifications' not in raw_rule_spec_descs:
         raise KeyError('Rule specifications DB has not mandatory attribute "rule specifications"')
+
+    if 'bug kinds' in conf:
+        bug_kinds = []
+        rules = set()
+        for bug_kind in conf['bug kinds']:
+            rule = parse_bug_kind(bug_kind)
+            rules.add(rule)
+            bug_kinds.append(bug_kind)
+        conf['rule specifications'] = list(rules)
+        for rule, desc in raw_rule_spec_descs['rule specifications'].items():
+            if rule in rules:
+                for model, attrs in desc['RSG']['models'].items():
+                    for attr, val in attrs.items():
+                        if attr == 'bug kinds':
+                            tmp_bug_kinds = val.copy()
+                            for bug_kind in tmp_bug_kinds:
+                                if bug_kind not in bug_kinds:
+                                    val.remove(bug_kind)
 
     if 'all' in conf['rule specifications']:
         if not len(conf['rule specifications']) == 1:
