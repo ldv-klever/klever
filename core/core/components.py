@@ -80,9 +80,9 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         # later during finalization on stopping.
         self.__pid = os.getpid()
 
-        # Specially process SIGTERM since it can be sent by parent when some other component(s) failed. Official
-        # documentation says that exit handlers and finally clauses, etc., will not be executed. But we still need
-        # to count consumed resources and create finish report - all this is done in self.__finalize().
+        # Specially process SIGUSR1 since it can be sent by parent when some other component(s) failed. Counting
+        # consumed resources and creating reports will be performed in self.__finalize() both when components terminate
+        # normally and are stopped.
         signal.signal(signal.SIGUSR1, self.__stop)
 
         if self.separate_from_parent:
