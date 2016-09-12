@@ -358,7 +358,7 @@ class ReportMarkTable(object):
                 comment = None
                 if col == 'number':
                     value = cnt
-                    href = reverse('marks:edit_mark', args=[self.type, mark_rep.mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark_rep.mark.pk])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -538,7 +538,7 @@ class MarksList(object):
                         break
                 elif col == 'mark_num':
                     val = cnt
-                    href = reverse('marks:edit_mark', args=[self.type, mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     val = len(mark.markreport_set.all())
                     if 'order' in self.view and self.view['order'] == 'num_of_links':

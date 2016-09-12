@@ -26,7 +26,7 @@ from marks.models import ErrorTraceConvertionCache
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
 # 2) Use self.error_trace for convertion
-# 3) Return the converted trace. This value MUST be json serializable.
+# 3) Return the converted trace. This value MUST be json serializable. Dict and list are good choices.
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 

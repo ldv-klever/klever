@@ -16,6 +16,7 @@
 #
 
 import re
+import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import logger, ArchiveFileContent
@@ -643,7 +644,8 @@ def error_trace_model_functions(error_trace):
         else:
             level -= 1
 
-    return json.dumps(call_tree, ensure_ascii=False, sort_keys=True, indent=4)
+    return call_tree
+
 
 class ErrorTraceCallstackTree(object):
     def __init__(self, error_trace):
