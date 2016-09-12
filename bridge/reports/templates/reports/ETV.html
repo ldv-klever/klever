@@ -1,15 +1,16 @@
 {% load i18n %}
+{% load staticfiles %}
 
 {% block reports_head_block %}
-    <script src="/static/reports/js/jquery-ui.min.js"></script>
-    <script src="/static/reports/js/ETV.js"></script>
-    <link href="/static/reports/css/ETV.css" rel="stylesheet">
+    <script src="{% static 'reports/js/jquery-ui.min.js' %}"></script>
+    <script src="{% static 'reports/js/ETV.js' %}"></script>
+    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
     {% if etv.html_traces|length == 1 %}
-        <script src="/static/reports/js/ETV_single.js"></script>
-        <link href="/static/reports/css/ETV_single.css" rel="stylesheet">
+        <script src="{% static 'reports/js/ETV_single.js' %}"></script>
+        <link href="{% static 'reports/css/ETV_single.css' %}" rel="stylesheet">
     {% else %}
-        <script src="/static/reports/js/ETV_double.js"></script>
-        <link href="/static/reports/css/ETV_double.css" rel="stylesheet">
+        <script src="{% static 'reports/js/ETV_double.js' %}"></script>
+        <link href="{% static 'reports/css/ETV_double.css' %}" rel="stylesheet">
     {% endif %}
 {% endblock %}
 <div class="ui grid">

@@ -143,13 +143,13 @@ class GetETV(object):
         scopes_to_show = []
         scopes_to_hide = []
 
-        def add_fake_line(fake_code, hide_id=None):
+        def add_fake_line(fake_code):
             lines_data.append({
                 'code': fake_code,
                 'line': None,
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1],
-                'hide_id': hide_id
+                'hide_id': None
             })
 
         def fill_assumptions(current_assumptions=None):
@@ -250,13 +250,12 @@ class GetETV(object):
                     line_data['code']
                 )
                 lines_data.append(line_data)
-                add_fake_line('{')
                 curr_offset += TAB_LENGTH
             elif 'returnFromFunction' in n.attr:
                 lines_data.append(line_data)
                 if curr_offset >= TAB_LENGTH:
                     curr_offset -= TAB_LENGTH
-                add_fake_line('}')
+                add_fake_line('<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>')
                 try:
                     scope_stack.pop()
                     if len(scope_stack) == 0:
@@ -275,10 +274,10 @@ class GetETV(object):
             else:
                 lines_data.append(line_data)
 
-        while len(scope_stack) > 1:
+        while len(scope_stack) > 2:
             if curr_offset >= TAB_LENGTH:
                 curr_offset -= TAB_LENGTH
-            add_fake_line('}')
+            add_fake_line('<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>')
             scope_stack.pop()
         for i in range(0, len(lines_data)):
             if lines_data[i]['line'] is None:
