@@ -20,8 +20,8 @@ import graphviz
 from operator import attrgetter
 
 from core.avtg.emg.common.signature import Primitive, Pointer
-from core.avtg.emg.common.code import Variable, FunctionModels
 from core.avtg.emg.common.process import Subprocess, Receive, Dispatch, Call, CallRetval, Condition
+from core.avtg.emg.translator.code  import Variable, FunctionModels
 
 
 class FSA:
