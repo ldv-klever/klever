@@ -21,6 +21,69 @@ from core.avtg.emg.common.signature import Declaration, Pointer, Structure, Arra
     import_declaration
 
 
+class CModel:
+
+    def __init__(self, logger, conf, files, entry_point_name, entry_file):
+        self.entry_point_file = entry_file
+        self.entry_point_name = entry_point_name
+        self._logger = logger
+        self._conf = conf
+        self._files = files
+        self._variables = dict()
+        self._functions = dict()
+        self._before_aspects = dict()
+
+    def add_before_aspect(self, code, file=None):
+        # Prepare code
+        body = ['before: file ("$this")\n']
+        body.extend(code)
+        body.append('}\n')
+
+        if file:
+            files = [self._before_aspects[file].append(code)]
+        else:
+            files = self._files
+
+        # Add code
+        map(lambda f: self._before_aspects[f].append(code), files)
+
+        return
+
+    def propogate_aux_function(self, analysis, automaton, function):
+        # Determine files to export
+        files = set()
+        if automaton.process.category == "kernel models":
+            # Calls
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            files.update(set(function_obj.files_called_at))
+            for caller in (c for c in function_obj.functions_called_at):
+                # Caller definitions
+                files.update(set(analysis.get_modules_function_files(caller)))
+
+        # Export
+        for file in files:
+            self._add_function_declaration(file, function, extern=True)
+
+    def add_function_definition(self, file, function):
+        if file not in self.files:
+            self.files[file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        if self.entry_file not in self.files:
+            self.files[self.entry_file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
+
+        self.files[file]['functions'][function.name] = function.get_definition()
+        self._add_function_declaration(file, function, extern=False)
+
 class Variable:
     name_re = re.compile("\(?\*?%s\)?")
 

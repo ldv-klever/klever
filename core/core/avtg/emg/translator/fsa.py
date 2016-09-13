@@ -269,6 +269,7 @@ class State:
         if old in self._predecessors:
             self._predecessors.remove(old)
 
+    # todo: remove
     def _relevant_checks(self):
         checks = []
 
