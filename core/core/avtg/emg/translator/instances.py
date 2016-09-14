@@ -59,7 +59,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
                          format(len(base_list), process.name, process.category))
 
         for instance in base_list:
-            fsa = Automaton(logger, conf, instance, _yeild_identifier(identifier_counter))
+            fsa = Automaton(instance, _yeild_identifier(identifier_counter))
             callback_fsa.append(fsa)
 
     # Generate automata for models
@@ -68,12 +68,12 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
-            fsa = Automaton(logger, conf, instance, _yeild_identifier(identifier_counter))
+            fsa = Automaton(instance, _yeild_identifier(identifier_counter))
             model_fsa.append(fsa)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
-    entry_fsa = Automaton(logger, conf, model.entry_process, _yeild_identifier(identifier_counter))
+    entry_fsa = Automaton(model.entry_process, _yeild_identifier(identifier_counter))
 
     return entry_fsa, model_fsa, callback_fsa
 

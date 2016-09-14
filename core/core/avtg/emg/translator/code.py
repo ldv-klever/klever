@@ -17,21 +17,25 @@
 
 import re
 
-from core.avtg.emg.common.signature import Declaration, Pointer, Structure, Array, Union, Function, Primitive, \
-    import_declaration
+from core.avtg.emg.common.signature import Declaration, Pointer, Function, Primitive, import_declaration
+from core.avtg.emg.common import get_conf_property
 
 
 class CModel:
 
     def __init__(self, logger, conf, files, entry_point_name, entry_file):
-        self.entry_point_file = entry_file
-        self.entry_point_name = entry_point_name
+        self.entry_file = entry_file
+        self.entry_name = entry_point_name
         self._logger = logger
         self._conf = conf
         self._files = files
-        self._variables = dict()
-        self._functions = dict()
+        self._variables_declarations = dict()
+        self._variables_initializations = dict()
+        self._function_definitions = dict()
+        self._function_declarations = dict()
         self._before_aspects = dict()
+        # todo: add to entry point allocation itself
+        self.__external_allocated = dict()
 
     def add_before_aspect(self, code, file=None):
         # Prepare code
@@ -62,27 +66,53 @@ class CModel:
 
         # Export
         for file in files:
-            self._add_function_declaration(file, function, extern=True)
+            self.add_function_declaration(file, function, extern=True)
 
     def add_function_definition(self, file, function):
-        if file not in self.files:
-            self.files[file] = {
-                'variables': {},
-                'functions': {},
-                'declarations': {},
-                'initializations': {}
-            }
+        if file not in self._function_definitions:
+            self._function_definitions[file] = dict()
+        if self.entry_file not in self._function_definitions:
+            self._function_definitions[file] = dict()
 
-        if self.entry_file not in self.files:
-            self.files[self.entry_file] = {
-                'variables': {},
-                'functions': {},
-                'declarations': {},
-                'initializations': {}
-            }
+        self._function_definitions[file][function.name] = function.get_definition()
+        self.add_function_declaration(file, function, extern=False)
 
-        self.files[file]['functions'][function.name] = function.get_definition()
-        self._add_function_declaration(file, function, extern=False)
+    def add_function_declaration(self, file, function, extern=False):
+        if file not in self._function_declarations:
+            self._function_declarations[file] = dict()
+
+        if extern and function.name in self._function_declarations[file]:
+            return
+        self._function_declarations[file][function.name] = function.get_declaration(extern=extern)
+
+    def add_global_variable(self, variable, file, extern=False):
+        if not file and variable.file:
+            file = variable.file
+        elif not file:
+            file = self.entry_file
+
+        if file not in self._variables_declarations:
+            self._variables_declarations[file] = dict()
+        if file not in self._variables_initializations:
+            self._variables_initializations[file] = dict()
+
+        if extern and variable.name not in self._variables_declarations[file]:
+            self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
+        elif not extern:
+            self._variables_declarations[file][variable.name] = variable.declare(extern=extern) + ";\n"
+            if variable.value and variable.file and \
+                    ((type(variable.declaration) is Pointer and type(variable.declaration.points) is Function) or
+                     type(variable.declaration) is Primitive):
+                self._variables_initializations[file][variable.name] = variable.declare_with_init() + ";\n"
+            elif not variable.value and type(variable.declaration) is Pointer:
+                if file not in self.__external_allocated:
+                    self.__external_allocated[file] = []
+                self.__external_allocated[file].append(variable)
+
+    def text_processor(self, automaton, statement):
+        models = FunctionModels(self._conf)
+        return models.text_processor(automaton, statement)
+
 
 class Variable:
     name_re = re.compile("\(?\*?%s\)?")
@@ -173,10 +203,8 @@ class Aspect(FunctionDefinition):
 
 class FunctionModels:
 
-    def __init__(self, translation_conf=dict()):
-        self.use_sizeof = False
-        if 'allocate with sizeof' in translation_conf and translation_conf['allocate with sizeof']:
-            self.use_sizeof = True
+    def __init__(self, conf):
+        self._conf = conf
 
     mem_function_map = {
         # TODO: switch to correct memory allocation function when sizes will be known.
@@ -201,7 +229,7 @@ class FunctionModels:
     access_re = re.compile('(%{}%)'.format(access_template))
 
     def init_pointer(self, signature):
-        if self.use_sizeof:
+        if get_conf_property(self._conf, 'allocate with sizeof'):
             return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], signature.points.to_string(''))
         else:
             return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], '0')
@@ -290,7 +318,7 @@ class FunctionModels:
             if function == 'ALLOC' and self.ualloc_flag:
                 # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
                 function = 'UALLOC'
-            if function != 'UALLOC' and self.use_sizeof:
+            if function != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
                 size = 'sizeof({})'.format(self.signature.points.to_string(''))
 
             return "{}({})".format(self.mem_function_map[function], size)

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.avtg.emg.common.process import Receive, Dispatch
 
 
 def model_comment(action, text, begin=None):
@@ -34,7 +35,7 @@ def model_comment(action, text, begin=None):
             return "/* {0} {1} */".format(type_comment, text)
 
 
-def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
+def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
     """
     Determine which automata can receive signals from the given instance or send signals to it.
 
@@ -46,10 +47,8 @@ def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
                     given one
     :return: None, since it modifies the first argument.
     """
-    self.logger.debug("Searching for a relevant automata")
-
     for peer in peers:
-        relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
+        relevant_automata = [automaton for automaton in automata
                              if automaton.process.identifier == peer["process"].identifier]
         for automaton in relevant_automata:
             if automaton.identifier not in automata_peers:
@@ -61,5 +60,62 @@ def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
                           if node.action and node.action.name == peer["subprocess"].name]:
                 if not sb_type or isinstance(state.action, sb_type):
                     automata_peers[automaton.identifier]["states"].add(state)
+
+
+def registration_intf_check(analysis, automata, model_fsa, function_call):
+    """
+    Tries to find relevant automata that can receive signals from model processes of those kernel functions which
+    can be called whithin the execution of a provided callback.
+
+    :param analysis: ModuleCategoriesSpecification object
+    :param model: ProcessModel object.
+    :param function_call: Function name string (Expect explicit function name like 'myfunc' or '(& myfunc)').
+    :return: Dictionary {'Automaton.identfier string' -> {'states': ['relevant State objects'],
+                                                                     'automaton': 'Automaton object'}
+    """
+    automata_peers = {}
+
+    name = analysis.callback_name(function_call)
+    if name:
+        # Caclulate relevant models
+        if name in analysis.modules_functions:
+            relevant_models = analysis.collect_relevant_models(name)
+
+            # Check relevant state machines for each model
+            for model in (m.process for m in model_fsa):
+                signals = [model.actions[name] for name in sorted(model.actions.keys())
+                           if (type(model.actions[name]) is Receive or
+                               type(model.actions[name]) is Dispatch) and
+                           len(model.actions[name].peers) > 0]
+
+                # Get all peers in total
+                peers = []
+                for signal in signals:
+                    peers.extend(signal.peers)
+
+                # Add relevant state machines
+                extract_relevant_automata(automata, automata_peers, peers)
+
+    return automata_peers
+
+
+def choose_file(cmodel, analysis, automaton):
+    file = automaton.file
+    if file:
+        return file
+
+    files = set()
+    if automaton.process.category == "kernel models":
+        # Calls
+        function_obj = analysis.get_kernel_function(automaton.process.name)
+        files.update(set(function_obj.files_called_at))
+        for caller in (c for c in function_obj.functions_called_at):
+            # Caller definitions
+            files.update(set(analysis.get_modules_function_files(caller)))
+
+    if len(files) == 0:
+        return cmodel.entry_file
+    else:
+        return sorted(list(files))[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
