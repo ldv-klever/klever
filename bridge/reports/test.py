@@ -47,7 +47,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe1.tar.gz', 'unsafe2.tar.gz'],
+        'unsafes': ['new_unsafe.tar.gz', 'new_unsafe.tar.gz'],
         'unknown': 'unknown2.tar.gz'
     },
     {
@@ -57,7 +57,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe3.tar.gz']
+        'unsafes': ['new_unsafe.tar.gz']
     },
     {
         'attrs': [
@@ -75,7 +75,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['unsafe3.tar.gz']
+        'unsafes': ['new_unsafe.tar.gz']
     },
     {
         'attrs': [
@@ -92,7 +92,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe1.tar.gz', 'unsafe2.tar.gz'],
+        'unsafes': ['new_unsafe.tar.gz', 'new_unsafe.tar.gz'],
         'unknown': 'unknown1.tar.gz'
     },
     {
@@ -130,7 +130,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['unsafe3.tar.gz']
+        'unsafes': ['new_unsafe.tar.gz']
     },
     {
         'attrs': [
@@ -139,7 +139,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['unsafe1.tar.gz']
+        'unsafes': ['new_unsafe.tar.gz']
     },
     {
         'attrs': [
@@ -148,7 +148,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe1.tar.gz', 'unsafe2.tar.gz'],
+        'unsafes': ['new_unsafe.tar.gz', 'new_unsafe.tar.gz'],
         'unknown': 'unknown1.tar.gz'
     },
     {
@@ -452,7 +452,7 @@ class TestReports(KleverTestCase):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
-                'error trace': 'unsafe-error-trace.graphml', 'attrs': attrs
+                'error trace': 'witness.json', 'attrs': attrs
             }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -709,7 +709,7 @@ class DecideJobs(object):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
-                'error trace': 'unsafe-error-trace.graphml', 'attrs': attrs
+                'error trace': 'witness.json', 'attrs': attrs
             }), 'file': fp})
 
     def __decide_job(self, job_identifier):

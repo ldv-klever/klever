@@ -113,6 +113,9 @@ class GetConvertedErrorTrace(object):
         return afc.content
 
     def __convert(self):
+        # TODO: delete
+        ErrorTraceConvertionCache.objects.all().delete()
+
         try:
             return ErrorTraceConvertionCache.objects.get(unsafe=self.unsafe, function=self.function).converted
         except ObjectDoesNotExist:

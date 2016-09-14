@@ -16,11 +16,11 @@
 #
 
 import re
+import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import logger, ArchiveFileContent
+from bridge.utils import ArchiveFileContent
 from reports.models import ReportUnsafe
-from reports.graphml_parser import GraphMLParser
 
 
 TAB_LENGTH = 4
@@ -48,87 +48,45 @@ KEY2_WORDS = [
 ]
 
 
+def get_error_paths(data):
+    err_paths = [[], []]
+    must_have_thread = False
+    curr_node = data['violation nodes'][0]
+    if not isinstance(data['nodes'][curr_node][0], int):
+        raise ValueError('Error traces with one path are supported')
+    while curr_node != data['entry node']:
+        if not isinstance(data['nodes'][curr_node][0], int):
+            raise ValueError('Error traces with one path are supported')
+        curr_in_edge = data['edges'][data['nodes'][curr_node][0]]
+        if 'thread' in curr_in_edge:
+            must_have_thread = True
+            err_paths[int(curr_in_edge['thread'])].insert(0, data['nodes'][curr_node][0])
+        elif must_have_thread:
+            raise ValueError("All error trace edges must have thread identifier ('0' or '1')")
+        else:
+            err_paths[0].insert(0, data['nodes'][curr_node][0])
+        curr_node = curr_in_edge['source node']
+    if len(err_paths[0]) == 0:
+        del err_paths[0]
+    if len(err_paths[1]) == 0:
+        del err_paths[1]
+    return err_paths
+
+
 class GetETV(object):
     def __init__(self, error_trace, include_assumptions=True):
-        self.error = None
-
-        self.g = self.__parse_graph(error_trace)
-        if self.error is not None:
-            return
-
-        self.traces = self.__get_traces()
-        if self.error is not None:
-            return
-
-        if len(self.traces) == 0:
-            self.error = 'Wrong error trace file format - no traces got'
-            return
-        elif len(self.traces) > 2:
-            self.error = 'Error trace with more than one threads are not supported'
-            return
-
+        self.include_assumptions = include_assumptions
         self.html_traces = []
         self.assumes = []
-        self.include_assumptions = include_assumptions
-
-        self._cnt = 0
+        self.data = json.loads(error_trace)
+        self.traces = get_error_paths(self.data)
         for trace in self.traces:
-            self._cnt += 1
             self.__html_trace(trace)
-        self.attributes = self.__get_attributes()
+        self.attributes = []
 
     def __get_attributes(self):
-        attrs = []
-        for a in self.g.attributes():
-            if a.name != 'programfile':
-                attrs.append([a.name, a.value])
-        return attrs
-
-    def __parse_graph(self, error_trace):
-        try:
-            return GraphMLParser().parse(error_trace)
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            self.error = 'The error trace has incorrect format'
-        return None
-
-    def __get_traces(self):
-        traces = []
-        if self.g.set_root_by_attribute('true', 'isEntryNode') is None:
-            self.error = 'Could not find the entry point was in the error trace'
-            return traces
-
-        for path in self.g.bfs():
-            if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
-                traces.append(path)
-        if len(traces) != 1:
-            self.error = 'Only error traces with one error path are supported'
-            return []
-        edge_trace1 = []
-        edge_trace2 = []
-        prev_node = traces[0][0]
-        must_have_thread = False
-        for n in traces[0][1:]:
-            e = self.g.edge(prev_node, n)
-            if e is not None:
-                if 'thread' in e.attr:
-                    must_have_thread = True
-                    if e['thread'] == '0':
-                        edge_trace1.append(e)
-                    elif e['thread'] == '1':
-                        edge_trace2.append(e)
-                elif must_have_thread:
-                    self.error = 'One of the edges does not have thread attribute'
-                    return []
-                else:
-                    edge_trace1.append(e)
-            prev_node = n
-        edge_traces = []
-        if len(edge_trace1) > 0:
-            edge_traces.append(edge_trace1)
-        if len(edge_trace2) > 0:
-            edge_traces.append(edge_trace2)
-        return edge_traces
+        # TODO: return list of error trace attributes like [<attr name>, <attr value>]. Ignore 'programfile'.
+        pass
 
     def __html_trace(self, trace):
         lines_data = []
@@ -173,15 +131,14 @@ class GetETV(object):
         })
 
         for n in trace:
-            line = n.attr.get('startline', None)
-            if line is not None:
-                line = line.value
-            if 'sourcecode' in n.attr:
-                code = n.attr['sourcecode'].value
+            edge_data = self.data['edges'][n]
+            line = str(edge_data.get('start line', None))
+            if 'source' in edge_data:
+                code = edge_data['source']
             else:
                 continue
-            if 'originFileName' in n.attr:
-                file = n['originFileName']
+            if 'file' in edge_data:
+                file = self.data['files'][edge_data['file']]
             if file is None:
                 line = None
 
@@ -195,28 +152,29 @@ class GetETV(object):
                 'offset': curr_offset * ' ',
                 'class': scope_stack[-1]
             }
-            if line_data['line'] is not None and 'assumption' not in n.attr and self.include_assumptions:
+            if line_data['line'] is not None and 'assumption' not in edge_data and self.include_assumptions:
                 line_data.update(fill_assumptions())
-            if 'note' in n.attr:
-                line_data['note'] = n['note']
+            if 'note' in edge_data:
+                line_data['note'] = edge_data['note']
                 if all(ss not in scopes_to_hide for ss in scope_stack):
                     for ss in scope_stack[1:]:
                         if ss not in scopes_to_show:
                             scopes_to_show.append(ss)
-            if 'warning' in n.attr:
-                line_data['warning'] = n['warning']
+            if 'warn' in edge_data:
+                line_data['warning'] = edge_data['warn']
                 for ss in scope_stack[1:]:
                     if ss not in scopes_to_show:
                         scopes_to_show.append(ss)
 
-            if 'assumption' in n.attr:
-                if not has_main and 'assumption.scope' in n.attr and n['assumption.scope'] == 'main':
+            if 'assumption' in edge_data:
+                if not has_main and 'assumption scope' in edge_data \
+                        and self.data['funcs'][edge_data['assumption scope']] == 'entry_point':
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
                     scopes_to_show.append(scope_stack[-1])
                     line_data['class'] = scope_stack[-1]
                     has_main = True
-                if 'assumption.scope' in n.attr:
+                if 'assumption scope' in edge_data:
                     ass_scope = scope_stack[-1]
                 else:
                     ass_scope = 'global'
@@ -225,14 +183,14 @@ class GetETV(object):
                     if ass_scope not in assume_scopes:
                         assume_scopes[ass_scope] = []
                     curr_assumes = []
-                    for assume in n['assumption'].split(';'):
+                    for assume in edge_data['assumption'].split(';'):
                         if len(assume) == 0:
                             continue
                         assume_scopes[ass_scope].append(assume)
                         curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
 
                     line_data.update(fill_assumptions(curr_assumes))
-            if 'enterFunction' in n.attr:
+            if 'enter' in edge_data:
                 if scope_stack[-1] == 'global':
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
@@ -240,19 +198,19 @@ class GetETV(object):
                     line_data['class'] = scope_stack[-1]
                     has_main = True
                 cnt += 1
-                scope_stack.append('scope__%s__%s' % (n['enterFunction'], str(cnt)))
+                scope_stack.append('scope__%s__%s' % (self.data['funcs'][edge_data['enter']], str(cnt)))
                 line_data['hide_id'] = scope_stack[-1]
-                if 'note' in n.attr or 'warning' in n.attr:
+                if 'note' in edge_data or 'warn' in edge_data:
                     scopes_to_hide.append(scope_stack[-1])
                 line_data['code'] = re.sub(
-                    '(^|\W)' + n['enterFunction'] + '(\W|$)',
-                    '\g<1><span class="ETV_Fname">' + n['enterFunction'] + '</span>\g<2>',
+                    '(^|\W)' + self.data['funcs'][edge_data['enter']] + '(\W|$)',
+                    '\g<1><span class="ETV_Fname">' + self.data['funcs'][edge_data['enter']] + '</span>\g<2>',
                     line_data['code']
                 )
                 lines_data.append(line_data)
                 add_fake_line('{')
                 curr_offset += TAB_LENGTH
-            elif 'returnFromFunction' in n.attr:
+            elif 'return' in edge_data:
                 lines_data.append(line_data)
                 if curr_offset >= TAB_LENGTH:
                     curr_offset -= TAB_LENGTH
@@ -265,7 +223,7 @@ class GetETV(object):
                 except IndexError:
                     self.error = 'The error trace is corrupted'
                     return None
-            elif 'control' in n.attr:
+            elif 'condition' in edge_data:
                 m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
                 if m is not None:
                     line_data['code'] = m.group(1)
@@ -527,57 +485,22 @@ def is_tag(tag, name):
     return bool(re.match('^({.*})*' + name + '$', tag))
 
 
-# Returns string in case success or raise ValueError
+# Returns json serializable data in case of success or Exception
 def error_trace_callstack(error_trace):
-    try:
-        graph = GraphMLParser().parse(error_trace)
-    except Exception as e:
-        logger.exception(e, stack_info=True)
-        raise ValueError('The error trace has incorrect format')
-    traces = []
-    if graph.set_root_by_attribute('true', 'isEntryNode') is None:
-        raise ValueError('Could not find the entry point was in the error trace')
-
-    for path in graph.bfs():
-        if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
-            traces.append(path)
-    if len(traces) != 1:
-        raise ValueError('Only error traces with one error path are supported')
-    edge_trace1 = []
-    edge_trace2 = []
-    prev_node = traces[0][0]
-    must_have_thread = False
-    for n in traces[0][1:]:
-        e = graph.edge(prev_node, n)
-        if e is not None:
-            if 'thread' in e.attr:
-                must_have_thread = True
-                if e['thread'] == '0':
-                    edge_trace1.append(e)
-                elif e['thread'] == '1':
-                    edge_trace2.append(e)
-            elif must_have_thread:
-                raise ValueError('One of the edges does not have thread attribute')
-            else:
-                edge_trace1.append(e)
-        prev_node = n
-    call_stack1 = []
-    for n in edge_trace1:
-        if 'enterFunction' in n.attr:
-            call_stack1.append(n['enterFunction'])
-        if 'returnFromFunction' in n.attr:
-            call_stack1.pop()
-        if 'warning' in n.attr:
-            break
-    call_stack2 = []
-    for n in edge_trace2:
-        if 'enterFunction' in n.attr:
-            call_stack2.append(n['enterFunction'])
-        if 'returnFromFunction' in n.attr:
-            call_stack2.pop()
-        if 'warning' in n.attr:
-            break
-    return [call_stack1, call_stack2]
+    data = json.loads(error_trace)
+    call_stacks = []
+    for edge_trace in get_error_paths(data):
+        call_stack = []
+        for edge_id in edge_trace:
+            edge_data = data['edges'][edge_id]
+            if 'enter' in edge_data:
+                call_stack.append(data['funcs'][edge_data['enter']])
+            if 'return' in edge_data:
+                call_stack.pop()
+            if 'warn' in edge_data:
+                break
+        call_stacks.append(call_stack)
+    return call_stacks
 
 
 # Some constants for internal representation of error traces.
@@ -586,6 +509,7 @@ _RET = 'RET'
 
 
 # Extracts model functions in specific format with some heuristics.
+# TODO: error_trace is json already, not graphml
 def error_trace_model_functions(error_trace):
 
     # TODO: Very bad method.
@@ -645,66 +569,33 @@ def error_trace_model_functions(error_trace):
 
     return json.dumps(call_tree, ensure_ascii=False, sort_keys=True, indent=4)
 
+
 class ErrorTraceCallstackTree(object):
     def __init__(self, error_trace):
-        self._error_trace = error_trace
-        self._edge_trace1, self._edge_trace2 = self.__get_edge_traces()
-        self.trace = [self.__get_tree(self._edge_trace1), self.__get_tree(self._edge_trace2)]
-
-    def __get_edge_traces(self):
-        try:
-            graph = GraphMLParser().parse(self._error_trace)
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            raise ValueError('The error trace has incorrect format')
-        traces = []
-        if graph.set_root_by_attribute('true', 'isEntryNode') is None:
-            raise ValueError('Could not find the entry point was in the error trace')
-
-        for path in graph.bfs():
-            if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
-                traces.append(path)
-        if len(traces) != 1:
-            raise ValueError('Only error traces with one error path are supported')
-        edge_trace1 = []
-        edge_trace2 = []
-        prev_node = traces[0][0]
-        must_have_thread = False
-        for n in traces[0][1:]:
-            e = graph.edge(prev_node, n)
-            if e is not None:
-                if 'thread' in e.attr:
-                    must_have_thread = True
-                    if e['thread'] == '0':
-                        edge_trace1.append(e)
-                    elif e['thread'] == '1':
-                        edge_trace2.append(e)
-                elif must_have_thread:
-                    raise ValueError('One of the edges does not have thread attribute')
-                else:
-                    edge_trace1.append(e)
-            prev_node = n
-        return edge_trace1, edge_trace2
+        self.data = json.loads(error_trace)
+        self.trace = []
+        for edge_trace in get_error_paths(self.data):
+            self.trace.append(self.__get_tree(edge_trace))
 
     def __get_tree(self, edge_trace):
-        self.ccc = 0
         tree = []
         call_level = 0
         call_stack = []
         model_functions = []
-        for n in edge_trace:
-            if 'enterFunction' in n.attr:
-                call_stack.append(n['enterFunction'])
+        for edge_id in edge_trace:
+            edge_data = self.data['edges'][edge_id]
+            if 'enter' in edge_data:
+                call_stack.append(self.data['funcs'][edge_data['enter']])
                 call_level += 1
                 while len(tree) <= call_level:
                     tree.append([])
-                if 'note' in n.attr:
-                    model_functions.append(n['enterFunction'])
+                if 'note' in edge_data:
+                    model_functions.append(self.data['funcs'][edge_data['enter']])
                 tree[call_level].append({
-                    'name': n['enterFunction'],
+                    'name': self.data['funcs'][edge_data['enter']],
                     'parent': call_stack[-2] if len(call_stack) > 1 else None
                 })
-            if 'returnFromFunction' in n.attr:
+            if 'return' in edge_data:
                 call_stack.pop()
                 call_level -= 1
 
