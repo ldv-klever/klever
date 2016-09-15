@@ -102,11 +102,15 @@ If call stacks are identical returns 1 else returns 0.
         """
 If model functions are identical returns 1 else returns 0.
         """
-        err_trace1 = error_trace_model_functions(self.error_trace)
-        err_trace2 = self.pattern_error_trace
-        if err_trace1 == err_trace2:
+
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='model_functions'), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+        err_trace_converted = res.parsed_trace()
+        pattern = self.pattern_error_trace
+        if err_trace_converted == pattern:
             return 1
-        return 0
+        return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
 
     def callstack_tree_compare(self):
         """

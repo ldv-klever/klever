@@ -94,21 +94,17 @@ class GetETV(object):
         cnt = 0
         file = None
         has_main = False
-        curr_offset = 1
         max_line_length = 1
         scope_stack = ['global']
+        double_return = {}
         assume_scopes = {'global': []}
         scopes_to_show = []
         scopes_to_hide = []
 
-        def add_fake_line(fake_code):
-            lines_data.append({
-                'code': fake_code,
-                'line': None,
-                'offset': curr_offset * ' ',
-                'class': scope_stack[-1],
-                'hide_id': None
-            })
+        def curr_offset():
+            if len(scope_stack) < 2:
+                return ' '
+            return ((len(scope_stack) - 2) * TAB_LENGTH + 1) * ' '
 
         def fill_assumptions(current_assumptions=None):
             assumptions = []
@@ -123,10 +119,28 @@ class GetETV(object):
                 'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
             }
 
+        def return_from_func(curr_linedata):
+            last_scope = scope_stack.pop()
+            lines_data.append(curr_linedata)
+            if len(scope_stack) == 0:
+                raise ValueError('The error trace is corrupted')
+            curr_linedata = {
+                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                'line': None,
+                'offset': curr_offset(),
+                'class': last_scope,
+                'hide_id': None
+            }
+            curr_scope = scope_stack[-1]
+            if double_return.get(curr_scope, False):
+                del double_return[curr_scope]
+                curr_linedata = return_from_func(curr_linedata)
+            return curr_linedata
+
         lines_data.append({
             'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
             'line': None,
-            'offset': curr_offset * ' ',
+            'offset': curr_offset(),
             'hide_id': 'global_scope'
         })
 
@@ -149,7 +163,7 @@ class GetETV(object):
                 'line': line,
                 'file': file,
                 'code': code,
-                'offset': curr_offset * ' ',
+                'offset': curr_offset(),
                 'class': scope_stack[-1]
             }
             if line_data['line'] is not None and 'assumption' not in edge_data and self.include_assumptions:
@@ -190,6 +204,12 @@ class GetETV(object):
                         curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
 
                     line_data.update(fill_assumptions(curr_assumes))
+            if 'condition' in edge_data:
+                m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
+                if m is not None:
+                    line_data['code'] = m.group(1)
+                line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
+                                    str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
             if 'enter' in edge_data:
                 if scope_stack[-1] == 'global':
                     cnt += 1
@@ -207,36 +227,21 @@ class GetETV(object):
                     '\g<1><span class="ETV_Fname">' + self.data['funcs'][edge_data['enter']] + '</span>\g<2>',
                     line_data['code']
                 )
-                lines_data.append(line_data)
-                curr_offset += TAB_LENGTH
+                if 'return' in edge_data:
+                    if edge_data['enter'] == edge_data['return']:
+                        line_data = return_from_func(line_data)
+                    else:
+                        double_return[scope_stack[-2]] = True
             elif 'return' in edge_data:
-                lines_data.append(line_data)
-                if curr_offset >= TAB_LENGTH:
-                    curr_offset -= TAB_LENGTH
-                add_fake_line('<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>')
-                try:
-                    scope_stack.pop()
-                    if len(scope_stack) == 0:
-                        self.error = 'The error trace is corrupted'
-                        return None
-                except IndexError:
-                    self.error = 'The error trace is corrupted'
-                    return None
-            elif 'condition' in edge_data:
-                m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
-                if m is not None:
-                    line_data['code'] = m.group(1)
-                line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
-                                    str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
-                lines_data.append(line_data)
-            else:
-                lines_data.append(line_data)
+                line_data = return_from_func(line_data)
+            lines_data.append(line_data)
 
         while len(scope_stack) > 2:
-            if curr_offset >= TAB_LENGTH:
-                curr_offset -= TAB_LENGTH
-            add_fake_line('<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>')
-            scope_stack.pop()
+            poped_scope = scope_stack.pop()
+            lines_data.append({
+                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                'line': None, 'offset': curr_offset(), 'class': poped_scope, 'hide_id': None
+            })
         for i in range(0, len(lines_data)):
             if lines_data[i]['line'] is None:
                 lines_data[i]['line_offset'] = ' ' * max_line_length
@@ -508,65 +513,62 @@ _RET = 'RET'
 
 
 # Extracts model functions in specific format with some heuristics.
-# TODO: error_trace is json already, not graphml
 def error_trace_model_functions(error_trace):
+    data = json.loads(error_trace)
+    converted_traces = []
 
     # TODO: Very bad method.
-    model_functions = set()
-    for line in error_trace.split("\n"):
-        res = re.search(r'<data key=\"enterFunction\">ldv_linux_(.*)</data>', line)
-        if res:
-            mf = res.group(1)
-            model_functions.add(mf)
+    for trace in get_error_paths(data):
+        model_funcs = set()
+        for edge_id in trace:
+            edge_data = data['edges'][edge_id]
+            if 'enter' in edge_data:
+                res = re.search(r'ldv_linux_(.*)', data['funcs'][edge_data['enter']])
+                if res:
+                    model_funcs.add(res.group(1))
+        call_tree = [{'entry_point': _CALL}]
+        for edge_id in trace:
+            edge_data = data['edges'][edge_id]
+            if 'enter' in edge_data:
+                call_tree.append({data['funcs'][edge_data['enter']]: _CALL})
+            if 'return' in edge_data:
+                is_done = False
+                for mf in model_funcs:
+                    if data['funcs'][edge_data['return']].__contains__(mf):
+                        call_tree.append({data['funcs'][edge_data['return']]: _CALL})
+                        is_done = True
+                if not is_done:
+                    is_save = False
+                    sublist = []
+                    for elem in reversed(call_tree):
+                        sublist.append(elem)
+                        func_name = list(elem.keys()).__getitem__(0)
+                        for mf in model_funcs:
+                            if func_name.__contains__(mf):
+                                is_save = True
+                        if elem == {data['funcs'][edge_data['return']]: _CALL}:
+                            sublist.reverse()
+                            break
+                    if is_save:
+                        call_tree.append({data['funcs'][edge_data['return']]: _RET})
+                    else:
+                        call_tree = call_tree[:-sublist.__len__()]
+        converted_traces.append(call_tree)
 
-    call_tree = [{"entry_point": _CALL}]
-    for line in error_trace.split("\n"):
-        res = re.search(r'<data key=\"enterFunction\">(.*)</data>', line)
-        if res:
-            function_call = res.group(1)
-            call_tree.append({function_call: _CALL})
+        # Maybe for debug print?
+        level = 0
+        for elem in call_tree:
+            func_name, op = list(elem.items())[0]
+            spaces = ""
+            for i in range(0, level):
+                spaces += " "
+            if op == _CALL:
+                level += 1
+                print(spaces + func_name)
+            else:
+                level -= 1
 
-        res = re.search(r'<data key=\"returnFrom\">(.*)</data>', line)
-        if res:
-            function_return = res.group(1)
-            is_done = False
-            for mf in model_functions:
-                if function_return.__contains__(mf):
-                    call_tree.append({function_return: _RET})
-                    is_done = True
-
-            if not is_done:
-                # Check from the last call of that function.
-                is_save = False
-                sublist = []
-                for elem in reversed(call_tree):
-                    sublist.append(elem)
-                    func_name = list(elem.keys()).__getitem__(0)
-                    for mf in model_functions:
-                        if func_name.__contains__(mf):
-                            is_save = True
-                    if elem == {function_return: _CALL}:
-                        sublist.reverse()
-                        break
-                if is_save:
-                    call_tree.append({function_return: _RET})
-                else:
-                    call_tree = call_tree[:-sublist.__len__()]
-
-    # Maybe for debug print?
-    level = 0
-    for elem in call_tree:
-        func_name, op = list(elem.items())[0]
-        spaces = ""
-        for i in range(0, level):
-            spaces += " "
-        if op == _CALL:
-            level += 1
-            print(spaces + func_name)
-        else:
-            level -= 1
-
-    return json.dumps(call_tree, ensure_ascii=False, sort_keys=True, indent=4)
+    return converted_traces
 
 
 class ErrorTraceCallstackTree(object):
