@@ -118,6 +118,7 @@
 
 /* Error trace: Line number object */
 .ETV_LN {
+    z-index: 999;
     position: relative;
     white-space: pre;
     background-color: #ffe6d7;
