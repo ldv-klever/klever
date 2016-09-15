@@ -144,6 +144,11 @@ $(document).ready(function () {
             last_selector.show();
         }
     });
+    $('.ETV_DownHideLink').click(function () {
+        var etv_main_parent = $(this).closest('div[id^="etv-trace"]'),
+            add_id = etv_main_parent.attr('id').replace('etv-trace', '');
+        etv_main_parent.find('.' + $(this).parent().parent().attr('class').replace(add_id, '')).first().prev().find('.ETV_HideLink').click();
+    });
 
     $('.ETV_La').click(function (event) {
         event.preventDefault();
