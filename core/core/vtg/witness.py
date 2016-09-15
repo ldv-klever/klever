@@ -16,7 +16,6 @@ class Witness:
         self.entry_node_id = None
         self.sink_node_ids = []
         self.violation_node_ids = []
-        self.violated_properties = {}
         self.edges = []
         self.files = []
         self.funcs = []
@@ -246,12 +245,6 @@ class Witness:
                         raise NotImplementedError('Several violation nodes are not supported')
                     self.violation_node_ids.append(node_id)
                     self.logger.debug('Parse violation node "{0}"'.format(node_id))
-                elif data_key == 'violatedProperty':
-                    if self.violated_properties:
-                        raise NotImplementedError('Several violated properties are not supported')
-                    self.violated_properties[node_id] = data.text
-                    self.logger.debug(
-                        'Parse violated property "{0}" for violation node "{1}"'.format(data.text, node_id))
                 elif data_key not in unsupported_node_data_keys:
                     self.logger.warning('Node data key "{0}" is not supported'.format(data_key))
                     unsupported_node_data_keys[data_key] = None

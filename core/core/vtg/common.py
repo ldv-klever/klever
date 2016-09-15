@@ -254,7 +254,6 @@ class CommonStrategy(core.components.Component):
                     'entry node': witness.entry_node_id,
                     'sink nodes': witness.sink_node_ids,
                     'violation nodes': witness.violation_node_ids,
-                    'violated properties': witness.violated_properties,
                     'files': witness.files,
                     'funcs': witness.funcs
                 }, fp, ensure_ascii=False, sort_keys=True, indent=4)
