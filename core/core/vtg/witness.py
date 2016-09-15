@@ -379,6 +379,14 @@ class Witness:
                 self.edges[input_edge_id]['source node'] = new_source_node_id
 
         # Shift by one all references to nodes following removed one.
+        if self.entry_node_id > removed_node_id:
+            self.entry_node_id -= 1
+        for i, sink_node_id in enumerate(self.sink_node_ids):
+            if sink_node_id > removed_node_id:
+                self.sink_node_ids[i] -= 1
+        for i, violation_node_id in enumerate(self.violation_node_ids):
+            if violation_node_id > removed_node_id:
+                self.violation_node_ids[i] -= 1
         for edge in self.edges:
             if edge['source node'] > removed_node_id:
                 edge['source node'] -= 1
