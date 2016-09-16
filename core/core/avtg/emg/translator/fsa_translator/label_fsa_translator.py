@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.avtg.emg.common import get_conf_property
-from core.avtg.emg.common.process import Dispatch, get_common_parameter
+from core.avtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.avtg.emg.common.process import Dispatch, Receive, get_common_parameter
 from core.avtg.emg.translator.fsa_translator import FSATranslator
-from core.avtg.emg.translator.code import Variable
-from core.avtg.emg.translator.fsa_translator.common import model_comment, extract_relevant_automata
+from core.avtg.emg.translator.code import Variable, FunctionDefinition
+from core.avtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
+from core.avtg.emg.translator.fsa_translator.label_control_function import label_based_function
 
 
 class LabelTranslator(FSATranslator):
@@ -31,17 +32,17 @@ class LabelTranslator(FSATranslator):
         return list()
 
     def _join_cf_code(self, file, automaton):
-        sv = self.__thread_variable(automaton, get_conf_property(self._conf, 'instance modifier'))
+        sv = self.__thread_variable(automaton, get_necessary_conf_property(self._conf, 'instance modifier'))
         self._cmodel.add_global_variable(sv, file, extern=True)
-        if get_conf_property(self._conf, 'instance modifier') > 1:
+        if get_necessary_conf_property(self._conf, 'instance modifier') > 1:
             return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name, self._control_function(automaton).name)
         else:
             return 'ldv_thread_join({}, {});'.format('& ' + sv.name, self._control_function(automaton).name)
 
     def _call_cf_code(self, file, automaton, parameter='0'):
-        sv = self.__thread_variable(automaton, get_conf_property(self._conf, 'instance modifier'))
+        sv = self.__thread_variable(automaton, get_necessary_conf_property(self._conf, 'instance modifier'))
         self._cmodel.add_global_variable(sv, file, extern=True)
-        if get_conf_property(self._conf, 'instance modifier') > 1:
+        if get_necessary_conf_property(self._conf, 'instance modifier') > 1:
             return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
                                                              self._control_function(automaton).name,
                                                              parameter)
@@ -70,7 +71,7 @@ class LabelTranslator(FSATranslator):
                     call = self._call_cf(file,
                                          automata_peers[name]['automaton'], '& ' + cf_param)
                     if r_state.action.replicative:
-                        if get_conf_property(self._conf, 'direct control functions call'):
+                        if get_conf_property(self._conf, 'direct control functions calls'):
                             block.append(call)
                         else:
                             block.append('ret = {}'.format(call))
@@ -87,7 +88,7 @@ class LabelTranslator(FSATranslator):
             for name in (n for n in automata_peers
                          if len(automata_peers[n]['states']) > 0):
                 call = self._join_cf(file, automata_peers[name]['automaton'])
-                if get_conf_property(self._conf, 'direct control functions call'):
+                if get_conf_property(self._conf, 'direct control functions calls'):
                     block = [call]
                 else:
                     block = ['ret = {}'.format(call),
@@ -136,7 +137,6 @@ class LabelTranslator(FSATranslator):
                     v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('')))
                     v_code.append('')
 
-                    code.append('')
                     code.append('/* Assign recieved labels */')
                     code.append('if (cf_arg_struct) {')
                     for index in range(len(param_expressions)):
@@ -151,8 +151,60 @@ class LabelTranslator(FSATranslator):
 
         return code, v_code, conditions, comments
         
+    def _compose_control_function(self, automaton):
+        self._logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
+                          format(automaton.identifier, automaton.process.name, automaton.process.category))
+
+        # Get function prototype
+        cf = self._control_function(automaton)
+
+        # Do process initialization
+        model_flag = True
+        if automaton not in self._model_fsa:
+            model_flag = False
+
+            param_declarations = []
+            param_expressions = []
+            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
+                if len(receive.parameters) > 0:
+                    for index in range(len(receive.parameters)):
+                        # Determine dispatcher parameter
+                        interface = get_common_parameter(receive, automaton.process, index)
+
+                        # Determine receiver parameter
+                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
+                                                                           interface.identifier)
+                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
+                        receiver_expr = receiver_access.access_with_variable(var)
+
+                        param_declarations.append(var.declaration)
+                        param_expressions.append(receiver_expr)
+                    break
+
+            modifier = get_necessary_conf_property(self._conf, 'instance modifier')
+            if modifier and modifier > 1:
+                self._cmodel.add_global_variable(self.__thread_variable(automaton, modifier),
+                                                 choose_file(self._cmodel, self._analysis, automaton), extern=False)
+            else:
+                self._cmodel.add_global_variable(self.__thread_variable(automaton, modifier),
+                                                 choose_file(self._cmodel, self._analysis, automaton),
+                                                 extern=False)
+
+        label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
+        self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
+        self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
+        return
+
+    def _entry_point(self):
+        self._logger.info("Finally generate an entry point function {!r}".format(self._cmodel.entry_name))
+        body = [
+            '{}(0);'.format(self._control_function(self._entry_fsa).name),
+            'return;'
+        ]
+        return self._cmodel.compose_entry_point(body)
+
     def __thread_variable(self, automaton, number=1):
-        if automaton.identifier not in self.__thread_variable:
+        if automaton.identifier not in self.__thread_variables:
             if number > 1:
                 var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread_set a', True)
                 var.value = '{' + '.number = {}'.format(number) + '}'
@@ -162,11 +214,5 @@ class LabelTranslator(FSATranslator):
             self.__thread_variables[automaton.identifier] = var
 
         return self.__thread_variables[automaton.identifier]
-
-    def _entry_point(self):
-        raise NotImplementedError
-
-    def _control_function(self):
-        raise NotImplementedError
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

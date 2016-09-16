@@ -34,13 +34,14 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
            {'Access.expression string'->'Interface.identifier string'->'value string'}}}
     :return: Entry point autmaton, list with model qutomata, list with callback automata
     """
-    identifier_counter = -1
-    def _yeild_identifier(identifier_counter):
+    def yeild_identifier():
         """Return unique identifier."""
-        identifier_counter += 1
-        return identifier_counter
-
+        identifier_counter = -1
+        while True:
+            identifier_counter += 1
+            yield identifier_counter
     logger.info("Generate automata for processes with callback calls")
+    identifiers = yeild_identifier()
     
     # Check configuraition properties first
     check_or_set_conf_property(conf, "max instances number", default_value=1000, expected_type=int)
@@ -59,7 +60,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
                          format(len(base_list), process.name, process.category))
 
         for instance in base_list:
-            fsa = Automaton(instance, _yeild_identifier(identifier_counter))
+            fsa = Automaton(instance, identifiers.__next__())
             callback_fsa.append(fsa)
 
     # Generate automata for models
@@ -68,12 +69,12 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
         logger.info("Generate FSA for kernel model process {}".format(process.name))
         processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
         for instance in processes:
-            fsa = Automaton(instance, _yeild_identifier(identifier_counter))
+            fsa = Automaton(instance, identifiers.__next__())
             model_fsa.append(fsa)
 
     # Generate state machine for init an exit
     logger.info("Generate FSA for module initialization and exit functions")
-    entry_fsa = Automaton(model.entry_process, _yeild_identifier(identifier_counter))
+    entry_fsa = Automaton(model.entry_process, identifiers.__next__())
 
     return entry_fsa, model_fsa, callback_fsa
 

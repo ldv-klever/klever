@@ -1,0 +1,412 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+from operator import attrgetter
+from core.avtg.emg.common import get_conf_property
+from core.avtg.emg.common.signature import Pointer, Primitive
+from core.avtg.emg.common.process import Subprocess
+from core.avtg.emg.translator.fsa_translator.common import control_function_comment, choose_file
+
+
+def label_based_function(conf, analysis, automaton, cf, model=True):
+    v_code, f_code = list(), list()
+    v_code.append(control_function_comment(automaton))
+
+    # Determine returning expression for reuse
+    ret_expression = 'return;'
+    if model:
+        kfunction_obj = analysis.get_kernel_function(automaton.process.name)
+        if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
+            ret_expression = 'return res;'
+
+    for var in automaton.variables():
+        if type(var.declaration) is Pointer and get_conf_property(conf, 'allocate external'):
+            definition = var.declare() + " = external_allocated_data();"
+        elif type(var.declaration) is Primitive and var.value:
+            definition = var.declare_with_init() + ";"
+        else:
+            definition = var.declare() + ";"
+        v_code.append(definition)
+
+    main_v_code, main_f_code = __label_sequence(automaton, list(automaton.fsa.initial_states)[0], ret_expression)
+    v_code.extend(main_v_code)
+    f_code.extend(main_f_code)
+    f_code.append("/* End of the process */")
+    f_code.append(ret_expression)
+
+    processed = []
+    for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
+                 if type(s.action) is Subprocess]:
+        if subp.action.name not in processed:
+            sp_v_code, sp_f_code = __label_sequence(automaton, list(subp.successors)[0], ret_expression)
+
+            v_code.extend(sp_v_code)
+            f_code.extend([
+                '',
+                '/* Sbprocess {} */'.format(subp.action.name),
+                'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
+            ])
+            f_code.extend(sp_f_code)
+            f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
+            f_code.append(ret_expression)
+            processed.append(subp.action.name)
+
+    cf.body.extend(v_code + f_code)
+
+    return cf.name
+
+
+def __merge_points(initial_states):
+    # Terminal marking
+    def add_terminal(terminal, out_value, split_points, subprocess=False):
+        for split in out_value:
+            for branch in out_value[split]:
+                if branch in split_points[split]['merge branches'] and subprocess:
+                    split_points[split]['merge branches'].remove(branch)
+                if branch not in split_points[split]['terminals']:
+                    split_points[split]['terminals'][branch] = set()
+                split_points[split]['terminals'][branch].add(terminal)
+
+            split_points[split]['terminal merge sets'][terminal] = out_value[split]
+
+    # Condition calculation
+    def do_condition(states, terminal_branches, finals, merge_list, split, split_data, merge_points):
+        # Set up branches
+        condition = {'pending': list(), 'terminals': list()}
+        largest_unintersected_mergesets = []
+        while len(merge_list) > 0:
+            merge = merge_list.pop(0)
+            merged_states = split_data['split sets'][merge]
+            terminal_branches -= merged_states
+            diff = states - merged_states
+            if len(diff) < len(states):
+                largest_unintersected_mergesets.append(merge)
+                if len(merged_states) == 1:
+                    condition['pending'].append(next(iter(merged_states)))
+                elif len(merged_states) > 1:
+                    sc_finals = set(merge_points[merge][split])
+                    sc_terminals = set(split_data['terminals'].keys()).intersection(merged_states)
+                    new_condition = do_condition(set(merged_states), sc_terminals, sc_finals, list(merge_list),
+                                                 split, split_data, merge_points)
+                    condition['pending'].append(new_condition)
+                else:
+                    raise RuntimeError('Invalid merge')
+            states = diff
+
+        # Add rest independent branches
+        if len(states) > 0:
+            condition['pending'].extend(sorted(states))
+
+        # Add predecessors of the latest merge sets if there are not covered in terminals
+        for merge in largest_unintersected_mergesets:
+            bad = False
+            for terminal_branch in terminal_branches:
+                for terminal in split_data['terminals'][terminal_branch]:
+                    if split_points[split]['split sets'][merge].\
+                            issubset(split_data['terminal merge sets'][terminal]):
+                        bad = True
+                        break
+
+            if not bad:
+                # Add predecessors
+                condition['terminals'].extend(merge_points[merge][split])
+                # Add terminal
+                terminal_branches.update(set(split_data['terminals'].keys()).
+                                         intersection(split_data['split sets'][merge]))
+
+        # Add terminals which are not belong to any merge set
+        for branch in terminal_branches:
+            condition['terminals'].extend(split_data['terminals'][branch])
+        # Add provided
+        condition['terminals'].extend(finals)
+
+        # Return child condition if the last is not a condition
+        if len(condition['pending']) == 1:
+            condition = condition['pending'][0]
+
+        # Save all branhces
+        condition['branches'] = list(condition['pending'])
+
+        # Save total number of branches
+        condition['len'] = len(condition['pending'])
+
+        return condition
+
+    # Collect iformation about branches
+    graph = dict()
+    split_points = dict()
+    merge_points = dict()
+    processed = set()
+    queue = sorted(initial_states, key=attrgetter('identifier'))
+    merge_queue = list()
+    while len(queue) > 0 or len(merge_queue) > 0:
+        if len(queue) != 0:
+            st = queue.pop(0)
+        else:
+            st = merge_queue.pop(0)
+
+        # Add epson states
+        if st.identifier not in graph:
+            graph[st.identifier] = dict()
+
+        # Calculate output branches
+        out_value = dict()
+        if st not in initial_states and len(st.predecessors) > 1 and \
+                        len({s for s in st.predecessors if s.identifier not in processed}) > 0:
+            merge_queue.append(st)
+        else:
+            if st not in initial_states:
+                if len(st.predecessors) > 1:
+                    # Try to collect all branches first
+                    for predecessor in st.predecessors:
+                        for split in graph[predecessor.identifier][st.identifier]:
+                            if split not in out_value:
+                                out_value[split] = set()
+                            out_value[split].update(graph[predecessor.identifier][st.identifier][split])
+
+                            for node in graph[predecessor.identifier][st.identifier][split]:
+                                split_points[split]['branch liveness'][node] -= 1
+
+                    # Remove completely merged branches
+                    for split in sorted(out_value.keys()):
+                        for predecessor in (p for p in st.predecessors
+                                            if split in graph[p.identifier][st.identifier]):
+                            if len(out_value[split].symmetric_difference(
+                                    graph[predecessor.identifier][st.identifier][split])) > 0 or \
+                               len(split_points[split]['merge branches'].
+                                    symmetric_difference(graph[predecessor.identifier][st.identifier][split])) == 0:
+                                 # Add terminal states for each branch
+                                if st.identifier not in merge_points:
+                                    merge_points[st.identifier] = dict()
+                                merge_points[st.identifier][split] = \
+                                    {p.identifier for p in st.predecessors
+                                     if split in graph[p.identifier][st.identifier]}
+
+                                # Add particular set of merged bracnhes
+                                split_points[split]['split sets'][st.identifier] = out_value[split]
+
+                                # Remove, since all branches are merged
+                                if len(split_points[split]['merge branches'].
+                                               difference(out_value[split])) == 0 and \
+                                   len({s for s in split_points[split]['total branches']
+                                        if split_points[split]['branch liveness'][s] > 0}) == 0:
+                                    # Merge these branches
+                                    del out_value[split]
+                                break
+                elif len(st.predecessors) == 1:
+                    # Just copy meta info from the previous predecessor
+                    out_value = dict(graph[list(st.predecessors)[0].identifier][st.identifier])
+                    for split in out_value:
+                        for node in out_value[split]:
+                            split_points[split]['branch liveness'][node] -= 1
+
+            # If it is a split point, create meta information on it and start tracking its branches
+            if len(st.successors) > 1:
+                split_points[st.identifier] = {
+                    'total branches': {s.identifier for s in st.successors},
+                    'merge branches': {s.identifier for s in st.successors},
+                    'split sets': dict(),
+                    'terminals': dict(),
+                    'terminal merge sets': dict(),
+                    'branch liveness': {s.identifier: 0 for s in st.successors}
+                }
+            elif len(st.successors) == 0:
+                add_terminal(st.identifier, out_value, split_points)
+
+            # Assign branch tracking information to an each output branch
+            for successor in st.successors:
+                if successor not in graph:
+                    graph[successor.identifier] = dict()
+                # Assign branches from the previous split points
+                graph[st.identifier][successor.identifier] = dict(out_value)
+
+                # Branches with subprocesses has no merge point
+                if type(successor.action) is Subprocess:
+                    add_terminal(successor.identifier, out_value, split_points, subprocess=True)
+                else:
+                    if st.identifier in split_points:
+                        # Mark new branch
+                        graph[st.identifier][successor.identifier][st.identifier] = {successor.identifier}
+
+                    for split in graph[st.identifier][successor.identifier]:
+                        for branch in graph[st.identifier][successor.identifier][split]:
+                            # Do not expect to find merge point for this branch
+                            split_points[split]['branch liveness'][branch] += 1
+
+                    if len(successor.predecessors) > 1:
+                        if successor not in merge_queue:
+                            merge_queue.append(successor)
+                    else:
+                        if successor not in queue:
+                            queue.append(successor)
+
+                processed.add(st.identifier)
+
+    # Do sanity check
+    conditions = dict()
+    for split in split_points:
+        for branch in split_points[split]['branch liveness']:
+            if split_points[split]['branch liveness'][branch] > 0:
+                raise RuntimeError('Incorrect merge point detection')
+
+        # Calculate conditions then
+        conditions[split] = list()
+
+        # Check merge points number
+        left = set(split_points[split]['total branches'])
+        merge_list = sorted(split_points[split]['split sets'].keys(),
+                            key=lambda y: len(split_points[split]['split sets'][y]), reverse=True)
+        condition = do_condition(left, split_points[split]['terminals'].keys(), set(), merge_list, split,
+                                 split_points[split], merge_points)
+        conditions[split] = condition
+
+    return conditions
+
+
+def __label_sequence(automaton, initial_state, ret_expression):
+    def start_branch(tab, f_code, condition):
+        if condition['len'] == 2:
+            if len(condition['pending']) == 1:
+                f_code.append('\t' * tab + 'if (ldv_undef_int()) {')
+            elif len(condition['pending']) == 0:
+                f_code.append('\t' * tab + 'else {')
+            else:
+                raise ValueError('Invalid if conditional left states: {}'.
+                                 format(len(condition['pending'])))
+            tab += 1
+        elif condition['len'] > 2:
+            index = condition['len'] - len(condition['pending'])
+            f_code.append('\t' * tab + 'case {}: '.format(index) + '{')
+            tab += 1
+        else:
+            raise ValueError('Invalid condition branch number: {}'.format(condition['len']))
+        return tab
+
+    def close_branch(tab, f_code, condition):
+        if condition['len'] == 2:
+            tab -= 1
+            f_code.append('\t' * tab + '}')
+        elif condition['len'] > 2:
+            f_code.append('\t' * tab + 'break;')
+            tab -= 1
+            f_code.append('\t' * tab + '}')
+        else:
+            raise ValueError('Invalid condition branch number: {}'.format(condition['len']))
+        return tab
+
+    def start_condition(tab, f_code, condition, conditional_stack, state_stack):
+        conditional_stack.append(condition)
+
+        if len(conditional_stack[-1]['pending']) > 2:
+            f_code.append('\t' * tab + 'switch (ldv_undef_int()) {')
+            tab += 1
+        tab = process_next_branch(tab, f_code, conditional_stack, state_stack)
+        return tab
+
+    def close_condition(tab, f_code, conditional_stack):
+        # Close the last branch
+        tab = close_branch(tab, f_code, conditional_stack[-1])
+
+        # Close conditional statement
+        if conditional_stack[-1]['len'] > 2:
+            f_code.append('\t' * tab + 'default: ldv_stop();')
+            tab -= 1
+            f_code.append('\t' * tab + '}')
+        conditional_stack.pop()
+        return tab
+
+    # Start processing the next conditional branch
+    def process_next_branch(tab, f_code, conditional_stack, state_stack):
+        # Try to add next branch
+        next_branch = conditional_stack[-1]['pending'].pop()
+        tab = start_branch(tab, f_code, conditional_stack[-1])
+
+        if type(next_branch) is dict:
+            # Open condition
+            tab = start_condition(tab, f_code, next_branch, conditional_stack, state_stack)
+        else:
+            # Just add a state
+            next_state = automaton.fsa.resolve_state(next_branch)
+            state_stack.append(next_state)
+        return tab
+
+    def require_merge(state, processed_states, condition):
+        if len(condition['pending']) == 0 and state.identifier in condition['terminals'] and len(set(condition['terminals']) - processed_states) == 0:
+            return True
+        else:
+            return False
+
+    f_code = []
+    v_code = []
+
+    # Add artificial state if input copntains more than one state
+    state_stack = [initial_state]
+
+    # First calculate merge points
+    conditions = __merge_points(list(state_stack))
+
+    processed_states = set()
+    conditional_stack = []
+    tab = 0
+    while len(state_stack) > 0:
+        state = state_stack.pop()
+        processed_states.add(state.identifier)
+
+        new_v_code, new_f_code = state.code
+        v_code.extend(new_v_code)
+        if type(state.action) is Subprocess:
+            new_f_code.append(
+                '/* Jump to a subprocess {!r} initial state */'.format(state.action.name),
+                'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
+            )
+
+        # If this is a terminal state - quit control function
+        if type(state.action) is not Subprocess and len(state.successors) == 0:
+            new_f_code.extend([
+                ''
+                "/* Exit function at a terminal state */",
+                ret_expression
+            ])
+
+        f_code.extend(['\t' * tab + stm for stm in new_f_code])
+
+        # If this is a terminal state before completely closed merge point close the whole merge
+        while len(conditional_stack) > 0 and require_merge(state, processed_states, conditional_stack[-1]):
+            # Close the last branch and the condition
+            tab = close_condition(tab, f_code, conditional_stack)
+
+        # Close branch of the last condition
+        if len(conditional_stack) > 0 and state.identifier in conditional_stack[-1]['terminals']:
+            # Close this branch
+            tab = close_branch(tab, f_code, conditional_stack[-1])
+            # Start new branch
+            tab = process_next_branch(tab, f_code, conditional_stack, state_stack)
+        elif type(state.action) is not Subprocess:
+            # Add new states in terms of the current branch
+            if len(state.successors) > 1:
+                # Add new condition
+                condition = conditions[state.identifier]
+                tab = start_condition(tab, f_code, condition, conditional_stack, state_stack)
+            elif len(state.successors) == 1:
+                # Just add the next state
+                state_stack.append(next(iter(state.successors)))
+
+    if len(conditional_stack) > 0:
+        raise RuntimeError('Cannot leave unclosed conditions')
+
+    return [v_code, f_code]
+
+__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

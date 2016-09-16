@@ -17,22 +17,36 @@
 from core.avtg.emg.common.process import Receive, Dispatch
 
 
-def model_comment(action, text, begin=None):
-        if action:
-            type_comment = type(action).__name__.upper()
-            if begin is True:
-                type_comment += '_BEGIN'
-            elif begin is False:
-                type_comment += '_END'
+def model_comment(comment_type, text, instance=None):
+    comment = '/* {}'.format(comment_type.upper())
+    if instance:
+        comment += ' ' + instance.upper()
+    if text:
+        comment += ' ' + text.capitalize()
 
-            name_comment = action.name.upper()
-        else:
-            type_comment = 'ARTIFICIAL'
+    comment += ' */'
+    return comment
 
-        if name_comment:
-            return "/* {0} {2} {1} */".format(type_comment, text, name_comment)
-        else:
-            return "/* {0} {1} */".format(type_comment, text)
+
+def action_model_comment(action, text, begin=None):
+    if action:
+        type_comment = type(action).__name__.upper()
+        if begin is True:
+            type_comment += '_BEGIN'
+        elif begin is False:
+            type_comment += '_END'
+
+        name_comment = action.name.upper()
+    else:
+        type_comment = 'ARTIFICIAL'
+
+    return model_comment(type_comment, text, name_comment)
+
+
+def control_function_comment(automaton):
+    return model_comment('CONTROL_FUNCTION',
+                         "Control function based on process {!r}".format(automaton.process.name),
+                         automaton.process.category)
 
 
 def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):

@@ -22,8 +22,8 @@ from core.avtg.emg.common.signature import Pointer, Primitive, import_declaratio
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess,\
     get_common_parameter
 from core.avtg.emg.translator.code import FunctionDefinition
-from core.avtg.emg.translator.fsa_translator.common import model_comment, extract_relevant_automata, choose_file,\
-    registration_intf_check
+from core.avtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
+    extract_relevant_automata, choose_file, registration_intf_check
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -37,7 +37,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._analysis = analysis
         self._logger = logger
         self._structures = dict()
-
+        self._control_functions = dict()
         self._logger.info("Include extra header files if necessary")
 
         # Get from unused interfaces
@@ -58,13 +58,54 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._cmodel.add_before_aspect(('#include <{}>'.format(h) for h in header_list))
         self._logger.info("Have added {!s} additional headers".format(len(header_list)))
 
-        self._logger.info("Start the preparation of actions code")
         # Generates base code blocks
+        self._logger.info("Start the preparation of actions code")
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
                 self.__compose_action(state, automaton)
+
+        # Start generation of control functions
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            self._compose_control_function(automaton)
+
+        # Generate aspects with kernel models
+        for automaton in self._model_fsa:
+            aspect_code = [
+                model_comment('KERNEL_MODEL', 'Perform the model code of the function {!r}'.
+                              format(automaton.process.name))
+            ]
+            function_obj = self._analysis.get_kernel_function(automaton.process.name)
+            params = []
+            for position, param in enumerate(function_obj.declaration.parameters):
+                if type(param) is str:
+                    params.append(param)
+                else:
+                    params.append('$arg{}'.format(str(position + 1)))
+
+            ret_expression = ''
+            if len(params) == 0 and function_obj.declaration.return_value.identifier == 'void':
+                argiments = []
+            elif len(params) == 0:
+                argiments = ['$res']
+                ret_expression = 'return '
+            elif function_obj.declaration.return_value.identifier == 'void':
+                argiments = params
+            else:
+                ret_expression = 'return '
+                argiments = ['$res'] + params
+
+            invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(argiments))
+            aspect_code.append(invoke)
+
+            self._cmodel.add_function_model(function_obj, aspect_code)
+
+        # Generate entry point function
+        self._entry_point()
+
+        # Add types
+        self._cmodel.types = list(self._structures.values())
 
         return
 
@@ -74,14 +115,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             final_code.append(comments[0])
 
             # Skip or assert action according to conditions
-            if len(state.predecessors) > 1 and len(conditions) > 0:
+            if len(st.predecessors) > 0 and len(list(st.predecessors)[0].successors) > 1 and len(conditions) > 0:
                 final_code.append('ldv_assume({});'.format(' && '.join(conditions)))
                 final_code.extend(code)
-            elif len(conditions) > 0:
+            elif len(conditions) > 0 and len(code) > 0:
                 final_code.append('if ({}) '.format(' && '.join(conditions)) + '{')
                 final_code.extend(['\t{}'.format(s) for s in code])
                 final_code.append('}')
-            else:
+            elif len(code) > 0:
                 final_code.extend(code)
 
             if len(comments) == 2:
@@ -223,17 +264,18 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _art_action(self, state, automaton):
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(model_comment(state.action, 'Artificial state {!r} of a process {!r}'.
-                                                      format(state.action.name, automaton.process.name)))
+        comments.append(action_model_comment(state.action, 'Artificial state {!r} of a process {!r}'.
+                                             format(state.action.name, automaton.process.name)))
 
         return code, v_code, conditions, comments
 
     def _dispatch(self, state, automaton):
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        code.append(model_comment(state.action, 'Signal dispatch {!r} of a process {!r} of an interface category '
-                                                '{!r}'.format(state.action.name, automaton.process.name,
-                                                                  automaton.process.category)))
+        comments.append(action_model_comment(state.action,
+                                             'Signal dispatch {!r} of a process {!r} of an interface category '
+                                             '{!r}'.format(state.action.name, automaton.process.name,
+                                                           automaton.process.category)))
 
         # Determine peers to receive the signal
         automata_peers = dict()
@@ -360,11 +402,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(model_comment(state.action, 'Code fragment {!r} of a process {!r} of an interface category '
-                                                    '{!r}'.format(state.action.name, automaton.process.name,
-                                                                    automaton.process.category),
-                                        begin=True))
-        comments.append(model_comment(state.action, '', begin=False))
+        comments.append(action_model_comment(state.action,
+                                             'Code fragment {!r} of a process {!r} of an interface category {!r}'.\
+                                             format(state.action.name, automaton.process.name,
+                                                    automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
 
         # Add additional conditions
         conditions = list()
@@ -499,10 +542,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                              st.identifier)
             function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources), True)
 
-            function.body.append("/* Callback {} */".format(st.action.name))
-            inv = [
-                '/* Callback {} */'.format(st.action.name)
-            ]
+            function.body.append(model_comment('callback', None, st.action.name))
+            inv = []
 
             # Determine label params
             external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
@@ -532,7 +573,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 post_call.append(self._cmodel.text_processor(automaton, '$SWITCH_TO_PROCESS_CONTEXT();'))
 
             if st.action.post_call and len(st.action.post_call) > 0:
-                for stment in st.action.pre_call:
+                for stment in st.action.post_call:
                     post_call.extend(self._cmodel.text_processor(automaton, stment))
 
             if len(post_call) > 0:
@@ -619,12 +660,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 code, comments = list(), list()
 
                 # Make comments
-                comments.append(model_comment(state.action, 'Call callback {!r} of a process {!r} of an '
-                                                            'interface category {!r}'.
-                                                            format(st.action.name, automaton.process.name,
+                comments.append(action_model_comment(state.action,
+                                                     'Call callback {!r} of a process {!r} of an interface category '
+                                                     '{!r}'.format(st.action.name, automaton.process.name,
                                                                    automaton.process.category),
-                                              begin=True))
-                comments.append(model_comment(state.action, '', begin=False))
+                                                     begin=True))
+                comments.append(action_model_comment(state.action, None, begin=False))
 
                 relevant_automata = registration_intf_check(self._analysis,
                                                             self._callback_fsa + self._model_fsa + [self._entry_fsa],
@@ -646,12 +687,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
             code, comments = list(), list()
 
             # Make comments
-            comments.append(model_comment(state.action, 'Call callback {!r} of a process {!r} of an '
-                                                        'interface category {!r}'.
-                                                        format(state.action.name, automaton.process.name,
-                                                               automaton.process.category),
-                                          begin=True))
-            comments.append(model_comment(state.action, '', begin=False))
+            comments.append(action_model_comment(state.action,
+                                                 'Call callback {!r} of a process {!r} of an interface category {!r}'.\
+                                                 format(state.action.name, automaton.process.name,
+                                                        automaton.process.category),
+                                                 begin=True))
+            comments.append(action_model_comment(state.action, None, begin=False))
             code.append('/* Skip callback without implementations */')
             generated_callbacks.append((state, code, list(), list(), comments))
 
@@ -660,12 +701,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _call_retval(self, state, automaton):
         # Add begin model comment
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(model_comment(state.action, 'Callback return value expectation {!r} of a process {!r} of an '
-                                                    'interface category {!r}'.
-                                                      format(state.action.name, automaton.process.name,
-                                                             automaton.process.category),
-                                        begin=True))
-        comments.append(model_comment(state.action, '', begin=False))
+        comments.append(action_model_comment(state.action,
+                                             'Callback return value expectation {!r} of a process {!r} of an '
+                                             'interface category {!r}'.format(state.action.name, automaton.process.name,
+                                                                              automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
         code.append('/* Return value expectation is not supported in the current version of EMG */')
 
         return code, v_code, conditions, comments
@@ -674,11 +715,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(model_comment(state.action, 'Code fragment {!r} of a process {!r} of an interface category '
-                                                      '{!r}'.format(state.action.name, automaton.process.name,
-                                                                    automaton.process.category),
-                                        begin=True))
-        comments.append(model_comment(state.action, '', begin=False))
+        comments.append(action_model_comment(state.action,
+                                             'Code fragment {!r} of a process {!r} of an interface category {!r}'.
+                                             format(state.action.name, automaton.process.name,
+                                                    automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
 
         # Add additional condition
         if state.action.condition and len(state.action.condition) > 0:
@@ -714,46 +756,66 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return decl
     
     def _call_cf(self, file, automaton, parameter='0'):
-        self._cmodel.add_function_declaration(file, automaton.control_function, extern=True)
+        self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
 
-        if get_conf_property(self._conf, 'direct control functions call'):
-            return '{}({});'.format(automaton.control_function.name, parameter)
-        elif get_necessary_conf_property(self._conf, 'omit all states') and \
-                get_necessary_conf_property(self._conf, 'nested automata') and \
-                get_necessary_conf_property(self._conf, 'instance modifier') > 1:
-            sv = automaton.thread_variable(get_necessary_conf_property(self._conf, 'instance modifier'))
-            self._cmodel.add_global_variable(sv, file, extern=True)
-            return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
-                                                             automaton.control_function.name,
-                                                             parameter)
+        if get_conf_property(self._conf, 'direct control functions calls'):
+            return '{}({});'.format(self._control_function(automaton).name, parameter)
         else:
-            sv = automaton.thread_variable()
-            self._cmodel.add_global_variable(sv, file, extern=True)
-            return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
-                                                           automaton.control_function.name,
-                                                           parameter)
+            return self._call_cf_code(file, automaton, parameter)
 
     def _join_cf(self, file, automaton):
-        self._cmodel.add_function_declaration(file, automaton.control_function, extern=True)
+        self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
 
-        if get_conf_property(self._conf, 'direct control functions call'):
+        if get_conf_property(self._conf, 'direct control functions calls'):
             return '/* Skip thread join call */'
         else:
-            return self._join_cf_code()
+            return self._join_cf_code(file, automaton)
 
     @abc.abstractstaticmethod
     def _receive(self, state, automaton):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(model_comment(state.action, 'Receive signal {!r} of a process {!r} of an '
-                                                    'interface category {!r}'.
-                                                      format(state.action.name, automaton.process.name,
-                                                             automaton.process.category),
-                                        begin=True))
-        comments.append(model_comment(state.action, '', begin=False))
+        comments.append(action_model_comment(state.action,
+                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.\
+                                             format(state.action.name, automaton.process.name,
+                                                    automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
 
         return code, v_code, conditions, comments
+
+    def _control_function(self, automaton):
+        if automaton.identifier not in self._control_functions:
+            # Check that this is an aspect function or not
+            name = 'ldv_control_function_' + str(automaton.identifier)
+            if automaton in self._model_fsa:
+                function_obj = self._analysis.get_kernel_function(automaton.process.name)
+                params = []
+                for position, param in enumerate(function_obj.declaration.parameters):
+                    if type(param) is str:
+                        params.append(param)
+                    else:
+                        params.append(param.to_string('arg{}'.format(str(position + 1))))
+
+                if len(params) == 0 and function_obj.declaration.return_value.identifier == 'void':
+                    param_types = ['void']
+                elif len(params) == 0:
+                    param_types = [function_obj.declaration.return_value.to_string('res')]
+                elif function_obj.declaration.return_value.identifier == 'void':
+                    param_types = params
+                else:
+                    param_types = [function_obj.declaration.return_value.to_string('res')] + params
+
+                declaration = '{0} f({1})'.format(function_obj.declaration.return_value.to_string(''),
+                                                  ', '.join(param_types))
+                cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
+            else:
+                cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *cf_arg)', False)
+
+            self._control_functions[automaton.identifier] = cf
+
+        return self._control_functions[automaton.identifier]
     
     @abc.abstractstaticmethod
     def _join_cf_code(self, file, automaton):
@@ -769,48 +831,11 @@ class FSATranslator(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _entry_point(self):
+    def _compose_control_function(self, automaton):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _control_function(self, automaton):
-        self.logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
-                         format(automaton.identifier, automaton.process.name, automaton.process.category))
-        v_code = ["/* Control function based on process '{}' generated for interface category '{}' */".
-                  format(automaton.process.name, automaton.process.category)]
-        f_code = []
-
-        # Check necessity to return a value
-        ret_expression = 'return;'
-        if aspect:
-            kfunction_obj = analysis.get_kernel_function(aspect)
-            if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
-                ret_expression = 'return $res;'
-
-        # Function type
-        cf = automaton.control_function
-        if not aspect and self._nested_automata:
-            param_declarations = []
-            param_expressions = []
-            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
-                if len(receive.parameters) > 0:
-                    for index in range(len(receive.parameters)):
-                        # Determine dispatcher parameter
-                        interface = get_common_parameter(receive, automaton.process, index)
-
-                        # Determine receiver parameter
-                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
-                                                                           interface.identifier)
-                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
-                        receiver_expr = receiver_access.access_with_variable(var)
-
-                        param_declarations.append(var.declaration)
-                        param_expressions.append(receiver_expr)
-                    break
-
-        automaton.control_function = cf
-        return cf
-
-        self._init_control_function(analysis, automaton, v_code, f_code, aspect)
+    def _entry_point(self):
+        raise NotImplementedError
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

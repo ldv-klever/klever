@@ -16,40 +16,45 @@
 #
 
 import re
-
+import os
 from core.avtg.emg.common.signature import Declaration, Pointer, Function, Primitive, import_declaration
 from core.avtg.emg.common import get_conf_property
 
 
 class CModel:
 
-    def __init__(self, logger, conf, files, entry_point_name, entry_file):
+    def __init__(self, logger, conf, workdir, files, entry_point_name, entry_file):
         self.entry_file = entry_file
         self.entry_name = entry_point_name
+        self.types = list()
         self._logger = logger
         self._conf = conf
+        self._workdir = workdir
         self._files = files
         self._variables_declarations = dict()
         self._variables_initializations = dict()
         self._function_definitions = dict()
         self._function_declarations = dict()
         self._before_aspects = dict()
-        # todo: add to entry point allocation itself
+        self._common_aspects = list()
         self.__external_allocated = dict()
 
     def add_before_aspect(self, code, file=None):
         # Prepare code
-        body = ['before: file ("$this")\n']
+        body = ['before: file ("$this") \n', '{\n']
         body.extend(code)
-        body.append('}\n')
+        body.append('\n}\n')
 
         if file:
-            files = [self._before_aspects[file].append(code)]
+            files = [file]
         else:
             files = self._files
 
         # Add code
-        map(lambda f: self._before_aspects[f].append(code), files)
+        for file in files:
+            if file not in self._before_aspects:
+                self._before_aspects[file] = list()
+            self._before_aspects[file].append(body)
 
         return
 
@@ -74,7 +79,7 @@ class CModel:
         if self.entry_file not in self._function_definitions:
             self._function_definitions[file] = dict()
 
-        self._function_definitions[file][function.name] = function.get_definition()
+        self._function_definitions[file][function.name] = ['/* AUX_FUNC */\n'] + function.get_definition()
         self.add_function_declaration(file, function, extern=False)
 
     def add_function_declaration(self, file, function, extern=False):
@@ -112,6 +117,163 @@ class CModel:
     def text_processor(self, automaton, statement):
         models = FunctionModels(self._conf)
         return models.text_processor(automaton, statement)
+
+    def add_function_model(self, function, body):
+        new_aspect = Aspect(function.identifier, function)
+        new_aspect.body = body
+        self._common_aspects.append(new_aspect)
+
+    def print_source_code(self, additional_lines):
+        aspect_dir = "aspects"
+        self._logger.info("Create directory for aspect files {}".format("aspects"))
+        os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
+
+        addictions = dict()
+        for file in self._files:
+            # Generate function declarations
+            self._logger.info('Add aspects to a file {!r}'.format(file))
+            # Aspect text
+            lines = list()
+
+            if len(additional_lines) > 0:
+                    lines.append("\n")
+                    lines.append("/* EMG additional aspects */\n")
+                    lines.extend(additional_lines)
+                    lines.append("\n")
+
+            if len(self._before_aspects[file]) > 0:
+                for aspect in self._before_aspects[file]:
+                    lines.append("\n")
+                    lines.append("/* EMG aspect */\n")
+                    lines.extend(aspect)
+                    lines.append("\n")
+
+            # Add mdoel itself
+            lines.append('after: file ("$this")\n')
+            lines.append('{\n')
+
+            if file == self.entry_file:
+                for tp in self.types:
+                    lines.append(tp.to_string('') + " {\n")
+                    for field in sorted(list(tp.fields.keys())):
+                        lines.append("\t{};\n".format(tp.fields[field].to_string(field)))
+                    lines.append("};\n")
+                    lines.append("\n")
+
+            lines.append("/* EMG Function declarations */\n")
+            if file in self._function_declarations:
+                for function in sorted(self._function_declarations[file].keys()):
+                    lines.extend(self._function_declarations[file][function])
+
+            lines.append("\n")
+            lines.append("/* EMG variable declarations */\n")
+            if file in self._variables_declarations:
+                for variable in sorted(self._variables_declarations[file].keys()):
+                    lines.extend(self._variables_declarations[file][variable])
+
+            lines.append("\n")
+            lines.append("/* EMG variable initialization */\n")
+            if file in self._variables_initializations:
+                for variable in sorted(self._variables_initializations[file].keys()):
+                    lines.extend(self._variables_initializations[file][variable])
+
+            lines.append("\n")
+            lines.append("/* EMG function definitions */\n")
+            if file in self._function_definitions:
+                for function in sorted(self._function_definitions[file].keys()):
+                    lines.extend(self._function_definitions[file][function])
+                    lines.append("\n")
+
+            lines.append("}\n")
+            lines.append("/* EMG kernel function models */\n")
+            for aspect in self._common_aspects:
+                lines.extend(aspect.get_aspect())
+                lines.append("\n")
+
+            name = "aspects/ldv_{}.aspect".format(os.path.splitext(os.path.basename(file))[0])
+            with open(name, "w", encoding="utf8") as fh:
+                fh.writelines(lines)
+
+            path = os.path.relpath(name, self._workdir)
+            self._logger.info("Add aspect file {!r}".format(path))
+            addictions[file] = path
+
+        return addictions
+
+    def compose_entry_point(self, given_body):
+        ep = FunctionDefinition(
+            self.entry_name,
+            self.entry_file,
+            "void {}(void)".format(self.entry_name),
+            False
+        )
+        body = []
+
+        # Init external allocated pointers
+        cnt = 0
+        functions = []
+        if len(self.__external_allocated.keys()) > 0:
+            for file in sorted([f for f in self.__external_allocated.keys() if len(self.__external_allocated[f]) > 0]):
+                func = FunctionDefinition('ldv_allocate_external_{}'.format(cnt),
+                                          file,
+                                          "void ldv_allocate_external_{}(void)".format(cnt),
+                                          True)
+
+                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
+                        var in self.__external_allocated[file]]
+                func.body = init
+
+                self.add_function_definition(file, func)
+                self.add_function_declaration(self.entry_file, func, extern=True)
+                functions.append(func)
+                cnt += 1
+
+            gl_init = FunctionDefinition('ldv_initialize_external_data',
+                                         self.entry_file,
+                                         'void ldv_initialize_external_data(void)')
+            init_body = ['{}();'.format(func.name) for func in functions]
+            gl_init.body = init_body
+            self.add_function_definition(self.entry_file, gl_init)
+            body.extend([
+                '/* Initialize external data */',
+                'initialize_external_data();'
+            ])
+
+            for file in sorted(list(self.__external_allocated.keys())):
+                func = FunctionDefinition('allocate_external_{}'.format(cnt),
+                                          file,
+                                          "void external_allocated_{}(void)".format(cnt),
+                                          True)
+
+                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
+                        var in self.__external_allocated[file]]
+                func.body = init
+
+                self.add_function_definition(file, func)
+                self.add_function_declaration(self.entry_file, func, extern=True)
+                functions.append(func)
+                cnt += 1
+
+            gl_init = FunctionDefinition('initialize_external_data',
+                                         self.entry_file,
+                                         'void initialize_external_data(void)')
+            init_body = ['{}();'.format(func.name) for func in functions]
+            gl_init.body = init_body
+            self.add_function_definition(self.entry_file, gl_init)
+            body.extend([
+                '/* Initialize external data */',
+                'initialize_external_data();'
+            ])
+
+        body = [
+            "ldv_initialize();",
+            ""
+            "/* Initialize initial states of automata */"
+        ] + body + given_body
+
+        ep.body = body
+        self.add_function_definition(self.entry_file, ep)
+        return body
 
 
 class Variable:

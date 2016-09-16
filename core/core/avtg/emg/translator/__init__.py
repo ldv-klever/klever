@@ -25,9 +25,10 @@ from core.avtg.emg.translator.fsa_translator.state_fsa_translator import StateTr
 def translate_intermediate_model(logger, conf, avt, analysis, model, instance_maps, aspect_lines=None):
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
-    check_or_set_conf_property(conf, "omit all states", default_value=True, expected_type=bool)
-    check_or_set_conf_property(conf, "nested automata", default_value=True, expected_type=bool)
-    check_or_set_conf_property(conf, "direct control function calls", default_value=True, expected_type=bool)
+    check_or_set_conf_property(conf, 'entry point', default_value='main', expected_type=str)
+    check_or_set_conf_property(conf["translation options"], "omit all states", default_value=True, expected_type=bool)
+    check_or_set_conf_property(conf["translation options"], "nested automata", default_value=True, expected_type=bool)
+    check_or_set_conf_property(conf["translation options"], "direct control function calls", default_value=True, expected_type=bool)
 
     # Generate instances
     logger.info("Generate finite state machines on each process from an intermediate model")
@@ -36,7 +37,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
 
     # Determine entry point
     logger.info("Determine entry point file and function name")
-    entry_point_name, entry_file = __determine_entry(logger, conf["translation options"], analysis)
+    entry_point_name, entry_file = __determine_entry(logger, conf, analysis)
 
     # Collect files
     files = set()
@@ -46,17 +47,38 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
     logger.info("Files found: {}".format(len(files)))
 
     # Initalize code representation
-    cmodel = CModel(logger, conf, files, entry_point_name, entry_file)
+    cmodel = CModel(logger, conf["translation options"], conf['main working directory'], files, entry_point_name,
+                    entry_file)
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_necessary_conf_property(conf, "omit all states"):
-        fsa_translator = LabelTranslator(logger, conf, analysis, cmodel, entry_fsa, model_fsa, main_fsa)
+    if get_necessary_conf_property(conf["translation options"], "omit all states"):
+        LabelTranslator(logger, conf["translation options"], analysis, cmodel, entry_fsa, model_fsa,
+                                         main_fsa)
     else:
-        fsa_translator = StateTranslator(logger, conf, analysis, cmodel, entry_fsa, model_fsa, main_fsa)
+        StateTranslator(logger, conf["translation options"], analysis, cmodel, entry_fsa, model_fsa,
+                                         main_fsa)
 
     logger.info("Print generated source code")
-    # todo: implement it as a function
+    addictions = cmodel.print_source_code(aspect_lines)
+
+    # Set entry point function in abstract task
+    logger.info("Add an entry point function name to the abstract verification task")
+    avt["entry points"] = [cmodel.entry_name]
+
+    for grp in avt['grps']:
+        logger.info('Add aspects to C files of group {!r}'.format(grp['id']))
+        for cc_extra_full_desc_file in sorted([f for f in grp['cc extra full desc files'] if 'in file' in f],
+                                              key=lambda f: f['in file']):
+            if cc_extra_full_desc_file["in file"] in addictions:
+                if 'plugin aspects' not in cc_extra_full_desc_file:
+                    cc_extra_full_desc_file['plugin aspects'] = []
+                cc_extra_full_desc_file['plugin aspects'].append(
+                    {
+                        "plugin": "EMG",
+                        "aspects": [addictions[cc_extra_full_desc_file["in file"]]]
+                    }
+                )
 
     return
 
@@ -69,12 +91,7 @@ def __determine_entry(logger, conf, analysis):
     elif len(analysis.inits) < 1:
         raise RuntimeError("Cannot generate entry point without module initialization function")
 
-    if "entry point" in conf:
-        entry_point_name = conf["entry point"]
-    else:
-        entry_point_name = "main"
-
-    logger.debug("Going to generate entry point function {} in file {}".format(entry_point_name, entry_file))
+    entry_point_name = get_necessary_conf_property(conf, 'entry point')
     return entry_point_name, entry_file
 
 

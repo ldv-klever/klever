@@ -125,7 +125,4 @@ class StateTranslator(FSATranslator):
     def _entry_point(self):
         raise NotImplementedError
 
-    def _control_function(self):
-        raise NotImplementedError
-
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
