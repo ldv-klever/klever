@@ -12,9 +12,9 @@ class Witness:
         self.witness = witness
         self.__graph = None
         self.__nodes_map = {}
+        self.__sink_nodes_map = {}
         self.nodes = []
         self.entry_node_id = None
-        self.sink_node_ids = []
         self.violation_node_ids = []
         self.edges = []
         self.files = []
@@ -159,7 +159,7 @@ class Witness:
         self.__parse_nodes()
         self.__parse_edges()
 
-        del self.__graph, self.__nodes_map
+        del self.__graph, self.__nodes_map, self.__sink_nodes_map
 
     def __parse_model_comments(self):
         self.logger.info('Parse model comments from source files referred by witness')
@@ -225,10 +225,9 @@ class Witness:
     def __parse_nodes(self):
         unsupported_node_data_keys = {}
 
-        for node_id, node in enumerate(self.__graph.findall('graphml:node', self.NS)):
-            # Use small integers instead of large string to uniquely identify nodes.
-            self.__nodes_map[node.attrib['id']] = node_id
-            self.nodes.append([[], []])
+        node_id = 0
+        for node in self.__graph.findall('graphml:node', self.NS):
+            is_sink = False
 
             for data in node.findall('graphml:data', self.NS):
                 data_key = data.attrib['key']
@@ -236,9 +235,7 @@ class Witness:
                     self.entry_node_id = node_id
                     self.logger.debug('Parse entry node "{0}"'.format(node_id))
                 elif data_key == 'sink':
-                    if self.sink_node_ids:
-                        raise NotImplementedError('Several sink nodes are not supported')
-                    self.sink_node_ids.append(node_id)
+                    is_sink = True
                     self.logger.debug('Parse sink node "{0}"'.format(node_id))
                 elif data_key == 'violation':
                     if self.violation_node_ids:
@@ -249,13 +246,24 @@ class Witness:
                     self.logger.warning('Node data key "{0}" is not supported'.format(data_key))
                     unsupported_node_data_keys[data_key] = None
 
+            # Do not track sink nodes as all other nodes. All edges leading to sink nodes will be excluded as well.
+            if is_sink:
+                self.__sink_nodes_map[node.attrib['id']] = None
+            else:
+                # Use small integers instead of large string to uniquely identify nodes.
+                self.__nodes_map[node.attrib['id']] = node_id
+                node_id += 1
+
+                # Inialize lists of input and output edge ids.
+                self.nodes.append([[], []])
+
         # Sanity checks.
         if self.entry_node_id is None:
             raise KeyError('Entry node was not found')
         if not self.violation_node_ids:
             raise KeyError('Violation nodes were not found')
 
-        self.logger.debug('Parse "{0}" nodes'.format(len(self.nodes)))
+        self.logger.debug('Parse {0} nodes and {1} sink nodes'.format(len(self.nodes), len(self.__sink_nodes_map)))
 
     def __parse_edges(self):
         unsupported_edge_data_keys = {}
@@ -265,7 +273,10 @@ class Witness:
         files_map = {None: 0}
         funcs_map = {}
 
-        for edge_id, edge in enumerate(self.__graph.findall('graphml:edge', self.NS)):
+        # The number of edges leading to sink nodes. Such edges will be completely removed.
+        sink_edges_num = 0
+        edge_id = 0
+        for edge in self.__graph.findall('graphml:edge', self.NS):
             # Sanity checks.
             if 'source' not in edge.attrib:
                 raise KeyError('Source node was not found')
@@ -273,6 +284,11 @@ class Witness:
                 raise KeyError('Destination node was not found')
 
             source_node_id = self.__nodes_map[edge.attrib['source']]
+
+            if edge.attrib['target'] in self.__sink_nodes_map:
+                sink_edges_num += 1
+                continue
+
             target_node_id = self.__nodes_map[edge.attrib['target']]
 
             # Update lists of input and output edges for source and target nodes.
@@ -318,8 +334,9 @@ class Witness:
                 _edge['file'] = files_map[None]
 
             self.edges.append(_edge)
+            edge_id += 1
 
-        self.logger.debug('Parse "{0}" edges'.format(len(self.edges)))
+        self.logger.debug('Parse {0} edges and {1} sink edges'.format(len(self.edges), sink_edges_num))
 
         # Now we know all input and ouptut edges for all nodes.
         # Optimize input and output edges lists if they contain less than 2 elements.
@@ -381,9 +398,6 @@ class Witness:
         # Shift by one all references to nodes following removed one.
         if self.entry_node_id > removed_node_id:
             self.entry_node_id -= 1
-        for i, sink_node_id in enumerate(self.sink_node_ids):
-            if sink_node_id > removed_node_id:
-                self.sink_node_ids[i] -= 1
         for i, violation_node_id in enumerate(self.violation_node_ids):
             if violation_node_id > removed_node_id:
                 self.violation_node_ids[i] -= 1

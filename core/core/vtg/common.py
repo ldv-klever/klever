@@ -252,7 +252,6 @@ class CommonStrategy(core.components.Component):
                     'nodes': witness.nodes,
                     'edges': witness.edges,
                     'entry node': witness.entry_node_id,
-                    'sink nodes': witness.sink_node_ids,
                     'violation nodes': witness.violation_node_ids,
                     'files': witness.files,
                     'funcs': witness.funcs
