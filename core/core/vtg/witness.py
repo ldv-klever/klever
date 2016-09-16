@@ -411,9 +411,11 @@ class Witness:
                 # Replace white spaces before trailing ";".
                 edge['source'] = re.sub(r'\s+;$', ';', edge['source'])
 
-                # Replace "!(... ==/!= ...)" with "... !=/== ...".
+                # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
                 edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
                 edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
+                edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
+                edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
 
             # Make source code and assumptions more human readable (common improvements).
             for source_kind in ('source', 'assumption'):
