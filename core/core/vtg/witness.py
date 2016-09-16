@@ -411,17 +411,18 @@ class Witness:
                 # Replace white spaces before trailing ";".
                 edge['source'] = re.sub(r'\s+;$', ';', edge['source'])
 
-                # Replace unnessary "(...)" around integers and identifiers.
-                edge['source'] = re.sub(r' \((-?\w+)\)', ' \g<1>', edge['source'])
-
                 # Replace "!(... ==/!= ...)" with "... !=/== ...".
                 edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
                 edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
 
-            # Make assumptions more human readable.
-            if 'assumption' in edge:
-                # Like for source code.
-                edge['assumption'] = re.sub(r' \((-?\w+)\)', ' \g<1>', edge['assumption'])
+            # Make source code and assumptions more human readable (common improvements).
+            for source_kind in ('source', 'assumption'):
+                if source_kind in edge:
+                    # Replace unnessary "(...)" around integers and identifiers.
+                    edge[source_kind] = re.sub(r' \((-?\w+)\)', ' \g<1>', edge[source_kind])
+
+                    # Replace "& " with "&".
+                    edge[source_kind] = re.sub(r'& ', '&', edge[source_kind])
 
         # More advanced transformations.
         # Get rid of artificial edges added after returning from functions.
