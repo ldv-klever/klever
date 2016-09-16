@@ -500,7 +500,7 @@ class Witness:
                 func_id = enter_edge['enter']
                 if func_id in self.__aux_funcs:
                     return_edge = self.edges[edge_id + 1]
-                    if return_edge.get('return') == func_id:
+                    if return_edge.get('return') == func_id and 'enter' in return_edge:
                         # Get lhs and actual arguments of called auxiliary function.
                         m = re.search(r'^(.*){0}\s*\((.+)\);$'.format(self.funcs[func_id]),
                                       enter_edge['source'].replace('\n', ' '))
@@ -508,7 +508,7 @@ class Witness:
                             lhs = m.group(1)
                             aux_actual_args = [aux_actual_arg.strip() for aux_actual_arg in m.group(2).split(',')]
 
-                            # Get actual arguments of called function.
+                            # Get name and actual arguments of called function.
                             m = re.search(r'^return (.+)\s*\((.*)\);$', return_edge['source'].replace('\n', ' '))
                             if m:
                                 func_name = m.group(1)
@@ -534,6 +534,9 @@ class Witness:
                                         enter_edge['source'] = lhs + func_name + '(' + \
                                                                (', '.join(actual_args) if actual_args else '') + ');'
                                         enter_edge['enter'] = return_edge['enter']
+
+                                        if 'note' in return_edge:
+                                            enter_edge['note'] = return_edge['note']
 
                                         self.__remove_edge_and_target_node(edge_id + 1)
 
