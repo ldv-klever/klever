@@ -3,16 +3,13 @@ import re
 import xml.etree.ElementTree as ET
 
 
-class Witness:
-    NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
+class ErrorTrace:
+    WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
     MODEL_COMMENT_TYPES = 'AUX_FUNC|MODEL_FUNC|NOTE|ASSERT'
 
     def __init__(self, logger, witness):
         self.logger = logger
         self.witness = witness
-        self.__graph = None
-        self.__nodes_map = {}
-        self.__sink_nodes_map = {}
         self.nodes = []
         self.entry_node_id = None
         self.violation_node_ids = []
@@ -26,7 +23,7 @@ class Witness:
         self.__asserts = {}
 
     def process(self):
-        self.__parse()
+        self.__parse_witness()
         self.__get_violation_path()
         self.__parse_model_comments()
         self.__mark_witness()
@@ -141,26 +138,6 @@ class Witness:
 
         del self.__violation_edge_ids, self.__model_funcs, self.__notes, self.__asserts
 
-    def __parse(self):
-        self.logger.info('Parse witness "{0}"'.format(self.witness))
-
-        with open(self.witness, encoding='utf8') as fp:
-            tree = ET.parse(fp)
-
-        root = tree.getroot()
-
-        # Parse default file.
-        for key in root.findall('graphml:key', self.NS):
-            if key.attrib['id'] == 'originfile':
-                self.files.append(key.find('graphml:default', self.NS).text)
-
-        self.__graph = root.find('graphml:graph', self.NS)
-
-        self.__parse_nodes()
-        self.__parse_edges()
-
-        del self.__graph, self.__nodes_map, self.__sink_nodes_map
-
     def __parse_model_comments(self):
         self.logger.info('Parse model comments from source files referred by witness')
 
@@ -222,14 +199,34 @@ class Witness:
                                 self.logger.debug('Get assertiom "{0}" for statement from "{1}:{2}"'.
                                                   format(comment, file, line + 1))
 
-    def __parse_nodes(self):
+    def __parse_witness(self):
+        self.logger.info('Parse witness "{0}"'.format(self.witness))
+
+        with open(self.witness, encoding='utf8') as fp:
+            tree = ET.parse(fp)
+
+        root = tree.getroot()
+
+        # Parse default file.
+        for key in root.findall('graphml:key', self.WITNESS_NS):
+            if key.attrib['id'] == 'originfile':
+                self.files.append(key.find('graphml:default', self.WITNESS_NS).text)
+
+        graph = root.find('graphml:graph', self.WITNESS_NS)
+
+        nodes_map, sink_nodes_map = self.__parse_witness_nodes(graph)
+        self.__parse_witness_edges(graph, nodes_map, sink_nodes_map)
+
+    def __parse_witness_nodes(self, graph):
+        node_id = 0
+        nodes_map = {}
+        sink_nodes_map = {}
         unsupported_node_data_keys = {}
 
-        node_id = 0
-        for node in self.__graph.findall('graphml:node', self.NS):
+        for node in graph.findall('graphml:node', self.WITNESS_NS):
             is_sink = False
 
-            for data in node.findall('graphml:data', self.NS):
+            for data in node.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'entry':
                     self.entry_node_id = node_id
@@ -248,10 +245,10 @@ class Witness:
 
             # Do not track sink nodes as all other nodes. All edges leading to sink nodes will be excluded as well.
             if is_sink:
-                self.__sink_nodes_map[node.attrib['id']] = None
+                sink_nodes_map[node.attrib['id']] = None
             else:
                 # Use small integers instead of large string to uniquely identify nodes.
-                self.__nodes_map[node.attrib['id']] = node_id
+                nodes_map[node.attrib['id']] = node_id
                 node_id += 1
 
                 # Inialize lists of input and output edge ids.
@@ -263,9 +260,11 @@ class Witness:
         if not self.violation_node_ids:
             raise KeyError('Violation nodes were not found')
 
-        self.logger.debug('Parse {0} nodes and {1} sink nodes'.format(len(self.nodes), len(self.__sink_nodes_map)))
+        self.logger.debug('Parse {0} nodes and {1} sink nodes'.format(node_id, len(sink_nodes_map)))
 
-    def __parse_edges(self):
+        return nodes_map, sink_nodes_map
+
+    def __parse_witness_edges(self, graph, nodes_map, sink_nodes_map):
         unsupported_edge_data_keys = {}
 
         # Use maps for source files and functions as for nodes. Add artificial map to 0 for default file without
@@ -276,20 +275,20 @@ class Witness:
         # The number of edges leading to sink nodes. Such edges will be completely removed.
         sink_edges_num = 0
         edge_id = 0
-        for edge in self.__graph.findall('graphml:edge', self.NS):
+        for edge in graph.findall('graphml:edge', self.WITNESS_NS):
             # Sanity checks.
             if 'source' not in edge.attrib:
                 raise KeyError('Source node was not found')
             if 'target' not in edge.attrib:
                 raise KeyError('Destination node was not found')
 
-            source_node_id = self.__nodes_map[edge.attrib['source']]
+            source_node_id = nodes_map[edge.attrib['source']]
 
-            if edge.attrib['target'] in self.__sink_nodes_map:
+            if edge.attrib['target'] in sink_nodes_map:
                 sink_edges_num += 1
                 continue
 
-            target_node_id = self.__nodes_map[edge.attrib['target']]
+            target_node_id = nodes_map[edge.attrib['target']]
 
             # Update lists of input and output edges for source and target nodes.
             self.nodes[source_node_id][1].append(edge_id)
@@ -297,7 +296,7 @@ class Witness:
 
             _edge = {'source node': source_node_id, 'target node': target_node_id}
 
-            for data in edge.findall('graphml:data', self.NS):
+            for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'originfile':
                     if data.text not in files_map:

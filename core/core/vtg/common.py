@@ -24,7 +24,7 @@ from abc import abstractclassmethod, ABCMeta
 import core.components
 import core.session
 import core.utils
-import core.vtg.witness
+import core.vtg.et
 from core.vtg.mea import MEA
 
 
@@ -243,18 +243,18 @@ class CommonStrategy(core.components.Component):
                               assertion)
         elif decision_results['status'] == 'unsafe':
             self.logger.info('Process witness')
-            witness = core.vtg.witness.Witness(self.logger, path_to_witness)
-            witness.process()
+            et = core.vtg.et.ErrorTrace(self.logger, path_to_witness)
+            et.process()
 
-            self.logger.info('Write processed witness to "witness.json"')
-            with open('witness.json', 'w', encoding='utf8') as fp:
+            self.logger.info('Write processed witness to "error trace.json"')
+            with open('error trace.json', 'w', encoding='utf8') as fp:
                 json.dump({
-                    'nodes': witness.nodes,
-                    'edges': witness.edges,
-                    'entry node': witness.entry_node_id,
-                    'violation nodes': witness.violation_node_ids,
-                    'files': witness.files,
-                    'funcs': witness.funcs
+                    'nodes': et.nodes,
+                    'edges': et.edges,
+                    'entry node': et.entry_node_id,
+                    'violation nodes': et.violation_node_ids,
+                    'files': et.files,
+                    'funcs': et.funcs
                 }, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
             core.utils.report(self.logger,
@@ -263,8 +263,8 @@ class CommonStrategy(core.components.Component):
                                   'id': verification_report_id_unsafe,
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
-                                  'error trace': 'witness.json',
-                                  'files': ['witness.json'] + list(witness.files)
+                                  'error trace': 'error trace.json',
+                                  'files': ['error trace.json'] + list(et.files)
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],
