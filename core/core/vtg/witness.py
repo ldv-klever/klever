@@ -408,8 +408,14 @@ class Witness:
                 if 'condition' in edge:
                     edge['source'] = edge['source'].strip('[]')
 
-                # Replace white spaces before trailing ";".
-                edge['source'] = re.sub(r'\s+;$', ';', edge['source'])
+                # Get rid of continues spaces if they aren't placed at line beginnings.
+                edge['source'] = re.sub(r'(\S) +', '\g<1> ', edge['source'])
+
+                # Remove space before trailing ";".
+                edge['source'] = re.sub(r' ;$', ';', edge['source'])
+
+                # Remove space before "," and ")".
+                edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
 
                 # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
                 edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
