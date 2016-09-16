@@ -533,7 +533,7 @@ class Witness:
                                     if is_replaced:
                                         enter_edge['source'] = lhs + func_name + '(' + \
                                                                (', '.join(actual_args) if actual_args else '') + ');'
-                                        enter_edge['enter'] = enter_edge['return'] = return_edge['enter']
+                                        enter_edge['enter'] = return_edge['enter']
 
                                         self.__remove_edge_and_target_node(edge_id + 1)
 
