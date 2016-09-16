@@ -26,41 +26,41 @@ enum
 	LDV_PROBE_ERROR = 1,	  /* Error occured. probe() should return error code (or at least not zero). */
 };
 
-/* CHANGE_STATE Model automaton state (one of two possible ones) */
+/* NOTE Model automaton state (one of two possible ones) */
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
-/* MODEL_FUNC_DEF Nondeterministically change state after call to usb_register_driver() */
+/* MODEL_FUNC Nondeterministically change state after call to usb_register_driver() */
 int ldv_pre_usb_register_driver(void)
 {
 	int nondet = ldv_undef_int();
 
-	/* OTHER Nondeterministically report error */
+	/* NOTE Nondeterministically report error */
 	if (nondet < 0) {
-		/* CHANGE_STATE Error occured */
+		/* NOTE Error occured */
 		ldv_probe_state = LDV_PROBE_ERROR;
-		/* RETURN Return error code */
+		/* NOTE Return error code */
 		return nondet;
 	}
 	else {
-		/* RETURN Assume no error occured */
+		/* NOTE Assume no error occured */
 		return 0;
 	}
 }
 
-/* MODEL_FUNC_DEF Reset error counter from previous calls */
+/* MODEL_FUNC Reset error counter from previous calls */
 void ldv_reset_error_counter(void)
 {
-	/* CHANGE_STATE Reset counter */
+	/* NOTE Reset counter */
 	ldv_probe_state = LDV_PROBE_ZERO_STATE;
 }
 
-/* MODEL_FUNC_DEF Check that error code was properly propagated in probe() */
+/* MODEL_FUNC Check that error code was properly propagated in probe() */
 void ldv_check_return_value_probe(int retval)
 {
 	if (ldv_probe_state == LDV_PROBE_ERROR) {
 		/* ASSERT Errors of usb_register() should be properly propagated */
 		ldv_assert("linux:usb:register::wrong return value", retval != 0);
 	}
-	/* OTHER Prevent error counter from being checked in other functions */
+	/* NOTE Prevent error counter from being checked in other functions */
 	ldv_reset_error_counter();
 }

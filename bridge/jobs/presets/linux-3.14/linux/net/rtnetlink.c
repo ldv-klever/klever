@@ -22,69 +22,69 @@
 void rtnl_lock(void);
 void rtnl_unlock(void);
 
-/* CHANGE_STATE There is no rtnllock at the beginning */
+/* NOTE There is no rtnllock at the beginning */
 int rtnllocknumber = 0;
 
-/* MODEL_FUNC_DEF executed after rtnl_unlock */
+/* MODEL_FUNC executed after rtnl_unlock */
 void ldv_past_rtnl_unlock(void)
 {
 	/* ASSERT double rtnl_unlock */
 	ldv_assert("linux:net:rtnetlink::double unlock", rtnllocknumber == 1);
-	/* CHANGE_STATE unlocking */
+	/* NOTE unlocking */
 	rtnllocknumber=0;
 }
 
-/* MODEL_FUNC_DEF executed after rtnl_lock */
+/* MODEL_FUNC executed after rtnl_lock */
 void ldv_past_rtnl_lock(void)
 {
 	/* ASSERT double rtnl_lock */
 	ldv_assert("linux:net:rtnetlink::double lock", rtnllocknumber == 0);
-	/* CHANGE_STATE locking */
+	/* NOTE locking */
 	rtnllocknumber=1;
 }
 
-/* MODEL_FUNC_DEF executed before ieee80211_unregister_hw */
+/* MODEL_FUNC executed before ieee80211_unregister_hw */
 void ldv_before_ieee80211_unregister_hw(void)
 {
-	/* OTHER Modeling lock */
+	/* NOTE Modeling lock */
 	ldv_past_rtnl_lock();
-	/* OTHER Modeling unlock */
+	/* NOTE Modeling unlock */
 	ldv_past_rtnl_unlock();
 }
 
-/* MODEL_FUNC_DEF rtnl is locked */
+/* MODEL_FUNC rtnl is locked */
 int ldv_rtnl_is_locked(void)
 {
-	/* OTHER If we know about lock */
+	/* NOTE If we know about lock */
 	if (rtnllocknumber)
-		/* RETURN rtnl_lock by this thread */
+		/* NOTE rtnl_lock by this thread */
 		return rtnllocknumber;
-	/* OTHER If we dont know about lock */
+	/* NOTE If we dont know about lock */
 	else if (ldv_undef_int())
-		/* RETURN rtnl_lock by another thread */
+		/* NOTE rtnl_lock by another thread */
 		return 1;
 	else 	
-		/* RETURN There is no rtnl_lock */
+		/* NOTE There is no rtnl_lock */
 		return 0;
 }
 
-/* MODEL_FUNC_DEF trylock */
+/* MODEL_FUNC trylock */
 int ldv_rtnl_trylock(void)
 {
 	/* ASSERT double rtnl_trylock */
 	ldv_assert("linux:net:rtnetlink::double lock", rtnllocknumber == 0);
-	/* OTHER If there is no rtnl_lock */
+	/* NOTE If there is no rtnl_lock */
 	if (!ldv_rtnl_is_locked()) { 
-		/* CHANGE_STATE locking by trylock */
+		/* NOTE locking by trylock */
 		rtnllocknumber=1;
-		/* RETURN Lock set */
+		/* NOTE Lock set */
 		return 1;
 	}
-	/* RETURN Cant set lock */
+	/* NOTE Cant set lock */
 	else return 0;
 }
 
-/* MODEL_FUNC_DEF check on exit */
+/* MODEL_FUNC check on exit */
 void ldv_check_final_state(void)
 {
 	/* ASSERT lock_sock number */

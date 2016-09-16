@@ -30,54 +30,54 @@ enum {
 
 static int ldv_disk_state = LDV_NO_DISK;
 
-/* MODEL_FUNC_DEF Allocate gendisk. */
+/* MODEL_FUNC Allocate gendisk. */
 struct gendisk *ldv_alloc_disk(void)
 {
 	/* ASSERT Gendisk should not be allocated twice. */
 	ldv_assert("linux:block:genhd::double allocation", ldv_disk_state == LDV_NO_DISK);
-	/* OTHER Choose an arbitrary return value. */
+	/* NOTE Choose an arbitrary return value. */
 	struct gendisk *res = (struct gendisk *)ldv_undef_ptr();
-	/* OTHER If memory is not available. */
+	/* NOTE If memory is not available. */
 	if (res) {
-		/* CHANGE_STATE Allocate gendisk. */
+		/* NOTE Allocate gendisk. */
 		ldv_disk_state = LDV_ALLOCATED_DISK;
-		/* RETURN Gendisk was successfully created. */
+		/* NOTE Gendisk was successfully created. */
 		return res;
 	}
-	/* RETURN There was an error during gendisk creation. */
+	/* NOTE There was an error during gendisk creation. */
 	return res;
 }
 
-/* MODEL_FUNC_DEF Add gendisk. */
+/* MODEL_FUNC Add gendisk. */
 void ldv_add_disk(void)
 {
 	/* ASSERT Gendisk should be allocated . */
 	ldv_assert("linux:block:genhd::use before allocation", ldv_disk_state == LDV_ALLOCATED_DISK);
-	/* CHANGE_STATE Add gendisk. */
+	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ADDED_DISK;
 }
 
-/* MODEL_FUNC_DEF Delete gendisk. */
+/* MODEL_FUNC Delete gendisk. */
 void ldv_del_gendisk(void)
 {
 	/* ASSERT Gendisk should be allocated . */
 	ldv_assert("linux:block:genhd::delete before add", ldv_disk_state == LDV_ADDED_DISK);
-	/* CHANGE_STATE Add gendisk. */
+	/* NOTE Add gendisk. */
 	ldv_disk_state = LDV_ALLOCATED_DISK;
 }
 
-/* MODEL_FUNC_DEF Free gendisk. */
+/* MODEL_FUNC Free gendisk. */
 void ldv_put_disk(struct gendisk *disk)
 {
 	if (disk) {
 		/* ASSERT Gendisk should be allocated . */
 		ldv_assert("linux:block:genhd::free before allocation", ldv_disk_state >= LDV_ALLOCATED_DISK);
-		/* CHANGE_STATE Add gendisk. */
+		/* NOTE Add gendisk. */
 		ldv_disk_state = LDV_NO_DISK;
 	}
 }
 
-/* MODEL_FUNC_DEF Check that all sysfs groups are not incremented at the end */
+/* MODEL_FUNC Check that all sysfs groups are not incremented at the end */
 void ldv_check_final_state( void )
 {
 	/* ASSERT Sysfs groups must be freed at the end. */
