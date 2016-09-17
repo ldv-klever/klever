@@ -287,39 +287,38 @@ class GetETV(object):
         return code
 
     def __parse_code(self, code):
-        m = re.match('(.*?)(<span.*?</span>)(.*)', code)
+        m = re.match('^(.*?)(<span.*?</span>)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (
                 self.__parse_code(m.group(1)),
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
-        m = re.match('(.*?)<(.*)', code)
+        m = re.match('^(.*?)<(.*)$', code)
         while m is not None:
             code = m.group(1) + '&lt;' + m.group(2)
-            m = re.match('(.*?)<(.*)', code)
-        m = re.match('(.*?)>(.*)', code)
+            m = re.match('^(.*?)<(.*)$', code)
+        m = re.match('^(.*?)>(.*)$', code)
         while m is not None:
             code = m.group(1) + '&gt;' + m.group(2)
-            m = re.match('(.*?)>(.*)', code)
-
-        m = re.match('(.*?)(/\*.*?\*/)(.*)', code)
+            m = re.match('^(.*?)>(.*)$', code)
+        m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (
                 self.__parse_code(m.group(1)),
                 self.__wrap_code(m.group(2), 'comment'),
                 self.__parse_code(m.group(3))
             )
-        m = re.match('(.*?)([\'\"])(.*)', code)
+        m = re.match('^(.*?)([\'\"])(.*)$', code)
         if m is not None:
-            m2 = re.match('(.*?)%s(.*)' % m.group(2), m.group(3))
+            m2 = re.match('^(.*?)%s(.*)$' % m.group(2), m.group(3))
             if m2 is not None:
                 return "%s%s%s" % (
                     self.__parse_code(m.group(1)),
                     self.__wrap_code(m.group(2) + m2.group(1) + m.group(2), 'text'),
                     self.__parse_code(m2.group(2))
                 )
-        m = re.match('(.*?\W)(\d+)(\W.*)', code)
+        m = re.match('^(.*?\W)(\d+)(\W.*)$', code)
         if m is not None:
             return "%s%s%s" % (
                 self.__parse_code(m.group(1)),

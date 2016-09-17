@@ -17,8 +17,6 @@
 
 import json
 from types import MethodType
-
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
 from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
 
