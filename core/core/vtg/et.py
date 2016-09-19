@@ -410,6 +410,112 @@ class ErrorTrace:
         # Remove node at last.
         del self.nodes[removed_node_id]
 
+    def __remove_tmp_vars(self, edge_id):
+        removed_tmp_vars_num = 0
+        edge = self.edges[edge_id]
+
+        # Normal function scope.
+        if 'enter' in edge:
+            func_id = edge['enter']
+            # Move forward to declarations or statements.
+            edge_id += 1
+        # -1 is global and entry point scopes that we can't distinguish.
+        else:
+            func_id = -1
+
+        # Scan variable declarations to find temporary variable names and corresponding edge ids.
+        tmp_var_names = {}
+        while True:
+            edge = self.edges[edge_id]
+
+            # Declarations are considered to finish when returning from current function, some function is entered, some
+            # condition is checked or some assigment is performed (except for entry point which "contains" many
+            # assignemts to global variabels). It is well enough for this optimization.
+            if edge.get('return') == func_id or 'enter' in edge or 'condition' in edge or\
+                    (func_id != -1 and '=' in edge['source']):
+                break
+
+            m = re.search(r'(tmp\w*);$', edge['source'])
+            if m:
+                tmp_var_names[m.group(1)] = edge_id
+
+            edge_id += 1
+
+        # Remember what temporary varibles aren't used after all.
+        unused_tmp_var_decl_ids = set(list(tmp_var_names.values()))
+
+        # Scan other statements to find function calls which results are stored into temporary variables.
+        while True:
+            # Reach error trace end.
+            if edge_id == len(self.edges):
+                break
+
+            edge = self.edges[edge_id]
+
+            # Reach end of function.
+            if edge.get('return') == func_id:
+                break
+
+            # Reach some function call which result is stored into temporary variable.
+            m = re.search(r'^(tmp\w*)\s+=\s+(.+);$', edge['source'])
+            if m:
+                func_call_edge_id = edge_id
+
+            # Remain all edges belonging to a given function as is in any case.
+            if 'enter' in edge:
+                removed_tmp_vars_num_tmp, edge_id = self.__remove_tmp_vars(edge_id)
+                removed_tmp_vars_num += removed_tmp_vars_num_tmp
+                # Reach error trace end.
+                if edge_id == len(self.edges):
+                    break
+
+            # Try to find temorary variable usages on edges following corresponding function calls.
+            if m:
+                tmp_var_name = m.group(1)
+                func_call = m.group(2)
+                if tmp_var_name in tmp_var_names:
+                    tmp_var_decl_id = tmp_var_names[tmp_var_name]
+                    tmp_var_use_edge_id = edge_id + 1
+                    tmp_var_use_edge = self.edges[tmp_var_use_edge_id]
+
+                    # Skip simplification of the following sequence:
+                    #   ... tmp...;
+                    #   ...
+                    #   tmp... = func(...);
+                    #   ... gunc(... tmp... ...);
+                    # since it requires two entered functions from one edge.
+                    if 'enter' in tmp_var_use_edge:
+                        unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
+                    else:
+                        m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), tmp_var_use_edge['source'])
+                        if m:
+                            self.edges[func_call_edge_id]['source'] = m.group(1) + func_call + m.group(2)
+
+                            for attr in ('condition', 'return'):
+                                if attr in tmp_var_use_edge:
+                                    self.edges[func_call_edge_id][attr] = tmp_var_use_edge[attr]
+
+                            # Remove edge corresponding to temporary variable usage.
+                            self.__remove_edge_and_target_node(tmp_var_use_edge_id)
+
+                            removed_tmp_vars_num += 1
+
+                            # Do not increase edges counter since we could merge edge corresponding to call to some
+                            # function and edge corresponding to return from current function.
+                            if self.edges[func_call_edge_id].get('return') == func_id:
+                                break
+
+            edge_id += 1
+
+        # Remove all temporary variable declarations in any case.
+        for tmp_var_decl_id in reversed(list(unused_tmp_var_decl_ids)):
+            self.__remove_edge_and_target_node(tmp_var_decl_id)
+            # Move edges counter back since we removed edge corresponding to temporary variable declaration that
+            # preceeds current one.
+            edge_id -= 1
+
+        return removed_tmp_vars_num, edge_id
+
     def __simplify(self):
         self.logger.info('Simplify witness')
 
@@ -469,111 +575,7 @@ class ErrorTrace:
         # with (removing first and last statements):
         #   ...
         #   ... func(...) ...;
-        is_entry_point = True
-        edge_id = 0
-        removed_tmp_vars_num = 0
-        while True:
-            if edge_id == len(self.edges):
-                break
-
-            # Scan variable declarations to find temporary variable names and corresponding edge ids.
-            if 'enter' in self.edges[edge_id] or is_entry_point:
-                if 'enter' in self.edges[edge_id]:
-                    is_entry_point = False
-
-                tmp_var_names = {}
-                next_edge_id = edge_id
-                while True:
-                    next_edge_id += 1
-
-                    # Reach witness end.
-                    if next_edge_id == len(self.edges):
-                        break
-
-                    next_edge = self.edges[next_edge_id]
-
-                    # Can't get temporary variable names without corresponding source code.
-                    if 'source' not in next_edge:
-                        continue
-
-                    # Reach end of variable declarations.
-                    if 'enter' in next_edge or 'return' in next_edge or '=' in next_edge['source']:
-                        next_edge_id -= 1
-                        break
-
-                    m = re.search(r'(tmp\w*);$', next_edge['source'])
-                    if m:
-                        tmp_var_names[m.group(1)] = next_edge_id
-
-                # Scan other statements to find function calls which results are stored into temporary variables.
-                if tmp_var_names:
-                    while True:
-                        next_edge_id += 1
-
-                        # Reach witness end.
-                        if next_edge_id == len(self.edges):
-                            break
-
-                        next_edge = self.edges[next_edge_id]
-
-                        # Reach end of function.
-                        if 'return' in next_edge:
-                            break
-
-                        # Can't get names of assigned temporary variables without corresponding source code.
-                        if 'source' not in next_edge:
-                            continue
-
-                        # Reach some function call.
-                        m = re.search(r'^(tmp\w*)\s+=\s+(.+);$', next_edge['source'])
-                        if m:
-                            tmp_var_name = m.group(1)
-                            func_call = m.group(2)
-                            if tmp_var_name in tmp_var_names:
-                                func_call_edge_id = next_edge_id
-
-                                # Remain all edges before returning from a given function as is in any case.
-                                if 'enter' in next_edge:
-                                    func_name = next_edge['enter']
-                                    while True:
-                                        if self.edges[next_edge_id].get('return') == func_name:
-                                            break
-                                        next_edge_id += 1
-
-                                next_edge_id += 1
-
-                                next_edge = self.edges[next_edge_id]
-
-                                # Can't get names of used temporary variables without corresponding source code.
-                                if 'source' in next_edge:
-                                    m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), next_edge['source'])
-                                    if m:
-                                        self.edges[func_call_edge_id]['source'] = m.group(1) + func_call + m.group(2)
-
-                                        for attr in ('condition', 'return'):
-                                            if attr in self.edges[next_edge_id]:
-                                                self.edges[func_call_edge_id][attr] = self.edges[next_edge_id][attr]
-
-                                        is_return = self.edges[func_call_edge_id].get('return')
-
-                                        self.__remove_edge_and_target_node(next_edge_id)
-                                        self.__remove_edge_and_target_node(tmp_var_names[tmp_var_name])
-
-                                        for tmp_var_name in tmp_var_names:
-                                            if tmp_var_names[tmp_var_name] > next_edge_id:
-                                                tmp_var_names[tmp_var_name] -= 1
-                                            if tmp_var_names[tmp_var_name] > tmp_var_names[tmp_var_name]:
-                                                tmp_var_names[tmp_var_name] -= 1
-
-                                        del tmp_var_names[tmp_var_name]
-
-                                        removed_tmp_vars_num += 1
-
-                                        # Reach end of function.
-                                        if is_return:
-                                            break
-
-            edge_id += 1
+        removed_tmp_vars_num = self.__remove_tmp_vars(0)[0]
 
         if removed_tmp_vars_num:
             self.logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
@@ -637,7 +639,6 @@ class ErrorTrace:
                                         self.__remove_edge_and_target_node(edge_id + 1)
 
                                         removed_aux_funcs_num += 1
-
             edge_id += 1
 
         if removed_aux_funcs_num:
