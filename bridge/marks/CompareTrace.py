@@ -21,12 +21,13 @@ from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
 
 # To create new funciton:
-# 1) Add created function to the class CompareTrace;
-# 2) Use self.error_trace and self.pattern_error_trace for comparing
-# 3) Return the result as float(int) between 0 and 1.
-# 4) Add docstring to the created function.
-# Do not use 'error_trace', 'pattern_error_trace', 'error'
-# and 'result' as function name.
+# 1) Add created function to the class CompareTrace (its name shouldn't start with '__');
+# 2) Use function self.__get_converted_trace(<fname>) to get converted error trace of unsafe report returns dict or list
+#    (depends on convertion function)
+# 3) Use self.pattern_error_trace to get pattern error trace (dict or list)
+# 4) Return the result as float(int) between 0 and 1.
+# 5) Add docstring to the created function.
+# Do not use 'pattern_error_trace', 'error' and 'result' as function name.
 
 DEFAULT_COMPARE = 'callstack_tree_compare'
 
@@ -86,11 +87,7 @@ Always returns 1.
 If call stacks are identical returns 1 else returns 0.
         """
 
-        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='call_stack'), self.unsafe)
-        if res.error is not None:
-            raise ValueError(res.error)
-
-        err_trace_converted = res.parsed_trace()
+        err_trace_converted = self.__get_converted_trace('call_stack')
         pattern = self.pattern_error_trace
         if err_trace_converted == pattern:
             return 1
@@ -101,10 +98,7 @@ If call stacks are identical returns 1 else returns 0.
 If model functions are identical returns 1 else returns 0.
         """
 
-        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='model_functions'), self.unsafe)
-        if res.error is not None:
-            raise ValueError(res.error)
-        err_trace_converted = res.parsed_trace()
+        err_trace_converted = self.__get_converted_trace('model_functions')
         pattern = self.pattern_error_trace
         if err_trace_converted == pattern:
             return 1
@@ -114,12 +108,15 @@ If model functions are identical returns 1 else returns 0.
         """
 If call stacks trees are identical returns 1 else returns 0.
         """
-        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='call_stack_tree'), self.unsafe)
-        if res.error is not None:
-            raise ValueError(res.error)
 
-        err_trace_converted = res.parsed_trace()
+        err_trace_converted = self.__get_converted_trace('call_stack_tree')
         pattern = self.pattern_error_trace
         if err_trace_converted == pattern:
             return 1
         return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
+
+    def __get_converted_trace(self, conversion_function_name):
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+        return res.parsed_trace()

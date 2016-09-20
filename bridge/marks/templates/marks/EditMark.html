@@ -137,7 +137,8 @@
                 <label for="edit_mark_comment"></label>
                 <div class="ui action input fluid">
                     <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
-                    <button id="save_mark_btn" style="float: right" class="ui green button">{% trans 'Save' %}</button>
+                    <button id="save_mark_btn" style="float:right" class="ui green button">{% trans 'Save' %}</button>
+                    <a href="{% url 'marks:view_mark' type mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
                 </div>
             </div>
         </div>

@@ -126,7 +126,6 @@ class MarkUnsafe(Mark):
     prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.ForeignKey(File)
 
     class Meta:
         db_table = 'mark_unsafe'
@@ -136,6 +135,7 @@ class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, related_name='versions')
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     function = models.ForeignKey(MarkUnsafeCompare)
+    error_trace = models.ForeignKey(File)
 
     class Meta:
         db_table = 'mark_unsafe_history'

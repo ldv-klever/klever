@@ -41,6 +41,7 @@ ERRORS = {
     604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
     602: _("You don't have an access to delete this mark"),
+    603: _("You don't have an access to edit this mark"),
     704: _("The attribute was not found")
 }
 

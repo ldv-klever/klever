@@ -7,7 +7,7 @@
             {% if cell|value_type == "<class 'str'>" %}
                 <td class="line line-{{ cell }}">&nbsp;</td>
             {% elif cell|value_type == "<class 'marks.tags.TagData'>" %}
-                <td id="tag_id_{{ cell.id }}" class="mark-tag {{ tags_type }}">{{ cell.name }}{% if can_edit %}<i id="remove_tag_{{ cell.id }}" class="ui icon remove remove-tag-from-mark"></i>{% endif %}</td>
+                <td id="tag_id_{{ cell.id }}" class="mark-tag {{ tags_type }}">{{ cell.name }}{% if not view_tags %}<i id="remove_tag_{{ cell.id }}" class="ui icon remove remove-tag-from-mark"></i>{% endif %}</td>
             {% else %}
                 <td>&nbsp;</td>
             {% endif %}

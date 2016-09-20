@@ -318,8 +318,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('status', None), True)
-        self.assertEqual(res.get('mark_type', None), 'safe')
+        self.assertEqual(res.get('status'), True)
+        self.assertEqual(res.get('mark_type'), 'safe')
         self.assertEqual(len(MarkSafe.objects.all()), 1)
         try:
             newmark = MarkSafe.objects.get(pk=res.get('mark_id', 0))
@@ -648,6 +648,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
+        with mark_version.error_trace.file as fp:
+            error_trace = fp.read().decode('utf8')
         response = self.client.post('/marks/ajax/save_mark/', {
             'savedata': json.dumps({
                 'mark_id': mark.pk,
@@ -659,7 +661,8 @@ class TestMarks(KleverTestCase):
                 'status': MARK_STATUS[2][0],
                 'tags': [created_tags[1].pk],
                 'attrs': compare_attrs,
-                'comment': 'Change 1'
+                'comment': 'Change 1',
+                'error_trace': error_trace
             })
         })
         self.assertEqual(response.status_code, 200)
@@ -776,7 +779,8 @@ class TestMarks(KleverTestCase):
                     'status': MARK_STATUS[2][0],
                     'tags': [created_tags[0].pk],
                     'attrs': compare_attrs,
-                    'comment': 'Change %s' % i
+                    'comment': 'Change %s' % i,
+                    'error_trace': error_trace
                 })
             })
             self.assertEqual(response.status_code, 200)
