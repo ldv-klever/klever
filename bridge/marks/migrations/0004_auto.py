@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='markunsafehistory',
             name='error_trace',
-            field=models.ForeignKey(default=0, null=False, on_delete=django.db.models.deletion.CASCADE, to='jobs.File'),
+            field=models.ForeignKey(null=False, on_delete=django.db.models.deletion.CASCADE, to='jobs.File'),
             preserve_default=False,
         )
     ]
