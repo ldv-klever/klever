@@ -43,9 +43,9 @@ class UploadReport(object):
             self.root = self.__get_root_report()
             self.__upload()
         except Exception as e:
-            logger.exception('Uploading report failed: %s' % e, stack_info=True)
-            self.__job_failed(e)
-            self.error = e
+            logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
+            self.__job_failed(str(e))
+            self.error = str(e)
 
     def __job_failed(self, error=None):
         if 'id' in self.data:
