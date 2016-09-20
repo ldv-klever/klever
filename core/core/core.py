@@ -83,8 +83,9 @@ class Core(core.utils.CallbacksCaller):
                 traceback.print_exc()
 
             if self.mqs:
-                with open('problem desc.txt', 'w', encoding='utf8') as fp:
-                    traceback.print_exc(file=fp)
+                try:
+                    with open('problem desc.txt', 'w', encoding='utf8') as fp:
+                        traceback.print_exc(file=fp)
 
                     core.utils.report(self.logger,
                                       'unknown',
@@ -95,9 +96,14 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'])
+                except Exception:
+                    self.exit_code = 1
 
+                    if self.logger:
+                        self.logger.exception('Catch exception')
+                    else:
+                        traceback.print_exc()
         finally:
-            # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
                 if self.mqs:
                     self.logger.info('Terminate report files message queue')
