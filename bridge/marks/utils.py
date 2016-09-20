@@ -776,7 +776,7 @@ class MarkAccess(object):
         if not isinstance(self.user, User):
             return False
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if self.report.archive is None:
+            if self.report.archive is None and not isinstance(self.report, ReportSafe):
                 return False
             if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
