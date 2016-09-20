@@ -108,8 +108,10 @@ class Core(core.utils.CallbacksCaller):
                 if self.mqs:
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
-                    self.logger.info('Wait for uploading all reports except Core finish report')
-                    self.uploading_reports_process.join()
+
+                    if self.uploading_reports_process.is_alive():
+                        self.logger.info('Wait for uploading all reports except Core finish report')
+                        self.uploading_reports_process.join()
 
                     # Create Core finish report just after other reports are uploaded. Otherwise time between creating
                     # Core finish report and finishing uploading all reports won't be included into wall time of Core.
