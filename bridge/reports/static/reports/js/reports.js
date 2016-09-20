@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function component_filters_data() {
     var filter_values = {};
 
@@ -29,6 +46,13 @@ function component_filters_data() {
 
 function unsafe_filters_data() {
     var view_values = {}, filter_values = {};
+    var columns = [];
+    $('input[id^="list_filter_checkbox__"]').each(function () {
+        if ($(this).is(':checked')) {
+            columns.push($(this).attr('id').replace('list_filter_checkbox__', ''));
+        }
+    });
+    view_values['columns'] = columns;
     var order = $('#filter__attr__order').val();
     if (order.length > 0) {
         view_values['order'] = [order, $('input[name="order_value"]:checked').val()];

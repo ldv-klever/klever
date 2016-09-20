@@ -1,0 +1,334 @@
+{
+  "Common": {
+    "Linux kernel": {
+      "source": "linux-3.14",
+      "configuration": "defconfig"
+    },
+    "maximum verification object size": 30000,
+    "rule specifications DB": "rule specs.json",
+    "specifications set": "Linux 3.14 (base)",
+    "unite rule specifications": false,
+    "RSG strategy": "instrumentation",
+    "VTG strategy": {
+      "name": "single bug type",
+      "verifier": {
+        "name": "CPAchecker",
+        "version": "22517"
+      },
+      "resource limits": {
+        "wall time": 1000000,
+        "CPU time": 900000,
+        "memory size": 10000000000,
+        "CPU model": null,
+        "number of CPU cores": 1,
+        "result size": 1000000
+      },
+      "merge source files": true
+    }
+  },
+  "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/load_order/",
+        "modules": ["manual-unsafe/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual-unsafe/init.ko": [[
+          "manual-unsafe/init.ko",
+          "manual-unsafe/external.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/load_order/",
+        "modules": ["manual-safe/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual-safe/init.ko": [[
+          "manual-safe/external.ko",
+          "manual-safe/init.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/load_order/",
+        "modules": ["advanced-unsafe/init.ko"],
+        "module dependencies file": "tests/load_order/advanced-unsafe/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/load_order/",
+        "modules": ["advanced-safe/init.ko"],
+        "module dependencies file": "tests/load_order/advanced-safe/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_alphabet_sort/",
+        "modules": ["init.ko"],
+        "module dependencies file": "tests/advanced_alphabet_sort/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_calls/",
+        "modules": ["enabled/external1.ko"],
+        "module dependencies file": "tests/advanced_priority_on_calls/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_calls/",
+        "modules": ["disabled/external1.ko"],
+        "module dependencies file": "tests/advanced_priority_on_calls/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2,
+        "priority on calls": false
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_export",
+        "modules": ["enabled/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_export/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_export",
+        "modules": ["disabled/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_export/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2,
+        "priority on export function": false
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_subsystem/",
+        "modules": ["enabled/subsystem1/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_subsystem/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_subsystem/",
+        "modules": ["disabled/subsystem1/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_subsystem/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2,
+        "maximize subsystems": false
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_size/",
+        "modules": ["enabled/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_size/dep_file",
+        "module sizes file": "tests/advanced_priority_on_size/sizes"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/advanced_priority_on_size/",
+        "modules": ["disabled/init.ko"],
+        "module dependencies file": "tests/advanced_priority_on_size/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2,
+        "priority on module size": false
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "modules": ["separate/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "separate modules",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "modules": ["closure/init.ko"],
+        "module dependencies file": "tests/multimodule_false_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "closure",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "modules": ["manual/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual/init.ko": [[
+          "manual/external.ko", "manual/init.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_false_error/",
+        "modules": ["advanced/init.ko"],
+        "module dependencies file": "tests/multimodule_false_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "modules": ["separate/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "separate modules",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "safe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "modules": ["closure/init.ko"],
+        "module dependencies file": "tests/multimodule_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "closure",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "modules": ["manual/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual/init.ko": [[
+          "manual/external.ko",
+          "manual/init.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/multimodule_error/",
+        "modules": ["advanced/init.ko"],
+        "module dependencies file": "tests/multimodule_error/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/kernel_library/",
+        "modules": ["manual/init.o"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual/init.o": [[
+          "manual/init.o",
+          "manual/external.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:mutex"],
+      "ideal verdict": "unsafe"
+    }
+  ]
+}

@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import subprocess
 import logging
 import logging.config
@@ -23,7 +40,7 @@ def common_initialization(tool, conf=None):
         args = parser.parse_args()
 
         # Read configuration from file.
-        with open(args.config, encoding="ascii") as fp:
+        with open(args.config, encoding="utf8") as fp:
             conf = json.load(fp)
 
     # TODO: Do we need use version of the scheduler further?
@@ -43,7 +60,7 @@ def common_initialization(tool, conf=None):
         shutil.rmtree(conf["common"]['working directory'], True)
 
     logging.debug("Create working dir: {0}".format(conf["common"]['working directory']))
-    os.makedirs(conf["common"]['working directory'], exist_ok=True)
+    os.makedirs(conf["common"]['working directory'].encode("utf8"), exist_ok=True)
 
     # Go to the working directory to avoid creating files elsewhere
     os.chdir(conf["common"]['working directory'])

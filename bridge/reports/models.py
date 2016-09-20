@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.db import models
 from django.contrib.auth.models import User
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
@@ -24,6 +41,7 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
+    safes = models.PositiveIntegerField(default=0)
 
     class Meta:
         db_table = 'report_root'
@@ -71,41 +89,26 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    log = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    archive = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
+    log = models.CharField(max_length=128, null=True)
     data = models.ForeignKey(File, null=True, related_name='reports2')
 
     class Meta:
         db_table = 'report_component'
 
 
-class ReportFiles(models.Model):
-    report = models.ForeignKey(ReportComponent, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'report_files'
-
-
 class ReportUnsafe(Report):
-    error_trace = models.ForeignKey(File)
+    archive = models.ForeignKey(File)
+    error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
     class Meta:
         db_table = 'report_unsafe'
 
 
-class ETVFiles(models.Model):
-    unsafe = models.ForeignKey(ReportUnsafe, related_name='files')
-    file = models.ForeignKey(File)
-    name = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'etv_files'
-
-
 class ReportSafe(Report):
-    proof = models.ForeignKey(File)
+    archive = models.ForeignKey(File, null=True)
+    proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
     class Meta:
@@ -114,7 +117,8 @@ class ReportSafe(Report):
 
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    problem_description = models.ForeignKey(File)
+    archive = models.ForeignKey(File)
+    problem_description = models.CharField(max_length=128)
 
     class Meta:
         db_table = 'report_unknown'
@@ -128,6 +132,18 @@ class ReportComponentLeaf(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_leaf'
+
+
+class AttrStatistic(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    name = models.ForeignKey(AttrName)
+    attr = models.ForeignKey(Attr, null=True)
+    safes = models.PositiveIntegerField(default=0)
+    unsafes = models.PositiveIntegerField(default=0)
+    unknowns = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        db_table = 'cache_report_attr_statistic'
 
 
 class Verdict(models.Model):
@@ -160,6 +176,17 @@ class ComponentResource(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_resource'
+
+
+class LightResource(models.Model):
+    report = models.ForeignKey(ReportRoot)
+    component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
+    cpu_time = models.BigIntegerField()
+    wall_time = models.BigIntegerField()
+    memory = models.BigIntegerField()
+
+    class Meta:
+        db_table = 'cache_report_light_resource'
 
 
 class ComponentUnknown(models.Model):

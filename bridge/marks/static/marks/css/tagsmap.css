@@ -1,0 +1,99 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.tagsmap {
+    overflow-x: auto;
+    margin: 20px;
+    padding-bottom: 20px;
+}
+#tags_tree {
+    overflow-x: auto;
+    padding-bottom: 15px;
+    margin: 0;
+}
+
+.icon-text {
+    display: none;
+    font-size: 90%;
+    color: #b1b1af;
+    font-style: italic;
+}
+.tag-icon {
+    float: right;
+    cursor: pointer;
+}
+
+.edit-tag-cell {
+    white-space: nowrap;
+    cursor: pointer;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 3px 10px 3px 10px;
+    text-align: center;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+
+.edit-tag-cell.unsafe {
+    background: linear-gradient(to top, #e17c3f, #ffad4f);
+}
+.edit-tag-cell.unsafe:hover {
+    background: #ffad4f;
+}
+.edit-tag-cell.safe {
+    background: linear-gradient(to top, #27ab5c, #2ce884);
+}
+.edit-tag-cell.safe:hover {
+    background: #2ce07c;
+}
+
+.mark-tag {
+    white-space: nowrap;
+    font-weight: 700;
+    color: #ffffff;
+    padding: 3px 10px 3px 10px;
+    text-align: center;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	-webkit-border-radius: 5px;
+}
+
+.mark-tag.unsafe {
+    background: linear-gradient(to top, #e17c3f, #ffad4f);
+}
+.mark-tag.safe {
+    background: linear-gradient(to top, #27ab5c, #2ce884);
+}
+
+.line {
+    min-width: 30px;
+    padding: 0;
+    margin: 0;
+    background-size: 100%;
+    -moz-background-size: 100%; /* Firefox 3.6+ */
+    -webkit-background-size: 100%; /* Safari 3.1+ и Chrome 4.0+ */
+    -o-background-size: 100%; /* Opera 9.6+ */
+}
+
+.remove-tag-from-mark {
+    cursor: pointer;
+    margin: 0 0 0 10px!important;
+}
+.remove-tag-from-mark:hover {
+    color: #ffe4f6;
+}

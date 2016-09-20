@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import fcntl
 import json
 import logging
@@ -159,7 +176,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('ascii').rstrip()
+                line = line.decode('utf8').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)
@@ -214,7 +231,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
-        with open('problem desc.txt', 'a', encoding='ascii') as fp:
+        with open('problem desc.txt', 'a', encoding='utf8') as fp:
             fp.write('\n'.join(err_q.output))
         raise CommandError('"{0}" failed'.format(cmd))
 
@@ -358,12 +375,20 @@ def get_logger(name, conf):
     if 'handlers' not in pref_logger_conf:
         raise KeyError('Handlers are not specified for logger "{0}"'.format(pref_logger_conf['name']))
     for handler_conf in pref_logger_conf['handlers']:
+        if 'level' not in handler_conf:
+            raise KeyError(
+                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(
+                    pref_logger_conf['name'], handler_conf['name'] if 'name' in handler_conf else ''))
+
+        if handler_conf['level'] == 'NONE':
+            continue
+
         if handler_conf['name'] == 'console':
             # Always print log to STDOUT.
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log', encoding='ascii')
+            handler = logging.FileHandler('log.txt', encoding='utf8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -372,10 +397,6 @@ def get_logger(name, conf):
         # Set up handler logging level.
         log_levels = {'NOTSET': logging.NOTSET, 'DEBUG': logging.DEBUG, 'INFO': logging.INFO,
                       'WARNING': logging.WARNING, 'ERROR': logging.ERROR, 'CRITICAL': logging.CRITICAL}
-        if 'level' not in handler_conf:
-            raise KeyError(
-                'Logging level of logger "{0}" and handler "{1}" is not specified'.format(pref_logger_conf['name'],
-                                                                                           handler_conf['name']))
         if handler_conf['level'] not in log_levels:
             raise KeyError(
                 'Logging level "{0}" {1} is not supported{2}'.format(
@@ -403,6 +424,9 @@ def get_logger(name, conf):
         handler.setFormatter(formatter)
 
         logger.addHandler(handler)
+
+    if not logger.handlers:
+        logger.disabled = True
 
     logger.debug("Logger was set up")
 
@@ -445,7 +469,7 @@ def merge_confs(a, b):
         if key in a:
             # Perform sanity checks.
             if not isinstance(key, str):
-                raise KeyError('Key is not string (its type is {"0"})'.format(type(key)))
+                raise KeyError('Key is not string (its type is "{0}")'.format(type(key).__name__))
             elif not isinstance(a[key], type(b[key])):
                 raise ValueError(
                     'Values of key "{0}" have different types ("{1}" and "{2}" respectively)'.format(key, type(a[key]),
@@ -491,10 +515,10 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
-    if 'files' in report:
+    if 'files' in report and report['files']:
         report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        with tarfile.open(report_files_archive, 'w:gz') as tar:
+        with tarfile.open(report_files_archive, 'w:gz', encoding='utf8') as tar:
             for file in report['files']:
                 tar.add(file)
         del (report['files'])
@@ -506,8 +530,8 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-    with open(report_file, 'w', encoding='ascii') as fp:
-        json.dump(report, fp, sort_keys=True, indent=4)
+    with open(report_file, 'w', encoding='utf8') as fp:
+        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
 

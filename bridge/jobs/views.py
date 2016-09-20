@@ -1,5 +1,23 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import mimetypes
-from io import BytesIO
+import tempfile
+import tarfile
 from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
@@ -14,7 +32,7 @@ from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
-from reports.UploadReport import UploadReport
+from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
@@ -218,7 +236,8 @@ def show_job(request, job_id=None):
             'can_create': job_access.can_create(),
             'can_decide': job_access.can_decide(),
             'can_download': job_access.can_download(),
-            'can_stop': job_access.can_stop()
+            'can_stop': job_access.can_stop(),
+            'can_collapse': job_access.can_collapse()
         }
     )
 
@@ -257,6 +276,7 @@ def get_job_data(request):
         'can_decide': job_access.can_decide(),
         'can_download': job_access.can_download(),
         'can_stop': job_access.can_stop(),
+        'can_collapse': job_access.can_collapse(),
         'jobstatus': job.status,
         'jobstatus_text': job.get_status_display() + '',
         'job_history': loader.get_template('jobs/jobRunHistory.html').render({
@@ -574,8 +594,7 @@ def download_job(request, job_id):
         )
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
-    jobtar.memory.seek(0)
-    response.write(jobtar.memory.read())
+    response.write(jobtar.tempfile.read())
     return response
 
 
@@ -586,27 +605,28 @@ def download_jobs(request):
         return HttpResponseRedirect(
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
-    import tarfile
-    arch_mem = BytesIO()
-    jobs_archive = tarfile.open(fileobj=arch_mem, mode='w:gz')
-    for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
-        if not JobAccess(request.user, job).can_download():
-            return HttpResponseRedirect(reverse('error', args=[401]))
-        jobtar = DownloadJob(job)
-        if jobtar.error is not None:
-            return HttpResponseRedirect(
-                reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-            )
-        jobtar.memory.seek(0)
-        tarname = 'Job-%s.tar.gz' % job.identifier[:10]
-        tinfo = tarfile.TarInfo(tarname)
-        tinfo.size = jobtar.memory.getbuffer().nbytes
-        jobs_archive.addfile(tinfo, jobtar.memory)
-    jobs_archive.close()
-    arch_mem.seek(0)
+    arch_tmp = tempfile.TemporaryFile()
+    with tarfile.open(fileobj=arch_tmp, mode='w:gz', encoding='utf8') as jobs_archive:
+        for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
+            if not JobAccess(request.user, job).can_download():
+                return HttpResponseRedirect(
+                    reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
+                )
+            jobtar = DownloadJob(job)
+            if jobtar.error is not None:
+                return HttpResponseRedirect(
+                    reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
+                )
+            tarname = 'Job-%s.tar.gz' % job.identifier[:10]
+            tinfo = tarfile.TarInfo(tarname)
+            tinfo.size = jobtar.size
+            jobs_archive.addfile(tinfo, jobtar.tempfile)
+        jobs_archive.close()
+    arch_tmp.flush()
+    arch_tmp.seek(0)
     response = HttpResponse(content_type="application/x-tar-gz")
     response["Content-Disposition"] = "attachment; filename=KleverJobs.tar.gz"
-    response.write(arch_mem.read())
+    response.write(arch_tmp.read())
     return response
 
 
@@ -931,3 +951,18 @@ def get_def_start_job_val(request):
             }))
         })
     return JsonResponse({'error': 'Unknown error'})
+
+
+@login_required
+def collapse_reports(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        job = Job.objects.get(pk=request.POST.get('job_id', 0))
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    if not JobAccess(request.user, job).can_collapse():
+        return JsonResponse({'error': _("You don't have an access to collapse reports")})
+    CollapseReports(job)
+    return JsonResponse({})

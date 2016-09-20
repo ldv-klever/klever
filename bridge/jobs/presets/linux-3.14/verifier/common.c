@@ -1,15 +1,24 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <verifier/common.h>
 
 /* http://sv-comp.sosy-lab.org/2015/rules.php */
 void __VERIFIER_error(void);
-
-/* If expr evaluates to zero, ldv_assert() causes a program to reach the error
- * function call like the standard assert().
- */
-void ldv_assert(int expression)
-{
-    (expression) ? 0 : __VERIFIER_error();
-}
 
 void ldv_assume(int expression)
 {
@@ -44,5 +53,5 @@ long __builtin_expect(long exp, long c)
  */
 void __builtin_trap(void)
 {
-	ldv_assert(0);
+	ldv_assert("", 0);
 }

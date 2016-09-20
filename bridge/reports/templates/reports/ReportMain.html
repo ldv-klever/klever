@@ -26,18 +26,20 @@
                     <th class="right aligned">{% trans 'Job' %}</th>
                     <td><a class="violet-link" href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a></td>
                 </tr>
-                <tr>
-                    <th class="right aligned">{% trans 'Status' %}</th>
-                    <td>
-                    {% if unknown %}
-                        <a class="violet-link" href="{{ unknown }}">{% trans 'Failed' %}</a>
-                    {% elif status == 1 %}
-                        <span style="color: #a4e9eb">{% trans 'In progress' %}</span>
-                    {% elif status == 2 %}
-                        <span style="color: #4ce215">{% trans 'Finished' context 'component status' %}</span>
-                    {% endif %}
-                    </td>
-                </tr>
+                {% if status != 4 %}
+                    <tr>
+                        <th class="right aligned">{% trans 'Status' %}</th>
+                        <td>
+                        {% if unknown %}
+                            <a class="violet-link" href="{{ unknown }}">{% trans 'Failed' %}</a>
+                        {% elif status == 1 %}
+                            <span style="color: #a4e9eb">{% trans 'In progress' %}</span>
+                        {% elif status == 2 %}
+                            <span style="color: #4ce215">{% trans 'Finished' context 'component status' %}</span>
+                        {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
                 <tr id="computer_description_tr" data-variation="very wide">
                     <th class="right aligned">{% trans 'Computer' %}</th>
                     <td>{{ computer.name }}</td>
@@ -116,7 +118,7 @@
                     <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
                 </div>
             {% endif %}
-            {% if report.files.all|length > 0 %}
+            {% if report.archive %}
                 <div class="eight wide column right aligned">
                     <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
                 </div>

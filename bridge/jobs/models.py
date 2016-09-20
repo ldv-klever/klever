@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
@@ -29,9 +46,7 @@ def file_delete(**kwargs):
 
 class JobBase(models.Model):
     name = models.CharField(max_length=150)
-    change_author = models.ForeignKey(User, blank=True, null=True,
-                                      on_delete=models.SET_NULL,
-                                      related_name="%(class)s")
+    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
 
     class Meta:
         abstract = True
@@ -45,6 +60,7 @@ class Job(JobBase):
     identifier = models.CharField(max_length=255, unique=True)
     parent = models.ForeignKey('self', null=True, on_delete=models.PROTECT, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
+    light = models.BooleanField(default=False)
 
     class Meta:
         db_table = 'job'
@@ -54,7 +70,7 @@ class RunHistory(models.Model):
     job = models.ForeignKey(Job)
     operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     configuration = models.ForeignKey(File)
-    date = models.DateTimeField(auto_now=True)
+    date = models.DateTimeField()
     status = models.CharField(choices=JOB_STATUS, max_length=1)
 
     class Meta:

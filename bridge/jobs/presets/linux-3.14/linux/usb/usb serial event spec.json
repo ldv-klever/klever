@@ -1,0 +1,496 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "usb_serial_register_drivers": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          }
+        },
+        "process": "<assign>.[@register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%usb_device_id% = $arg3;"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          }
+        }
+      },
+      "usb_serial_deregister_drivers": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          }
+        },
+        "process": "<assign>.[@deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%usb_device_id% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "usb_serial_instance": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "driver": {
+            "container": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).((deregister) | <init>.{init_workflow})",
+        "actions": {
+          "init_workflow": {
+            "process": "[probe].(<y_ret>.[attach].(<y_ret>.{main_workflow} | <n_ret>.[release]) | <n_ret>).{init_workflow} | <free>.(deregister)"
+          },
+          "main_workflow": {
+            "process": "([rest] | [suspend].([resume] | [reset_resume]) | [port_probe].(<y_ret>.[port_remove] | <n_ret>) | [open].(<y_ret>.{ops_workflow} | <n_ret>)).{main_workflow} | [disconnect].[release].{init_workflow}"
+          },
+          "ops_workflow": {
+            "process": "([write] | [irq_write] | [write_room] | [ioctl]).{ops_workflow} | [close].{main_workflow}"
+          },
+          "register": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%usb_device_id% == $ARG1"
+            ],
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%resource% = $ALLOC(%resource%);"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "y_ret": {
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "probe": {
+            "callback": "%driver.probe%",
+            "parameters": [
+              "%resource%",
+              "%usb_device_id%"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "attach": {
+            "callback": "%driver.attach%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "disconnect": {
+            "callback": "%driver.disconnect%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "release": {
+            "callback": "%driver.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "suspend": {
+            "callback": "%driver.suspend%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%driver.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "reset_resume": {
+            "callback": "%driver.reset_resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "port_probe": {
+            "callback": "%driver.port_probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "port_remove": {
+            "callback": "%driver.port_remove%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "open": {
+            "callback": "%driver.open%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "close": {
+            "callback": "%driver.close%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "write": {
+            "callback": "%driver.write%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "irq_write": {
+            "callback": "%driver.write%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "ldv_switch_to_interrupt_context();"
+            ],
+            "post-call": [
+              "ldv_switch_to_process_context();"
+            ]
+          },
+          "write_room": {
+            "callback": "%driver.write_room%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "ioctl": {
+            "callback": "%driver.ioctl%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "rest": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Linux 3.2": {
+    "kernel model": {
+      "usb_serial_register_drivers": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          }
+        },
+        "process": "<assign>.[@register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%usb_device_id% = $arg3;"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          }
+        }
+      },
+      "usb_serial_deregister_drivers": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          }
+        },
+        "process": "<assign>.[@deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%usb_device_id% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "usb_serial_instance": {
+        "labels": {
+          "usb_device_id": {
+            "resource": true,
+            "interface": [
+              "usb_serial.usb_device_id"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "driver": {
+            "container": true,
+            "interface": [
+              "usb_serial.usb_serial_driver"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).((deregister) | <init>.{init_workflow})",
+        "actions": {
+          "init_workflow": {
+            "process": "[probe].(<y_ret>.[attach].(<y_ret>.{main_workflow} | <n_ret>.[release]) | <n_ret>).{init_workflow} | <free>.(deregister)"
+          },
+          "main_workflow": {
+            "process": "([rest] | [suspend].[resume] | [port_probe].(<y_ret>.[port_remove] | <n_ret>) | [open].(<y_ret>.{ops_workflow} | <n_ret>)).{main_workflow} | [disconnect].[release].{init_workflow}"
+          },
+          "ops_workflow": {
+            "process": "([write] | [irq_write] | [write_room] | [ioctl]).{ops_workflow} | [close].{main_workflow}"
+          },
+          "register": {
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%usb_device_id% == $ARG1"
+            ],
+            "parameters": [
+              "%usb_device_id%"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%resource% = $ALLOC(%resource%);"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "y_ret": {
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "probe": {
+            "callback": "%driver.probe%",
+            "parameters": [
+              "%resource%",
+              "%usb_device_id%"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "attach": {
+            "callback": "%driver.attach%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "disconnect": {
+            "callback": "%driver.disconnect%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "release": {
+            "callback": "%driver.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "suspend": {
+            "callback": "%driver.suspend%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%driver.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "port_probe": {
+            "callback": "%driver.port_probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "port_remove": {
+            "callback": "%driver.port_remove%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "open": {
+            "callback": "%driver.open%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "close": {
+            "callback": "%driver.close%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "write": {
+            "callback": "%driver.write%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "irq_write": {
+            "callback": "%driver.write%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "ldv_switch_to_interrupt_context();"
+            ],
+            "post-call": [
+              "ldv_switch_to_process_context();"
+            ]
+          },
+          "write_room": {
+            "callback": "%driver.write_room%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "ioctl": {
+            "callback": "%driver.ioctl%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "rest": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

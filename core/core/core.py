@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import argparse
 import json
 import multiprocessing
@@ -32,9 +49,6 @@ class Core(core.utils.CallbacksCaller):
 
     def main(self):
         try:
-            # Use English everywhere below.
-            os.environ['LANG'] = 'C'
-            os.environ['LC_ALL'] = 'C'
             # Remember approximate time of start to count wall time.
             self.start_time = time.time()
             self.get_conf()
@@ -62,7 +76,7 @@ class Core(core.utils.CallbacksCaller):
             self.exit_code = 1
         except Exception:
             if self.mqs:
-                with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                with open('problem desc.txt', 'w', encoding='utf8') as fp:
                     traceback.print_exc(file=fp)
 
                 if os.path.isfile('problem desc.txt'):
@@ -86,6 +100,15 @@ class Core(core.utils.CallbacksCaller):
             # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
                 if self.mqs:
+                    self.logger.info('Terminate report files message queue')
+                    self.mqs['report files'].put(None)
+                    self.logger.info('Wait for uploading all reports except Core finish report')
+                    self.uploading_reports_process.join()
+
+                    # Create Core finish report just after other reports are uploaded. Otherwise time between creating
+                    # Core finish report and finishing uploading all reports won't be included into wall time of Core.
+                    self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
+                    self.uploading_reports_process.start()
                     core.utils.report(self.logger,
                                       'finish',
                                       {
@@ -93,16 +116,15 @@ class Core(core.utils.CallbacksCaller):
                                           'resources': core.utils.count_consumed_resources(
                                               self.logger,
                                               self.start_time),
-                                          'log': 'log',
-                                          'files': ['log']
+                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
+                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'])
-
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
-
-                    self.logger.info('Wait for uploading all reports')
+                    self.logger.info('Wait for uploading Core finish report')
                     self.uploading_reports_process.join()
+
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
@@ -140,7 +162,7 @@ class Core(core.utils.CallbacksCaller):
         conf_file = vars(parser.parse_args())['conf file']
 
         # Read configuration from file.
-        with open(conf_file, encoding='ascii') as fp:
+        with open(conf_file, encoding='utf8') as fp:
             self.conf = json.load(fp)
 
     def prepare_work_dir(self):
@@ -151,7 +173,7 @@ class Core(core.utils.CallbacksCaller):
         self.is_solving_file = os.path.join(self.conf['working directory'], 'is solving')
 
         def check_another_instance():
-            if not self.conf['ignore another instances'] and os.path.isfile(self.is_solving_file):
+            if not self.conf['ignore other instances'] and os.path.isfile(self.is_solving_file):
                 raise FileExistsError('Another instance of Klever Core occupies working directory "{0}"'.format(
                     self.conf['working directory']))
 
@@ -165,13 +187,13 @@ class Core(core.utils.CallbacksCaller):
         # - occupy working directory.
         shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['working directory'], exist_ok=True)
+        os.makedirs(self.conf['working directory'].encode('utf8'), exist_ok=True)
 
         check_another_instance()
 
         # Occupy working directory until the end of operation.
         # Yes there may be race condition, but it won't be.
-        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='ascii')
+        self.is_solving_file_fp = open(self.is_solving_file, 'w', encoding='utf8')
 
     def change_work_dir(self):
         # Change working directory forever.

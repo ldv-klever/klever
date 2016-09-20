@@ -1,0 +1,4 @@
+extra/init.ko needs "bad_export": extra/a_one.ko
+extra/init.ko needs "bad_export": extra/b_two.ko
+extra/init.ko needs "bad_export": extra/c_three.ko
+extra/init.ko needs "bad_export": extra/e_four.ko

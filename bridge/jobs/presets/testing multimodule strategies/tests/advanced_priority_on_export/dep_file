@@ -1,0 +1,6 @@
+extra/enabled/external1.ko needs "bad_export": extra/enabled/init.ko
+extra/enabled/external2.ko needs "bad_export": extra/enabled/init.ko
+extra/dummy_module.ko needs "dummy_function": extra/enabled/external2.ko
+extra/disabled/external1.ko needs "bad_export": extra/disabled/init.ko
+extra/disabled/external2.ko needs "bad_export": extra/disabled/init.ko
+extra/dummy_module.ko needs "dummy_function": extra/disabled/external2.ko

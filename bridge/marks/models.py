@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.contrib.auth.models import User
 from django.db import models
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
@@ -138,6 +155,7 @@ class MarkUnsafeReport(models.Model):
     report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
     result = models.FloatField()
     broken = models.BooleanField(default=False)
+    error = models.TextField(null=True)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -145,14 +163,20 @@ class MarkUnsafeReport(models.Model):
 
 # Tags tables
 class SafeTag(models.Model):
-    tag = models.CharField(max_length=1023)
+    parent = models.ForeignKey('self', null=True, related_name='children')
+    tag = models.CharField(max_length=32)
+    description = models.TextField(default='')
+    populated = models.BooleanField(default=False)
 
     class Meta:
         db_table = "mark_safe_tag"
 
 
 class UnsafeTag(models.Model):
-    tag = models.CharField(max_length=1023)
+    parent = models.ForeignKey('self', null=True, related_name='children')
+    tag = models.CharField(max_length=32)
+    description = models.TextField(default='')
+    populated = models.BooleanField(default=False)
 
     class Meta:
         db_table = "mark_unsafe_tag"
@@ -270,3 +294,12 @@ class MarkAssociationsChanges(models.Model):
 
     class Meta:
         db_table = 'cache_mark_associations_changes'
+
+
+class ErrorTraceConvertionCache(models.Model):
+    unsafe = models.ForeignKey(ReportUnsafe)
+    function = models.ForeignKey(MarkUnsafeConvert)
+    converted = models.ForeignKey(File)
+
+    class Meta:
+        db_table = 'cache_error_trace_converted'

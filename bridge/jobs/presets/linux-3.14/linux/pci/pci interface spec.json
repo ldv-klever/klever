@@ -1,0 +1,58 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {},
+    "categories": {
+      "pci": {
+        "containers": {
+          "pci_driver": {
+            "signature": "struct pci_driver driver",
+            "header": "linux/pci.h",
+            "fields": {
+              "probe": "%pci.probe%",
+              "remove": "%pci.release%",
+              "suspend": "%pci.suspend%",
+              "suspend_late": "%pci.suspend_late%",
+              "resume_early": "%pci.resume_early%",
+              "resume": "%pci.resume%",
+              "shutdown": "%pci.shutdown%"
+            }
+          }
+        },
+        "resources": {
+          "dev": {
+            "signature": "struct pci_dev *dev",
+            "header": "linux/pci.h",
+            "implemented in kernel": true
+          },
+          "pm_message": {
+            "signature": "pm_message_t state",
+            "header": "linux/pm.h"
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "signature": "int (*probe)(%pci.dev%, $)"
+          },
+          "release": {
+            "signature": "void (*release)(%pci.dev%)"
+          },
+          "suspend": {
+            "signature": "int (*suspend)(%pci.dev%, %pci.pm_message%)"
+          },
+          "suspend_late": {
+            "signature": "int (*suspend_late)(%pci.dev%, %pci.pm_message%)"
+          },
+          "resume_early": {
+            "signature": "int (*resume_early)(%pci.dev%)"
+          },
+          "resume": {
+            "signature": "int (*resume)(%pci.dev%)"
+          },
+          "shutdown": {
+            "signature": "void (*shutdown)(%pci.dev%)"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,29 +1,38 @@
-#include <verifier/common.h>
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-/* MODEL_FUNC_DEF Check whether pointer represents error */
+#include <verifier/memory.h>
+
 long ldv_is_err(const void *ptr)
 {
-	/* RETURN Zero if pointer does not represent error and non zero otherwise */
 	return ((unsigned long)ptr > LDV_PTR_MAX);
 }
 
-/* MODEL_FUNC_DEF Convert error to pointer */
 void *ldv_err_ptr(long error)
 {
-	/* RETURN Pointer representation of error */
 	return (void *)(LDV_PTR_MAX - error);
 }
 
-/* MODEL_FUNC_DEF Convert pointer to error */
 long ldv_ptr_err(const void *ptr)
 {
-	/* RETURN Error */
 	return (long)(LDV_PTR_MAX - (unsigned long)ptr);
 }
 
-/* MODEL_FUNC_DEF Check whether pointer represents error or it is NULL */
 long ldv_is_err_or_null(const void *ptr)
 {
-	/* RETURN Zero if pointer does not represent error and it is not NULL and non zero otherwise */
 	return !ptr || ldv_is_err((unsigned long)ptr);
 }

@@ -1,0 +1,50 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+void ldv_past_rtnl_lock(void);
+void ldv_past_rtnl_unlock(void);
+int ldv_rtnl_is_locked(void);
+int ldv_rtnl_trylock(void);
+void ldv_before_ieee80211_unregister_hw(void);
+}
+
+before: call(void ieee80211_unregister_hw(..))
+{
+	ldv_before_ieee80211_unregister_hw();
+}
+
+after: call(void rtnl_lock(..))
+{
+	ldv_past_rtnl_lock();
+}
+
+after: call(void rtnl_unlock(..))
+{
+	ldv_past_rtnl_unlock();
+}
+
+around: call(int rtnl_trylock(..))
+{
+	return ldv_rtnl_trylock();
+}
+
+around: call(int rtnl_is_locked(..))
+{
+	return ldv_rtnl_is_locked();
+}

@@ -1,0 +1,183 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "ieee80211_alloc_hw": {
+        "labels": {
+          "ieee80211_ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "ieee80211.ieee80211_ops"
+            ]
+          },
+          "ieee80211_hw": {
+            "resource": true,
+            "pointer": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          }
+        },
+        "process": "<alloc>.<success>.[register].<ret> | <fail>",
+        "actions": {
+          "alloc": {
+            "statements": [
+              "%ieee80211_ops% = $arg2;",
+              "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
+            ]
+          },
+          "success": {
+            "condition": [
+              "%ieee80211_hw%"
+            ]
+          },
+          "fail": {
+            "condition": [
+              "!%ieee80211_hw%"
+            ],
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "ret": {
+            "statements": [
+              "return %ieee80211_hw%;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%ieee80211_hw%"
+            ]
+          }
+        }
+      },
+      "ieee80211_free_hw": {
+        "labels": {
+          "ieee80211_hw": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          }
+        },
+        "process": "[deregister].<free>",
+        "actions": {
+          "free": {
+            "statements": [
+              "$FREE(%ieee80211_hw%);"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%ieee80211_hw%"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "ieee80211_instance": {
+        "headers": [
+          "linux/rtnetlink.h"
+        ],
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "ieee80211.ieee80211_ops"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "resource": {
+            "resource": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          },
+          "ret": {
+            "signature": "int a"
+          }
+        },
+        "process": "(!register).{main}",
+        "actions": {
+          "main": {
+            "process": "[start].(<y_ret>.{started} | <n_ret>).{main} | (deregister)"
+          },
+          "started": {
+            "process": "[suspend].[resume].{started} | [callback].{started} | [stop].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%resource% == $ARG1"
+            ],
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "y_ret": {
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "start": {
+            "callback": "%container.start%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "rtnl_lock();"
+            ],
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);",
+              "rtnl_unlock();"
+            ],
+            "callback return value": "%ret%"
+          },
+          "stop": {
+            "callback": "%container.stop%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "rtnl_lock();"
+            ],
+            "post-call": [
+              "rtnl_unlock();"
+            ]
+          },
+          "suspend": {
+            "callback": "%container.suspend%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "resume": {
+            "callback": "%container.resume%",
+            "parameters": [
+              "%resource%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

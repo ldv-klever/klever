@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import glob
 import json
 import logging
@@ -5,6 +22,7 @@ import os
 import re
 import sys
 import tarfile
+import signal
 from xml.etree import ElementTree
 from xml.dom import minidom
 
@@ -17,8 +35,8 @@ def solve_job(conf):
     conf = utils.common_initialization("Job executor client", conf)
 
     logging.debug("Create job configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -59,8 +77,8 @@ def solve_job(conf):
         raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
     # Save Klever Core configuration to default configuration file
-    with open("core.json", "w", encoding="ascii") as fh:
-        json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
+    with open("core.json", "w", encoding="utf8") as fh:
+        json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Import RunExec
     executor = RunExecutor()
@@ -86,6 +104,18 @@ def solve_job(conf):
     # TODO: How to choose proper CPU core numbers?
 
     logging.info("Run Klever Core {}".format(bin))
+    # Do this for deterministic python in job
+    os.environ['PYTHONHASHSEED'] = "0"
+    os.environ['PYTHONIOENCODING'] = "utf8"
+    os.environ['LC_LANG'] = "en_US"
+    os.environ['LC_ALL'] = "en_US.UTF8"
+    os.environ['LC_C'] = "en_US.UTF8"
+
+    def handler(a, b):
+        executor.stop()
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+        logging.info("Trying to kill the job")
+    signal.signal(signal.SIGTERM, handler)
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -103,8 +133,8 @@ def solve_task(conf):
     conf = utils.common_initialization("Task executor client", conf)
 
     logging.debug("Create task configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -146,7 +176,7 @@ def solve_task(conf):
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
     server.pull_task(conf["identifier"], "task files.tar.gz")
-    with tarfile.open("task files.tar.gz") as tar:
+    with tarfile.open("task files.tar.gz", encoding="utf8") as tar:
         tar.extractall()
 
     logging.info("Prepare benchmark")
@@ -156,25 +186,20 @@ def solve_task(conf):
         "memlimit": str(conf["resource limits"]["memory size"]) + "B",
     })
     rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-    for opt in conf["verifier"]["options"] + [
-        {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "cpa.arg.errorPath.graphml=witness.%d.graphml"}
-    ] + ([] if "-heap" in [list(opt.keys())[0] for opt in conf["verifier"]["options"]] else [
-        # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
-        # general memory size limit.
-        {"-heap": '{0}m'.format(round(3 * conf["resource limits"]["memory size"] / (4 * 1000 ** 2)))}
-    ]):
+    for opt in conf["verifier"]["options"]:
         for name in opt:
             ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
-    ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
+    # Property file may not be specified.
+    if "property file" in conf:
+        ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
     tasks = ElementTree.SubElement(benchmark, "tasks")
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
         ElementTree.SubElement(tasks, "include").text = file
-    with open("benchmark.xml", "w", encoding="ascii") as fp:
+    with open("benchmark.xml", "w", encoding="utf8") as fp:
         fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
 
-    os.makedirs("output")
+    os.makedirs("output".encode("utf8"))
 
     # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
     # around its binary.
@@ -182,6 +207,11 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
+    def handler(a, b):
+        benchexec.stop()
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+        logging.info("Trying to kill the task")
+    signal.signal(signal.SIGTERM, handler)
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
@@ -193,6 +223,9 @@ def solve_task(conf):
     # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
     statuses_map = {
         'false(reach)': 'unsafe',
+        'false(valid-free)': 'unsafe',
+        'false(valid-deref)': 'unsafe',
+        'false(valid-memtrack)': 'unsafe',
         'true': 'safe',
         'EXCEPTION': 'error',
         'ERROR': 'error',
@@ -227,15 +260,13 @@ def solve_task(conf):
                     else:
                         decision_results["status"] = value
     # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
-    with open("decision results.json", "w", encoding="ascii") as fp:
-        json.dump(decision_results, fp, sort_keys=True, indent=4)
+    with open("decision results.json", "w", encoding="utf8") as fp:
+        json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    with tarfile.open("decision result files.tar.gz", "w:gz") as tar:
+    with tarfile.open("decision result files.tar.gz", "w:gz", encoding="utf8") as tar:
         tar.add("decision results.json")
         for file in glob.glob("output/*"):
             tar.add(file)
-        for file in glob.glob(os.path.join("output", "benchmark*logfiles/*")):
-            tar.add(file, os.path.basename(file))
         if conf["upload input files of static verifiers"]:
             tar.add("benchmark.xml")
 

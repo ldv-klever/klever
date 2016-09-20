@@ -1,10 +1,29 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import copy
 import abc
+from operator import attrgetter
+from pympler import asizeof
 
 from core.avtg.emg.translator.instances import split_into_instances
 from core.avtg.emg.translator.fsa import Automaton
-from core.avtg.emg.common.signature import import_signature
+from core.avtg.emg.common.signature import Function, Pointer, Primitive, import_declaration
 from core.avtg.emg.common.code import FunctionDefinition, Aspect, Variable
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
@@ -37,17 +56,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger = logger
         self.conf = conf
         self.task = avt
-        self.files = {}
-        self.aspects = {}
+        self.files = dict()
+        self.aspects = dict()
         self.entry_file = None
-        self.model_aspects = []
-        self._callback_fsa = []
-        self._structures = {}
-        self._model_fsa = []
+        self.model_aspects = list()
+        self.instance_maps = dict()
+        self._callback_fsa = list()
+        self._structures = dict()
+        self._model_fsa = list()
         self._entry_fsa = None
         self._nested_automata = False
         self._omit_all_states = False
-        self.__dump_automata = False
         self._omit_states = {
             'callback': True,
             'dispatch': True,
@@ -56,17 +75,22 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             'subprocess': False,
             'condition': False,
         }
+        self.__dump_automata = False
         self.__identifier_cnt = -1
         self.__instance_modifier = 1
         self.__max_instances = None
         self.__resource_new_insts = 1
         self.__switchers_cache = {}
+        self.__mem_aproaching = 0
+        self.__analysis_memusage_cache = None
+        self.__external_allocated = dict()
+        self.__allocate_external = False
 
         # Read translation options
-        if "dump automata graphs" in self.conf["translation options"]:
-            self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "translation options" not in self.conf:
             self.conf["translation options"] = {}
+        if "dump automata graphs" in self.conf["translation options"]:
+            self.__dump_automata = self.conf["translation options"]["dump automata graphs"]
         if "max instances number" in self.conf["translation options"]:
             self.__max_instances = int(self.conf["translation options"]["max instances number"])
         if "instance modifier" in self.conf["translation options"]:
@@ -97,6 +121,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self._nested_automata = self.conf["translation options"]["nested automata"]
         if "direct control function calls" in self.conf["translation options"]:
             self._direct_cf_calls = self.conf["translation options"]["direct control function calls"]
+        if "terminate approaching to memory usage" in self.conf["translation options"]:
+            self.__mem_aproaching = self.conf["translation options"]["terminate approaching to memory usage"]
+        if "allocate external" in self.conf["translation options"]:
+            self.__allocate_external = self.conf["translation options"]["allocate external"]
 
         self.jump_types = set()
         if self._omit_states['callback']:
@@ -134,6 +162,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self.logger.info("Going to generate entry point function {} in file {}".
                          format(self.entry_point_name, self.entry_file))
 
+        # Determine additional headers to include
+        self.extract_headers_to_attach(analysis, model)
+
         # Prepare entry point function
         self.logger.info("Generate C code from an intermediate model")
         self._prepare_code(analysis, model)
@@ -152,6 +183,40 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         self.logger.info("Model translation is finished")
 
+    def extract_headers_to_attach(self, analysis, model):
+        """
+        Try to extract headers which are need to include in addition to existing in the source code. Get them from the
+        list of interfaces without an implementations and from the model processes descriptions.
+
+        :param analysis: ModuleCategoriesSpecification object.
+        :param model: ProcessModel object.
+        :return: None
+        """
+        # Get from unused interfaces
+        header_list = list()
+        for interface in (analysis.get_intf(i) for i in analysis.interfaces):
+            if len(interface.declaration.implementations) == 0 and interface.header:
+                for header in interface.header:
+                    if header not in header_list:
+                        header_list.append(header)
+
+        # Get from specifications
+        for process in (p for p in model.model_processes + model.event_processes if len(p.headers) > 0):
+            for header in process.headers:
+                if header not in header_list:
+                    header_list.append(header)
+
+        # Generate aspect
+        if len(header_list) > 0:
+            aspect = ['before: file ("$this")\n',
+                      '{\n']
+            aspect.extend(['#include <{}>\n'.format(h) for h in header_list])
+            aspect.append('}\n')
+
+            self.additional_aspects.extend(aspect)
+
+        return
+
     def extract_relevant_automata(self, automata_peers, peers, sb_type=None):
         """
         Determine which automata can receive signals from the given instance or send signals to it.
@@ -168,7 +233,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         for peer in peers:
             relevant_automata = [automaton for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]
-                                 if automaton.process.name == peer["process"].name]
+                                 if automaton.process.identifier == peer["process"].identifier]
             for automaton in relevant_automata:
                 if automaton.identifier not in automata_peers:
                     automata_peers[automaton.identifier] = {
@@ -237,8 +302,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                              format(len(base_list), process.name, process.category))
 
             for instance in base_list:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, self.conf["translation options"], instance, self.__yeild_identifier())
                 self._callback_fsa.append(fsa)
+
+            if self.__mem_aproaching:
+                if not self.__analysis_memusage_cache:
+                    self.__analysis_memusage_cache = asizeof.asizeof(analysis)
+                mcnt = asizeof.asizeof(self) + self.__analysis_memusage_cache
+                if mcnt >= self.__mem_aproaching:
+                    raise RuntimeError("EMG has eaten more than '{}' bytes of memory, aborting")
 
         # Generate automata for models
         self.logger.info("Generate automata for kernel model processes")
@@ -246,21 +318,22 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             self.logger.info("Generate FSA for kernel model process {}".format(process.name))
             processes = self._instanciate_processes(analysis, [process], process)
             for instance in processes:
-                fsa = Automaton(self.logger, instance, self.__yeild_identifier())
+                fsa = Automaton(self.logger, self.conf["translation options"], instance, self.__yeild_identifier())
                 self._model_fsa.append(fsa)
 
         # Generate state machine for init an exit
         # todo: multimodule automaton (issues #6563, #6571, #6558)
         self.logger.info("Generate FSA for module initialization and exit functions")
-        self._entry_fsa = Automaton(self.logger, model.entry_process, self.__yeild_identifier())
+        self._entry_fsa = Automaton(self.logger, self.conf["translation options"], model.entry_process,
+                                    self.__yeild_identifier())
 
         # Generates base code blocks
         self.logger.info("Prepare code on each action of each automanon instance")
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
             self.logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                               format(automaton.identifier, automaton.process.name, automaton.process.category))
-            for state in list(automaton.fsa.states):
-                automaton.generate_code(analysis, model, self, state)
+            for state in sorted(list(automaton.fsa.states), key=attrgetter('identifier')):
+                automaton.generate_meta_code(analysis, model, self, state)
 
         # Save digraphs
         if self.__dump_automata:
@@ -283,7 +356,17 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         # Get map from accesses to implementations
         self.logger.info("Determine number of instances for process '{}' with category '{}'".
                          format(process.name, process.category))
-        maps = split_into_instances(analysis, process, self.__resource_new_insts)
+
+        if process.category not in self.instance_maps:
+            self.instance_maps[process.category] = dict()
+
+        if process.name in self.instance_maps[process.category]:
+            cached_map = self.instance_maps[process.category][process.name]
+        else:
+            cached_map = None
+        maps, cached_map = split_into_instances(analysis, process, self.__resource_new_insts, cached_map)
+        self.instance_maps[process.category][process.name] = cached_map
+
         self.logger.info("Going to generate {} instances for process '{}' with category '{}'".
                          format(len(maps), process.name, process.category))
         new_base_list = []
@@ -297,26 +380,32 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def _initial_instances(self, analysis, process):
         base_list = []
-        undefined_labels = []
-        # Determine nonimplemented containers
-        self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
-                          "category {}".format(process.name, process.category))
-        for label in [process.labels[name] for name in sorted(process.labels.keys())
-                      if len(process.labels[name].interfaces) > 0]:
-            nonimplemented_intrerfaces = [interface for interface in label.interfaces
-                                          if len(analysis.implementations(analysis.interfaces[interface])) == 0]
-            if len(nonimplemented_intrerfaces) > 0:
-                undefined_labels.append(label)
 
-        # Determine is it necessary to make several instances
-        if len(undefined_labels) > 0:
-            for i in range(self.__instance_modifier):
-                base_list.append(self._copy_process(process))
-        else:
+        if self._nested_automata and self._omit_all_states and not self._direct_cf_calls:
+            # So called parallel environment model
             base_list.append(self._copy_process(process))
+        else:
+            # Sequential environment model
+            undefined_labels = []
+            # Determine nonimplemented containers
+            self.logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                              "category {}".format(process.name, process.category))
+            for label in [process.labels[name] for name in sorted(process.labels.keys())
+                          if len(process.labels[name].interfaces) > 0]:
+                nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                              if len(analysis.implementations(analysis.get_intf(interface))) == 0]
+                if len(nonimplemented_intrerfaces) > 0:
+                    undefined_labels.append(label)
 
-        self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
-                         format(len(base_list), len(undefined_labels), process.name, process.category))
+            # Determine is it necessary to make several instances
+            if len(undefined_labels) > 0:
+                for i in range(self.__instance_modifier):
+                    base_list.append(self._copy_process(process))
+            else:
+                base_list.append(self._copy_process(process))
+
+            self.logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                             format(len(base_list), len(undefined_labels), process.name, process.category))
 
         return base_list
 
@@ -332,8 +421,8 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         return inst
 
     def _determine_entry(self, analysis):
-        if len(analysis.inits) == 1:
-            file = list(analysis.inits.keys())[0]
+        if len(analysis.inits) >= 1:
+            file = analysis.inits[0][0]
             self.logger.info("Choose file {} to add an entry point function".format(file))
             self.entry_file = file
         elif len(analysis.inits) < 1:
@@ -353,13 +442,18 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'initializations': {}
             }
 
-        self.files[file]['functions'][function.name] = function.get_definition()
-        if file == self.entry_file:
-            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=False)
-        else:
-            self.files[self.entry_file]['declarations'][function.name] = function.get_declaration(extern=True)
+        if self.entry_file not in self.files:
+            self.files[self.entry_file] = {
+                'variables': {},
+                'functions': {},
+                'declarations': {},
+                'initializations': {}
+            }
 
-    def _add_function_declaration(self, file, function):
+        self.files[file]['functions'][function.name] = function.get_definition()
+        self._add_function_declaration(file, function, extern=False)
+
+    def _add_function_declaration(self, file, function, extern=False):
         if file not in self.files:
             self.files[file] = {
                 'variables': {},
@@ -368,12 +462,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'initializations': {}
             }
 
-        self.files[file]['declarations'][function.name] = function.get_declaration(extern=True)
+        if extern and function.name in self.files[file]['declarations']:
+            return
+        self.files[file]['declarations'][function.name] = function.get_declaration(extern=extern)
 
-    def _add_global_variable(self, variable):
-        if variable.file:
+    def _add_global_variable(self, variable, file, extern=False):
+        if not file and variable.file:
             file = variable.file
-        else:
+        elif not file:
             file = self.entry_file
 
         if file not in self.files:
@@ -384,14 +480,45 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 'initializations': {}
             }
 
-        if file == self.entry_file:
-            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
-        else:
-            self.files[self.entry_file]['variables'][variable.name] = variable.declare(extern=True) + ";\n"
-            self.files[file]['variables'][variable.name] = variable.declare(extern=False) + ";\n"
+        if extern and variable.name not in self.files[file]['variables']:
+            self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
+        elif not extern:
+            self.files[file]['variables'][variable.name] = variable.declare(extern=extern) + ";\n"
+            if variable.value and variable.file and \
+                    ((type(variable.declaration) is Pointer and type(variable.declaration.points) is Function) or
+                     type(variable.declaration) is Primitive):
+                self.files[variable.file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
+            elif not variable.value and type(variable.declaration) is Pointer:
+                if file not in self.__external_allocated:
+                    self.__external_allocated[file] = []
+                self.__external_allocated[file].append(variable)
 
-        if variable.value:
-            self.files[file]['initializations'][variable.name] = variable.declare_with_init() + ";\n"
+    def _set_initial_state(self, automaton):
+        body = list()
+        body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
+                    format(automaton.identifier, automaton.process.name, automaton.process.category))
+        
+        initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
+        if len(initial_states) == 1:
+            body.append('{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
+        elif len(initial_states) == 2:
+            body.extend([
+                'if (ldv_undef_int())',
+                '\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
+                'else',
+                '\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
+            ])
+        elif len(initial_states) > 2:
+            body.append('switch (ldv_undef_int()) {')
+            for index in range(len(initial_states)):
+                body.append('\tcase {}: '.format(index) + '{')
+                body.append('\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
+                body.append('\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
+                body.append('\t}')
+                body.append('\tdefault: ldv_stop();')
+                body.append('}')
+        
+        return body
 
     def _generate_control_functions(self, analysis, model):
         global_switch_automata = []
@@ -400,33 +527,22 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             raise NotImplementedError('EMG options are inconsistent: cannot create label-based automata without nested'
                                       'dispatches')
 
+        # Generate control function objects before filling their bodies
+        for automaton in [self._entry_fsa] + self._callback_fsa:
+            cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
+                                    False)
+            automaton.control_function = cf
+        for automaton in self._model_fsa:
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            cf = Aspect(automaton.process.name, function_obj.declaration, 'around')
+            self.model_aspects.append(cf)
+            automaton.control_function = cf
+
         # Initialize states in an entry point
         body = []
-        if not self._omit_all_states:
+        if not self._omit_all_states and not self._nested_automata:
             for automaton in [self._entry_fsa] + self._callback_fsa:
-                body.append('/* Initialize initial state of automaton {} with process {} of category {} */'.
-                            format(automaton.identifier, automaton.process.name, automaton.process.category))
-                body.append('if (!{}) '.format(automaton.state_variable.name) + '{')
-                initial_states = sorted(list(automaton.fsa.initial_states), key=lambda s: s.identifier)
-                if len(initial_states) == 1:
-                    body.append('\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier))
-                elif len(initial_states) == 2:
-                    body.extend([
-                        '\tif (ldv_undef_int())',
-                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[0].identifier),
-                        '\telse',
-                        '\t\t{} = {};'.format(automaton.state_variable.name, initial_states[1].identifier),
-                    ])
-                elif len(initial_states) > 2:
-                    body.append('switch (ldv_undef_int()) {')
-                    for index in range(len(initial_states)):
-                        body.append('\t\tcase {}: '.format(index) + '{')
-                        body.append('\t\t\t{} = {};'.format(automaton.state_variable.name, initial_states[index].identifier))
-                        body.append('\t\t\tbreak;'.format(automaton.state_variable.name, initial_states[index].identifier))
-                        body.append('\t\t}')
-                        body.append('\t\tdefault: ldv_stop();')
-                        body.append('\t}')
-                body.append('}')
+                body.extend(self._set_initial_state(automaton))
 
         # Prepare action blocks
         self.logger.info('Prepare code base block on each action of each instance')
@@ -469,6 +585,25 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         func = self._generate_entry_functions(body, global_switch_automata)
         self._add_function_definition(self.entry_file, func)
 
+    def _choose_file(self, analysis, automaton):
+        file = automaton.file
+        if file:
+            return file
+
+        files = set()
+        if automaton.process.category == "kernel models":
+            # Calls
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            files.update(set(function_obj.files_called_at))
+            for caller in (c for c in function_obj.functions_called_at):
+                # Caller definitions
+                files.update(set(analysis.get_modules_function_files(caller)))
+
+        if len(files) == 0:
+            return self.entry_file
+        else:
+            return sorted(list(files))[0]
+
     def _generate_entry_functions(self, body, global_switch_automata):
         self.logger.info("Finally generate entry point function {}".format(self.entry_point_name))
         # FunctionDefinition prototype
@@ -484,6 +619,36 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             ""
             "/* Initialize initial states of automata */"
         ] + body
+
+        # Init external allocated pointers
+        cnt = 0
+        functions = []
+        if self.__allocate_external and not self._omit_all_states and not self._nested_automata:
+            for file in sorted(list(self.__external_allocated.keys())):
+                func = FunctionDefinition('allocate_external_{}'.format(cnt),
+                                          file,
+                                          "void external_allocated_{}(void)".format(cnt),
+                                          True)
+
+                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
+                        var in self.__external_allocated[file]]
+                func.body = init
+
+                self._add_function_definition(file, func)
+                self._add_function_declaration(self.entry_file, func, extern=True)
+                functions.append(func)
+                cnt += 1
+
+            gl_init = FunctionDefinition('initialize_external_data',
+                                         self.entry_file,
+                                         'void initialize_external_data(void)')
+            init_body = ['{}();'.format(func.name) for func in functions]
+            gl_init.body = init_body
+            self._add_function_definition(self.entry_file, gl_init)
+            body.extend([
+                '/* Initialize external data */',
+                'initialize_external_data();'
+            ])
 
         body.extend([
             "while(1) {",
@@ -501,7 +666,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
         body.extend(
             [
-                "\t\tdefault: break;",
+                "\t\tdefault: ldv_stop();",
                 "\t}",
                 "}"
             ]
@@ -515,14 +680,15 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         files = set()
         if automaton.process.category == "kernel models":
             # Calls
-            files.update(set(analysis.kernel_functions[automaton.process.name].files_called_at))
-            for caller in (c for c in analysis.kernel_functions[automaton.process.name].functions_called_at):
+            function_obj = analysis.get_kernel_function(automaton.process.name)
+            files.update(set(function_obj.files_called_at))
+            for caller in (c for c in function_obj.functions_called_at):
                 # Caller definitions
-                files.update(set(analysis.modules_functions[caller].keys()))
+                files.update(set(analysis.get_modules_function_files(caller)))
 
         # Export
         for file in files:
-            self._add_function_declaration(file, function)
+            self._add_function_declaration(file, function, extern=True)
 
     def _call(self, analysis, automaton, state):
         # Generate function call and corresponding function
@@ -556,10 +722,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         params = ", ".join(params)
         resources = ", ".join(resources)
 
-        function = FunctionDefinition(fname,
-                                      state.code['file'],
-                                      "{} {}({})".format(ret, fname, resources),
-                                      True)
+        function = FunctionDefinition(fname, state.code['file'], "{} {}({})".format(ret, fname, resources), True)
 
         function.body.append("/* Callback {} */".format(state.action.name))
         inv = [
@@ -579,6 +742,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         function.body.append('{};'.format(call))
 
         self._add_function_definition(state.code['file'], function)
+        self._add_function_declaration(self._choose_file(analysis, automaton), function, extern=True)
 
         # Add declarations
         self._propogate_aux_function(analysis, automaton, function)
@@ -590,24 +754,37 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return inv
 
-    def _call_cf(self, automaton, parameter='0'):
-        sv = automaton.thread_variable
+    def _call_cf(self, file, automaton, parameter='0'):
+        self._add_function_declaration(file, automaton.control_function, extern=True)
 
         if self._direct_cf_calls:
-            return '{}({});'.format(self.CF_PREFIX + str(automaton.identifier), parameter)
+            return '{}({});'.format(automaton.control_function.name, parameter)
+        elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
+            sv = automaton.thread_variable(self.__instance_modifier)
+            self._add_global_variable(sv, file, extern=True)
+            return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
+                                                             automaton.control_function.name,
+                                                             parameter)
         else:
+            sv = automaton.thread_variable()
+            self._add_global_variable(sv, file, extern=True)
             return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
-                                                           self.CF_PREFIX + str(automaton.identifier),
+                                                           automaton.control_function.name,
                                                            parameter)
 
-    def _join_cf(self, automaton):
-        sv = automaton.thread_variable
+    def _join_cf(self, file, automaton):
+        self._add_function_declaration(file, automaton.control_function, extern=True)
 
         if self._direct_cf_calls:
             return '/* Skip thread join call */'
+        elif self._omit_all_states and self._nested_automata and self.__instance_modifier > 1:
+            sv = automaton.thread_variable(self.__instance_modifier)
+            self._add_global_variable(sv, file, extern=True)
+            return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name, automaton.control_function.name)
         else:
-            return 'ldv_thread_join({}, {});'.format('& ' + sv.name,
-                                                     self.CF_PREFIX + str(automaton.identifier))
+            sv = automaton.thread_variable()
+            self._add_global_variable(sv, file, extern=True)
+            return 'ldv_thread_join({}, {});'.format('& ' + sv.name, automaton.control_function.name)
 
     def _get_cf_struct(self, automaton, params):
         cache_identifier = ''
@@ -619,10 +796,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             if struct_name in self._structures:
                 raise KeyError('Structure name is not unique')
 
-            decl = import_signature('struct {} a'.format(struct_name))
+            decl = import_declaration('struct {} a'.format(struct_name))
             for index in range(len(params)):
                 decl.fields['arg{}'.format(index)] = params[index]
-            decl.fields['signal_pending'] = import_signature('int a')
+            decl.fields['signal_pending'] = import_declaration('int a')
 
             self._structures[cache_identifier] = decl
         else:
@@ -632,6 +809,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
     def _dispatch(self, analysis, automaton, state):
         body = []
+        file = self._choose_file(analysis, automaton)
         if not self._direct_cf_calls:
             body = ['int ret;']
 
@@ -647,6 +825,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     break
 
         # Determine parameters
+        param_interfaces = []
         df_parameters = []
         function_parameters = []
 
@@ -661,30 +840,28 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             variable = automaton.determine_variable(dispatcher_access.label, interface.identifier)
             dispatcher_expr = dispatcher_access.access_with_variable(variable)
 
+            param_interfaces.append(interface)
             function_parameters.append(variable.declaration)
             df_parameters.append(dispatcher_expr)
 
-        decl = self._get_cf_struct(automaton, function_parameters)
-        cf_param = '& cf_arg'
-
-        vf_param_var = Variable('cf_arg', None, decl, False)
-        body.append(vf_param_var.declare() + ';')
-
-        for index in range(len(function_parameters)):
-            body.append('{}.arg{} = arg{};'.format(vf_param_var.name, index, index))
-
-        if not self._nested_automata:
-            vf_param_var = self._dispatch_var(automaton, state, function_parameters)
-            body.append('{} = {};'.format(vf_param_var.name, cf_param))
-        body.append('')
-
         blocks = []
         if self._nested_automata:
+            decl = self._get_cf_struct(automaton, function_parameters)
+            cf_param = 'cf_arg'
+
+            vf_param_var = Variable('cf_arg', None, decl, False)
+            body.append(vf_param_var.declare() + ';')
+
+            for index in range(len(function_parameters)):
+                body.append('{}.arg{} = arg{};'.format(vf_param_var.name, index, index))
+            body.append('')
+
             if replicative:
                 for name in state.code['relevant automata']:
                     for r_state in state.code['relevant automata'][name]['states']:
                         block = []
-                        call = self._call_cf(state.code['relevant automata'][name]['automaton'], cf_param)
+                        call = self._call_cf(file,
+                                             state.code['relevant automata'][name]['automaton'], '& ' + cf_param)
                         if r_state.action.replicative:
                             if self._direct_cf_calls:
                                 block.append(call)
@@ -700,8 +877,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                             state.code['relevant automata'][name]['automaton'].process.name,
                                             state.code['relevant automata'][name]['automaton'].process.category))
             else:
-                for name in state.code['relevant automata']:
-                    call = self._join_cf(state.code['relevant automata'][name]['automaton'])
+                for name in (n for n in state.code['relevant automata']
+                             if len(state.code['relevant automata'][n]['states']) > 0):
+                    call = self._join_cf(file, state.code['relevant automata'][name]['automaton'])
                     if self._direct_cf_calls:
                         block = [call]
                     else:
@@ -709,11 +887,35 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                                  'ldv_assume(ret == 0);']
                     blocks.append(block)
         else:
-             blocks.append(
-                 [
-                     '{}->signal_pending = 1;'.format(vf_param_var.name)
-                 ]
-             )
+            for name in state.code['relevant automata']:
+                for r_state in state.code['relevant automata'][name]['states']:
+                    block = []
+
+                    # Assign parameters
+                    if len(function_parameters) > 0:
+                        block.append("/* Transfer parameters */")
+
+                        for index in range(len(function_parameters)):
+                            # Determine exression
+                            receiver_access = state.code['relevant automata'][name]['automaton'].process.\
+                                resolve_access(r_state.action.parameters[index], param_interfaces[index].identifier)
+
+                            # Determine var
+                            var = state.code['relevant automata'][name]['automaton'].\
+                                determine_variable(receiver_access.label, param_interfaces[index].identifier)
+                            self._add_global_variable(var, self._choose_file(analysis, automaton), extern=True)
+
+                            receiver_expr = receiver_access.access_with_variable(var)
+                            block.append("{} = arg{};".format(receiver_expr, index))
+
+                    # Update state
+                    block.extend(['', "/* Switch state of the reciever */"])
+                    block.extend(self._switch_state_code(analysis, state.code['relevant automata'][name]['automaton'],
+                                                         r_state))
+                    self._add_global_variable(state.code['relevant automata'][name]['automaton'].state_variable,
+                                              self._choose_file(analysis, automaton), extern=True)
+
+                    blocks.append(block)
 
         if state.action.broadcast:
             for block in blocks:
@@ -742,7 +944,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         if len(function_parameters) > 0:
             df = FunctionDefinition(
-                "ldv_dispatch_{}_{}_{}".format(automaton.identifier, state.identifier, state.action.name),
+                "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                 self.entry_file,
                 "void f({})".format(', '.join([function_parameters[index].to_string('arg{}'.format(index)) for index in
                                                range(len(function_parameters))])),
@@ -750,14 +952,14 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             )
         else:
             df = FunctionDefinition(
-                "ldv_dispatch_{}_{}_{}".format(automaton.identifier, state.identifier, state.action.name),
+                "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                 self.entry_file,
                 "void f(void)",
                 False
             )
 
         df.body.extend(body)
-        self._add_function_definition(self.entry_file, df)
+        self._add_function_definition(file, df)
 
         # Add declarations
         self._propogate_aux_function(analysis, automaton, df)
@@ -766,14 +968,6 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             '/* Dispatch {} */'.format(state.action.name),
             '{}({});'.format(df.name, ', '.join(df_parameters))
         ]
-
-    def _dispatch_var(self, automaton, state, params):
-        decl = self._get_cf_struct(automaton, params)
-        vf_param_var = Variable('ldv_dispatch_params_{}_{}'.format(automaton.identifier, state.identifier),
-                                None, decl.take_pointer, False)
-
-        self._add_global_variable(vf_param_var)
-        return vf_param_var
 
     def _action_base_block(self, analysis, automaton, state):
         block = []
@@ -832,87 +1026,342 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                         block.append('/* Assign recieved labels */')
                         block.append('if (cf_arg_struct) {')
                         for index in range(len(param_expressions)):
-                            block.append('\t{} = cf_arg_struct->arg{};'.format(param_expressions[0], index))
+                            block.append('\t{} = cf_arg_struct->arg{};'.format(param_expressions[index], index))
                         block.append('}')
                 else:
                     block.append('/* Skip {} */'.format(state.desc['label']))
             else:
-                elements = []
-                for name in state.code['relevant automata']:
-                    for r_state in state.code['relevant automata'][name]['states']:
-                        bl = []
-                        dispatch_var = self._dispatch_var(state.code['relevant automata'][name]['automaton'], r_state,
-                                                          param_declarations)
-
-                        conditions = ['{}->signal_pending'.format(dispatch_var.name)]
-                        if len(state.code["receive guard"]) > 0:
-                            for condition in state.code["receive guard"]:
-                                stm = condition
-                                for position in range(1, len(param_expressions) + 1):
-                                    stm = stm.replace('$ARG{}'.format(position), '{}->arg{}'.format(dispatch_var.name,
-                                                                                                    position - 1))
-                                conditions.append(stm)
-                        bl.append('ldv_assume({});'.format(' && '.join(conditions)))
-                        for index in range(len(param_expressions)):
-                            bl.append('{} = {}->arg{};'.format(param_expressions[0], dispatch_var.name, index))
-                        bl.append('{}->signal_pending = 0;'.format(dispatch_var.name))
-                        elements.append(bl)
-
-                if len(elements) == 1:
-                    block = elements[0]
-                elif len(elements) == 2:
-                    first = True
-                    for element in elements:
-                        if first:
-                            block.append('if (ldv_undef_int()) {')
-                            first = False
-                        else:
-                            block.append('else {')
-                        block.extend(['\t' + stm for stm in element])
-                        block.append('}')
-                elif len(elements) > 2:
-                    block.append('switch (ldv_undef_int()) {')
-                    for index in range(len(elements)):
-                        block.append('\tcase {}:'.format(index) + '{')
-                        block.extend(['\t\t' + stm for stm in elements[index]])
-                        block.append('\t}')
-                    block.append('\tdefault: ldv_stop();')
-                    block.append('}')
-                else:
-                    block.append('/* Skip receive {} without dispatchers */'.format(state.desc['label']))
+                block.append("/* Automaton itself cannot perform receive '{}' */".format(state.action.name))
         elif type(state.action) is Subprocess:
             for stm in state.code['body']:
                 block.append(stm)
+        elif state.action is None:
+            # Artificial state
+            block.append("/* {} */".format(state.desc['label']))
         else:
             raise ValueError('Unexpected state action')
 
         return v_code, block
 
-    def _label_sequence(self, analysis, automaton, initial_states, name):
+    def _merge_points(self, initial_states):
+        # Terminal marking
+        def add_terminal(terminal, out_value, split_points, subprocess=False):
+            for split in out_value:
+                for branch in out_value[split]:
+                    if branch in split_points[split]['merge branches'] and subprocess:
+                        split_points[split]['merge branches'].remove(branch)
+                    if branch not in split_points[split]['terminals']:
+                        split_points[split]['terminals'][branch] = set()
+                    split_points[split]['terminals'][branch].add(terminal)
+
+                split_points[split]['terminal merge sets'][terminal] = out_value[split]
+
+        # Condition calculation
+        def do_condition(states, terminal_branches, finals, merge_list, split, split_data, merge_points):
+            # Set up branches
+            condition = {'pending': list(), 'terminals': list()}
+            largest_unintersected_mergesets = []
+            while len(merge_list) > 0:
+                merge = merge_list.pop(0)
+                merged_states = split_data['split sets'][merge]
+                terminal_branches -= merged_states
+                diff = states - merged_states
+                if len(diff) < len(states):
+                    largest_unintersected_mergesets.append(merge)
+                    if len(merged_states) == 1:
+                        condition['pending'].append(next(iter(merged_states)))
+                    elif len(merged_states) > 1:
+                        sc_finals = set(merge_points[merge][split])
+                        sc_terminals = set(split_data['terminals'].keys()).intersection(merged_states)
+                        new_condition = do_condition(set(merged_states), sc_terminals, sc_finals, list(merge_list),
+                                                     split, split_data, merge_points)
+                        condition['pending'].append(new_condition)
+                    else:
+                        raise RuntimeError('Invalid merge')
+                states = diff
+
+            # Add rest independent branches
+            if len(states) > 0:
+                condition['pending'].extend(sorted(states))
+
+            # Add predecessors of the latest merge sets if there are not covered in terminals
+            for merge in largest_unintersected_mergesets:
+                bad = False
+                for terminal_branch in terminal_branches:
+                    for terminal in split_data['terminals'][terminal_branch]:
+                        if split_points[split]['split sets'][merge].\
+                                issubset(split_data['terminal merge sets'][terminal]):
+                            bad = True
+                            break
+
+                if not bad:
+                    # Add predecessors
+                    condition['terminals'].extend(merge_points[merge][split])
+                    # Add terminal
+                    terminal_branches.update(set(split_data['terminals'].keys()).
+                                             intersection(split_data['split sets'][merge]))
+
+            # Add terminals which are not belong to any merge set
+            for branch in terminal_branches:
+                condition['terminals'].extend(split_data['terminals'][branch])
+            # Add provided
+            condition['terminals'].extend(finals)
+
+            # Return child condition if the last is not a condition
+            if len(condition['pending']) == 1:
+                condition = condition['pending'][0]
+
+            # Save all branhces
+            condition['branches'] = list(condition['pending'])
+
+            # Save total number of branches
+            condition['len'] = len(condition['pending'])
+
+            return condition
+
+        # Collect iformation about branches
+        graph = dict()
+        split_points = dict()
+        merge_points = dict()
+        processed = set()
+        queue = sorted(initial_states, key=attrgetter('identifier'))
+        merge_queue = list()
+        while len(queue) > 0 or len(merge_queue) > 0:
+            if len(queue) != 0:
+                st = queue.pop(0)
+            else:
+                st = merge_queue.pop(0)
+
+            # Add epson states
+            if st.identifier not in graph:
+                graph[st.identifier] = dict()
+
+            # Calculate output branches
+            out_value = dict()
+            if st not in initial_states and len(st.predecessors) > 1 and \
+                            len({s for s in st.predecessors if s.identifier not in processed}) > 0:
+                merge_queue.append(st)
+            else:
+                if st not in initial_states:
+                    if len(st.predecessors) > 1:
+                        # Try to collect all branches first
+                        for predecessor in st.predecessors:
+                            for split in graph[predecessor.identifier][st.identifier]:
+                                if split not in out_value:
+                                    out_value[split] = set()
+                                out_value[split].update(graph[predecessor.identifier][st.identifier][split])
+
+                                for node in graph[predecessor.identifier][st.identifier][split]:
+                                    split_points[split]['branch liveness'][node] -= 1
+
+                        # Remove completely merged branches
+                        for split in sorted(out_value.keys()):
+                            for predecessor in (p for p in st.predecessors
+                                                if split in graph[p.identifier][st.identifier]):
+                                if len(out_value[split].symmetric_difference(
+                                        graph[predecessor.identifier][st.identifier][split])) > 0 or \
+                                   len(split_points[split]['merge branches'].
+                                        symmetric_difference(graph[predecessor.identifier][st.identifier][split])) == 0:
+                                     # Add terminal states for each branch
+                                    if st.identifier not in merge_points:
+                                        merge_points[st.identifier] = dict()
+                                    merge_points[st.identifier][split] = \
+                                        {p.identifier for p in st.predecessors
+                                         if split in graph[p.identifier][st.identifier]}
+
+                                    # Add particular set of merged bracnhes
+                                    split_points[split]['split sets'][st.identifier] = out_value[split]
+
+                                    # Remove, since all branches are merged
+                                    if len(split_points[split]['merge branches'].
+                                                   difference(out_value[split])) == 0 and \
+                                       len({s for s in split_points[split]['total branches']
+                                            if split_points[split]['branch liveness'][s] > 0}) == 0:
+                                        # Merge these branches
+                                        del out_value[split]
+                                    break
+                    elif len(st.predecessors) == 1:
+                        # Just copy meta info from the previous predecessor
+                        out_value = dict(graph[list(st.predecessors)[0].identifier][st.identifier])
+                        for split in out_value:
+                            for node in out_value[split]:
+                                split_points[split]['branch liveness'][node] -= 1
+
+                # If it is a split point, create meta information on it and start tracking its branches
+                if len(st.successors) > 1:
+                    split_points[st.identifier] = {
+                        'total branches': {s.identifier for s in st.successors},
+                        'merge branches': {s.identifier for s in st.successors},
+                        'split sets': dict(),
+                        'terminals': dict(),
+                        'terminal merge sets': dict(),
+                        'branch liveness': {s.identifier: 0 for s in st.successors}
+                    }
+                elif len(st.successors) == 0:
+                    add_terminal(st.identifier, out_value, split_points)
+
+                # Assign branch tracking information to an each output branch
+                for successor in st.successors:
+                    if successor not in graph:
+                        graph[successor.identifier] = dict()
+                    # Assign branches from the previous split points
+                    graph[st.identifier][successor.identifier] = dict(out_value)
+
+                    # Branches with subprocesses has no merge point
+                    if type(successor.action) is Subprocess:
+                        add_terminal(successor.identifier, out_value, split_points, subprocess=True)
+                    else:
+                        if st.identifier in split_points:
+                            # Mark new branch
+                            graph[st.identifier][successor.identifier][st.identifier] = {successor.identifier}
+
+                        for split in graph[st.identifier][successor.identifier]:
+                            for branch in graph[st.identifier][successor.identifier][split]:
+                                # Do not expect to find merge point for this branch
+                                split_points[split]['branch liveness'][branch] += 1
+
+                        if len(successor.predecessors) > 1:
+                            if successor not in merge_queue:
+                                merge_queue.append(successor)
+                        else:
+                            if successor not in queue:
+                                queue.append(successor)
+
+                    processed.add(st.identifier)
+
+        # Do sanity check
+        conditions = dict()
+        for split in split_points:
+            for branch in split_points[split]['branch liveness']:
+                if split_points[split]['branch liveness'][branch] > 0:
+                    raise RuntimeError('Incorrect merge point detection')
+
+            # Calculate conditions then
+            conditions[split] = list()
+
+            # Check merge points number
+            left = set(split_points[split]['total branches'])
+            merge_list = sorted(split_points[split]['split sets'].keys(),
+                                key=lambda y: len(split_points[split]['split sets'][y]), reverse=True)
+            condition = do_condition(left, split_points[split]['terminals'].keys(), set(), merge_list, split,
+                                     split_points[split], merge_points)
+            conditions[split] = condition
+
+        return conditions
+
+    def _label_sequence(self, analysis, automaton, initial_state, ret_expression):
+        ### Subroutines ###
+        # Start a conditional branch
+        def start_branch(tab, f_code, condition):
+            if condition['len'] == 2:
+                if len(condition['pending']) == 1:
+                    f_code.append('\t' * tab + 'if (ldv_undef_int()) {')
+                elif len(condition['pending']) == 0:
+                    f_code.append('\t' * tab + 'else {')
+                else:
+                    raise ValueError('Invalid if conditional left states: {}'.
+                                     format(len(condition['pending'])))
+                tab += 1
+            elif condition['len'] > 2:
+                index = condition['len'] - len(condition['pending'])
+                f_code.append('\t' * tab + 'case {}: '.format(index) + '{')
+                tab += 1
+            else:
+                raise ValueError('Invalid condition branch number: {}'.format(condition['len']))
+            return tab
+
+        # Close a conditional branch
+        def close_branch(tab, f_code, condition):
+            if condition['len'] == 2:
+                tab -= 1
+                f_code.append('\t' * tab + '}')
+            elif condition['len'] > 2:
+                f_code.append('\t' * tab + 'break;')
+                tab -= 1
+                f_code.append('\t' * tab + '}')
+            else:
+                raise ValueError('Invalid condition branch number: {}'.format(condition['len']))
+            return tab
+
+        def start_condition(tab, f_code, condition, conditional_stack, state_stack):
+            conditional_stack.append(condition)
+
+            if len(conditional_stack[-1]['pending']) > 2:
+                f_code.append('\t' * tab + 'switch (ldv_undef_int()) {')
+                tab += 1
+            tab = process_next_branch(tab, f_code, conditional_stack, state_stack)
+            return tab
+
+        def close_condition(tab, f_code, conditional_stack):
+            # Close the last branch
+            tab = close_branch(tab, f_code, conditional_stack[-1])
+
+            # Close conditional statement
+            if conditional_stack[-1]['len'] > 2:
+                f_code.append('\t' * tab + 'default: ldv_stop();')
+                tab -= 1
+                f_code.append('\t' * tab + '}')
+            conditional_stack.pop()
+            return tab
+
+        # Start processing the next conditional branch
+        def process_next_branch(tab, f_code, conditional_stack, state_stack):
+            # Try to add next branch
+            next_branch = conditional_stack[-1]['pending'].pop()
+            tab = start_branch(tab, f_code, conditional_stack[-1])
+
+            if type(next_branch) is dict:
+                # Open condition
+                tab = start_condition(tab, f_code, next_branch, conditional_stack, state_stack)
+            else:
+                # Just add a state
+                next_state = automaton.fsa.resolve_state(next_branch)
+                state_stack.append(next_state)
+            return tab
+
+        def print_block(tab, f_code, code):
+            for stm in code:
+                f_code.append('\t' * tab + stm)
+
+        # Add code of the action
+        def print_action_code(tab, f_code, code, state, conditional_stack):
+            if len(conditional_stack) > 0 and state.identifier in conditional_stack[-1]['branches']:
+                if state.code and len(state.code['guard']) > 0:
+                    f_code.append('\t' * tab + 'ldv_assume({});'.format(' && '.join(sorted(state.code['guard']))))
+                print_block(tab, f_code, code)
+            else:
+                f_code.append('')
+                if state.code and len(state.code['guard']) > 0:
+                    f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(state.code['guard'])) + '{')
+                    tab += 1
+                    print_block(tab, f_code, code)
+                    tab -= 1
+                    f_code.append('\t' * tab + '}')
+                else:
+                    print_block(tab, f_code, code)
+            return tab
+
+        def require_merge(state, processed_states, condition):
+            if len(condition['pending']) == 0 and state.identifier in condition['terminals'] and len(set(condition['terminals']) - processed_states) == 0:
+                return True
+            else:
+                return False
+
         f_code = []
         v_code = []
 
-        state_stack = []
-        if len(initial_states) > 1:
-            action = Condition(name)
-            new = automaton.fsa.new_state(action)
-            new.successors = initial_states
-            cd = {
-                'body': ['/* Artificial state */'],
-                'guard': []
-            }
-            new.code = cd
-            state_stack.append(new)
-            new.code['final block'] = self._action_base_block(analysis, automaton, new)
-        else:
-            state_stack.append(list(automaton.fsa.initial_states)[0])
+        # Add artificial state if input copntains more than one state
+        state_stack = [initial_state]
+
+        # First calculate merge points
+        conditions = self._merge_points(list(state_stack))
 
         processed_states = set()
         conditional_stack = []
         tab = 0
         while len(state_stack) > 0:
             state = state_stack.pop()
-            processed_states.add(state)
+            processed_states.add(state.identifier)
 
             if type(state.action) is Subprocess:
                 code = [
@@ -923,167 +1372,79 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 new_v_code, code = state.code['final block']
                 v_code.extend(new_v_code)
 
-            if len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'switch' and \
-                    state in conditional_stack[-1]['state'].successors:
-                if conditional_stack[-1]['counter'] != 0:
-                    f_code.append('\t' * tab + 'break;')
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                f_code.append('\t' * tab + 'case {}: '.format(conditional_stack[-1]['counter']) + '{')
-                conditional_stack[-1]['counter'] += 1
-                conditional_stack[-1]['cases left'] -= 1
-                tab += 1
+            # If this is a terminal state - quit control function
+            if type(state.action) is not Subprocess and len(state.successors) == 0:
+                code.extend([
+                    "/* Terminal state */",
+                    ret_expression
+                ])
+            tab = print_action_code(tab, f_code, code, state, conditional_stack)
 
-                if state.code and len(state.code['guard']) > 0:
-                    f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(sorted(state.code['guard']))) + '{')
-                    tab += 1
-                    for stm in code:
-                        f_code.append('\t' * tab + stm)
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'else')
-                    tab += 1
-                    f_code.append('\t' * tab + 'ldv_stop();')
-                    tab -= 1
-                else:
-                    for stm in code:
-                        f_code.append('\t' * tab + stm)
-            elif len(conditional_stack) > 0 and conditional_stack[-1]['condition'] == 'if' and \
-                    (state in automaton.fsa.initial_states or state in conditional_stack[-1]['state'].successors):
-                if conditional_stack[-1]['counter'] != 0:
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'else {')
-                    tab += 1
+            # If this is a terminal state before completely closed merge point close the whole merge
+            while len(conditional_stack) > 0 and require_merge(state, processed_states, conditional_stack[-1]):
+                # Close the last branch and the condition
+                tab = close_condition(tab, f_code, conditional_stack)
 
-                conditional_stack[-1]['counter'] += 1
-                conditional_stack[-1]['cases left'] -= 1
+            # Close branch of the last condition
+            if len(conditional_stack) > 0 and state.identifier in conditional_stack[-1]['terminals']:
+                # Close this branch
+                tab = close_branch(tab, f_code, conditional_stack[-1])
+                # Start new branch
+                tab = process_next_branch(tab, f_code, conditional_stack, state_stack)
+            elif type(state.action) is not Subprocess:
+                # Add new states in terms of the current branch
+                if len(state.successors) > 1:
+                    # Add new condition
+                    condition = conditions[state.identifier]
+                    tab = start_condition(tab, f_code, condition, conditional_stack, state_stack)
+                elif len(state.successors) == 1:
+                    # Just add the next state
+                    state_stack.append(next(iter(state.successors)))
 
-                if state.code and len(state.code['guard']) > 0:
-                    f_code.append('\t' * tab + 'ldv_assume({});'.format(' && '.join(sorted(state.code['guard']))))
-                for stm in code:
-                    f_code.append('\t' * tab + stm)
-            else:
-                f_code.append('')
-
-                if state.code and len(state.code['guard']) > 0:
-                    f_code.append('\t' * tab + 'if ({}) '.format(' && '.join(state.code['guard'])) + '{')
-                    tab += 1
-                    for stm in code:
-                        f_code.append('\t' * tab + stm)
-                    tab -= 1
-                    f_code.append('\t' * tab + '}')
-                else:
-                    for stm in code:
-                        f_code.append('\t' * tab + stm)
-
-            last_action = False
-            closed_condition = True
-            while closed_condition:
-                last_action = False
-                closed_condition = False
-                if len(conditional_stack) > 0:
-                    if len(state.successors) == 0:
-                        last_action = True
-                    elif type(state.action) is Subprocess:
-                        last_action = True
-                    else:
-                        for succ in state.successors:
-                            trivial_predecessors = len([p for p in succ.predecessors if type(p.action) is not Subprocess])
-                            if trivial_predecessors > 1:
-                                last_action = True
-                                break
-
-                    if last_action and conditional_stack[-1]['cases left'] == 0 and \
-                            conditional_stack[-1]['condition'] == 'switch':
-                        f_code.append('\t' * tab + 'break;')
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        f_code.append('\t' * tab + 'default: ldv_stop();')
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        conditional_stack.pop()
-                        closed_condition = True
-                    elif last_action and conditional_stack[-1]['cases left'] == 0 and \
-                            conditional_stack[-1]['condition'] == 'if':
-                        tab -= 1
-                        f_code.append('\t' * tab + '}')
-                        conditional_stack.pop()
-                        closed_condition = True
-
-            if (type(state.action) is not Subprocess or len(state.code['guard']) > 0) and \
-                    (not last_action or (last_action and closed_condition)):
-                if len(state.successors) == 1:
-                    if list(state.successors)[0] not in state_stack and \
-                                    list(state.successors)[0] not in processed_states:
-                        state_stack.append(list(state.successors)[0])
-                elif len(state.successors) > 1:
-                    if_condition = None
-                    if len(state.successors) == 2:
-                        successors = sorted(list(state.successors), key=lambda f: f.identifier)
-                        if_condition = 'ldv_undef_int()'
-
-                    if if_condition:
-                        for succ in successors:
-                            state_stack.append(succ)
-
-                        condition = {
-                            'condition': 'if',
-                            'state': state,
-                            'cases left': 2,
-                            'counter': 0
-                        }
-
-                        f_code.append('\t' * tab + 'if ({}) '.format(if_condition) + '{')
-                        tab += 1
-
-                        conditional_stack.append(condition)
-                    else:
-                        for succ in sorted(list(state.successors), key=lambda f: f.identifier):
-                            state_stack.append(succ)
-
-                        condition = {
-                            'condition': 'switch',
-                            'state': state,
-                            'cases left': len(list(state.successors)),
-                            'counter': 0
-                        }
-
-                        f_code.append('\t' * tab + 'switch (ldv_undef_int()) {')
-                        tab += 1
-
-                        conditional_stack.append(condition)
+        if len(conditional_stack) > 0:
+            raise RuntimeError('Cannot leave unclosed conditions')
 
         return [v_code, f_code]
 
     def _label_cfunction(self, analysis, automaton, aspect=None):
         self.logger.info('Generate label-based control function for automaton {} based on process {} of category {}'.
                          format(automaton.identifier, automaton.process.name, automaton.process.category))
-        v_code = []
+        v_code = ["/* Control function based on process '{}' generated for interface category '{}' */".
+                  format(automaton.process.name, automaton.process.category)]
         f_code = []
 
         # Check necessity to return a value
-        if aspect and analysis.kernel_functions[aspect].declaration.return_value and \
-                analysis.kernel_functions[aspect].declaration.return_value.identifier != 'void':
-            ret_expression = 'return $res;'
-        else:
-            ret_expression = 'return;'
+        ret_expression = 'return;'
+        if aspect:
+            kfunction_obj = analysis.get_kernel_function(aspect)
+            if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
+                ret_expression = 'return $res;'
 
         # Generate function definition
-        cf = self._new_control_function(analysis, automaton, v_code, f_code, aspect)
+        cf = self._init_control_function(analysis, automaton, v_code, f_code, aspect)
 
-        main_v_code, main_f_code = self._label_sequence(analysis, automaton, automaton.fsa.initial_states,
-                                                        'initial_state')
+        for var in automaton.variables():
+            if type(var.declaration) is Pointer and self.__allocate_external:
+                definition = var.declare() + " = external_allocated_data();"
+            elif type(var.declaration) is Primitive and var.value:
+                definition = var.declare_with_init() + ";"
+            else:
+                definition = var.declare() + ";"
+            v_code.append(definition)
+
+        main_v_code, main_f_code = self._label_sequence(analysis, automaton, list(automaton.fsa.initial_states)[0],
+                                                        ret_expression)
         v_code.extend(main_v_code)
         f_code.extend(main_f_code)
+        f_code.append("/* End of the process */")
         f_code.append(ret_expression)
 
         processed = []
         for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
                      if type(s.action) is Subprocess]:
             if subp.action.name not in processed:
-                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, subp.successors,
-                                                            '{}_initial_state'.format(subp.action.name))
+                sp_v_code, sp_f_code = self._label_sequence(analysis, automaton, list(subp.successors)[0],
+                                                            ret_expression)
 
                 v_code.extend(sp_v_code)
                 f_code.extend([
@@ -1092,62 +1453,58 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                     'ldv_{}_{}:'.format(subp.action.name, automaton.identifier)
                 ])
                 f_code.extend(sp_f_code)
+                f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
                 f_code.append(ret_expression)
                 processed.append(subp.action.name)
 
         if not self._nested_automata and not aspect:
-            self._add_global_variable(automaton.state_variable)
+            self._add_global_variable(automaton.state_variable, self._choose_file(analysis, automaton), extern=False)
         elif not aspect:
-            self._add_global_variable(automaton.thread_variable)
+            if self._nested_automata and self.__instance_modifier > 1:
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier),
+                                          self._choose_file(analysis, automaton), extern=False)
+            else:
+                self._add_global_variable(automaton.thread_variable(), self._choose_file(analysis, automaton),
+                                          extern=False)
 
         cf.body.extend(v_code + f_code)
         automaton.control_function = cf
 
         if not aspect:
-            self._add_function_definition(self.entry_file, cf)
+            self._add_function_definition(self._choose_file(analysis, automaton), cf)
+            self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
 
-    def _new_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
+    def _init_control_function(self, analysis, automaton, v_code, f_code, aspect=None):
         # Function type
-        if aspect:
-            cf = Aspect(aspect, analysis.kernel_functions[aspect].declaration, 'around')
-            self.model_aspects.append(cf)
-        else:
-            cf = FunctionDefinition(self.CF_PREFIX + str(automaton.identifier), self.entry_file, 'void f(void *cf_arg)',
-                                    False)
-            if self._nested_automata:
-                param_declarations = []
-                param_expressions = []
-                for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
-                    if len(receive.parameters) > 0:
-                        for index in range(len(receive.parameters)):
-                            # Determine dispatcher parameter
-                            interface = get_common_parameter(receive, automaton.process, index)
+        cf = automaton.control_function
+        if not aspect and self._nested_automata:
+            param_declarations = []
+            param_expressions = []
+            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
+                if len(receive.parameters) > 0:
+                    for index in range(len(receive.parameters)):
+                        # Determine dispatcher parameter
+                        interface = get_common_parameter(receive, automaton.process, index)
 
-                            # Determine receiver parameter
-                            receiver_access = automaton.process.resolve_access(receive.parameters[index],
-                                                                               interface.identifier)
-                            var = automaton.determine_variable(receiver_access.label, interface.identifier)
-                            receiver_expr = receiver_access.access_with_variable(var)
+                        # Determine receiver parameter
+                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
+                                                                           interface.identifier)
+                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
+                        receiver_expr = receiver_access.access_with_variable(var)
 
-                            param_declarations.append(var.declaration)
-                            param_expressions.append(receiver_expr)
-                        break
+                        param_declarations.append(var.declaration)
+                        param_expressions.append(receiver_expr)
+                    break
 
-        if self._nested_automata or aspect:
-            for var in automaton.variables():
-                definition = var.declare() + ";"
-                v_code.append(definition)
-        elif not aspect:
-            for var in automaton.variables():
-                self._add_global_variable(var)
-
+        automaton.control_function = cf
         return cf
 
-    def _state_switch(self, states):
-        key = ''.join((str(i) for i in states))
+    def _state_switch(self, states, file):
+        key = ''.join(sorted([str(i) for i in states]))
         if key in self.__switchers_cache:
-            return self.__switchers_cache[key]
+            self._add_function_declaration(file, self.__switchers_cache[key]['function'], extern=True)
+            return self.__switchers_cache[key]['call']
 
         # Generate switch function
         name = 'ldv_switch_{}'.format(len(list(self.__switchers_cache.keys())))
@@ -1169,7 +1526,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         self._add_function_definition(self.entry_file, function)
 
         invoke = '{}()'.format(name)
-        self.__switchers_cache[key] = invoke
+        self.__switchers_cache[key] = {
+            'call': invoke,
+            'function':  function
+        }
         return invoke
 
     def _state_sequences(self, automaton):
@@ -1186,7 +1546,9 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 block.append(state)
                 no_jump = (type(state.action) not in self.jump_types) and no_jump
 
-                if len(state.successors) == 1 and (no_jump or type(list(state.successors)[0].action) not in self.jump_types):
+                if len(state.successors) == 1 and (no_jump or type(list(state.successors)[0].action)
+                                                   not in self.jump_types) \
+                        and type(state.action) is not Receive:
                     state_stack.append(list(state.successors)[0])
 
             blocks[origin.identifier] = block
@@ -1197,12 +1559,38 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
         return blocks
 
-    def _state_sequence_code(self, analysis, automaton, block):
+    def _switch_state_code(self, analysis, automaton, state):
+        code = []
+
+        successors = state.successors
+        if len(state.successors) == 1:
+            code.append('{} = {};'.format(automaton.state_variable.name, successors[0].identifier))
+        elif len(state.successors) == 2:
+            code.extend([
+                'if (ldv_undef_int())',
+                '\t{} = {};'.format(automaton.state_variable.name, successors[0].identifier),
+                'else',
+                '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
+            ])
+        elif len(state.successors) > 2:
+            switch_call = self._state_switch([st.identifier for st in successors],
+                                             self._choose_file(analysis, automaton))
+            code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
+        else:
+            code.append('/* Reset automaton state */')            
+            code.extend(self._set_initial_state(automaton))
+            if self._nested_automata:
+                code.append('goto out_{};'.format(automaton.identifier))
+
+        return code
+
+    def _state_sequence_code(self, analysis, automaton, state_block):
         first = True
         code = []
-        v_code = []
+        v_code = ["/* Control function based on process '{}' generated for interface category '{}' */".
+                  format(automaton.process.name, automaton.process.category)]
 
-        for state in block:
+        for state in state_block:
             new_v_code, block = state.code['final block']
             v_code.extend(new_v_code)
 
@@ -1221,24 +1609,10 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 code.extend(block)
             code.append('')
 
-        successors = sorted(list(state.successors), key=lambda f: f.identifier)
-        if len(state.successors) == 1:
-            code.append('{} = {};'.format(automaton.state_variable.name, successors[0].identifier))
-        elif len(state.successors) == 2:
-            code.extend([
-                'if (ldv_undef_int())',
-                '\t{} = {};'.format(automaton.state_variable.name, successors[0].identifier),
-                'else',
-                '\t{} = {};'.format(automaton.state_variable.name, successors[1].identifier),
-            ])
-        elif len(state.successors) > 2:
-            switch_call = self._state_switch([st.identifier for st in successors])
-            code.append('{} = {};'.format(automaton.state_variable.name, switch_call))
+        if self._nested_automata or type(state_block[0].action) is not Receive:
+            code.extend(self._switch_state_code(analysis, automaton, state))
         else:
-            code.append('/* Reset automaton state */')
-            code.append('{} = {};'.format(automaton.state_variable.name, '0'))
-            if self._nested_automata:
-                code.append('goto out_{};'.format(automaton.identifier))
+            code.append('/* Omit state transition for a receive */')
 
         return v_code, code
 
@@ -1250,10 +1624,11 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
         tab = 0
 
         # Generate function definition
-        cf = self._new_control_function(analysis, automaton, v_code, f_code, None)
+        cf = self._init_control_function(analysis, automaton, v_code, f_code, None)
 
-        # Add loop for nested case
+        # Add a loop for nested case
         if self._nested_automata:
+            f_code.extend(self._set_initial_state(automaton))
             f_code.append('while (1) {')
             tab += 1
 
@@ -1304,20 +1679,28 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
             tab -= 1
             f_code.append('out_{}:'.format(automaton.identifier))
             f_code.append('return;')
-            self._add_global_variable(automaton.thread_variable)
+            if self.__instance_modifier > 1:
+                self._add_global_variable(automaton.thread_variable(self.__instance_modifier),
+                                          self._choose_file(analysis, automaton), extern=False)
+            else:
+                self._add_global_variable(automaton.thread_variable(), self._choose_file(analysis, automaton),
+                                          extern=False)
             v_code.append(automaton.state_variable.declare() + " = 0;")
         else:
-            self._add_global_variable(automaton.state_variable)
+            self._add_global_variable(automaton.state_variable, self._choose_file(analysis, automaton), extern=False)
+            self._add_global_variable(automaton.state_variable, self.entry_file, extern=True)
         cf.body.extend(v_code + f_code)
-        automaton.control_function = cf
 
-        self._add_function_definition(self.entry_file, cf)
+        for var in automaton.variables():
+            self._add_global_variable(var, self._choose_file(analysis, automaton), extern=False)
+        self._add_function_definition(self._choose_file(analysis, automaton), cf)
+        self._add_function_declaration(self.entry_file, cf, extern=True)
         return cf.name
 
     def __generate_aspects(self):
         aspect_dir = "aspects"
         self.logger.info("Create directory for aspect files {}".format("aspects"))
-        os.makedirs(aspect_dir, exist_ok=True)
+        os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
         for grp in self.task['grps']:
             # Generate function declarations
@@ -1329,7 +1712,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 if len(self.additional_aspects) > 0:
                     lines.append("\n")
-                    lines.append("/* EMG additional non-generated aspects */\n")
+                    lines.append("/* EMG additional aspects */\n")
                     lines.extend(self.additional_aspects)
                     lines.append("\n")
 
@@ -1365,7 +1748,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
                 lines.append("\n")
                 lines.append("/* EMG variable initialization */\n")
                 for file in sorted(self.files):
-                    if "variables" in self.files[file]:
+                    if "initializations" in self.files[file]:
                         for variable in sorted(self.files[file]["initializations"].keys()):
                             if cc_extra_full_desc_file["in file"] == file:
                                 lines.append(self.files[file]["initializations"][variable])
@@ -1387,7 +1770,7 @@ class AbstractTranslator(metaclass=abc.ABCMeta):
 
                 name = "aspects/ldv_{}.aspect".format(os.path.splitext(
                     os.path.basename(cc_extra_full_desc_file["in file"]))[0])
-                with open(name, "w", encoding="ascii") as fh:
+                with open(name, "w", encoding="utf8") as fh:
                     fh.writelines(lines)
 
                 path = os.path.relpath(name, self.conf['main working directory'])

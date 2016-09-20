@@ -1,8 +1,24 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import re
-import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import logger
+from bridge.utils import logger, ArchiveFileContent
 from reports.models import ReportUnsafe
 from reports.graphml_parser import GraphMLParser
 
@@ -23,23 +39,20 @@ KEY1_WORDS = [
 ]
 
 KEY2_WORDS = [
-    '__based', 'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'new',
-    'this', 'break', 'inline', 'explicit', 'template', 'bool', 'for', 'private',
-    'default', 'else', 'const', '__pascal', 'delete', 'class', 'continue', 'do',
-    '__fastcall', 'union', 'extern', '__cdecl', 'friend', '__inline', 'int',
-    '__virtual_inheritance', 'void', 'case', '__multiple_inheritance', 'enum',
-    'short', 'operator', '__asm', 'float', 'struct', 'cout', 'public', 'auto',
-    'long', 'goto', '__single_inheritance', 'volatile', 'throw', 'namespace',
-    'protected', 'virtual', 'return', 'signed', 'register', 'while', 'try',
-    'switch', 'char', 'catch', 'cerr', 'cin'
+    '__based', 'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'new', 'this', 'break', 'inline', 'explicit',
+    'template', 'bool', 'for', 'private', 'default', 'else', 'const', '__pascal', 'delete', 'switch', 'continue', 'do',
+    '__fastcall', 'union', 'extern', '__cdecl', 'friend', '__inline', 'int', '__virtual_inheritance', 'void', 'case',
+    '__multiple_inheritance', 'enum', 'short', 'operator', '__asm', 'float', 'struct', 'cout', 'public', 'auto', 'long',
+    'goto', '__single_inheritance', 'volatile', 'throw', 'namespace', 'protected', 'virtual', 'return', 'signed',
+    'register', 'while', 'try', 'char', 'catch', 'cerr', 'cin'
 ]
 
 
 class GetETV(object):
-    def __init__(self, graphml_file, include_assumptions=True):
+    def __init__(self, error_trace, include_assumptions=True):
         self.error = None
 
-        self.g = self.__parse_graph(graphml_file)
+        self.g = self.__parse_graph(error_trace)
         if self.error is not None:
             return
 
@@ -48,7 +61,7 @@ class GetETV(object):
             return
 
         if len(self.traces) == 0:
-            self.error = 'Wrong error trace file format - no taces got'
+            self.error = 'Wrong error trace file format - no traces got'
             return
         elif len(self.traces) > 2:
             self.error = 'Error trace with more than one threads are not supported'
@@ -71,9 +84,9 @@ class GetETV(object):
                 attrs.append([a.name, a.value])
         return attrs
 
-    def __parse_graph(self, graphml_file):
+    def __parse_graph(self, error_trace):
         try:
-            return GraphMLParser().parse(graphml_file)
+            return GraphMLParser().parse(error_trace)
         except Exception as e:
             logger.exception(e, stack_info=True)
             self.error = 'The error trace has incorrect format'
@@ -166,7 +179,7 @@ class GetETV(object):
             if 'sourcecode' in n.attr:
                 code = n.attr['sourcecode'].value
             else:
-                code = ''
+                continue
             if 'originFileName' in n.attr:
                 file = n['originFileName']
             if file is None:
@@ -388,14 +401,12 @@ class GetSource(object):
         data = ''
         if file_name.startswith('/'):
             file_name = file_name[1:]
-        try:
-            src = self.report.files.get(name=file_name)
-        except ObjectDoesNotExist:
-            self.error = _("Could not find the source file")
-            return
+        afc = ArchiveFileContent(self.report.archive, file_name=file_name)
+        if afc.error is not None:
+            self.error = afc.error
+            return None
         cnt = 1
-        with src.file.file as fp:
-            lines = fp.read().decode('utf8').split('\n')
+        lines = afc.content.split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
@@ -519,7 +530,7 @@ def is_tag(tag, name):
 # Returns string in case success or raise ValueError
 def error_trace_callstack(error_trace):
     try:
-        graph = GraphMLParser().parse(error_trace.encode('utf8'))
+        graph = GraphMLParser().parse(error_trace)
     except Exception as e:
         logger.exception(e, stack_info=True)
         raise ValueError('The error trace has incorrect format')
@@ -566,4 +577,159 @@ def error_trace_callstack(error_trace):
             call_stack2.pop()
         if 'warning' in n.attr:
             break
-    return json.dumps([call_stack1, call_stack2])
+    return [call_stack1, call_stack2]
+
+
+# Some constants for internal representation of error traces.
+_CALL = 'CALL'
+_RET = 'RET'
+
+
+# Extracts model functions in specific format with some heuristics.
+def error_trace_model_functions(error_trace):
+
+    # TODO: Very bad method.
+    model_functions = set()
+    for line in error_trace.split("\n"):
+        res = re.search(r'<data key=\"enterFunction\">ldv_linux_(.*)</data>', line)
+        if res:
+            mf = res.group(1)
+            model_functions.add(mf)
+
+    call_tree = [{"entry_point": _CALL}]
+    for line in error_trace.split("\n"):
+        res = re.search(r'<data key=\"enterFunction\">(.*)</data>', line)
+        if res:
+            function_call = res.group(1)
+            call_tree.append({function_call: _CALL})
+
+        res = re.search(r'<data key=\"returnFrom\">(.*)</data>', line)
+        if res:
+            function_return = res.group(1)
+            is_done = False
+            for mf in model_functions:
+                if function_return.__contains__(mf):
+                    call_tree.append({function_return: _RET})
+                    is_done = True
+
+            if not is_done:
+                # Check from the last call of that function.
+                is_save = False
+                sublist = []
+                for elem in reversed(call_tree):
+                    sublist.append(elem)
+                    func_name = list(elem.keys()).__getitem__(0)
+                    for mf in model_functions:
+                        if func_name.__contains__(mf):
+                            is_save = True
+                    if elem == {function_return: _CALL}:
+                        sublist.reverse()
+                        break
+                if is_save:
+                    call_tree.append({function_return: _RET})
+                else:
+                    call_tree = call_tree[:-sublist.__len__()]
+
+    # Maybe for debug print?
+    level = 0
+    for elem in call_tree:
+        func_name, op = list(elem.items())[0]
+        spaces = ""
+        for i in range(0, level):
+            spaces += " "
+        if op == _CALL:
+            level += 1
+            print(spaces + func_name)
+        else:
+            level -= 1
+
+    return json.dumps(call_tree, ensure_ascii=False, sort_keys=True, indent=4)
+
+class ErrorTraceCallstackTree(object):
+    def __init__(self, error_trace):
+        self._error_trace = error_trace
+        self._edge_trace1, self._edge_trace2 = self.__get_edge_traces()
+        self.trace = [self.__get_tree(self._edge_trace1), self.__get_tree(self._edge_trace2)]
+
+    def __get_edge_traces(self):
+        try:
+            graph = GraphMLParser().parse(self._error_trace)
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            raise ValueError('The error trace has incorrect format')
+        traces = []
+        if graph.set_root_by_attribute('true', 'isEntryNode') is None:
+            raise ValueError('Could not find the entry point was in the error trace')
+
+        for path in graph.bfs():
+            if 'isViolationNode' in path[-1].attr and path[-1]['isViolationNode'] == 'true':
+                traces.append(path)
+        if len(traces) != 1:
+            raise ValueError('Only error traces with one error path are supported')
+        edge_trace1 = []
+        edge_trace2 = []
+        prev_node = traces[0][0]
+        must_have_thread = False
+        for n in traces[0][1:]:
+            e = graph.edge(prev_node, n)
+            if e is not None:
+                if 'thread' in e.attr:
+                    must_have_thread = True
+                    if e['thread'] == '0':
+                        edge_trace1.append(e)
+                    elif e['thread'] == '1':
+                        edge_trace2.append(e)
+                elif must_have_thread:
+                    raise ValueError('One of the edges does not have thread attribute')
+                else:
+                    edge_trace1.append(e)
+            prev_node = n
+        return edge_trace1, edge_trace2
+
+    def __get_tree(self, edge_trace):
+        self.ccc = 0
+        tree = []
+        call_level = 0
+        call_stack = []
+        model_functions = []
+        for n in edge_trace:
+            if 'enterFunction' in n.attr:
+                call_stack.append(n['enterFunction'])
+                call_level += 1
+                while len(tree) <= call_level:
+                    tree.append([])
+                if 'note' in n.attr:
+                    model_functions.append(n['enterFunction'])
+                tree[call_level].append({
+                    'name': n['enterFunction'],
+                    'parent': call_stack[-2] if len(call_stack) > 1 else None
+                })
+            if 'returnFromFunction' in n.attr:
+                call_stack.pop()
+                call_level -= 1
+
+        def not_model_leaf(ii, jj):
+            if tree[ii][jj]['name'] in model_functions:
+                return False
+            elif len(tree) > ii + 1:
+                for ch_j in range(0, len(tree[ii + 1])):
+                    if tree[ii + 1][ch_j]['parent'] == tree[ii][jj]['name']:
+                        return False
+            return True
+
+        for i in reversed(range(0, len(tree))):
+            new_level = []
+            for j in range(0, len(tree[i])):
+                if not not_model_leaf(i, j):
+                    new_level.append(tree[i][j])
+            if len(new_level) == 0:
+                del tree[i]
+            else:
+                tree[i] = new_level
+        just_names = []
+        for level in tree:
+            new_level = []
+            for f_data in level:
+                new_level.append(f_data['name'])
+            just_names.append(' '.join(sorted(str(x) for x in new_level)))
+        return just_names
