@@ -151,7 +151,7 @@ class Core(core.utils.CallbacksCaller):
                     traceback.print_exc()
 
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
-                if self.uploading_reports_process:
+                if self.uploading_reports_process.is_alive():
                     self.uploading_reports_process.terminate()
             # At least release working directory if cleaning code above will raise some exception.
             finally:
