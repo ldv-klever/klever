@@ -266,10 +266,8 @@ class StopDecision(object):
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
             return
-        self.__clear_tasks()
-        if self.error is not None:
-            return
         change_job_status(job, JOB_STATUS[6][0])
+        self.__clear_tasks()
 
     def __clear_tasks(self):
         for task in self.progress.task_set.all():
