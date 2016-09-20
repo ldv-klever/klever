@@ -681,8 +681,8 @@ def upload_job(request, parent_id=None):
         try:
             job_dir = extract_tar_temp(f)
         except Exception as e:
-            logger.exception("Archive extraction failed" % e, stack_info=True)
-            failed_jobs.append([_('Archive extracting error') + '', f.name])
+            logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+            failed_jobs.append([str(_('Archive extracting error')), f.name])
             continue
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
