@@ -75,6 +75,13 @@ class Core(core.utils.CallbacksCaller):
         except SystemExit:
             self.exit_code = 1
         except Exception:
+            self.exit_code = 1
+
+            if self.logger:
+                self.logger.exception('Catch exception')
+            else:
+                traceback.print_exc()
+
             if self.mqs:
                 with open('problem desc.txt', 'w', encoding='utf8') as fp:
                     traceback.print_exc(file=fp)
@@ -89,12 +96,6 @@ class Core(core.utils.CallbacksCaller):
                                       },
                                       self.mqs['report files'])
 
-            if self.logger:
-                self.logger.exception('Catch exception')
-            else:
-                traceback.print_exc()
-
-            self.exit_code = 1
         finally:
             # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
@@ -131,6 +132,8 @@ class Core(core.utils.CallbacksCaller):
                 if self.session:
                     self.session.sign_out()
             except Exception:
+                self.exit_code = 1
+
                 if self.logger:
                     self.logger.exception('Catch exception')
                 else:
@@ -139,8 +142,6 @@ class Core(core.utils.CallbacksCaller):
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
                 if self.uploading_reports_process:
                     self.uploading_reports_process.terminate()
-
-                self.exit_code = 1
             # At least release working directory if cleaning code above will raise some exception.
             finally:
                 if self.is_solving_file_fp and not self.is_solving_file_fp.closed:
