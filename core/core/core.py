@@ -75,12 +75,7 @@ class Core(core.utils.CallbacksCaller):
         except SystemExit:
             self.exit_code = 1
         except Exception:
-            self.exit_code = 1
-
-            if self.logger:
-                self.logger.exception('Catch exception')
-            else:
-                traceback.print_exc()
+            self.process_exception()
 
             if self.mqs:
                 try:
@@ -97,12 +92,7 @@ class Core(core.utils.CallbacksCaller):
                                       },
                                       self.mqs['report files'])
                 except Exception:
-                    self.exit_code = 1
-
-                    if self.logger:
-                        self.logger.exception('Catch exception')
-                    else:
-                        traceback.print_exc()
+                    self.process_exception()
         finally:
             try:
                 if self.mqs:
@@ -143,17 +133,12 @@ class Core(core.utils.CallbacksCaller):
                 if self.session:
                     self.session.sign_out()
             except Exception:
-                self.exit_code = 1
-
-                if self.logger:
-                    self.logger.exception('Catch exception')
-                else:
-                    traceback.print_exc()
+                self.process_exception()
 
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
                 if self.uploading_reports_process.is_alive():
                     self.uploading_reports_process.terminate()
-            # At least release working directory if cleaning code above will raise some exception.
+            # At least release working directory even if cleaning code above raised some exceptions.
             finally:
                 if self.is_solving_file_fp and not self.is_solving_file_fp.closed:
                     if self.logger:
@@ -272,3 +257,11 @@ class Core(core.utils.CallbacksCaller):
             # If we can't send reports to Klever Bridge by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Klever Bridge')
             exit(1)
+
+    def process_exception(self):
+        self.exit_code = 1
+
+        if self.logger:
+            self.logger.exception('Catch exception')
+        else:
+            traceback.print_exc()
