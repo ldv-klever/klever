@@ -129,6 +129,8 @@ class Job(core.utils.CallbacksCaller):
             try:
                 self.sub_jobs[sub_job_index].__decide_sub_job()
             except SystemExit:
+                self.logger.error('Decision of sub-job of type "{0}" with identifier "{1}" failed'.
+                                  format(self.type, self.sub_jobs[sub_job_index].id))
                 if not self.components_common_conf['ignore failed sub-jobs']:
                     sys.exit(1)
 
@@ -208,48 +210,44 @@ class Job(core.utils.CallbacksCaller):
                 self.launch_sub_job_components()
             except Exception:
                 if self.name:
-                    if self.mqs:
+                    self.logger.exception('Catch exception')
+
+                    try:
                         with open('problem desc.txt', 'w', encoding='utf8') as fp:
                             traceback.print_exc(file=fp)
 
-                        if os.path.isfile('problem desc.txt'):
-                            core.utils.report(self.logger,
-                                              'unknown',
-                                              {
-                                                  'id': self.id + '/unknown',
-                                                  'parent id': self.id,
-                                                  'problem desc': 'problem desc.txt',
-                                                  'files': ['problem desc.txt']
-                                              },
-                                              self.mqs['report files'],
-                                              self.components_common_conf['main working directory'])
-
-                    if self.logger:
+                        core.utils.report(self.logger,
+                                          'unknown',
+                                          {
+                                              'id': self.id + '/unknown',
+                                              'parent id': self.id,
+                                              'problem desc': 'problem desc.txt',
+                                              'files': ['problem desc.txt']
+                                          },
+                                          self.mqs['report files'],
+                                          self.components_common_conf['main working directory'])
+                    except Exception:
                         self.logger.exception('Catch exception')
-                    else:
-                        traceback.print_exc()
-
-                    self.logger.error(
-                        'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
-
-                    # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there
-                    # will be used for sub-jobs as well one day.
-                    sys.exit(1)
+                    finally:
+                        sys.exit(1)
                 else:
                     raise
             finally:
-                core.utils.remove_component_callbacks(self.logger, type(self))
+                try:
+                    core.utils.remove_component_callbacks(self.logger, type(self))
 
-                if self.name:
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'log': None
-                                      },
-                                      self.mqs['report files'],
-                                      self.components_common_conf['main working directory'])
+                    if self.name:
+                        core.utils.report(self.logger,
+                                          'finish',
+                                          {
+                                              'id': self.id,
+                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                              'log': None
+                                          },
+                                          self.mqs['report files'],
+                                          self.components_common_conf['main working directory'])
+                except Exception:
+                    self.logger.exception('Catch exception')
 
     def get_class(self):
         self.logger.info('Get job class')
