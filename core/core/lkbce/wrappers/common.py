@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import filecmp
 import json
 import os
@@ -6,6 +23,7 @@ import shutil
 import subprocess
 
 import core.utils
+import core.lkbce.utils
 
 
 class Command:
@@ -17,7 +35,7 @@ class Command:
     # The rest options are CC/LD input files.
     OPTS = {
         'gcc': {
-            'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x'),
+            'opts requiring vals': ('D', 'I', 'O', 'include', 'isystem', 'mcmodel', 'o', 'print-file-name', 'x', 'idirafter'),
             'opts discarding in files': ('print-file-name', 'v'),
             'opts discarding out file': ('E', 'print-file-name', 'v')
         },
@@ -38,40 +56,22 @@ class Command:
         self.desc_file = None
 
     def copy_deps(self):
-        if self.type != 'CC':
+        # Dependencies can be obtained just for CC commands taking normal C files as input.
+        if self.type != 'CC' or re.search(r'\.S$', self.in_files[0], re.IGNORECASE):
             return
 
         # We assume that dependency files are generated for all C source files.
-        deps_file = None
-        for opt in self.other_opts:
-            match = re.search(r'-MD,(.+)', opt)
-            if match:
-                deps_file = match.group(1)
-                break
-        if not deps_file:
-            # # Generate them by ourselves if not so.
-            # deps_file = self.out_file + '.d'
-            # p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
-            #                      stderr=subprocess.DEVNULL)
-            # if p.wait():
-            #     raise RuntimeError('Getting dependencies failed')
-            raise AssertionError(
-                'Could not find dependencies file for CC command with input files: "{0}", output file: "{1}" and options "{2}"'.format(self.in_files, self.out_file, self.other_opts))
+        base_name = '{0}.d'.format(os.path.basename(self.out_file))
+        if base_name[0] != '.':
+            base_name = '.' + base_name
+        deps_file = os.path.join(os.path.dirname(self.out_file), base_name)
+        if not os.path.isfile(deps_file):
+            p = subprocess.Popen(['aspectator'] + self.opts + ['-Wp,-MD,{0}'.format(deps_file)],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            if p.wait():
+                raise RuntimeError('Getting dependencies failed')
 
-        deps = []
-        with open(deps_file, encoding='ascii') as fp:
-            match = re.match(r'[^:]+:(.+)', fp.readline())
-            if match:
-                first_dep_line = match.group(1)
-            else:
-                raise AssertionError('Dependencies file has unsupported format')
-
-            for dep_line in [first_dep_line] + fp.readlines():
-                dep_line = dep_line.lstrip(' ')
-                dep_line = dep_line.rstrip(' \\\n')
-                if not dep_line:
-                    continue
-                deps.extend(dep_line.split(' '))
+        deps = core.lkbce.utils.get_deps_from_gcc_deps_file(deps_file)
 
         # There are several kinds of dependencies:
         # - each non-absolute file path represents dependency relative to current working directory (Linux kernel
@@ -85,8 +85,8 @@ class Command:
 
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
-            os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
-            with core.utils.LockedOpen(dest_dep, 'a', encoding='ascii'):
+            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
+            with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
                         continue
@@ -117,13 +117,20 @@ class Command:
 
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
-            os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
-            with core.utils.LockedOpen(full_desc_file, 'w+', encoding='ascii') as fp:
-                if os.path.getsize(full_desc_file) and sorted(full_desc) != sorted(json.load(fp)):
-                    raise FileExistsError(
-                        'Linux kernel CC full description stored in file "{0}" changed to "{1}"'.format(full_desc_file, full_desc))
+
+            os.makedirs(os.path.dirname(full_desc_file).encode('utf8'), exist_ok=True)
+
+            full_desc_file_suffix = 2
+            while True:
+                if os.path.isfile(full_desc_file):
+                    full_desc_file = '{0}.ldv{1}{2}'.format(os.path.splitext(full_desc_file)[0], full_desc_file_suffix,
+                                                            os.path.splitext(full_desc_file)[1])
+                    full_desc_file_suffix += 1
                 else:
-                    json.dump(full_desc, fp, sort_keys=True, indent=4)
+                    break
+
+            with open(full_desc_file, 'w', encoding='utf8') as fp:
+                json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
@@ -131,31 +138,42 @@ class Command:
 
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
-        os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
-        with core.utils.LockedOpen(self.desc_file, 'w+', encoding='ascii') as fp:
-            if os.path.getsize(self.desc_file) and sorted(desc) != sorted(json.load(fp)):
-                raise FileExistsError(
-                    'Linux kernel build command description stored to file "{0}" changed to "{1}"'.format(self.desc_file, desc))
+
+        os.makedirs(os.path.dirname(self.desc_file).encode('utf8'), exist_ok=True)
+
+        desc_file_suffix = 2
+        while True:
+            if os.path.isfile(self.desc_file):
+                self.desc_file = '{0}.ldv{1}{2}'.format(os.path.splitext(self.desc_file)[0], desc_file_suffix,
+                                                        os.path.splitext(self.desc_file)[1])
+                desc_file_suffix += 1
             else:
-                json.dump(desc, fp, sort_keys=True, indent=4)
+                break
+
+        with open(self.desc_file, 'w', encoding='utf8') as fp:
+            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def enqueue(self):
-        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
-            fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
+        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
+            fp.write(os.path.relpath(self.desc_file, os.environ['KLEVER_MAIN_WORK_DIR']) + '\n')
 
     def filter(self):
         # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
         # or samples. They won't be used when building verification object descriptions.
         if self.type == 'CC':
+            if self.in_files[0].endswith('.mod.c'):
+                return True
             if not self.in_files or not self.out_file:
                 return True
-            if self.in_files[0] in ('/dev/null', '-') or self.in_files[0].startswith('samples'):
+            if self.in_files[0] in ('/dev/null', '-'):
                 return True
 
         # Filter out LD commands if input file is absent or output file is temporary. The latter likely corresponds
         # to CC commands filtered out above.
-        if self.type == 'LD' and (not self.out_file or self.out_file.endswith('.tmp')):
-            return True
+        if self.type == 'LD':
+            self.in_files = [in_file for in_file in self.in_files if not in_file.endswith('.mod.o')]
+            if not self.out_file or self.out_file.endswith('.tmp'):
+                return True
 
         return False
 
@@ -164,17 +182,25 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
+        if self.name == 'gcc':
+            self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
         exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
         if exit_code:
             return exit_code
 
-        self.parse()
-        if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
-            self.copy_deps()
-            self.dump()
-            self.enqueue()
+        try:
+            self.parse()
+
+            if not self.filter() and 'KLEVER_BUILD_CMD_DESCS_FILE' in os.environ:
+                self.copy_deps()
+                self.dump()
+                self.enqueue()
+        except Exception:
+            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
+                fp.write('KLEVER FATAL ERROR\n')
+            raise
 
         return 0
 
@@ -253,7 +279,7 @@ class Command:
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
-        original_opts = self.opts
+        original_opts = list(self.opts)
         if '-o' in original_opts:
             original_opts.remove('-o')
         resulting_opts = self.in_files + self.other_opts
@@ -268,7 +294,12 @@ class Command:
         # case in general.
         if self.name != 'gcc':
             self.type = self.name.upper()
-        elif len(self.in_files) == 1:
-            self.type = 'CC'
-        else:
+        elif len(self.in_files) > 1:
             self.type = 'LD'
+        else:
+            for in_file in self.in_files:
+                if not in_file.endswith('.o'):
+                    self.type = 'CC'
+                    break
+            else:
+                self.type = 'LD'

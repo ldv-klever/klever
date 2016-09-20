@@ -1,0 +1,32 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {},
+    "categories": {
+      "proto": {
+        "containers": {
+          "proto_ops": {
+            "signature": "struct proto_ops ops",
+            "header": "linux/net.h",
+            "fields": {
+              "bind": "%proto.probe%",
+              "release": "%proto.release%"
+            }
+          }
+        },
+        "resources": {
+          "socket": {
+            "signature": "struct socket *socket"
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "signature": "int (*probe)(%proto.socket%, $, $)"
+          },
+          "release": {
+            "signature": "int (*release)(%proto.socket%)"
+          }
+        }
+      }
+    }
+  }
+}

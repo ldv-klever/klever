@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 var readable_extensions = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'];
 
 function isFileReadable(name) {
@@ -75,6 +92,7 @@ function set_actions_for_edit_form () {
     check_all_roles();
     set_actions_for_file_form();
     $('.ui.dropdown').dropdown();
+
     $('.files-actions-popup').popup({position: 'bottom right'});
 
     $('#add_user_for_role').click(function () {
@@ -803,6 +821,13 @@ $(document).ready(function () {
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
+    $('#collapse_reports_modal').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#collapse_reports_modal_show', 'show');
+    $('#cancel_collapse_reports').click(function () {
+        $('#collapse_reports_modal').modal('hide');
+    });
+
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
     });
@@ -850,6 +875,15 @@ $(document).ready(function () {
                 $('#cancel_edit_job_btn').click(function () {
                     window.location.replace('');
                 });
+            }
+        );
+    });
+    $('#collapse_reports_btn').click(function () {
+        $.post(
+            job_ajax_url + 'collapse_reports/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                data.error ? err_notify(data.error) : window.location.replace('');
             }
         );
     });
@@ -939,12 +973,30 @@ $(document).ready(function () {
                         return false;
                     }
                     if ('jobdata' in data) {
-                        var is_hidden = $('#resources-note').popup('is hidden');
+                        var is_hidden = $('#resources-note').popup('is hidden'), shown_tag_description_id;
                         $('#resources-note').popup('hide');
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup('hide');
+                            if (!$(this).popup('is hidden')) {
+                                shown_tag_description_id = $(this).attr('id').replace('tag_description_id_', '')
+                            }
+                        });
                         $('#job_data_div').html(data['jobdata']);
                         $('#resources-note').popup();
                         if (!is_hidden) {
                             $('#resources-note').popup('show');
+                        }
+                        $('.tag-description-popup').each(function () {
+                            $(this).popup({
+                                html: $(this).attr('data-content'),
+                                hoverable: true
+                            });
+                        });
+                        if (shown_tag_description_id) {
+                            var tag_descr = $('#tag_description_id_' + shown_tag_description_id);
+                            if (tag_descr.length) {
+                                tag_descr.popup('show');
+                            }
                         }
                     }
                     var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
@@ -992,6 +1044,12 @@ $(document).ready(function () {
                     }
                     else {
                         $('#show_remove_job_popup').addClass('disabled');
+                    }
+                    if (data['can_collapse']) {
+                        $('#collapse_reports_modal_show').removeClass('disabled');
+                    }
+                    else {
+                        $('#collapse_reports_modal_show').addClass('disabled');
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {

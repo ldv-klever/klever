@@ -1,4 +1,21 @@
-from core.avtg.emg.common.signature import import_signature, setup_collection
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from core.avtg.emg.common.signature import import_declaration, setup_collection
 
 
 __grammar_tests = [
@@ -90,7 +107,7 @@ __grammar_tests = [
 setup_collection({}, {})
 for test in __grammar_tests:
     print(test)
-    object = import_signature(test)
+    object = import_declaration(test)
     #print(object.pretty_name)
     print(object.identifier)
     print(object.to_string('a'))

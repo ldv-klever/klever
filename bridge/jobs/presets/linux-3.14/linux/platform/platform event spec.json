@@ -1,0 +1,404 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "__platform_driver_register": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%platform_driver% = $arg1;"
+            ]
+          }
+        }
+      },
+      "platform_driver_probe": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          },
+          "probe": {
+            "callback": true,
+            "parameter": true,
+            "interface": [
+              "platform.probe"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%platform_driver% = $arg1;",
+              "%probe% = $arg2;",
+              "%platform_driver.probe%=%probe%;"
+            ]
+          }
+        }
+      },
+      "platform_driver_unregister": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%platform_driver% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "platform_instance": {
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "callback": {
+            "callback": true
+          },
+          "probed": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "actions": {
+          "main": {
+            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+          },
+          "call": {
+            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
+          },
+          "register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "release": {
+            "callback": "%container.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "probe": {
+            "callback": "%container.probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%probed%",
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
+            "post-call": [
+              "%probed% = ldv_post_probe(%probed%);"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%resource% = $ALLOC(%resource%);"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "after_release": {
+            "statements": [
+              "%probed% = 1;"
+            ]
+          },
+          "positive_probe": {
+            "condition": [
+              "%probed% == 0"
+            ]
+          },
+          "negative_probe": {
+            "condition": [
+              "%probed% != 0"
+            ]
+          },
+          "pm_register": {
+            "parameters": []
+          },
+          "pm_deregister": {
+            "parameters": []
+          }
+        }
+      }
+    }
+  },
+  "Linux 4.6.7": {
+    "kernel model": {
+      "__platform_driver_register": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%platform_driver% = $arg1;"
+            ]
+          }
+        }
+      },
+      "__platform_driver_probe": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          },
+          "probe": {
+            "callback": true,
+            "parameter": true,
+            "interface": [
+              "platform.probe"
+            ]
+          }
+        },
+        "process": "<assign>.[register] | <none>",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "none": {
+            "condition": [
+              "$res != 0"
+            ]
+          },
+          "assign": {
+            "condition": [
+              "$res == 0"
+            ],
+            "statements": [
+              "%platform_driver% = $arg1;",
+              "%probe% = $arg2;",
+              "%platform_driver.probe%=%probe%;"
+            ]
+          }
+        }
+      },
+      "platform_driver_unregister": {
+        "labels": {
+          "platform_driver": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%platform_driver%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%platform_driver% = $arg1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "platform_instance": {
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "platform.platform_driver"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "callback": {
+            "callback": true
+          },
+          "probed": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "actions": {
+          "main": {
+            "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
+          },
+          "call": {
+            "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
+          },
+          "register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "release": {
+            "callback": "%container.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "probe": {
+            "callback": "%container.probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
+            "callback return value": "%probed%",
+            "post-call": [
+              "%probed% = ldv_post_probe(%probed%);"
+            ]
+          },
+          "init": {
+            "statements": [
+              "%resource% = $ALLOC(%resource%);"
+            ]
+          },
+          "free": {
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "after_release": {
+            "statements": [
+              "%probed% = 1;"
+            ]
+          },
+          "positive_probe": {
+            "condition": [
+              "%probed% == 0"
+            ]
+          },
+          "negative_probe": {
+            "condition": [
+              "%probed% != 0"
+            ]
+          },
+          "pm_register": {
+            "parameters": []
+          },
+          "pm_deregister": {
+            "parameters": []
+          }
+        }
+      }
+    }
+  }
+}

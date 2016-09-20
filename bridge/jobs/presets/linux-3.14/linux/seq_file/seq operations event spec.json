@@ -1,0 +1,163 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "seq_open, seq_open_private": {
+        "labels": {
+          "file": {
+            "parameter": true,
+            "resource": true,
+            "interface": [
+              "seq_operations.file"
+            ]
+          },
+          "ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          }
+        },
+        "process": "<assign>.[register]",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%seq_file%",
+              "%ops%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "%seq_file% = $ALLOC(%seq_file%);",
+              "%ops% = $arg2;",
+              "/* todo: file->private_data = seq_file; */"
+            ]
+          }
+        }
+      },
+      "seq_release, seq_release_private": {
+        "labels": {
+          "file": {
+            "parameter": true,
+            "resource": true,
+            "interface": [
+              "seq_operations.file"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "assign": {
+            "statements": [
+              "/* todo: seq_file = file->private_data; */",
+              "/* todo: FREE(seq_file); */"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "seq_instance": {
+        "labels": {
+          "ops": {
+            "container": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          },
+          "started": {
+            "signature": "int a",
+            "value": "0"
+          }
+        },
+        "process": "(!register).{do}",
+        "actions": {
+          "do": {
+            "process": "<started>.([stop].<post_stop> | [show] | [next]).{do} | <not_started>.([start].<post_start>.{do} | (deregister))"
+          },
+          "deregister": {
+            "condition": [
+              "%seq_file% == $ARG1"
+            ],
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%seq_file%",
+              "%ops%"
+            ]
+          },
+          "post_start": {
+            "statements": [
+              "%started% = 1;"
+            ]
+          },
+          "post_stop": {
+            "statements": [
+              "%started% = 0;"
+            ]
+          },
+          "started": {
+            "condition": [
+              "%started% == 1"
+            ]
+          },
+          "not_started": {
+            "condition": [
+              "%started% == 0"
+            ]
+          },
+          "start": {
+            "callback": "%ops.start%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "stop": {
+            "callback": "%ops.stop%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "show": {
+            "callback": "%ops.show%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "next": {
+            "callback": "%ops.next%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

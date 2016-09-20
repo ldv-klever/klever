@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import re
 
 from core.avtg.emg.common.signature import Array, Function, Structure, Pointer
@@ -63,9 +80,8 @@ def get_common_parameter(action, process, position):
 
     if len(interfaces) == 0:
         raise RuntimeError('Need at least one common interface to send a signal')
-    elif len(interfaces) > 1:
-        raise NotImplementedError('Cannot have several common interfaces for signal transmission')
     else:
+        # Todo how to choose between several ones?
         return list(interfaces)[0]
 
     return interfaces
@@ -126,9 +142,11 @@ class Access:
                         else:
                             expression += '.{}'.format(field)
                     else:
-                        raise ValueError('Cannot build access from given variable')
+                        raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                                         format(self.expression))
                 else:
-                    raise ValueError('CAnnot build access from given variable')
+                    raise ValueError("Cannot build access from given variable '{}', something wrong with types".
+                                     format(self.expression))
 
                 previous = tmp
 
@@ -144,7 +162,7 @@ class Label:
         self.parameter = False
         self.pointer = False
         self.parameters = []
-
+        self.file = None
         self.value = None
         self.name = name
         self.prior_signature = None
@@ -203,6 +221,7 @@ class Process:
         self.actions = {}
         self.category = None
         self.process = None
+        self.headers = list()
         self.__process_ast = None
         self.__accesses = None
         self.allowed_implementations = dict()
@@ -379,7 +398,7 @@ class Process:
         if not interface:
             return self.__accesses[string]
         else:
-            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.expression)
+            return [acc for acc in sorted(self.__accesses[string], key=lambda acc: acc.interface.identifier)
                     if acc.interface and acc.interface.identifier == interface][0]
 
     def __compare_signals(self, process, first, second):

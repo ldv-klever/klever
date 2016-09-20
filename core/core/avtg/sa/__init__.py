@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import collections
 import glob
 import json
@@ -6,7 +23,7 @@ import re
 
 import jinja2
 
-import core.components
+import core.avtg.plugins
 import core.utils
 from core.avtg.sa.initparser import parse_initializations
 
@@ -15,7 +32,7 @@ def nested_dict():
     return collections.defaultdict(nested_dict)
 
 
-class SA(core.components.Component):
+class SA(core.avtg.plugins.Plugin):
     # TODO: Use template processor instead of predefined aspect file and target output files
     collection = None
     files = []
@@ -23,12 +40,6 @@ class SA(core.components.Component):
     kernel_functions = []
 
     def analyze_sources(self):
-        self.logger.info("Start source analyzer {}".format(self.id))
-
-        self.logger.info("Going to extract abstract verification task from queue")
-        avt = self.mqs['abstract task description'].get()
-        self.logger.info("Abstract verification task {} has been successfully received".format(avt["id"]))
-
         # Init an empty collection
         self.logger.info("Initialize an empty collection before analyzing source code")
         self.collection = collections.defaultdict(nested_dict)
@@ -41,7 +52,7 @@ class SA(core.components.Component):
 
         # Perform requests
         self.logger.info("Run source code analysis")
-        self._perform_info_requests(avt)
+        self._perform_info_requests(self.abstract_task_desc)
         self.logger.info("Source analysis has been finished successfully")
 
         # Extract data
@@ -61,13 +72,10 @@ class SA(core.components.Component):
         self.logger.info("Collection has been saved succussfully")
 
         # Save data to abstract task
-        self.logger.info("Add the collection to an abstract verification task {}".format(avt["id"]))
+        self.logger.info("Add the collection to an abstract verification task {}".format(self.abstract_task_desc["id"]))
         # todo: better do this way: avt["source analysis"] = self.collection
-        avt["source analysis"] = os.path.relpath("model.json", os.path.realpath(self.conf["main working directory"]))
-
-        # Put edited task and terminate
-        self.mqs['abstract task description'].put(avt)
-        self.logger.info("Source analyzer {} successfully finished".format(self.id))
+        self.abstract_task_desc["source analysis"] = os.path.relpath("model.json", os.path.realpath(
+            self.conf["main working directory"]))
 
     def _generate_aspect_file(self):
         # Prepare aspect file
@@ -87,7 +95,7 @@ class SA(core.components.Component):
         )
 
         self.logger.info('Render template {}'.format(template_aspect_file))
-        with open("requests.aspect", "w", encoding="ascii") as fh:
+        with open("requests.aspect", "w", encoding="utf8") as fh:
             fh.write(env.get_template(os.path.basename(template_aspect_file)).render({
                 "max_args_num": self.conf["max arguments number"],
                 "arg_patterns": {i: ", ".join(["$"] * (i + 1)) for i in range(self.conf["max arguments number"])},
@@ -111,7 +119,7 @@ class SA(core.components.Component):
                 file = os.path.join(self.conf["main working directory"],
                                     section["cc full desc file"])
                 self.logger.info("Import build commands from {}".format(file))
-                with open(file, encoding="ascii") as fh:
+                with open(file, encoding="utf8") as fh:
                     command = json.loads(fh.read())
                     b_cmds[group['id']].append(command)
                     self.files.append(command['in files'][0])
@@ -128,7 +136,10 @@ class SA(core.components.Component):
                                    tuple(['cif',
                                           '--in', command['in files'][0],
                                           '--aspect', self.aspect,
-                                          '--out', command['out file'],
+                                          # TODO: issues like in Weaver.
+                                          '--out', os.path.relpath(
+                                           '{0}.c'.format(os.path.splitext(os.path.basename(command['out file']))[0]),
+                                           os.path.join(self.conf['main working directory'], command['cwd'])),
                                           '--stage', 'instrumentation',
                                           '--back-end', 'src',
                                           '--debug', 'DEBUG'] +
@@ -143,7 +154,7 @@ class SA(core.components.Component):
         self.logger.info("Import file {} generated by CIF replacing pathes".format(file))
         content = []
         if os.path.isfile(file):
-            with open(file, encoding="ascii") as output_fh:
+            with open(file, encoding="utf8") as output_fh:
                 content = output_fh.readlines()
             self.logger.debug("File {} has been successfully imported".format(file))
         else:
@@ -227,7 +238,8 @@ class SA(core.components.Component):
         global_file = "global.txt"
         self.logger.debug("Extract global variables from {}".format(global_file))
         # todo: add some logging here
-        self.collection["global variable initializations"] = parse_initializations(global_file)
+        if os.path.isfile(global_file):
+            self.collection["global variable initializations"] = parse_initializations(global_file)
 
         # export_file = "exported-symbols.txt"
         # self.logger.info("Extract export symbols from {}".format(export_file))
@@ -286,8 +298,8 @@ class SA(core.components.Component):
                 os.remove(file)
 
     def _save_collection(self, km_file):
-        with open(km_file, "w", encoding="ascii") as km_fh:
-            json.dump(self.collection, km_fh, sort_keys=True, indent=4)
+        with open(km_file, "w", encoding="utf8") as km_fh:
+            json.dump(self.collection, km_fh, ensure_ascii=False, sort_keys=True, indent=4)
 
     def _process_collection(self):
         self.logger.info("Process collection according to provided options")

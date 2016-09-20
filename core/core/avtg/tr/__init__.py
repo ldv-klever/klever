@@ -1,16 +1,29 @@
-#!/usr/bin/python3
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import jinja2
 import os
 
-import core.components
+import core.avtg.plugins
 import core.utils
 
 
-class TR(core.components.Component):
+class TR(core.avtg.plugins.Plugin):
     def render_templates(self):
-        self.abstract_task_desc = self.mqs['abstract task description'].get()
-
         if 'template context' not in self.abstract_task_desc:
             self.logger.warning('Template context is not specified (nothing to do)')
         elif not self.abstract_task_desc['template context']:
@@ -48,9 +61,10 @@ class TR(core.components.Component):
                 file = os.path.splitext(tmpl)[0]
 
                 # Rendered templates will be placed into files inside TR working directory.
-                os.makedirs(os.path.dirname(file), exist_ok=True)
-                with open(file, 'w', encoding='ascii') as fp:
-                    fp.write(env.get_template(tmpl).render(self.abstract_task_desc['template context']))
+                os.makedirs(os.path.dirname(file).encode('utf8'), exist_ok=True)
+                with open(file, 'w', encoding='utf8') as fp:
+                    fp.write(env.get_template(tmpl).render(
+                        self.abstract_task_desc['template context'][os.path.splitext(os.path.basename(file))[0]]))
 
                 self.abstract_task_desc['files'].append(
                     os.path.relpath(file, self.conf['main working directory']))
@@ -58,7 +72,5 @@ class TR(core.components.Component):
                 self.logger.debug('Rendered template was stored into file "{0}"'.format(file))
 
             self.abstract_task_desc.pop('template context')
-
-        self.mqs['abstract task description'].put(self.abstract_task_desc)
 
     main = render_templates

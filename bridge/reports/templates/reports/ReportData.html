@@ -45,7 +45,7 @@
             </tr>
         </thead>
         <tbody>
-            {% for id in data.keys|sort_list %}
+            {% for id in data.keys|sort_bugs_list %}
                 <tr>
                     <td>{{ id }}</td>
                     <td>
@@ -70,6 +70,24 @@
                             {% endif %}
                         {% endwith %}
                     </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% elif component == 'LKVOG' %}
+    <h5 class="ui brown header">{% trans 'Lines of code' %}</h5>
+    <table class="ui compact brown table">
+        <thead>
+            <tr>
+                <th>{% trans 'Module' %}</th>
+                <th>{% trans 'Lines of code' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for module, loc in data.items|sort_list %}
+                <tr>
+                    <td>{{ module }}</td>
+                    <td>{{ loc }}</td>
                 </tr>
             {% endfor %}
         </tbody>

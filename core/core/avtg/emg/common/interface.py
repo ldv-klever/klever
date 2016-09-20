@@ -1,16 +1,34 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 class Interface:
-    def _common_declaration(self, category, identifier):
+    def _common_declaration(self, category, identifier, manually_specified=False):
         self.category = category
         self.short_identifier = identifier
         self.identifier = "{}.{}".format(category, identifier)
+        self.manually_specified = manually_specified
         self.declaration = None
         self.header = None
         self.implemented_in_kernel = False
 
 
 class Container(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
         self.element_interface = None
         self.field_interfaces = {}
 
@@ -28,8 +46,8 @@ class Container(Interface):
 
 
 class Callback(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
         self.param_interfaces = []
         self.rv_interface = False
         self.called = False
@@ -37,14 +55,18 @@ class Callback(Interface):
 
 
 class Resource(Interface):
-    def __init__(self, category, identifier):
-        self._common_declaration(category, identifier)
+    def __init__(self, category, identifier, manually_specified=False):
+        self._common_declaration(category, identifier, manually_specified)
 
 
 class KernelFunction(Interface):
     def __init__(self, identifier, header):
         self.identifier = identifier
-        self.header = header
+        if type(header) is list:
+            self.header = header
+        else:
+            self.header = [header]
+
         self.declaration = None
         self.param_interfaces = []
         self.rv_interface = False

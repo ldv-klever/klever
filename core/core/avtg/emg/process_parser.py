@@ -1,4 +1,21 @@
-from core.avtg.emg.common.signature import import_signature
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
 
@@ -53,7 +70,7 @@ def __import_process(name, dic):
             label = Label(name)
             process.labels[name] = label
 
-            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer']:
+            for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file']:
                 if att in dic['labels'][name]:
                     setattr(label, att, dic['labels'][name][att])
 
@@ -66,7 +83,7 @@ def __import_process(name, dic):
                 else:
                     TypeError('Expect list or string with interface identifier')
             if 'signature' in dic['labels'][name]:
-                label.prior_signature = import_signature(dic['labels'][name]['signature'])
+                label.prior_signature = import_declaration(dic['labels'][name]['signature'])
 
     # Import process
     process_strings = []
@@ -83,8 +100,12 @@ def __import_process(name, dic):
             if 'process' in dic['actions'][name]:
                 process_strings.append(dic['actions'][name]['process'])
 
+    if 'headers' in dic:
+        process.headers = dic['headers']
+
     for subprocess_name in process.actions:
         regexes = generate_regex_set(subprocess_name)
+        matched = False
 
         for regex in regexes:
             for string in process_strings:
@@ -97,7 +118,12 @@ def __import_process(name, dic):
                     else:
                         act = process_type(subprocess_name)
                     process.actions[subprocess_name] = act
+                    matched = True
                     break
+
+        if not matched:
+            raise ValueError("Action '{}' is not used in process description '{}'".
+                             format(subprocess_name, name))
 
         # Values from dictionary
         if 'callback' in dic['actions'][subprocess_name]:

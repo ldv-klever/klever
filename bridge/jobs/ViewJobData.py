@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -5,6 +22,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import VIEWJOB_DEF_VIEW
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
+from reports.models import LightResource, AttrStatistic
 
 
 COLORS = {
@@ -65,7 +83,10 @@ class ViewJobData(object):
             'unknowns': self.__unknowns_info,
             'resources': self.__resource_info,
             'tags_safe': self.__safe_tags_info,
-            'tags_unsafe': self.__unsafe_tags_info
+            'tags_unsafe': self.__unsafe_tags_info,
+            'safes_attr_stat': self.__safes_attrs_statistic,
+            'unsafes_attr_stat': self.__unsafes_attrs_statistic,
+            'unknowns_attr_stat': self.__unknowns_attrs_statistic
         }
         for d in self.view['data']:
             if d in actions:
@@ -78,15 +99,28 @@ class ViewJobData(object):
             fv = self.view['filters']['safe_tag']['value']
             safe_tag_filter = {ft: fv}
 
-        safe_tags_data = []
-        for st in self.report.safe_tags.filter(**safe_tag_filter):
-            safe_tags_data.append({
-                'number': st.number,
-                'href': reverse('reports:list_tag',
-                                args=[self.report.pk, 'safes', st.tag.pk]),
+        tree_data = []
+        for st in self.report.safe_tags.filter(**safe_tag_filter).order_by('tag__tag'):
+            tree_data.append({
+                'id': st.tag.pk,
+                'parent': st.tag.parent_id,
                 'name': st.tag.tag,
+                'number': st.number,
+                'href': reverse('reports:list_tag', args=[self.report.pk, 'safes', st.tag.pk]),
+                'description': st.tag.description
             })
-        return safe_tags_data
+
+        def get_children(parent, padding):
+            children = []
+            if parent['id'] is not None:
+                parent['padding'] = padding * 13
+                children.append(parent)
+            for t in tree_data:
+                if t['parent'] == parent['id']:
+                    children.extend(get_children(t, padding + 1))
+            return children
+
+        return get_children({'id': None}, -1)
 
     def __unsafe_tags_info(self):
         unsafe_tag_filter = {}
@@ -95,26 +129,43 @@ class ViewJobData(object):
             fv = self.view['filters']['unsafe_tag']['value']
             unsafe_tag_filter = {ft: fv}
 
-        unsafe_tags_data = []
-        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter):
-            unsafe_tags_data.append({
-                'number': ut.number,
-                'href': reverse('reports:list_tag',
-                                args=[self.report.pk, 'unsafes', ut.tag.pk]),
+        tree_data = []
+        for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter).order_by('tag__tag'):
+            tree_data.append({
+                'id': ut.tag.pk,
+                'parent': ut.tag.parent_id,
                 'name': ut.tag.tag,
+                'number': ut.number,
+                'href': reverse('reports:list_tag', args=[self.report.pk, 'unsafes', ut.tag.pk]),
+                'description': ut.tag.description
             })
-        return unsafe_tags_data
+
+        def get_children(parent, padding):
+            children = []
+            if parent['id'] is not None:
+                parent['padding'] = padding * 13
+                children.append(parent)
+            for t in tree_data:
+                if t['parent'] == parent['id']:
+                    children.extend(get_children(t, padding + 1))
+            return children
+
+        return get_children({'id': None}, -1)
 
     def __resource_info(self):
         res_data = {}
-
         resource_filters = {}
+        resource_table = self.report.resources_cache
+        if self.report.parent is None and self.report.root.job.light:
+            resource_table = LightResource.objects
+            resource_filters['report'] = self.report.root
+
         if 'resource_component' in self.view['filters']:
             ft = 'component__name__' + self.view['filters']['resource_component']['type']
             fv = self.view['filters']['resource_component']['value']
             resource_filters = {ft: fv}
 
-        for cr in self.report.resources_cache.filter(~Q(component=None) & Q(**resource_filters)):
+        for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)):
             if cr.component.name not in res_data:
                 res_data[cr.component.name] = {}
             rd = get_resource_data(self.user, cr)
@@ -123,13 +174,13 @@ class ViewJobData(object):
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
         if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
-            res_total = self.report.resources_cache.filter(component=None).first()
+            if self.report.root.job.light and self.report.parent is None:
+                res_total = resource_table.filter(component=None, report=self.report.root).first()
+            else:
+                res_total = resource_table.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user, res_total)
-                resource_data.append({
-                    'component': _('Total'),
-                    'val': "%s %s %s" % (rd[0], rd[1], rd[2]),
-                })
+                resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
         return resource_data
 
     def __unknowns_info(self):
@@ -204,6 +255,9 @@ class ViewJobData(object):
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
+        if self.report.root.safes > 0 and self.report.parent is None:
+            self.safes_total = [self.report.root.safes]
+
         safes_data = []
         try:
             verdicts = self.report.verdict
@@ -246,6 +300,32 @@ class ViewJobData(object):
                     'href': href
                 })
         return safes_data
+
+    def __safes_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, safes__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.safes
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = None
+                if not self.report.root.job.light:
+                    href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.safes, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic
 
     def __unsafes_info(self):
         try:
@@ -294,3 +374,51 @@ class ViewJobData(object):
                     'href': href
                 })
         return unsafes_data
+
+    def __unsafes_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, unsafes__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.unsafes
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = reverse('reports:list_attr', args=[self.report.pk, 'unsafes', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unsafes, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic
+
+    def __unknowns_attrs_statistic(self):
+        attr_stat_data = {}
+        others_data = {}
+        attr_names = []
+        for a_s in AttrStatistic.objects.filter(report=self.report, unknowns__gt=0).order_by('attr__value'):
+            if a_s.name.name not in attr_names:
+                attr_names.append(a_s.name.name)
+            if a_s.attr is None:
+                others_data[a_s.name.name] = a_s.unknowns
+            else:
+                if a_s.name.name not in attr_stat_data:
+                    attr_stat_data[a_s.name.name] = []
+                href = reverse('reports:list_attr', args=[self.report.pk, 'unknowns', a_s.attr_id])
+                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unknowns, href))
+        attrs_statistic = []
+        for a_name in sorted(attr_names):
+            a_n_s = []
+            if a_name in attr_stat_data:
+                a_n_s = attr_stat_data[a_name]
+            if a_name in others_data:
+                a_n_s.append((_('Others'), others_data[a_name]))
+            attrs_statistic.append((a_name, a_n_s))
+        return attrs_statistic

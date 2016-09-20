@@ -100,7 +100,7 @@
                                             {% if v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}>{{ v.value }}</span>
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -124,7 +124,7 @@
                 {% endif %}
                 <div class="ui divider"></div>
                 <div id="mark_data_div">
-                    {% include 'marks/MarkAddData.html' with markdata=markdata %}
+                    {% include 'marks/MarkAddData.html' with markdata=markdata tags=tags %}
                 </div>
                 <br>
                 {% if can_freeze %}

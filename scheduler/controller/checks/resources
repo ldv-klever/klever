@@ -1,4 +1,21 @@
 #!/usr/bin/python3
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import json
 import consulate
@@ -6,14 +23,14 @@ import logging
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
 logging.info("Configuration file: {}".format(expect_file))
-with open(expect_file, encoding="ascii") as fh:
+with open(expect_file, encoding="utf8") as fh:
     node_conf = json.load(fh)
 
 # Submit content
 session = consulate.Consul()
 try:
     session.kv["states/{}".format(node_conf["node configuration"]["node name"])] = \
-        json.dumps(node_conf["node configuration"])
+        json.dumps(node_conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4)
 except KeyError:
     print("Key-value storage is inaccessible")
     exit(2)
