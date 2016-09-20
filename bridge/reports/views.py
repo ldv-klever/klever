@@ -294,7 +294,7 @@ def report_leaf(request, leaf_type, report_id):
             logger.error(etv.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
-        main_file_content = ''
+        main_file_content = None
         if report.archive is not None and report.proof is not None:
             afc = ArchiveFileContent(report.archive, file_name=report.proof)
             if afc.error is not None:

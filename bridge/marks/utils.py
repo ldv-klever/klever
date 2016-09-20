@@ -422,12 +422,15 @@ class ConnectReportWithMarks(object):
         safe_attrs = []
         for r_attr in self.report.attrs.all():
             safe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
+        new_markreports = []
         for mark in MarkSafe.objects.all():
             mark_attrs = []
             for m_attr in mark.versions.get(version=mark.version).attrs.filter(is_compare=True):
                 mark_attrs.append((m_attr.attr.name.name, m_attr.attr.value))
             if all(x in mark_attrs for x in [x for x in safe_attrs if x[0] in [y[0] for y in mark_attrs]]):
-                MarkSafeReport.objects.create(mark=mark, report=self.report)
+                new_markreports.append(MarkSafeReport(mark=mark, report=self.report))
+        if len(new_markreports) > 0:
+            MarkSafeReport.objects.bulk_create(new_markreports)
 
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
@@ -519,17 +522,20 @@ class ConnectMarkWithReports(object):
         for mark_safe in self.mark.markreport_set.all():
             self.changes[mark_safe.report] = {'kind': '=', 'verdict1': mark_safe.report.verdict}
         self.mark.markreport_set.all().delete()
+        new_markreports = []
         for safe in ReportSafe.objects.all():
             safe_attrs = []
             for r_attr in safe.attrs.filter(attr__name__name__in=list(x[0] for x in mark_attrs)):
                 safe_attrs.append((r_attr.attr.name.name, r_attr.attr.value))
             if any(x not in mark_attrs for x in safe_attrs):
                 continue
-            MarkSafeReport.objects.create(mark=self.mark, report=safe)
+            new_markreports.append(MarkSafeReport(mark=self.mark, report=safe))
             if safe in self.changes:
                 self.changes[safe]['kind'] = '='
             else:
                 self.changes[safe] = {'kind': '+', 'verdict1': safe.verdict}
+        if len(new_markreports) > 0:
+            MarkSafeReport.objects.bulk_create(new_markreports)
 
     def __connect_unknown_mark(self):
         for mark_unknown in self.mark.markreport_set.all():
@@ -770,7 +776,7 @@ class MarkAccess(object):
         if not isinstance(self.user, User):
             return False
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
-            if self.report.archive is None:
+            if self.report.archive is None and not isinstance(self.report, ReportSafe):
                 return False
             if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
