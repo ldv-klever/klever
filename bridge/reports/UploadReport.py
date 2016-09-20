@@ -49,7 +49,7 @@ class UploadReport(object):
 
     def __job_failed(self, error=None):
         if 'id' in self.data:
-            error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + error
+            error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + str(error)
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
