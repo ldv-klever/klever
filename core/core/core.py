@@ -79,7 +79,6 @@ class Core(core.utils.CallbacksCaller):
                 with open('problem desc.txt', 'w', encoding='utf8') as fp:
                     traceback.print_exc(file=fp)
 
-                if os.path.isfile('problem desc.txt'):
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
