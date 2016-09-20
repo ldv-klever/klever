@@ -16,7 +16,6 @@
 #
 
 import re
-import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import logger, ArchiveFileContent

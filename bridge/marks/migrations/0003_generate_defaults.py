@@ -17,6 +17,8 @@ def move_error_traces_to_history(apps, schema_editor):
 def revert_move_error_traces_to_history(apps, schema_editor):
     MarkUnsafeHistory = apps.get_model('marks', 'MarkUnsafeHistory')
     for muh in MarkUnsafeHistory.objects.all():
+        muh.mark.error_trace = muh.error_trace
+        muh.mark.save()
         muh.error_trace = None
         muh.save()
 
