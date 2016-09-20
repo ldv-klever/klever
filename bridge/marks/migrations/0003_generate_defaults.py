@@ -14,6 +14,13 @@ def move_error_traces_to_history(apps, schema_editor):
             muh.save()
 
 
+def revert_move_error_traces_to_history(apps, schema_editor):
+    MarkUnsafeHistory = apps.get_model('marks', 'MarkUnsafeHistory')
+    for muh in MarkUnsafeHistory.objects.all():
+        muh.error_trace = None
+        muh.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -22,5 +29,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(move_error_traces_to_history)
+        migrations.RunPython(move_error_traces_to_history, revert_move_error_traces_to_history)
     ]
