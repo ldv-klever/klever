@@ -285,6 +285,12 @@ def get_job_data(request):
             'checked_option': request.POST.get('checked_run_history', 0)
         })
     }
+    try:
+        if job.solvingprogress.error:
+            data['solvingprogress_err'] = job.solvingprogress.error
+    except ObjectDoesNotExist:
+        pass
+
     if change_date is not None:
         data['last_change_date'] = change_date
     if report is not None:

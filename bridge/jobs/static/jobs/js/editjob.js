@@ -274,7 +274,7 @@ function load_new_files() {
                 async: false,
                 success: function (data) {
                     if (data.error) {
-                        err_notify(data.error, 15000);
+                        err_notify(data.error);
                         success = false;
                     }
                     else {
@@ -1062,6 +1062,15 @@ $(document).ready(function () {
                             job_status_link.attr('href', data['jobstatus_href']);
                             job_status_link.attr('class', 'status-link status' + data['jobstatus'] + '-link');
                             job_status_link.text(data['jobstatus_text']);
+                            // WARNING: change this if you change JOB_STATUS
+                            if ('solvingprogress_err' in data && !$('#job_status_popup').length) {
+                                var popup_activator = $('#job_status_popup_activator');
+                                popup_activator.parent().parent().after($('<div>', {
+                                    'id': 'job_status_popup',
+                                    'class': 'ui inverted popup wide hidden'
+                                }).append($('<div>', {'class': 'ui red header', 'text': data['solvingprogress_err']})));
+                                popup_activator.popup({popup: $('#job_status_popup'), position: 'bottom center'});
+                            }
                         }
                         else {
                             var job_status_a = $('#job_status_link');
