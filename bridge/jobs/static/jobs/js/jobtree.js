@@ -289,6 +289,7 @@ function compare_jobs() {
         err_notify($('#error__no_jobs_to_compare').text());
         return false;
     }
+    $('#dimmer_of_page').addClass('active');
     $.post(
         job_ajax_url + 'check_compare_access/',
         {
@@ -311,6 +312,7 @@ function compare_jobs() {
                             err_notify(data.error);
                         }
                         else {
+                            $('#dimmer_of_page').removeClass('active');
                             window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
                         }
                     },
