@@ -29,6 +29,12 @@ from reports.models import *
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
 
+AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be generated in ideal'
+AVTG_FAIL_NAME = 'faulty generated abstract verification task descriptions'
+VTG_FAIL_NAME = 'faulty processed abstract verification task descriptions'
+BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verification task'
+
+
 class UploadReport(object):
 
     def __init__(self, job, data, archive=None):
@@ -281,10 +287,46 @@ class UploadReport(object):
             return
         try:
             report = ReportComponent.objects.get(identifier=identifier)
-            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
-            report.save()
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
+
+        if report.component == 'AVTG':
+            report_data = json.loads(self.data['data'])
+            if AVTG_FAIL_NAME not in report_data and AVTG_TOTAL_NAME not in report_data:
+                report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+                report.save()
+            else:
+                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+                if AVTG_TOTAL_NAME in report_data:
+                    tasks_nums.avtg_total = int(report_data[AVTG_TOTAL_NAME])
+                if AVTG_FAIL_NAME in report_data:
+                    tasks_nums.avtg_fail = int(report_data[AVTG_FAIL_NAME])
+                tasks_nums.save()
+                self.__save_total_tasks_number(tasks_nums)
+        elif report.component == 'VTG':
+            report_data = json.loads(self.data['data'])
+            if VTG_FAIL_NAME in report_data:
+                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+                tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
+                tasks_nums.save()
+                self.__save_total_tasks_number(tasks_nums)
+            else:
+                report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+                report.save()
+        elif report.component in ['SBT', 'MBT']:
+            report_data = json.loads(self.data['data'])
+            if BT_TOTAL_NAME in report_data:
+                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+                tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
+                tasks_nums.bt_num += 1
+                tasks_nums.save()
+                self.__save_total_tasks_number(tasks_nums)
+            else:
+                report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+                report.save()
+        else:
+            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+            report.save()
 
     def __finish_report_component(self, identifier):
         try:
@@ -684,6 +726,16 @@ class UploadReport(object):
                 if a_name in report_attr_names:
                     report_attrs[a_name] = report_attr_names[a_name]
         return report_attrs
+
+    def __save_total_tasks_number(self, tnums):
+        if tnums.bt_num == 0:
+            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail)
+        else:
+            tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail) * tnums.bt_total / tnums.bt_num
+        if tasks_total < 0:
+            tasks_total = 0
+        self.root.tasks_total = tasks_total
+        self.root.save()
 
 
 class CollapseReports(object):

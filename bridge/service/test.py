@@ -299,7 +299,7 @@ class TestService(KleverTestCase):
         # Upload solutions for 3d and 4th tasks
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[2], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[2], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
@@ -307,7 +307,7 @@ class TestService(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[3], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[3], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
@@ -466,7 +466,7 @@ class TestService(KleverTestCase):
         # Upload solution for the 1st task
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
@@ -601,7 +601,7 @@ class TestService(KleverTestCase):
         # Upload solution for 1st task
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
-                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
             fp.close()
         self.assertEqual(response.status_code, 200)
@@ -735,7 +735,7 @@ class TestService(KleverTestCase):
         # Upload solution for the 1st task
         with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
             self.core.post('/service/upload_solution/', {
-                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'solution_data': None})
+                'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
             fp.close()
 

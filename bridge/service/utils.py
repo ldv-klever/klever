@@ -26,7 +26,7 @@ from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
-from reports.models import ReportRoot, ReportUnknown, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
 from service.models import *
 
 
@@ -228,6 +228,8 @@ class KleverCoreFinishDecision(object):
             self.progress.error = self.error
             change_job_status(job, JOB_STATUS[5][0])
         self.progress.save()
+        job.reportroot.tasks_solved = job.reportroot.tasks_total
+        job.reportroot.save()
 
 
 # Case 3.1(2)
@@ -350,6 +352,7 @@ class GetTasks(object):
             for status in status_map:
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
+        roots_to_save = []
         for task in all_tasks['pending']:
             if str(task.pk) in data['tasks']['pending']:
                 new_data['tasks']['pending'].append(str(task.pk))
@@ -369,7 +372,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -380,6 +383,9 @@ class GetTasks(object):
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_finished += 1
                 task.progress.save()
+                task.progress.job.reportroot.tasks_solved += 1
+                if task.progress.job.reportroot not in roots_to_save:
+                    roots_to_save.append(task.progress.job.reportroot)
             elif str(task.pk) in data['tasks']['error']:
                 task.status = status_map['error']
                 if str(task.pk) in data['task errors']:
@@ -391,6 +397,9 @@ class GetTasks(object):
                     task.progress.tasks_pending -= 1
                 task.progress.tasks_error += 1
                 task.progress.save()
+                task.progress.job.reportroot.tasks_solved += 1
+                if task.progress.job.reportroot not in roots_to_save:
+                    roots_to_save.append(task.progress.job.reportroot)
             else:
                 new_data['tasks']['pending'].append(str(task.pk))
                 new_data = self.__add_description(task, new_data)
@@ -412,7 +421,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -423,6 +432,9 @@ class GetTasks(object):
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_finished += 1
                 task.progress.save()
+                task.progress.job.reportroot.tasks_solved += 1
+                if task.progress.job.reportroot not in roots_to_save:
+                    roots_to_save.append(task.progress.job.reportroot)
             elif str(task.pk) in data['tasks']['error']:
                 task.status = status_map['error']
                 if str(task.pk) in data['task errors']:
@@ -434,9 +446,14 @@ class GetTasks(object):
                     task.progress.tasks_processing -= 1
                 task.progress.tasks_error += 1
                 task.progress.save()
+                task.progress.job.reportroot.tasks_solved += 1
+                if task.progress.job.reportroot not in roots_to_save:
+                    roots_to_save.append(task.progress.job.reportroot)
             else:
                 new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
+        for r in roots_to_save:
+            r.save()
         for task in all_tasks['error']:
             if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
@@ -511,6 +528,8 @@ class GetTasks(object):
                                 change_job_status(progress.job, JOB_STATUS[4][0])
                             else:
                                 change_job_status(progress.job, JOB_STATUS[3][0])
+                            progress.job.reportroot.tasks_solved = progress.job.reportroot.tasks_total
+                            progress.job.reportroot.save()
                     elif progress.job.identifier in data['jobs']['error']:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:
@@ -518,6 +537,8 @@ class GetTasks(object):
                         else:
                             progress.error = "The scheduler hasn't given an error description"
                         progress.save()
+                        progress.job.reportroot.tasks_solved = progress.job.reportroot.tasks_total
+                        progress.job.reportroot.save()
                     else:
                         new_data['jobs']['processing'].append(progress.job.identifier)
                 elif progress.job.status == JOB_STATUS[6][0]:
@@ -601,6 +622,18 @@ class SaveSolution(object):
         )
         self.task.progress.solutions += 1
         self.task.progress.save()
+        try:
+            wall_time = json.loads(description)['resources']['wall time']
+            statistic = TaskStatistic.objects.get_or_create()[0]
+            statistic.average_time = (statistic.average_time * statistic.number_of_tasks + wall_time) / \
+                                     (statistic.number_of_tasks + 1)
+            statistic.number_of_tasks += 1
+            statistic.save()
+            root = ReportRoot.objects.get(pk=self.task.progress.job.reportroot.pk)
+            root.average_time = (root.average_time * root.tasks_solved + wall_time) / (root.tasks_solved + 1)
+            root.save()
+        except Exception as e:
+            logger.exception("Expected another format of solution description: %s" % e)
 
 
 # Case 3.2(5) DONE
@@ -718,6 +751,8 @@ class SetSchedulersStatus(object):
                 progress.error = "Klever scheduler was disconnected"
                 change_job_status(progress.job, JOB_STATUS[5][0])
             progress.save()
+            progress.job.reportroot.tasks_solved = progress.job.reportroot.tasks_total
+            progress.job.reportroot.save()
 
 
 def compare_priority(priority1, priority2):
