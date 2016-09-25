@@ -254,7 +254,6 @@ def get_job_data(request):
         job = Job.objects.get(pk=int(request.POST['job_id']))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Unknown error'})
-    job_access = JobAccess(request.user, job)
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
     except ObjectDoesNotExist:
@@ -270,31 +269,17 @@ def get_job_data(request):
         change_date = None
 
     data = {
-        'can_delete': job_access.can_delete(),
-        'can_edit': job_access.can_edit(),
-        'can_create': job_access.can_create(),
-        'can_decide': job_access.can_decide(),
-        'can_download': job_access.can_download(),
-        'can_stop': job_access.can_stop(),
-        'can_collapse': job_access.can_collapse(),
         'jobstatus': job.status,
-        'jobstatus_text': job.get_status_display() + '',
         'job_history': loader.get_template('jobs/jobRunHistory.html').render({
             'user': request.user,
             'job': job,
             'checked_option': request.POST.get('checked_run_history', 0)
         })
     }
-    try:
-        if job.solvingprogress.error:
-            data['solvingprogress_err'] = job.solvingprogress.error
-    except ObjectDoesNotExist:
-        pass
 
     if change_date is not None:
         data['last_change_date'] = change_date
     if report is not None:
-        data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
         data['jobdata'] = loader.get_template('jobs/jobData.html').render({
             'reportdata': ViewJobData(request.user, report, view=request.POST.get('view', None))
         })
