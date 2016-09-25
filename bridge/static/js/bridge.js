@@ -233,7 +233,12 @@ $(document).ready(function () {
     }
 
     if ($('#show_upload_job_popup').length) {
-        $('#upload_job_popup').modal({transition: 'vertical flip'}).modal('attach events', '#show_upload_job_popup', 'show');
+        $('#upload_job_popup').modal({transition: 'vertical flip', onShow: function () {
+            var parent_identifier = $('#job_identifier');
+            if (parent_identifier.length) {
+                $('#upload_job_parent_id').val(parent_identifier.val());
+            }
+        }}).modal('attach events', '#show_upload_job_popup', 'show');
     }
 
     $('#upload_marks_start').click(function () {

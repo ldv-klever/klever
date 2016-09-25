@@ -166,6 +166,7 @@
                 </tbody>
             </table>
             <input type="hidden" id="job_pk" value="{{ job.pk }}">
+            <input type="hidden" id="job_identifier" value="{{ job.identifier }}">
             {% if job.solvingprogress.error %}
                 <div id="job_status_popup" class="ui inverted popup wide hidden">
                     <div class="ui red header">{{ job.solvingprogress.error }}</div>
