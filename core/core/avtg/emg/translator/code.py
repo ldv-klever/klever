@@ -162,17 +162,16 @@ class CModel:
                     lines.extend(aspect)
                     lines.append("\n")
 
-            # Add mdoel itself
+            # Add model itself
             lines.append('after: file ("$this")\n')
             lines.append('{\n')
 
-            if file == self.entry_file:
-                for tp in self.types:
-                    lines.append(tp.to_string('') + " {\n")
-                    for field in sorted(list(tp.fields.keys())):
-                        lines.append("\t{};\n".format(tp.fields[field].to_string(field)))
-                    lines.append("};\n")
-                    lines.append("\n")
+            for tp in self.types:
+                lines.append(tp.to_string('') + " {\n")
+                for field in sorted(list(tp.fields.keys())):
+                    lines.append("\t{};\n".format(tp.fields[field].to_string(field)))
+                lines.append("};\n")
+                lines.append("\n")
 
             lines.append("/* EMG Function declarations */\n")
             if file in self._function_declarations:
