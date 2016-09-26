@@ -16,6 +16,7 @@
 #
 
 import abc
+import graphviz
 from operator import attrgetter
 from core.avtg.emg.common import get_conf_property, get_necessary_conf_property
 from core.avtg.emg.common.signature import Pointer, Primitive, import_declaration
@@ -65,6 +66,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
                 self.__compose_action(state, automaton)
+
+        # Dump graphs
+        if get_conf_property(self._conf, 'dump automata graphs'):
+            self._save_digraphs()
 
         # Start generation of control functions
         for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
@@ -154,111 +159,69 @@ class FSATranslator(metaclass=abc.ABCMeta):
             code, v_code, conditions, comments = code_generator(state, automaton)
             compose_single_action(state, code, v_code, conditions, comments)
 
-    def save_digraph(self, directory):
-        # todo: port it
-        raise NotImplementedError
-        # Generate graph
-        self.logger.info("Generate graph for automaton based on process {} with category {}".
-                         format(self.process.name, self.process.category))
-        dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
-                                     format(self.process.category, self.process.name, self.identifier))
+    def _save_digraphs(self):
+        directory = 'automata'
+        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+            self._logger.debug("Generate graph for automaton based on process {} with category {}".
+                               format(automaton.process.name, automaton.process.category))
+            dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
+                                         format(automaton.process.category, automaton.process.name, automaton.identifier))
 
-        graph = graphviz.Digraph(
-            name=str(self.identifier),
-            comment="Digraph for FSA {} based on self.process {} with category {}".
-                    format(self.identifier, self.process.name, self.process.category),
-            format="png"
-        )
+            graph = graphviz.Digraph(
+                name=str(automaton.identifier),
+                comment="Digraph for FSA {} based on self.process {} with category {}".
+                        format(automaton.identifier, automaton.process.name, automaton.process.category),
+                format="png"
+            )
 
-        # Add self.process description
-        graph.node(
-            self.process.name,
-            "self.process: {}".format(self.process.process),
-            {
-                "shape": "rectangle"
-            }
-        )
-
-        # Add subself.process description
-        for subp in [self.process.actions[name] for name in sorted(self.process.actions.keys())
-                       if type(self.process.actions[name]) is Subprocess]:
+            # Add self.process description
             graph.node(
-                subp.name,
-                "Subprocess {}: {}".format(subp.name, subp.process),
+                automaton.process.name,
+                "self.process: {}".format(automaton.process.process),
                 {
                     "shape": "rectangle"
                 }
             )
 
-        subprocesses = {}
-        for state in automaton.fsa.states:
-            label = "Action {}: {}\n".format(state.identifier, state.desc['label'])
-
-            if 'guard' in state.code and len(state.code['guard']) > 0:
-                label += 'Guard: ' + ' && '.join(state.code['guard'])
-                label += '\n'
-
-            if type(state.action) is Call and 'invoke' in state.code:
-                if 'file' in state.code:
-                    label += "File: '{}'\n".format(state.code['file'])
-                call = ''
-                if 'pre_call' in state.code:
-                    call += '\n'.join(state.code['pre_call'])
-                    call += '\n'
-                if 'retval' in state.code:
-                    call += "{} = ".format(state.code['retval'])
-                call += state.code['invoke']
-                if 'check pointer' in state.code and state.code['check pointer']:
-                    call += 'if ({})'.format(state.code['invoke']) + '\n\t'
-                call += '(' + ', '.join(state.code['parameters']) + ')'
-                if 'post_call' in state.code:
-                    call += '\n'.join(state.code['post_call'])
-                    call += '\n'
-                label += call
-            else:
-                if 'body' in state.code and len(state.code['body']) > 0:
-                    label += 'Body:\n' + '\n'.join(state.code['body'])
-
-            if 'relevant automata' in state.code:
-                label += '\nRelevant automata:\n'
-                if len(state.code['relevant automata']) > 0:
-                    for automaton in state.code['relevant automata'].values():
-                        label += "Automaton '{}': '{}' ({})\n".format(automaton['automaton'].identifier,
-                                                                      automaton['automaton'].process.name,
-                                                                      automaton['automaton'].process.category)
-
-            if type(state.action) is not Subprocess or state.action.name not in subprocesses:
-                graph.node(str(state.identifier), label)
-                if type(state.action) is Subprocess:
-                    subprocesses[state.action.name] = state.identifier
-
-        for state in automaton.fsa.states:
-            if type(state.action) is not Subprocess or state.identifier in subprocesses.values():
-                for succ in state.successors:
-                    if type(succ.action) is Subprocess:
-                        graph.edge(
-                            str(state.identifier),
-                            str(subprocesses[succ.action.name])
-                        )
-                    else:
-                        graph.edge(
-                            str(state.identifier),
-                            str(succ.identifier)
-                    )
-
-        if len(automaton.fsa._initial_states) > 1:
-            name = 'Artificial initial state'
-            graph.node(name, name)
-            for entry in automaton.fsa._initial_states:
-                graph.edge(
-                    str(name),
-                    str(entry.identifier)
+            # Add subself.process description
+            for subp in [automaton.process.actions[name] for name in sorted(automaton.process.actions.keys())
+                           if type(automaton.process.actions[name]) is Subprocess]:
+                graph.node(
+                    subp.name,
+                    "Subprocess {}: {}".format(subp.name, subp.process),
+                    {
+                        "shape": "rectangle"
+                    }
                 )
 
-        # Save to dg_file
-        graph.save(dg_file)
-        graph.render()
-        self.logger.debug("Graph image has been successfully rendered and saved")
+            subprocesses = {}
+            for state in automaton.fsa.states:
+                label = "Action {}: {}\n".format(state.identifier, state.desc['label'])
+                label += '\n'.join(state.code[1])
+
+                if type(state.action) is not Subprocess or state.action.name not in subprocesses:
+                    graph.node(str(state.identifier), label)
+                    if type(state.action) is Subprocess:
+                        subprocesses[state.action.name] = state.identifier
+
+            for state in automaton.fsa.states:
+                if type(state.action) is not Subprocess or state.identifier in subprocesses.values():
+                    for succ in state.successors:
+                        if type(succ.action) is Subprocess:
+                            graph.edge(
+                                str(state.identifier),
+                                str(subprocesses[succ.action.name])
+                            )
+                        else:
+                            graph.edge(
+                                str(state.identifier),
+                                str(succ.identifier)
+                        )
+
+            # Save to dg_file
+            graph.save(dg_file)
+            graph.render()
+            self._logger.debug("Graph image has been successfully rendered and saved")
 
     def _prepare_control_functions(self):
         raise NotImplementedError
