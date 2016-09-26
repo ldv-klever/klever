@@ -574,7 +574,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         def add_post_conditions(st, inv):
             post_call = []
             if access.interface and access.interface.interrupt_context:
-                post_call.append(self._cmodel.text_processor(automaton, '$SWITCH_TO_PROCESS_CONTEXT();'))
+                post_call.extend(self._cmodel.text_processor(automaton, '$SWITCH_TO_PROCESS_CONTEXT();'))
 
             if st.action.post_call and len(st.action.post_call) > 0:
                 for stment in st.action.post_call:
@@ -593,7 +593,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     callback_pre_call.extend(self._cmodel.text_processor(automaton, stment))
 
             if access.interface and access.interface.interrupt_context:
-                callback_pre_call.append(self._cmodel.text_processor(automaton, '$SWITCH_TO_IRQ_CONTEXT();'))
+                callback_pre_call.extend(self._cmodel.text_processor(automaton, '$SWITCH_TO_IRQ_CONTEXT();'))
 
             if len(callback_pre_call) > 0:
                 callback_pre_call.insert(0, '/* Callback pre-call */')
