@@ -190,10 +190,8 @@ class ReadTarMark(object):
             elif self.type == 'safe' and args['verdict'] in list(x[0] for x in MARK_SAFE):
                 mark.verdict = args['verdict']
             elif self.type == 'unknown':
-                if len(MarkUnknown.objects.filter(
-                        component__name=args['component'],
-                        problem_pattern=args['problem'],
-                        function=args['function'])) > 0:
+                if len(MarkUnknown.objects.filter(component__name=args['component'],
+                                                  problem_pattern=args['problem'])) > 0:
                     return _('Could not upload the mark archive since the similar mark exists already')
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
