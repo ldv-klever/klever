@@ -26,7 +26,6 @@
             "translation options": {
               "dump automata graphs": false,
               "direct control functions calls": true,
-              "omit all states": true,
               "nested automata": true,
               "omit parallel composition": {
                 "dispatch": false,
