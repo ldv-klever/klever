@@ -371,10 +371,10 @@ def __label_sequence(automaton, initial_state, ret_expression):
         new_v_code, new_f_code = state.code
         v_code.extend(new_v_code)
         if type(state.action) is Subprocess:
-            new_f_code.append(
+            new_f_code.extend([
                 '/* Jump to a subprocess {!r} initial state */'.format(state.action.name),
                 'goto ldv_{}_{};'.format(state.action.name, automaton.identifier)
-            )
+            ])
 
         # If this is a terminal state - quit control function
         if type(state.action) is not Subprocess and len(state.successors) == 0:
