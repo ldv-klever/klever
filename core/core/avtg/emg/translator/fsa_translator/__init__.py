@@ -146,7 +146,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 code_generator = self._condition
             elif type(state.action) is Subprocess:
                 code_generator = self._subprocess
-            elif type(state.action) is None:
+            elif state.action is None:
                 code_generator = self._art_action
             else:
                 raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
@@ -266,8 +266,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _art_action(self, state, automaton):
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(state.action, 'Artificial state {!r} of a process {!r}'.
-                                             format(state.action.name, automaton.process.name)))
+        comments.append(action_model_comment(state.action, 'Artificial state of a process {!r}'.
+                                             format(automaton.process.name)))
 
         return code, v_code, conditions, comments
 

@@ -39,6 +39,7 @@ def action_model_comment(action, text, begin=None):
         name_comment = action.name.upper()
     else:
         type_comment = 'ARTIFICIAL'
+        name_comment = None
 
     return model_comment(type_comment, text, name_comment)
 
