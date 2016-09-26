@@ -119,6 +119,7 @@
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
                             <span id="last_change_date">
+                                {# TODO: this field is not updated, no need to humanize it #}
                                 {% if user.extended.data_format == 'hum' %}
                                     {{ last_version.change_date|naturaltime }}
                                 {% else %}
@@ -139,7 +140,7 @@
                         <tr>
                             <th class="right aligned">{% trans 'Start decision date' %}</th>
                             {% timezone user.extended.timezone %}
-                                <td>{{ job.solvingprogress.start_date }}</td>
+                                <td>{{ job.solvingprogress.start_date|date:"r" }}</td>
                             {% endtimezone %}
                         </tr>
                     {% endif %}
@@ -147,7 +148,7 @@
                         <tr>
                             <th class="right aligned">{% trans 'Finish decision date' %}</th>
                             {% timezone user.extended.timezone %}
-                                <td>{{ job.solvingprogress.finish_date }}</td>
+                                <td>{{ job.solvingprogress.finish_date|date:"r" }}</td>
                             {% endtimezone %}
                         </tr>
                     {% endif %}
