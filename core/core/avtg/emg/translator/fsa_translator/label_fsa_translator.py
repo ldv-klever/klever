@@ -51,51 +51,53 @@ class LabelTranslator(FSATranslator):
                                                            self._control_function(automaton).name,
                                                            parameter)
 
-    def _dispatch_blocks(self, body, file, automaton, function_parameters, param_interfaces, automata_peers,
+    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
                          replicative):
-        decl = self._get_cf_struct(automaton, function_parameters)
-        cf_param = 'cf_arg'
-
-        vf_param_var = Variable('cf_arg', None, decl, False)
-        body.append(vf_param_var.declare() + ';')
-
-        for index in range(len(function_parameters)):
-            body.append('{}.arg{} = arg{};'.format(vf_param_var.name, index, index))
-        body.append('')
-
+        pre = []
+        post = []
         blocks = []
-        if replicative:
-            for name in automata_peers:
+
+        for name in (n for n in automata_peers if len(automata_peers[n]['states']) > 0):
+            decl = self._get_cf_struct(automaton, function_parameters)
+            cf_param = 'cf_arg_{}'.format(automata_peers[name]['automaton'].identifier)
+            vf_param_var = Variable(cf_param, None, decl.take_pointer, False)
+            pre.append(vf_param_var.declare() + ';')
+
+            if replicative:
                 for r_state in automata_peers[name]['states']:
-                    block = []
+                    block = list()
+                    block.append('{} = {}(sizeof({}));'.format(vf_param_var.name, self._cmodel.mem_function_map["ALLOC"],
+                                                        decl.identifier))
+                    for index in range(len(function_parameters)):
+                        block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
                     call = self._call_cf(file,
-                                         automata_peers[name]['automaton'], '& ' + cf_param)
+                                         automata_peers[name]['automaton'], cf_param)
                     if r_state.action.replicative:
                         if get_conf_property(self._conf, 'direct control functions calls'):
                             block.append(call)
                         else:
-                            block.append('ret = {}'.format(call))
+                            block.append('ret = {};'.format(call))
                             block.append('ldv_assume(ret == 0);')
                         blocks.append(block)
                         break
                     else:
                         self._logger.warning(
                             'Cannot generate dispatch based on labels for receive {} in process {} with category {}'
-                                .format(r_state.action.name,
-                                        automata_peers[name]['automaton'].process.name,
-                                        automata_peers[name]['automaton'].process.category))
-        else:
-            for name in (n for n in automata_peers
-                         if len(automata_peers[n]['states']) > 0):
+                            .format(r_state.action.name,
+                                    automata_peers[name]['automaton'].process.name,
+                                    automata_peers[name]['automaton'].process.category))
+            # todo: Pretty ugly, but works
+            elif state.action.name.find('dereg') != -1:
+                block = list()
                 call = self._join_cf(file, automata_peers[name]['automaton'])
                 if get_conf_property(self._conf, 'direct control functions calls'):
-                    block = [call]
+                    block.append(call)
                 else:
-                    block = ['ret = {}'.format(call),
-                             'ldv_assume(ret == 0);']
+                    block.extend(['ret = {}'.format(call),
+                                  'ldv_assume(ret == 0);'])
                 blocks.append(block)
 
-        return blocks
+        return pre, blocks, post
 
     def _receive(self, state, automaton):
         code, v_code, conditions, comments = super(LabelTranslator, self)._receive(self, state, automaton)
@@ -108,7 +110,8 @@ class LabelTranslator(FSATranslator):
 
             # Add additional condition
             if state.action.condition and len(state.action.condition) > 0:
-                for statement in state.action.condition:
+                # Arguments comparison is not supported in label-based model
+                for statement in (s for s in state.action.condition if s.find('$ARG') == -1):
                     cn = self._cmodel.text_processor(automaton, statement)
                     conditions.extend(cn)
 
@@ -132,18 +135,19 @@ class LabelTranslator(FSATranslator):
 
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
-                    var = Variable('cf_arg_struct', None, decl.take_pointer, False)
+                    var = Variable('data', None, decl.take_pointer, False)
                     v_code.append('/* Received labels */')
                     v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('')))
                     v_code.append('')
 
                     code.append('/* Assign recieved labels */')
-                    code.append('if (cf_arg_struct) {')
+                    code.append('if (data) {')
                     for index in range(len(param_expressions)):
-                        code.append('\t{} = cf_arg_struct->arg{};'.format(param_expressions[index], index))
+                        code.append('\t{} = data->arg{};'.format(param_expressions[index], index))
+                    code.append('\t{}({});'.format(self._cmodel.free_function_map["FREE"], 'data'))
                     code.append('}')
             else:
-                code.append('/* Skip the replicative signal receiving */'.format(state.desc['label']))
+                code.append('/* Skip a non-replicative signal receiving */'.format(state.desc['label']))
         else:
             # Generate comment
             code.append("/* Signal receive {!r} does not expect any signal from existing processes */".
@@ -162,25 +166,6 @@ class LabelTranslator(FSATranslator):
         model_flag = True
         if automaton not in self._model_fsa:
             model_flag = False
-
-            param_declarations = []
-            param_expressions = []
-            for receive in [r for r in automaton.process.actions.values() if type(r) is Receive and r.replicative]:
-                if len(receive.parameters) > 0:
-                    for index in range(len(receive.parameters)):
-                        # Determine dispatcher parameter
-                        interface = get_common_parameter(receive, automaton.process, index)
-
-                        # Determine receiver parameter
-                        receiver_access = automaton.process.resolve_access(receive.parameters[index],
-                                                                           interface.identifier)
-                        var = automaton.determine_variable(receiver_access.label, interface.identifier)
-                        receiver_expr = receiver_access.access_with_variable(var)
-
-                        param_declarations.append(var.declaration)
-                        param_expressions.append(receiver_expr)
-                    break
-
             modifier = get_necessary_conf_property(self._conf, 'instance modifier')
             if modifier and modifier > 1:
                 self._cmodel.add_global_variable(self.__thread_variable(automaton, modifier),

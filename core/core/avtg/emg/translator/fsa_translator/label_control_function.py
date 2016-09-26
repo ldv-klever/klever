@@ -30,7 +30,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     if model:
         kfunction_obj = analysis.get_kernel_function(automaton.process.name)
         if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
-            ret_expression = 'return res;'
+            # This because all declarations of artificial functions are generated with the same argument names like
+            # arg0, arg1 and etc. Here we just keep in mind that first argument of kernel model with non-void return
+            # value type is returned value itself.
+            ret_expression = 'return arg0;'
 
     for var in automaton.variables():
         if type(var.declaration) is Pointer and get_conf_property(conf, 'allocate external'):

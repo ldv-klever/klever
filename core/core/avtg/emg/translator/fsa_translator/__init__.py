@@ -91,7 +91,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 argiments = ['$res']
                 ret_expression = 'return '
             elif function_obj.declaration.return_value.identifier == 'void':
-                argiments = params
+                argiments = ['0'] + params
             else:
                 ret_expression = 'return '
                 argiments = ['$res'] + params
@@ -128,6 +128,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
             if len(comments) == 2:
                 final_code.append(comments[1])
 
+            # Append trailing empty space
+            final_code.append('')
             st.code = (v_code, final_code)
 
         if type(state.action) is Call:
@@ -337,8 +339,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 df_parameters.append(dispatcher_expr)
 
             # Generate blocks on each receive to another process
-            blocks = self._dispatch_blocks(body, file, automaton, function_parameters, param_interfaces, automata_peers,
-                                           replicative)
+            pre, blocks, post = self._dispatch_blocks(state, file, automaton, function_parameters, param_interfaces, automata_peers,
+                                                      replicative)
+            body.extend(pre)
 
             # Print body of a dispatching function
             if state.action.broadcast:
@@ -364,7 +367,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         body.append('\t};')
                     body.append('\tdefault: ldv_stop();')
                     body.append('};')
-            body.append('return;')
 
             if len(function_parameters) > 0:
                 df = FunctionDefinition(
@@ -382,6 +384,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     "void f(void)",
                     False
                 )
+            body.extend(post)
+            body.append('return;')
             df.body.extend(body)
 
             # Add function definition
@@ -803,7 +807,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 elif len(params) == 0:
                     param_types = [function_obj.declaration.return_value.to_string('res')]
                 elif function_obj.declaration.return_value.identifier == 'void':
-                    param_types = params
+                    param_types = ['void *'] + params
                 else:
                     param_types = [function_obj.declaration.return_value.to_string('res')] + params
 
@@ -826,8 +830,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _dispatch_blocks(self, body, file, automaton, function_parameters, param_interfaces, automata_peers,
-                         replicative):
+    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers, replicative):
         raise NotImplementedError
 
     @abc.abstractstaticmethod

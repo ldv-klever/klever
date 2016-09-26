@@ -23,6 +23,21 @@ from core.avtg.emg.common import get_conf_property
 
 class CModel:
 
+    mem_function_map = {
+        # TODO: switch to correct memory allocation function when sizes will be known.
+        "ALLOC": "ldv_xmalloc",
+        "UALLOC": "ldv_xmalloc_unknown_size",
+        "ZALLOC": "ldv_zalloc"
+    }
+    free_function_map = {
+        "FREE": "ldv_free"
+    }
+    irq_function_map = {
+        "IN_INTERRUPT_CONTEXT": 'ldv_in_interrupt_context',
+        "SWITCH_TO_IRQ_CONTEXT": 'ldv_switch_to_interrupt_context',
+        "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
+    }
+
     def __init__(self, logger, conf, workdir, files, entry_point_name, entry_file):
         self.entry_file = entry_file
         self.entry_name = entry_point_name
@@ -115,7 +130,7 @@ class CModel:
                 self.__external_allocated[file].append(variable)
 
     def text_processor(self, automaton, statement):
-        models = FunctionModels(self._conf)
+        models = FunctionModels(self._conf, self.mem_function_map, self.free_function_map, self.irq_function_map)
         return models.text_processor(automaton, statement)
 
     def add_function_model(self, function, body):
@@ -365,30 +380,19 @@ class Aspect(FunctionDefinition):
 
 class FunctionModels:
 
-    def __init__(self, conf):
-        self._conf = conf
-
-    mem_function_map = {
-        # TODO: switch to correct memory allocation function when sizes will be known.
-        "ALLOC": "ldv_xmalloc",
-        "UALLOC": "ldv_xmalloc_unknown_size",
-        "ZALLOC": "ldv_zalloc"
-    }
-    free_function_map = {
-        "FREE": "ldv_free"
-    }
-    irq_function_map = {
-        "IN_INTERRUPT_CONTEXT": 'ldv_in_interrupt_context',
-        "SWITCH_TO_IRQ_CONTEXT": 'ldv_switch_to_interrupt_context',
-        "SWITCH_TO_PROCESS_CONTEXT": 'ldv_switch_to_process_context'
-    }
-
     mem_function_template = "\$({})\(%({})%(?:,\s?(\w+))?\)"
     simple_function_template = "\$({})\("
     access_template = '\w+(?:(?:[.]|->)\w+)*'
     mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
     simple_function_re = re.compile(simple_function_template.format('\w+'))
     access_re = re.compile('(%{}%)'.format(access_template))
+    arg_re = re.compile('(\$ARG\d)')
+
+    def __init__(self, conf, mem_function_map, free_function_map, irq_function_map):
+        self._conf = conf
+        self.mem_function_map = mem_function_map
+        self.free_function_map = free_function_map
+        self.irq_function_map = irq_function_map
 
     def init_pointer(self, signature):
         if get_conf_property(self._conf, 'allocate with sizeof'):
@@ -400,6 +404,14 @@ class FunctionModels:
         # Replace function names
         stms = []
         matched = False
+
+        # First replace simple replacements
+        statement = statement.replace('$res', 'arg0')
+        for pattern in self.arg_re.findall(statement):
+            replacement = pattern.replace('$ARG', 'arg')
+            statement = statement.replace(pattern, replacement)
+
+        # Replace function calls
         for fn in self.simple_function_re.findall(statement):
             matched = True
 
