@@ -55,7 +55,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     header_list.append(header)
 
         # Generate aspect
-        self._cmodel.add_before_aspect(('#include <{}>'.format(h) for h in header_list))
+        self._cmodel.add_before_aspect(('#include <{}>\n'.format(h) for h in header_list))
         self._logger.info("Have added {!s} additional headers".format(len(header_list)))
 
         # Generates base code blocks
@@ -105,7 +105,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         self._entry_point()
 
         # Add types
-        self._cmodel.types = list(self._structures.values())
+        self._cmodel.types = sorted(set(self._structures.values()), key=lambda t: t.identifier)
 
         return
 

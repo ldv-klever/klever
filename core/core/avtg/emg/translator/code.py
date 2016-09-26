@@ -24,7 +24,6 @@ from core.avtg.emg.common import get_conf_property
 class CModel:
 
     mem_function_map = {
-        # TODO: switch to correct memory allocation function when sizes will be known.
         "ALLOC": "ldv_xmalloc",
         "UALLOC": "ldv_xmalloc_unknown_size",
         "ZALLOC": "ldv_zalloc"
