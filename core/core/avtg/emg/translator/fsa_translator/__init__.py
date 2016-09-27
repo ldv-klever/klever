@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 import abc
 import graphviz
 from operator import attrgetter
@@ -165,7 +164,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
             self._logger.debug("Generate graph for automaton based on process {} with category {}".
                                format(automaton.process.name, automaton.process.category))
             dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
-                                         format(automaton.process.category, automaton.process.name, automaton.identifier))
+                                         format(automaton.process.category, automaton.process.name,
+                                                automaton.identifier))
 
             graph = graphviz.Digraph(
                 name=str(automaton.identifier),
@@ -262,7 +262,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         if len(automata_peers) > 0:
             # Add conditions on base of dispatches
-            checks = self._relevant_checks(state)
+            checks = self._relevant_checks(automata_peers)
             if len(checks) > 0:
                 conditions.append(' || '.join(checks))
 
@@ -302,7 +302,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 df_parameters.append(dispatcher_expr)
 
             # Generate blocks on each receive to another process
-            pre, blocks, post = self._dispatch_blocks(state, file, automaton, function_parameters, param_interfaces, automata_peers,
+            pre, blocks, post = self._dispatch_blocks(state, file, automaton, function_parameters, param_interfaces,
+                                                      automata_peers,
                                                       replicative)
             body.extend(pre)
 
@@ -643,7 +644,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 if not get_necessary_conf_property(self._conf, 'nested automata'):
                     checks = self._relevant_checks(relevant_automata)
                     if len(checks) > 0:
-                        conditions.append('ldv_assume({});'.format(' || '.join(checks)))
+                        conditions.append(' || '.join(checks))
 
                 inv = compose_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
@@ -696,8 +697,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 conditions.extend(cn)
 
         return code, v_code, conditions, comments
-
-
 
     def _get_cf_struct(self, automaton, params):
         cache_identifier = ''
@@ -762,7 +761,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                   ', '.join(param_types))
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
             else:
-                cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *cf_arg)', False)
+                cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *data)', False)
 
             self._control_functions[automaton.identifier] = cf
 
@@ -781,7 +780,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
-    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers, replicative):
+    def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
+                         replicative):
         raise NotImplementedError
 
     @abc.abstractstaticmethod
@@ -790,7 +790,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         # Make comments
         comments.append(action_model_comment(state.action,
-                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.\
+                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.
                                              format(state.action.name, automaton.process.name,
                                                     automaton.process.category),
                                              begin=True))

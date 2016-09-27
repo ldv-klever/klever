@@ -175,7 +175,10 @@ class LabelTranslator(FSATranslator):
                                                  choose_file(self._cmodel, self._analysis, automaton),
                                                  extern=False)
 
+        # Generate function body
         label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
+
+        # Add function to source code to print
         self._cmodel.add_function_definition(choose_file(self._cmodel, self._analysis, automaton), cf)
         self._cmodel.add_function_declaration(self._cmodel.entry_file, cf, extern=True)
         if model_flag:

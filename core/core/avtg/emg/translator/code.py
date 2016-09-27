@@ -280,8 +280,6 @@ class CModel:
 
         body = [
             "ldv_initialize();",
-            ""
-            "/* Initialize initial states of automata */"
         ] + body + given_body
 
         ep.body = body

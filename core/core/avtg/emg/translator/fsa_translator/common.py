@@ -14,7 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.avtg.emg.common import get_conf_property
 from core.avtg.emg.common.process import Receive, Dispatch
+from core.avtg.emg.common.signature import Pointer, Primitive
 
 
 def model_comment(comment_type, text, instance=None):
@@ -132,5 +134,18 @@ def choose_file(cmodel, analysis, automaton):
         return cmodel.entry_file
     else:
         return sorted(list(files))[0]
+
+
+def initialize_automaton_variables(conf, automaton):
+    initializations = []
+    for var in automaton.variables():
+        if type(var.declaration) is Pointer and get_conf_property(conf, 'allocate external'):
+            initializations.append("{} = external_allocated_data();".format(var.name))
+        elif type(var.declaration) is Primitive and var.value:
+            initializations.append('{} = {};'.format(var.name, var.value))
+
+    if len(initializations) > 0:
+        initializations.insert(0, '/* Initialize automaton variables */')
+    return initializations
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

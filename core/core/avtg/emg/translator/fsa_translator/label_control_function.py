@@ -15,10 +15,8 @@
 # limitations under the License.
 #
 from operator import attrgetter
-from core.avtg.emg.common import get_conf_property
-from core.avtg.emg.common.signature import Pointer, Primitive
 from core.avtg.emg.common.process import Subprocess
-from core.avtg.emg.translator.fsa_translator.common import control_function_comment, choose_file
+from core.avtg.emg.translator.fsa_translator.common import control_function_comment, initialize_automaton_variables
 
 
 def label_based_function(conf, analysis, automaton, cf, model=True):
@@ -35,14 +33,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             # value type is returned value itself.
             ret_expression = 'return arg0;'
 
+    # Initialize variables
     for var in automaton.variables():
-        if type(var.declaration) is Pointer and get_conf_property(conf, 'allocate external'):
-            definition = var.declare() + " = external_allocated_data();"
-        elif type(var.declaration) is Primitive and var.value:
-            definition = var.declare_with_init() + ";"
-        else:
-            definition = var.declare() + ";"
-        v_code.append(definition)
+        v_code.append(var.declare() + ';')
+    f_code.extend(initialize_automaton_variables(conf, automaton))
 
     main_v_code, main_f_code = __label_sequence(automaton, list(automaton.fsa.initial_states)[0], ret_expression)
     v_code.extend(main_v_code)
@@ -191,7 +185,7 @@ def __merge_points(initial_states):
                                     graph[predecessor.identifier][st.identifier][split])) > 0 or \
                                len(split_points[split]['merge branches'].
                                     symmetric_difference(graph[predecessor.identifier][st.identifier][split])) == 0:
-                                 # Add terminal states for each branch
+                                # Add terminal states for each branch
                                 if st.identifier not in merge_points:
                                     merge_points[st.identifier] = dict()
                                 merge_points[st.identifier][split] = \

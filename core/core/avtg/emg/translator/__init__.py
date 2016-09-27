@@ -26,7 +26,6 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
     # Prepare main configuration properties
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf, 'entry point', default_value='main', expected_type=str)
-    check_or_set_conf_property(conf["translation options"], "omit all states", default_value=True, expected_type=bool)
     check_or_set_conf_property(conf["translation options"], "nested automata", default_value=True, expected_type=bool)
     check_or_set_conf_property(conf["translation options"], "direct control function calls", default_value=True, expected_type=bool)
 
@@ -52,7 +51,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
 
     # Prepare code on each automaton
     logger.info("Translate finite state machines into C code")
-    if get_necessary_conf_property(conf["translation options"], "omit all states"):
+    if get_necessary_conf_property(conf["translation options"], "nested automata"):
         LabelTranslator(logger, conf["translation options"], analysis, cmodel, entry_fsa, model_fsa,
                                          main_fsa)
     else:
