@@ -988,8 +988,7 @@ $(document).ready(function () {
                         }
                         $('.tag-description-popup').each(function () {
                             $(this).popup({
-                                html: $(this).attr('data-content'),
-                                hoverable: true
+                                html: $(this).attr('data-content'), hoverable: true
                             });
                         });
                         if (shown_tag_description_id) {
@@ -999,19 +998,10 @@ $(document).ready(function () {
                             }
                         }
                     }
-                    var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
-                    $('#job_run_history_block').html(data['job_history']);
-                    set_actions_for_run_history();
-                    if (is_jh_active) {
-                        $('#run_history').dropdown('show');
-                    }
                     if ('jobstatus' in data) {
                         if (data['jobstatus'] != $('#job_status_value').val()) {
                             window.location.replace('');
                         }
-                    }
-                    if ('last_change_date' in data) {
-                        $('#last_change_date').text(data['last_change_date']);
                     }
                 }
             ).fail(function () {

@@ -18,6 +18,7 @@
 import mimetypes
 import tempfile
 import tarfile
+from datetime import datetime
 from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
@@ -48,13 +49,19 @@ def tree_view(request):
     if request.method == 'POST':
         tree_args.append(request.POST.get('view', None))
         tree_args.append(request.POST.get('view_id', None))
+    months_choices = []
+    for i in range(1, 13):
+        months_choices.append((i, datetime(2016, i, 1).strftime('%B')))
+    curr_year = datetime.now().year
 
     return render(request, 'jobs/tree.html', {
         'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
-        'priorities': reversed(PRIORITY),
+        'priorities': list(reversed(PRIORITY)),
         'can_create': JobAccess(request.user).can_create(),
+        'months': months_choices,
+        'years': list(range(curr_year - 3, curr_year + 1)),
         'TableData': TableTree(*tree_args)
     })
 
@@ -248,41 +255,22 @@ def get_job_data(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    if 'job_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
     try:
-        job = Job.objects.get(pk=int(request.POST['job_id']))
+        job = Job.objects.get(pk=request.POST.get('job_id', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Unknown error'})
+
+    data = {'jobstatus': job.status}
     try:
-        report = ReportComponent.objects.get(root__job=job, parent=None)
-    except ObjectDoesNotExist:
-        report = None
-    except ValueError:
-        return JsonResponse({'error': 'Unknown error'})
-
-    if request.user.extended.data_format == 'hum':
-        change_date = Template('{% load humanize %}{{ change_date|naturaltime }}').render(Context({
-            'change_date': job.versions.order_by('version').last().change_date
-        }))
-    else:
-        change_date = None
-
-    data = {
-        'jobstatus': job.status,
-        'job_history': loader.get_template('jobs/jobRunHistory.html').render({
-            'user': request.user,
-            'job': job,
-            'checked_option': request.POST.get('checked_run_history', 0)
-        })
-    }
-
-    if change_date is not None:
-        data['last_change_date'] = change_date
-    if report is not None:
         data['jobdata'] = loader.get_template('jobs/jobData.html').render({
-            'reportdata': ViewJobData(request.user, report, view=request.POST.get('view', None))
+            'reportdata': ViewJobData(
+                request.user,
+                ReportComponent.objects.get(root__job=job, parent=None),
+                view=request.POST.get('view', None)
+            )
         })
+    except ObjectDoesNotExist:
+        pass
     return JsonResponse(data)
 
 

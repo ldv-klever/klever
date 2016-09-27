@@ -118,16 +118,13 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            <span id="last_change_date">
-                                {# TODO: this field is not updated, no need to humanize it #}
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
-                            </span>
+                            {% if user.extended.data_format == 'hum' %}
+                                {{ last_version.change_date|naturaltime }}
+                            {% else %}
+                                {% timezone user.extended.timezone %}
+                                    {{ last_version.change_date }}
+                                {% endtimezone %}
+                            {% endif %}
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}
@@ -139,44 +136,38 @@
                     {% if job.solvingprogress.start_date %}
                         <tr>
                             <th class="right aligned">{% trans 'Start decision date' %}</th>
-                            {% timezone user.extended.timezone %}
-                                <td>{{ job.solvingprogress.start_date|date:"r" }}</td>
-                            {% endtimezone %}
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.start_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.start_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endif %}
                     {% if job.solvingprogress.finish_date %}
                         <tr>
                             <th class="right aligned">{% trans 'Finish decision date' %}</th>
-                            {% timezone user.extended.timezone %}
-                                <td>{{ job.solvingprogress.finish_date|date:"r" }}</td>
-                            {% endtimezone %}
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.finish_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.finish_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endif %}
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata.report %}
-                                <a id="job_status_link" class="
-                                {% if job.status == '0' %}
-                                    status-link status0-link
-                                {% elif job.status == '1' %}
-                                    status-link status1-link
-                                {% elif job.status == '2' %}
-                                    status-link status2-link
-                                {% elif job.status == '3' %}
-                                    status-link status3-link
-                                {% elif job.status == '4' %}
-                                    status-link status4-link
-                                {% elif job.status == '5' %}
-                                    status-link status5-link
-                                {% elif job.status == '6' %}
-                                    status-link status6-link
-                                {% elif job.status == '7' %}
-                                    status-link status7-link
-                                {% endif %}
-                                " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
+                                <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
                             <input id="job_status_value" type="hidden" value="{{ job.status }}">
                         </td>
