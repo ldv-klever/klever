@@ -99,7 +99,7 @@ def registration_intf_check(analysis, automata, model_fsa, function_call):
             relevant_models = analysis.collect_relevant_models(name)
 
             # Check relevant state machines for each model
-            for model in (m.process for m in model_fsa):
+            for model in (m.process for m in model_fsa if m.process.name in relevant_models):
                 signals = [model.actions[name] for name in sorted(model.actions.keys())
                            if (type(model.actions[name]) is Receive or
                                type(model.actions[name]) is Dispatch) and
