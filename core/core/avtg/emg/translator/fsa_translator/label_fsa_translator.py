@@ -76,7 +76,7 @@ class LabelTranslator(FSATranslator):
                         if get_conf_property(self._conf, 'direct control functions calls'):
                             block.append(call)
                         else:
-                            block.append('ret = {};'.format(call))
+                            block.append('ret = {}'.format(call))
                             block.append('ldv_assume(ret == 0);')
                         blocks.append(block)
                         break
