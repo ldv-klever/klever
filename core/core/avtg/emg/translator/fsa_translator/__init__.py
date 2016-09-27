@@ -697,9 +697,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         return code, v_code, conditions, comments
 
-    @abc.abstractstaticmethod
-    def _relevant_checks(self, relevent_automata):
-        raise NotImplementedError
+
 
     def _get_cf_struct(self, automaton, params):
         cache_identifier = ''
@@ -738,20 +736,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
         else:
             return self._join_cf_code(file, automaton)
 
-    @abc.abstractstaticmethod
-    def _receive(self, state, automaton):
-        code, v_code, conditions, comments = list(), list(), list(), list()
-
-        # Make comments
-        comments.append(action_model_comment(state.action,
-                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.\
-                                             format(state.action.name, automaton.process.name,
-                                                    automaton.process.category),
-                                             begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
-
-        return code, v_code, conditions, comments
-
     def _control_function(self, automaton):
         if automaton.identifier not in self._control_functions:
             # Check that this is an aspect function or not
@@ -783,6 +767,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
             self._control_functions[automaton.identifier] = cf
 
         return self._control_functions[automaton.identifier]
+
+    @abc.abstractstaticmethod
+    def _relevant_checks(self, relevent_automata):
+        raise NotImplementedError
     
     @abc.abstractstaticmethod
     def _join_cf_code(self, file, automaton):
@@ -795,6 +783,20 @@ class FSATranslator(metaclass=abc.ABCMeta):
     @abc.abstractstaticmethod
     def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers, replicative):
         raise NotImplementedError
+
+    @abc.abstractstaticmethod
+    def _receive(self, state, automaton):
+        code, v_code, conditions, comments = list(), list(), list(), list()
+
+        # Make comments
+        comments.append(action_model_comment(state.action,
+                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.\
+                                             format(state.action.name, automaton.process.name,
+                                                    automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
+
+        return code, v_code, conditions, comments
 
     @abc.abstractstaticmethod
     def _compose_control_function(self, automaton):
