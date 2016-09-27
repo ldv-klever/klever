@@ -163,6 +163,11 @@ class StateTranslator(FSATranslator):
     def _entry_point(self):
         self._logger.info("Generate body for entry point function {}".format(self._cmodel.entry_name))
         body = []
+        # Init original states
+        for automaton in [self._entry_fsa] + self._callback_fsa:
+            body.extend(self.__set_initial_state(automaton))
+
+        # Generate loop
         body.extend([
             ''
             "while(1) {",
