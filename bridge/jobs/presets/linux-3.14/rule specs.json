@@ -27,12 +27,7 @@
               "dump automata graphs": false,
               "direct control functions calls": true,
               "nested automata": true,
-              "omit parallel composition": {
-                "dispatch": false,
-                "receive": false,
-                "call": false,
-                "condition": true
-              },
+              "no actions composition": ["Condition"],
               "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,
