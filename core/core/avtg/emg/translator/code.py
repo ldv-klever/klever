@@ -40,11 +40,11 @@ class CModel:
     def __init__(self, logger, conf, workdir, files, entry_point_name, entry_file):
         self.entry_file = entry_file
         self.entry_name = entry_point_name
+        self.files = files
         self.types = list()
         self._logger = logger
         self._conf = conf
         self._workdir = workdir
-        self._files = files
         self._variables_declarations = dict()
         self._variables_initializations = dict()
         self._function_definitions = dict()
@@ -62,7 +62,7 @@ class CModel:
         if file:
             files = [file]
         else:
-            files = self._files
+            files = self.files
 
         # Add code
         for file in files:
@@ -143,7 +143,7 @@ class CModel:
         os.makedirs(aspect_dir.encode('utf8'), exist_ok=True)
 
         addictions = dict()
-        for file in self._files:
+        for file in self.files:
             # Generate function declarations
             self._logger.info('Add aspects to a file {!r}'.format(file))
             # Aspect text

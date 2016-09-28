@@ -264,7 +264,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Add conditions on base of dispatches
             checks = self._relevant_checks(automata_peers)
             if len(checks) > 0:
-                conditions.append(' || '.join(checks))
+                # Convert conditions into assume, because according to signals semantics process could not proceed until
+                # it sends a signal and condition describes precondition to prevent signal sending to a wrong process.
+                if len(checks) > 0:
+                    code.append('ldv_assume({});'.format(' || '.join(checks)))
 
             # Generate artificial function
             body = []
@@ -644,7 +647,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 if not get_necessary_conf_property(self._conf, 'nested automata'):
                     checks = self._relevant_checks(relevant_automata)
                     if len(checks) > 0:
-                        conditions.append(' || '.join(checks))
+                        code.append('ldv_assume({});'.format(' || '.join(checks)))
 
                 inv = compose_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
