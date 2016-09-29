@@ -88,12 +88,14 @@ class CModel:
             self.add_function_declaration(file, function, extern=True)
 
     def add_function_definition(self, file, function):
+        if not file:
+            raise RuntimeError('Always expect file to place function definition')
         if file not in self._function_definitions:
             self._function_definitions[file] = dict()
         if self.entry_file not in self._function_definitions:
-            self._function_definitions[file] = dict()
+            self._function_definitions[self.entry_file] = dict()
 
-        self._function_definitions[file][function.name] = ['/* AUX_FUNC */\n'] + function.get_definition()
+        self._function_definitions[file][function.name] = ['/* AUX_FUNC */\n'] + list(function.get_definition())
         self.add_function_declaration(file, function, extern=False)
 
     def add_function_declaration(self, file, function, extern=False):

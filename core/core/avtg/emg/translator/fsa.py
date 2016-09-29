@@ -96,14 +96,14 @@ class FSA:
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
             # Make copy of the original AST to allow making changes there for more convinient exploration
             ast = copy.copy(process.actions[name].process_ast)
-            generate_nodes(self, process, ast)
+            generate_nodes(process, ast)
             sp_asts[name] = ast
 
         # Copy main process AST to allow changes introducing
         p_ast = copy.copy(process.process_ast)
 
         # Generates states exploring the AST of the process itself
-        self._initial_states = generate_nodes(self, process, p_ast)
+        self._initial_states = generate_nodes(process, p_ast)
         asts.append([p_ast, None])
 
         def resolve_last(pr_ast):
