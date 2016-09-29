@@ -274,7 +274,7 @@ function load_new_files() {
                 async: false,
                 success: function (data) {
                     if (data.error) {
-                        err_notify(data.error, 15000);
+                        err_notify(data.error);
                         success = false;
                     }
                     else {
@@ -816,7 +816,9 @@ $(document).ready(function () {
     $('#fast_start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_fast_job_start_popup', 'show');
-
+    $('#last_start_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_last_job_start_popup', 'show');
     $('#start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
@@ -833,6 +835,9 @@ $(document).ready(function () {
     });
     $('#cancel_fast_start_job').click(function () {
         $('#fast_start_job_popup').modal('hide');
+    });
+    $('#cancel_last_start_job').click(function () {
+        $('#last_start_job_popup').modal('hide');
     });
     $('#cancel_start_job').click(function () {
         $('#start_job_popup').modal('hide');
@@ -954,6 +959,20 @@ $(document).ready(function () {
             }
         );
     });
+    $('#lastconf_job_start').click(function () {
+        $.post(
+            job_ajax_url + 'lastconf_run_decision/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
 
     if ($('#job_data_div').length) {
         var interval = setInterval(function () {
@@ -1020,10 +1039,12 @@ $(document).ready(function () {
                     if (data['can_decide']) {
                         $('#decide_job_btn_show_popup').removeClass('disabled');
                         $('#show_fast_job_start_popup').removeClass('disabled');
+                        $('#show_last_job_start_popup').removeClass('disabled');
                     }
                     else {
                         $('#decide_job_btn_show_popup').addClass('disabled');
                         $('#show_fast_job_start_popup').addClass('disabled');
+                        $('#show_last_job_start_popup').addClass('disabled');
                     }
                     if (data['can_stop']) {
                         $('#stop_job_btn').removeClass('disabled');
@@ -1062,6 +1083,15 @@ $(document).ready(function () {
                             job_status_link.attr('href', data['jobstatus_href']);
                             job_status_link.attr('class', 'status-link status' + data['jobstatus'] + '-link');
                             job_status_link.text(data['jobstatus_text']);
+                            // WARNING: change this if you change JOB_STATUS
+                            if ('solvingprogress_err' in data && !$('#job_status_popup').length) {
+                                var popup_activator = $('#job_status_popup_activator');
+                                popup_activator.parent().parent().after($('<div>', {
+                                    'id': 'job_status_popup',
+                                    'class': 'ui inverted popup wide hidden'
+                                }).append($('<div>', {'class': 'ui red header', 'text': data['solvingprogress_err']})));
+                                popup_activator.popup({popup: $('#job_status_popup'), position: 'bottom center'});
+                            }
                         }
                         else {
                             var job_status_a = $('#job_status_link');

@@ -518,6 +518,8 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     if 'files' in report and report['files']:
         report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
+        if os.path.isfile(report_files_archive):
+            raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
         with tarfile.open(report_files_archive, 'w:gz', encoding='utf8') as tar:
             for file in report['files']:
                 tar.add(file)

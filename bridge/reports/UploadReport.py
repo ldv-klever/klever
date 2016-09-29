@@ -36,68 +36,57 @@ class UploadReport(object):
         self.archive = archive
         self.data = {}
         self.ordered_attrs = []
-        self.error = self.__check_data(data)
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.parent = self.__get_parent()
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.root = self.__get_root_report()
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.__upload()
-        if self.error is not None:
-            self.__job_failed(self.error)
+        self.error = None
+        try:
+            self.__check_data(data)
+            self.parent = self.__get_parent()
+            self.root = self.__get_root_report()
+            self.__upload()
+        except Exception as e:
+            logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
+            self.__job_failed(str(e))
+            self.error = str(e)
 
     def __job_failed(self, error=None):
         if 'id' in self.data:
-            error = 'Report with id "%s" has led to fail. ' % self.data['id'] + error
+            error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + str(error)
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
         if not isinstance(data, dict):
-            return 'Data is not a dictionary'
+            raise ValueError('report data is not a dictionary')
         if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
                 or not data['id'].startswith('/'):
-            return 'Type and id are required or have wrong format'
+            raise ValueError('type and id are required or have wrong format')
         if 'parent id' in data and not isinstance(data['parent id'], str):
-            return 'Parent id has wrong format'
+            raise ValueError('parent id has wrong format')
 
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
                     or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                return 'Resources have wrong format: %s' % json.dumps(data['resources'], ensure_ascii=False,
-                                                                      sort_keys=True, indent=4)
+                raise ValueError('resources have wrong format')
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
-            err = self.__check_comp(data['comp'])
-            if err is not None:
-                return err
+            self.__check_comp(data['comp'])
         if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
-            return 'Component name is too long (max 15 symbols expected)'
+            raise ValueError('component name is too long (max 15 symbols expected)')
         if 'data' in data:
             try:
                 json.loads(data['data'])
-            except Exception as e:
-                logger.exception("Json parsing error: %s" % e, stack_info=True)
-                return "Component data must be represented in JSON"
+            except ValueError:
+                raise ValueError("component data must be represented in JSON")
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                result = KleverCoreStartDecision(self.job)
-                if result.error is not None:
-                    return result.error
+                KleverCoreStartDecision(self.job)
                 try:
                     self.data.update({
                         'attrs': data['attrs'],
                         'comp': data['comp'],
                     })
                 except KeyError as e:
-                    return "Property '%s' is required." % e
+                    raise ValueError("property '%s' is required." % e)
             else:
                 try:
                     self.data.update({
@@ -105,7 +94,7 @@ class UploadReport(object):
                         'name': data['name']
                     })
                 except KeyError as e:
-                    return "Property '%s' is required." % e
+                    raise ValueError("property '%s' is required." % e)
                 if 'attrs' in data:
                     self.data['attrs'] = data['attrs']
                 if 'comp' in data:
@@ -114,7 +103,7 @@ class UploadReport(object):
             try:
                 self.data['resources'] = data['resources']
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'data' in data:
                 self.data.update({'data': data['data']})
             if 'log' in data:
@@ -123,7 +112,7 @@ class UploadReport(object):
             try:
                 self.data['attrs'] = data['attrs']
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'verification':
             try:
                 self.data.update({
@@ -133,7 +122,7 @@ class UploadReport(object):
                     'resources': data['resources']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'data' in data:
                 self.data.update({'data': data['data']})
             if 'comp' in data:
@@ -150,7 +139,7 @@ class UploadReport(object):
                     'attrs': data['attrs'],
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
@@ -158,7 +147,7 @@ class UploadReport(object):
                     'problem desc': data['problem desc']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'attrs' in data:
                 self.data['attrs'] = data['attrs']
         elif data['type'] == 'unsafe':
@@ -169,37 +158,34 @@ class UploadReport(object):
                     'attrs': data['attrs'],
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'data':
             try:
                 self.data.update({
                     'data': data['data']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         else:
-            return "Report type is not supported"
-        return None
+            raise ValueError("report type is not supported")
 
     def __check_comp(self, descr):
         self.ccc = 0
         if not isinstance(descr, list):
-            return 'Wrong computer description format'
+            raise ValueError('wrong computer description format')
         for d in descr:
             if not isinstance(d, dict):
-                return 'Wrong computer description format'
+                raise ValueError('wrong computer description format')
             if len(d) != 1:
-                return 'Wrong computer description format'
+                raise ValueError('wrong computer description format')
             if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
-                return 'Wrong computer description format'
-        return None
+                raise ValueError('wrong computer description format')
 
     def __get_root_report(self):
         try:
-            return self.job.reportroot
+            return ReportRoot.objects.get(job=self.job)
         except ObjectDoesNotExist:
-            self.error = "Can't find report root"
-            return None
+            raise ValueError("the job is corrupted: can't find report root")
 
     def __get_parent(self):
         if 'parent id' in self.data:
@@ -209,7 +195,7 @@ class UploadReport(object):
                     identifier=self.job.identifier + self.data['parent id']
                 )
             except ObjectDoesNotExist:
-                self.error = 'Report parent was not found'
+                raise ValueError('report parent was not found')
         elif self.data['id'] == '/':
             return None
         else:
@@ -217,8 +203,7 @@ class UploadReport(object):
                 curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
-                self.error = 'Report parent was not found'
-        return None
+                raise ValueError('report parent was not found')
 
     def __upload(self):
         actions = {
@@ -234,16 +219,14 @@ class UploadReport(object):
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if self.error is None:
-            if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
-                    and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__job_failed("Attributes for the component report with id '%s' are not unique" % self.data['id'])
+        if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
+                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
+            raise ValueError("attributes are not unique")
 
     def __create_report_component(self, identifier):
         try:
             ReportComponent.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report_datafile = None
             if 'data' in self.data:
@@ -291,7 +274,7 @@ class UploadReport(object):
             report = ReportComponent.objects.get(identifier=identifier)
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
+            raise ValueError('updated report does not exist')
 
     def __update_report_data(self, identifier):
         if self.job.light and self.data['id'] != '/':
@@ -301,17 +284,15 @@ class UploadReport(object):
             report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report.save()
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
+            raise ValueError('updated report does not exist')
 
     def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
-            return
+            raise ValueError('updated report does not exist')
         if report.finish_date is not None:
-            self.error = 'The component is finished already (there was finish report earlier)'
-            return
+            raise ValueError('trying to finish the finished component')
 
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
@@ -337,8 +318,7 @@ class UploadReport(object):
 
         if self.data['id'] == '/':
             if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
-                self.__job_failed("There are unfinished reports")
-                return
+                raise ValueError('there are unfinished reports')
             KleverCoreFinishDecision(self.job)
             if self.job.light:
                 self.__collapse_reports()
@@ -351,8 +331,7 @@ class UploadReport(object):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
-            self.error = 'Verification report does not exist'
-            return
+            raise ValueError('verification report does not exist')
         if len(ReportUnsafe.objects.filter(parent=report)) == 0:
             report.delete()
 
@@ -362,16 +341,14 @@ class UploadReport(object):
             return
         try:
             ReportUnknown.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportUnknown(
                 identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
             )
 
         if self.archive is None:
-            self.error = 'Unknown report must contain archive with problem description'
-            return
+            raise ValueError('unknown report must contain archive with problem description')
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.problem_description = self.data['problem desc']
         report.save()
@@ -408,16 +385,14 @@ class UploadReport(object):
     def __create_light_unknown_report(self, identifier):
         try:
             ReportUnknown.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportUnknown(
                 identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
             )
 
         if self.archive is None:
-            self.error = 'Unknown report must contain archive with problem description'
-            return
+            raise ValueError('unknown report must contain archive with problem description')
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.problem_description = self.data['problem desc']
         report.save()
@@ -453,8 +428,7 @@ class UploadReport(object):
             return
         try:
             ReportSafe.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
 
@@ -519,14 +493,12 @@ class UploadReport(object):
             return
         try:
             ReportUnsafe.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
 
         if self.archive is None:
-            self.error = 'Unsafe report must contain archive with error trace and source code files'
-            return
+            raise ValueError('unsafe report must contain archive with error trace and source code files')
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.error_trace = self.data['error trace']
         report.save()
@@ -559,14 +531,12 @@ class UploadReport(object):
     def __create_light_unsafe_report(self, identifier):
         try:
             ReportUnsafe.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
 
         if self.archive is None:
-            self.error = 'Unsafe report must contain archive with error trace and source code files'
-            return
+            raise ValueError('unsafe report must contain archive with error trace and source code files')
         report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
         report.error_trace = self.data['error trace']
         report.save()

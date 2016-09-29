@@ -233,7 +233,6 @@ class KleverCoreFinishDecision(object):
 # Case 3.1(2)
 class KleverCoreStartDecision(object):
     def __init__(self, job):
-        self.error = None
         self.job = job
         self.__start()
 
@@ -241,14 +240,11 @@ class KleverCoreStartDecision(object):
         try:
             progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = 'Job decision was not successfully started'
-            return
+            raise ValueError('job decision was not successfully started')
         if progress.start_date is not None:
-            self.error = 'The start report of Core was already uploaded'
-            return
+            raise ValueError('the "start" report of Core was already uploaded')
         elif progress.finish_date is not None:
-            self.error = 'The job is not solving already'
-            return
+            raise ValueError('the job is not solving already')
         progress.start_date = now()
         progress.save()
 
@@ -266,10 +262,8 @@ class StopDecision(object):
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
             return
-        self.__clear_tasks()
-        if self.error is not None:
-            return
         change_job_status(job, JOB_STATUS[6][0])
+        self.__clear_tasks()
 
     def __clear_tasks(self):
         for task in self.progress.task_set.all():

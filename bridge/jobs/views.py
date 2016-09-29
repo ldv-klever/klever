@@ -285,6 +285,12 @@ def get_job_data(request):
             'checked_option': request.POST.get('checked_run_history', 0)
         })
     }
+    try:
+        if job.solvingprogress.error:
+            data['solvingprogress_err'] = job.solvingprogress.error
+    except ObjectDoesNotExist:
+        pass
+
     if change_date is not None:
         data['last_change_date'] = change_date
     if report is not None:
@@ -675,8 +681,8 @@ def upload_job(request, parent_id=None):
         try:
             job_dir = extract_tar_temp(f)
         except Exception as e:
-            logger.exception("Archive extraction failed" % e, stack_info=True)
-            failed_jobs.append([_('Archive extracting error') + '', f.name])
+            logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+            failed_jobs.append([str(_('Archive extracting error')), f.name])
             continue
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
@@ -835,6 +841,31 @@ def fast_run_decision(request):
     if 'job_id' not in request.POST:
         return JsonResponse({'error': 'Unknown error'})
     configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
+@unparallel_group(['decision'])
+@login_required
+def lastconf_run_decision(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
+    if last_run is None:
+        return JsonResponse({'error': _('The job was not decided before')})
+    try:
+        with last_run.configuration.file as fp:
+            configuration = GetConfiguration(file_conf=json.loads(fp.read().decode('utf8'))).configuration
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
     if configuration is None:
         return JsonResponse({'error': 'Unknown error'})
     result = StartJobDecision(request.user, request.POST['job_id'], configuration)

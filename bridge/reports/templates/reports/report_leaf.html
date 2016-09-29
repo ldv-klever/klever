@@ -102,7 +102,11 @@
             {% endfor %}
         </div>
         <div class="ui divider"></div>
-        <div class="ui {% if type == 'safe' %}green{% else %}red{% endif %} segment filecontent" style="height:400px;">{{ main_content }}</div>
+        {% if main_content %}
+            <div class="ui {% if type == 'safe' %}green{% else %}red{% endif %} segment filecontent" style="height:400px;">{{ main_content }}</div>
+        {% elif type == 'safe' %}
+            <h3 class="ui red header">{% trans 'There is no proof description for this safe' %}</h3>
+        {% endif %}
     </div>
 </div>
 
