@@ -16,17 +16,23 @@
 #
 
 import copy
-import graphviz
 from operator import attrgetter
-
-from core.avtg.emg.common.signature import Primitive, Pointer
-from core.avtg.emg.common.process import Subprocess, Receive, Dispatch, Call, CallRetval, Condition
-from core.avtg.emg.translator.code  import Variable, FunctionModels
+from core.avtg.emg.common.process import Subprocess, Receive, Dispatch
+from core.avtg.emg.translator.code import Variable
 
 
 class FSA:
+    """
+    Class intended for representing finite state machine (FSA) genereated from a process of an intermediate model.
+    Translation is based on extraction semantycs from ASTs given within the Process objects.
+    """
 
     def __init__(self, process):
+        """
+        Import Process object and generate finite state machine on base of it.
+
+        :param process: Process object
+        """
         self.process = process
         self.states = set()
         self._initial_states = set()
@@ -37,14 +43,23 @@ class FSA:
         sp_processed = set()
         asts = list()
 
-        # Generate states
-        def generate_nodes(self, process, pr_ast):
+        def generate_nodes(process, pr_ast):
+            """
+            Generates states on base of FSA nodes but do not assign any edges. It explores AST node dictionary
+            extracting all particular actions from there like Dispatches, Calls, etc. It also attaches all generated
+            states on each atomic action to the corresponding node in AST.
+
+            :param process:
+            :param pr_ast: AST node dictionary.
+            :return: Initial states of the process.
+            """
             asts = [[pr_ast, True]]
             initial_states = set()
 
             while len(asts) > 0:
                 ast, initflag = asts.pop()
 
+                # Unwind AST nodes with operators and atomic actions
                 if ast['type'] == 'choice':
                     for action in ast['actions']:
                         asts.append([action, initflag])
@@ -56,10 +71,11 @@ class FSA:
                         else:
                             asts.append([action, initflag])
                 else:
+                    # Generate State for atomic action
                     node = State(ast, self.__yield_id())
 
                     if ast['name'] not in process.actions:
-                        raise KeyError("Process '{}' does not have action description '{}'".
+                        raise KeyError("Process {!r} does not have action description {!r}".
                                        format(process.name, ast['name']))
                     node.action = process.actions[ast['name']]
                     if type(process.actions[ast['name']]) is Receive:
@@ -67,6 +83,7 @@ class FSA:
                     if type(process.actions[ast['name']]) is Dispatch:
                         node.action.broadcast = node.desc['broadcast']
 
+                    # Save State in AST
                     self.states.add(node)
                     ast['node'] = node
 
@@ -75,15 +92,28 @@ class FSA:
 
             return initial_states
 
+        # Generate nodes for subprocesses first
         for name in [name for name in sorted(process.actions.keys()) if type(process.actions[name]) is Subprocess]:
+            # Make copy of the original AST to allow making changes there for more convinient exploration
             ast = copy.copy(process.actions[name].process_ast)
             generate_nodes(self, process, ast)
             sp_asts[name] = ast
+
+        # Copy main process AST to allow changes introducing
         p_ast = copy.copy(process.process_ast)
+
+        # Generates states exploring the AST of the process itself
         self._initial_states = generate_nodes(self, process, p_ast)
         asts.append([p_ast, None])
 
         def resolve_last(pr_ast):
+            """
+            Get the AST (tree or subtree) and tries to determine which actions from this AST are the latest. It unwinds
+            choises and sequences until gets atomic action like Dispatch, Call, etc.
+
+            :param pr_ast: AST dictionary.
+            :return: Set of State objects.
+            """
             if not pr_ast:
                 return set()
 
@@ -103,9 +133,12 @@ class FSA:
 
             return last
 
+        # Explore AST and determine order of action invocating. Exploration goes from the latest action to the first
+        # one (ones). Order is set up by adding successors and predecessors to each State.
         while len(asts) > 0:
             ast, prev = asts.pop()
 
+            # Unwind AST nodes
             if ast['type'] == 'choice':
                 for action in ast['actions']:
                     asts.append([action, prev])
@@ -117,9 +150,11 @@ class FSA:
                 if ast['type'] == 'subprocess':
                     pair = "{} {}".format(ast['name'], str(prev))
                     if pair not in sp_processed:
+                        # Mark processed state
                         sp_processed.add(pair)
                         asts.append([sp_asts[ast['name']], ast])
 
+                # Determine particular predecessors
                 last = resolve_last(prev)
                 if len(last) > 0 and prev['type'] != "subprocess":
                     # Filter out subprocesses if there are
@@ -130,7 +165,7 @@ class FSA:
 
         # Normalize fsa to make life easier for code generators
         # Keep subprocess states as jumb points
-        # Insert process and subprocess entry states
+        # Insert process and subprocess artificial single entry states
         for subprocess in (a for a in self.process.actions.values() if type(a) is Subprocess):
             new = self.__new_state(None)
 
@@ -142,21 +177,31 @@ class FSA:
                     successor.replace_predecessor(jump, new)
                     jump.replace_successor(successor, new)
 
-        # Add initial state if necessary
+        # Add a single artificial initial state if there are several of them
         if len(self._initial_states) > 1:
             new = self.__new_state(None)
             for initial in self._initial_states:
                 initial.insert_predecessor(new)
 
-            self._initial_states = set([new])
+            self._initial_states = {new}
 
         return
 
     @property
     def initial_states(self):
+        """
+        Returns initial states of the process.
+
+        :return: Sorted list with starting process State objects.
+        """
         return sorted(self._initial_states, key=attrgetter('identifier'))
 
     def resolve_state(self, identifier):
+        """
+        Resolve and returns process State object by its identifier.
+        :param identifier: Int identifier
+        :return: State object.
+        """
         for state in (s for s in self.states if s.identifier == identifier):
             return state
 
@@ -164,6 +209,13 @@ class FSA:
                        format(identifier, self.process.name, self.process.category))
 
     def clone_state(self, node):
+        """
+        Copy given State object, assign new identifier and place it as an alternative action with the same successors
+        and predecessors in FSA.
+        :param node: State object to copy
+        :return: New State object
+        """
+
         new_desc = copy.copy(node.desc)
         new_id = self.__yield_id()
 
@@ -181,6 +233,13 @@ class FSA:
         return new_state
 
     def add_new_predecessor(self, node, action):
+        """
+        Add new predecessor State creating it from the action object (Condition, Dispatch, etc.)
+        
+        :param node: State object to which new predecessor should be attached.
+        :param action: action object (Condition, Dispatch, etc.).
+        :return: New State object.
+        """
         new = self.__new_state(action)
 
         for pred in node.predecessors:
@@ -190,6 +249,13 @@ class FSA:
         return new
 
     def add_new_successor(self, node, action):
+        """
+        Add new successor State creating it from the action object (Condition, Dispatch, etc.)
+        
+        :param node: State object to which new successor should be attached.
+        :param action: action object (Condition, Dispatch, etc.).
+        :return: New State object.
+        """
         new = self.__new_state(action)
 
         for succ in node.successors:
@@ -199,6 +265,12 @@ class FSA:
         return new
 
     def __new_state(self, action):
+        """
+        Generates new State object for given action. Action can be None to create artificial states in FSA.
+
+        :param action: None or process action (Condition, Dispatch, etc.) object.
+        :return: New State object.
+        """
         if action:
             desc = {
                 'label': '<{}>'.format(action.name)
@@ -218,6 +290,7 @@ class FSA:
 
 
 class State:
+    """Represent action node in FSA generated by process AST."""
 
     def __init__(self, desc, identifier):
         self.identifier = identifier
@@ -229,48 +302,111 @@ class State:
 
     @property
     def successors(self):
+        """
+        Returns deterministically list with all next states.
+
+        :return: List with State objects.
+        """
         return sorted(self._successors, key=attrgetter('identifier'))
 
     @property
     def predecessors(self):
+        """
+        Returns deterministically list with all previous states.
+
+        :return: List with State objects.
+        """
         return sorted(self._predecessors, key=attrgetter('identifier'))
 
     def insert_successor(self, new):
+        """
+        Link given State object to be a successor of this state.
+
+        :param new: New next State object.
+        :return: None
+        """
         self.add_successor(new)
         new.add_predecessor(self)
 
     def insert_predecessor(self, new):
+        """
+        Link given State object to be a predecessor of this state.
+
+        :param new: New previous State object.
+        :return: None
+        """
         self.add_predecessor(new)
         new.add_successor(self)
 
     def replace_successor(self, old, new):
+        """
+        Replace given successor State object with a new State object.
+
+        :param new: New next State object.
+        :return: None
+        """
         self.remove_successor(old)
         old.remove_predecessor(self)
         self.add_successor(new)
         new.add_predecessor(self)
 
     def replace_predecessor(self, old, new):
+        """
+        Replace given predecessor State object with a new State object.
+
+        :param new: New predecessor State object.
+        :return: None
+        """
         self.remove_predecessor(old)
         old.remove_successor(self)
         self.add_predecessor(new)
         new.add_successor(self)
 
     def add_successor(self, new):
+        """
+        Link given State object to be a successor.
+
+        :param new: New next State object.
+        :return: None
+        """
         self._successors.add(new)
 
     def add_predecessor(self, new):
+        """
+        Link given State object to be a predecessor.
+
+        :param new: New previous State object.
+        :return: None
+        """
         self._predecessors.add(new)
 
     def remove_successor(self, old):
+        """
+        Unlink given State object and remove it from successors.
+
+        :param new: State object.
+        :return: None
+        """
         if old in self._successors:
             self._successors.remove(old)
 
     def remove_predecessor(self, old):
+        """
+        Unlink given State object and remove it from predecessors.
+
+        :param new: State object.
+        :return: None
+        """
         if old in self._predecessors:
             self._predecessors.remove(old)
 
 
 class Automaton:
+    """
+    This is a more abstract representation of FSA. It contins both FSA object generated for the process object and
+    process object itself. It also contains variables generated for labels of the process and simplifies work with
+    them.
+    """
 
     def __init__(self, process, identifier):
         # Set default values
@@ -287,11 +423,20 @@ class Automaton:
 
     @property
     def file(self):
+        """
+        Chooses the best file to place result of a translation to C code generated for the process. Algorythm tries to
+        found implementations of containers where callback implementations and the other interfaces are stored and
+        choose randomly one of such files where containers are implemented. if now container implementations would be
+        found then it chooses from files with callback implementations.
+
+        :return: File name string or None.
+        """
         if self.__file:
             return self.__file
         files = set()
 
-        # Try to determine base values
+        # Iterate over interface imlementations and extract from Implementation objects files where they have been
+        # found.
         base_values = set()
         change = True
         while change:
@@ -313,6 +458,7 @@ class Automaton:
         # If no base values then try to find callback call files
         files.update(set([s.code['file'] for s in self.fsa.states if s.code and 'file' in s.code]))
 
+        # Choose randomly file
         if len(files) > 0:
             chosen_one = sorted(list(files))[0]
             self.__file = chosen_one
@@ -322,6 +468,12 @@ class Automaton:
         return self.__file
 
     def variables(self):
+        """
+        Generate if variables are not generated or just return if there are all variables generated for this Automaton
+        lables except specific variables generated by a translator implementation not for particular lables.
+
+        :return: List with Variable objects.
+        """
         variables = []
 
         # Generate variable for each label
@@ -337,12 +489,27 @@ class Automaton:
         return variables
 
     def new_param(self, name, declaration, value):
+        """
+        Introduce new label with the given name, declaration and value and generate variable for it.
+
+        :param name: Label name string.
+        :param declaration:  Label type declaration string.
+        :param value: Value string
+        :return: Label object, Variable object
+        """
         lb = self.process.add_label(name, declaration, value)
         lb.resource = True
         vb = self.determine_variable(lb)
         return lb, vb
 
     def determine_variable(self, label, interface=None):
+        """
+        Get Label object and interface and generate or return already generated Variable object for this label.
+
+        :param label: Label object.
+        :param interface: Interface identifier string.
+        :return: Variable object.
+        """
         if not interface:
             if label.name in self.__label_variables and "default" in self.__label_variables[label.name]:
                 return self.__label_variables[label.name]["default"]

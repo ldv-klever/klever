@@ -31,8 +31,8 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
     :param analysis: ModuleCategoriesSpecification object.
     :param model: ProcessModel object.
     :param instance_maps: Dictionary {'category name' -> {'process name' ->
-           {'Access.expression string'->'Interface.identifier string'->'value string'}}}
-    :return: Entry point autmaton, list with model qutomata, list with callback automata
+           {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
+    :return: Entry point autmaton, list with model qutomata, list with callback automata.
     """
     def yeild_identifier():
         """Return unique identifier."""
