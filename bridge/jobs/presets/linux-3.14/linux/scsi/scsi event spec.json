@@ -23,7 +23,7 @@
           "alloc": {
             "statements": [
               "%host% = $ALLOC(%host%);",
-              "%scsi_host_template% = $arg1;",
+              "%scsi_host_template% = $ARG1;",
               "%host%->hostt= %scsi_host_template%;"
             ]
           },
@@ -121,7 +121,7 @@
           },
           "assign": {
             "statements": [
-              "%host% = $arg1;"
+              "%host% = $ARG1;"
             ]
           }
         }

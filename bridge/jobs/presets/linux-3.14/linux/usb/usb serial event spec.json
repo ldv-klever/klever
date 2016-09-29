@@ -23,7 +23,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%usb_device_id% = $arg3;"
+              "%usb_device_id% = $ARG3;"
             ]
           },
           "none": {
@@ -51,7 +51,7 @@
           },
           "assign": {
             "statements": [
-              "%usb_device_id% = $arg1;"
+              "%usb_device_id% = $ARG1;"
             ]
           }
         }
@@ -273,7 +273,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%usb_device_id% = $arg3;"
+              "%usb_device_id% = $ARG3;"
             ]
           },
           "none": {
@@ -301,7 +301,7 @@
           },
           "assign": {
             "statements": [
-              "%usb_device_id% = $arg1;"
+              "%usb_device_id% = $ARG1;"
             ]
           }
         }

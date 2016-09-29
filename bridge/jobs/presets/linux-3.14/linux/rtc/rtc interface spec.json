@@ -6,7 +6,7 @@
         "header": "linux/rtc.h"
       },
       "rtc_device_unregister": {
-        "signature": "void rtc_device_unregister(%rtc.rtc_device%)",
+        "signature": "void rtc_device_unregister(*%rtc.rtc_device%)",
         "header": "linux/rtc.h"
       }
     },

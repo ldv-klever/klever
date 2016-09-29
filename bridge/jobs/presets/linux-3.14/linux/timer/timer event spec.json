@@ -28,7 +28,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%timer_list% = $arg1;"
+              "%timer_list% = $ARG1;"
             ]
           }
         }
@@ -74,9 +74,9 @@
               "$res == 0"
             ],
             "statements": [
-              "%timer_list% = $arg1;",
-              "%function% = $arg2",
-              "%data% = $arg3",
+              "%timer_list% = $ARG1;",
+              "%function% = $ARG2",
+              "%data% = $ARG3",
               "%timer_list.data%=%data%;",
               "%timer_list.function%=%function%;"
             ]
@@ -102,7 +102,7 @@
           },
           "assign": {
             "statements": [
-              "%timer_list% = $arg1;"
+              "%timer_list% = $ARG1;"
             ]
           }
         }

@@ -28,7 +28,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }
@@ -67,8 +67,8 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;",
-              "%probe% = $arg2;",
+              "%platform_driver% = $ARG1;",
+              "%probe% = $ARG2;",
               "%platform_driver.probe%=%probe%;"
             ]
           }
@@ -93,7 +93,7 @@
           },
           "assign": {
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }
@@ -229,7 +229,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }
@@ -268,8 +268,8 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;",
-              "%probe% = $arg2;",
+              "%platform_driver% = $ARG1;",
+              "%probe% = $ARG2;",
               "%platform_driver.probe%=%probe%;"
             ]
           }
@@ -294,7 +294,7 @@
           },
           "assign": {
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }

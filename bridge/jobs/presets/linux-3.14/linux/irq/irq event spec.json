@@ -52,10 +52,10 @@
               "$res == 0"
             ],
             "statements": [
-              "%line% = $arg1;",
-              "%callback% = $arg2;",
-              "%thread% = $arg3;",
-              "%data% = $arg6;"
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = $ARG3;",
+              "%data% = $ARG6;"
             ]
           }
         }
@@ -111,10 +111,10 @@
               "$res == 0"
             ],
             "statements": [
-              "%line% = $arg2;",
-              "%callback% = $arg3;",
-              "%thread% = $arg4;",
-              "%data% = $arg7;"
+              "%line% = $ARG2;",
+              "%callback% = $ARG3;",
+              "%thread% = $ARG4;",
+              "%data% = $ARG7;"
             ]
           }
         }
@@ -169,10 +169,10 @@
               "$res == 0"
             ],
             "statements": [
-              "%line% = $arg1;",
-              "%callback% = $arg2;",
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
               "%thread% = 0;",
-              "%data% = $arg5;"
+              "%data% = $ARG5;"
             ]
           }
         }
@@ -227,10 +227,10 @@
               "$res == 0"
             ],
             "statements": [
-              "%line% = $arg1;",
-              "%callback% = $arg2;",
+              "%line% = $ARG1;",
+              "%callback% = $ARG2;",
               "%thread% = 0;",
-              "%data% = $arg4;"
+              "%data% = $ARG4;"
             ]
           }
         }
@@ -254,7 +254,7 @@
           },
           "assign": {
             "statements": [
-              "%line% = $arg1;"
+              "%line% = $ARG1;"
             ]
           }
         }
@@ -278,7 +278,7 @@
           },
           "assign": {
             "statements": [
-              "%line% = $arg2;"
+              "%line% = $ARG2;"
             ]
           }
         }

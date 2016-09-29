@@ -777,7 +777,7 @@ class ProcessModel:
 
             # Generate actions
             assign = Condition('assign')
-            assign.statements = ['{} = $arg{};'.format(exp, str(pos + 1)) for exp, pos in expressions]
+            assign.statements = ['{} = $ARG{};'.format(exp, str(pos + 1)) for exp, pos in expressions]
             new.actions[assign.name] = assign
 
             # Generate Process

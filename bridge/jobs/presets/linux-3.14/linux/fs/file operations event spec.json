@@ -29,7 +29,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%miscdevice% = $arg1;",
+              "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
             ]
           },
@@ -66,7 +66,7 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%miscdevice% = $arg1;",
+              "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
             ]
           }
@@ -99,8 +99,8 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
-              "%file_operations% = $arg2;",
+              "%cdev% = $ARG1;",
+              "%file_operations% = $ARG2;",
               "%cdev%->ops = %file_operations%;"
             ]
           }
@@ -132,7 +132,7 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
+              "%cdev% = $ARG1;",
               "%file_operations% = %cdev%->ops;"
             ]
           }

@@ -54,8 +54,8 @@
           "alloc": {
             "statements": [
               "%device% = $ALLOC(%device%);",
-              "%tty_port% = $arg1;",
-              "%tty_driver% = $arg2;"
+              "%tty_port% = $ARG1;",
+              "%tty_driver% = $ARG2;"
             ]
           },
           "register": {
@@ -90,7 +90,7 @@
         "actions": {
           "assign": {
             "statements": [
-              "%tty_driver% = $arg1;"
+              "%tty_driver% = $ARG1;"
             ]
           },
           "deregister": {

@@ -18,23 +18,16 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "entry_point",
-            "translator": "default",
             "callstack deep search": 3,
             "intermediate model options": {
               "ignore missed callbacks": true,
-              "map file": "linux/emg/roles match.json"
+              "roles map file": "linux/emg/roles match.json"
             },
             "translation options": {
               "dump automata graphs": false,
-              "direct control function calls": true,
-              "omit all states": true,
+              "direct control functions calls": true,
               "nested automata": true,
-              "omit parallel composition": {
-                "dispatch": false,
-                "receive": false,
-                "call": false,
-                "condition": true
-              },
+              "no actions composition": ["Condition"],
               "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,

@@ -52,7 +52,7 @@
           "alloc": {
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg3;"
+              "%setup% = $ARG3;"
             ]
           },
           "setup": {
@@ -87,7 +87,7 @@
         "actions": {
           "free": {
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -112,7 +112,7 @@
           "pre": {
             "statements": [
               "%ret% = ldv_pre_register_netdev();",
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -170,7 +170,7 @@
           },
           "assign": {
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }
@@ -231,7 +231,7 @@
           "alloc": {
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg4;"
+              "%setup% = $ARG4;"
             ]
           },
           "setup": {
@@ -266,7 +266,7 @@
         "actions": {
           "free": {
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -291,7 +291,7 @@
           "pre": {
             "statements": [
               "%ret% = ldv_pre_register_netdev();",
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -349,7 +349,7 @@
           },
           "assign": {
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }

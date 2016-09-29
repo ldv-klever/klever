@@ -28,7 +28,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%se_subsystem_api% = $arg1;"
+              "%se_subsystem_api% = $ARG1;"
             ]
           }
         }
@@ -52,7 +52,7 @@
           },
           "assign": {
             "statements": [
-              "%se_subsystem_api% = $arg1;"
+              "%se_subsystem_api% = $ARG1;"
             ]
           }
         }
@@ -201,7 +201,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%target_backend_ops% = $arg1;"
+              "%target_backend_ops% = $ARG1;"
             ]
           }
         }
@@ -225,7 +225,7 @@
           },
           "assign": {
             "statements": [
-              "%target_backend_ops% = $arg1;"
+              "%target_backend_ops% = $ARG1;"
             ]
           }
         }
