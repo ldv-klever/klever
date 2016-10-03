@@ -228,6 +228,7 @@ def show_job(request, job_id=None):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
+    progress_data = get_job_progress(request.user, job) if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
     return render(
         request,
         'jobs/viewJob.html',
@@ -236,6 +237,7 @@ def show_job(request, job_id=None):
             'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
+            'progress_data': progress_data,
             'reportdata': ViewJobData(*view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
@@ -271,6 +273,8 @@ def get_job_data(request):
         })
     except ObjectDoesNotExist:
         pass
+    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        data['progress_data'] = json.dumps(list(get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 

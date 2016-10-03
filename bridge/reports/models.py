@@ -42,7 +42,6 @@ class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     job = models.OneToOneField(Job)
     safes = models.PositiveIntegerField(default=0)
-    tasks_solved = models.PositiveIntegerField(default=0)
     tasks_total = models.PositiveIntegerField(default=0)
     average_time = models.BigIntegerField(default=0)
 

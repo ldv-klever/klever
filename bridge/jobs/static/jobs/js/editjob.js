@@ -1003,6 +1003,13 @@ $(document).ready(function () {
                             window.location.replace('');
                         }
                     }
+                    if ('progress_data' in data) {
+                        var progress_data = JSON.parse(data['progress_data']);
+                        $('#progress_val').text(progress_data[0]);
+                        $('#average_time').text(progress_data[1]);
+                        $('#local_average_time').text(progress_data[2]);
+                        $('#max_time').text(progress_data[3]);
+                    }
                 }
             ).fail(function () {
                 clearInterval(interval);

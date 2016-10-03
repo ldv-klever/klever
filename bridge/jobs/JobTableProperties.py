@@ -26,7 +26,7 @@ from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource
-from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
+from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time, get_job_progress
 
 
 ORDERS = [
@@ -76,7 +76,8 @@ def all_user_columns():
     columns.extend([
         'problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version', 'type', 'parent_id',
         'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending', 'tasks_processing',
-        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
+        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
+        'average_time', 'local_average_time', 'max_time'
     ])
     return columns
 
@@ -685,22 +686,19 @@ class TableTree(object):
                         'tasks_pending': progress.tasks_pending,
                         'solutions': progress.solutions
                     })
-                    if progress.tasks_total == 0:
-                        values_data[j['pk']]['progress'] = '0%'
-                    else:
-                        finished_tasks = progress.tasks_cancelled + progress.tasks_error + progress.tasks_finished
-                        values_data[j['pk']]['progress'] = "%.0f%% (%s/%s)" % (
-                            100 * (finished_tasks / progress.tasks_total),
-                            finished_tasks,
-                            progress.tasks_total
-                        )
+                    (
+                        values_data[j['pk']]['progress'],
+                        values_data[j['pk']]['average_time'],
+                        values_data[j['pk']]['local_average_time'],
+                        values_data[j['pk']]['max_time']
+                    ) = get_job_progress(self.user, j['job'])
+
                     if progress.start_date is not None:
                         values_data[j['pk']]['start_date'] = progress.start_date
                         if progress.finish_date is not None:
                             values_data[j['pk']]['finish_date'] = progress.finish_date
                             values_data[j['pk']]['solution_wall_time'] = get_user_time(
-                                self.user,
-                                int((progress.finish_date - progress.start_date).total_seconds() * 1000)
+                                self.user, int((progress.finish_date - progress.start_date).total_seconds() * 1000)
                             )
                     try:
                         values_data[j['pk']]['operator'] = (
