@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from core.vtg.sbt import SR
+from core.vtg.sr import SR
 
 
 # This strategy is aimed at creating 1 verification tasks for all
