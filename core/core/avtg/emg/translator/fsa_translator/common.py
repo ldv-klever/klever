@@ -46,10 +46,16 @@ def action_model_comment(action, text, begin=None):
     return model_comment(type_comment, text, name_comment)
 
 
-def control_function_comment(automaton):
-    return model_comment('CONTROL_FUNCTION',
-                         "Control function based on process {!r}".format(automaton.process.name),
-                         automaton.process.category)
+def control_function_comment_begin(cf):
+    return model_comment('CONTROL_FUNCTION_BEGIN',
+                         "Control function {!r}".format(cf.name),
+                         cf.name)
+
+
+def control_function_comment_end(cf):
+    return model_comment('CONTROL_FUNCTION_END',
+                         "End of control function based on process {!r}".format(cf.name),
+                         cf.name)
 
 
 def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):

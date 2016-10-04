@@ -16,12 +16,12 @@
 #
 from operator import attrgetter
 from core.avtg.emg.common.process import Subprocess
-from core.avtg.emg.translator.fsa_translator.common import control_function_comment, initialize_automaton_variables
+from core.avtg.emg.translator.fsa_translator.common import control_function_comment_begin, control_function_comment_end,\
+    initialize_automaton_variables,model_comment
 
 
 def label_based_function(conf, analysis, automaton, cf, model=True):
     v_code, f_code = list(), list()
-    v_code.append(control_function_comment(automaton))
 
     # Determine returning expression for reuse
     ret_expression = 'return;'
@@ -61,6 +61,11 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             f_code.append(ret_expression)
             processed.append(subp.action.name)
 
+    v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Initialize variables')] + \
+             v_code + \
+             [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize variables')]
+    v_code.insert(0, control_function_comment_begin(cf))
+    f_code.append(control_function_comment_end(cf))
     cf.body.extend(v_code + f_code)
 
     return cf.name

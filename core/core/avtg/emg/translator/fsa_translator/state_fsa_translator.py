@@ -19,7 +19,8 @@ from core.avtg.emg.common.process import Receive, Dispatch, CallRetval, Call, Co
 from core.avtg.emg.translator.code import Variable, FunctionDefinition
 from core.avtg.emg.translator.fsa_translator import FSATranslator
 from core.avtg.emg.translator.fsa_translator.label_fsa_translator import label_based_function
-from core.avtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables
+from core.avtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables, model_comment,\
+    control_function_comment_begin, control_function_comment_end
 
 
 class StateTranslator(FSATranslator):
@@ -140,6 +141,13 @@ class StateTranslator(FSATranslator):
                     f_code.append('\t' * tab + 'default: ldv_stop;')
                     tab -= 1
                     f_code.append('\t' * tab + '}')
+
+            # Add comments
+            v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Initialize variables')] + \
+                     v_code + \
+                     [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize variables')]
+            v_code.insert(0, control_function_comment_begin(cf))
+            f_code.append(control_function_comment_end(cf))
 
             # Add loop for nested case
             cf.body.extend(v_code + f_code)

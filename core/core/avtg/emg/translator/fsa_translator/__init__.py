@@ -240,7 +240,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
         comments.append(action_model_comment(state.action,
                                              'Signal dispatch {!r} of a process {!r} of an interface category '
                                              '{!r}'.format(state.action.name, automaton.process.name,
-                                                           automaton.process.category)))
+                                                           automaton.process.category),
+                                             begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
 
         # Determine peers to receive the signal
         automata_peers = dict()
