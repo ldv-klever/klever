@@ -6,6 +6,9 @@ import xml.etree.ElementTree as ET
 class ErrorTrace:
     WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
     MODEL_COMMENT_TYPES = 'AUX_FUNC|MODEL_FUNC|NOTE|ASSERT'
+    EMG_COMMENTS = 'CONTROL_FUNCTION_BEGIN|CONTROL_FUNCTION_END|CALLBACK|CONTROL_FUNCTION_INIT_BEGIN|' \
+                   'CONTROL_FUNCTION_INIT_END|CALL_BEGIN|CALL_END|DISPATCH_BEGIN|DISPATCH_END|RECEIVE_BEGIN|' \
+                   'RECEIVE_END|SUBPROCESS_BEGIN|SUBPROCESS_END|CONDITION_BEGIN|CONDITION_END'
 
     def __init__(self, logger, witness):
         self.logger = logger
@@ -20,6 +23,7 @@ class ErrorTrace:
         self.__aux_funcs = {}
         self.__model_funcs = {}
         self.__notes = {}
+        self.__emg_comments = dict()
         self.__asserts = {}
 
     def process(self):
@@ -151,6 +155,28 @@ class ErrorTrace:
                 line = 0
                 for text in fp:
                     line += 1
+
+                    # Try match EMG comment
+                    # Expect comment like /* TYPE Instance Text */
+                    if file_id not in self.__emg_comments:
+                        self.__emg_comments[file_id] = dict()
+                    match = re.search(r'/\*\s({0})\s(\w+)\s(.*)\s\*/'.format(self.EMG_COMMENTS), text)
+                    if match:
+                        self.__emg_comments[file_id][line] = {
+                            'type': match.group(1),
+                            'instance': match.group(2),
+                            'comment': match.group(3),
+                        }
+                    else:
+                        # Expect comment like /* TYPE Text */
+                        match = re.search(r'/\*\s({0})\s(.*)\s\*/'.format(self.EMG_COMMENTS), text)
+                        if match:
+                            self.__emg_comments[file_id][line] = {
+                                'type': match.group(1),
+                                'comment': match.group(2),
+                            }
+
+                    # Match rest comments
                     match = re.search(r'/\*\s+({0})\s+(.*)\*/'.format(self.MODEL_COMMENT_TYPES), text)
                     if match:
                         kind, comment = match.groups()
@@ -547,6 +573,49 @@ class ErrorTrace:
 
         return removed_tmp_vars_num, edge_id
 
+    def __remove_aux_deg_code(self):
+        # Determine control functions and allowed intervals
+        intervals = ['CONTROL_FUNCTION_INIT', 'CALL', 'DISPATCH', 'RECEIVE', 'SUBPROCESS', 'CONDITION']
+        data = dict()
+        for file in self.__emg_comments.keys():
+            data[file] = dict()
+            # Set control function start point
+            for line in (l for l in self.__emg_comments[file]
+                         if self.__emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_BEGIN'):
+                data[file][self.__emg_comments[file][line]['instance']] = {
+                    'begin': line,
+                    'actions': list()
+                }
+
+            # Set control function end point
+            for line in (l for l in self.__emg_comments[file]
+                         if self.__emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_END'):
+                data[file][self.__emg_comments[file][line]['instance']]['end'] = line
+
+            # Deterine actions and allowed intervals
+            for function in data[file]:
+                inside_action = False
+                for line in range(data[file][function]['begin'], data[file][function]['end']):
+                    if not inside_action and line in self.__emg_comments[file] and \
+                       self.__emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
+                        data[file][function]['actions'].append({'begin': line,
+                                                                'comment': self.__emg_comments[file][line]['comment'],
+                                                                'type': self.__emg_comments[file][line]['type']})
+                        inside_action = True
+                    elif inside_action and line in self.__emg_comments[file] and \
+                       self.__emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
+                        data[file][function]['actions'][-1]['end'] = line
+                        inside_action = False
+
+
+        # Search in error trace for control functions
+
+
+        # Add note on each control function entry
+        # Search in error trace for control function code and cut all code outside allowed intervals
+        # Add note on each control function interval
+        return
+
     def __simplify(self):
         self.logger.info('Simplify witness')
 
@@ -674,3 +743,6 @@ class ErrorTrace:
 
         if removed_aux_funcs_num:
             self.logger.debug('{0} auxiliary functions were removed'.format(removed_aux_funcs_num))
+
+        # Remove non-action code from control functions
+        self.__remove_aux_deg_code()
