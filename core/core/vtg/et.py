@@ -31,16 +31,16 @@ class ErrorTrace:
 
     def __get_input_edge_id(self, node_id):
         if node_id < 0 or node_id >= len(self.nodes):
-            raise KeyError('Node "{0}" does not exist'.format(node_id))
+            raise KeyError('Node {!r} does not exist'.format(node_id))
 
         node = self.nodes[node_id]
 
         if node[0] is None:
-            raise ValueError('There are not input edges for node "{0}"'.format(node_id))
+            raise ValueError('There are not input edges for node {!r}'.format(node_id))
 
         if isinstance(node[0], list):
             if len(node[0]) > 1:
-                raise ValueError('There are more than one input edges for node "{0}"'.format(node_id))
+                raise ValueError('There are more than one input edges for node {!r}'.format(node_id))
 
             return node[0][0]
 
@@ -92,13 +92,13 @@ class ErrorTrace:
                         func_id = edge['enter']
                         if func_id in self.__model_funcs:
                             note = self.__model_funcs[func_id]
-                            self.logger.debug('Add note "{0}" for call of model function "{1}" from "{2}:{3}"'.
+                            self.logger.debug("Add note {!r} for call of model function {!r} from '{2}:{3}'".
                                               format(note, self.funcs[func_id], file, start_line))
                             edge['note'] = note
 
                     if file_id in self.__notes and start_line in self.__notes[file_id]:
                         note = self.__notes[file_id][start_line]
-                        self.logger.debug('Add note "{0}" for statement from "{1}:{2}"'.format(note, file, start_line))
+                        self.logger.debug("Add note {!r} for statement from '{1}:{2}'".format(note, file, start_line))
                         edge['note'] = note
 
                 if stage == 'warns':
@@ -117,7 +117,7 @@ class ErrorTrace:
                         if not note_found:
                             warn = self.__asserts[file_id][start_line]
                             self.logger.debug(
-                                'Add warning "{0}" for statement from "{1}:{2}"'.format(warn, file, start_line))
+                                "Add warning {!r} for statement from '{1}:{2}'".format(warn, file, start_line))
                             # Add warning either to edge itself or to first edge that enters function and has note at
                             # violation path. If don't do the latter warning will be hidden by error trace visualizer.
                             warn_edge = edge
@@ -143,9 +143,9 @@ class ErrorTrace:
 
         for file_id, file in enumerate(self.files):
             if not os.path.isfile(file):
-                raise FileNotFoundError('File "{0}" referred by witness does not exist'.format(file))
+                raise FileNotFoundError('File {!r} referred by witness does not exist'.format(file))
 
-            self.logger.debug('Parse model comments from "{0}"'.format(file))
+            self.logger.debug('Parse model comments from {!r}'.format(file))
 
             with open(file, encoding='utf8') as fp:
                 line = 0
@@ -168,7 +168,7 @@ class ErrorTrace:
                                     func_name = match.groups()[0]
                                 else:
                                     raise ValueError(
-                                        'Auxiliary/model function definition is not specified in "{0}"'.format(text))
+                                        'Auxiliary/model function definition is not specified in {!r}'.format(text))
                             except StopIteration:
                                 raise ValueError('Auxiliary/model function definition does not exist')
 
@@ -177,11 +177,11 @@ class ErrorTrace:
                                 if ref_func_name == func_name:
                                     if kind == 'AUX_FUNC':
                                         self.__aux_funcs[func_id] = None
-                                        self.logger.debug('Get auxiliary function "{0}" from "{1}:{2}"'.
+                                        self.logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
                                                           format(func_name, file, line))
                                     else:
                                         self.__model_funcs[func_id] = comment
-                                        self.logger.debug('Get note "{0}" for model function "{1}" from "{2}:{3}"'.
+                                        self.logger.debug("Get note '{}' for model function '{1}' from '{2}:{3}'".
                                                           format(comment, func_name, file, line))
 
                                     break
@@ -190,17 +190,17 @@ class ErrorTrace:
                                 self.__notes[file_id] = {}
                             self.__notes[file_id][line + 1] = comment
                             self.logger.debug(
-                                'Get note "{0}" for statement from "{1}:{2}"'.format(comment, file, line + 1))
+                                "Get note '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
                             # Some assertions will become warnings.
                             if kind == 'ASSERT':
                                 if file_id not in self.__asserts:
                                     self.__asserts[file_id] = {}
                                 self.__asserts[file_id][line + 1] = comment
-                                self.logger.debug('Get assertiom "{0}" for statement from "{1}:{2}"'.
+                                self.logger.debug("Get assertiom '{0}' for statement from '{1}:{2}'".
                                                   format(comment, file, line + 1))
 
     def __parse_witness(self):
-        self.logger.info('Parse witness "{0}"'.format(self.witness))
+        self.logger.info('Parse witness {!r}'.format(self.witness))
 
         with open(self.witness, encoding='utf8') as fp:
             tree = ET.parse(fp)
@@ -230,17 +230,17 @@ class ErrorTrace:
                 data_key = data.attrib['key']
                 if data_key == 'entry':
                     self.entry_node_id = node_id
-                    self.logger.debug('Parse entry node "{0}"'.format(node_id))
+                    self.logger.debug('Parse entry node {!r}'.format(node_id))
                 elif data_key == 'sink':
                     is_sink = True
-                    self.logger.debug('Parse sink node "{0}"'.format(node_id))
+                    self.logger.debug('Parse sink node {!r}'.format(node_id))
                 elif data_key == 'violation':
                     if self.violation_node_ids:
                         raise NotImplementedError('Several violation nodes are not supported')
                     self.violation_node_ids.append(node_id)
-                    self.logger.debug('Parse violation node "{0}"'.format(node_id))
+                    self.logger.debug('Parse violation node {!r}'.format(node_id))
                 elif data_key not in unsupported_node_data_keys:
-                    self.logger.warning('Node data key "{0}" is not supported'.format(data_key))
+                    self.logger.warning('Node data key {!r} is not supported'.format(data_key))
                     unsupported_node_data_keys[data_key] = None
 
             # Do not track sink nodes as all other nodes. All edges leading to sink nodes will be excluded as well.
@@ -326,7 +326,7 @@ class ErrorTrace:
                 elif data_key in ('startoffset', 'endoffset'):
                     pass
                 elif data_key not in unsupported_edge_data_keys:
-                    self.logger.warning('Edge data key "{0}" is not supported'.format(data_key))
+                    self.logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
 
             if 'file' not in _edge:
@@ -352,12 +352,12 @@ class ErrorTrace:
 
         if not isinstance(self.nodes[removed_edge['source node']][1], int):
             raise ValueError(
-                'Can not remove edge "{0}" because of its source node "{1}" has more than one output edges'.format(
+                'Can not remove edge {!r} because of its source node {!r} has more than one output edges'.format(
                     removed_edge_id, removed_edge['source node']))
 
         if not isinstance(self.nodes[removed_edge['target node']][0], int):
             raise ValueError(
-                'Can not remove edge "{0}" because of its target node "{1}" has more than one input edges'.format(
+                'Can not remove edge {!r} because of its target node {!r} has more than one input edges'.format(
                     removed_edge_id, removed_edge['target node']))
 
         # Make all output edges of target node of removed edge output edges of its source node.
@@ -465,6 +465,37 @@ class ErrorTrace:
             if 'enter' in edge:
                 removed_tmp_vars_num_tmp, edge_id = self.__remove_tmp_vars(edge_id)
                 removed_tmp_vars_num += removed_tmp_vars_num_tmp
+
+                # Replace
+                #    tmp func(...);
+                # with:
+                #    func(...);
+                if m:
+                    # Detrmine that there is no retun from the function
+                    level = 0
+                    # Keep in mind that each pair enter-return has an identifier, but such identifier is not unique
+                    # across the trace, so we need to go through the whole trace and guarantee that for particular enter
+                    # there is no pair.
+                    entrance_identifier = self.edges[func_call_edge_id]['enter']
+                    level_under_concideration = None
+                    level = 0
+                    for e_id in range(func_call_edge_id, len(self.edges)):
+                        e = self.edges[e_id]
+                        if 'enter' in e and e['enter'] == entrance_identifier:
+                            level += 1
+                            if e_id == func_call_edge_id:
+                                level_under_concideration = level
+                        if 'return' in e and e['return'] == entrance_identifier:
+                            if level_under_concideration and level_under_concideration == level:
+                                level = -1
+                                break
+                            else:
+                                level = -1
+
+                    # Do replacement
+                    if level >= level_under_concideration:
+                        self.edges[func_call_edge_id]['source'] = m.group(2) + ';'
+
                 # Reach error trace end.
                 if edge_id == len(self.edges):
                     break
