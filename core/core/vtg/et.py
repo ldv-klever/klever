@@ -506,17 +506,18 @@ class ErrorTrace:
                     level_under_concideration = None
                     level = 0
                     for e_id in range(func_call_edge_id, len(self.edges)):
-                        e = self.edges[e_id]
-                        if 'enter' in e and e['enter'] == entrance_identifier:
-                            level += 1
-                            if e_id == func_call_edge_id:
-                                level_under_concideration = level
-                        if 'return' in e and e['return'] == entrance_identifier:
-                            if level_under_concideration and level_under_concideration == level:
-                                level = -1
-                                break
-                            else:
-                                level = -1
+                        if len(self.edges) > e_id:
+                            e = self.edges[e_id]
+                            if 'enter' in e and e['enter'] == entrance_identifier:
+                                level += 1
+                                if e_id == func_call_edge_id:
+                                    level_under_concideration = level
+                            if 'return' in e and e['return'] == entrance_identifier:
+                                if level_under_concideration and level_under_concideration == level:
+                                    level = -1
+                                    break
+                                else:
+                                    level = -1
 
                     # Do replacement
                     if level >= level_under_concideration:
@@ -584,7 +585,8 @@ class ErrorTrace:
                          if self.__emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_BEGIN'):
                 data[file][self.__emg_comments[file][line]['instance']] = {
                     'begin': line,
-                    'actions': list()
+                    'actions': list(),
+                    'comment': self.__emg_comments[file][line]['comment']
                 }
 
             # Set control function end point
@@ -597,23 +599,127 @@ class ErrorTrace:
                 inside_action = False
                 for line in range(data[file][function]['begin'], data[file][function]['end']):
                     if not inside_action and line in self.__emg_comments[file] and \
-                       self.__emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
+                                    self.__emg_comments[file][line]['type'] in {t + '_BEGIN' for t in intervals}:
                         data[file][function]['actions'].append({'begin': line,
                                                                 'comment': self.__emg_comments[file][line]['comment'],
                                                                 'type': self.__emg_comments[file][line]['type']})
                         inside_action = True
                     elif inside_action and line in self.__emg_comments[file] and \
-                       self.__emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
+                                    self.__emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
                         data[file][function]['actions'][-1]['end'] = line
                         inside_action = False
 
-
-        # Search in error trace for control functions
-
-
-        # Add note on each control function entry
         # Search in error trace for control function code and cut all code outside allowed intervals
-        # Add note on each control function interval
+        cf_stack = list()
+        in_ext_aux_code = False
+
+        def inside_control_function(cf_data, line):
+            """Determine action to which string belong."""
+            if cf_data['begin'] <= line <= cf_data['end']:
+                return True
+            else:
+                return False
+
+        def inside_action(cf_data, line):
+            """Determine action to which string belong."""
+            for act in cf_data['actions']:
+                if act['begin'] <= line <= act['end']:
+                    return act
+
+            return False
+
+        def if_exit_function(e_id, e, stack):
+            """Exit function."""
+            removed = 0
+
+            if len(stack) > 0:
+                if stack[-1]['functions'] == 0 and stack['enter id'] == e['return']:
+                    # Exit control function
+                    stack.pop()
+                else:
+                    if len(stack[-1]['functions']) > 0 and stack[-1]['functions'][-1] == e['return']:
+                        # We inside an aux function
+                        stack[-1]['functions'].pop()
+                    removed = if_simple_state(e_id, e, stack)
+
+            return removed
+
+        def if_enter_function(e_id, e, stack):
+            """Enter function."""
+            removed = 0
+
+            # Stepping into a control function?
+            for function in data[e['file']]:
+                match = re.search('{}\(.*\)'.format(function.lower()), e['source'])
+                if match:
+                    # Aha, found new control function
+                    cf_data = {
+                        'action': None,
+                        'functions': list(),
+                        'cf': data[e['file']][function],
+                        'enter id': e['enter'],
+                        'in aux code': False
+                    }
+                    stack.append(cf_data)
+
+                    # Add note on each control function entry
+                    e['note'] = cf_data['cf']['comment']
+                    return removed
+
+            if len(stack) != 0:
+                # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
+                if inside_control_function(stack[-1]['cf'], e['start line']):
+                    if not inside_action(stack[-1]['cf'], e['start line']):
+                        cf_stack[-1]['action'] = None
+                        stack[-1]['in aux code'] = True
+                        self.__remove_edge_and_target_node(e_id)
+                        removed += 1
+                else:
+                    cf_stack[-1]['functions'].append(e['enter'])
+
+            return removed
+
+        def if_simple_state(e_id, e, stack):
+            """Simple e."""
+            removed = 0
+
+            if len(stack) > 0 and inside_control_function(stack[-1]['cf'], e['start line']):
+                stack[-1]['in aux code'] = False
+                act = inside_action(stack[-1]['cf'], e['start line'])
+                if (act and cf_stack[-1]['action'] and cf_stack[-1]['action'] != act) or \
+                   (act and not cf_stack[-1]['action']):
+                    # First action or another action
+                    cf_stack[-1]['action'] = act
+                elif not act:
+                    # Not in action
+                    cf_stack[-1]['action'] = None
+                    self.__remove_edge_and_target_node(e_id)
+                    removed += 1
+            elif len(stack) > 0 and not inside_control_function(stack[-1]['cf'], e['start line']) and \
+                 not cf_stack[-1]['action']:
+                self.__remove_edge_and_target_node(e_id)
+                removed += 1
+            elif len(stack) > 0 and stack[-1]['in aux code']:
+                self.__remove_edge_and_target_node(e_id)
+                removed += 1
+
+            return removed
+
+        e_id = 0
+        while True:
+            # Dict changes its size, so keep it in mind
+            if len(self.edges) > e_id:
+                edge = self.edges[e_id]
+                if 'enter' in edge:
+                    removed = if_enter_function(e_id, edge, cf_stack)
+                elif 'return' in edge:
+                    removed = if_exit_function(e_id, edge, cf_stack)
+                else:
+                    removed = if_simple_state(e_id, edge, cf_stack)
+                e_id -= removed
+                e_id += 1
+            else:
+                break
         return
 
     def __simplify(self):

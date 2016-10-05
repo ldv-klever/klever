@@ -46,15 +46,15 @@ def action_model_comment(action, text, begin=None):
     return model_comment(type_comment, text, name_comment)
 
 
-def control_function_comment_begin(cf):
+def control_function_comment_begin(cf, automaton):
     return model_comment('CONTROL_FUNCTION_BEGIN',
-                         "Control function {!r}".format(cf.name),
+                         "Control function {!r}".format(automaton.process.category),
                          cf.name)
 
 
-def control_function_comment_end(cf):
+def control_function_comment_end(cf, automaton):
     return model_comment('CONTROL_FUNCTION_END',
-                         "End of control function based on process {!r}".format(cf.name),
+                         "End of control function based on process {!r}".format(automaton.process.category),
                          cf.name)
 
 
