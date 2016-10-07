@@ -732,7 +732,8 @@ class ErrorTraceParser:
                 data[file][self._emg_comments[file][line]['instance']] = {
                     'begin': line,
                     'actions': list(),
-                    'comment': self._emg_comments[file][line]['comment']
+                    'comment': self._emg_comments[file][line]['comment'],
+                    'file': file
                 }
 
             # Set control function end point
@@ -758,9 +759,9 @@ class ErrorTraceParser:
         # Search in error trace for control function code and cut all code outside allowed intervals
         cf_stack = list()
 
-        def inside_control_function(cf_data, line):
+        def inside_control_function(cf_data, file, line):
             """Determine action to which string belong."""
-            if cf_data['begin'] <= line <= cf_data['end']:
+            if cf_data['file'] == file and cf_data['begin'] <= line <= cf_data['end']:
                 return True
             else:
                 return False
@@ -790,26 +791,27 @@ class ErrorTraceParser:
         def if_enter_function(e, stack):
             """Enter function."""
             # Stepping into a control function?
-            for function in data[e['file']]:
-                match = re.search('{}\(.*\)'.format(function.lower()), e['source'])
-                if match:
-                    # Aha, found a new control function
-                    cf_data = {
-                        'action': None,
-                        'functions': list(),
-                        'cf': data[e['file']][function],
-                        'enter id': e['enter'],
-                        'in aux code': False
-                    }
-                    stack.append(cf_data)
+            for file in data:
+                for function in data[file]:
+                    match = re.search('{}\(.*\)'.format(function.lower()), e['source'])
+                    if match:
+                        # Aha, found a new control function
+                        cf_data = {
+                            'action': None,
+                            'functions': list(),
+                            'cf': data[file][function],
+                            'enter id': e['enter'],
+                            'in aux code': False
+                        }
+                        stack.append(cf_data)
 
-                    # Add note on each control function entry
-                    e['note'] = cf_data['cf']['comment']
-                    return
+                        # Add note on each control function entry
+                        e['note'] = cf_data['cf']['comment']
+                        return
 
             if len(stack) != 0:
                 # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
-                if inside_control_function(stack[-1]['cf'], e['start line']):
+                if inside_control_function(stack[-1]['cf'], e['file'], e['start line']):
                     act = inside_action(stack[-1]['cf'], e['start line'])
                     if not act:
                         cf_stack[-1]['action'] = None
@@ -823,7 +825,7 @@ class ErrorTraceParser:
 
         def if_simple_state(e, stack):
             """Simple e."""
-            if len(stack) > 0 and inside_control_function(stack[-1]['cf'], e['start line']):
+            if len(stack) > 0 and inside_control_function(stack[-1]['cf'], e['file'], e['start line']):
                 stack[-1]['in aux code'] = False
                 act = inside_action(stack[-1]['cf'], e['start line'])
                 if (act and cf_stack[-1]['action'] and cf_stack[-1]['action'] != act) or \
@@ -834,7 +836,7 @@ class ErrorTraceParser:
                     # Not in action
                     cf_stack[-1]['action'] = None
                     self.error_trace.remove_edge_and_target_node(e)
-            elif len(stack) > 0 and not inside_control_function(stack[-1]['cf'], e['start line']) and \
+            elif len(stack) > 0 and not inside_control_function(stack[-1]['cf'], e['file'], e['start line']) and \
                  not cf_stack[-1]['action']:
                 self.error_trace.remove_edge_and_target_node(e)
             elif len(stack) > 0 and stack[-1]['in aux code']:
@@ -850,5 +852,53 @@ class ErrorTraceParser:
                 if_exit_function(edge, cf_stack)
             else:
                 if_simple_state(edge, cf_stack)
-                
+
+        # Replace implicit callback calls by explicit ones
+        def replace_callback_call(edge, true_call):
+            expected_ret = edge['enter']
+            callback_ret = None
+            in_callback = 0
+            self.error_trace.remove_edge_and_target_node(edge)
+            while True:
+                edge = self.error_trace.next_edge(edge)
+                if not edge:
+                    break
+                elif not callback_ret:
+                    if 'enter' not in edge:
+                        self.error_trace.remove_edge_and_target_node(edge)
+                    else:
+                        edge['source'] = true_call
+                        callback_ret = edge['enter']
+                        in_callback += 1
+                elif in_callback:
+                    if 'enter' in edge and edge['enter'] == callback_ret:
+                        in_callback += 1
+                    elif 'return' in edge and edge['return'] == callback_ret:
+                        in_callback -= 1
+                    elif 'enter' in edge and int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
+                            self._emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
+                        ntc = self._emg_comments[edge['file']][edge['start line'] - 1]['comment']
+                        edge = replace_callback_call(edge, ntc)
+                        if not edge:
+                            break
+                elif in_callback == 0:
+                    self.error_trace.remove_edge_and_target_node(edge)
+                    if 'return' in edge and edge['return'] == expected_ret:
+                        break
+
+            return edge
+
+        # Go through trace
+        edge = self.error_trace.entry_node['out'][0]
+        while True:
+            if 'enter' in edge and int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
+                    self._emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
+                true_call = self._emg_comments[edge['file']][edge['start line'] - 1]['comment']
+                edge = replace_callback_call(edge, true_call)
+                if not edge:
+                    break
+            edge = self.error_trace.next_edge(edge)
+            if not edge:
+                break
+
         return
