@@ -146,8 +146,9 @@ class StateTranslator(FSATranslator):
             v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Initialize variables')] + \
                      v_code + \
                      [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize variables')]
-            v_code.insert(0, control_function_comment_begin(cf, automaton))
-            f_code.append(control_function_comment_end(cf, automaton))
+            title = '{}({})'.format(automaton.process.name, automaton.process.category)
+            v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.category))
+            f_code.append(control_function_comment_end(cf.name, automaton.process.category))
 
             # Add loop for nested case
             cf.body.extend(v_code + f_code)

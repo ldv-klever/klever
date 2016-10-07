@@ -514,21 +514,24 @@ class FSATranslator(metaclass=abc.ABCMeta):
             fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, st.action.name, automaton.identifier,
                                              st.identifier)
             function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources), True)
-
-            function.body.append(model_comment('callback', None, st.action.name))
             inv = []
 
             # Determine label params
             external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
 
+            true_invoke = external_return_expression + '({})'.format(invoke) + \
+                          '(' + ', '.join(external_parameters) + ');'
             if check:
                 f_invoke = external_return_expression + fname + '(' + ', '.join([invoke] + external_parameters) + ');'
-                inv.append('if ({})'.format(invoke))
+                inv.append('if ({}) '.format(invoke) + '{')
+                inv.append(model_comment('callback', true_invoke, st.action.name))
                 inv.append('\t' + f_invoke)
+                inv.append('}')
                 call = callback_return_expression + '(*arg0)' + '(' + callback_params + ')'
             else:
                 f_invoke = external_return_expression + fname + '(' + \
                            ', '.join([func_variable] + external_parameters) + ');'
+                inv.append(model_comment('callback', true_invoke, st.action.name, capitalize=False))
                 inv.append(f_invoke)
                 call = callback_return_expression + '({})'.format(invoke) + '(' + callback_params + ')'
             function.body.append('{};'.format(call))

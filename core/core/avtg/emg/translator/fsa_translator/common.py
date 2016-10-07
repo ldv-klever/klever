@@ -19,12 +19,14 @@ from core.avtg.emg.common.process import Receive, Dispatch
 from core.avtg.emg.common.signature import Pointer, Primitive
 
 
-def model_comment(comment_type, text, instance=None):
+def model_comment(comment_type, text, instance=None, capitalize=True):
     comment = '/* {}'.format(comment_type.upper())
     if instance:
         comment += ' ' + instance.upper()
     if text:
-        comment += ' ' + text.capitalize()
+        if capitalize:
+            text = text.capitalize()
+        comment += ' ' + text
 
     comment += ' */'
     return comment
@@ -46,16 +48,16 @@ def action_model_comment(action, text, begin=None):
     return model_comment(type_comment, text, name_comment)
 
 
-def control_function_comment_begin(cf, automaton):
+def control_function_comment_begin(function_name, name):
     return model_comment('CONTROL_FUNCTION_BEGIN',
-                         "Control function {!r}".format(automaton.process.category),
-                         cf.name)
+                         "Control function {!r}".format(name),
+                         function_name)
 
 
-def control_function_comment_end(cf, automaton):
+def control_function_comment_end(function_name, name):
     return model_comment('CONTROL_FUNCTION_END',
-                         "End of control function based on process {!r}".format(automaton.process.category),
-                         cf.name)
+                         "End of control function based on process {!r}".format(name),
+                         function_name)
 
 
 def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):
