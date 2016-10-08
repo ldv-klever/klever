@@ -567,6 +567,8 @@ class ErrorTrace:
         if removed_edges_num:
             self.logger.debug('{0} useless edges were removed'.format(removed_edges_num))
 
+        return
+
         # Get rid of temporary variables. Replace:
         #   ... tmp...;
         #   ...
