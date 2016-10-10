@@ -23,6 +23,9 @@ def model_comment(comment_type, text, instance=None, capitalize=True):
     comment = '/* {}'.format(comment_type.upper())
     if instance:
         comment += ' ' + instance.upper()
+    else:
+        comment += ' ' + 'NONE_INSTANCE'
+
     if text:
         if capitalize:
             text = text.capitalize()

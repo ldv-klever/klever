@@ -692,7 +692,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         # Make comments
         comments.append(action_model_comment(state.action,
-                                             'Code fragment {!r} of a process {!r} of an interface category {!r}'.
+                                             'Code block {!r} of a process {!r} of an interface category {!r}'.
                                              format(state.action.name, automaton.process.name,
                                                     automaton.process.category),
                                              begin=True))
