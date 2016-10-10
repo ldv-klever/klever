@@ -17,7 +17,7 @@
         {
           "EMG": {
             "specifications directory": "linux/",
-            "entry point": "entry_point",
+            "entry point": "ldv_entry_point",
             "callstack deep search": 3,
             "intermediate model options": {
               "ignore missed callbacks": true,
