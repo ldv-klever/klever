@@ -136,9 +136,23 @@ class ErrorTrace:
                 else:
                     yield current
 
-    @staticmethod
-    def insert_edge_and_target_node(edge):
-        raise NotImplementedError
+    def insert_edge_and_target_node(self, edge):
+        new_edge = {
+            'target node': None,
+            'source node': None,
+            'file': 0
+        }
+        new_node = self.add_node(int(len(self._nodes)))
+
+        edge['target node']['in'].remove(edge)
+        edge['target node']['in'].append(new_edge)
+        new_edge['target node'] = edge['target node']
+        edge['target node'] = new_node
+        new_node['in'] = [edge]
+        new_node['out'] = [new_edge]
+        new_edge['source node'] = new_node
+
+        return new_edge
 
     @staticmethod
     def remove_edge_and_target_node(edge):
@@ -774,6 +788,24 @@ class ErrorTraceParser:
 
             return False
 
+        def match_control_function(e, stack):
+            for file in data:
+                for function in data[file]:
+                    match = re.search('{}\(.*\)'.format(function.lower()), e['source'])
+                    if match:
+                        # Aha, found a new control function
+                        cf_data = {
+                            'action': None,
+                            'functions': list(),
+                            'cf': data[file][function],
+                            'enter id': e['enter'],
+                            'in aux code': False
+                        }
+                        stack.append(cf_data)
+                        return cf_data
+
+            return None
+
         def if_exit_function(e, stack):
             """Exit function."""
             if len(stack) > 0:
@@ -791,23 +823,11 @@ class ErrorTraceParser:
         def if_enter_function(e, stack):
             """Enter function."""
             # Stepping into a control function?
-            for file in data:
-                for function in data[file]:
-                    match = re.search('{}\(.*\)'.format(function.lower()), e['source'])
-                    if match:
-                        # Aha, found a new control function
-                        cf_data = {
-                            'action': None,
-                            'functions': list(),
-                            'cf': data[file][function],
-                            'enter id': e['enter'],
-                            'in aux code': False
-                        }
-                        stack.append(cf_data)
-
-                        # Add note on each control function entry
-                        e['note'] = cf_data['cf']['comment']
-                        return
+            match = match_control_function(e, stack)
+            if match:
+                # Add note on each control function entry
+                e['note'] = match['cf']['comment']
+                return
 
             if len(stack) != 0:
                 # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
@@ -852,6 +872,34 @@ class ErrorTraceParser:
                 if_exit_function(edge, cf_stack)
             else:
                 if_simple_state(edge, cf_stack)
+
+        # Wrap actions and add notes
+        cf_stack = list()
+        for edge in self.error_trace.trace_iterator():
+            if len(cf_stack) > 0:
+                if inside_control_function(cf_stack[-1]['cf'], edge['file'], edge['start line']):
+                    act = inside_action(cf_stack[-1]['cf'], edge['start line'])
+                    if act:
+                        if cf_stack[-1]['action'] and act is not cf_stack[-1]['action']:
+                            # Close previous block
+                            new = self.error_trace.insert_edge_and_target_node(self.error_trace.previous_edge(edge))
+                            new['return'] = cf_stack[-1]['action']['enter id']
+                            new['source'] = ''
+                            new['start line'] = edge['start line'] - 1
+
+                        if not cf_stack[-1]['action'] or act is not cf_stack[-1]['action']:
+                            cf_stack[-1]['action'] = act
+                            new = self.error_trace.insert_edge_and_target_node(self.error_trace.previous_edge(edge))
+                            act['enter id'] = self.error_trace.add_function(str(edge['file']) + str(edge['start line']))
+                            new['enter'] = act['enter id']
+                            new['note'] = act['comment']
+                            new['start line'] = edge['start line'] - 1
+                            new['source'] = ''
+
+            if 'enter' in edge:
+                match_control_function(edge, cf_stack)
+            elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
+                cf_stack.pop()
 
         # Replace implicit callback calls by explicit ones
         def replace_callback_call(edge, true_call):
