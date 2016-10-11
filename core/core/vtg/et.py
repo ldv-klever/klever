@@ -914,7 +914,11 @@ class ErrorTraceParser:
                 if not edge:
                     break
                 elif not callback_ret:
-                    if 'enter' not in edge:
+                    if 'return' in edge and edge['return'] == expected_ret:
+                        edge['source'] = true_call
+                        del edge['return']
+                        break
+                    elif 'enter' not in edge:
                         self.error_trace.remove_edge_and_target_node(edge)
                     else:
                         edge['source'] = true_call
