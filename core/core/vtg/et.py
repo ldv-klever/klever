@@ -115,8 +115,10 @@ class ErrorTrace:
         # *existance of at least one violation node and at least one input node
         if not begin:
             begin = self.entry_node['out'][0]
-        if not end:
-            end = self.violation_nodes.__next__()[1]['in'][0]
+        if not end and len(list(self.violation_nodes)) > 0:
+            nodes = [node for identifier, node in self.violation_nodes if len(node['in']) > 0]
+            if len(nodes) > 0:
+                end = nodes[0]['in'][0]
         if backward:
             getter = self.previous_edge
         else:
@@ -127,7 +129,7 @@ class ErrorTrace:
             if not current:
                 current = begin
                 yield current
-            if current is end:
+            if end and current is end:
                 raise StopIteration
             else:
                 current = getter(current)
@@ -444,7 +446,7 @@ class ErrorTraceParser:
 
                     if file_id in self._notes and start_line in self._notes[file_id]:
                         note = self._notes[file_id][start_line]
-                        self._logger.debug("Add note {!r} for statement from '{1}:{2}'".format(note, file, start_line))
+                        self._logger.debug("Add note {!r} for statement from '{}:{}'".format(note, file, start_line))
                         edge['note'] = note
 
                 if stage == 'warns':
@@ -463,7 +465,7 @@ class ErrorTraceParser:
                         if not note_found:
                             warn = self._asserts[file_id][start_line]
                             self._logger.debug(
-                                "Add warning {!r} for statement from '{1}:{2}'".format(warn, file, start_line))
+                                "Add warning {!r} for statement from '{}:{}'".format(warn, file, start_line))
                             # Add warning either to edge itself or to first edge that enters function and has note at
                             # violation path. If don't do the latter warning will be hidden by error trace visualizer.
                             warn_edge = edge
@@ -884,7 +886,7 @@ class ErrorTraceParser:
                             # Close previous block
                             new = self.error_trace.insert_edge_and_target_node(self.error_trace.previous_edge(edge))
                             new['return'] = cf_stack[-1]['action']['enter id']
-                            new['source'] = ''
+                            #new['source'] = ''
                             new['start line'] = edge['start line'] - 1
 
                         if not cf_stack[-1]['action'] or act is not cf_stack[-1]['action']:
@@ -894,7 +896,7 @@ class ErrorTraceParser:
                             new['enter'] = act['enter id']
                             new['note'] = act['comment']
                             new['start line'] = edge['start line'] - 1
-                            new['source'] = ''
+                            #new['source'] = ''
 
             if 'enter' in edge:
                 match_control_function(edge, cf_stack)
@@ -923,7 +925,8 @@ class ErrorTraceParser:
                         in_callback += 1
                     elif 'return' in edge and edge['return'] == callback_ret:
                         in_callback -= 1
-                    elif 'enter' in edge and int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
+                    elif 'enter' in edge and edge['enter'] in self._aux_funcs and \
+                            int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
                             self._emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
                         ntc = self._emg_comments[edge['file']][edge['start line'] - 1]['comment']
                         edge = replace_callback_call(edge, ntc)
@@ -939,7 +942,8 @@ class ErrorTraceParser:
         # Go through trace
         edge = self.error_trace.entry_node['out'][0]
         while True:
-            if 'enter' in edge and int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
+            if 'enter' in edge and edge['enter'] in self._aux_funcs and \
+                    int(edge['start line'] - 1) in self._emg_comments[edge['file']] and \
                     self._emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
                 true_call = self._emg_comments[edge['file']][edge['start line'] - 1]['comment']
                 edge = replace_callback_call(edge, true_call)
