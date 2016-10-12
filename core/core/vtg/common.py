@@ -15,17 +15,16 @@
 # limitations under the License.
 #
 
-import os
-import re
 import glob
 import json
+import os
+import re
 from abc import abstractclassmethod, ABCMeta
-
 import core.components
 import core.session
 import core.utils
-import core.vtg.et
 from core.vtg.mea import MEA
+from core.vtg.et import import_error_trace
 
 
 # This is an abstract class for VTG strategy.
@@ -243,7 +242,7 @@ class CommonStrategy(core.components.Component):
                               assertion)
         elif decision_results['status'] == 'unsafe':
             self.logger.info('Process witness')
-            et = core.vtg.et.import_error_trace(self.logger, path_to_witness)
+            et = import_error_trace(self.logger, path_to_witness)
 
             self.logger.info('Write processed witness to "error trace.json"')
             with open('error trace.json', 'w', encoding='utf8') as fp:
