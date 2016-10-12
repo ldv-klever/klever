@@ -26,7 +26,7 @@ from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource
-from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
+from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time, get_job_progress
 
 
 ORDERS = [
@@ -49,7 +49,7 @@ ORDER_TITLES = {
 
 ALL_FILTERS = [
     'name', 'change_author', 'change_date', 'status', 'resource_component',
-    'problem_component', 'problem_problem', 'format', 'priority'
+    'problem_component', 'problem_problem', 'format', 'priority', 'finish_date'
 ]
 
 FILTER_TITLES = {
@@ -61,7 +61,8 @@ FILTER_TITLES = {
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
-    'priority': _('Priority')
+    'priority': _('Priority'),
+    'finish_date': _('Finish decision date')
 }
 
 
@@ -75,7 +76,8 @@ def all_user_columns():
     columns.extend([
         'problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version', 'type', 'parent_id',
         'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending', 'tasks_processing',
-        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
+        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
+        'average_time', 'local_average_time', 'max_time'
     ])
     return columns
 
@@ -190,10 +192,10 @@ class FilterForm(object):
                 f = self.view['filters'][f_name]
                 if f_name == 'change_date':
                     date_vals = f['value'].split(':', 1)
-                    f_val = {
-                        'valtype': date_vals[0],
-                        'valval': date_vals[1],
-                    }
+                    f_val = {'valtype': date_vals[0], 'valval': date_vals[1]}
+                elif f_name == 'finish_date':
+                    date_vals = f['value'].split(':', 1)
+                    f_val = {'val_0': int(date_vals[0]), 'val_1': int(date_vals[1])}
                 else:
                     f_val = f['value']
                 selected_filters.append(f_name)
@@ -475,13 +477,25 @@ class TableTree(object):
                         return {'solvingprogress__priority__in': priorities}
             return {}
 
+        def finish_date_filter(fdata):
+            (month, year) = fdata['value'].split(':', 1)
+            try:
+                (month, year) = (int(month), int(year))
+            except ValueError:
+                return {}
+            return {
+                'solvingprogress__finish_date__month__' + fdata['type']: month,
+                'solvingprogress__finish_date__year__' + fdata['type']: year
+            }
+
         action = {
             'name': name_filter,
             'change_author': author_filter,
             'change_date': date_filter,
             'status': lambda fdata: {'status__in': fdata['value']},
             'format': lambda fdata: {'format': fdata['value']} if fdata['type'] == 'is' else {},
-            'priority': priority_filter
+            'priority': priority_filter,
+            'finish_date': finish_date_filter
         }
 
         filters = {}
@@ -559,13 +573,16 @@ class TableTree(object):
     def __unknowns_columns(self):
         problems = {}
         cmup_filter = {'report__parent': None}
+        cu_filter = {'report__parent': None}
         if 'problem_component' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_component'])
+            cu_filter.update(self.head_filters['problem_component'])
         if 'problem_problem' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
             cmup_filter['report__root__job'] = job['job']
+            cu_filter['report__root__job'] = job['job']
             found_comp_ids = []
             for cmup in ComponentMarkUnknownProblem.objects.filter(**cmup_filter):
                 problem = cmup.problem
@@ -598,8 +615,7 @@ class TableTree(object):
                                 'z_total': _('Total')
                             }
                         }
-            for cmup in ComponentUnknown.objects.filter(
-                    Q(**cmup_filter) & ~Q(component_id__in=found_comp_ids)):
+            for cmup in ComponentUnknown.objects.filter(Q(**cu_filter) & ~Q(component_id__in=found_comp_ids)):
                 problems['pr_component_%s' % cmup.component_id] = {
                     'title': cmup.component.name,
                     'problems': {
@@ -670,22 +686,19 @@ class TableTree(object):
                         'tasks_pending': progress.tasks_pending,
                         'solutions': progress.solutions
                     })
-                    if progress.tasks_total == 0:
-                        values_data[j['pk']]['progress'] = '0%'
-                    else:
-                        finished_tasks = progress.tasks_cancelled + progress.tasks_error + progress.tasks_finished
-                        values_data[j['pk']]['progress'] = "%.0f%% (%s/%s)" % (
-                            100 * (finished_tasks / progress.tasks_total),
-                            finished_tasks,
-                            progress.tasks_total
-                        )
+                    (
+                        values_data[j['pk']]['progress'],
+                        values_data[j['pk']]['average_time'],
+                        values_data[j['pk']]['local_average_time'],
+                        values_data[j['pk']]['max_time']
+                    ) = get_job_progress(self.user, j['job'])
+
                     if progress.start_date is not None:
                         values_data[j['pk']]['start_date'] = progress.start_date
                         if progress.finish_date is not None:
                             values_data[j['pk']]['finish_date'] = progress.finish_date
                             values_data[j['pk']]['solution_wall_time'] = get_user_time(
-                                self.user,
-                                int((progress.finish_date - progress.start_date).total_seconds() * 1000)
+                                self.user, int((progress.finish_date - progress.start_date).total_seconds() * 1000)
                             )
                     try:
                         values_data[j['pk']]['operator'] = (

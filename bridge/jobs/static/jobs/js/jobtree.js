@@ -17,7 +17,8 @@
 
 var do_not_count = [
     'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier', 'progress',
-    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
+    'average_time', 'local_average_time'
 ];
 
 function fill_all_values() {
@@ -262,6 +263,12 @@ function getFilters() {
             filter_data = {
                 type: $('#filter_type__' + filter_name).val(),
                 value: $('#filter_value__' + filter_name).val()
+            };
+        }
+        else if (filter_name === 'finish_date') {
+            filter_data = {
+                type: $('#filter_type__' + filter_name ).children('option:selected').val(),
+                value: ($('#filter_value_0__finish_date').children('option:selected').val() + ':' + $('#filter_value_1__finish_date').children('option:selected').val())
             };
         }
         if (filter_data) {

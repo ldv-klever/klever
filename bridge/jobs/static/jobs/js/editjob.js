@@ -1012,8 +1012,7 @@ $(document).ready(function () {
                         }
                         $('.tag-description-popup').each(function () {
                             $(this).popup({
-                                html: $(this).attr('data-content'),
-                                hoverable: true
+                                html: $(this).attr('data-content'), hoverable: true
                             });
                         });
                         if (shown_tag_description_id) {
@@ -1023,119 +1022,17 @@ $(document).ready(function () {
                             }
                         }
                     }
-                    var is_jh_active = ($('#run_history').dropdown('is active')[0] == true && $('#run_history').dropdown('is active')[1] == true);
-                    $('#job_run_history_block').html(data['job_history']);
-                    set_actions_for_run_history();
-                    if (is_jh_active) {
-                        $('#run_history').dropdown('show');
-                    }
-                    if (data['can_create']) {
-                        $('#copy_job_btn').removeClass('disabled');
-                    }
-                    else {
-                        $('#copy_job_btn').addClass('disabled');
-                    }
-                    if (data['can_download']) {
-                        $('#load_job_btn').removeClass('disabled');
-                    }
-                    else {
-                        $('#load_job_btn').addClass('disabled');
-                    }
-                    if (data['can_decide']) {
-                        $('#decide_job_btn_show_popup').removeClass('disabled');
-                        $('#show_fast_job_start_popup').removeClass('disabled');
-                        $('#show_last_job_start_popup').removeClass('disabled');
-                    }
-                    else {
-                        $('#decide_job_btn_show_popup').addClass('disabled');
-                        $('#show_fast_job_start_popup').addClass('disabled');
-                        $('#show_last_job_start_popup').addClass('disabled');
-                    }
-                    if (data['can_stop']) {
-                        $('#stop_job_btn').removeClass('disabled');
-                    }
-                    else {
-                        $('#stop_job_btn').addClass('disabled');
-                    }
-                    if (data['can_edit']) {
-                        $('#edit_job_btn').removeClass('disabled');
-                        $('#edit_versions').removeClass('disabled');
-                    }
-                    else {
-                        $('#edit_job_btn').addClass('disabled');
-                        $('#edit_versions').addClass('disabled');
-                    }
-                    if (data['can_delete']) {
-                        $('#show_remove_job_popup').removeClass('disabled');
-                    }
-                    else {
-                        $('#show_remove_job_popup').addClass('disabled');
-                    }
-                    if (data['can_collapse']) {
-                        $('#collapse_reports_modal_show').removeClass('disabled');
-                    }
-                    else {
-                        $('#collapse_reports_modal_show').addClass('disabled');
-                    }
-                    if (data['can_dfc']) {
-                        $('#dfc__modal_show').removeClass('disabled');
-                        $('#dfc__modal').modal({transition: 'slide down', autofocus: false, closable: false});
-                        $('#dfc__modal_show').click(function () {
-                            $('#dfc__modal').modal('show');
-                            is_dfc_modal_active = true;
-                        });
-                        $('#dfc__modal').find('.ui.checkbox').checkbox();
-                        $('#dfc__f').parent().checkbox({
-                            onChecked: function () {
-                                $('#dfc_problems').show();
-                            },
-                            onUnchecked: function () {
-                                $('#dfc_problems').hide();
-                            }
-                        });
-                        $('#dfc__cancel').click(function () {
-                            $('#dfc__modal').modal('hide');
-                            is_dfc_modal_active = false;
-                        })
-                    }
-                    else {
-                        $('#dfc__modal_show').addClass('disabled');
-                    }
                     if ('jobstatus' in data) {
-                        if ('jobstatus_href' in data) {
-                            var job_status_p = $('#job_status_p');
-                            if (job_status_p.length) {
-                                job_status_p.parent().append($('<a>', {id: 'job_status_link'}));
-                                job_status_p.remove();
-                            }
-                            var job_status_link = $('#job_status_link');
-                            job_status_link.attr('href', data['jobstatus_href']);
-                            job_status_link.attr('class', 'status-link status' + data['jobstatus'] + '-link');
-                            job_status_link.text(data['jobstatus_text']);
-                            // WARNING: change this if you change JOB_STATUS
-                            if ('solvingprogress_err' in data && !$('#job_status_popup').length) {
-                                var popup_activator = $('#job_status_popup_activator');
-                                popup_activator.parent().parent().after($('<div>', {
-                                    'id': 'job_status_popup',
-                                    'class': 'ui inverted popup wide hidden'
-                                }).append($('<div>', {'class': 'ui red header', 'text': data['solvingprogress_err']})));
-                                popup_activator.popup({popup: $('#job_status_popup'), position: 'bottom center'});
-                            }
-                        }
-                        else {
-                            var job_status_a = $('#job_status_link');
-                            if (job_status_a.length) {
-                                job_status_a.parent().append($('<p>', {
-                                    id: 'job_status_p',
-                                    style: 'color:#f1ffff;'
-                                }));
-                                job_status_a.remove();
-                            }
-                            $('#job_status_p').text(data['jobstatus_text']);
+                        if (data['jobstatus'] != $('#job_status_value').val()) {
+                            window.location.replace('');
                         }
                     }
-                    if ('last_change_date' in data) {
-                        $('#last_change_date').text(data['last_change_date']);
+                    if ('progress_data' in data) {
+                        var progress_data = JSON.parse(data['progress_data']);
+                        $('#progress_val').text(progress_data[0]);
+                        $('#average_time').text(progress_data[1]);
+                        $('#local_average_time').text(progress_data[2]);
+                        $('#max_time').text(progress_data[3]);
                     }
                 }
             ).fail(function () {

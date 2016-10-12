@@ -126,15 +126,13 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            <span id="last_change_date">
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
-                            </span>
+                            {% if user.extended.data_format == 'hum' %}
+                                {{ last_version.change_date|naturaltime }}
+                            {% else %}
+                                {% timezone user.extended.timezone %}
+                                    {{ last_version.change_date }}
+                                {% endtimezone %}
+                            {% endif %}
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}
@@ -143,32 +141,61 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% if job.solvingprogress.start_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Start decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.start_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.start_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if job.solvingprogress.finish_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Finish decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.finish_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.finish_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if progress_data %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Decision progress' %}</th>
+                            <td id="progress_val">{{ progress_data.0 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Average time before finishing decision (all jobs)' %}</th>
+                            <td id="average_time">{{ progress_data.1 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Average time before finishing decision (just this jobs)' %}</th>
+                            <td id="local_average_time">{{ progress_data.2 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Maximum time before finishing decision' %}</th>
+                            <td id="max_time">{{ progress_data.3 }}</td>
+                        </tr>
+                    {% endif %}
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata.report %}
-                                <a id="job_status_link" class="
-                                {% if job.status == '0' %}
-                                    status-link status0-link
-                                {% elif job.status == '1' %}
-                                    status-link status1-link
-                                {% elif job.status == '2' %}
-                                    status-link status2-link
-                                {% elif job.status == '3' %}
-                                    status-link status3-link
-                                {% elif job.status == '4' %}
-                                    status-link status4-link
-                                {% elif job.status == '5' %}
-                                    status-link status5-link
-                                {% elif job.status == '6' %}
-                                    status-link status6-link
-                                {% elif job.status == '7' %}
-                                    status-link status7-link
-                                {% endif %}
-                                " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
+                                <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
+                            <input id="job_status_value" type="hidden" value="{{ job.status }}">
                         </td>
                     </tr>
                 </tbody>
