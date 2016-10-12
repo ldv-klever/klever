@@ -55,6 +55,10 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Collapse reports' %}</p>
                 </div>
+                <button id="dfc_modal_show" class="ui teal button normal-popup{% if not can_dfc %} disabled{% endif %}"><i class="archive icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Download files for competition' %}</p>
+                </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
                 <thead>

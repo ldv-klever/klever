@@ -178,6 +178,9 @@ class JobAccess(object):
             return False
         return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
 
+    def can_dfc(self):
+        return self.job is not None and self.job.status in [JOB_STATUS[3][0], JOB_STATUS[4][0]]
+
     def __get_prop(self, user):
         if self.job is not None:
             try:

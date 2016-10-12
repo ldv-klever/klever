@@ -183,3 +183,48 @@
     {% endif %}
 </div>
 <br><br>
+<div id="dfc_modal" class="ui small dinamic modal">
+    <div class="ui header">{% trans 'Choose filters' %}</div>
+    <div class="content">
+        <div class="ui grid">
+            <div class="seven wide column">
+                {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.tags_unsafe|length %}
+                    <div class="ui checkbox">
+                        <label for="dfc__u">{% trans 'Unsafes' %}</label>
+                        <input id="dfc__u" type="checkbox">
+                    </div>
+                    <br>
+                {% endif %}
+                {% if reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.tags_safe|length %}
+                    <div class="ui checkbox">
+                        <label for="dfc__s">{% trans 'Safes' %}</label>
+                        <input id="dfc__s" type="checkbox">
+                    </div>
+                    <br>
+                {% endif %}
+                {% if reportdata.view_data.unknowns|length %}
+                    <div class="ui checkbox">
+                        <label for="dfc__f">{% trans 'Unknowns' %}</label>
+                        <input id="dfc__f" type="checkbox">
+                    </div>
+                    <br>
+                {% endif %}
+            </div>
+            <div id="dfc_problems" class="nine wide column" style="display: none">
+                {% for problem in reportdata.problems %}
+                    <div class="ui checkbox">
+                        <label for="dfc__p__{{ problem.1 }}">{{ problem.0 }}</label>
+                        <input id="dfc__p__{{ problem.1 }}" type="checkbox" value="{{ problem.1 }}">
+                    </div>
+                    <br>
+                {% endfor %}
+            </div>
+            <div class="sixteen wide column right aligned">
+                <div class="ui buttons">
+                    <button id="dfc__btn" class="ui green button">{% trans 'Download' %}</button>
+                    <button id="dfc__cancel" class="ui blue button">{% trans 'Cancel' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

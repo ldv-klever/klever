@@ -805,6 +805,7 @@ $(document).ready(function () {
         });
     }
     $('#resources-note').popup();
+    $('#dfc__modal_show').popup();
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
     var view_job_1st_part = $('#view_job_1st_part');
@@ -975,8 +976,12 @@ $(document).ready(function () {
     });
 
     if ($('#job_data_div').length) {
+        var is_dfc_modal_active = false;
         var interval = setInterval(function () {
             if ($.active > 0) {
+                return false;
+            }
+            if (is_dfc_modal_active) {
                 return false;
             }
             $.post(
@@ -1071,6 +1076,30 @@ $(document).ready(function () {
                     }
                     else {
                         $('#collapse_reports_modal_show').addClass('disabled');
+                    }
+                    if (data['can_dfc']) {
+                        $('#dfc__modal_show').removeClass('disabled');
+                        $('#dfc__modal').modal({transition: 'slide down', autofocus: false, closable: false});
+                        $('#dfc__modal_show').click(function () {
+                            $('#dfc__modal').modal('show');
+                            is_dfc_modal_active = true;
+                        });
+                        $('#dfc__modal').find('.ui.checkbox').checkbox();
+                        $('#dfc__f').parent().checkbox({
+                            onChecked: function () {
+                                $('#dfc_problems').show();
+                            },
+                            onUnchecked: function () {
+                                $('#dfc_problems').hide();
+                            }
+                        });
+                        $('#dfc__cancel').click(function () {
+                            $('#dfc__modal').modal('hide');
+                            is_dfc_modal_active = false;
+                        })
+                    }
+                    else {
+                        $('#dfc__modal_show').addClass('disabled');
                     }
                     if ('jobstatus' in data) {
                         if ('jobstatus_href' in data) {
