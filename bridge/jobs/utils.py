@@ -157,8 +157,7 @@ class JobAccess(object):
     def can_stop(self):
         if self.job is None:
             return False
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] \
-                and (self.__is_operator or self.__is_manager):
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_operator or self.__is_manager):
             return True
         return False
 

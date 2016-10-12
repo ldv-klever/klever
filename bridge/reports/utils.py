@@ -15,15 +15,21 @@
 # limitations under the License.
 #
 
+import os
 import json
+import tarfile
+from io import BytesIO
+import xml.etree.ElementTree as ETree
+from xml.dom import minidom
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.utils import extract_tar_temp, logger
 from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName, ReportAttr
+from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem, MarkUnknown
 from bridge.tableHead import Header
@@ -508,3 +514,71 @@ class AttrData(object):
         for attr in self._attrs:
             if attr[0] in self._name:
                 self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]
+
+
+class DownloadFilesForCompetition(object):
+    def __init__(self, job, filters):
+        self.name = 'files.tar.gz'
+        self.job = job
+        self.filters = filters
+        self.xml_root = None
+        self.prop_content = None
+        self.memory = BytesIO()
+        self.__get_archive()
+        self.memory.flush()
+        self.memory.seek(0)
+
+    def __get_archive(self):
+        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8')
+        self.__add_unsafes(jobtar_obj)
+        t = tarfile.TarInfo('benchmark.xml')
+        xml_inmem = BytesIO(
+            minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ").encode('utf8')
+        )
+        t.size = xml_inmem.seek(0, 2)
+        xml_inmem.seek(0)
+        jobtar_obj.addfile(t, xml_inmem)
+
+        t = tarfile.TarInfo('unreach-call.prp')
+        t.size = len(self.prop_content)
+        jobtar_obj.addfile(t, BytesIO(self.prop_content))
+        jobtar_obj.close()
+
+    def __add_unsafes(self, files_tar):
+        cnt = 1
+        u_ids_in_use = []
+
+        for u in ReportUnsafe.objects.filter(root__job=self.job):
+            parent = ReportComponent.objects.get(id=u.parent_id)
+            if parent.parent is None or parent.archive is None:
+                continue
+            ver_obj = ''
+            ver_rule = ''
+            for u_a in u.attrs.all():
+                if u_a.attr.name.name == 'Verification object':
+                    ver_obj = u_a.attr.value.replace('/', '--').replace('~', '-').replace('.ko', '')
+                elif u_a.attr.name.name == 'Rule specification':
+                    ver_rule = u_a.attr.value
+            u_id = os.path.join('Unsafes', "u__%s__%s.cil.i" % (ver_rule, ver_obj))
+            if u_id in u_ids_in_use:
+                u_id = os.path.join('Unsafes', "u__%s__%s__%s.cil.i" % (ver_rule, ver_obj, cnt))
+                cnt += 1
+            file_content = self.__get_file_content_from_arch(parent.archive)
+            t = tarfile.TarInfo(u_id)
+            t.size = len(file_content)
+            files_tar.addfile(t, BytesIO(file_content))
+            ETree.SubElement(self.xml_root.find('tasks'), 'include', {'name': u_id})
+            u_ids_in_use.append(u_id)
+
+    def __get_file_content_from_arch(self, f):
+        files_dir = extract_tar_temp(f.file)
+        files_dirname = files_dir.name
+        if any(x not in os.listdir(files_dirname) for x in ['benchmark.xml', 'unreach-call.prp', 'cil.i']):
+            raise ValueError('Not enough files in archive: %s' % str(os.listdir(files_dirname)))
+        if self.prop_content is None or self.xml_root is None:
+            with open(os.path.join(files_dirname, 'benchmark.xml'), encoding='utf8') as fp:
+                self.xml_root = ETree.fromstring(fp.read())
+            with open(os.path.join(files_dirname, 'unreach-call.prp'), mode='rb') as fp:
+                self.prop_content = fp.read()
+        with open(os.path.join(files_dirname, 'cil.i'), mode='rb') as fp:
+            return fp.read()

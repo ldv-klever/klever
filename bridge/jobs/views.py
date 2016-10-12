@@ -35,6 +35,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
+from reports.utils import DownloadFilesForCompetition
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from jobs.models import RunHistory
@@ -975,3 +976,23 @@ def collapse_reports(request):
         return JsonResponse({'error': _("You don't have an access to collapse reports")})
     CollapseReports(job)
     return JsonResponse({})
+
+
+@unparallel_group(['job'])
+@login_required
+def download_files_for_compet(request, job_id):
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[404]))
+    if not JobAccess(request.user, job).can_download():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+    try:
+        jobtar = DownloadFilesForCompetition(job, [])
+    except Exception as e:
+        logger.exception(e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.name
+    response.write(jobtar.memory.read())
+    return response
