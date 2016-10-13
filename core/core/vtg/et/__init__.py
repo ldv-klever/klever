@@ -21,12 +21,20 @@ from core.vtg.et.tmpvars import generic_simplifications
 
 
 def import_error_trace(logger, witness):
-    # Parse
+    # Parse witness
     po = ErrorTraceParser(logger, witness)
     trace = po.error_trace
 
-    # Simplify
+    # Parse comments from sources
+    trace.parse_model_comments()
+
+    # Remove ugly code
     generic_simplifications(logger, trace)
+
+    # Find violation
+    trace.find_violation_path()
+
+    # Make more difficult transformations
     envmodel_simplifications(logger, trace)
 
     return trace.serialize()
