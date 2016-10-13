@@ -519,6 +519,8 @@ class AttrData(object):
 class DownloadFilesForCompetition(object):
     def __init__(self, job, filters):
         self.name = 'svcomp.tar.gz'
+        self.benchmark_fname = 'benchmark.xml'
+        self.prp_fname = 'unreach-call.prp'
         self.job = job
         self.filters = filters
         self.xml_root = None
@@ -539,7 +541,7 @@ class DownloadFilesForCompetition(object):
                     self.__add_unknowns(tarobj, f_t)
             if self.xml_root is None:
                 raise ValueError('There are no filters')
-            t = tarfile.TarInfo('benchmark.xml')
+            t = tarfile.TarInfo(self.benchmark_fname)
             xml_inmem = BytesIO(
                 minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ").encode('utf8')
             )
@@ -632,7 +634,7 @@ class DownloadFilesForCompetition(object):
     def __add_cil_file(self, f, tarobj, fpath):
         extracted_tar = extract_tar_temp(f.file)
         files_dir = extracted_tar.name
-        with open(os.path.join(files_dir, 'benchmark.xml'), encoding='utf8') as fp:
+        with open(os.path.join(files_dir, self.benchmark_fname), encoding='utf8') as fp:
             xml_root = ETree.fromstring(fp.read())
             cil_file = xml_root.find('tasks').find('include').text
         if self.xml_root is None:
@@ -645,8 +647,8 @@ class DownloadFilesForCompetition(object):
             fp.seek(0)
             tarobj.addfile(t, fp)
         if not self.prp_file_added:
-            with open(os.path.join(files_dir, 'unreach-call.prp'), mode='rb') as fp:
-                t = tarfile.TarInfo('unreach-call.prp')
+            with open(os.path.join(files_dir, self.prp_fname), mode='rb') as fp:
+                t = tarfile.TarInfo(self.prp_fname)
                 t.size = fp.seek(0, 2)
                 fp.seek(0)
                 tarobj.addfile(t, fp)
