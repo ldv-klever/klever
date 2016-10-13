@@ -981,6 +981,8 @@ def collapse_reports(request):
 @unparallel_group(['job'])
 @login_required
 def download_files_for_compet(request, job_id):
+    if request.method != 'POST':
+        return HttpResponseRedirect(reverse('error', args=[500]))
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
@@ -988,7 +990,7 @@ def download_files_for_compet(request, job_id):
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
     try:
-        jobtar = DownloadFilesForCompetition(job, [])
+        jobtar = DownloadFilesForCompetition(job, json.loads(request.POST['filters']))
     except Exception as e:
         logger.exception(e)
         return HttpResponseRedirect(reverse('error', args=[500]))

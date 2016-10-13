@@ -812,6 +812,31 @@ function activate_download_for_compet() {
     $('#dfc__cancel').click(function () {
         $('#dfc_modal').modal('hide');
     });
+    $('#dfc__confirm').click(function () {
+        var svcomp_filters = [];
+        if ($('#dfc__u').parent().checkbox('is checked')) {
+            svcomp_filters.push('u');
+        }
+        if ($('#dfc__s').parent().checkbox('is checked')) {
+            svcomp_filters.push('s');
+        }
+        if ($('#dfc__f').parent().checkbox('is checked')) {
+            var unknowns_filters = [];
+            $('input[id^="dfc__p__"]').each(function () {
+                if ($(this).parent().checkbox('is checked')) {
+                    unknowns_filters.push($(this).val());
+                }
+            });
+            svcomp_filters.push(unknowns_filters);
+        }
+        if (svcomp_filters.length == 0) {
+            err_notify($('#error___dfc_notype').text());
+        }
+        else {
+            $('#dfc_modal').modal('hide');
+            $.redirectPost('/jobs/downloadcompetfile/' + $('#job_pk').val() + '/', {'filters': JSON.stringify(svcomp_filters)});
+        }
+    });
 
 }
 
