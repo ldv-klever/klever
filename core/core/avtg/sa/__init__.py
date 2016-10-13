@@ -119,10 +119,7 @@ class SA(core.avtg.plugins.Plugin):
                                    tuple(['cif',
                                           '--in', command['in files'][0],
                                           '--aspect', self.aspect,
-                                          # TODO: issues like in Weaver.
-                                          '--out', os.path.relpath(
-                                           '{0}.c'.format(os.path.splitext(os.path.basename(command['out file']))[0]),
-                                           os.path.join(self.conf['main working directory'], command['cwd'])),
+                                          '--out', command['out file'],
                                           '--stage', 'instrumentation',
                                           '--back-end', 'src',
                                           '--debug', 'DEBUG'] +

@@ -12,7 +12,8 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376"
+        "version": "20376",
+        "options": [{"-ldv": ""}]
       },
       "resource limits": {
         "wall time": 1000000,

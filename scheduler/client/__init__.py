@@ -86,6 +86,8 @@ def solve_job(conf):
     # TODO: How to choose proper CPU core numbers?
 
     logging.info("Run Klever Core {}".format(bin))
+    # Do this for deterministic python in job
+    os.environ['PYTHONHASHSEED'] = "0"
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],

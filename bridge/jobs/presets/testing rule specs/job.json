@@ -13,7 +13,8 @@
       "name": "separated rules",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376"
+        "version": "20376",
+        "options": [{"-ldv": ""}]
       },
       "resource limits": {
         "wall time": 1000000,
@@ -184,6 +185,7 @@
           "wrong-flags-trylock.ko",
           "nonatomic-lock.ko",
           "nonatomic-trylock.ko",
+          "nonatomic-trylock-2.ko",
           "safe.ko"
         ]
       },
@@ -428,17 +430,6 @@
         ]
       },
       "rule specifications": ["linux:gendisk"]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/linux/clk",
-        "modules": [
-          "unsafe1.ko",
-          "unsafe2.ko",
-          "safe.ko"
-        ]
-      },
-      "rule specifications": ["linux:clk"]
     }
   ]
 }

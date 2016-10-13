@@ -185,6 +185,7 @@
           "wrong-flags-trylock.ko",
           "nonatomic-lock.ko",
           "nonatomic-trylock.ko",
+          "nonatomic-trylock-2.ko",
           "safe.ko"
         ]
       },

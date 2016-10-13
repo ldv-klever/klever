@@ -127,10 +127,9 @@ def split_into_instances(analysis, process, resource_new_insts, simplified_map=N
                             total_chosen_values.add(suits[0])
                         elif len(suits) > 1:
                             # There can be many useless resource implementations ...
-                            interface_obj = analysis.get_intf(interface)
-                            if type(interface_obj) is Resource and resource_new_insts > 0:
+                            if type(analysis.interfaces[interface]) is Resource and resource_new_insts > 0:
                                 suits = suits[0:resource_new_insts]
-                            elif type(interface_obj) is Container:
+                            elif type(analysis.interfaces[interface]) is Container:
                                 # Ignore additional container values which does not influence the other interfaces
                                 suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
                             else:

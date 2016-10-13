@@ -47,6 +47,7 @@
       "verifier": {
         "name": "CPAchecker",
         "version": "20376",
+        "options": [{"-ldv": ""}],
         "MAV preset": "L1",
         "relaunch": "external",
         "mea": false
@@ -554,7 +555,7 @@
         },
         {
           "ideal verdict": "safe"
-        }
+       }
       ]
     },
     {

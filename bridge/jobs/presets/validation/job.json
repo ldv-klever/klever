@@ -13,7 +13,8 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "20376"
+        "version": "20376",
+        "options": [{"-ldv": ""}]
       },
       "resource limits": {
         "wall time": 1000000,
@@ -61,14 +62,6 @@
     },
     {
       "Linux kernel": {
-        "Git repository": {"commit": "448356262f56~"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "unsafe"}]
-    },
-    {
-      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
@@ -101,14 +94,6 @@
         "ideal verdict": "safe",
         "comment": "Non-target bug"
       }]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "448356262f56"},
-        "modules": ["drivers/usb/serial/kobil_sct.ko"]
-      },
-      "rule specifications": ["linux:alloc:irq"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
     },
     {
       "Linux kernel": {
@@ -164,13 +149,24 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "448356262f56~"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
+      }]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "7ce77510c9c7~"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
       "rule specifications": ["linux:alloc:spin lock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "[Environment model] Nonstandard environment models specification (<a href='https://forge.ispras.ru/issues/7439'>feature #7439</a>)"
+        "comment": "[Environment model] Nondeterministic interrupt context (<a href='https://forge.ispras.ru/issues/7346'>feature #7346</a>)"
       }]
     },
     {
@@ -217,6 +213,7 @@
       },
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
@@ -282,6 +279,14 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "448356262f56"},
+        "modules": ["drivers/usb/serial/kobil_sct.ko"]
+      },
+      "rule specifications": ["linux:alloc:spin lock"],
+      "ideal verdicts": [{"ideal verdict": "safe"}]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
@@ -326,6 +331,7 @@
       },
       "rule specifications": ["linux:spinlock"],
       "VTG strategy": {"verifier": {"options": [
+        {"-ldv": ""},
         {"-setprop": "CompositeCPA.cpas=cpa.location.LocationCPA,cpa.callstack.CallstackCPA,cpa.value.ValueAnalysisCPA,cpa.predicate.PredicateCPA,cpa.conditions.path.PathConditionsCPA"},
         {"-setprop": "cpa.predicate.trackFunctionPointers=true"}
       ]}},
