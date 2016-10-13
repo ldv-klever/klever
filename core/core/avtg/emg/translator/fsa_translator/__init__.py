@@ -524,7 +524,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             if check:
                 f_invoke = external_return_expression + fname + '(' + ', '.join([invoke] + external_parameters) + ');'
                 inv.append('if ({}) '.format(invoke) + '{')
-                inv.append(model_comment('callback', true_invoke, st.action.name))
+                inv.append(model_comment('callback', true_invoke, st.action.name, capitalize=False))
                 inv.append('\t' + f_invoke)
                 inv.append('}')
                 call = callback_return_expression + '(*arg0)' + '(' + callback_params + ')'
@@ -746,8 +746,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _control_function(self, automaton):
         if automaton.identifier not in self._control_functions:
             # Check that this is an aspect function or not
-            name = 'ldv_control_function_' + str(automaton.identifier)
             if automaton in self._model_fsa:
+                name = 'ldv_{}'.format(automaton.process.name)
                 function_obj = self._analysis.get_kernel_function(automaton.process.name)
                 params = []
                 for position, param in enumerate(function_obj.declaration.parameters):
@@ -769,6 +769,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                   ', '.join(param_types))
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
             else:
+                name = 'ldv_{}_{}_{}'.format(automaton.process.category, automaton.process.name, automaton.identifier)
                 cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *data)', False)
 
             self._control_functions[automaton.identifier] = cf
