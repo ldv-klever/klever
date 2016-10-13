@@ -20,12 +20,9 @@ import re
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data = _collect_action_diaposons(error_trace)
-    # todo: fix this
     _remove_control_func_aux_code(data, error_trace)
-    # todo: Fix that
-    #_wrap_actions(data, error_trace)
-    # todo: Fix even this bullshit
-    #_remove_callback_wrappers(error_trace)
+    _wrap_actions(data, error_trace)
+    _remove_callback_wrappers(error_trace)
 
 
 def _collect_action_diaposons(error_trace):
@@ -110,7 +107,7 @@ def _remove_control_func_aux_code(data, error_trace):
     def if_exit_function(e, stack):
         """Exit function."""
         if len(stack) > 0:
-            if stack[-1]['functions'] == 0 and stack['enter id'] == e['return']:
+            if len(stack[-1]['functions']) == 0 and stack[-1]['enter id'] == e['return']:
                 # Exit control function
                 stack.pop()
             else:
@@ -204,7 +201,14 @@ def _wrap_actions(data, error_trace):
 
 
 def _remove_callback_wrappers(error_trace):
-    # Replace implicit callback calls by explicit ones
+    def is_aux_callback_call(edge, error_trace):
+        if 'enter' in edge and edge['enter'] in error_trace.aux_funcs and \
+                int(edge['start line'] - 1) in error_trace.emg_comments[edge['file']] and \
+                error_trace.emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
+            return True
+        else:
+            return False
+
     def replace_callback_call(edge, true_call):
         expected_ret = edge['enter']
         callback_ret = None
@@ -230,10 +234,8 @@ def _remove_callback_wrappers(error_trace):
                     in_callback += 1
                 elif 'return' in edge and edge['return'] == callback_ret:
                     in_callback -= 1
-                elif 'enter' in edge and edge['enter'] in error_trace.aux_funcs and \
-                        int(edge['start line'] - 1) in error_trace[edge['file']] and \
-                        error_trace[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
-                    ntc = error_trace[edge['file']][edge['start line'] - 1]['comment']
+                elif is_aux_callback_call(edge, error_trace):
+                    ntc = error_trace.emg_comments[edge['file']][edge['start line'] - 1]['comment']
                     edge = replace_callback_call(edge, ntc)
                     if not edge:
                         break
@@ -247,10 +249,8 @@ def _remove_callback_wrappers(error_trace):
     # Go through trace
     edge = error_trace.entry_node['out'][0]
     while True:
-        if 'enter' in edge and edge['enter'] in error_trace.aux_funcs and \
-                int(edge['start line'] - 1) in error_trace[edge['file']] and \
-                error_trace[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
-            true_call = error_trace[edge['file']][edge['start line'] - 1]['comment']
+        if is_aux_callback_call(edge, error_trace):
+            true_call = error_trace.emg_comments[edge['file']][edge['start line'] - 1]['comment']
             edge = replace_callback_call(edge, true_call)
             if not edge:
                 break

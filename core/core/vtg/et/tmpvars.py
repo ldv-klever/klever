@@ -84,7 +84,7 @@ def _remove_artificial_edges(logger, error_trace):
         if 'enter' in edge:
             enter_edge = edge
             break
-    removed_tmp_vars_num = _remove_tmp_vars(error_trace, enter_edge)
+    removed_tmp_vars_num, edge = _remove_tmp_vars(error_trace, enter_edge)
 
     if removed_tmp_vars_num:
         logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
