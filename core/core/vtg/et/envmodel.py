@@ -84,7 +84,7 @@ def _inside_action(cf, line):
 def _match_control_function(edge, stack, data):
     for file in data:
         for function in data[file]:
-            match = re.search('{}\(.*\)'.format(function.lower()), edge['source'])
+            match = re.search('{}\(.*\)'.format(function), edge['source'])
             if match:
                 # Aha, found a new control function
                 cf_data = {
@@ -107,7 +107,9 @@ def _remove_control_func_aux_code(data, error_trace):
     def if_exit_function(e, stack):
         """Exit function."""
         if len(stack) > 0:
-            if len(stack[-1]['functions']) == 0 and stack[-1]['enter id'] == e['return']:
+            if stack[-1]['enter id'] == e['return']:
+                if len(stack[-1]['functions']) != 0:
+                    raise RuntimeError('Do not expect non-exit functions')
                 # Exit control function
                 stack.pop()
             else:
@@ -139,7 +141,10 @@ def _remove_control_func_aux_code(data, error_trace):
                     cf_stack[-1]['action'] = act
                     stack[-1]['in aux code'] = False
             else:
-                cf_stack[-1]['functions'].append(e['enter'])
+                if stack[-1]['in aux code']:
+                    error_trace.remove_edge_and_target_node(e)
+                else:
+                    cf_stack[-1]['functions'].append(e['enter'])
 
     def if_simple_state(e, stack):
         """Simple e."""
@@ -154,9 +159,6 @@ def _remove_control_func_aux_code(data, error_trace):
                 # Not in action
                 cf_stack[-1]['action'] = None
                 error_trace.remove_edge_and_target_node(e)
-        elif len(stack) > 0 and not _inside_control_function(stack[-1]['cf'], e['file'], e['start line']) and \
-                not cf_stack[-1]['action']:
-            error_trace.remove_edge_and_target_node(e)
         elif len(stack) > 0 and stack[-1]['in aux code']:
             error_trace.remove_edge_and_target_node(e)
 
@@ -203,6 +205,7 @@ def _wrap_actions(data, error_trace):
 def _remove_callback_wrappers(error_trace):
     def is_aux_callback_call(edge, error_trace):
         if 'enter' in edge and edge['enter'] in error_trace.aux_funcs and \
+                edge['file'] in error_trace.emg_comments and \
                 int(edge['start line'] - 1) in error_trace.emg_comments[edge['file']] and \
                 error_trace.emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
             return True

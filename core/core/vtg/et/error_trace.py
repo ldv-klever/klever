@@ -191,11 +191,12 @@ class ErrorTrace:
 
         return new_edge
 
-    @staticmethod
-    def remove_edge_and_target_node(edge):
+    def remove_edge_and_target_node(self, edge):
         # Do not delete edge with a warning
         if 'warn' in edge:
             raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
+        if id(edge['target node']) in [id(v) for i, v in self.violation_nodes]:
+            raise ValueError('Is not allowed to delete violation nodes')
 
         source = edge['source node']
         target = edge['target node']

@@ -22,7 +22,7 @@ from core.avtg.emg.common.signature import Pointer, Primitive
 def model_comment(comment_type, text, instance=None, capitalize=True):
     comment = '/* {}'.format(comment_type.upper())
     if instance:
-        comment += ' ' + instance.upper()
+        comment += ' ' + instance
     else:
         comment += ' ' + 'NONE_INSTANCE'
 
