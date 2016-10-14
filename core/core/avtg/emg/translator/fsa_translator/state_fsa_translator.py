@@ -297,7 +297,7 @@ class StateTranslator(FSATranslator):
             code.extend(self.__set_initial_state(automaton))
 
         if export:
-            name = 'switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
+            name = 'ldv_switch_automaton_state_{}_{}'.format(automaton.identifier, state.identifier)
             definition_file = choose_file(self._cmodel, self._analysis, automaton)
             function = FunctionDefinition(name, definition_file, 'void a(void)')
             function.body = code

@@ -251,33 +251,7 @@ class CModel:
             self.add_function_definition(self.entry_file, gl_init)
             body.extend([
                 '/* Initialize external data */',
-                'initialize_external_data();'
-            ])
-
-            for file in sorted(list(self.__external_allocated.keys())):
-                func = FunctionDefinition('allocate_external_{}'.format(cnt),
-                                          file,
-                                          "void external_allocated_{}(void)".format(cnt),
-                                          True)
-
-                init = ["{} = {}();".format(var.name, 'external_allocated_data') for
-                        var in self.__external_allocated[file]]
-                func.body = init
-
-                self.add_function_definition(file, func)
-                self.add_function_declaration(self.entry_file, func, extern=True)
-                functions.append(func)
-                cnt += 1
-
-            gl_init = FunctionDefinition('initialize_external_data',
-                                         self.entry_file,
-                                         'void initialize_external_data(void)')
-            init_body = ['{}();'.format(func.name) for func in functions]
-            gl_init.body = init_body
-            self.add_function_definition(self.entry_file, gl_init)
-            body.extend([
-                '/* Initialize external data */',
-                'initialize_external_data();'
+                'ldv_initialize_external_data();'
             ])
 
         body = [
