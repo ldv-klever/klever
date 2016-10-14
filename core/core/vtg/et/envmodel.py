@@ -108,14 +108,9 @@ def _remove_control_func_aux_code(data, error_trace):
         """Exit function."""
         if len(stack) > 0:
             if stack[-1]['enter id'] == e['return']:
-                if len(stack[-1]['functions']) != 0:
-                    raise RuntimeError('Do not expect non-exit functions')
                 # Exit control function
                 stack.pop()
             else:
-                if len(stack[-1]['functions']) > 0 and stack[-1]['functions'][-1] == e['return']:
-                    # We inside an aux function
-                    stack[-1]['functions'].pop()
                 if_simple_state(e, stack)
 
         return
@@ -143,8 +138,6 @@ def _remove_control_func_aux_code(data, error_trace):
             else:
                 if stack[-1]['in aux code']:
                     error_trace.remove_edge_and_target_node(e)
-                else:
-                    cf_stack[-1]['functions'].append(e['enter'])
 
     def if_simple_state(e, stack):
         """Simple e."""
@@ -175,6 +168,20 @@ def _remove_control_func_aux_code(data, error_trace):
 
 
 def _wrap_actions(data, error_trace):
+    def open_block(e, action, stack):
+        stack[-1]['action'] = action
+        ne = error_trace.insert_edge_and_target_node(error_trace.previous_edge(e))
+        action['enter id'] = error_trace.add_function(str(e['file']) + str(e['start line']))
+        ne['enter'] = action['enter id']
+        ne['note'] = action['comment']
+        ne['start line'] = stack[-1]['action']['begin']
+    
+    def close_block(e, stack):
+        ne = error_trace.insert_edge_and_target_node(error_trace.previous_edge(e))
+        ne['return'] = stack[-1]['action']['enter id']
+        ne['start line'] = stack[-1]['action']['end']
+        stack[-1]['action'] = None
+    
     # Wrap actions and add notes
     cf_stack = list()
     for edge in error_trace.trace_iterator():
@@ -183,22 +190,16 @@ def _wrap_actions(data, error_trace):
                 act = _inside_action(cf_stack[-1]['cf'], edge['start line'])
                 if act:
                     if cf_stack[-1]['action'] and act is not cf_stack[-1]['action']:
-                        # Close previous block
-                        new = error_trace.insert_edge_and_target_node(error_trace.previous_edge(edge))
-                        new['return'] = cf_stack[-1]['action']['enter id']
-                        new['start line'] = edge['start line'] - 1
+                        close_block(edge, cf_stack)
 
                     if not cf_stack[-1]['action'] or act is not cf_stack[-1]['action']:
-                        cf_stack[-1]['action'] = act
-                        new = error_trace.insert_edge_and_target_node(error_trace.previous_edge(edge))
-                        act['enter id'] = error_trace.add_function(str(edge['file']) + str(edge['start line']))
-                        new['enter'] = act['enter id']
-                        new['note'] = act['comment']
-                        new['start line'] = edge['start line'] - 1
+                        open_block(edge, act, cf_stack)
 
         if 'enter' in edge:
             _match_control_function(edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
+            if cf_stack[-1]['action']:
+                close_block(edge, cf_stack)
             cf_stack.pop()
 
 
