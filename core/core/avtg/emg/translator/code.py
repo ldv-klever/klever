@@ -464,6 +464,8 @@ class FunctionModels:
             if function == 'ALLOC' and self.ualloc_flag:
                 # Do not alloc memory anyway for unknown resources anyway to avoid incomplete type errors
                 function = 'UALLOC'
+            if get_conf_property(self._conf, 'disable ualloc') and function == 'UALLOC':
+                function = 'ALLOC'
             if function != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
                 size = 'sizeof({})'.format(self.signature.points.to_string(''))
 
