@@ -665,6 +665,25 @@
         },
         {"ideal verdict": "safe"}
       ]
-    }
+    },
+    
+    {
+      "Linux kernel": {
+        "external modules": "tests/serial_core",
+        "modules": [
+          "serial_core_add_one_port.ko",
+          "serial_core_callbacks.ko",
+          "serial_core_invoke.ko",
+          "serial_core_remove_one_port.ko",
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/serial_core_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
   ]
 }

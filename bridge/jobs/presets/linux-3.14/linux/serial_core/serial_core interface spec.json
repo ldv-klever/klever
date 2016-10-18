@@ -1,0 +1,100 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "uart_add_one_port": {
+        "signature": "int uart_add_one_port(%uart.uart_driver%, *%uart.uart_port%)",
+        "header": "linux/serial_core.h"
+      },
+      "uart_remove_one_port": {
+        "signature": "int uart_remove_one_port(%uart.uart_driver%, *%uart.uart_port%)",
+        "header": "linux/serial_core.h"
+      },
+      "uart_suspend_port": {
+        "signature": "int uart_suspend_port(%uart.uart_driver%, *%uart.uart_port%)",
+        "header": "linux/serial_core.h"
+      }
+    },
+    "categories": {
+      "uart": {
+        "containers": {
+          "uart_ops": {
+            "signature": "struct uart_ops ops",
+            "header": "linux/serial_core.h",
+            "fields": {
+              "pm": "%uart.pm%",
+              "startup": "%uart.startup%",
+              "set_termios": "%uart.set_termios%",
+              "get_mctrl": "%uart.get_mctrl%",
+              "set_mctrl": "%uart.set_mctrl%",
+              "stop_rx": "%uart.stop_rx%",
+              "stop_tx": "%uart.stop_tx%",
+              "start_tx": "%uart.start_tx%",
+              "throttle": "%uart.throttle%",
+              "unthrottle": "%uart.unthrottle%",
+              "send_xchar": "%uart.send_xchar%",
+              "shutdown": "%uart.shutdown%"
+            }
+          },
+          "uart_port": {
+            "signature": "struct uart_port port",
+            "header": "linux/serial_core.h",
+            "fields": {
+              "ops": "*%uart.uart_ops%"
+            }
+          }
+        },
+        "callbacks": {
+          "pm": {
+            "signature": "void (*pm)(*%uart.uart_port%, %uart.state%, %uart.oldstate%)"
+          },
+          "startup": {
+            "signature": "int (*startup)(*%uart.uart_port%)"
+          },
+          "set_termios": {
+            "signature": "void (*set_termios)(*%uart.uart_port%, struct ktermios *new, struct ktermios *old)"
+          },
+          "get_mctrl": {
+            "signature": "unsigned int (*get_mctrl)(*%uart.uart_port%)"
+          },
+          "set_mctrl": {
+            "signature": "void (*set_mctrl)(*%uart.uart_port%, unsigned int mctrl)"
+          },
+          "stop_rx": {
+            "signature": "void (*stop_rx)(*%uart.uart_port%)"
+          },
+          "stop_tx": {
+            "signature": "void (*stop_tx)(*%uart.uart_port%)"
+          },
+          "start_tx": {
+            "signature": "void (*start_tx)(*%uart.uart_port%)"
+          },
+          "throttle": {
+            "signature": "void (*throttle)(*%uart.uart_port%)"
+          },
+          "unthrottle": {
+            "signature": "void (*unthrottle)(*%uart.uart_port%)"
+          },
+          "send_xchar": {
+            "signature": "void (*send_xchar)(*%uart.uart_port%, char ch)"
+          },
+          "shutdown": {
+            "signature": "void (*shutdown)(*%uart.uart_port%)"
+          }
+        },
+        "resources": {
+          "uart_driver": {
+            "signature": "struct uart_driver *driver",
+            "header": "linux/serial_core.h"
+          },
+          "state": {
+	    "signature": "unsigned int state"
+	  },
+	  "oldstate": {
+	    "signature": "unsigned int oldstate"
+	  }
+        }
+      }
+    }
+  }
+}
+          
