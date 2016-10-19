@@ -7,7 +7,7 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "uart.uart_port"
+              "serial_core.uart_port"
             ]
           }
         },
@@ -41,7 +41,7 @@
             "container": true,
             "parameter": true,
             "interface": [
-              "uart.uart_port"
+              "serial_core.uart_port"
             ]
           }
         },
@@ -77,7 +77,7 @@
 	    "container": true,
 	    "pointer": true,
             "interface": [
-              "uart.uart_port"
+              "serial_core.uart_port"
             ]
           },
           "callback": {
@@ -93,12 +93,12 @@
 	  },
 	  "state": {
 	    "interface": [
-	      "uart.state"
+	      "serial_core.state"
 	    ]
 	  },
 	  "oldstate": {
 	    "interface": [
-	      "uart.oldstate"
+	      "serial_core.oldstate"
 	    ]
 	  }
         },
