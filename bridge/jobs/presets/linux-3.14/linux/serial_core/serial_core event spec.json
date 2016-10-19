@@ -37,15 +37,8 @@
       },
       "uart_remove_one_port": {
         "labels": {
-          "uart_driver": {
-            "resource": true,
-            "parameter": true,
-            "interface": [
-              "uart.uart_driver"
-            ]
-          },
           "uart_port": {
-            "resource": true,
+            "container": true,
             "parameter": true,
             "interface": [
               "uart.uart_port"

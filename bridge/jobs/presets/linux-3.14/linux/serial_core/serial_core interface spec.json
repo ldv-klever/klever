@@ -8,10 +8,6 @@
       "uart_remove_one_port": {
         "signature": "int uart_remove_one_port(%uart.uart_driver%, *%uart.uart_port%)",
         "header": "linux/serial_core.h"
-      },
-      "uart_suspend_port": {
-        "signature": "int uart_suspend_port(%uart.uart_driver%, *%uart.uart_port%)",
-        "header": "linux/serial_core.h"
       }
     },
     "categories": {
