@@ -81,23 +81,31 @@
             "interface": [
               "scsi_host_template.host"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<success>.[register] | <fail>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
               "%host%"
             ]
           },
-          "success": {
-            "condition": [
-              "$res == 0"
+          "assign": {
+            "statements": [
+              "%res% = 0;"
             ]
           },
-          "fail": {
-            "condition": [
-              "$res != 0"
+          "none": {
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }

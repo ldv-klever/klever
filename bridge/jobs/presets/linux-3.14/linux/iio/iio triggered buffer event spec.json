@@ -23,9 +23,12 @@
               "iio_triggered_buffer.dev"
             ],
             "parameter": true
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[irq_register] | <none>",
+        "process": "(<assign>.[irq_register] | <none>).<return>",
         "actions": {
           "irq_register": {
             "parameters": [
@@ -35,18 +38,21 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
               "%dev% = $ARG1;",
               "%callback% = $ARG2;",
-              "%thread% = $ARG3;"
+              "%thread% = $ARG3;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }

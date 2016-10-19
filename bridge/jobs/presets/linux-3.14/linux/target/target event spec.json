@@ -9,9 +9,12 @@
             "interface": [
               "se_subsystem.se_subsystem_api"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -19,16 +22,19 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
-              "%se_subsystem_api% = $ARG1;"
+              "%se_subsystem_api% = $ARG1;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }

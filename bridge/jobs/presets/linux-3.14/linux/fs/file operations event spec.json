@@ -15,9 +15,12 @@
             "interface": [
               "file_operations.miscdevice"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -25,17 +28,20 @@
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
               "%miscdevice% = $ARG1;",
-              "%file_operations% = %miscdevice%->fops;"
+              "%file_operations% = %miscdevice%->fops;",
+              "%res% = 0;"
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }

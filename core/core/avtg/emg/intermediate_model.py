@@ -791,12 +791,20 @@ class ProcessModel:
                     match['function'].declaration.return_value.identifier != 'int':
                 new.process = "<{}>.[{}]".format(assign.name, dispatch.name)
             else:
-                assign.condition = ['$res == 0']
+                ret_label = Label('res')
+                ret_label.prior_signature = import_declaration('int a')
+                new.labels[ret_label.name] = ret_label
+
+                assign.statements.extend(['%res% = 0;'])
                 none = Condition('none')
-                none.condition = ['$res != 0']
+                none.statements = ['%res% = ldv_undef_int_negative();']
                 new.actions[none.name] = none
 
-                new.process = "<{}>.[{}] | <{}>".format(assign.name, dispatch.name, none.name)
+                ret = Condition('return')
+                ret.statements = ['return %res%;']
+                new.actions[ret.name] = ret
+
+                new.process = "(<{}>.[{}] | <{}>).<{}>".format(assign.name, dispatch.name, none.name, ret.name)
 
             self.__add_process(analysis, new, model=True, peer=process)
 

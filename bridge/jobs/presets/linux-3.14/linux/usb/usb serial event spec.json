@@ -11,7 +11,7 @@
             ]
           }
         },
-        "process": "<assign>.[@register] | <none>",
+        "process": "<assign>.[@register].<success> | <none>",
         "actions": {
           "register": {
             "parameters": [
@@ -19,16 +19,18 @@
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
               "%usb_device_id% = $ARG3;"
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "statements": [
+              "return 0;"
             ]
           }
         }
@@ -261,7 +263,7 @@
             ]
           }
         },
-        "process": "<assign>.[@register] | <none>",
+        "process": "<assign>.[@register].<success> | <none>",
         "actions": {
           "register": {
             "parameters": [
@@ -269,16 +271,18 @@
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
               "%usb_device_id% = $ARG3;"
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "statements": [
+              "return 0;"
             ]
           }
         }

@@ -88,19 +88,20 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 else:
                     params.append('$arg{}'.format(str(position + 1)))
 
-            ret_expression = ''
             if len(params) == 0 and function_obj.declaration.return_value.identifier == 'void':
-                argiments = []
+                argгments = []
+                ret_expression = ''
             elif len(params) == 0:
-                argiments = ['$res']
+                argгments = []
                 ret_expression = 'return '
             elif function_obj.declaration.return_value.identifier == 'void':
-                argiments = ['0'] + params
+                argгments = params
+                ret_expression = ''
             else:
                 ret_expression = 'return '
-                argiments = ['$res'] + params
+                argгments = params
 
-            invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(argiments))
+            invoke = '{}{}({});'.format(ret_expression, self._control_function(automaton).name, ', '.join(argгments))
             aspect_code.append(invoke)
 
             self._cmodel.add_function_model(function_obj, aspect_code)
@@ -514,13 +515,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
             fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, st.action.name, automaton.identifier,
                                              st.identifier)
             function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources), True)
-            inv = []
 
             # Determine label params
             external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]
 
             true_invoke = external_return_expression + '({})'.format(invoke) + \
                           '(' + ', '.join(external_parameters) + ');'
+            inv = []
             if check:
                 f_invoke = external_return_expression + fname + '(' + ', '.join([invoke] + external_parameters) + ');'
                 inv.append('if ({}) '.format(invoke) + '{')
@@ -754,16 +755,12 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     if type(param) is str:
                         params.append(param)
                     else:
-                        params.append(param.to_string('arg{}'.format(str(position + 1))))
+                        params.append(param.to_string('arg{}'.format(str(position))))
 
-                if len(params) == 0 and function_obj.declaration.return_value.identifier == 'void':
+                if len(params) == 0:
                     param_types = ['void']
-                elif len(params) == 0:
-                    param_types = [function_obj.declaration.return_value.to_string('res')]
-                elif function_obj.declaration.return_value.identifier == 'void':
-                    param_types = ['void *'] + params
                 else:
-                    param_types = [function_obj.declaration.return_value.to_string('res')] + params
+                    param_types = params
 
                 declaration = '{0} f({1})'.format(function_obj.declaration.return_value.to_string(''),
                                                   ', '.join(param_types))

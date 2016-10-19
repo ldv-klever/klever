@@ -343,7 +343,7 @@ class Aspect(FunctionDefinition):
 
     def get_aspect(self):
         lines = list()
-        lines.append("after: call({}) ".format("$ {}(..)".format(self.name)) +
+        lines.append("around: call({}) ".format("$ {}(..)".format(self.name)) +
                      " {\n")
         lines.extend(['\t{}\n'.format(stm) for stm in self.body])
         lines.append("}\n")
@@ -358,7 +358,7 @@ class FunctionModels:
     mem_function_re = re.compile(mem_function_template.format('\w+', access_template))
     simple_function_re = re.compile(simple_function_template.format('\w+'))
     access_re = re.compile('(%{}%)'.format(access_template))
-    arg_re = re.compile('(\$ARG\d)')
+    arg_re = re.compile('\$ARG(\d+)')
 
     def __init__(self, conf, mem_function_map, free_function_map, irq_function_map):
         self._conf = conf
@@ -378,10 +378,9 @@ class FunctionModels:
         matched = False
 
         # First replace simple replacements
-        statement = statement.replace('$res', 'arg0')
-        for pattern in self.arg_re.findall(statement):
-            replacement = pattern.replace('$ARG', 'arg')
-            statement = statement.replace(pattern, replacement)
+        for number in self.arg_re.findall(statement):
+            new_number = int(number) - 1
+            statement = statement.replace('$ARG{}'.format(number), 'arg{}'.format(new_number))
 
         # Replace function calls
         for fn in self.simple_function_re.findall(statement):

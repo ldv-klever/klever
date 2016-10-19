@@ -9,9 +9,12 @@
             "interface": [
               "timer.timer_list"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[instance_register] | <none>",
+        "process": "(<assign>.[instance_register] | <none>).<return>",
         "actions": {
           "instance_register": {
             "parameters": [
@@ -19,16 +22,19 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
-              "%timer_list% = $ARG1;"
+              "%timer_list% = $ARG1;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
@@ -55,9 +61,12 @@
             "interface": [
               "timer.callback"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[instance_register] | <none>",
+        "process": "(<assign>.[instance_register] | <none>).<return>",
         "actions": {
           "instance_register": {
             "parameters": [
@@ -65,20 +74,23 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
               "%timer_list% = $ARG1;",
               "%function% = $ARG2",
               "%data% = $ARG3",
               "%timer_list.data%=%data%;",
-              "%timer_list.function%=%function%;"
+              "%timer_list.function%=%function%;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
