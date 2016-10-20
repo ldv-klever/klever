@@ -4,6 +4,11 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
+/* For >= 4.4 kernels */
+#ifndef __GFP_WAIT
+#define __GFP_WAIT __GFP_RECLAIM
+#endif
+
 /* There are 2 possible states of blk request. */
 enum
 {
