@@ -36,6 +36,37 @@ class MAVPreset(Enum):
     L5 = {'alpha': 0.0, 'betta': 0.0,  'gamma': 0.0, 'epsilon': 0.0}
 
 
+# Different strategies for cleaning precision in CMAV.
+# NONE - do not clear precision,
+# WL - clear precision in waitlist,
+# ARG - clear precision in ARG,
+# SUB - clear precision only for current checked rule,
+# ALL - clear precision for all rules.
+# For relatively low number of checked rules (~15) it is recommended to use strategy 'WL_SUB',
+# for larger number of checked rules it is recommended to use strategy 'ALL'.
+class MAVPrecisionCleaningStrategy(Enum):
+    NONE = {
+        'analysis.mav.precisionCleanStrategy': 'NONE',
+        'analysis.mav.precisionCleanSet': 'NONE'
+    }
+    WL_SUB = {
+        'analysis.mav.precisionCleanStrategy': 'BY_SPECIFICATION',
+        'analysis.mav.precisionCleanSet': 'WAITLIST'
+    }
+    WL_CLEAR = {
+        'analysis.mav.precisionCleanStrategy': 'FULL',
+        'analysis.mav.precisionCleanSet': 'WAITLIST'
+    }
+    ARG_SUB = {
+        'analysis.mav.precisionCleanStrategy': 'BY_SPECIFICATION',
+        'analysis.mav.precisionCleanSet': 'ALL'
+    }
+    ALL = {
+        'analysis.mav.precisionCleanStrategy': 'FULL',
+        'analysis.mav.precisionCleanSet': 'ALL'
+    }
+
+
 # This class represent Multi-Aspect Verification (MAV) strategies.
 class MAV(CommonStrategy):
 
@@ -167,10 +198,6 @@ class MAV(CommonStrategy):
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'analysis.multiAspectVerification=true'})
         self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'analysis.mav.precisionCleanStrategy=BY_SPECIFICATION'})
-        self.conf['VTG strategy']['verifier']['options'].append(
-            {'-setprop': 'analysis.mav.precisionCleanSet=WAITLIST'})
-        self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'analysis.mav.specificationComparator=VIOLATED_PROPERTY'})
         self.conf['VTG strategy']['verifier']['options'].append(
             {'-setprop': 'cpa.arg.errorPath.file='})
@@ -209,6 +236,27 @@ class MAV(CommonStrategy):
         self.conf['VTG strategy']['resource limits']['CPU time'] = time_limit
 
         self.parse_preset()
+        self.parse_cleaning_strategy()
+
+    def parse_cleaning_strategy(self):
+        # By default no cleaning strategy is specified. In this case it is expected, that the user
+        # will specify required parameters with verifier options.
+        selected_strategy = None
+        if 'MAV cleaning strategy' in self.conf['VTG strategy']['verifier']:
+            specified_strategy = self.conf['VTG strategy']['verifier']['MAV cleaning strategy']
+            for strategy in MAVPrecisionCleaningStrategy:
+                if strategy.name == specified_strategy:
+                    selected_strategy = strategy
+            if not selected_strategy:
+                self.logger.warning('Precision will not be cleaned, since strategy "{0}" is not supported'.
+                                    format(selected_strategy))
+            else:
+                self.logger.info('Using precision cleaning strategy "{0}"'.format(selected_strategy.name))
+                for key, value in selected_strategy.value.items():
+                    self.conf['VTG strategy']['verifier']['options'].append(
+                        {'-setprop': '{0}={1}'.format(key, value)})
+        else:
+            self.logger.warning('Precision will not be cleaned')
 
     def parse_preset(self):
         # By default no preset is specified. In this case it is expected, that the user
