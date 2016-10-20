@@ -609,7 +609,7 @@ class CommonStrategy(core.components.Component):
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'cpa.arg.errorPath.graphml=witness.%d.graphml'})
 
-            # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
+            # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 2/15 of
             # general memory size limit if users don't specify their own sizes.
             if '-heap' not in [list(opt.keys())[0] for opt in self.conf['VTG strategy']['verifier']['options']]:
                 self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
