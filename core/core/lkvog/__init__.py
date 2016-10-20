@@ -248,7 +248,10 @@ class LKVOG(core.components.Component):
 
                 for cluster in module_clusters:
                     self.cluster = cluster
-                    self.generate_verification_obj_desc()
+                    try:
+                        self.generate_verification_obj_desc()
+                    except Exception:
+                        continue
 
         if self.all_clusters:
             not_builded = set()
