@@ -12,19 +12,28 @@ enum
 /* CHANGE_STATE Model automaton state (one of two possible ones) */
 int ldv_probe_state = LDV_PROBE_ZERO_STATE;
 
+int returned_value = 0;
+
 /* MODEL_FUNC_DEF Nondeterministically change state after call to register_netdev() */
 int ldv_pre_register_netdev(void)
 {
 	int nondet = ldv_undef_int();
 
+	if (returned_value == -1)
+        nondet = -1;
+    if (returned_value == 1)
+        nondet = 0;
+
 	/* OTHER Nondeterministically report error */
 	if (nondet < 0) {
 		/* CHANGE_STATE Error occured */
 		ldv_probe_state = LDV_PROBE_ERROR;
+		returned_value = -1;
 		/* RETURN Return error code */
 		return nondet;
 	}
 	else {
+		returned_value = 1;
 		/* RETURN Assume no error occured */
 		return 0;
 	}
