@@ -247,6 +247,7 @@ class VTG(core.components.Component):
                 self.conf['VTG strategy']['verifier']['relaunch'] = 'no'
                 self.conf['VTG strategy']['verifier']['alias'] = 'cmav'  # TODO: place it in some config file
                 self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+                self.conf['VTG strategy']['verifier']['MAV cleaning strategy'] = 'ALL'
                 self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
                 self.conf['RSG strategy'] = 'instrumentation'
                 self.conf['VTG strategy']['resource limits']['CPU time'] = round(self.phi * self.time_limit)
