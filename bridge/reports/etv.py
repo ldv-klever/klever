@@ -121,7 +121,8 @@ class GetETV(object):
 
         def return_from_func(curr_linedata):
             last_scope = scope_stack.pop()
-            lines_data.append(curr_linedata)
+            if len(curr_linedata['code']) > 0:
+                lines_data.append(curr_linedata)
             if len(scope_stack) == 0:
                 raise ValueError('The error trace is corrupted')
             curr_linedata = {
@@ -150,7 +151,7 @@ class GetETV(object):
             if 'source' in edge_data:
                 code = edge_data['source']
             else:
-                continue
+                code = ''
             if 'file' in edge_data:
                 file = self.data['files'][edge_data['file']]
             if file is None:

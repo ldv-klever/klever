@@ -15,9 +15,12 @@
             "interface": [
               "file_operations.miscdevice"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -25,17 +28,20 @@
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
-              "%miscdevice% = $arg1;",
-              "%file_operations% = %miscdevice%->fops;"
+              "%miscdevice% = $ARG1;",
+              "%file_operations% = %miscdevice%->fops;",
+              "%res% = 0;"
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
@@ -66,7 +72,7 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%miscdevice% = $arg1;",
+              "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
             ]
           }
@@ -99,8 +105,8 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
-              "%file_operations% = $arg2;",
+              "%cdev% = $ARG1;",
+              "%file_operations% = $ARG2;",
               "%cdev%->ops = %file_operations%;"
             ]
           }
@@ -132,7 +138,7 @@
           "assign": {
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
+              "%cdev% = $ARG1;",
               "%file_operations% = %cdev%->ops;"
             ]
           }

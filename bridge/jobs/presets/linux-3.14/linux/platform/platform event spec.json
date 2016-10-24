@@ -9,9 +9,12 @@
             "interface": [
               "platform.platform_driver"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -19,16 +22,19 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
@@ -48,9 +54,12 @@
             "interface": [
               "platform.probe"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -58,18 +67,21 @@
             ]
           },
           "none": {
-            "condition": [
-              "$res != 0"
+            "statements": [
+              "%res% = ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
             "statements": [
-              "%platform_driver% = $arg1;",
-              "%probe% = $arg2;",
-              "%platform_driver.probe%=%probe%;"
+              "%platform_driver% = $ARG1;",
+              "%probe% = $ARG2;",
+              "%platform_driver.probe%=%probe%;",
+              "%res% = 0;"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
@@ -93,7 +105,7 @@
           },
           "assign": {
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }
@@ -229,7 +241,7 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }
@@ -268,8 +280,8 @@
               "$res == 0"
             ],
             "statements": [
-              "%platform_driver% = $arg1;",
-              "%probe% = $arg2;",
+              "%platform_driver% = $ARG1;",
+              "%probe% = $ARG2;",
               "%platform_driver.probe%=%probe%;"
             ]
           }
@@ -294,7 +306,7 @@
           },
           "assign": {
             "statements": [
-              "%platform_driver% = $arg1;"
+              "%platform_driver% = $ARG1;"
             ]
           }
         }

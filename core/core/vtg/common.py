@@ -15,17 +15,16 @@
 # limitations under the License.
 #
 
+import glob
 import json
 import os
 import re
-import glob
 from abc import abstractclassmethod, ABCMeta
-
 import core.components
 import core.session
 import core.utils
-import core.vtg.et
 from core.vtg.mea import MEA
+from core.vtg.et import import_error_trace
 
 
 # This is an abstract class for VTG strategy.
@@ -243,19 +242,11 @@ class CommonStrategy(core.components.Component):
                               assertion)
         elif decision_results['status'] == 'unsafe':
             self.logger.info('Process witness')
-            et = core.vtg.et.ErrorTrace(self.logger, path_to_witness)
-            et.process()
+            et = import_error_trace(self.logger, path_to_witness)
 
             self.logger.info('Write processed witness to "error trace.json"')
             with open('error trace.json', 'w', encoding='utf8') as fp:
-                json.dump({
-                    'nodes': et.nodes,
-                    'edges': et.edges,
-                    'entry node': et.entry_node_id,
-                    'violation nodes': et.violation_node_ids,
-                    'files': et.files,
-                    'funcs': et.funcs
-                }, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
             core.utils.report(self.logger,
                               'unsafe',
@@ -264,7 +255,7 @@ class CommonStrategy(core.components.Component):
                                   'parent id': verification_report_id,
                                   'attrs': added_attrs,
                                   'error trace': 'error trace.json',
-                                  'files': ['error trace.json'] + list(et.files)
+                                  'files': ['error trace.json'] + et['files']
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'],

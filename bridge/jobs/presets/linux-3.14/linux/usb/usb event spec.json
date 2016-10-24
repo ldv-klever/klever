@@ -18,9 +18,12 @@
             "interface": [
               "usb.usb_driver"
             ]
+          },
+          "res": {
+            "signature": "int a"
           }
         },
-        "process": "<pre>.(<assign>.[register] | <none>)",
+        "process": "<pre>.(<assign>.[register] | <none>).<return>",
         "actions": {
           "register": {
             "parameters": [
@@ -29,20 +32,25 @@
           },
           "pre": {
             "statements": [
-              "$res = ldv_pre_usb_register_driver();"
+              "%res% = ldv_pre_usb_register_driver();"
             ]
           },
           "assign": {
             "condition": [
-              "$res == 0"
+              "%res% == 0"
             ],
             "statements": [
-              "%usb_driver% = $arg1;"
+              "%usb_driver% = $ARG1;"
             ]
           },
           "none": {
             "condition": [
-              "$res != 0"
+              "%res% != 0"
+            ]
+          },
+          "return": {
+            "statements": [
+              "return %res%;"
             ]
           }
         }
@@ -66,7 +74,7 @@
           },
           "assign": {
             "statements": [
-              "%usb_driver% = $arg1;"
+              "%usb_driver% = $ARG1;"
             ]
           }
         }
