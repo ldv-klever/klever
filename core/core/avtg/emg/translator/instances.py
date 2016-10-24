@@ -36,7 +36,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
     """
     def yeild_identifier():
         """Return unique identifier."""
-        identifier_counter = -1
+        identifier_counter = 0
         while True:
             identifier_counter += 1
             yield identifier_counter
@@ -57,7 +57,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
         base_list = _original_process_copies(logger, conf, analysis, process, instances_left)
         base_list = _fulfill_label_maps(logger, conf, analysis, base_list, process, instance_maps, instances_left)
         logger.info("Generate {} FSA instances for environment model processes {} with category {}".
-                         format(len(base_list), process.name, process.category))
+                    format(len(base_list), process.name, process.category))
 
         for instance in base_list:
             fsa = Automaton(instance, identifiers.__next__())

@@ -66,9 +66,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
              [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize control function variables')]
     if model:
         name = automaton.process.name
+        v_code.insert(0, control_function_comment_begin(cf.name, name))
     else:
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
-    v_code.insert(0, control_function_comment_begin(cf.name, name))
+        v_code.insert(0, control_function_comment_begin(cf.name, name, automaton.identifier))
     f_code.append(control_function_comment_end(cf.name, name))
     cf.body.extend(v_code + f_code)
 

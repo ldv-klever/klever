@@ -20,6 +20,7 @@ import re
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data = _collect_action_diaposons(error_trace)
+    _set_thread(data, error_trace)
     _remove_control_func_aux_code(data, error_trace)
     _wrap_actions(data, error_trace)
     _remove_callback_wrappers(error_trace)
@@ -34,17 +35,20 @@ def _collect_action_diaposons(error_trace):
         # Set control function start point
         for line in (l for l in error_trace.emg_comments[file]
                      if error_trace.emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_BEGIN'):
-            data[file][error_trace.emg_comments[file][line]['instance']] = {
+            data[file][error_trace.emg_comments[file][line]['function']] = {
                 'begin': line,
                 'actions': list(),
                 'comment': error_trace.emg_comments[file][line]['comment'],
                 'file': file
             }
+            if 'thread' in error_trace.emg_comments[file][line]:
+                data[file][error_trace.emg_comments[file][line]['function']]['thread'] = \
+                    error_trace.emg_comments[file][line]['thread']
 
         # Set control function end point
         for line in (l for l in error_trace.emg_comments[file]
                      if error_trace.emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_END'):
-            data[file][error_trace.emg_comments[file][line]['instance']]['end'] = line
+            data[file][error_trace.emg_comments[file][line]['function']]['end'] = line
 
         # Deterine actions and allowed intervals
         for function in data[file]:
@@ -100,20 +104,39 @@ def _match_control_function(edge, stack, data):
     return None
 
 
+def _match_exit_function(edge, stack):
+    """Exit function."""
+    if len(stack) > 0:
+        if stack[-1]['enter id'] == edge['return']:
+            # Exit control function
+            stack.pop()
+            return True
+
+    return False
+
+
+def _set_thread(data, error_trace):
+    thread = 0
+    cf_stack = list()
+    for edge in error_trace.trace_iterator():
+        # Dict changes its size, so keep it in mind
+        if 'enter' in edge:
+            m = _match_control_function(edge, cf_stack, data)
+            if m and 'thread' in cf_stack[-1]['cf']:
+                thread = cf_stack[-1]['cf']['thread']
+        elif 'return' in edge:
+            m = _match_exit_function(edge, cf_stack)
+            if m and 'thread' in cf_stack[-1]['cf']:
+                thread = cf_stack[-1]['cf']['thread']
+
+        edge['thread'] = thread
+
+    return
+
+
 def _remove_control_func_aux_code(data, error_trace):
     # Search in error trace for control function code and cut all code outside allowed intervals
     cf_stack = list()
-
-    def if_exit_function(e, stack):
-        """Exit function."""
-        if len(stack) > 0:
-            if stack[-1]['enter id'] == e['return']:
-                # Exit control function
-                stack.pop()
-            else:
-                if_simple_state(e, stack)
-
-        return
 
     def if_enter_function(e, stack, data):
         """Enter function."""
@@ -162,7 +185,9 @@ def _remove_control_func_aux_code(data, error_trace):
         if 'enter' in edge:
             if_enter_function(edge, cf_stack, data)
         elif 'return' in edge:
-            if_exit_function(edge, cf_stack)
+            m = _match_exit_function(edge, cf_stack)
+            if not m and len(cf_stack) > 0:
+                if_simple_state(edge, cf_stack)
         else:
             if_simple_state(edge, cf_stack)
 

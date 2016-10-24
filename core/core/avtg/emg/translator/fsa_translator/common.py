@@ -14,25 +14,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import json
 from core.avtg.emg.common import get_conf_property
 from core.avtg.emg.common.process import Receive, Dispatch
 from core.avtg.emg.common.signature import Pointer, Primitive
 
 
-def model_comment(comment_type, text, instance=None, capitalize=True):
-    comment = '/* {}'.format(comment_type.upper())
-    if instance:
-        comment += ' ' + instance
+def model_comment(comment_type, text, other=None):
+    if other and isinstance(other, dict):
+        comment = other
     else:
-        comment += ' ' + 'NONE_INSTANCE'
+        comment = dict()
 
+    comment['type'] = comment_type.upper()
     if text:
-        if capitalize:
-            text = text.capitalize()
-        comment += ' ' + text
+        text = text.capitalize()
+        comment['comment'] = text
 
-    comment += ' */'
-    return comment
+    string = json.dumps(comment)
+    return "/* LDV {} */".format(string)
 
 
 def action_model_comment(action, text, begin=None):
@@ -48,19 +48,23 @@ def action_model_comment(action, text, begin=None):
         type_comment = 'ARTIFICIAL'
         name_comment = None
 
-    return model_comment(type_comment, text, name_comment)
+    return model_comment(type_comment, text, {'action': name_comment})
 
 
-def control_function_comment_begin(function_name, name):
+def control_function_comment_begin(function_name, name, identifier=None):
+    data = {'function': function_name}
+    if identifier:
+        data['thread'] = identifier
     return model_comment('CONTROL_FUNCTION_BEGIN',
                          "Control function {!r}".format(name),
-                         function_name)
+                         data)
 
 
 def control_function_comment_end(function_name, name):
+    data = {'function': function_name}
     return model_comment('CONTROL_FUNCTION_END',
                          "End of control function based on process {!r}".format(name),
-                         function_name)
+                         data)
 
 
 def extract_relevant_automata(automata, automata_peers, peers, sb_type=None):

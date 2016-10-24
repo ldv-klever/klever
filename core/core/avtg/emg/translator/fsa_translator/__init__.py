@@ -525,14 +525,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             if check:
                 f_invoke = external_return_expression + fname + '(' + ', '.join([invoke] + external_parameters) + ');'
                 inv.append('if ({}) '.format(invoke) + '{')
-                inv.append(model_comment('callback', true_invoke, st.action.name, capitalize=False))
+                inv.append(model_comment('callback', st.action.name, {'call': true_invoke}))
                 inv.append('\t' + f_invoke)
                 inv.append('}')
                 call = callback_return_expression + '(*arg0)' + '(' + callback_params + ')'
             else:
                 f_invoke = external_return_expression + fname + '(' + \
                            ', '.join([func_variable] + external_parameters) + ');'
-                inv.append(model_comment('callback', true_invoke, st.action.name, capitalize=False))
+                inv.append(model_comment('callback', st.action.name, {'call': true_invoke}))
                 inv.append(f_invoke)
                 call = callback_return_expression + '({})'.format(invoke) + '(' + callback_params + ')'
             function.body.append('{};'.format(call))

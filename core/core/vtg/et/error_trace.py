@@ -16,13 +16,11 @@
 #
 import re
 import os
+import json
 
 
 class ErrorTrace:
     MODEL_COMMENT_TYPES = 'AUX_FUNC|MODEL_FUNC|NOTE|ASSERT'
-    EMG_COMMENTS = 'CONTROL_FUNCTION_BEGIN|CONTROL_FUNCTION_END|CALLBACK|CONTROL_FUNCTION_INIT_BEGIN|' \
-                   'CONTROL_FUNCTION_INIT_END|CALL_BEGIN|CALL_END|DISPATCH_BEGIN|DISPATCH_END|RECEIVE_BEGIN|' \
-                   'RECEIVE_END|SUBPROCESS_BEGIN|SUBPROCESS_END|CONDITION_BEGIN|CONDITION_END'    
 
     def __init__(self, logger):
         self._nodes = dict()
@@ -121,14 +119,10 @@ class ErrorTrace:
     def add_aux_func(self, identifier, name):
         self.aux_funcs[identifier] = name
 
-    def add_emg_comment(self, file, line, tp, instance, comment):
+    def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
             self.emg_comments[file] = dict()
-        self.emg_comments[file][line] = {
-            'type': tp,
-            'instance': instance,
-            'comment': comment,
-        }
+        self.emg_comments[file][line] = data
 
     def resolve_file_id(self, file):
         return self._files.index(file)
@@ -241,6 +235,7 @@ class ErrorTrace:
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
+        emg_comment = re.compile('/\*\sLDV\s(.*)\s\*/')
 
         for file_id, file in self.files:
             if not os.path.isfile(file):
@@ -255,13 +250,10 @@ class ErrorTrace:
 
                     # Try match EMG comment
                     # Expect comment like /* TYPE Instance Text */
-                    match = re.search(r'/\*\s({0})\s(\w+)\s(.*)\s\*/'.format(self.EMG_COMMENTS), text)
+                    match = emg_comment.search(text)
                     if match:
-                        self.add_emg_comment(file_id, line, match.group(1), match.group(2), match.group(3))
-                    else:
-                        match = re.search(r'/\*\s({0})\s(.*)\s\*/'.format(self.EMG_COMMENTS), text)
-                        if match:
-                            self.add_emg_comment(file_id, line, match.group(1), None, match.group(2))
+                        data = json.loads(match.group(1))
+                        self.add_emg_comment(file_id, line, data)
 
                     # Match rest comments
                     match = re.search(r'/\*\s+({0})\s+(.*)\*/'.format(self.MODEL_COMMENT_TYPES), text)
