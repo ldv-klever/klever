@@ -70,7 +70,6 @@ class MAVPrecisionCleaningStrategy(Enum):
 # This class represent Multi-Aspect Verification (MAV) strategies.
 class MAV(CommonStrategy):
 
-    mu = 4/3
     path_to_file_with_results = 'output/mav_results_file'
     number_of_asserts = 0
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
@@ -223,7 +222,7 @@ class MAV(CommonStrategy):
         elif self.relaunch == 'external':
             self.logger.info('Launching Conditional Multi-Aspect Verification in several verification run')
             # Set time limits for external MAV.
-            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.mu
+            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.number_of_asserts
         else:
             # This is not full MAV and only can be used as a part of Sequential Combination.
             self.relaunch = 'no'
@@ -497,13 +496,13 @@ class MAV(CommonStrategy):
                         if self.relaunch == 'no':
                             if verdict == 'unknown-complete' or verdict == 'safe':
                                 self.process_single_verdict(decision_results, verification_report_id,
-                                                    assertion=bug_kind)
+                                                            assertion=bug_kind)
                             else:
                                 # Do not create reports for 'incomplete' Unknown.
                                 pass
                         else:
                             self.process_single_verdict(decision_results, verification_report_id,
-                                                    assertion=bug_kind)
+                                                        assertion=bug_kind)
                         if verdict != 'checking':
                             self.remove_assertion(bug_kind)
 
