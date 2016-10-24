@@ -139,6 +139,8 @@ class ErrorTraceParser:
                     _edge['condition'] = True
                 elif data_key == 'assumption':
                     _edge['assumption'] = data.text
+                elif data_key == 'thread':
+                    _edge['thread'] = data.text
                 elif data_key in ('startoffset', 'endoffset'):
                     pass
                 elif data_key not in unsupported_edge_data_keys:
