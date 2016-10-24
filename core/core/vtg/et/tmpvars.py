@@ -29,12 +29,16 @@ def _basic_simplification(error_trace):
     for edge in error_trace.trace_iterator():
         # Make source code more human readable.
         if 'source' in edge:
+            # Remove all broken indentations - error traces visualizer will add its own ones but will do this in much
+            # more attractive way.
+            edge['source'] = re.sub(r'[ \t]*\n[ \t]*', ' ', edge['source'])
+
             # Remove "[...]" around conditions.
             if 'condition' in edge:
                 edge['source'] = edge['source'].strip('list()')
 
-            # Get rid of continues spaces if they aren't placed at line beginnings.
-            edge['source'] = re.sub(r'(\S) +', '\g<1> ', edge['source'])
+            # Get rid of continues whitespaces.
+            edge['source'] = re.sub(r'[ \t]+', ' ', edge['source'])
 
             # Remove space before trailing ";".
             edge['source'] = re.sub(r' ;$', ';', edge['source'])
