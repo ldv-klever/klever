@@ -116,8 +116,8 @@ class ErrorTrace:
         else:
             return self.resolve_function_id(name)
 
-    def add_aux_func(self, identifier, name):
-        self.aux_funcs[identifier] = name
+    def add_aux_func(self, identifier, formal_arg_names):
+        self.aux_funcs[identifier] = formal_arg_names
 
     def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
@@ -270,10 +270,25 @@ class ErrorTrace:
                                 line += 1
                                 match = re.search(r'(ldv_\w+)', text)
                                 if match:
-                                    func_name = match.groups()[0]
+                                    func_name = match.group(1)
                                 else:
                                     raise ValueError(
                                         'Auxiliary/model function definition is not specified in {!r}'.format(text))
+
+                                # Try to get names for simple formal arguments (in form "type name") that is required
+                                # for removing auxiliary function calls.
+                                formal_arg_names = []
+                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), text)
+                                if match:
+                                    for formal_arg in match.group(1).split(','):
+                                        match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
+
+                                        # Give up if meet complicated formal argument.
+                                        if not match:
+                                            formal_arg_names = []
+                                            break
+
+                                        formal_arg_names.append(match.group(1))
                             except StopIteration:
                                 raise ValueError('Auxiliary/model function definition does not exist')
 
@@ -281,7 +296,7 @@ class ErrorTrace:
                             for func_id, ref_func_name in self.functions:
                                 if ref_func_name == func_name:
                                     if kind == 'AUX_FUNC':
-                                        self.add_aux_func(func_id, None)
+                                        self.add_aux_func(func_id, formal_arg_names)
                                         self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
                                                            format(func_name, file, line))
                                     else:
