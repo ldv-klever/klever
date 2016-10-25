@@ -35,6 +35,6 @@ def import_error_trace(logger, witness):
     trace.find_violation_path()
 
     # Make more difficult transformations
-    envmodel_simplifications(logger, trace)
+    #envmodel_simplifications(logger, trace)
 
     return trace.serialize()
