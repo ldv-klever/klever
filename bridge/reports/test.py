@@ -75,7 +75,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.tar.gz']
+        'unsafes': ['multi_unsafe.tar.gz']
     },
     {
         'attrs': [
