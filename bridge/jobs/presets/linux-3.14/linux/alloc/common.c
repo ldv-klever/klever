@@ -15,4 +15,14 @@
  * limitations under the License.
  */
 
-@include <linux/alloc/common.aspect>
+#include <linux/gfp.h>
+#include <verifier/memory.h>
+
+extern void ldv_check_alloc_flags(gfp_t flags);
+
+/* MODEL_FUNC ... */
+int ldv_alloc_with_flags_and_unknown_size(gfp_t flags)
+{
+	ldv_check_alloc_flags(flags);
+	return (int)ldv_malloc_unknown_size();
+}

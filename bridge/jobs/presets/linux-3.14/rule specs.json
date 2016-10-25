@@ -250,6 +250,7 @@
       "multi-aspect group": "α",
       "RSG": {"models": {
         "linux/ldv/irq.c": {},
+        "linux/alloc/common.c": {},
         "linux/alloc/irq.c": {"bug kinds": [
           "linux:alloc:irq::wrong flags",
           "linux:alloc:irq::nonatomic"

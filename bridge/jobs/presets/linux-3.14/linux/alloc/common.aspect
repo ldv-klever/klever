@@ -31,6 +31,8 @@ extern void ldv_check_alloc_flags(gfp_t flags);
 extern void ldv_check_alloc_nonatomic(void);
 extern void ldv_after_alloc(void *res);
 
+extern int ldv_alloc_with_flags_and_unknown_size(gfp_t flags);
+
 void *ldv_alloc_macro(gfp_t flags)
 {
 	ldv_check_alloc_flags(flags);
@@ -68,11 +70,6 @@ pointcut ALLOC_KNOWN_SIZE: execution(static inline void *kcalloc(..)) ||
                            call(static inline void *kmalloc_array(..)) ||
                            execution(static inline void *kmalloc(..))
 
-pointcut ALLOC_RETURN_INT: call(unsigned long __get_free_pages(.., gfp_t flags, ..)) ||
-						   call(int usb_submit_urb(.., gfp_t flags, ..)) ||
-						   call(int mempool_resize(.., gfp_t flags, ..)) ||
-						   call(int pskb_expand_head(.., gfp_t flags, ..))
-
 /* Separately weave *zalloc*() bacause it should not call kmalloc() in the body. */
 pointcut ZALLOC_KNOWN_SIZE: execution(static inline void *kzalloc_node(.., gfp_t flags, ..))
 
@@ -106,10 +103,12 @@ around: ALLOC_KNOWN_SIZE
 	return res;
 }
 
-around: ALLOC_RETURN_INT
+around: call(unsigned long __get_free_pages(.., gfp_t flags, ..)) ||
+        call(int usb_submit_urb(.., gfp_t flags, ..)) ||
+        call(int mempool_resize(.., gfp_t flags, ..)) ||
+        call(int pskb_expand_head(.., gfp_t flags, ..))
 {
-	ldv_check_alloc_flags(flags);
-	return (unsigned int) ldv_malloc_unknown_size();
+	return ldv_alloc_with_flags_and_unknown_size(flags);
 }
 
 around: ZALLOC_KNOWN_SIZE
