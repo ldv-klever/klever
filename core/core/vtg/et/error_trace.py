@@ -227,11 +227,11 @@ class ErrorTrace:
             if not ignore_edges_of_func_id and 'return' in edge:
                 ignore_edges_of_func_id = edge['return']
 
-            if 'enter' in edge and edge['enter'] == ignore_edges_of_func_id:
-                ignore_edges_of_func_id = None
-
             if not ignore_edges_of_func_id:
                 self._violation_edges.append(edge)
+
+            if 'enter' in edge and edge['enter'] == ignore_edges_of_func_id:
+                ignore_edges_of_func_id = None
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
