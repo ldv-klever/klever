@@ -368,7 +368,6 @@ class ErrorTrace:
                     for violation_edge in self._violation_edges:
                         if 'enter' in violation_edge and 'note' in violation_edge:
                             warn_edge = violation_edge
-                            break
                     warn_edge['warn'] = warn
                     warn_edges.append(warn_edge)
 
