@@ -218,63 +218,96 @@ def _remove_tmp_vars(error_trace, edge):
     return removed_tmp_vars_num, edge
 
 
+def _parse_func_call_actual_args(actual_args_str):
+    return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
+
+
 def _remove_aux_functions(logger, error_trace):
     # Get rid of auxiliary functions if possible. Replace:
-    #   ... = aux_func(...)
-    #     return func(...)
+    #   [... = ]aux_func(...)
+    #     [return ]func(...)
     # with:
-    #   ... = func(...)
+    #   [... = ]func(...)
     # accurately replacing arguments if required.
     removed_aux_funcs_num = 0
     for edge in error_trace.trace_iterator():
-        enter_edge = edge
+        # Begin to match pattern just for edges that represent calls of auxiliary functions.
+        if 'enter' not in edge or edge['enter'] not in error_trace.aux_funcs:
+            continue
 
-        if 'enter' in enter_edge:
-            func_id = enter_edge['enter']
-            if func_id in error_trace.aux_funcs:
-                return_edge = error_trace.next_edge(edge)
-                if return_edge.get('return') == func_id and 'enter' in return_edge:
-                    # Get lhs and actual arguments of called auxiliary function.
-                    m = re.search(r'^(.*){0}\s*\((.+)\);$'.format(error_trace.resolve_function(func_id)),
-                                  enter_edge['source'].replace('\n', ' '))
-                    if m:
-                        lhs = m.group(1)
-                        aux_actual_args = [aux_actual_arg.strip() for aux_actual_arg in m.group(2).split(',')]
+        aux_func_call_edge = edge
 
-                        # Get name and actual arguments of called function.
-                        m = re.search(r'^return (.+)\s*\((.*)\);$', return_edge['source'].replace('\n', ' '))
-                        if m:
-                            func_name = m.group(1)
-                            actual_args = [actual_arg.strip() for actual_arg in m.group(2).split(',')]\
-                                if m.group(2) else None
+        next_edge = error_trace.next_edge(edge)
 
-                            if not actual_args \
-                                    or all([re.match(r'arg\d+', actual_arg) for actual_arg in actual_args]):
-                                is_replaced = True
-                                if actual_args:
-                                    for i, actual_arg in enumerate(actual_args):
-                                        m = re.match(r'arg(\d+)', actual_arg)
-                                        if m:
-                                            if int(m.group(1)) >= len(aux_actual_args):
-                                                is_replaced = False
-                                                break
-                                            actual_args[i] = aux_actual_args[int(m.group(1))]
-                                        else:
-                                            is_replaced = False
-                                            break
+        # Do not proceed if next edge doesn't represent function call.
+        if 'enter' not in next_edge:
+            continue
 
-                                if is_replaced:
-                                    enter_edge['source'] = lhs + func_name + '(' + \
-                                                           (', '.join(actual_args) if actual_args else '') + ');'
-                                    enter_edge['enter'] = return_edge['enter']
+        func_call_edge = next_edge
 
-                                    if 'note' in return_edge:
-                                        enter_edge['note'] = return_edge['note']
+        # Get lhs and actual arguments of called auxiliary function if so.
+        m = re.search(r'^(.*){0}\s*\((.*)\);$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
+                      aux_func_call_edge['source'])
 
-                                    next_edge = error_trace.next_edge(edge)
-                                    error_trace.remove_edge_and_target_node(next_edge)
+        # Do not proceed if meet unexpected format of function call.
+        if not m:
+            continue
 
-                                    removed_aux_funcs_num += 1
+        lhs = m.group(1)
+        aux_actual_args = _parse_func_call_actual_args(m.group(2))
+
+        # Get name and actual arguments of called function if so.
+        m = re.search(r'^(return )?(.+)\s*\((.*)\);$', func_call_edge['source'])
+
+        # Do not proceed if meet unexpected format of function call.
+        if not m:
+            continue
+
+        func_name = m.group(2)
+        actual_args = _parse_func_call_actual_args(m.group(3))
+
+        # Do not proceed if names of actual arguments of called function don't correspond to ones obtained during model
+        # comments parsing or/and hold their positions. Without this we won't be able to replace them with corresponding
+        # actual arguments of called auxiliary function.
+        is_all_replaced = True
+        for i, actual_arg in enumerate(actual_args):
+            is_replaced = False
+
+            for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]):
+                if formal_arg_name == actual_arg:
+                    actual_args[i] = aux_actual_args[j]
+                    is_replaced = True
+                    break
+
+            if is_replaced:
+                continue
+
+            m = re.search(r'arg(\d+)', actual_arg)
+
+            if not m:
+                is_all_replaced = False
+                break
+
+            actual_arg_position = int(m.group(1)) - 1
+
+            if actual_arg_position >= len(aux_actual_args):
+                is_all_replaced = False
+                break
+
+            actual_args[i] = aux_actual_args[actual_arg_position]
+
+        if not is_all_replaced:
+            continue
+
+        aux_func_call_edge['source'] = lhs + func_name + '(' + (', '.join(actual_args) if actual_args else '') + ');'
+        aux_func_call_edge['enter'] = func_call_edge['enter']
+
+        if 'note' in func_call_edge:
+            aux_func_call_edge['note'] = func_call_edge['note']
+
+        error_trace.remove_edge_and_target_node(func_call_edge)
+
+        removed_aux_funcs_num += 1
 
     if removed_aux_funcs_num:
         logger.debug('{0} auxiliary functions were removed'.format(removed_aux_funcs_num))
