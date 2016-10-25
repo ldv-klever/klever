@@ -35,7 +35,7 @@ def _basic_simplification(error_trace):
 
             # Remove "[...]" around conditions.
             if 'condition' in edge:
-                edge['source'] = edge['source'].strip('list()')
+                edge['source'] = edge['source'].strip('[]')
 
             # Get rid of continues whitespaces.
             edge['source'] = re.sub(r'[ \t]+', ' ', edge['source'])
