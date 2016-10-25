@@ -55,8 +55,8 @@ def _basic_simplification(error_trace):
         # Make source code and assumptions more human readable (common improvements).
         for source_kind in ('source', 'assumption'):
             if source_kind in edge:
-                # Replace unnessary "(...)" around integers and identifiers.
-                edge[source_kind] = re.sub(r' \((-?\w+)\)', ' \g<1>', edge[source_kind])
+                # Remove unnessary "(...)" around integers.
+                edge[source_kind] = re.sub(r' \((-?[0-9]+\w*)\)', ' \g<1>', edge[source_kind])
 
                 # Replace "& " with "&".
                 edge[source_kind] = re.sub(r'& ', '&', edge[source_kind])
