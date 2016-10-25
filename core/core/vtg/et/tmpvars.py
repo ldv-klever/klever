@@ -52,6 +52,9 @@ def _basic_simplification(error_trace):
             edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
             edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
 
+            # Remove unnessary "(...)" around returned values/expressions.
+            edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
+
         # Make source code and assumptions more human readable (common improvements).
         for source_kind in ('source', 'assumption'):
             if source_kind in edge:
