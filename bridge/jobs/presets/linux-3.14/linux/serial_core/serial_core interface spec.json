@@ -28,7 +28,8 @@
               "throttle": "%serial_core.throttle%",
               "unthrottle": "%serial_core.unthrottle%",
               "send_xchar": "%serial_core.send_xchar%",
-              "shutdown": "%serial_core.shutdown%"
+              "shutdown": "%serial_core.shutdown%",
+              "verify_port": "%serial_core.verify_port%"
             }
           },
           "uart_port": {
@@ -75,7 +76,10 @@
           },
           "shutdown": {
             "signature": "void (*shutdown)(*%serial_core.uart_port%)"
-          }
+          },
+          "verify_port": {
+	    "signature": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
+	  }
         },
         "resources": {
           "uart_driver": {

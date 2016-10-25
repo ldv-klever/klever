@@ -105,7 +105,7 @@
         "process": "(!register).<init_state>.{main}",
         "actions": {
           "main": {
-            "process": "<set_state_on>.[pm_on].[startup].(<y_ret>.[set_termios].[get_mctrl].(<y_uret>.[stop_tx] | <n_uret>.[start_tx]).[set_mctrl].{call} | <n_ret>.[stop_rx].[shutdown].<set_state_off>.[pm_off]).{main} | (deregister)"
+            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios].[get_mctrl].(<y_uret>.[stop_tx] | <n_uret>.[start_tx]).[set_mctrl].{call} | <n_ret>.[stop_rx].[shutdown].<set_state_off>.[pm_off]).{main} | (deregister)"
           },
           "call": {
             "process": "([callback] | [set_termios] | [throttle].[set_mctrl].[send_xchar].[start_tx_if].[unthrottle].[send_xchar].[start_tx_if] | [start_tx].[stop_tx]).{call} | [stop_rx].[set_mctrl].[shutdown].<set_state_off>.[pm_off].{main}"
@@ -242,6 +242,12 @@
           },
           "shutdown": {
             "callback": "%uart_port.uart_ops.shutdown%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "verify_port": {
+            "callback": "%uart_port.uart_ops.verify_port%",
             "parameters": [
               "%uart_port%"
             ]

@@ -23,11 +23,10 @@
 int flip_a_coin;
 struct uart_driver *driver;
 struct uart_port *port;
+int res;
 
 int ldv_startup(struct uart_port *port)
 {
-	int res;
-
 	ldv_invoke_callback();
 	res = ldv_undef_int();
 	if (!res)
@@ -37,7 +36,9 @@ int ldv_startup(struct uart_port *port)
 
 void ldv_shutdown(struct uart_port *port)
 {
-	ldv_release_down();
+	if (!res) {
+	  ldv_release_down();
+	}
 	ldv_invoke_callback();
 }
 
