@@ -81,7 +81,6 @@ class MAV(CommonStrategy):
     resources_written_unsafe = False
     # Possible values: internal, external, no (only for Global strategy).
     relaunch = "internal"
-    is_finished = False  # TODO: work-around.
     assert_to_bug_kinds = {}
 
     def perform_sanity_checks(self):
@@ -119,8 +118,7 @@ class MAV(CommonStrategy):
             # Clear output directory since it is the same for all runs.
             if os.path.exists('output'):
                 shutil.rmtree('output')
-            self.decide_verification_task(iterations)
-            if self.is_finished:
+            if self.decide_verification_task(iterations):
                 break
         self.logger.info('Conditional Multi-Aspect Verification has been completed in {0} iteration(s)'.
                          format(iterations))
@@ -369,7 +367,6 @@ class MAV(CommonStrategy):
                 return result.group(1)
         return None
 
-    # TODO: Why it can not return anything?
     def decide_verification_task(self, iteration):
         is_finished = True
         results = {}
@@ -509,4 +506,4 @@ class MAV(CommonStrategy):
                 self.create_verification_finish_report(verification_report_id, iteration)
                 break
             time.sleep(1)
-        self.is_finished = is_finished
+        return is_finished
