@@ -21,9 +21,9 @@ def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data = _collect_action_diaposons(error_trace)
     _set_thread(data, error_trace)
-    _remove_control_func_aux_code(data, error_trace)
-    _wrap_actions(data, error_trace)
-    _remove_callback_wrappers(error_trace)
+    #_remove_control_func_aux_code(data, error_trace)
+    #_wrap_actions(data, error_trace)
+    #_remove_callback_wrappers(error_trace)
 
 
 def _collect_action_diaposons(error_trace):
