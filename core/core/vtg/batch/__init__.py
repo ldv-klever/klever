@@ -13,7 +13,7 @@ class BATCH(SR):
 
     def print_strategy_information(self):
         self.logger.info('Launch strategy "Batch"')
-        self.logger.info('Generate one verification task for all bug types')
+        self.logger.info('Generate one verification task for all rules')
 
     def prepare_property_automaton(self, bug_kind=None):
         # Unite all property automata into a single file.

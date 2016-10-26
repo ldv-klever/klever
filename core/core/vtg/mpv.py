@@ -15,8 +15,7 @@ import core.utils
 from core.vtg.common import CommonStrategy
 
 
-# Existed strategies for MPV (revision 20543).
-# Source: http://www.sosy-lab.org/~dbeyer/spec-decomposition/
+# Existed strategies for MPV.
 # If not specified, can be overwritten with verifier options.
 class MPVStrategy(Enum):
     All = [
@@ -46,18 +45,22 @@ class MPVStrategy(Enum):
     ]
 
 
-# This class implements Multi-Property Verification (MPV) strategies.
+# This class represent Multi-Property Verification (MPV) strategies.
+# More information about MAV can be found:
+# http://www.sosy-lab.org/~dbeyer/spec-decomposition/.
+# This strategy requires CPAchecker verifier, branch muauto, revision >= 20125.
 class MPV(CommonStrategy):
 
-    delta = 200000
-    psi = 4/3
-    omega = 2/9
+    # Private strategy variables.
+    delta = 200000  # Additional time (in ms), which can be spent for printing statistics.
+    omega = 2/9  # First step of Relevance strategy will be limited to (psi * TL) seconds.
+    psi = 4/3  # Second step of Relevance strategy will be limited to (psi * TL) seconds.
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
-    # Relevant for revision 20543.
     verifier_results_regexp = r"\Property (.+).spc: (\w+)"
-    resources_written = False
-    # Assert -> property automata.
-    property_automata = {}
+    property_automata = {}  # Assert -> property automata.
+
+    # Public strategy parameters.
+    # Option ['VTG strategy']['verifier']['MPV strategy'] - determines partitioning strategy.
 
     def perform_sanity_checks(self):
         if not self.mpv:
@@ -80,7 +83,6 @@ class MPV(CommonStrategy):
         self.print_mea_stats()
 
     def main_cycle(self):
-        self.resources_written = False
         self.create_property_automata()
         self.prepare_src_files()
         self.prepare_verification_task_files_archive()
@@ -88,7 +90,7 @@ class MPV(CommonStrategy):
         self.logger.info('Multi-Property verification has been completed')
 
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Multy-Property Verification"')
+        self.logger.info('Launch Multy-Property Verification')
         self.logger.info('Generate one verification task and check all rules at once by means of MPV')
 
     def create_asserts(self):
@@ -115,7 +117,7 @@ class MPV(CommonStrategy):
                             current_bug_kind = res.group(1)
                             if current_bug_kind not in bug_kinds_for_rule_specification:
                                 line = re.sub(r'ERROR\(\"(.+)\"\);', 'GOTO {0};'.format(cur_state), line)
-                                self.logger.debug('Removing bug kind {0}'.format(current_bug_kind))
+                                self.logger.debug('Remove bug kind {0}'.format(current_bug_kind))
                         fp_out.write(line)
 
                 self.property_automata[common_bug_kind] = preprocessed_automaton
@@ -234,7 +236,6 @@ class MPV(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           bug_kind)
-        self.resources_written = True
 
     def process_global_error(self, task_error):
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
@@ -268,7 +269,7 @@ class MPV(CommonStrategy):
 
         while True:
             task_status = session.get_task_status(task_id)
-            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
+            self.logger.debug('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)

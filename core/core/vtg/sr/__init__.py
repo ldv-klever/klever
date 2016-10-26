@@ -12,11 +12,10 @@ from core.vtg.separated import SeparatedStrategy
 # and at checking each rule separately.
 class SR(SeparatedStrategy):
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Single Bug Type"')
-        self.logger.info('Generate one verification task for each bug type')
+        self.logger.info('Launch strategy "Separated Rules"')
+        self.logger.info('Generate one verification task for each rule')
 
     def main_cycle(self):
-        self.resources_written = False
         self.process_sequential_verification_task()
 
     def prepare_property_automaton(self, bug_kind=None):

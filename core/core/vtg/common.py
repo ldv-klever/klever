@@ -276,7 +276,7 @@ class CommonStrategy(core.components.Component):
 
             graphml = dom.getElementsByTagName('graphml')[0]
 
-            self.logger.info('Get source files referred by error trace')
+            self.logger.debug('Get source files referred by error trace')
             src_files = set()
             for key in graphml.getElementsByTagName('key'):
                 if key.getAttribute('id') == 'originfile':
@@ -291,7 +291,7 @@ class CommonStrategy(core.components.Component):
                         if data.firstChild:
                             src_files.add(data.firstChild.data)
 
-            self.logger.info('Extract notes and warnings from source files referred by error trace')
+            self.logger.debug('Extract notes and warnings from source files referred by error trace')
             notes = {}
             warns = {}
             for src_file in src_files:
@@ -336,7 +336,7 @@ class CommonStrategy(core.components.Component):
                                         warns[src_file] = {}
                                     warns[src_file][src_line + 1] = comment
 
-            self.logger.info('Add notes and warnings to error trace')
+            self.logger.debug('Add notes and warnings to error trace')
             # Find out sequence of edges (violation path) from entry node to violation node.
             violation_edges = []
             entry_node_id = None
@@ -465,7 +465,7 @@ class CommonStrategy(core.components.Component):
                     if data.getAttribute('key') == 'note':
                         warn_edge.removeChild(data)
 
-            self.logger.info('Create processed error trace file "{0}"'.format(path_to_processed_witness))
+            self.logger.debug('Create processed error trace file "{0}"'.format(path_to_processed_witness))
             with open(path_to_processed_witness, 'w', encoding='utf8') as fp:
                 graphml.writexml(fp)
 

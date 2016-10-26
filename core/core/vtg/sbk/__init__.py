@@ -15,15 +15,14 @@ class SBK(SeparatedStrategy):
     src_files = []
 
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Single Bug Kind"')
-        self.logger.info('Generate one verification task for each bug kind')
+        self.logger.info('Launch strategy "Separated Bug Kind"')
+        self.logger.info('Generate one verification task for each bug kind inside each rule')
         bug_kinds = self.get_all_bug_kinds()
         self.logger.info('Verification tasks contains {0} bug kinds'.format(bug_kinds.__len__()))
 
     def main_cycle(self):
         self.src_files = self.conf['abstract task desc']['extra C files'].copy()
         for bug_kind in self.get_all_bug_kinds():
-            self.resources_written = False
             self.process_sequential_verification_task(bug_kind)
             # Clear output directory since it is the same for all runs.
             shutil.rmtree('output')

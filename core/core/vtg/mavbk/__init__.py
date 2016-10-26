@@ -9,10 +9,6 @@ from core.vtg.mav import MAV
 # Multiple-Aspect Verification with Bug Kinds.
 class MAVBK(MAV):
 
-    def print_strategy_information(self):
-        self.logger.info('Launch strategy "Multi-Aspect Verification with Bug Kinds"')
-        self.logger.info('Generate one verification task and check all bug kinds at once')
-
     def get_all_bug_kinds(self):
         bug_kinds = []
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
@@ -24,6 +20,7 @@ class MAVBK(MAV):
         return bug_kinds
 
     def create_asserts(self):
+        self.logger.info('Consider each assert as unique rule specification')
         # Bug kind is assert.
         bug_kinds = self.get_all_bug_kinds()
         for bug_kind in bug_kinds:

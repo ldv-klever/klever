@@ -9,8 +9,8 @@ from core.vtg.mpv import MPV
 class MPVBK(MPV):
 
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Multy-Property Verification with Bug Kinds"')
-        self.logger.info('Generate one verification task and check all bug kinds at once by means of MPV')
+        self.logger.info('Launch Multy-Property Verification')
+        self.logger.info('Generate one verification task and check all asserts at once by means of MPV')
 
     def create_asserts(self):
         for extra_c_file in self.conf['abstract task desc']['extra C files']:

@@ -25,7 +25,7 @@ from core.vtg.common import CommonStrategy
 # IITL = betta*TL (for conditional MAV)
 # BITL = gamma*TL (heuristic time limit)
 # FITL = epsilon*TL (heuristic time limit)
-# L5 is considered only for experiments (it should not get in production).
+# L5 is considered only for experiments (it is not MAV).
 # L5 is supported only be internal launch of CMAV.
 # The default preset is L1.
 class MAVPreset(Enum):
@@ -68,20 +68,28 @@ class MAVPrecisionCleaningStrategy(Enum):
 
 
 # This class represent Multi-Aspect Verification (MAV) strategies.
+# More information about MAV can be found:
+# http://link.springer.com/chapter/10.1007/978-3-319-41579-6_17 and
+# http://link.springer.com/article/10.1134/S0361768816040058.
+# This strategy requires CPAchecker verifier, branch cmav, revision >= 20410.
 class MAV(CommonStrategy):
 
+    # Private strategy variables.
     path_to_file_with_results = 'output/mav_results_file'
     number_of_asserts = 0
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     path_to_property_automata = 'property_automata.spc'
     error_function_prefix = '__VERIFIER_error_'
-    # Relevant for revision 20410.
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
-    resources_written = False
-    resources_written_unsafe = False
-    # Possible values: internal, external, no (only for Global strategy).
+    assert_to_bug_kinds = {}  # Map of all asserts to considered bug kinds.
+
+    # Public strategy parameters.
+    # Option ['VTG strategy']['verifier']['relaunch'] - determines relaunches of conditional MAV.
+    # Possible values: internal (inside one verifier run), external (several verifier runs),
+    # no (only for Sequential Combination).
     relaunch = "internal"
-    assert_to_bug_kinds = {}
+    # Option ['VTG strategy']['verifier']['MAV cleaning strategy'] - determines cleaning strategy.
+    # Option ['VTG strategy']['verifier']['MAV preset'] - determines internal limitations.
 
     def perform_sanity_checks(self):
         if self.mpv:
@@ -92,7 +100,6 @@ class MAV(CommonStrategy):
             raise AttributeError("Current VTG strategy supports only united rules")
 
     def perform_preprocess_actions(self):
-        self.logger.info('Starting Multi-Aspect Verification')
         self.print_strategy_information()
         self.create_asserts()
         if self.number_of_asserts <= 1:
@@ -109,10 +116,8 @@ class MAV(CommonStrategy):
         iterations = 0
         while True:
             iterations += 1
-            self.resources_written_unsafe = False
-            self.resources_written = False
             self.create_property_automata()
-            self.logger.info('Starting iteration {0}'.format(iterations))
+            self.logger.info('Start iteration {0}'.format(iterations))
             self.prepare_src_files()
             self.prepare_verification_task_files_archive()
             # Clear output directory since it is the same for all runs.
@@ -124,8 +129,8 @@ class MAV(CommonStrategy):
                          format(iterations))
 
     def print_strategy_information(self):
-        self.logger.info('Launch strategy "Multi-Aspect Verification"')
-        self.logger.info('Generate one verification task and check all bug types at once')
+        self.logger.info('Launch Multi-Aspect Verification')
+        self.logger.info('Generate one verification task and check all asserts at once')
 
     def get_all_bug_kinds(self):
         bug_kinds = []
@@ -141,7 +146,7 @@ class MAV(CommonStrategy):
         return bug_kinds
 
     def create_asserts(self):
-        self.logger.debug('Merging all bug kinds for each rule specification')
+        self.logger.info('Merge all asserts for each rule specification')
         # Bug kind is rule specification.
         bug_kinds = self.get_all_bug_kinds()
         for bug_kind in bug_kinds:
@@ -212,16 +217,17 @@ class MAV(CommonStrategy):
         if 'relaunch' in self.conf['VTG strategy']['verifier']:
             self.relaunch = self.conf['VTG strategy']['verifier']['relaunch']
         if self.relaunch == 'internal':
-            self.logger.info('Launching Conditional Multi-Aspect Verification in one verification run')
+            self.logger.info('Launch Conditional Multi-Aspect Verification in one verifier run')
             self.conf['VTG strategy']['verifier']['options'].append(
                 {'-setprop': 'analysis.mav.relaunchInOneRun=true'})
             # Set time limits for internal MAV.
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.number_of_asserts
         elif self.relaunch == 'external':
-            self.logger.info('Launching Conditional Multi-Aspect Verification in several verification run')
+            self.logger.info('Launch Conditional Multi-Aspect Verification in several verifier run')
             # Set time limits for external MAV.
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.number_of_asserts
         else:
+            self.logger.info('Launch only the first iteration of Multi-Aspect Verification')
             # This is not full MAV and only can be used as a part of Sequential Combination.
             self.relaunch = 'no'
             time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point
@@ -245,10 +251,10 @@ class MAV(CommonStrategy):
                 if strategy.name == specified_strategy:
                     selected_strategy = strategy
             if not selected_strategy:
-                self.logger.warning('Precision will not be cleaned, since strategy "{0}" is not supported'.
+                self.logger.warning('Precision will not be cleaned, since cleaning strategy "{0}" is not supported'.
                                     format(selected_strategy))
             else:
-                self.logger.info('Using precision cleaning strategy "{0}"'.format(selected_strategy.name))
+                self.logger.info('Use precision cleaning strategy "{0}"'.format(selected_strategy.name))
                 for key, value in selected_strategy.value.items():
                     self.conf['VTG strategy']['verifier']['options'].append(
                         {'-setprop': '{0}={1}'.format(key, value)})
@@ -279,7 +285,7 @@ class MAV(CommonStrategy):
                 IITL = round(selected_preset.value['betta'] * TL)
                 BITL = round(selected_preset.value['gamma'] * TL)
                 FITL = round(selected_preset.value['epsilon'] * TL)
-                self.logger.info('Using MAV preset "{0}" for limitations'.format(selected_preset.name))
+                self.logger.info('Use MAV preset "{0}" for limitations'.format(selected_preset.name))
                 self.conf['VTG strategy']['verifier']['options'].append(
                     {'-setprop': 'analysis.mav.assertTimeLimit={0}'.format(ATL)})
                 self.conf['VTG strategy']['verifier']['options'].append(
@@ -357,7 +363,7 @@ class MAV(CommonStrategy):
 
     def remove_assertion(self, assertion):
         if self.assert_function.__contains__(assertion):
-            self.logger.info("Stop checking for assert {0}".format(assertion))
+            self.logger.debug("Stop checking for assert {0}".format(assertion))
             self.assert_function.__delitem__(assertion)
 
     def get_violated_property(self, file):
@@ -377,7 +383,7 @@ class MAV(CommonStrategy):
 
         while True:
             task_status = session.get_task_status(task_id)
-            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
+            self.logger.debug('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)
@@ -418,7 +424,7 @@ class MAV(CommonStrategy):
                                 if result:
                                     # LCA here.
                                     LCA = result.group(1)
-                                    self.logger.info('LCA is "{0}"'.format(LCA))
+                                    self.logger.debug('LCA is "{0}"'.format(LCA))
                                     if not is_new_verdicts:
                                         is_new_verdicts = True
                                         results[LCA] = 'unknown'
@@ -442,7 +448,7 @@ class MAV(CommonStrategy):
                 # No new transitions -> change all checking verdicts to unknown.
                 if not is_new_verdicts:
                     self.logger.info('No new verdicts were obtained during this iteration')
-                    self.logger.info('Stopping algorithm')
+                    self.logger.info('Stop algorithm')
                     for bug_kind, verdict in results.items():
                         results[bug_kind] = 'unknown'
 

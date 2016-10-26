@@ -20,7 +20,6 @@ class SeparatedStrategy(CommonStrategy):
     __metaclass__ = ABCMeta
 
     automaton_file = None
-    resources_written = False
 
     def perform_sanity_checks(self):
         if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
@@ -78,7 +77,7 @@ class SeparatedStrategy(CommonStrategy):
             self.prepare_property_file()
 
     def prepare_property_file(self):
-        self.logger.info('Prepare verifier property file')
+        self.logger.debug('Prepare verifier property file')
 
         if 'entry points' in self.conf['abstract task desc']:
             if len(self.conf['abstract task desc']['entry points']) > 1:
@@ -121,7 +120,7 @@ class SeparatedStrategy(CommonStrategy):
         self.conf['VTG strategy']['resource limits']['CPU time'] = time_limit
 
     def prepare_verification_task_files_archive(self):
-        self.logger.info('Prepare archive with verification task files')
+        self.logger.debug('Prepare archive with verification task files')
 
         with tarfile.open('task files.tar.gz', 'w:gz') as tar:
             if self.automaton_file:
@@ -164,7 +163,7 @@ class SeparatedStrategy(CommonStrategy):
 
         while True:
             task_status = session.get_task_status(task_id)
-            self.logger.info('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
+            self.logger.debug('Status of verification task "{0}" is "{1}"'.format(task_id, task_status))
 
             if task_status == 'ERROR':
                 task_error = session.get_task_error(task_id)
