@@ -95,6 +95,7 @@ class GetETV(object):
         scopes_to_show = []
         scopes_to_hide = []
         threads = []
+        function_stack = []
 
         def curr_offset():
             if len(scope_stack) < 2:
@@ -115,6 +116,7 @@ class GetETV(object):
             }
 
         def return_from_func(curr_linedata):
+            function_stack.pop()
             last_scope = scope_stack.pop()
             if len(curr_linedata['code']) > 0:
                 lines_data.append(curr_linedata)
@@ -235,12 +237,18 @@ class GetETV(object):
                     '\g<1><span class="ETV_Fname">' + self.data['funcs'][edge_data['enter']] + '</span>\g<2>',
                     line_data['code']
                 )
+                function_stack.append(self.data['funcs'][edge_data['enter']])
                 if 'return' in edge_data:
                     if edge_data['enter'] == edge_data['return']:
                         line_data = return_from_func(line_data)
+                        function_stack.pop()
                     else:
                         double_return[scope_stack[-2]] = True
             elif 'return' in edge_data:
+                if self.data['funcs'][edge_data['return']] != function_stack[-1]:
+                    raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
+                        self.data['funcs'][edge_data['return']], function_stack[-1]
+                    ))
                 line_data = return_from_func(line_data)
             lines_data.append(line_data)
 
