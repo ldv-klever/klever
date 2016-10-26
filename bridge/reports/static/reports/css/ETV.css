@@ -25,7 +25,7 @@
     font-size: 12px;
     border-top: 1px solid #ca8f1d;
 }
-.ETV_error_trace {
+#ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
@@ -34,10 +34,7 @@
     font-size: 12px;
     font-family: monospace;
     overflow: auto;
-    white-space: nowrap
-}
-
-.ETV_TopTrace {
+    white-space: nowrap;
     border-top: 1px solid #ca8f1d;
     top: 35px;
 }
@@ -122,7 +119,6 @@
     position: relative;
     white-space: pre;
     background-color: #ffe6d7;
-    padding-left: 5px;
     padding-right: 5px;
     cursor: pointer;
 }
@@ -223,4 +219,13 @@
 .ETV_TOP_BORDER {
     border-top: 1px solid #000000;
     color: #7d909e;
+}
+
+#etv-trace {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 45%;
+    background-color: #fffaf0;
 }

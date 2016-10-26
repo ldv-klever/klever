@@ -190,8 +190,7 @@ class GetETV(object):
                 line_data['thread'] = ' ' * len(threads)
 
             if 'assumption' in edge_data:
-                if not has_main and 'assumption scope' in edge_data \
-                        and self.data['funcs'][edge_data['assumption scope']] == 'entry_point':
+                if not has_main and 'assumption scope' in edge_data:
                     cnt += 1
                     scope_stack.append('scope__klever_main__%s' % str(cnt))
                     scopes_to_show.append(scope_stack[-1])
