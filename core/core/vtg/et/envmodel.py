@@ -14,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import re
 
 
 def envmodel_simplifications(logger, error_trace):
@@ -22,7 +21,7 @@ def envmodel_simplifications(logger, error_trace):
     data = _collect_action_diaposons(error_trace)
     _set_thread(data, error_trace)
     #_remove_control_func_aux_code(data, error_trace)
-    #_wrap_actions(data, error_trace)
+    _wrap_actions(data, error_trace)
     #_remove_callback_wrappers(error_trace)
 
 
@@ -191,38 +190,16 @@ def _remove_control_func_aux_code(data, error_trace):
 
 
 def _wrap_actions(data, error_trace):
-    def open_block(e, action, stack):
-        stack[-1]['action'] = action
-        ne = error_trace.insert_edge_and_target_node(error_trace.previous_edge(e))
-        action['enter id'] = error_trace.add_function(str(e['file']) + str(e['start line']))
-        ne['enter'] = action['enter id']
-        ne['note'] = action['comment']
-        ne['start line'] = stack[-1]['action']['begin']
-    
-    def close_block(e, stack):
-        ne = error_trace.insert_edge_and_target_node(error_trace.previous_edge(e))
-        ne['return'] = stack[-1]['action']['enter id']
-        ne['start line'] = stack[-1]['action']['end']
-        stack[-1]['action'] = None
-    
-    # Wrap actions and add notes
     cf_stack = list()
     for edge in error_trace.trace_iterator():
         if len(cf_stack) > 0:
             if _inside_control_function(cf_stack[-1]['cf'], edge['file'], edge['start line']):
                 act = _inside_action(cf_stack[-1]['cf'], edge['start line'])
                 if act:
-                    if cf_stack[-1]['action'] and act is not cf_stack[-1]['action']:
-                        close_block(edge, cf_stack)
-
-                    if not cf_stack[-1]['action'] or act is not cf_stack[-1]['action']:
-                        open_block(edge, act, cf_stack)
-
+                    edge['action'] = error_trace.add_action(act['comment'])
         if 'enter' in edge:
             _match_control_function(error_trace, edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
-            if cf_stack[-1]['action']:
-                close_block(edge, cf_stack)
             cf_stack.pop()
 
 

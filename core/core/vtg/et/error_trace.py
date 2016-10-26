@@ -33,6 +33,8 @@ class ErrorTrace:
         self._model_funcs = dict()
         self._notes = dict()
         self._asserts = dict()
+        self._actions = list()
+        self._callback_actions = list()
         self.aux_funcs = dict()
         self.emg_comments = dict()
 
@@ -77,7 +79,9 @@ class ErrorTrace:
             'entry node': 0,
             'violation nodes': [self._nodes[i]['in'][0]['target node'] for i in sorted(self._violation_node_ids)],
             'files': self._files,
-            'funcs': self._funcs
+            'funcs': self._funcs,
+            'actions': self._actions,
+            'callback actions': self._callback_actions
         }
         return data
 
@@ -112,9 +116,20 @@ class ErrorTrace:
     def add_function(self, name):
         if name not in self._funcs:
             self._funcs.append(name)
-            return self.resolve_function_id(name)
+            return len(self._funcs) - 1
         else:
             return self.resolve_function_id(name)
+
+    def add_action(self, comment):
+        if comment not in self._actions:
+            self._actions.append(comment)
+            action_id = len(self._actions) - 1
+            if comment.startswith('Call callback'):
+                self._callback_actions.append(action_id)
+        else:
+            action_id = self.resolve_action_id(comment)
+
+        return action_id
 
     def add_aux_func(self, identifier, formal_arg_names):
         self.aux_funcs[identifier] = formal_arg_names
@@ -135,6 +150,9 @@ class ErrorTrace:
 
     def resolve_function(self, identifier):
         return self._funcs[identifier]
+
+    def resolve_action_id(self, comment):
+        return self._actions.index(comment)
 
     def trace_iterator(self, begin=None, end=None, backward=False):
         # todo: Warning! This does work only if you guarantee:
