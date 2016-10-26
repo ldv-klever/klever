@@ -85,21 +85,19 @@ def _inside_action(cf, line):
     return None
 
 
-def _match_control_function(edge, stack, data):
+def _match_control_function(error_trace, edge, stack, data):
+    func_name = error_trace.resolve_function(edge['enter'])
     for file in data:
-        for function in data[file]:
-            match = re.search('{}\(.*\)'.format(function), edge['source'])
-            if match:
-                # Aha, found a new control function
-                cf_data = {
-                    'action': None,
-                    'functions': list(),
-                    'cf': data[file][function],
-                    'enter id': edge['enter'],
-                    'in aux code': False
-                }
-                stack.append(cf_data)
-                return cf_data
+        if func_name in data[file]:
+            cf_data = {
+                'action': None,
+                'functions': list(),
+                'cf': data[file][func_name],
+                'enter id': edge['enter'],
+                'in aux code': False
+            }
+            stack.append(cf_data)
+            return cf_data
 
     return None
 
@@ -121,7 +119,7 @@ def _set_thread(data, error_trace):
     for edge in error_trace.trace_iterator():
         # Dict changes its size, so keep it in mind
         if 'enter' in edge:
-            m = _match_control_function(edge, cf_stack, data)
+            m = _match_control_function(error_trace, edge, cf_stack, data)
             if m and 'thread' in cf_stack[-1]['cf']:
                 thread = cf_stack[-1]['cf']['thread']
         elif 'return' in edge:
@@ -141,7 +139,7 @@ def _remove_control_func_aux_code(data, error_trace):
     def if_enter_function(e, stack, data):
         """Enter function."""
         # Stepping into a control function?
-        match = _match_control_function(e, stack, data)
+        match = _match_control_function(error_trace, e, stack, data)
         if match:
             # Add note on each control function entry
             e['note'] = match['cf']['comment']
@@ -221,7 +219,7 @@ def _wrap_actions(data, error_trace):
                         open_block(edge, act, cf_stack)
 
         if 'enter' in edge:
-            _match_control_function(edge, cf_stack, data)
+            _match_control_function(error_trace, edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
             if cf_stack[-1]['action']:
                 close_block(edge, cf_stack)
