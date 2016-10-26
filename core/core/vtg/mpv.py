@@ -53,7 +53,7 @@ class MPV(CommonStrategy):
 
     # Private strategy variables.
     delta = 200000  # Additional time (in ms), which can be spent for printing statistics.
-    omega = 2/9  # First step of Relevance strategy will be limited to (psi * TL) seconds.
+    omega = 2/9  # First step of Relevance strategy will be limited to (omega * TL) seconds.
     psi = 4/3  # Second step of Relevance strategy will be limited to (psi * TL) seconds.
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     verifier_results_regexp = r"\Property (.+).spc: (\w+)"
