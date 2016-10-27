@@ -20,9 +20,9 @@ def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
     data = _collect_action_diaposons(error_trace)
     _set_thread(data, error_trace)
-    #_remove_control_func_aux_code(data, error_trace)
+    _remove_control_func_aux_code(data, error_trace)
     _wrap_actions(data, error_trace)
-    #_remove_callback_wrappers(error_trace)
+    _remove_callback_wrappers(error_trace)
 
 
 def _collect_action_diaposons(error_trace):
@@ -58,6 +58,9 @@ def _collect_action_diaposons(error_trace):
                     data[file][function]['actions'].append({'begin': line,
                                                             'comment': error_trace.emg_comments[file][line]['comment'],
                                                             'type': error_trace.emg_comments[file][line]['type']})
+                    if 'callback' in error_trace.emg_comments[file][line] and \
+                            error_trace.emg_comments[file][line]['callback']:
+                        data[file][function]['actions'][-1]['callback'] = True
                     inside_action = True
                 elif inside_action and line in error_trace.emg_comments[file] and \
                         error_trace.emg_comments[file][line]['type'] in {t + '_END' for t in intervals}:
@@ -196,7 +199,11 @@ def _wrap_actions(data, error_trace):
             if _inside_control_function(cf_stack[-1]['cf'], edge['file'], edge['start line']):
                 act = _inside_action(cf_stack[-1]['cf'], edge['start line'])
                 if act:
-                    edge['action'] = error_trace.add_action(act['comment'])
+                    if 'callback' in act and act['callback']:
+                        callback_flag = True
+                    else:
+                        callback_flag = False
+                    edge['action'] = error_trace.add_action(act['comment'], callback_flag)
         if 'enter' in edge:
             _match_control_function(error_trace, edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
