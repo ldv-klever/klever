@@ -170,10 +170,10 @@ def _remove_tmp_vars(error_trace, edge):
         tmp_var_decl_id = tmp_var_names[tmp_var_name]
 
         # Try to find temorary variable usages on edges following corresponding function calls.
-        try:
-            tmp_var_use_edge = next(error_trace_iterator)
+        tmp_var_use_edge = error_trace.next_edge(edge)
+
         # There is no usage of temporary variable but we still can remove its declaration and assignment.
-        except StopIteration:
+        if not tmp_var_use_edge:
             func_call_edge['source'] = func_call + ';'
             break
 
