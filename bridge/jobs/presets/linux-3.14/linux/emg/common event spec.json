@@ -3,6 +3,7 @@
     "kernel model": {},
     "environment processes": {
       "dummy_factory": {
+        "comment": "Start several scenarios for callback invocation.",
         "labels": {
           "container": {
             "container": true
@@ -133,6 +134,7 @@
         }
       },
       "dummy_resourceless_instance": {
+        "comment": "Scenario with random invocation of callbacks.",
         "labels": {
           "container": {
             "container": true,
@@ -145,6 +147,7 @@
         "process": "(!register).{call}",
         "actions": {
           "call": {
+            "comment": "Choose a callback randomly.",
             "process": "[callback].{call} | (deregister)"
           },
           "register": {
@@ -169,6 +172,7 @@
         }
       },
       "dummy_instance": {
+        "comment": "Scenario with random invocation of callbacks.",
         "labels": {
           "container": {
             "container": true

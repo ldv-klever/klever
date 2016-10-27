@@ -37,9 +37,16 @@
               "port_remove": "%usb_serial.port_remove%",
               "open": "%usb_serial.open%",
               "close": "%usb_serial.close%",
-              "write": "%usb_serial.write%",
-              "write_room": "%usb_serial.write_room%",
-              "ioctl": "%usb_serial.ioctl%"
+              "write" : "%usb_serial.write%",
+              "hangup" : "%usb_serial.hangup%",
+
+              "flush_buffer" : "%usb_serial.flush_buffer%",
+              "chars_in_buffer" : "%usb_serial.chars_in_buffer%",
+              "set_termios" : "%usb_serial.set_termios%",
+              "read" : "%usb_serial.read%",
+              "poll" : "%usb_serial.poll%",
+              "ioctl" : "%usb_serial.ioctl%",
+              "compat_ioctl" : "%usb_serial.compat_ioctl%"
             }
           }
         },
@@ -77,14 +84,32 @@
           "close": {
             "signature": "void (*close)(%usb_serial.usb_serial_port%)"
           },
+          "hangup": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
           "write": {
             "signature": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
           },
-          "write_room": {
-            "signature": "int (*write_room)(%usb_serial.tty_struct%)"
+          "flush_buffer": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "chars_in_buffer": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "set_termios": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "read": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
+          },
+          "poll": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
           },
           "ioctl": {
             "signature": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
+          },
+          "compat_ioctl": {
+            "signature": "void (*close)(%usb_serial.usb_serial_port%)"
           }
         },
         "resources": {
@@ -155,9 +180,7 @@
               "port_remove": "%usb_serial.port_remove%",
               "open": "%usb_serial.open%",
               "close": "%usb_serial.close%",
-              "write": "%usb_serial.write%",
-              "write_room": "%usb_serial.write_room%",
-              "ioctl": "%usb_serial.ioctl%"
+              "write": "%usb_serial.write%"
             }
           }
         },
@@ -194,12 +217,6 @@
           },
           "write": {
             "signature": "int (*write)(%usb_serial.tty_struct%, %usb_serial.usb_serial_port%, const unsigned char *buf, int count)"
-          },
-          "write_room": {
-            "signature": "int (*write_room)(%usb_serial.tty_struct%)"
-          },
-          "ioctl": {
-            "signature": "int (*ioctl)(%usb_serial.tty_struct%, unsigned int cmd, long unsigned int arg)"
           }
         },
         "resources": {

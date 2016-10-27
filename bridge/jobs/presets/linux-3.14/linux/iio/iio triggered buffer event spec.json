@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "iio_triggered_buffer_setup": {
+        "comment": "Industrial I/O triggered buffer setup.",
         "labels": {
           "thread": {
             "callback": true,
@@ -23,41 +24,42 @@
               "iio_triggered_buffer.dev"
             ],
             "parameter": true
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[irq_register] | <none>).<return>",
+        "process": "<assign>.[irq_register].<success> | <fail>",
         "actions": {
           "irq_register": {
+            "comment": "Register top and bottom halfs handlers for a poll function.",
             "parameters": [
               "%dev%",
               "%callback%",
               "%thread%"
             ]
           },
-          "none": {
+          "fail": {
+            "comment": "Industrial I/O triggered buffer setup has failed.",
             "statements": [
-              "%res% = ldv_undef_int_negative();"
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
+            "comment": "Get IIO device structure and handler functions.",
             "statements": [
               "%dev% = $ARG1;",
               "%callback% = $ARG2;",
-              "%thread% = $ARG3;",
-              "%res% = 0;"
+              "%thread% = $ARG3;"
             ]
           },
-          "return": {
+          "success": {
+            "comment": "Industrial I/O triggered buffer setup has finished successfully.",
             "statements": [
-              "return %res%;"
+              "return 0;"
             ]
           }
         }
       },
       "iio_triggered_buffer_cleanup": {
+        "comment": "Industrial I/O triggered buffer cleanup.",
         "labels": {
           "dev": {
             "resource": true,
@@ -70,11 +72,13 @@
         "process": "<assign>.[irq_deregister]",
         "actions": {
           "irq_deregister": {
+            "comment": "Industrial I/O poll functions will not be called since this point in time.",
             "parameters": [
               "%dev%"
             ]
           },
           "assign": {
+            "comment": "Get IIO device structure.",
             "statements": [
               "%dev% = $ARG1;"
             ]
@@ -84,6 +88,7 @@
     },
     "environment processes": {
       "iio_triggered_buffer_instance": {
+        "comment": "Industrial I/O triggered buffer poll function scenario.",
         "labels": {
           "thread": {
             "callback": true,
@@ -122,6 +127,7 @@
         "process": "(!irq_register).[handler].(<need_thread>.[thread] | <handled>).(irq_deregister)",
         "actions": {
           "irq_register": {
+            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are registered.",
             "parameters": [
               "%dev%",
               "%callback%",
@@ -129,6 +135,7 @@
             ]
           },
           "irq_deregister": {
+            "comment": "Industrial I/O triggered buffer poll function top and bottom halfs are deregistered.",
             "condition": [
               "%line% == $ARG1"
             ],
@@ -137,6 +144,7 @@
             ]
           },
           "handler": {
+            "comment": "Industrial I/O triggered buffer poll function top half.",
             "callback": "%callback%",
             "parameters": [
               "%line%",
@@ -145,6 +153,7 @@
             "callback return value": "%ret_val%"
           },
           "thread": {
+            "comment": "Industrial I/O triggered buffer poll function bottom half.",
             "callback": "%thread%",
             "parameters": [
               "%line%",
@@ -152,11 +161,13 @@
             ]
           },
           "need_thread": {
+            "comment": "Need to execute the poll function bottom half.",
             "condition": [
               "%ret_val% == IRQ_WAKE_THREAD"
             ]
           },
           "handled": {
+            "comment": "No need to execute the poll function bottom half handler.",
             "condition": [
               "%ret_val% != IRQ_WAKE_THREAD"
             ]

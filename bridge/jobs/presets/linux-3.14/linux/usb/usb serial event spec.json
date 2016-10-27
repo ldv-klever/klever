@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "usb_serial_register_drivers": {
+        "comment": "Register USB serial callbacks.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -14,21 +15,25 @@
         "process": "<assign>.[@register].<success> | <none>",
         "actions": {
           "register": {
+            "comment": "Register USB serial callbacks.",
             "parameters": [
               "%usb_device_id%"
             ]
           },
           "assign": {
+            "comment": "Get callbacks to register provided within 'usb_serial_driver' argument.",
             "statements": [
               "%usb_device_id% = $ARG3;"
             ]
           },
           "none": {
+            "comment": "Fail registration of USB serial callbacks.",
             "statements": [
               "return ldv_undef_int_negative();"
             ]
           },
           "success": {
+            "comment": "Registration of USB serial callbacks has been successful.",
             "statements": [
               "return 0;"
             ]
@@ -36,6 +41,7 @@
         }
       },
       "usb_serial_deregister_drivers": {
+        "comment": "Deregister USB serial callbacks.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -47,11 +53,13 @@
         "process": "<assign>.[@deregister]",
         "actions": {
           "deregister": {
+            "comment": "Deregister USB serial callbacks.",
             "parameters": [
               "%usb_device_id%"
             ]
           },
           "assign": {
+            "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
             "statements": [
               "%usb_device_id% = $ARG1;"
             ]
@@ -61,6 +69,7 @@
     },
     "environment processes": {
       "usb_serial_instance": {
+        "comment": "Begin USB serial callbacks invocation scenario.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -77,7 +86,7 @@
               "usb_serial.usb_serial_driver"
             ]
           },
-          "callback": {
+          "rest_line_attached_callbacks": {
             "callback": true
           },
           "ret": {
@@ -85,16 +94,19 @@
             "value": "1"
           }
         },
-        "process": "(!register).((deregister) | <init>.{init_workflow})",
+        "process": "(!register).((deregister) | <init>.{insert_device})",
         "actions": {
-          "init_workflow": {
-            "process": "[probe].(<y_ret>.[attach].(<y_ret>.{main_workflow} | <n_ret>.[release]) | <n_ret>).{init_workflow} | <free>.(deregister)"
+          "insert_device": {
+            "comment": "Device is inserted in the system.",
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[release]) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "main_workflow": {
-            "process": "([rest] | [suspend].([resume] | [reset_resume]) | [port_probe].(<y_ret>.[port_remove] | <n_ret>) | [open].(<y_ret>.{ops_workflow} | <n_ret>)).{main_workflow} | [disconnect].[release].{init_workflow}"
+            "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
+            "process": "([suspend].(<suspended>.([resume] | [reset_resume]) | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [disconnect].[release].{insert_device}"
           },
-          "ops_workflow": {
-            "process": "([write] | [irq_write] | [write_room] | [ioctl]).{ops_workflow} | [close].{main_workflow}"
+          "tty_layer": {
+            "comment": "Call the rest callbacks from tty layer.",
+            "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | [close].{main_workflow}"
           },
           "register": {
             "parameters": [
@@ -110,26 +122,79 @@
             ]
           },
           "init": {
+            "comment": "Do initializations of usb_serial that should be done by USB serial subsystem when the device is inserted.",
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
           },
           "free": {
+            "comment": "Free usb_serial memory.",
             "statements": [
               "$FREE(%resource%);"
             ]
           },
-          "y_ret": {
+          "probed": {
+            "comment": "USB serial early initialization has finished successfully.",
             "condition": [
               "%ret% == 0"
             ]
           },
-          "n_ret": {
+          "not_probed": {
+            "comment": "USB serial early initialization has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "attached": {
+            "comment": "Structure usb_serial is fully set up and local initialization has finished successfully.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "not_attached": {
+            "comment": "Local initialization has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "suspended": {
+            "comment": "Device is going to be suspended.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "not_suspended": {
+            "comment": "Suspending has been aborted.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "port_probed": {
+            "comment": "USB serial port is initialized.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "not_port_probed": {
+            "comment": "USB serial port initialization has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "opened": {
+            "comment": "The tty line has been attached successfully.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "not_opened": {
+            "comment": "The tty line attachement has failed.",
             "condition": [
               "%ret% != 0"
             ]
           },
           "probe": {
+            "comment": "Device has been inserted in the system.",
             "callback": "%driver.probe%",
             "parameters": [
               "%resource%",
@@ -144,6 +209,7 @@
             ]
           },
           "attach": {
+            "comment": "Do any local initialization of the device and private memory structure allocation.",
             "callback": "%driver.attach%",
             "parameters": [
               "%resource%"
@@ -154,36 +220,42 @@
             ]
           },
           "disconnect": {
+            "comment": "The device is unplugged.",
             "callback": "%driver.disconnect%",
             "parameters": [
               "%resource%"
             ]
           },
           "release": {
+            "comment": "Data structure usb_serial is about to be destroyed.",
             "callback": "%driver.release%",
             "parameters": [
               "%resource%"
             ]
           },
           "suspend": {
+            "comment": "Warn the driver that the device is going to be suspended.",
             "callback": "%driver.suspend%",
             "parameters": [
               "%resource%"
             ]
           },
           "resume": {
+            "comment": "Warn the driver that the device is going to be resumed.",
             "callback": "%driver.resume%",
             "parameters": [
               "%resource%"
             ]
           },
           "reset_resume": {
+            "comment": "The device has been resumed and it also has been reset.",
             "callback": "%driver.reset_resume%",
             "parameters": [
               "%resource%"
             ]
           },
           "port_probe": {
+            "comment": "Initialize serial port data.",
             "callback": "%driver.port_probe%",
             "parameters": [
               "%resource%"
@@ -194,30 +266,28 @@
             ]
           },
           "port_remove": {
+            "comment": "Free serial port data.",
             "callback": "%driver.port_remove%",
             "parameters": [
               "%resource%"
             ]
           },
           "open": {
+            "comment": "Line discipline is attached to the terminal.",
             "callback": "%driver.open%",
             "parameters": [
               "%resource%"
             ]
           },
           "close": {
+            "comment": "Line discipline is being unplugged from the terminal.",
             "callback": "%driver.close%",
             "parameters": [
               "%resource%"
             ]
           },
-          "write": {
-            "callback": "%driver.write%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
           "irq_write": {
+            "comment": "Write a block of characters to the tty device in atomic context.",
             "callback": "%driver.write%",
             "parameters": [
               "%resource%"
@@ -229,20 +299,15 @@
               "ldv_switch_to_process_context();"
             ]
           },
-          "write_room": {
-            "callback": "%driver.write_room%",
+          "write": {
+            "comment": "Write a block of characters to the tty device in atomic context.",
+            "callback": "%driver.write%",
             "parameters": [
               "%resource%"
             ]
           },
-          "ioctl": {
-            "callback": "%driver.ioctl%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "rest": {
-            "callback": "%callback%",
+          "rest_line_attached_callbacks": {
+            "callback": "%rest_line_attached_callbacks%",
             "parameters": [
               "%resource%"
             ]
