@@ -20,11 +20,13 @@
 #include <linux/ldv/irq.h>
 #include <verifier/common.h>
 
-/* MODEL_FUNC Check that correct flag was used in context of interrupt */
+/* MODEL_FUNC Check that flags GFP_ATOMIC or GFP_NOWAIT are used when allocating memory in interrupt context */
 void ldv_check_alloc_flags(gfp_t flags) 
 {
-	/* ASSERT GFP_ATOMIC flag should be used in context of interrupt */
-	ldv_assert("linux:alloc:irq::wrong flags", !ldv_in_interrupt_context() || (flags == GFP_ATOMIC));
+	if (ldv_in_interrupt_context())
+		if (flags != GFP_ATOMIC)
+			/* ASSERT Flags GFP_ATOMIC or GFP_NOWAIT should be used when allocating memory in interrupt context */
+			ldv_assert("linux:alloc:irq::wrong flags", 0);
 }
 
 /* MODEL_FUNC Check that we are not in context of interrupt */

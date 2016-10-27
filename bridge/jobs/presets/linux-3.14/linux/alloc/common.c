@@ -15,33 +15,14 @@
  * limitations under the License.
  */
 
-#etv-trace___et1 {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 55%;
-    width: 45%;
-    background-color: #fffaf0;
-}
+#include <linux/gfp.h>
+#include <verifier/memory.h>
 
-#etv-trace___et2 {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 45%;
-    height: 44.5%;
-    background-color: #fffaf0;
-}
-#etv-divider-3 {
-    position: absolute;
-    left: 0;
-    top: 55%;
-    height: 0.5%;
-    width: 45%;
-    background-color: #f2711c;
-    cursor: move;
-}
+extern void ldv_check_alloc_flags(gfp_t flags);
 
-.ETV_BottomTrace {
-    top: 0;
+/* MODEL_FUNC ... */
+int ldv_alloc_with_flags_and_unknown_size(gfp_t flags)
+{
+	ldv_check_alloc_flags(flags);
+	return (int)ldv_malloc_unknown_size();
 }

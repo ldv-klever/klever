@@ -89,9 +89,7 @@ If call stacks are identical returns 1 else returns 0.
 
         err_trace_converted = self.__get_converted_trace('call_stack')
         pattern = self.pattern_error_trace
-        if err_trace_converted == pattern:
-            return 1
-        return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
+        return int(err_trace_converted == pattern)
 
     def model_functions_compare(self):
         """
@@ -100,9 +98,7 @@ If model functions are identical returns 1 else returns 0.
 
         err_trace_converted = self.__get_converted_trace('model_functions')
         pattern = self.pattern_error_trace
-        if err_trace_converted == pattern:
-            return 1
-        return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
+        return int(err_trace_converted == pattern)
 
     def callstack_tree_compare(self):
         """
@@ -111,9 +107,7 @@ If call stacks trees are identical returns 1 else returns 0.
 
         err_trace_converted = self.__get_converted_trace('call_stack_tree')
         pattern = self.pattern_error_trace
-        if err_trace_converted == pattern:
-            return 1
-        return int(err_trace_converted[0] == pattern[1] and err_trace_converted[1] == pattern[0])
+        return int(err_trace_converted == pattern)
 
     def __get_converted_trace(self, conversion_function_name):
         res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe)

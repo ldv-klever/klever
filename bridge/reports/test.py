@@ -75,7 +75,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.tar.gz']
+        'unsafes': ['multi_unsafe.tar.gz']
     },
     {
         'attrs': [
@@ -452,7 +452,7 @@ class TestReports(KleverTestCase):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
-                'error trace': 'witness.json', 'attrs': attrs
+                'error trace': 'error trace.json', 'attrs': attrs
             }), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -709,7 +709,7 @@ class DecideJobs(object):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
-                'error trace': 'witness.json', 'attrs': attrs
+                'error trace': 'error trace.json', 'attrs': attrs
             }), 'file': fp})
 
     def __decide_job(self, job_identifier):

@@ -33,6 +33,8 @@ class ErrorTrace:
         self._model_funcs = dict()
         self._notes = dict()
         self._asserts = dict()
+        self._actions = list()
+        self._callback_actions = list()
         self.aux_funcs = dict()
         self.emg_comments = dict()
 
@@ -77,7 +79,9 @@ class ErrorTrace:
             'entry node': 0,
             'violation nodes': [self._nodes[i]['in'][0]['target node'] for i in sorted(self._violation_node_ids)],
             'files': self._files,
-            'funcs': self._funcs
+            'funcs': self._funcs,
+            'actions': self._actions,
+            'callback actions': self._callback_actions
         }
         return data
 
@@ -112,12 +116,23 @@ class ErrorTrace:
     def add_function(self, name):
         if name not in self._funcs:
             self._funcs.append(name)
-            return self.resolve_function_id(name)
+            return len(self._funcs) - 1
         else:
             return self.resolve_function_id(name)
 
-    def add_aux_func(self, identifier, name):
-        self.aux_funcs[identifier] = name
+    def add_action(self, comment):
+        if comment not in self._actions:
+            self._actions.append(comment)
+            action_id = len(self._actions) - 1
+            if comment.startswith('Call callback'):
+                self._callback_actions.append(action_id)
+        else:
+            action_id = self.resolve_action_id(comment)
+
+        return action_id
+
+    def add_aux_func(self, identifier, formal_arg_names):
+        self.aux_funcs[identifier] = formal_arg_names
 
     def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
@@ -135,6 +150,9 @@ class ErrorTrace:
 
     def resolve_function(self, identifier):
         return self._funcs[identifier]
+
+    def resolve_action_id(self, comment):
+        return self._actions.index(comment)
 
     def trace_iterator(self, begin=None, end=None, backward=False):
         # todo: Warning! This does work only if you guarantee:
@@ -227,11 +245,11 @@ class ErrorTrace:
             if not ignore_edges_of_func_id and 'return' in edge:
                 ignore_edges_of_func_id = edge['return']
 
-            if 'enter' in edge and edge['enter'] == ignore_edges_of_func_id:
-                ignore_edges_of_func_id = None
-
             if not ignore_edges_of_func_id:
                 self._violation_edges.append(edge)
+
+            if 'enter' in edge and edge['enter'] == ignore_edges_of_func_id:
+                ignore_edges_of_func_id = None
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
@@ -270,10 +288,25 @@ class ErrorTrace:
                                 line += 1
                                 match = re.search(r'(ldv_\w+)', text)
                                 if match:
-                                    func_name = match.groups()[0]
+                                    func_name = match.group(1)
                                 else:
                                     raise ValueError(
                                         'Auxiliary/model function definition is not specified in {!r}'.format(text))
+
+                                # Try to get names for simple formal arguments (in form "type name") that is required
+                                # for removing auxiliary function calls.
+                                formal_arg_names = []
+                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), text)
+                                if match:
+                                    for formal_arg in match.group(1).split(','):
+                                        match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
+
+                                        # Give up if meet complicated formal argument.
+                                        if not match:
+                                            formal_arg_names = []
+                                            break
+
+                                        formal_arg_names.append(match.group(1))
                             except StopIteration:
                                 raise ValueError('Auxiliary/model function definition does not exist')
 
@@ -281,7 +314,7 @@ class ErrorTrace:
                             for func_id, ref_func_name in self.functions:
                                 if ref_func_name == func_name:
                                     if kind == 'AUX_FUNC':
-                                        self.add_aux_func(func_id, None)
+                                        self.add_aux_func(func_id, formal_arg_names)
                                         self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
                                                            format(func_name, file, line))
                                     else:
@@ -353,7 +386,6 @@ class ErrorTrace:
                     for violation_edge in self._violation_edges:
                         if 'enter' in violation_edge and 'note' in violation_edge:
                             warn_edge = violation_edge
-                            break
                     warn_edge['warn'] = warn
                     warn_edges.append(warn_edge)
 

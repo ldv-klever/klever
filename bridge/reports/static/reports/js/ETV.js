@@ -16,6 +16,8 @@
  */
 
 $(document).ready(function () {
+    var ready_for_next_string = false, etv_window = $('#ETV_error_trace');
+
     $('#error_trace_options').popup({
         popup: $('#etv-attributes'),
         position: 'right center',
@@ -27,7 +29,6 @@ $(document).ready(function () {
         }
     });
     $('.normal-popup').popup({position: 'bottom left'});
-    var ready_for_next_string = false;
     function get_source_code(line, filename) {
 
         var source_code_window = $('#ETV_source_code');
@@ -81,11 +82,11 @@ $(document).ready(function () {
         event.preventDefault();
         if ($(this).find('i').first().hasClass('empty')) {
             $(this).find('i').first().removeClass('empty');
-            $(this).closest('.ETV_error_trace').find('.global').hide();
+            etv_window.find('.global').hide();
         }
         else {
             $(this).find('i').first().addClass('empty');
-            $(this).closest('.ETV_error_trace').find('.global').show();
+            etv_window.find('.global').show();
         }
     });
 
@@ -274,7 +275,6 @@ $(document).ready(function () {
         if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
-        var etv_window = selected_line.closest('.ETV_error_trace');
         etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 3/10);
         if (!select_next_line()) {
             clearInterval(interval);
@@ -293,7 +293,6 @@ $(document).ready(function () {
         if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
-        var etv_window = selected_line.closest('.ETV_error_trace');
         etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 7/10);
         if (!select_prev_line()) {
             clearInterval(interval);
@@ -329,10 +328,104 @@ $(document).ready(function () {
             $(this).addClass('ETV_LN_Warning_Selected');
         }
     });
-    $('.ETV_error_trace').scroll(function () {
+
+    etv_window.scroll(function () {
         $(this).find('.ETV_LN').css('left', $(this).scrollLeft());
     });
     $('#ETV_source_code').scroll(function () {
         $(this).find('.ETVSrcL').css('left', $(this).scrollLeft());
-    })
+    });
+
+    var D1 = $('#etv-divider'), D2 = $('#etv-divider-2'),
+        S = $('#etv-source'), T = $('#etv-trace'),
+        A = $('#etv-assumes'), etv = $('#etv'),
+        Tw = parseInt(T.width(), 10),
+        Sw = parseInt(S.width(), 10),
+        D1w = parseInt(D1.width(), 10),
+        minw = parseInt((Tw + Sw + D1w) * 15 / 100, 10),
+        Sh = parseInt(S.height(), 10),
+        Ah = parseInt(A.height(), 10),
+        D2h = parseInt(D2.width(), 10),
+        minh = parseInt((Sh + Ah + D2h) * 2 / 100, 10);
+    D1.draggable({
+        axis: 'x',
+        containment: [
+            etv.offset().left + minw,
+            etv.offset().top,
+            etv.offset().left + Tw + Sw - minw,
+            etv.offset().top + etv.height()
+        ],
+        drag: function (event, ui) {
+            var aw = parseInt(ui.position.left),
+                bw = Tw + Sw - aw;
+            if (ui.position.top < 0) {
+                ui.position.top = 0;
+            }
+            $('#etv-trace').css({width: aw});
+            $('#etv-source').css({width: bw});
+            $('#etv-assumes').css({width: bw});
+            $('#etv-divider-2').css({left: aw + D1w, width: bw});
+        },
+        distance: 10
+    });
+    D2.draggable({
+        axis: 'y',
+        containment: [
+            etv.offset().left + Tw + D1w,
+            etv.offset().top + minh + 35,
+            etv.offset().left + Tw + Sw + D1w,
+            etv.offset().top + Ah + Sh - minh
+        ],
+        drag: function (event, ui) {
+            var ah = parseInt(ui.position.top),
+                bh = Sh + Ah - ah;
+            if (ui.position.right < 0) {
+                ui.position.right = 0;
+            }
+            S.css({height: ah});
+            A.css({height: bh});
+        },
+        distance: 5
+    });
+    $('#etv_start').click(function () {
+        etv_window.children().each(function () {
+            if ($(this).is(':visible')) {
+                var line_link = $(this).find('a.ETV_La');
+                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+                if (line_link.length) {
+                    line_link.click();
+                    return false;
+                }
+            }
+        });
+        $('#etv_play_forward').click();
+    });
+
+    $('#etv_start_backward').click(function () {
+        var next_child = etv_window.children().last();
+        while (next_child) {
+            if (next_child.is(':visible')) {
+                var line_link = next_child.find('a.ETV_La');
+                if (line_link.length) {
+                    etv_window.scrollTop(etv_window.scrollTop() + next_child.position().top - etv_window.height() * 7/10);
+                    line_link.click();
+                    next_child = null;
+                }
+            }
+            if (next_child) {
+                next_child = next_child.prev();
+            }
+        }
+        $('#etv_play_backward').click();
+    });
+    etv_window.children().each(function () {
+        if ($(this).is(':visible')) {
+            var line_link = $(this).find('a.ETV_La');
+            etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+            if (line_link.length) {
+                line_link.click();
+                return false;
+            }
+        }
+    });
 });
