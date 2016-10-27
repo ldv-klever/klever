@@ -22,7 +22,6 @@
             "intermediate model options": {
               "ignore missed callbacks": true,
               "roles map file": "linux/emg/roles match.json",
-              "process comment": "Invocation scenario for {0!r} callbacks",
               "callback comment": "Invoke callback {0!r} from {1!r}.",
               "action comments": {
                 "dispatch": {
@@ -283,6 +282,7 @@
       }},
       "RSG": {"models": {
         "$linux/kernel/locking/spinlock.c": {"sets model": "flag"},
+        "linux/alloc/common.c": {},
         "linux/alloc/spinlock.c": {"bug kinds": [
           "linux:alloc:spinlock::wrong flags",
           "linux:alloc:spinlock::nonatomic"

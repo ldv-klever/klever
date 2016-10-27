@@ -186,7 +186,7 @@
             ]
           },
           "deregister": {
-            "comment": "Deregister network device callbacks.",
+            "comment": "Deregiste of the network device has finished.",
             "parameters": [
               "%netdev%"
             ]

@@ -69,7 +69,6 @@
     },
     "environment processes": {
       "usb_serial_instance": {
-        "comment": "Begin USB serial callbacks invocation scenario.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -109,6 +108,7 @@
             "process": " ([irq_write] | [write] | [rest_line_attached_callbacks]).{tty_layer} | [close].{main_workflow}"
           },
           "register": {
+            "comment": "Begin USB serial callbacks invocation scenario.",
             "parameters": [
               "%usb_device_id%"
             ]

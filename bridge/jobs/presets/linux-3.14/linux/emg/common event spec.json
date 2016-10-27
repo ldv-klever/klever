@@ -3,7 +3,6 @@
     "kernel model": {},
     "environment processes": {
       "dummy_factory": {
-        "comment": "Start several scenarios for callback invocation.",
         "labels": {
           "container": {
             "container": true
@@ -12,11 +11,13 @@
         "process": "(!register).[@instance_register].[@instance_deregister].(deregister)",
         "actions": {
           "register": {
+            "comment": "Proceed to {0!r} callbacks invocations scenarios.",
             "parameters": [
               "%container%"
             ]
           },
           "deregister": {
+            "comment": "Finish {0!r} callbacks invocations scenarios.",
             "condition": [
               "%container% == $ARG1"
             ],
@@ -25,11 +26,13 @@
             ]
           },
           "instance_register": {
+            "comment": "Initiate scenario for {0!r} callbacks invocations",
             "parameters": [
               "%container%"
             ]
           },
           "instance_deregister": {
+            "comment": "Finish scenario for {0!r} callbacks invocations",
             "parameters": [
               "%container%"
             ]

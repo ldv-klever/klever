@@ -33,7 +33,7 @@
             ]
           },
           "assign": {
-            "comment": "Get callbacks to register provided within usb_driver argument.",
+            "comment": "Get callbacks to register provided within 'usb_driver' argument.",
             "statements": [
               "%usb_driver% = $ARG1;"
             ]
@@ -72,7 +72,7 @@
             ]
           },
           "assign": {
-            "comment": "Get callbacks to deregister provided within usb_driver argument.",
+            "comment": "Get callbacks to deregister provided within 'usb_driver' argument.",
             "statements": [
               "%usb_driver% = $ARG1;"
             ]
@@ -82,7 +82,6 @@
     },
     "environment processes": {
       "usb_instance": {
-        "comment": "USB callbacks invocation scenarion.",
         "labels": {
           "container": {
             "container": true,
@@ -118,6 +117,7 @@
             "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].[resume] | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(instance_deregister)"
           },
           "instance_register": {
+            "comment": "USB callbacks invocation scenario.",
             "parameters": [
               "%container%"
             ]
