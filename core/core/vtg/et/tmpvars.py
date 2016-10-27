@@ -274,7 +274,7 @@ def _remove_aux_functions(logger, error_trace):
             if return_edge:
                 aux_func_return_edge = error_trace.next_edge(return_edge)
 
-                if aux_func_return_edge.get('return') != aux_func_call_edge['enter']:
+                if 'return' not in aux_func_return_edge or aux_func_return_edge['source'] != 'return;':
                     continue
 
                 error_trace.remove_edge_and_target_node(aux_func_return_edge)
