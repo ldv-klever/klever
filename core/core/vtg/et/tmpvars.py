@@ -81,8 +81,8 @@ def _remove_artificial_edges(logger, error_trace):
     #   ... tmp...;
     #   ...
     #   tmp... = func(...);
-    #   ... tmp... ...;
-    # with (removing first and last statements):
+    #   [... tmp... ...;]
+    # with (removing first and last statements if so):
     #   ...
     #   ... func(...) ...;
     # Skip global initialization that doesn't introduce any temporary variable or at least they don't fit pattern above.
@@ -91,7 +91,8 @@ def _remove_artificial_edges(logger, error_trace):
         if 'assumption' in edge:
             first_entry_point_edge = edge
             break
-    removed_tmp_vars_num, edge = _remove_tmp_vars(error_trace, first_entry_point_edge)
+
+    removed_tmp_vars_num = _remove_tmp_vars(error_trace, first_entry_point_edge)[0]
 
     if removed_tmp_vars_num:
         logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
@@ -100,21 +101,25 @@ def _remove_artificial_edges(logger, error_trace):
 def _remove_tmp_vars(error_trace, edge):
     removed_tmp_vars_num = 0
 
-    # Normal function scope.
+    # Remember current function. All temporary variables defined in a given function can be used just in it.
+    # The only function for which we can't do this is main (entry point) since we don't enter it explicitly but it
+    # never returns due to some errors happen early so it doesn't matter.
     if 'enter' in edge:
         func_id = edge['enter']
-        # Move forward to declarations or statements.
+        return_edge = _get_func_return_edge(error_trace, edge)
+        # Move forward to function declarations or/and statements.
         edge = error_trace.next_edge(edge)
+    else:
+        return_edge = None
 
     # Scan variable declarations to find temporary variable names and corresponding edge ids.
     tmp_var_names = dict()
     edges_map = dict()
-    while True:
-        # Declarations are considered to finish when returning from current function, some function is entered, some
-        # condition is checked or some assigment is performed (except for entry point which "contains" many
-        # assignemts to global variabels). It is well enough for this optimization.
-        if edge.get('return') == func_id or 'enter' in edge or 'condition' in edge or\
-                (func_id != -1 and '=' in edge['source']):
+    for edge in error_trace.trace_iterator(begin=edge):
+        # Declarations are considered to finish when entering/returning from function, some condition is checked or some
+        # assigment is performed. Unfortunately we consider calls to functions without bodies that follow declarations
+        # as declarations.
+        if 'return' in edge or 'enter' in edge or 'condition' in edge or '=' in edge['source']:
             break
 
         m = re.search(r'(tmp\w*);$', edge['source'])
@@ -122,97 +127,87 @@ def _remove_tmp_vars(error_trace, edge):
             edges_map[id(edge)] = edge
             tmp_var_names[m.group(1)] = id(edge)
 
-        edge = error_trace.next_edge(edge)
-
-    # Remember what temporary varibles aren't used after all.
+    # Remember what temporary varibles aren't used after all. Temporary variables that are really required will be
+    # remained as is.
     unused_tmp_var_decl_ids = set(list(tmp_var_names.values()))
 
-    # Scan other statements to find function calls which results are stored into temporary variables.
-    while True:
-        # Reach error trace end.
-        if not edge:
+    # Scan statements to find function calls which results are stored into temporary variables.
+    error_trace_iterator = error_trace.trace_iterator(begin=edge)
+    for edge in error_trace_iterator:
+        # Reach end of current function.
+        if edge is return_edge:
             break
 
-        # Reach end of function.
-        if edge.get('return') == func_id:
-            break
+        # Remember current edge that can represent function call. We can't check this by presence of attribute "enter"
+        # since functions can be without bodies and thus without enter-return edges.
+        func_call_edge = edge
 
-        # Reach some function call which result is stored into temporary variable.
-        m = re.search(r'^(tmp\w*)\s+=\s+(.+);$', edge['source'])
-        if m:
-            func_call_edge = edge
-
-        # Remain all edges belonging to a given function as is in any case.
+        # Recursively get rid of temporary variables inside called function.
         if 'enter' in edge:
-            removed_tmp_vars_num_tmp, edge = _remove_tmp_vars(error_trace, edge)
+            removed_tmp_vars_num_tmp, next_edge = _remove_tmp_vars(error_trace, func_call_edge)
             removed_tmp_vars_num += removed_tmp_vars_num_tmp
 
-            # Replace
-            #    tmp func(...);
-            # with:
-            #    func(...);
-            if m:
-                # Detrmine that there is no retun from the function
-                # Keep in mind that each pair enter-return has an identifier, but such identifier is not unique
-                # across the trace, so we need to go through the whole trace and guarantee that for particular enter
-                # there is no pair.
-                level_under_concideration = None
-                level = 0
-                for e in error_trace.trace_iterator(begin=func_call_edge):
-                    if 'enter' in e and e['enter'] == func_call_edge['enter']:
-                        level += 1
-                        if e == func_call_edge:
-                            level_under_concideration = level
-                    if 'return' in e and e['return'] == func_call_edge['enter']:
-                        if level_under_concideration and level_under_concideration == level:
-                            level = -1
-                            break
-                        else:
-                            level = -1
+            # Skip all edges belonging to called function.
+            while True:
+                edge = next(error_trace_iterator)
+                if edge is next_edge:
+                    break
 
-                # Do replacement
-                if level >= level_under_concideration:
-                    func_call_edge['source'] = m.group(2) + ';'
+        # Result of function call is stored into temporary variable.
+        m = re.search(r'^(tmp\w*)\s+=\s+(.+);$', func_call_edge['source'])
 
-            if not edge:
-                break
+        if not m:
+            continue
+
+        tmp_var_name = m.group(1)
+        func_call = m.group(2)
+
+        # Do not proceed if found temporary variable wasn't declared. Actually it will be very strange if this will
+        # happen
+        if tmp_var_name not in tmp_var_names:
+            continue
+
+        tmp_var_decl_id = tmp_var_names[tmp_var_name]
 
         # Try to find temorary variable usages on edges following corresponding function calls.
-        if m:
-            tmp_var_name = m.group(1)
-            func_call = m.group(2)
-            if tmp_var_name in tmp_var_names:
-                tmp_var_decl_id = tmp_var_names[tmp_var_name]
-                tmp_var_use_edge = error_trace.next_edge(edge)
+        try:
+            tmp_var_use_edge = next(error_trace_iterator)
+        # There is no usage of temporary variable but we still can remove its declaration and assignment.
+        except StopIteration:
+            func_call_edge['source'] = func_call + ';'
+            break
 
-                # Skip simplification of the following sequence:
-                #   ... tmp...;
-                #   ...
-                #   tmp... = func(...);
-                #   ... gunc(... tmp... ...);
-                # since it requires two entered functions from one edge.
-                if 'enter' in tmp_var_use_edge:
-                    unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
-                else:
-                    m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), tmp_var_use_edge['source'])
-                    if m:
-                        func_call_edge['source'] = m.group(1) + func_call + m.group(2)
+        # Skip simplification of the following sequence:
+        #   ... tmp...;
+        #   ...
+        #   tmp... = func(...);
+        #   ... gunc(... tmp... ...);
+        # since it requires two entered functions from one edge.
+        if 'enter' in tmp_var_use_edge:
+            unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
+        else:
+            m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), tmp_var_use_edge['source'])
 
-                        for attr in ('condition', 'return'):
-                            if attr in tmp_var_use_edge:
-                                func_call_edge[attr] = tmp_var_use_edge[attr]
+            # Do not proceed if pattern wasn't matched.
+            if not m:
+                continue
 
-                        # Remove edge corresponding to temporary variable usage.
-                        error_trace.remove_edge_and_target_node(tmp_var_use_edge)
+            func_call_edge['source'] = m.group(1) + func_call + m.group(2)
 
-                        removed_tmp_vars_num += 1
+            for attr in ('condition', 'return'):
+                if attr in tmp_var_use_edge:
+                    func_call_edge[attr] = tmp_var_use_edge[attr]
 
-                        # Do not increase edges counter since we could merge edge corresponding to call to some
-                        # function and edge corresponding to return from current function.
-                        if func_call_edge.get('return') == func_id:
-                            break
+            # Edge to be removed is return edge from current function.
+            is_reach_cur_func_end = True if tmp_var_use_edge is return_edge else False
 
-        edge = error_trace.next_edge(edge)
+            # Remove edge corresponding to temporary variable usage.
+            error_trace.remove_edge_and_target_node(tmp_var_use_edge)
+
+            removed_tmp_vars_num += 1
+
+            if is_reach_cur_func_end:
+                break
 
     # Remove all temporary variable declarations in any case.
     for tmp_var_decl_id in reversed(list(unused_tmp_var_decl_ids)):
