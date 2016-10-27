@@ -4,11 +4,6 @@
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 
-/* For >= 4.4 kernels */
-#ifndef __GFP_WAIT
-#define __GFP_WAIT __GFP_RECLAIM
-#endif
-
 /* There are 2 possible states of blk request. */
 enum
 {
@@ -31,7 +26,7 @@ struct request *ldv_blk_get_request(gfp_t mask)
 	res = (struct request *)ldv_undef_ptr();
 
 	/* OTHER If gfp_mask argument has __GFP_WAIT set, blk_get_request() cannot fail. */
-	if (mask == __GFP_WAIT || mask == GFP_KERNEL || mask == GFP_NOIO)
+	if (mask == GFP_KERNEL || mask == GFP_NOIO)
 		ldv_assume(res != NULL);
 
 	if (res != NULL) {
