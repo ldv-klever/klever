@@ -18,7 +18,7 @@ import abc
 import graphviz
 from operator import attrgetter
 from core.avtg.emg.common import get_conf_property, get_necessary_conf_property
-from core.avtg.emg.common.signature import Pointer, Primitive, import_declaration
+from core.avtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess,\
     get_common_parameter
 from core.avtg.emg.translator.code import FunctionDefinition
@@ -230,7 +230,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _art_action(self, state, automaton):
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(state.action, 'Artificial state of a process {!r}'.
+        comments.append(action_model_comment(state.action, 'Artificial state in scenario'.
                                              format(automaton.process.name)))
 
         return code, v_code, conditions, comments
@@ -238,11 +238,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _dispatch(self, state, automaton):
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(state.action,
-                                             'Signal dispatch {!r} of a process {!r} of an interface category '
-                                             '{!r}'.format(state.action.name, automaton.process.name,
-                                                           automaton.process.category),
-                                             begin=True))
+        comment = state.action.comment.format(automaton.process.category.upper())
+        comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
 
         # Determine peers to receive the signal
@@ -376,11 +373,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(action_model_comment(state.action,
-                                             'Code fragment {!r} of a process {!r} of an interface category {!r}'.\
-                                             format(state.action.name, automaton.process.name,
-                                                    automaton.process.category),
-                                             begin=True))
+        comment = state.action.comment
+        comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
 
         # Add additional conditions
@@ -482,12 +476,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     post_stments.append('$FREE(%{}%);'.format(label.name))
 
                 pre_name = 'pre_call_{}'.format(st.identifier)
-                pre_action = automaton.process.add_condition(pre_name, [], pre_stments)
+                pre_action = automaton.process.add_condition(pre_name, [], pre_stments,
+                                                             "Alloc memeory for adhoc callback parameters.")
                 pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
                 self.__compose_action(pre_st, automaton)
 
                 post_name = 'post_call_{}'.format(st.identifier)
-                post_action = automaton.process.add_condition(post_name, [], post_stments)
+                post_action = automaton.process.add_condition(post_name, [], post_stments,
+                                                              "Free memeory of adhoc callback parameters.")
                 post_st = automaton.fsa.add_new_successor(st, post_action)
                 self.__compose_action(post_st, automaton)
 
@@ -636,12 +632,27 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     st = automaton.fsa.clone_state(state)
                 code, comments = list(), list()
 
-                # Make comments
-                comments.append(action_model_comment(state.action,
-                                                     'Call callback {!r} of a process {!r} of an interface category '
-                                                     '{!r}'.format(st.action.name, automaton.process.name,
-                                                                   automaton.process.category),
-                                                     begin=True))
+                # Determine structure type name of the container with the callback if such exists
+                structure_name = None
+                if access.interface and implementation and len(implementation.sequence) > 0:
+                    field = implementation.sequence[-1]
+                    containers = self._analysis.resolve_containers(access.interface.declaration,
+                                                                   access.interface.category)
+                    if len(containers.keys()) > 0:
+                        for name in (name for name in containers if field in containers[name]):
+                            structure = self._analysis.get_intf(name).declaration
+                            # todo: this code does not take into account that implementation of callback and
+                            #       implementation of the container should be connected.
+                            if isinstance(structure, Structure):
+                                structure_name = structure.name
+                                break
+                if not structure_name:
+                    # Use instead role and category
+                    field = state.action.name
+                    structure_name = automaton.process.category
+                comment = state.action.comment.format(field, structure_name)
+
+                comments.append(action_model_comment(state.action, comment, begin=True))
                 comments.append(action_model_comment(state.action, None, begin=False))
 
                 relevant_automata = registration_intf_check(self._analysis,
@@ -678,11 +689,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
     def _call_retval(self, state, automaton):
         # Add begin model comment
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comments.append(action_model_comment(state.action,
-                                             'Callback return value expectation {!r} of a process {!r} of an '
-                                             'interface category {!r}'.format(state.action.name, automaton.process.name,
-                                                                              automaton.process.category),
-                                             begin=True))
+        comment = state.action.comment
+        comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
         code.append('/* Return value expectation is not supported in the current version of EMG */')
 
@@ -692,11 +700,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(action_model_comment(state.action,
-                                             'Code block {!r} of a process {!r} of an interface category {!r}'.
-                                             format(state.action.name, automaton.process.name,
-                                                    automaton.process.category),
-                                             begin=True))
+        comment = state.action.comment
+        comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
 
         # Add additional condition
@@ -795,11 +800,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
-        comments.append(action_model_comment(state.action,
-                                             'Receive signal {!r} of a process {!r} of an interface category {!r}'.
-                                             format(state.action.name, automaton.process.name,
-                                                    automaton.process.category),
-                                             begin=True))
+        comment = state.action.comment.format(automaton.process.category.upper())
+        comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
 
         return code, v_code, conditions, comments

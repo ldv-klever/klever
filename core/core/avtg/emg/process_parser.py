@@ -14,21 +14,39 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
+from core.avtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
 from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
+
+
+_DEFAULT_COMMENTS =  {
+    "dispatch": {
+        "register": "Register {!r} callbacks.",
+        "instance_register": "Register {!r} callbacks.",
+        "deregister": "Deregister {!r} callbacks.",
+        "instance_deregister": "Deregister {!r} callbacks."
+    },
+    "receive": {
+        "register": "Begin {!r} callbacks invocations scenario.",
+        "instance_register": "Begin {!r} callbacks invocations scenario.",
+        "deregister": "Finish {!r} callbacks invocations scenario.",
+        "instance_deregister": "Finish {!r} callbacks invocations scenario."
+    }
+}
+
 
 ####################################################################################################################
 # PUBLIC FUNCTIONS
 ####################################################################################################################
 
 
-def parse_event_specification(logger, raw):
+def parse_event_specification(logger, conf, raw):
     """
     Parse event categories specification and create all existing Process objects.
 
     :param logger: logging object.
+    :param conf: Configuration dictionary with options for intermediate model.
     :param raw: Dictionary with content of JSON file of a specification.
     :return: [List of Process objects which correspond to kernel function models],
              [List of Process objects which correspond to processes with callback calls]
@@ -36,21 +54,28 @@ def parse_event_specification(logger, raw):
     env_processes = {}
     models = {}
 
+    # Check necessary configuration options
+    check_or_set_conf_property(conf, "process comment", default_value='Invocation scenario for {0!r} callbacks',
+                               expected_type=str)
+    check_or_set_conf_property(conf, "callback comment", default_value='Invoke callback {0!r} from {1!r}.',
+                               expected_type=str)
+    check_or_set_conf_property(conf, "action comments", default_value=_DEFAULT_COMMENTS, expected_type=dict)
+
     logger.info("Import processes from provided event categories specification")
     if "kernel model" in raw:
         logger.info("Import processes from 'kernel model'")
         for name_list in raw["kernel model"]:
             names = name_list.split(", ")
             for name in names:
-                logger.debug("Import process which models {}".format(name))
-                models[name] = __import_process(name, raw["kernel model"][name_list])
+                logger.debug("Import process which models {!r}".format(name))
+                models[name] = __import_process(name, raw["kernel model"][name_list], conf, True)
     else:
         logger.warning("Kernel model is not provided")
     if "environment processes" in raw:
         logger.info("Import processes from 'environment processes'")
         for name in raw["environment processes"]:
             logger.debug("Import environment process {}".format(name))
-            process = __import_process(name, raw["environment processes"][name])
+            process = __import_process(name, raw["environment processes"][name], conf, False)
             env_processes[name] = process
     else:
         raise KeyError("Model cannot be generated without environment processes")
@@ -62,28 +87,28 @@ def parse_event_specification(logger, raw):
 ####################################################################################################################
 
 
-def __import_process(name, dic):
+def __import_process(name, dic, conf, model_flag=False):
     process = Process(name)
 
     if 'labels' in dic:
-        for name in dic['labels']:
-            label = Label(name)
-            process.labels[name] = label
+        for label_name in dic['labels']:
+            label = Label(label_name)
+            process.labels[label_name] = label
 
             for att in ['container', 'resource', 'callback', 'parameter', 'value', 'pointer', 'file']:
-                if att in dic['labels'][name]:
-                    setattr(label, att, dic['labels'][name][att])
+                if att in dic['labels'][label_name]:
+                    setattr(label, att, dic['labels'][label_name][att])
 
-            if 'interface' in dic['labels'][name]:
-                if type(dic['labels'][name]['interface']) is str:
-                    label.set_declaration(dic['labels'][name]['interface'], None)
-                elif type(dic['labels'][name]['interface']) is list:
-                    for string in dic['labels'][name]['interface']:
+            if 'interface' in dic['labels'][label_name]:
+                if type(dic['labels'][label_name]['interface']) is str:
+                    label.set_declaration(dic['labels'][label_name]['interface'], None)
+                elif type(dic['labels'][label_name]['interface']) is list:
+                    for string in dic['labels'][label_name]['interface']:
                         label.set_declaration(string, None)
                 else:
                     TypeError('Expect list or string with interface identifier')
-            if 'signature' in dic['labels'][name]:
-                label.prior_signature = import_declaration(dic['labels'][name]['signature'])
+            if 'signature' in dic['labels'][label_name]:
+                label.prior_signature = import_declaration(dic['labels'][label_name]['signature'])
 
     # Import process
     process_strings = []
@@ -92,70 +117,105 @@ def __import_process(name, dic):
 
         process_strings.append(dic['process'])
 
+    # Import comments
+    if 'comment' in dic:
+        process.comment = dic['comment']
+    elif model_flag:
+        a = 1
+        # todo: Uncomment this when all model functions will be commented
+        #raise KeyError("You must specify manually 'comment' attribute within the description of {!r} kernel "
+        #               "function model process".format(name))
+
     # Import subprocesses
     if 'actions' in dic:
-        for name in dic['actions']:
-            process.actions[name] = None
+        for action_name in dic['actions']:
+            process.actions[action_name] = None
 
-            if 'process' in dic['actions'][name]:
-                process_strings.append(dic['actions'][name]['process'])
+            if 'process' in dic['actions'][action_name]:
+                process_strings.append(dic['actions'][action_name]['process'])
 
     if 'headers' in dic:
         process.headers = dic['headers']
 
-    for subprocess_name in process.actions:
-        regexes = generate_regex_set(subprocess_name)
+    for action_name in process.actions:
+        regexes = generate_regex_set(action_name)
         matched = False
 
         for regex in regexes:
             for string in process_strings:
                 if regex['regex'].search(string):
                     process_type = regex['type']
-                    if process_type is Dispatch and 'callback' in dic['actions'][subprocess_name]:
-                        act = Call(subprocess_name)
-                    elif process_type is Receive and 'callback' in dic['actions'][subprocess_name]:
-                        act = CallRetval(subprocess_name)
+                    if process_type is Dispatch and 'callback' in dic['actions'][action_name]:
+                        act = Call(action_name)
+                    elif process_type is Receive and 'callback' in dic['actions'][action_name]:
+                        act = CallRetval(action_name)
                     else:
-                        act = process_type(subprocess_name)
-                    process.actions[subprocess_name] = act
+                        act = process_type(action_name)
+                    process.actions[action_name] = act
                     matched = True
                     break
 
         if not matched:
-            raise ValueError("Action '{}' is not used in process description '{}'".
-                             format(subprocess_name, name))
+            raise ValueError("Action '{}' is not used in process description {!r}".
+                             format(action_name, name))
+
+        # Add comment if it is provided
+        if 'comment' in dic['actions'][action_name]:
+            process.actions[action_name].comment = dic['actions'][action_name]['comment']
+        else:
+            comments_by_type = get_necessary_conf_property(conf, 'action comments')
+            tag = type(act).__name__.lower()
+            if tag not in comments_by_type or \
+               not (isinstance(comments_by_type[tag], (str)) or
+                    (isinstance(comments_by_type[tag], dict) and action_name in comments_by_type[tag])):
+                a = 1
+            # todo: uncomment this when all specifications will be supplied with proper comments
+            #    raise KeyError(
+            #        "Cannot find comment for action {!r} of type {!r} at process {!r} description. You shoud either "
+            #        "specify in the corresponding environment model specification the comment text manually or set "
+            #        "the default comment text for all actions of the type {!r} at EMG plugin configuration properties "
+            #        "within 'action comments' attribute.".
+            #        format(action_name, tag, name, tag))
+
+        # Add callback comment
+        if isinstance(process.actions[action_name], Call):
+            callback_comment = get_necessary_conf_property(conf, 'callback comment').capitalize()
+            if process.actions[action_name].comment:
+                process.actions[action_name].comment += ' ' + callback_comment
+            else:
+                process.actions[action_name].comment = callback_comment
 
         # Values from dictionary
-        if 'callback' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].callback = dic['actions'][subprocess_name]['callback']
+        if 'callback' in dic['actions'][action_name]:
+            process.actions[action_name].callback = dic['actions'][action_name]['callback']
 
         # Add parameters
-        if 'parameters' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].parameters = dic['actions'][subprocess_name]['parameters']
+        if 'parameters' in dic['actions'][action_name]:
+            process.actions[action_name].parameters = dic['actions'][action_name]['parameters']
 
         # Add pre-callback operations
-        if 'pre-call' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].pre_call = dic['actions'][subprocess_name]['pre-call']
+        if 'pre-call' in dic['actions'][action_name]:
+            process.actions[action_name].pre_call = dic['actions'][action_name]['pre-call']
 
         # Add post-callback operations
-        if 'post-call' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].post_call = dic['actions'][subprocess_name]['post-call']
+        if 'post-call' in dic['actions'][action_name]:
+            process.actions[action_name].post_call = dic['actions'][action_name]['post-call']
 
         # Add callback return value
-        if 'callback return value' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].retlabel = dic['actions'][subprocess_name]['callback return value']
+        if 'callback return value' in dic['actions'][action_name]:
+            process.actions[action_name].retlabel = dic['actions'][action_name]['callback return value']
 
         # Import condition
-        if 'condition' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].condition = dic['actions'][subprocess_name]['condition']
+        if 'condition' in dic['actions'][action_name]:
+            process.actions[action_name].condition = dic['actions'][action_name]['condition']
 
         # Import statements
-        if 'statements' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].statements = dic['actions'][subprocess_name]['statements']
+        if 'statements' in dic['actions'][action_name]:
+            process.actions[action_name].statements = dic['actions'][action_name]['statements']
 
         # Import process
-        if 'process' in dic['actions'][subprocess_name]:
-            process.actions[subprocess_name].process = dic['actions'][subprocess_name]['process']
+        if 'process' in dic['actions'][action_name]:
+            process.actions[action_name].process = dic['actions'][action_name]['process']
 
     return process
 

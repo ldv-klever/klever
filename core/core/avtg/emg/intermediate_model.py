@@ -18,6 +18,7 @@
 import copy
 import re
 
+from core.avtg.emg.common import get_necessary_conf_property
 from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.interface import Interface, Callback, Container, Resource
 from core.avtg.emg.common.process import Access, Process, Label, Call, CallRetval, Dispatch, Receive, Condition, \
@@ -61,8 +62,9 @@ class ProcessModel:
         self.__resolve_accesses(analysis)
 
     def __generate_entry(self, analysis):
-        self.logger.info("Generate artificial process description to call Init and Exit module functions 'EMGentry'")
-        ep = Process("EMGentry")
+        self.logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
+        ep = Process("insmod")
+        ep.comment = 'Module insmod scenario.'
         ep.category = "entry"
         ep.identifier = 0
         self.entry_process = ep
@@ -72,12 +74,13 @@ class ProcessModel:
 
         # Generate init subprocess
         for filename, init_name in analysis.inits:
-            init_label = Label('init_{}'.format(init_name))
+            init_label = Label(init_name)
             init_label.value = "& {}".format(init_name)
             init_label.prior_signature = import_declaration("int (*f)(void)")
             init_label.file = filename
             init_subprocess = Call(init_label.name)
-            init_subprocess.callback = "%init_{}%".format(init_name)
+            init_subprocess.comment = 'Initialize module executing {!r} function'.format(init_name)
+            init_subprocess.callback = "%{}%".format(init_label.name)
             init_subprocess.retlabel = "%ret%"
             init_subprocess.post_call = [
                 '%ret% = ldv_post_init(%ret%);'
@@ -105,12 +108,13 @@ class ProcessModel:
         else:
             for filename, exit_name in analysis.exits:
 
-                exit_label = Label('exit_{}'.format(exit_name))
+                exit_label = Label(exit_name)
                 exit_label.prior_signature = import_declaration("void (*f)(void)")
                 exit_label.value = "& {}".format(exit_name)
                 exit_label.file = filename
                 exit_subprocess = Call(exit_label.name)
-                exit_subprocess.callback = "%exit_{}%".format(exit_name)
+                exit_subprocess.comment = 'Exit module executing {!r} function'.format(exit_name)
+                exit_subprocess.callback = "%{}%".format(exit_label.name)
                 self.logger.debug("Found exit function {}".format(exit_name))
                 ep.labels[exit_label.name] = exit_label
                 ep.actions[exit_label.name] = exit_subprocess
@@ -135,39 +139,44 @@ class ProcessModel:
 
         # Generate conditions
         success = Condition('init_success')
+        success.comment = "Module has been initialized."
         success.condition = ["%ret% == 0"]
         self.entry_process.actions['init_success'] = success
 
         failed = Condition('init_failed')
+        failed.comment = "Failed to initialize the module."
         failed.condition = ["%ret% != 0"]
         self.entry_process.actions['init_failed'] = failed
 
         stop = Condition('stop')
+        stop.comment = 'Finalize all scenarios, do safety properties final state checks.'
         stop.statements = ["ldv_check_final_state();",
                            "ldv_stop();"]
         self.entry_process.actions['stop'] = stop
 
         none = Condition('none')
+        none.comment = 'Skip registration of callbacks for which registration and deregistration methods has not been ' \
+                       'found.'
         none.type = "condition"
         self.entry_process.actions['none'] = none
 
         # Add subprocesses finally
         self.entry_process.process = ""
         for i, pair in enumerate(analysis.inits):
-            self.entry_process.process += "[init_{0}].(<init_failed>.".format(pair[1])
+            self.entry_process.process += "[{0}].(<init_failed>.".format(pair[1])
             for j, pair2 in enumerate(analysis.exits[::-1]):
                 if pair2[0] == pair[0]:
                     break
             j = 1
             for _, exit_name in analysis.exits[:j-1:-1]:
-                self.entry_process.process += "[exit_{}].".format(exit_name)
+                self.entry_process.process += "[{}].".format(exit_name)
             self.entry_process.process += "<stop>|<init_success>."
         if len(dispatches):
             self.entry_process.process += "({}|<none>).".format(".".join(dispatches))
         else:
             self.entry_process.process += "<none>."
         for _, exit_name in analysis.exits:
-            self.entry_process.process += "[exit_{}].".format(exit_name)
+            self.entry_process.process += "[{}].".format(exit_name)
         self.entry_process.process += "<stop>"
         self.entry_process.process += ")" * len(analysis.inits)
 
@@ -312,8 +321,40 @@ class ProcessModel:
         new = copy.deepcopy(process)
         if not category:
             new.category = 'kernel models'
+            if not new.comment:
+                raise KeyError("You must specify manually 'comment' attribute within the description of the following "
+                               "kernel model process description: {!r}.".format(new.name))
         else:
             new.category = category
+            if not new.comment:
+                new.comment = get_necessary_conf_property(self.conf, 'process comment')
+            
+        # Add comments
+        comments_by_type = get_necessary_conf_property(self.conf, 'action comments')
+        for action in new.actions.values():
+            # Add comment if it is provided
+            if not action.comment:
+                tag = type(action).__name__.lower()
+                if tag in comments_by_type and isinstance(comments_by_type[tag], str):
+                    action.comment = comments_by_type[tag]
+                elif tag in comments_by_type and isinstance(comments_by_type[tag], dict) and \
+                                action.name in comments_by_type[tag]:
+                    action.comment = comments_by_type[tag][action.name]
+                else:
+                    raise KeyError(
+                        "Cannot find a comment for action {0!r} of type {2!r} at new {1!r} description. You "
+                        "shoud either specify in the corresponding environment model specification the comment "
+                        "text manually or set the default comment text for all actions of the type {2!r} at EMG "
+                        "plugin configuration properties within 'action comments' attribute.".
+                            format(action.name, new.name, tag))
+
+            # Add callback comment
+            if isinstance(action, Call):
+                callback_comment = get_necessary_conf_property(self.conf, 'callback comment').capitalize()
+                if action.comment:
+                    action.comment += ' ' + callback_comment
+                else:
+                    action.comment = callback_comment
 
         # todo: Assign category for each new process not even for that which have callbacks (issue #6564)
         new.identifier = len(self.model_processes) + len(self.event_processes) + 1
@@ -650,14 +691,16 @@ class ProcessModel:
                                      format(process.name, process.category))
                     success = self.__predict_dispatcher(analysis, process, receive)
                     if not success:
-                        self.__add_default_dispatch(process, receive)
+                        nd = self.__add_default_dispatch(process, receive)
+                        nd.comment = "Register {0!r} callbacks with unknown registration function."
                 elif receive.name in ["deregister"]:
                     # todo: Be sure that match will wotk with factories to add instance_deregister
                     self.logger.info("Generate default deregistration for process {} with category {}".
                                      format(process.name, process.category))
                     success = self.__predict_dispatcher(analysis, process, receive)
                     if not success:
-                        self.__add_default_dispatch(process, receive)
+                        nd = self.__add_default_dispatch(process, receive)
+                        nd.comment = "Deregister {0!r} callbacks with unknown deregistration function."
                 else:
                     self.logger.warning("Signal {} cannot be received by process {} with category {}, "
                                         "since nobody can send it".
@@ -718,6 +761,8 @@ class ProcessModel:
         # todo: do this according to parameters (relevant to issue #6566)
         new_dispatch.condition = None
         receive.condition = None
+
+        return new_dispatch
 
     def __predict_dispatcher(self, analysis, process, receive):
         self.logger.info("Looking for a suitable kernel functions to use tham as registration and deregistration "
@@ -790,21 +835,22 @@ class ProcessModel:
                     not match['function'].declaration.return_value or \
                     match['function'].declaration.return_value.identifier != 'int':
                 new.process = "<{}>.[{}]".format(assign.name, dispatch.name)
+                assign.comment = "Get {!r} callbacks to deregister.".format(process.category)
+                new.comment = "Deregister {!r} callbacks.".format(process.category)
             else:
-                ret_label = Label('res')
-                ret_label.prior_signature = import_declaration('int a')
-                new.labels[ret_label.name] = ret_label
+                fail = Condition('fail')
+                fail.statements = ['return ldv_undef_int_negative();']
+                fail.comment = 'Fail registration of {!r} callbacks.'.format(process.category)
+                new.actions[fail.name] = fail
 
-                assign.statements.extend(['%res% = 0;'])
-                none = Condition('none')
-                none.statements = ['%res% = ldv_undef_int_negative();']
-                new.actions[none.name] = none
+                success = Condition('success')
+                success.statements = ['return 0;']
+                success.comment = "Registration of {!r} callbacks has been successful.".format(process.category)
+                new.actions[success.name] = success
 
-                ret = Condition('return')
-                ret.statements = ['return %res%;']
-                new.actions[ret.name] = ret
-
-                new.process = "(<{}>.[{}] | <{}>).<{}>".format(assign.name, dispatch.name, none.name, ret.name)
+                new.process = "<{}>.[{}].<{}> | <{}>".format(assign.name, dispatch.name, fail.name, success.name)
+                assign.comment = "Get {!r} callbacks to register.".format(process.category)
+                new.comment = "Register {!r} callbacks.".format(process.category)
 
             self.__add_process(analysis, new, model=True, peer=process)
 

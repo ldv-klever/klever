@@ -84,8 +84,6 @@ def get_common_parameter(action, process, position):
         # Todo how to choose between several ones?
         return list(interfaces)[0]
 
-    return interfaces
-
 
 class Access:
     def __init__(self, expression):
@@ -222,6 +220,7 @@ class Process:
         self.category = None
         self.process = None
         self.headers = list()
+        self.comment = None
         self.__process_ast = None
         self.__accesses = None
         self.allowed_implementations = dict()
@@ -280,12 +279,13 @@ class Process:
         self.__accesses[acc.expression] = [acc]
         return lb
 
-    def add_condition(self, name, condition, statements):
+    def add_condition(self, name, condition, statements, comment):
         new = Condition(name)
         self.actions[name] = new
 
         new.condition = condition
         new.statements = statements
+        new.comment = comment
         return new
 
     def extract_label_with_tail(self, string):
@@ -429,10 +429,17 @@ class Process:
             return None
 
 
-class Subprocess:
+class Action:
 
     def __init__(self, name):
         self.name = name
+        self.comment = None
+
+
+class Subprocess(Action):
+
+    def __init__(self, name):
+        super().__init__(name)
         self.process = None
         self.condition = None
         self.__process_ast = None
@@ -444,30 +451,30 @@ class Subprocess:
         return self.__process_ast
 
 
-class Dispatch:
+class Dispatch(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.parameters = []
         self.broadcast = False
         self.peers = []
 
 
-class Receive:
+class Receive(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.condition = None
         self.replicative = False
         self.peers = []
 
 
-class Call:
+class Call(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.callback = None
         self.parameters = []
@@ -476,20 +483,20 @@ class Call:
         self.post_call = []
 
 
-class CallRetval:
+class CallRetval(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.callback = None
         self.retlabel = None
         self.condition = None
 
 
-class Condition:
+class Condition(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.statements = []
         self.condition = None
 

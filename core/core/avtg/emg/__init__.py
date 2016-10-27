@@ -80,7 +80,9 @@ class EMG(core.avtg.plugins.Plugin):
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
         check_or_set_conf_property(self.conf, 'intermediate model options', default_value=dict(), expected_type=dict)
-        model_processes, env_processes = parse_event_specification(self.logger, event_categories_spec)
+        model_processes, env_processes = \
+            parse_event_specification(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
+                                      event_categories_spec)
 
         model = ProcessModel(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
                              model_processes, env_processes,

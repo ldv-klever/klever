@@ -143,9 +143,9 @@ class StateTranslator(FSATranslator):
                     f_code.append('\t' * tab + '}')
 
             # Add comments
-            v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Initialize variables')] + \
+            v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Initialize auxiliary variables')] + \
                      v_code + \
-                     [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize variables')]
+                     [model_comment('CONTROL_FUNCTION_INIT_END', 'Initialize auxiliary variables')]
             title = '{}({})'.format(automaton.process.name, automaton.process.category)
             v_code.insert(0, control_function_comment_begin(cf.name, automaton.process.category, automaton.identifier))
             f_code.append(control_function_comment_end(cf.name, automaton.process.category))
