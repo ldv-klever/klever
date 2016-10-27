@@ -14,26 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.avtg.emg.common import get_necessary_conf_property, check_or_set_conf_property
+from core.avtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, check_necessary_conf_property
 from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Process, Label, Access, Receive, Dispatch, Call, CallRetval,\
     generate_regex_set
-
-
-_DEFAULT_COMMENTS =  {
-    "dispatch": {
-        "register": "Register {!r} callbacks.",
-        "instance_register": "Register {!r} callbacks.",
-        "deregister": "Deregister {!r} callbacks.",
-        "instance_deregister": "Deregister {!r} callbacks."
-    },
-    "receive": {
-        "register": "Begin {!r} callbacks invocations scenario.",
-        "instance_register": "Begin {!r} callbacks invocations scenario.",
-        "deregister": "Finish {!r} callbacks invocations scenario.",
-        "instance_deregister": "Finish {!r} callbacks invocations scenario."
-    }
-}
 
 
 ####################################################################################################################
@@ -59,7 +43,7 @@ def parse_event_specification(logger, conf, raw):
                                expected_type=str)
     check_or_set_conf_property(conf, "callback comment", default_value='Invoke callback {0!r} from {1!r}.',
                                expected_type=str)
-    check_or_set_conf_property(conf, "action comments", default_value=_DEFAULT_COMMENTS, expected_type=dict)
+    check_necessary_conf_property(conf, "action comments", expected_type=dict)
 
     logger.info("Import processes from provided event categories specification")
     if "kernel model" in raw:
@@ -176,14 +160,6 @@ def __import_process(name, dic, conf, model_flag=False):
             #        "the default comment text for all actions of the type {!r} at EMG plugin configuration properties "
             #        "within 'action comments' attribute.".
             #        format(action_name, tag, name, tag))
-
-        # Add callback comment
-        if isinstance(process.actions[action_name], Call):
-            callback_comment = get_necessary_conf_property(conf, 'callback comment').capitalize()
-            if process.actions[action_name].comment:
-                process.actions[action_name].comment += ' ' + callback_comment
-            else:
-                process.actions[action_name].comment = callback_comment
 
         # Values from dictionary
         if 'callback' in dic['actions'][action_name]:

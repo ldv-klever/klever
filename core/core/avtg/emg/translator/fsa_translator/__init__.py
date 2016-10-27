@@ -236,11 +236,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _dispatch(self, state, automaton):
-        # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
-        comment = state.action.comment.format(automaton.process.category.upper())
-        comments.append(action_model_comment(state.action, comment, begin=True))
-        comments.append(action_model_comment(state.action, None, begin=False))
 
         # Determine peers to receive the signal
         automata_peers = dict()
@@ -252,6 +248,15 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Generate comment
             code.append("/* Dispatch {!r} is not expected by any process, skipping the action */".
                         format(state.action.name))
+
+        # Make comments
+        if len(automata_peers) > 0:
+            category = list(automata_peers.values())[0]['automaton'].process.category.upper()
+            comment = state.action.comment.format(category)
+        else:
+            comment = 'Skip the action, since no callbacks has been found.'
+        comments.append(action_model_comment(state.action, comment, begin=True))
+        comments.append(action_model_comment(state.action, None, begin=False))
 
         # Add given conditions from a spec
         conditions = []
@@ -477,13 +482,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
                 pre_name = 'pre_call_{}'.format(st.identifier)
                 pre_action = automaton.process.add_condition(pre_name, [], pre_stments,
-                                                             "Alloc memeory for adhoc callback parameters.")
+                                                             "Allocate memory for adhoc callback parameters.")
                 pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
                 self.__compose_action(pre_st, automaton)
 
                 post_name = 'post_call_{}'.format(st.identifier)
                 post_action = automaton.process.add_condition(post_name, [], post_stments,
-                                                              "Free memeory of adhoc callback parameters.")
+                                                              "Free memory of adhoc callback parameters.")
                 post_st = automaton.fsa.add_new_successor(st, post_action)
                 self.__compose_action(post_st, automaton)
 
@@ -649,10 +654,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 if not structure_name:
                     # Use instead role and category
                     field = state.action.name
-                    structure_name = automaton.process.category
+                    structure_name = automaton.process.category.upper()
                 comment = state.action.comment.format(field, structure_name)
 
-                comments.append(action_model_comment(state.action, comment, begin=True))
+                comments.append(action_model_comment(state.action, comment, begin=True, callback=True))
                 comments.append(action_model_comment(state.action, None, begin=False))
 
                 relevant_automata = registration_intf_check(self._analysis,

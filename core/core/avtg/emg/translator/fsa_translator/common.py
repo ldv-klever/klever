@@ -28,14 +28,13 @@ def model_comment(comment_type, text, other=None):
 
     comment['type'] = comment_type.upper()
     if text:
-        text = text.capitalize()
         comment['comment'] = text
 
     string = json.dumps(comment)
     return "/* LDV {} */".format(string)
 
 
-def action_model_comment(action, text, begin=None):
+def action_model_comment(action, text, begin=None, callback=False):
     if action:
         type_comment = type(action).__name__.upper()
         if begin is True:
@@ -48,7 +47,10 @@ def action_model_comment(action, text, begin=None):
         type_comment = 'ARTIFICIAL'
         name_comment = None
 
-    return model_comment(type_comment, text, {'action': name_comment})
+    data = {'action': name_comment}
+    if callback:
+        data['callback'] = True
+    return model_comment(type_comment, text, data)
 
 
 def control_function_comment_begin(function_name, name, identifier=None):

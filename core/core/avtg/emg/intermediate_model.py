@@ -64,7 +64,6 @@ class ProcessModel:
     def __generate_entry(self, analysis):
         self.logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
         ep = Process("insmod")
-        ep.comment = 'Module insmod scenario.'
         ep.category = "entry"
         ep.identifier = 0
         self.entry_process = ep
@@ -79,7 +78,7 @@ class ProcessModel:
             init_label.prior_signature = import_declaration("int (*f)(void)")
             init_label.file = filename
             init_subprocess = Call(init_label.name)
-            init_subprocess.comment = 'Initialize module executing {!r} function'.format(init_name)
+            init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
             init_subprocess.callback = "%{}%".format(init_label.name)
             init_subprocess.retlabel = "%ret%"
             init_subprocess.post_call = [
@@ -113,7 +112,7 @@ class ProcessModel:
                 exit_label.value = "& {}".format(exit_name)
                 exit_label.file = filename
                 exit_subprocess = Call(exit_label.name)
-                exit_subprocess.comment = 'Exit module executing {!r} function'.format(exit_name)
+                exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
                 exit_subprocess.callback = "%{}%".format(exit_label.name)
                 self.logger.debug("Found exit function {}".format(exit_name))
                 ep.labels[exit_label.name] = exit_label
@@ -338,9 +337,9 @@ class ProcessModel:
                 if tag in comments_by_type and isinstance(comments_by_type[tag], str):
                     action.comment = comments_by_type[tag]
                 elif tag in comments_by_type and isinstance(comments_by_type[tag], dict) and \
-                                action.name in comments_by_type[tag]:
+                        action.name in comments_by_type[tag]:
                     action.comment = comments_by_type[tag][action.name]
-                else:
+                elif not isinstance(action, Call):
                     raise KeyError(
                         "Cannot find a comment for action {0!r} of type {2!r} at new {1!r} description. You "
                         "shoud either specify in the corresponding environment model specification the comment "
