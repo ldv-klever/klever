@@ -281,22 +281,27 @@ class ErrorTrace:
                         comment = comment.rstrip()
 
                         if kind == 'AUX_FUNC' or kind == 'MODEL_FUNC':
-                            # Get necessary function name located on following line.
+                            # Get necessary function declaration located on following line.
                             try:
-                                text = next(fp)
+                                func_decl = next(fp)
                                 # Don't forget to increase counter.
                                 line += 1
-                                match = re.search(r'(ldv_\w+)', text)
-                                if match:
-                                    func_name = match.group(1)
+
+                                if kind == 'AUX_FUNC':
+                                    func_name = comment
                                 else:
-                                    raise ValueError(
-                                        'Auxiliary/model function definition is not specified in {!r}'.format(text))
+                                    match = re.search(r'(ldv_\w+)', func_decl)
+                                    if match:
+                                        func_name = match.group(1)
+                                    else:
+                                        raise ValueError(
+                                            'Auxiliary/model function definition is not specified in {!r}'.format(
+                                                func_decl))
 
                                 # Try to get names for simple formal arguments (in form "type name") that is required
                                 # for removing auxiliary function calls.
                                 formal_arg_names = []
-                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), text)
+                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), func_decl)
                                 if match:
                                     for formal_arg in match.group(1).split(','):
                                         match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
