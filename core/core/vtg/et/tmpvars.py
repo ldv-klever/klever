@@ -106,7 +106,7 @@ def _remove_tmp_vars(error_trace, edge):
     # never returns due to some errors happen early so it doesn't matter.
     if 'enter' in edge:
         func_id = edge['enter']
-        return_edge = _get_func_return_edge(error_trace, edge)
+        return_edge = error_trace.get_func_return_edge(edge)
         # Move forward to function declarations or/and statements.
         edge = error_trace.next_edge(edge)
     else:
@@ -220,23 +220,6 @@ def _parse_func_call_actual_args(actual_args_str):
     return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
 
 
-def _get_func_return_edge(error_trace, func_enter_edge):
-    # Keep in mind that each pair enter-return has identifier (function name), but such identifier is not unique
-    # across error trace, so we need to ignore all intermediate calls to the same function.
-    func_id = func_enter_edge['enter']
-
-    subcalls = 0
-    for edge in error_trace.trace_iterator(begin=error_trace.next_edge(func_enter_edge)):
-        if edge.get('enter') == func_id:
-            subcalls += 1
-        if edge.get('return') == func_id:
-            if subcalls == 0:
-                return edge
-            subcalls -= 1
-
-    return None
-
-
 def _remove_aux_functions(logger, error_trace):
     # Get rid of auxiliary functions if possible. Replace:
     #   ... = aux_func(...)
@@ -269,7 +252,7 @@ def _remove_aux_functions(logger, error_trace):
         # Second pattern. For first pattern it is enough that second edge returns from function since this function can
         # be just the parent auxiliary one.
         if 'return' not in func_call_edge:
-            return_edge = _get_func_return_edge(error_trace, func_call_edge)
+            return_edge = error_trace.get_func_return_edge(func_call_edge)
 
             if return_edge:
                 aux_func_return_edge = error_trace.next_edge(return_edge)

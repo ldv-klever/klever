@@ -240,16 +240,23 @@ class ErrorTrace:
         
     def _find_violation_path(self):
         self._logger.info('Get violation path')
-        ignore_edges_of_func_id = None
-        for edge in self.trace_iterator(backward=True):
-            if not ignore_edges_of_func_id and 'return' in edge:
-                ignore_edges_of_func_id = edge['return']
 
-            if not ignore_edges_of_func_id:
-                self._violation_edges.append(edge)
+        iterator = self.trace_iterator()
+        for edge in iterator:
+            if 'enter' in edge:
+                return_edge = self.get_func_return_edge(edge)
 
-            if 'enter' in edge and edge['enter'] == ignore_edges_of_func_id:
-                ignore_edges_of_func_id = None
+                # Skip edges of functions that are both entered and returned.
+                if return_edge:
+                    while True:
+                        edge = next(iterator)
+                        if edge is return_edge:
+                            break
+
+                    continue
+
+            # Everything else comprizes violation path.
+            self._violation_edges.insert(0, edge)
 
     def parse_model_comments(self):
         self._logger.info('Parse model comments from source files referred by witness')
@@ -403,3 +410,19 @@ class ErrorTrace:
                 del warn_edge['note']
 
         del self._violation_edges, self._model_funcs, self._notes, self._asserts
+
+    def get_func_return_edge(self, func_enter_edge):
+        # Keep in mind that each pair enter-return has identifier (function name), but such identifier is not unique
+        # across error trace, so we need to ignore all intermediate calls to the same function.
+        func_id = func_enter_edge['enter']
+
+        subcalls = 0
+        for edge in self.trace_iterator(begin=self.next_edge(func_enter_edge)):
+            if edge.get('enter') == func_id:
+                subcalls += 1
+            if edge.get('return') == func_id:
+                if subcalls == 0:
+                    return edge
+                subcalls -= 1
+
+        return None
