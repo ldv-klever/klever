@@ -29,7 +29,7 @@ def import_error_trace(logger, witness):
     trace.parse_model_comments()
 
     # Remove ugly code
-    #generic_simplifications(logger, trace)
+    generic_simplifications(logger, trace)
 
     # Find violation
     trace.find_violation_path()
