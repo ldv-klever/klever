@@ -319,7 +319,7 @@ class ErrorTrace:
                                                            format(func_name, file, line))
                                     else:
                                         self._model_funcs[func_id] = comment
-                                        self._logger.debug("Get note 'dict()' for model function '{1}' from '{2}:{3}'".
+                                        self._logger.debug("Get note '{0}' for model function '{1}' from '{2}:{3}'".
                                                            format(comment, func_name, file, line))
 
                                     break
