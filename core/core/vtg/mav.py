@@ -8,6 +8,7 @@ import glob
 import re
 import shutil
 from enum import Enum
+from math import sqrt
 
 import core.components
 import core.session
@@ -225,7 +226,7 @@ class MAV(CommonStrategy):
         elif self.relaunch == 'external':
             self.logger.info('Launch Conditional Multi-Aspect Verification in several verifier run')
             # Set time limits for external MAV.
-            time_limit = self.cpu_time_limit_per_rule_per_module_per_entry_point * self.number_of_asserts
+            time_limit = round(self.cpu_time_limit_per_rule_per_module_per_entry_point * sqrt(self.number_of_asserts))
         else:
             self.logger.info('Launch only the first iteration of Multi-Aspect Verification')
             # This is not full MAV and only can be used as a part of Sequential Combination.
