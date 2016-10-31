@@ -93,11 +93,10 @@ $(document).ready(function () {
     $('.ETV_HideLink').click(function (event) {
         event.preventDefault();
         var whole_line = $(this).parent().parent(),
-            etv_main_parent = $(this).closest('div[id^="etv-trace"]'),
-            add_id = etv_main_parent.attr('id').replace('etv-trace', ''),
+            etv_main_parent = $('#etv-trace'),
             expanded = 'mini icon violet caret down',
             collapsed = 'mini icon violet caret right',
-            last_selector = etv_main_parent.find('.' + $(this).attr('id').replace(add_id, '')).last(),
+            last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
             $(this).children('i').first().attr('class', collapsed);
@@ -112,7 +111,6 @@ $(document).ready(function () {
                 }
                 next_line = next_line.next('span');
             }
-            last_selector.hide();
         }
         else {
             $(this).children('i').first().attr('class', expanded);
@@ -142,13 +140,7 @@ $(document).ready(function () {
                 }
 
             }
-            last_selector.show();
         }
-    });
-    $('.ETV_DownHideLink').click(function () {
-        var etv_main_parent = $(this).closest('div[id^="etv-trace"]'),
-            add_id = etv_main_parent.attr('id').replace('etv-trace', '');
-        etv_main_parent.find('.' + $(this).parent().parent().attr('class').replace(add_id, '')).first().prev().find('.ETV_HideLink').click();
     });
 
     $('.ETV_La').click(function (event) {

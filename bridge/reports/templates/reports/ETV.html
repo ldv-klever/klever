@@ -69,34 +69,38 @@
             </div>
             <div id="ETV_error_trace">
                 {% for l in etv.html_trace %}
-                    {% if l.hide_id == 'global_scope' %}
-                        <span>
-                            <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
-                            <br>
-                        </span>
+                    {% if l.return %}
+                        <span class="{{ l.class }}" hidden></span>
                     {% else %}
-                        {% if l.note %}
-                            <span class="{{ l.class }}"{% if l.note_hidden %} style="display: none"{% endif %}>
-                                <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
-                                <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</a></span><br>
+                        {% if l.hide_id == 'global_scope' %}
+                            <span>
+                                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
+                                <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
+                                <br>
                             </span>
-                        {% endif %}
-                        {% if l.warning %}
-                            <span class="{{ l.class }}">
-                                <span class="ETV_LN ETV_LN_Warning"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
-                                <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_WarnText">{{ l.warning }}</a></span><br>
-                            </span>
-                        {% endif %}
-                        <span class="{{ l.class }}{% if l.commented %} commented{% endif %}{% if l.collapsed %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %}>
-                            <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret {% if l.collapsed %}right{% else %}down{% endif %}"></i></a>{% endif %}{{ l.code|safe }}</span>
-                            <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
-                            {% if l.current_assumptions %}
-                                <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
+                        {% else %}
+                            {% if l.note %}
+                                <span class="{{ l.class }}"{% if l.note_hidden %} style="display: none"{% endif %}>
+                                    <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
+                                    <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</a></span><br>
+                                </span>
                             {% endif %}
-                            <br>
-                        </span>
+                            {% if l.warning %}
+                                <span class="{{ l.class }}">
+                                    <span class="ETV_LN ETV_LN_Warning"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
+                                    <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_WarnText">{{ l.warning }}</a></span><br>
+                                </span>
+                            {% endif %}
+                            <span class="{{ l.class }}{% if l.commented %} commented{% endif %}{% if l.collapsed %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %}>
+                                <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
+                                <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret {% if l.collapsed %}right{% else %}down{% endif %}"></i></a>{% endif %}{{ l.code|safe }}</span>
+                                <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
+                                {% if l.current_assumptions %}
+                                    <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
+                                {% endif %}
+                                <br>
+                            </span>
+                        {% endif %}
                     {% endif %}
                 {% endfor %}
                 {% for assumption in etv.assumes %}

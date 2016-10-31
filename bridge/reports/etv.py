@@ -96,11 +96,13 @@ class GetETV(object):
         scopes_to_hide = []
         threads = []
         function_stack = []
+        curr_thread = None
+        deoffset = 0
 
         def curr_offset():
             if len(scope_stack) < 2:
                 return ' '
-            return ((len(scope_stack) - 2) * TAB_LENGTH + 1) * ' '
+            return ((len(scope_stack) - 2 - deoffset) * TAB_LENGTH + 1) * ' '
 
         def fill_assumptions(current_assumptions=None):
             assumptions = []
@@ -118,17 +120,13 @@ class GetETV(object):
         def return_from_func(curr_linedata):
             function_stack.pop()
             last_scope = scope_stack.pop()
-            if len(curr_linedata['code']) > 0:
+            if curr_linedata['code'] is not None:
                 lines_data.append(curr_linedata)
             if len(scope_stack) == 0:
                 raise ValueError('The error trace is corrupted')
             curr_linedata = {
-                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                'line': None,
-                'offset': curr_offset(),
-                'class': last_scope,
-                'hide_id': None,
-                'thread': curr_linedata['thread']
+                'code': '', 'line': None, 'hide_id': None, 'offset': curr_offset(),
+                'class': last_scope, 'thread': curr_linedata['thread'], 'return': True
             }
             curr_scope = scope_stack[-1]
             if double_return.get(curr_scope, False):
@@ -151,10 +149,7 @@ class GetETV(object):
         for n in err_trace_nodes:
             edge_data = self.data['edges'][n]
             line = str(edge_data.get('start line', None))
-            if 'source' in edge_data:
-                code = edge_data['source']
-            else:
-                code = ''
+            code = edge_data['source'] if 'source' in edge_data and len(edge_data['source']) > 0 else None
             if 'file' in edge_data:
                 file = self.data['files'][edge_data['file']]
             if file is None:
@@ -188,6 +183,10 @@ class GetETV(object):
                 line_data['thread'] = '%s<span style="background-color:%s;"> </span>%s' % (
                     ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(threads) - thread_id - 1)
                 )
+                if curr_thread != thread_id:
+                    deoffset = len(scope_stack) - 2
+                    line_data['offset'] = curr_offset()
+                    curr_thread = thread_id
             else:
                 line_data['thread'] = ' ' * len(threads)
 
@@ -241,7 +240,6 @@ class GetETV(object):
                 if 'return' in edge_data:
                     if edge_data['enter'] == edge_data['return']:
                         line_data = return_from_func(line_data)
-                        function_stack.pop()
                     else:
                         double_return[scope_stack[-2]] = True
             elif 'return' in edge_data:
@@ -255,11 +253,12 @@ class GetETV(object):
         while len(scope_stack) > 2:
             poped_scope = scope_stack.pop()
             lines_data.append({
-                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                'line': None, 'offset': curr_offset(), 'class': poped_scope, 'hide_id': None,
-                'thread': ' ' * len(threads)
+                'code': '', 'line': None, 'hide_id': None, 'offset': curr_offset(),
+                'class': poped_scope, 'thread': ' ' * len(threads), 'return': True
             })
         for i in range(0, len(lines_data)):
+            if lines_data[i]['code'] is None or 'return' in lines_data[i]:
+                continue
             if lines_data[i]['line'] is None:
                 lines_data[i]['line_offset'] = ' ' * max_line_length
             else:
