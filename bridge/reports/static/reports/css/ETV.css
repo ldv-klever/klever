@@ -229,3 +229,14 @@
     width: 45%;
     background-color: #fffaf0;
 }
+
+.ETV_CallbackAction {
+    font-style: italic;
+    font-weight: bold;
+    color: #9e7926;
+}
+
+.ETV_Action {
+    font-style: italic;
+    color: #9e7926;
+}

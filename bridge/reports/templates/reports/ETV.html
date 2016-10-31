@@ -69,7 +69,7 @@
             </div>
             <div id="ETV_error_trace">
                 {% for l in etv.html_trace %}
-                    {% if l.return %}
+                    {% if l.justspan %}
                         <span class="{{ l.class }}" hidden></span>
                     {% else %}
                         {% if l.hide_id == 'global_scope' %}

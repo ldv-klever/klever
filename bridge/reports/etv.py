@@ -71,229 +71,266 @@ def get_error_trace_nodes(data):
     return err_path
 
 
-class GetETV(object):
-    def __init__(self, error_trace, include_assumptions=True):
+class ParseErrorTrace:
+    def __init__(self, data, include_assumptions):
+        self.cnt = 0
+        self.call_str = ''
+        self.has_main = False
+        self.max_line_length = 1
+        self.deoffset = 0
+        self.scope_stack = ['global']
+        self.assume_scopes = {'global': []}
+        self.scopes_to_show = set()
+        self.scopes_to_hide = set()
+        self.double_return = set()
+        self.threads = []
+        self.function_stack = []
+        self.curr_file = None
+        self.curr_thread = None
+        self.curr_action = None
+        self.action_stack = []
+        self.lines = []
+        self.files = list(data['files']) if 'files' in data else []
+        self.actions = list(data['actions']) if 'actions' in data else []
+        self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
+        self.functions = list(data['funcs']) if 'funcs' in data else []
         self.include_assumptions = include_assumptions
-        self.data = json.loads(error_trace)
-        self.html_trace, self.assumes = self.__html_trace()
-        self.attributes = []
+        self.__add_initial_line()
 
-    def __get_attributes(self):
-        # TODO: return list of error trace attributes like [<attr name>, <attr value>]. Ignore 'programfile'.
-        pass
+    def add_line(self, edge):
+        line = str(edge['start line']) if 'start line' in edge else None
+        code = edge['source'] if 'source' in edge and len(edge['source']) > 0 else None
+        if 'file' in edge:
+            self.curr_file = self.files[edge['file']]
+        if self.curr_file is None:
+            line = None
+        if line is not None and len(line) > self.max_line_length:
+            self.max_line_length = len(line)
+        line_data = {'line': line, 'file': self.curr_file, 'code': code, 'class': self.scope_stack[-1]}
+        if line is not None and 'assumption' not in edge and self.include_assumptions:
+            line_data.update(self.__fill_assumptions())
+        line_data.update(self.__get_note(edge.get('note')))
+        line_data.update(self.__get_warn(edge.get('warn')))
+        line_data.update(self.__get_thread(edge.get('thread')))
+        line_data.update(self.__add_assumptions(edge.get('assumption'), edge.get('assumption scope')))
+        if 'condition' in edge:
+            line_data['code'] = self.__get_condition_code(line_data['code'])
 
-    def __html_trace(self):
-        lines_data = []
-
-        cnt = 0
-        file = None
-        has_main = False
-        max_line_length = 1
-        scope_stack = ['global']
-        double_return = {}
-        assume_scopes = {'global': []}
-        scopes_to_show = []
-        scopes_to_hide = []
-        threads = []
-        function_stack = []
-        curr_thread = None
-        deoffset = 0
-
-        def curr_offset():
-            if len(scope_stack) < 2:
-                return ' '
-            return ((len(scope_stack) - 2 - deoffset) * TAB_LENGTH + 1) * ' '
-
-        def fill_assumptions(current_assumptions=None):
-            assumptions = []
-            if scope_stack[-1] in assume_scopes:
-                for j in range(0, len(assume_scopes[scope_stack[-1]])):
-                    assume_id = '%s_%s' % (scope_stack[-1], j)
-                    if isinstance(current_assumptions, list) and assume_id in current_assumptions:
-                        continue
-                    assumptions.append(assume_id)
-            return {
-                'assumptions': ';'.join(reversed(assumptions)),
-                'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
-            }
-
-        def return_from_func(curr_linedata):
-            function_stack.pop()
-            last_scope = scope_stack.pop()
-            if curr_linedata['code'] is not None:
-                lines_data.append(curr_linedata)
-            if len(scope_stack) == 0:
-                raise ValueError('The error trace is corrupted')
-            curr_linedata = {
-                'code': '', 'line': None, 'hide_id': None, 'offset': curr_offset(),
-                'class': last_scope, 'thread': curr_linedata['thread'], 'return': True
-            }
-            curr_scope = scope_stack[-1]
-            if double_return.get(curr_scope, False):
-                del double_return[curr_scope]
-                curr_linedata = return_from_func(curr_linedata)
-            return curr_linedata
-
-        err_trace_nodes = get_error_trace_nodes(self.data)
-        for n in err_trace_nodes:
-            edge_data = self.data['edges'][n]
-            if 'thread' in edge_data and edge_data['thread'] not in threads:
-                threads.append(edge_data['thread'])
-        lines_data.append({
-            'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
-            'line': None,
-            'offset': curr_offset(),
-            'hide_id': 'global_scope',
-            'thread': ' ' * len(threads)
-        })
-        for n in err_trace_nodes:
-            edge_data = self.data['edges'][n]
-            line = str(edge_data.get('start line', None))
-            code = edge_data['source'] if 'source' in edge_data and len(edge_data['source']) > 0 else None
-            if 'file' in edge_data:
-                file = self.data['files'][edge_data['file']]
-            if file is None:
-                line = None
-
-            if line is not None and len(line) > max_line_length:
-                max_line_length = len(line)
-
-            line_data = {
-                'line': line,
-                'file': file,
-                'code': code,
-                'offset': curr_offset(),
-                'class': scope_stack[-1]
-            }
-            if line_data['line'] is not None and 'assumption' not in edge_data and self.include_assumptions:
-                line_data.update(fill_assumptions())
-            if 'note' in edge_data:
-                line_data['note'] = edge_data['note']
-                if all(ss not in scopes_to_hide for ss in scope_stack):
-                    for ss in scope_stack[1:]:
-                        if ss not in scopes_to_show:
-                            scopes_to_show.append(ss)
-            if 'warn' in edge_data:
-                line_data['warning'] = edge_data['warn']
-                for ss in scope_stack[1:]:
-                    if ss not in scopes_to_show:
-                        scopes_to_show.append(ss)
-            if 'thread' in edge_data:
-                thread_id = threads.index(edge_data['thread'])
-                line_data['thread'] = '%s<span style="background-color:%s;"> </span>%s' % (
-                    ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(threads) - thread_id - 1)
+        if any(x in edge for x in ('action', 'enter', 'return')):
+            # print('---')
+            # print('CURR ACT:', self.curr_action)
+            pass
+        line_data['offset'] = self.__curr_offset()
+        if 'action' in edge:
+            # print('action__%s' % edge['action'])
+            if self.curr_action != edge['action']:
+                if self.curr_action is not None:
+                    self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
+                enter_action_data = line_data.copy()
+                enter_action_data['code'] = '<span class="%s">%s</span>' % (
+                    'ETV_CallbackAction' if edge['action'] in self.callback_actions else 'ETV_Action',
+                    self.actions[edge['action']]
                 )
-                if curr_thread != thread_id:
-                    deoffset = len(scope_stack) - 2
-                    line_data['offset'] = curr_offset()
-                    curr_thread = thread_id
-            else:
-                line_data['thread'] = ' ' * len(threads)
-
-            if 'assumption' in edge_data:
-                if not has_main and 'assumption scope' in edge_data:
-                    cnt += 1
-                    scope_stack.append('scope__klever_main__%s' % str(cnt))
-                    scopes_to_show.append(scope_stack[-1])
-                    line_data['class'] = scope_stack[-1]
-                    has_main = True
-                if 'assumption scope' in edge_data:
-                    ass_scope = scope_stack[-1]
+                enter_action_data.update(self.__enter_function('action__%s' % edge['action'], None))
+                self.lines.append(enter_action_data)
+                self.curr_action = edge['action']
+        line_data['offset'] = self.__curr_offset()
+        if 'enter' in edge:
+            # print(self.functions[edge['enter']])
+            if line_data['code'] is None:
+                print('CODE IS NONE!!')
+            line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
+            if any(x in edge for x in ['note', 'warn']):
+                self.scopes_to_hide.add(self.scope_stack[-1])
+            if 'return' in edge:
+                if edge['enter'] == edge['return']:
+                    line_data = self.__return_from_function(line_data)
                 else:
-                    ass_scope = 'global'
+                    self.double_return.add(self.scope_stack[-2])
+        elif 'return' in edge:
+            # print('return')
+            if self.functions[edge['return']] != self.function_stack[-1]:
+                raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
+                    self.functions[edge['return']], self.function_stack[-1]
+                ))
+            line_data = self.__return_from_function(line_data)
+        elif 'action' not in edge and self.curr_action is not None:
+            # print('Not action and others in edge!')
+            self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
+        if 'offset' not in line_data:
+            print('HERE')
+        self.lines.append(line_data)
 
-                if self.include_assumptions:
-                    if ass_scope not in assume_scopes:
-                        assume_scopes[ass_scope] = []
-                    curr_assumes = []
-                    for assume in edge_data['assumption'].split(';'):
-                        if len(assume) == 0:
-                            continue
-                        assume_scopes[ass_scope].append(assume)
-                        curr_assumes.append('%s_%s' % (ass_scope, str(len(assume_scopes[ass_scope]) - 1)))
+    def __enter_function(self, func, code):
+        self.call_str += func + ' {'
+        if code is None:
+            self.action_stack.append(func)
+            self.curr_action = func
+        elif len(self.action_stack) > 0:
+            self.action_stack.append(None)
+            self.curr_action = None
+        # print('ACTIONS:', self.action_stack)
 
-                    line_data.update(fill_assumptions(curr_assumes))
-            if 'condition' in edge_data:
-                m = re.match('^\s*\[(.*)\]\s*$', line_data['code'])
-                if m is not None:
-                    line_data['code'] = m.group(1)
-                line_data['code'] = '<span class="ETV_CondAss">assume(</span>' + \
-                                    str(line_data['code']) + '<span class="ETV_CondAss">);</span>'
-            if 'enter' in edge_data:
-                if scope_stack[-1] == 'global':
-                    cnt += 1
-                    scope_stack.append('scope__klever_main__%s' % str(cnt))
-                    scopes_to_show.append(scope_stack[-1])
-                    line_data['class'] = scope_stack[-1]
-                    has_main = True
-                cnt += 1
-                scope_stack.append('scope__%s__%s' % (self.data['funcs'][edge_data['enter']], str(cnt)))
-                line_data['hide_id'] = scope_stack[-1]
-                if 'note' in edge_data or 'warn' in edge_data:
-                    scopes_to_hide.append(scope_stack[-1])
-                line_data['code'] = re.sub(
-                    '(^|\W)' + self.data['funcs'][edge_data['enter']] + '(\W|$)',
-                    '\g<1><span class="ETV_Fname">' + self.data['funcs'][edge_data['enter']] + '</span>\g<2>',
-                    line_data['code']
-                )
-                function_stack.append(self.data['funcs'][edge_data['enter']])
-                if 'return' in edge_data:
-                    if edge_data['enter'] == edge_data['return']:
-                        line_data = return_from_func(line_data)
-                    else:
-                        double_return[scope_stack[-2]] = True
-            elif 'return' in edge_data:
-                if self.data['funcs'][edge_data['return']] != function_stack[-1]:
-                    raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                        self.data['funcs'][edge_data['return']], function_stack[-1]
-                    ))
-                line_data = return_from_func(line_data)
-            lines_data.append(line_data)
+        enter_data = {}
+        self.cnt += 1
+        self.scope_stack.append('scope__%s__%s' % (func, str(self.cnt)))
+        enter_data['hide_id'] = self.scope_stack[-1]
+        if code is not None:
+            enter_data['code'] = re.sub(
+                '(^|\W)' + func + '(\W|$)', '\g<1><span class="ETV_Fname">' + func + '</span>\g<2>', code
+            )
+        self.function_stack.append(func)
+        return enter_data
 
-        while len(scope_stack) > 2:
-            poped_scope = scope_stack.pop()
-            lines_data.append({
-                'code': '', 'line': None, 'hide_id': None, 'offset': curr_offset(),
-                'class': poped_scope, 'thread': ' ' * len(threads), 'return': True
-            })
-        for i in range(0, len(lines_data)):
-            if lines_data[i]['code'] is None or 'return' in lines_data[i]:
+    def __return_from_function(self, line_data, return_from_func=True):
+        self.call_str += '} '
+        # print('STACK is', self.action_stack)
+        if len(self.action_stack) > 0:
+            last_action = self.action_stack.pop()
+            if last_action is not None and len(self.action_stack) > 1 and return_from_func:
+                self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
+        last_scope = self.scope_stack.pop()
+        if line_data['code'] is not None:
+            self.lines.append(line_data)
+        if len(self.scope_stack) == 0:
+            raise ValueError('The error trace is corrupted')
+        line_data = {
+            'code': '', 'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
+            'class': last_scope, 'thread': line_data['thread'], 'justspan': True
+        }
+        curr_scope = self.scope_stack[-1]
+        if curr_scope in self.double_return:
+            self.double_return.remove(curr_scope)
+            line_data = self.__return_from_function(line_data)
+        self.curr_action = self.action_stack[-1] if len(self.action_stack) > 0 else None
+        if 'offset' not in line_data:
+            print('RETURN ERROR')
+        return line_data
+
+    def __get_note(self, note):
+        if note is None:
+            return {}
+        if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
+            for ss in self.scope_stack[1:]:
+                if ss not in self.scopes_to_show:
+                    self.scopes_to_show.add(ss)
+        return {'note': note}
+
+    def __get_warn(self, warn):
+        if warn is None:
+            return {}
+        for ss in self.scope_stack[1:]:
+            if ss not in self.scopes_to_show:
+                self.scopes_to_show.add(ss)
+        return {'warning': warn}
+
+    def __get_thread(self, thread):
+        if thread is None:
+            return {'thread': ' ' * len(self.threads)}
+        thread_id = self.threads.index(thread)
+        if self.curr_thread != thread_id:
+            self.deoffset = len(self.scope_stack) - 2
+            self.curr_thread = thread_id
+        return {'thread': '%s<span style="background-color:%s;"> </span>%s' % (
+            ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread_id - 1)
+        )}
+
+    def __add_assumptions(self, assumption, assumption_scope):
+        assumption_data = {}
+        if assumption is None:
+            return assumption_data
+        if not self.has_main:
+            self.cnt += 1
+            self.scope_stack.append('scope__klever_main__%s' % str(self.cnt))
+            self.scopes_to_show.add(self.scope_stack[-1])
+            assumption_data['class'] = self.scope_stack[-1]
+            self.has_main = True
+        if not self.include_assumptions:
+            return assumption_data
+        if assumption_scope is None:
+            ass_scope = 'global'
+        else:
+            ass_scope = self.scope_stack[-1]
+
+        if ass_scope not in self.assume_scopes:
+            self.assume_scopes[ass_scope] = []
+        curr_assumes = []
+        for assume in assumption.split(';'):
+            if len(assume) == 0:
                 continue
-            if lines_data[i]['line'] is None:
-                lines_data[i]['line_offset'] = ' ' * max_line_length
+            self.assume_scopes[ass_scope].append(assume)
+            curr_assumes.append('%s_%s' % (ass_scope, str(len(self.assume_scopes[ass_scope]) - 1)))
+        assumption_data.update(self.__fill_assumptions(curr_assumes))
+        return assumption_data
+
+    def __fill_assumptions(self, current_assumptions=None):
+        assumptions = []
+        if self.scope_stack[-1] in self.assume_scopes:
+            for j in range(0, len(self.assume_scopes[self.scope_stack[-1]])):
+                assume_id = '%s_%s' % (self.scope_stack[-1], j)
+                if isinstance(current_assumptions, list) and assume_id in current_assumptions:
+                    continue
+                assumptions.append(assume_id)
+        return {
+            'assumptions': ';'.join(reversed(assumptions)),
+            'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
+        }
+
+    def __get_condition_code(self, code):
+        self.ccc = 0
+        m = re.match('^\s*\[(.*)\]\s*$', code)
+        if m is not None:
+            code = m.group(1)
+        return '<span class="ETV_CondAss">assume(</span>' + str(code) + '<span class="ETV_CondAss">);</span>'
+
+    def __curr_offset(self):
+        if len(self.scope_stack) < 2:
+            return ' '
+        return ((len(self.scope_stack) - 2 - self.deoffset) * TAB_LENGTH + 1) * ' '
+
+    def __add_initial_line(self):
+        self.lines.append({
+            'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
+            'line': None, 'file': None, 'offset': self.__curr_offset(),
+            'hide_id': 'global_scope', 'thread': ' ' * len(self.threads)
+        })
+
+    def finish_error_lines(self):
+        while len(self.scope_stack) > 2:
+            poped_scope = self.scope_stack.pop()
+            self.lines.append({'class': poped_scope, 'code': '', 'offset': '', 'thread': '', 'justspan': True})
+        for i in range(0, len(self.lines)):
+            if self.lines[i]['code'] is None or 'justspan' in self.lines[i]:
+                continue
+            if self.lines[i]['line'] is None:
+                self.lines[i]['line_offset'] = ' ' * self.max_line_length
             else:
-                lines_data[i]['line_offset'] = ' ' * (max_line_length - len(lines_data[i]['line']))
-            other_line_offset = '\n  ' + lines_data[i]['offset'] + ' ' * max_line_length
-            lines_data[i]['code'] = other_line_offset.join(lines_data[i]['code'].split('\n'))
-            lines_data[i]['code'] = self.__parse_code(lines_data[i]['code'])
-            if 'class' not in lines_data[i]:
+                self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
+            if 'offset' not in self.lines[i]:
+                print(self.lines[i])
+            other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
+            self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
+            self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
+            if 'class' not in self.lines[i]:
                 continue
-            a = 'warning' in lines_data[i]
-            b = 'note' in lines_data[i]
-            c = lines_data[i]['class'] not in scopes_to_show
-            d = 'hide_id' not in lines_data[i] or lines_data[i]['hide_id'] is None
-            e = 'hide_id' in lines_data[i] and lines_data[i]['hide_id'] is not None \
-                and lines_data[i]['hide_id'] not in scopes_to_show
+            a = 'warning' in self.lines[i]
+            b = 'note' in self.lines[i]
+            c = self.lines[i]['class'] not in self.scopes_to_show
+            d = 'hide_id' not in self.lines[i] or self.lines[i]['hide_id'] is None
+            e = 'hide_id' in self.lines[i] and self.lines[i]['hide_id'] is not None \
+                and self.lines[i]['hide_id'] not in self.scopes_to_show
             if a or b and (d or e or c) or not a and not b and c and (d or e):
-                lines_data[i]['hidden'] = True
+                self.lines[i]['hidden'] = True
                 if e:
-                    lines_data[i]['collapsed'] = True
+                    self.lines[i]['collapsed'] = True
             elif e:
-                lines_data[i]['collapsed'] = True
+                self.lines[i]['collapsed'] = True
             if a or b:
-                lines_data[i]['commented'] = True
-                lines_data[i]['note_line_offset'] = ' ' * max_line_length
+                self.lines[i]['commented'] = True
+                self.lines[i]['note_line_offset'] = ' ' * self.max_line_length
             if b and c:
-                lines_data[i]['note_hidden'] = True
-        lines_data.append({'class': 'ETV_End_of_trace'})
-
-        trace_assumes = []
-        for sc in assume_scopes:
-            as_cnt = 0
-            for a in assume_scopes[sc]:
-                trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
-                as_cnt += 1
-        return lines_data, trace_assumes
+                self.lines[i]['note_hidden'] = True
+        self.lines.append({'class': 'ETV_End_of_trace'})
 
     def __wrap_code(self, code, code_type):
         self.ccc = 0
@@ -350,6 +387,42 @@ class GetETV(object):
             else:
                 new_words.append(word)
         return ''.join(new_words)
+
+
+class GetETV(object):
+    def __init__(self, error_trace, include_assumptions=True):
+        self.include_assumptions = include_assumptions
+        self.data = json.loads(error_trace)
+        self.html_trace, self.assumes = self.__html_trace()
+        self.attributes = []
+
+    def __get_attributes(self):
+        # TODO: return list of error trace attributes like [<attr name>, <attr value>]. Ignore 'programfile'.
+        pass
+
+    def __html_trace(self):
+        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions)
+        err_trace_nodes = get_error_trace_nodes(self.data)
+        for n in err_trace_nodes:
+            edge_data = self.data['edges'][n]
+            if 'thread' in edge_data and edge_data['thread'] not in parsed_trace.threads:
+                parsed_trace.threads.append(edge_data['thread'])
+        for n in err_trace_nodes:
+            edge_data = self.data['edges'][n]
+            try:
+                parsed_trace.add_line(edge_data)
+            except Exception as e:
+                print(parsed_trace.call_str)
+                raise e
+        parsed_trace.finish_error_lines()
+
+        trace_assumes = []
+        for sc in parsed_trace.assume_scopes:
+            as_cnt = 0
+            for a in parsed_trace.assume_scopes[sc]:
+                trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
+                as_cnt += 1
+        return parsed_trace.lines, trace_assumes
 
 
 class GetSource(object):
@@ -632,3 +705,19 @@ class ErrorTraceCallstackTree(object):
                 new_level.append(f_data['name'])
             just_names.append(' '.join(sorted(str(x) for x in new_level)))
         return just_names
+
+# ldv_entry_EMGentry_4 {action__0 {} action__1 {
+#     ldv_EMGentry_init_usb_serial_module_init_4_7 {
+#         usb_serial_module_init {
+#             ldv_usb_serial_register_drivers_23 {ldv_usb_serial_register_drivers {action__0 {} } ldv_undef_int {} action__2 {}}
+#             action__3 {
+#                 ldv_dispatch_register_3_3 {
+#                     ldv_xmalloc { ldv_assume {} ldv_is_err {} ldv_assume {} }
+#                     ldv_usb_serial_usb_serial_instance_1 {action__0 {} } action__4 {}
+#                 }
+#             }
+#         }
+#         action__5 {}
+#     } action__0 {}
+# }
+# } action__4 {ldv_free {} ldv_undef_int {} } }
