@@ -74,10 +74,9 @@ def get_error_trace_nodes(data):
 class ParseErrorTrace:
     def __init__(self, data, include_assumptions):
         self.cnt = 0
-        self.call_str = ''
         self.has_main = False
         self.max_line_length = 1
-        self.deoffset = 0
+        self.deoffset = {None: 0}
         self.scope_stack = ['global']
         self.assume_scopes = {'global': []}
         self.scopes_to_show = set()
@@ -116,16 +115,16 @@ class ParseErrorTrace:
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
 
-        if any(x in edge for x in ('action', 'enter', 'return')):
-            # print('---')
-            # print('CURR ACT:', self.curr_action)
-            pass
         line_data['offset'] = self.__curr_offset()
         if 'action' in edge:
-            # print('action__%s' % edge['action'])
-            if self.curr_action != edge['action']:
+            if self.curr_action != 'action__%s' % edge['action']:
                 if self.curr_action is not None:
-                    self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
+                    self.lines.append(self.__return_from_function({
+                        'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link">'
+                                '</i></span>',
+                        'thread': line_data['thread'],
+                        'line': None
+                    }, False))
                 enter_action_data = line_data.copy()
                 enter_action_data['code'] = '<span class="%s">%s</span>' % (
                     'ETV_CallbackAction' if edge['action'] in self.callback_actions else 'ETV_Action',
@@ -133,12 +132,14 @@ class ParseErrorTrace:
                 )
                 enter_action_data.update(self.__enter_function('action__%s' % edge['action'], None))
                 self.lines.append(enter_action_data)
-                self.curr_action = edge['action']
         line_data['offset'] = self.__curr_offset()
         if 'enter' in edge:
-            # print(self.functions[edge['enter']])
-            if line_data['code'] is None:
-                print('CODE IS NONE!!')
+            if 'action' not in edge and self.curr_action is not None:
+                self.lines.append(self.__return_from_function({
+                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                    'thread': line_data['thread'],
+                    'line': None
+                }, False))
             line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
             if any(x in edge for x in ['note', 'warn']):
                 self.scopes_to_hide.add(self.scope_stack[-1])
@@ -148,28 +149,26 @@ class ParseErrorTrace:
                 else:
                     self.double_return.add(self.scope_stack[-2])
         elif 'return' in edge:
-            # print('return')
             if self.functions[edge['return']] != self.function_stack[-1]:
                 raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
                     self.functions[edge['return']], self.function_stack[-1]
                 ))
             line_data = self.__return_from_function(line_data)
         elif 'action' not in edge and self.curr_action is not None:
-            # print('Not action and others in edge!')
-            self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
-        if 'offset' not in line_data:
-            print('HERE')
+            self.lines.append(self.__return_from_function({
+                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                'thread': line_data['thread'],
+                'line': None
+            }, False))
         self.lines.append(line_data)
 
     def __enter_function(self, func, code):
-        self.call_str += func + ' {'
         if code is None:
             self.action_stack.append(func)
             self.curr_action = func
         elif len(self.action_stack) > 0:
             self.action_stack.append(None)
             self.curr_action = None
-        # print('ACTIONS:', self.action_stack)
 
         enter_data = {}
         self.cnt += 1
@@ -183,28 +182,30 @@ class ParseErrorTrace:
         return enter_data
 
     def __return_from_function(self, line_data, return_from_func=True):
-        self.call_str += '} '
-        # print('STACK is', self.action_stack)
         if len(self.action_stack) > 0:
             last_action = self.action_stack.pop()
             if last_action is not None and len(self.action_stack) > 1 and return_from_func:
-                self.lines.append(self.__return_from_function({'code': None, 'thread': line_data['thread']}, False))
+                self.lines.append(self.__return_from_function({
+                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                    'thread': line_data['thread']
+                }, False))
         last_scope = self.scope_stack.pop()
+        self.function_stack.pop()
         if line_data['code'] is not None:
+            line_data['offset'] = self.__curr_offset()
             self.lines.append(line_data)
         if len(self.scope_stack) == 0:
             raise ValueError('The error trace is corrupted')
         line_data = {
-            'code': '', 'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
-            'class': last_scope, 'thread': line_data['thread'], 'justspan': True
+            'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+            'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
+            'class': last_scope, 'thread': line_data['thread'],
         }
         curr_scope = self.scope_stack[-1]
         if curr_scope in self.double_return:
             self.double_return.remove(curr_scope)
             line_data = self.__return_from_function(line_data)
         self.curr_action = self.action_stack[-1] if len(self.action_stack) > 0 else None
-        if 'offset' not in line_data:
-            print('RETURN ERROR')
         return line_data
 
     def __get_note(self, note):
@@ -229,7 +230,7 @@ class ParseErrorTrace:
             return {'thread': ' ' * len(self.threads)}
         thread_id = self.threads.index(thread)
         if self.curr_thread != thread_id:
-            self.deoffset = len(self.scope_stack) - 2
+            self.deoffset[thread_id] = len(self.scope_stack) - 2
             self.curr_thread = thread_id
         return {'thread': '%s<span style="background-color:%s;"> </span>%s' % (
             ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread_id - 1)
@@ -286,7 +287,7 @@ class ParseErrorTrace:
     def __curr_offset(self):
         if len(self.scope_stack) < 2:
             return ' '
-        return ((len(self.scope_stack) - 2 - self.deoffset) * TAB_LENGTH + 1) * ' '
+        return ((len(self.scope_stack) - 2 - self.deoffset[self.curr_thread]) * TAB_LENGTH + 1) * ' '
 
     def __add_initial_line(self):
         self.lines.append({
@@ -409,11 +410,7 @@ class GetETV(object):
                 parsed_trace.threads.append(edge_data['thread'])
         for n in err_trace_nodes:
             edge_data = self.data['edges'][n]
-            try:
-                parsed_trace.add_line(edge_data)
-            except Exception as e:
-                print(parsed_trace.call_str)
-                raise e
+            parsed_trace.add_line(edge_data)
         parsed_trace.finish_error_lines()
 
         trace_assumes = []
@@ -705,19 +702,3 @@ class ErrorTraceCallstackTree(object):
                 new_level.append(f_data['name'])
             just_names.append(' '.join(sorted(str(x) for x in new_level)))
         return just_names
-
-# ldv_entry_EMGentry_4 {action__0 {} action__1 {
-#     ldv_EMGentry_init_usb_serial_module_init_4_7 {
-#         usb_serial_module_init {
-#             ldv_usb_serial_register_drivers_23 {ldv_usb_serial_register_drivers {action__0 {} } ldv_undef_int {} action__2 {}}
-#             action__3 {
-#                 ldv_dispatch_register_3_3 {
-#                     ldv_xmalloc { ldv_assume {} ldv_is_err {} ldv_assume {} }
-#                     ldv_usb_serial_usb_serial_instance_1 {action__0 {} } action__4 {}
-#                 }
-#             }
-#         }
-#         action__5 {}
-#     } action__0 {}
-# }
-# } action__4 {ldv_free {} ldv_undef_int {} } }
