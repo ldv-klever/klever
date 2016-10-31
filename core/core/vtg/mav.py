@@ -32,7 +32,7 @@ from core.vtg.common import CommonStrategy
 class MAVPreset(Enum):
     L1 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 1/9}
     L2 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/9, 'epsilon': 4/3}
-    L3 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/2, 'epsilon': 4/3}
+    L3 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1/4, 'epsilon': 4/3}
     L4 = {'alpha': 1.0, 'betta': 1/45, 'gamma': 1.0, 'epsilon': 4/3}
     L5 = {'alpha': 0.0, 'betta': 0.0,  'gamma': 0.0, 'epsilon': 0.0}
 
