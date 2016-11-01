@@ -224,6 +224,9 @@ class LKBCE(core.components.Component):
                         fp.write(self.linux_kernel['conf'])
 
             if build_target[0] == 'modules_prepare':
+                # We assume that after preparation for building modules was done model CC options are available, i.e.
+                # a CC command for which they are dumped was executed.
+                self.set_model_cc_opts()
                 self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
@@ -477,6 +480,12 @@ class LKBCE(core.components.Component):
     # This method is inteded just for calbacks.
     def get_linux_kernel_build_cmd_desc(self):
         pass
+
+    def set_model_cc_opts(self):
+        self.logger.info('Set model CC options')
+
+        with open('model CC opts.json', encoding='utf8') as fp:
+            self.model_cc_opts = json.load(fp)
 
     def copy_model_headers(self):
         self.logger.info('Copy model headers')

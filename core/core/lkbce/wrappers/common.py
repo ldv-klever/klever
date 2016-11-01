@@ -129,6 +129,12 @@ class Command:
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
+            # Options used for compilation of this file will be used for compilation of model files written in C.
+            if self.in_files[0] == 'scripts/mod/empty.c':
+                with open(os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                       'model CC opts.json'), 'w', encoding='utf8') as fp:
+                    json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
