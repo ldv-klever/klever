@@ -12,7 +12,7 @@
             ]
           }
         },
-        "process": "<assign>.[@register].<success> | <none>",
+        "process": "<assign>.[@register].<success> | <fail>",
         "actions": {
           "register": {
             "comment": "Register USB serial callbacks.",
@@ -26,7 +26,7 @@
               "%usb_device_id% = $ARG3;"
             ]
           },
-          "none": {
+          "fail": {
             "comment": "Fail registration of USB serial callbacks.",
             "statements": [
               "return ldv_undef_int_negative();"
