@@ -42,7 +42,6 @@ class Scheduler(schedulers.SchedulerExchange):
     __disk_memory = None
     __pool = None
     __job_conf_prototype = dict()
-    __task_conf_prototype = dict()
     __reserved_ram_memory = 0
     __reserved_disk_memory = 0
     __running_tasks = 0
@@ -64,8 +63,9 @@ class Scheduler(schedulers.SchedulerExchange):
         # Import job configuration prototype
         with open(self.conf["scheduler"]["job client configuration"], encoding="utf8") as fh:
             self.__job_conf_prototype = json.loads(fh.read())
-        with open(self.conf["scheduler"]["task client configuration"], encoding="utf8") as fh:
-            self.__task_conf_prototype = json.loads(fh.read())
+        # Try to get configuration just to be sure that it exists
+        self.__get_task_configuration()
+
         if "Klever Bridge" not in self.__job_conf_prototype:
             logging.debug("Add Klever Bridge settings to client job configuration")
             self.__job_conf_prototype["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -95,13 +95,6 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
         else:
             self.__pool = concurrent.futures.ThreadPoolExecutor(max_processes)
-
-        # Check existence of verifier scripts
-        for tool in self.conf["scheduler"]["verification tools"]:
-            for version in self.conf["scheduler"]["verification tools"][tool]:
-                if not os.path.isfile(self.conf["scheduler"]["verification tools"][tool][version]):
-                    raise ValueError("Cannot find script {} for verifier {} of the version {}".
-                                     format(self.conf["scheduler"]["verification tools"][tool][version], tool, version))
 
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
@@ -347,13 +340,12 @@ class Scheduler(schedulers.SchedulerExchange):
             signal.signal(signal.SIGINT, handler)
             prc.wait()
 
-
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         self.__check_resource_limits(configuration)
         if mode == 'task':
             subdir = 'tasks'
             args = [self.__client_bin, "TASK"]
-            client_conf = self.__task_conf_prototype.copy()
+            client_conf = self.__get_task_configuration()
         else:
             subdir = 'jobs'
             args = [self.__client_bin, "JOB"]
@@ -378,6 +370,19 @@ class Scheduler(schedulers.SchedulerExchange):
             # Property file may not be specified.
             if "property file" in configuration:
                 client_conf["property file"] = configuration["property file"]
+
+            # Do verification versions check
+            if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
+                raise KeyError('Install and then specify verifier {!r} with its versions at {!r}'.
+                               format(client_conf['verifier']['name'],
+                                      self.conf["scheduler"]["task client configuration"]))
+            if 'version' not in client_conf['verifier']:
+                raise KeyError('Specify version of the verifier {!r} at the job description to run the task')
+            if client_conf['verifier']['version'] not in \
+                    client_conf['client']['verification tools'][client_conf['verifier']['name']]:
+                raise KeyError('Install and then properly specify corresponding verifiers {!r} version {!r} at {!r}'.
+                               format(client_conf['verifier']['name'], client_conf['verifier']['version'],
+                                      self.conf["scheduler"]["task client configuration"]))
 
             self.__task_processes[identifier] = process
         else:
@@ -546,5 +551,32 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             os.makedirs(work_dir.encode("utf8"), exist_ok=False)
 
+    def __get_task_configuration(self):
+        """
+        Read scheduler task configuration JSON file to keep it updated.
+
+        :return: Dictionary with configuration.
+        """
+        name = self.conf["scheduler"]["task client configuration"]
+        with open(name, encoding="utf8") as fh:
+            data = json.loads(fh.read())
+
+        # Do checks
+        if "client" not in data:
+            raise KeyError("Specify 'client' object at task client configuration {!r}".format(name))
+        if "verification tools" not in data["client"] or len(data["client"]["verification tools"]) == 0:
+            raise KeyError("Specify pathes to verification tools installed as 'client''verification tools' object at "
+                           "task client configuration {!r}".format(name))
+        for tool in data["client"]["verification tools"]:
+            if len(data["client"]["verification tools"].keys()) == 0:
+                raise KeyError("Specify versions and pathes to them for installed verification tool {!r} at "
+                               "'client''verification tools' object at task client configuration".format(tool))
+
+            for version in data["client"]["verification tools"][tool]:
+                if not os.path.isdir(data["client"]["verification tools"][tool][version]):
+                    raise ValueError("Cannot find script {!r} for verifier {!r} of the version {!r}".
+                                     format(data["client"]["verification tools"][tool][version], tool, version))
+
+        return data
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

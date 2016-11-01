@@ -1,7 +1,11 @@
 {
   "client": {
-    "benchexec location": "/abs/path/to/benchexec/",
-    "cpachecker location": "/abs/path/to/scripts"
+    "verification tools": {
+      "CPAchecker": {
+        "trunk:23430": "path to scripts/"
+      }
+    },
+    "benchexec location": "abs path to benchexec/"
   },
   "common": {
     "working directory": null,
