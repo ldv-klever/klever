@@ -96,13 +96,6 @@ class Command:
                 else:
                     shutil.copy2(dep, dest_dep)
 
-        # Fix up absolute paths including current working directory. We rely on exact matching that will not be the
-        # case if there will be ".." in file paths.
-        self.other_opts = [re.sub(re.escape(os.getcwd()),
-                                  os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                  opt)
-                           for opt in self.other_opts]
-
     def dump(self):
         full_desc_file = None
 
@@ -112,7 +105,11 @@ class Command:
                                        os.environ['KLEVER_MAIN_WORK_DIR']),
                 'in files': self.in_files,
                 'out file': self.out_file,
-                'opts': self.other_opts
+                # Fix up absolute paths including current working directory. We rely on exact matching that will not be
+                # the case if there will be ".." in file paths.
+                'opts': [re.sub(re.escape(os.getcwd()),
+                                os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                opt) for opt in self.other_opts]
             }
 
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
