@@ -29,18 +29,6 @@ import core.components
 import core.utils
 import core.lkbce.utils
 
-# Architecture name to search for architecture specific header files can differ from the target architecture.
-# See Linux kernel Makefile for details. Mapping below was extracted from Linux 3.5.
-_arch_hdr_arch = {
-    'i386': 'x86',
-    'x86_64': 'x86',
-    'sparc32': 'sparc',
-    'sparc64': 'sparc',
-    'sh64': 'sh',
-    'tilepro': 'tile',
-    'tilegx': 'tile',
-}
-
 
 def before_launch_sub_job_components(context):
     context.mqs['model cc options and headers'] = multiprocessing.Queue()
@@ -71,7 +59,6 @@ class LKBCE(core.components.Component):
             if 'conf file' in self.linux_kernel:
                 shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             self.set_linux_kernel_attrs()
-            self.set_hdr_arch()
             core.utils.report(self.logger,
                               'attrs',
                               {
@@ -372,10 +359,6 @@ class LKBCE(core.components.Component):
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf']}]}]
 
-    def set_hdr_arch(self):
-        self.logger.info('Set architecture name to search for architecture specific header files')
-        self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
-
     def set_shadow_src_tree(self):
         self.logger.info('Set shadow source tree')
         # All other components should find shadow source tree relatively to main working directory.
@@ -528,7 +511,7 @@ class LKBCE(core.components.Component):
 
             # Like in Command.copy_deps() in lkbce/wrappers/common.py but much more simpler.
             for dep in deps:
-                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) != \
+                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) !=
                         linux_kernel_work_src_tree) or dep.endswith('.c'):
                     continue
 
@@ -574,7 +557,6 @@ class LKBCE(core.components.Component):
                 core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                             self.conf['rule specifications DB'])))
         })
-
 
         if collect_build_cmds:
             env.update({

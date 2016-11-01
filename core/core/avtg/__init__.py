@@ -33,15 +33,10 @@ def before_launch_sub_job_components(context):
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
-    context.mqs['hdr arch'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
     context.mqs['AVTG common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_hdr_arch(context):
-    context.mqs['hdr arch'].put(context.hdr_arch)
 
 
 def after_set_shadow_src_tree(context):
@@ -376,7 +371,6 @@ class AVTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.get_shadow_src_tree()
-        self.get_hdr_arch()
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_cc_opts_and_headers()
@@ -450,16 +444,6 @@ class AVTG(core.components.Component):
                                                 hdr_arch=self.conf['header architecture']))
                                     self.logger.debug('Set headers "{0}"'.format(
                                         self.model_cc_opts_and_headers[model_c_file]['headers']))
-
-    def get_hdr_arch(self):
-        self.logger.info('Get architecture name to search for architecture specific header files')
-
-        self.conf['header architecture'] = self.mqs['hdr arch'].get()
-
-        self.mqs['hdr arch'].close()
-
-        self.logger.debug('Architecture name to search for architecture specific header files is "{0}"'.format(
-            self.conf['header architecture']))
 
     def get_shadow_src_tree(self):
         self.logger.info('Get shadow source tree')
