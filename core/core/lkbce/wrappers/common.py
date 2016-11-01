@@ -198,6 +198,7 @@ class Command:
                 self.dump()
                 self.enqueue()
         except Exception:
+            # TODO: KLEVER_BUILD_CMD_DESCS_FILE could be not specified at this point.
             with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
                 fp.write('KLEVER FATAL ERROR\n')
             raise
