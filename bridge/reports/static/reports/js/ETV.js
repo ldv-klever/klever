@@ -111,6 +111,7 @@ $(document).ready(function () {
                 }
                 next_line = next_line.next('span');
             }
+            last_selector.hide();
         }
         else {
             $(this).children('i').first().attr('class', expanded);
@@ -140,6 +141,7 @@ $(document).ready(function () {
                 }
 
             }
+            last_selector.show();
         }
     });
     $('.ETV_DownHideLink').click(function () {

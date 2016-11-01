@@ -115,33 +115,35 @@ class ParseErrorTrace:
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
 
-        line_data['offset'] = self.__curr_offset()
+        line_data.update(self.__update_line_data())
         if 'action' in edge:
             if self.curr_action != 'action__%s' % edge['action']:
+                if self.curr_action is None:
+                    self.__show_scope('callback action' if edge['action'] in self.callback_actions else 'action')
                 if self.curr_action is not None:
                     self.lines.append(self.__return_from_function({
-                        'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link">'
-                                '</i></span>',
-                        'thread': line_data['thread'],
-                        'line': None
+                        'code': None, 'line': None, 'thread': line_data['thread'],
+                        'class': line_data['class'], 'offset': line_data['offset']
                     }, False))
                 enter_action_data = line_data.copy()
+                enter_action_data.update(self.__update_line_data())
                 enter_action_data['code'] = '<span class="%s">%s</span>' % (
                     'ETV_CallbackAction' if edge['action'] in self.callback_actions else 'ETV_Action',
                     self.actions[edge['action']]
                 )
                 enter_action_data.update(self.__enter_function('action__%s' % edge['action'], None))
                 self.lines.append(enter_action_data)
-        line_data['offset'] = self.__curr_offset()
+                line_data.update(self.__update_line_data())
+
         if 'enter' in edge:
             if 'action' not in edge and self.curr_action is not None:
                 self.lines.append(self.__return_from_function({
-                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                    'thread': line_data['thread'],
-                    'line': None
+                    'code': None, 'line': None, 'thread': line_data['thread'],
+                    'class': line_data['class'], 'offset': line_data['offset']
                 }, False))
+                line_data.update(self.__update_line_data())
             line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
-            if any(x in edge for x in ['note', 'warn']):
+            if any(x in edge for x in ['note', 'warn', 'action']):
                 self.scopes_to_hide.add(self.scope_stack[-1])
             if 'return' in edge:
                 if edge['enter'] == edge['return']:
@@ -149,18 +151,24 @@ class ParseErrorTrace:
                 else:
                     self.double_return.add(self.scope_stack[-2])
         elif 'return' in edge:
-            if self.functions[edge['return']] != self.function_stack[-1]:
-                raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                    self.functions[edge['return']], self.function_stack[-1]
-                ))
+            for i in range(len(self.action_stack)):
+                if self.action_stack[-1 - i] is None:
+                    if self.functions[edge['return']] != self.function_stack[-1 - i]:
+                        raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
+                            self.functions[edge['return']], self.function_stack[-1 - i]
+                        ))
+                    break
             line_data = self.__return_from_function(line_data)
         elif 'action' not in edge and self.curr_action is not None:
             self.lines.append(self.__return_from_function({
-                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                'thread': line_data['thread'],
-                'line': None
+                'code': None, 'line': None, 'thread': line_data['thread'],
+                'class': line_data['class'], 'offset': line_data['offset']
             }, False))
+            line_data.update(self.__update_line_data())
         self.lines.append(line_data)
+
+    def __update_line_data(self):
+        return {'offset': self.__curr_offset(), 'class': self.scope_stack[-1]}
 
     def __enter_function(self, func, code):
         if code is None:
@@ -182,18 +190,17 @@ class ParseErrorTrace:
         return enter_data
 
     def __return_from_function(self, line_data, return_from_func=True):
+        if line_data['code'] is not None:
+            self.lines.append(line_data)
         if len(self.action_stack) > 0:
             last_action = self.action_stack.pop()
             if last_action is not None and len(self.action_stack) > 1 and return_from_func:
                 self.lines.append(self.__return_from_function({
-                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                    'thread': line_data['thread']
+                    'code': None, 'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
+                    'class': line_data['class'], 'thread': line_data['thread']
                 }, False))
         last_scope = self.scope_stack.pop()
         self.function_stack.pop()
-        if line_data['code'] is not None:
-            line_data['offset'] = self.__curr_offset()
-            self.lines.append(line_data)
         if len(self.scope_stack) == 0:
             raise ValueError('The error trace is corrupted')
         line_data = {
@@ -208,21 +215,27 @@ class ParseErrorTrace:
         self.curr_action = self.action_stack[-1] if len(self.action_stack) > 0 else None
         return line_data
 
-    def __get_note(self, note):
-        if note is None:
-            return {}
-        if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
+    def __show_scope(self, comment_type):
+        if comment_type in ['note', 'action']:
+            if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
+                for ss in self.scope_stack[1:]:
+                    if ss not in self.scopes_to_show:
+                        self.scopes_to_show.add(ss)
+        elif comment_type in ['warning', 'callback action']:
             for ss in self.scope_stack[1:]:
                 if ss not in self.scopes_to_show:
                     self.scopes_to_show.add(ss)
+
+    def __get_note(self, note):
+        if note is None:
+            return {}
+        self.__show_scope('note')
         return {'note': note}
 
     def __get_warn(self, warn):
         if warn is None:
             return {}
-        for ss in self.scope_stack[1:]:
-            if ss not in self.scopes_to_show:
-                self.scopes_to_show.add(ss)
+        self.__show_scope('warning')
         return {'warning': warn}
 
     def __get_thread(self, thread):
@@ -230,7 +243,8 @@ class ParseErrorTrace:
             return {'thread': ' ' * len(self.threads)}
         thread_id = self.threads.index(thread)
         if self.curr_thread != thread_id:
-            self.deoffset[thread_id] = len(self.scope_stack) - 2
+            if thread_id not in self.deoffset:
+                self.deoffset[thread_id] = len(self.scope_stack) - 2
             self.curr_thread = thread_id
         return {'thread': '%s<span style="background-color:%s;"> </span>%s' % (
             ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread_id - 1)
@@ -307,8 +321,6 @@ class ParseErrorTrace:
                 self.lines[i]['line_offset'] = ' ' * self.max_line_length
             else:
                 self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
-            if 'offset' not in self.lines[i]:
-                print(self.lines[i])
             other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
             self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
