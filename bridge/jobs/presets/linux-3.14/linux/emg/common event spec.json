@@ -364,9 +364,11 @@
         "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
+            "comment": "Begin artificial pattern scenario for IO drivers.",
             "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
           },
           "call": {
+            "comment": "We are at opened state, call the rest callbacks.",
             "process": "[callback].{call} | [release].{main}"
           },
           "register": {
@@ -405,21 +407,25 @@
             ]
           },
           "init": {
+            "comment": "Alloc memory for common callback arguments.",
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
           },
           "free": {
+            "comment": "Free memory for common callback arguments.",
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "y_ret": {
+            "comment": "Open/Probe has been successful.",
             "condition": [
               "%ret% == 0"
             ]
           },
           "n_ret": {
+            "comment": "Open/Probe has failed.",
             "condition": [
               "%ret% != 0"
             ]
