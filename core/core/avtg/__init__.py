@@ -33,6 +33,7 @@ def before_launch_sub_job_components(context):
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
+    context.mqs['model CC opts'] = multiprocessing.Queue()
 
 
 def after_set_common_prj_attrs(context):
@@ -41,6 +42,10 @@ def after_set_common_prj_attrs(context):
 
 def after_set_shadow_src_tree(context):
     context.mqs['shadow src tree'].put(context.shadow_src_tree)
+
+
+def after_set_model_cc_opts(context):
+    context.mqs['model CC opts'].put(context.model_cc_opts)
 
 
 def after_generate_verification_obj_desc(context):
@@ -371,9 +376,10 @@ class AVTG(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
         self.get_shadow_src_tree()
+        self.get_model_cc_opts()
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
-        self.set_model_cc_opts_and_headers()
+        self.set_model_headers()
         self.launch_subcomponents(('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
                                   ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
@@ -386,64 +392,61 @@ class AVTG(core.components.Component):
 
         self.mqs['AVTG common prj attrs'].close()
 
-    def set_model_cc_opts_and_headers(self):
-        self.logger.info('Set model CC options and headers')
+    def get_model_cc_opts(self):
+        self.logger.info('Get model CC options')
 
-        self.model_cc_opts_and_headers = {}
+        self.conf['model CC opts'] = self.mqs['model CC opts'].get()
+
+        self.mqs['model CC opts'].close()
+
+    def set_model_headers(self):
+        self.logger.info('Set model headers')
+
+        self.model_headers = {}
 
         for rule_spec_desc in self.rule_spec_descs:
             self.logger.debug('Set headers of rule specification "{0}"'.format(rule_spec_desc['id']))
             for plugin_desc in rule_spec_desc['plugins']:
-                if plugin_desc['name'] == 'RSG' \
-                        and 'model CC options' in plugin_desc['options'] \
-                        and ('common models' in plugin_desc['options'] or 'models' in plugin_desc['options']):
-                    for models in ('common models', 'models'):
-                        if models in plugin_desc['options']:
-                            for model_c_file, model in plugin_desc['options'][models].items():
-                                self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
-                                if 'headers' in model:
-                                    self.model_cc_opts_and_headers[model_c_file] = {
-                                        'CC options': [
-                                            string.Template(opt).substitute(hdr_arch=self.conf['header architecture'])
-                                            for opt in plugin_desc['options']['model CC options']
-                                        ],
-                                        'headers': []
-                                    }
-                                    self.logger.debug('Set model CC options "{0}"'.format(
-                                        self.model_cc_opts_and_headers[model_c_file]['CC options']))
+                if plugin_desc['name'] != 'RSG':
+                    continue
 
-                                    if isinstance(model['headers'], dict):
-                                        # Find out base specifications set.
-                                        base_specs_set = None
-                                        for specs_set in model['headers']:
-                                            if re.search(r'\(base\)', specs_set):
-                                                base_specs_set = specs_set
-                                                break
-                                        if not base_specs_set:
-                                            raise KeyError('Could not find base specifications set')
+                for models in ('common models', 'models'):
+                    if models in plugin_desc['options']:
+                        for model_c_file, model in plugin_desc['options'][models].items():
+                            if 'headers' not in model:
+                                continue
 
-                                        # Always require all headers of base specifications set.
-                                        headers = model['headers'][base_specs_set]
+                            self.logger.debug('Set headers of model with C file "{0}"'.format(model_c_file))
 
-                                        specs_set = self.conf['specifications set']
+                            if isinstance(model['headers'], dict):
+                                # Find out base specifications set.
+                                base_specs_set = None
+                                for specs_set in model['headers']:
+                                    if re.search(r'\(base\)', specs_set):
+                                        base_specs_set = specs_set
+                                        break
+                                if not base_specs_set:
+                                    raise KeyError('Could not find base specifications set')
 
-                                        # Add/exclude specific headers of specific specifications set
-                                        if specs_set != base_specs_set and specs_set in model['headers']:
-                                            if 'add' in model['headers'][specs_set]:
-                                                for add_header in model['headers'][specs_set]['add']:
-                                                    headers.append(add_header)
-                                            if 'exclude' in model['headers'][specs_set]:
-                                                for exclude_header in model['headers'][specs_set]['exclude']:
-                                                    headers.remove(exclude_header)
-                                    else:
-                                        headers = model['headers']
+                                # Always require all headers of base specifications set.
+                                headers = model['headers'][base_specs_set]
 
-                                    for header in headers:
-                                        self.model_cc_opts_and_headers[model_c_file]['headers'].append(
-                                            string.Template(header).substitute(
-                                                hdr_arch=self.conf['header architecture']))
-                                    self.logger.debug('Set headers "{0}"'.format(
-                                        self.model_cc_opts_and_headers[model_c_file]['headers']))
+                                specs_set = self.conf['specifications set']
+
+                                # Add/exclude specific headers of specific specifications set.
+                                if specs_set != base_specs_set and specs_set in model['headers']:
+                                    if 'add' in model['headers'][specs_set]:
+                                        for add_header in model['headers'][specs_set]['add']:
+                                            headers.append(add_header)
+                                    if 'exclude' in model['headers'][specs_set]:
+                                        for exclude_header in model['headers'][specs_set]['exclude']:
+                                            headers.remove(exclude_header)
+                            else:
+                                headers = model['headers']
+
+                            self.model_headers[model_c_file] = headers
+
+                            self.logger.debug('Set headers "{0}"'.format(headers))
 
     def get_shadow_src_tree(self):
         self.logger.info('Get shadow source tree')

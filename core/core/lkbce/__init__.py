@@ -31,11 +31,11 @@ import core.lkbce.utils
 
 
 def before_launch_sub_job_components(context):
-    context.mqs['model cc options and headers'] = multiprocessing.Queue()
+    context.mqs['model headers'] = multiprocessing.Queue()
 
 
-def after_set_model_cc_opts_and_headers(context):
-    context.mqs['model cc options and headers'].put(context.model_cc_opts_and_headers)
+def after_set_model_headers(context):
+    context.mqs['model headers'].put(context.model_headers)
 
 
 class LKBCE(core.components.Component):
@@ -477,15 +477,12 @@ class LKBCE(core.components.Component):
 
         os.makedirs('model-headers'.encode('utf8'))
 
-        model_cc_opts_and_headers = self.mqs['model cc options and headers'].get()
+        model_headers = self.mqs['model headers'].get()
 
-        for model_c_file in model_cc_opts_and_headers:
-            self.logger.debug('Copy headers of model with C file "{0}"'.format(model_c_file))
+        for c_file, headers in model_headers.items():
+            self.logger.debug('Copy headers of model with C file "{0}"'.format(c_file))
 
-            model_headers_c_file = os.path.join('model-headers', os.path.basename(model_c_file))
-
-            cc_opts = model_cc_opts_and_headers[model_c_file]['CC options']
-            headers = model_cc_opts_and_headers[model_c_file]['headers']
+            model_headers_c_file = os.path.join('model-headers', os.path.basename(c_file))
 
             with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
                 for header in headers:
@@ -501,8 +498,14 @@ class LKBCE(core.components.Component):
 
             core.utils.execute(self.logger,
                                tuple(
-                                   ['aspectator', '-M', '-MF', os.path.relpath(model_headers_deps_file, linux_kernel_work_src_tree)] +
-                                   cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   ['aspectator'] +
+                                   self.model_cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   # Overwrite common options for dumping dependencies. Unfortunately normal "-MF" and
+                                   # even "-MD" doesn't work perhaps non recommended "-Wp" is used originally.
+                                   ['-Wp,-MD,{0}'.format(os.path.relpath(model_headers_deps_file,
+                                                                         linux_kernel_work_src_tree))] +
+                                   # Suppress both preprocessing and compilation - just get dependencies.
+                                   ['-M'] +
                                    [os.path.relpath(model_headers_c_file, linux_kernel_work_src_tree)]
                                ),
                                cwd=self.linux_kernel['work src tree'])
