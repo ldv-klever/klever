@@ -112,6 +112,8 @@
               "linux/ldv/common.c": {
                 "headers": {
                   "Linux 3.14 (base)": [
+                    "linux/tty.h",
+                    "linux/tty_driver.h",
                     "linux/usb.h",
                     "linux/usb/serial.h",
                     "linux/platform_device.h",
@@ -122,7 +124,6 @@
                     "linux/seq_file.h",
                     "linux/i2c.h",
                     "linux/mod_devicetable.h",
-                    "linux/tty.h",
                     "linux/device.h",
                     "linux/pm.h",
                     "linux/fs.h",
@@ -135,8 +136,6 @@
                     "linux/pci.h",
                     "linux/rtc.h",
                     "scsi/scsi_host.h",
-                    "linux/tty.h",
-                    "linux/tty_driver.h",
                     "linux/pagemap.h"
                   ],
                   "Linux 3.5": {
