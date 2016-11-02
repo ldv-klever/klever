@@ -377,16 +377,18 @@ class Scheduler(schedulers.SchedulerExchange):
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
-                raise KeyError('Install and then specify verifier {!r} with its versions at {!r}'.
-                               format(client_conf['verifier']['name'],
-                                      self.conf["scheduler"]["task client configuration"]))
+                raise schedulers.SchedulerException(
+                    'Use another verification tool or install and then specify verifier {!r} with its versions at {!r}'.
+                    format(client_conf['verifier']['name'], self.conf["scheduler"]["task client configuration"]))
             if 'version' not in client_conf['verifier']:
-                raise KeyError('Specify version of the verifier {!r} at the job description to run the task')
+                raise schedulers.SchedulerException('Cannot find any given {!r} version at at task description'.
+                                                    format(client_conf['verifier']['name']))
             if client_conf['verifier']['version'] not in \
                     client_conf['client']['verification tools'][client_conf['verifier']['name']]:
-                raise KeyError('Install and then properly specify corresponding verifiers {!r} version {!r} at {!r}'.
-                               format(client_conf['verifier']['name'], client_conf['verifier']['version'],
-                                      self.conf["scheduler"]["task client configuration"]))
+                raise schedulers.SchedulerException(
+                    'Use another version of {!r} or install given version {!r} and specify it at scheduler client '
+                    'configuration {!r}'.format(client_conf['verifier']['name'], client_conf['verifier']['version'],
+                                                self.conf["scheduler"]["task client configuration"]))
 
             self.__task_processes[identifier] = process
         else:
