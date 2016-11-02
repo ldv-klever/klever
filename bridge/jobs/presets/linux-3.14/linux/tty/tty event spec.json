@@ -154,7 +154,7 @@
             "process": "[install].(<y_ret>.[open].(<y_ret>.{call} | <n_ret>.[remove]) | <n_ret>).{main} | <free>.(deregister)"
           },
           "call": {
-            "process": "([lookup] | [callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox] | [port_activate].(<y_ret>.[port_shutdown] | <n_ret>)).{call} | [close].[shutdown].[cleanup].[remove].{main}"
+            "process": "([lookup] | [callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox] | [port_activate].(<y_ret>.[port_shutdown] | <n_ret>)).{call} | [close].[shutdown].[remove].[cleanup].{main}"
           },
           "register": {
             "parameters": [
