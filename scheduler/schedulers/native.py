@@ -319,7 +319,11 @@ class Scheduler(schedulers.SchedulerExchange):
         Generate dictionary with verification tools available.
         :return: Dictionary with available verification tools.
         """
-        pass
+        data = self.__get_task_configuration()
+        verification_tools = data['client']['verification tools']
+
+        # Submit tools
+        self.server.submit_tools(verification_tools)
 
     def __prepare_solution(self, identifier, configuration, mode='task'):
         """
