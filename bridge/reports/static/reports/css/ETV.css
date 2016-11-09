@@ -233,10 +233,21 @@
 .ETV_CallbackAction {
     font-style: italic;
     font-weight: bold;
-    color: #9e7926;
+    color: #9e4b2e;
+    cursor: pointer;
+}
+.ETV_CallbackAction:hover {
+    color: #dd5e3f;
 }
 
 .ETV_Action {
     font-style: italic;
     color: #9e7926;
+    cursor: pointer;
+}
+.ETV_Action:hover {
+    color: #cfa62a;
+}
+.ETV_ShowCode {
+    cursor: pointer;
 }

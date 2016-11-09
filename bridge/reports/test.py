@@ -92,7 +92,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['actions_unsafe.tar.gz', 'actions_unsafe2.tar.gz'],
+        'unsafes': ['actions_unsafe.tar.gz', 'good_unsafe.tar.gz'],
         'unknown': 'unknown1.tar.gz'
     },
     {

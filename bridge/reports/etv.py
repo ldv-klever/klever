@@ -72,29 +72,28 @@ def get_error_trace_nodes(data):
 
 
 class ParseErrorTrace:
-    def __init__(self, data, include_assumptions):
+    def __init__(self, data, include_assumptions, thread_id):
         self.cnt = 0
         self.has_main = False
         self.max_line_length = 1
-        self.deoffset = {None: 0}
         self.scope_stack = ['global']
         self.assume_scopes = {'global': []}
         self.scopes_to_show = set()
         self.scopes_to_hide = set()
+        self.scopes_to_hide_action = set()
         self.double_return = set()
-        self.threads = []
         self.function_stack = []
         self.curr_file = None
-        self.curr_thread = None
         self.curr_action = None
         self.action_stack = []
+        self.global_lines = []
         self.lines = []
+        self.thread_id = thread_id
         self.files = list(data['files']) if 'files' in data else []
         self.actions = list(data['actions']) if 'actions' in data else []
         self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
         self.functions = list(data['funcs']) if 'funcs' in data else []
         self.include_assumptions = include_assumptions
-        self.__add_initial_line()
 
     def add_line(self, edge):
         line = str(edge['start line']) if 'start line' in edge else None
@@ -105,27 +104,42 @@ class ParseErrorTrace:
             line = None
         if line is not None and len(line) > self.max_line_length:
             self.max_line_length = len(line)
-        line_data = {'line': line, 'file': self.curr_file, 'code': code, 'class': self.scope_stack[-1]}
+        line_data = {
+            'line': line,
+            'file': self.curr_file,
+            'code': code,
+            'scope': self.scope_stack[-1],
+            'type': 'normal'
+        }
         if line is not None and 'assumption' not in edge and self.include_assumptions:
             line_data.update(self.__fill_assumptions())
+        line_data.update(self.__add_assumptions(edge.get('assumption'), edge.get('assumption scope')))
+        line_data.update(self.__update_line_data())
+        if len(self.scope_stack) == 1 and all(x not in edge for x in ['return', 'enter']):
+            self.global_lines.append(line_data)
+            return
+        elif len(self.scope_stack) == 1:
+            self.scope_stack.append('scope__klever_main__0')
+            self.scopes_to_show.add(self.scope_stack[-1])
+            line_data['scope'] = self.scope_stack[-1]
         line_data.update(self.__get_note(edge.get('note')))
         line_data.update(self.__get_warn(edge.get('warn')))
-        line_data.update(self.__get_thread(edge.get('thread')))
-        line_data.update(self.__add_assumptions(edge.get('assumption'), edge.get('assumption scope')))
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
 
-        line_data.update(self.__update_line_data())
         if 'action' in edge:
             if self.curr_action != 'action__%s' % edge['action']:
                 if self.curr_action is None:
                     self.__show_scope('callback action' if edge['action'] in self.callback_actions else 'action')
                 if self.curr_action is not None:
                     self.lines.append(self.__return_from_function({
-                        'code': None, 'line': None, 'thread': line_data['thread'],
-                        'class': line_data['class'], 'offset': line_data['offset']
+                        'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
                     }, False))
                 enter_action_data = line_data.copy()
+                if 'note' in enter_action_data:
+                    del enter_action_data['note']
+                if 'warn' in enter_action_data:
+                    del enter_action_data['warn']
                 enter_action_data.update(self.__update_line_data())
                 enter_action_data['code'] = '<span class="%s">%s</span>' % (
                     'ETV_CallbackAction' if edge['action'] in self.callback_actions else 'ETV_Action',
@@ -138,13 +152,14 @@ class ParseErrorTrace:
         if 'enter' in edge:
             if 'action' not in edge and self.curr_action is not None:
                 self.lines.append(self.__return_from_function({
-                    'code': None, 'line': None, 'thread': line_data['thread'],
-                    'class': line_data['class'], 'offset': line_data['offset']
+                    'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
                 }, False))
                 line_data.update(self.__update_line_data())
             line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
-            if any(x in edge for x in ['note', 'warn', 'action']):
+            if any(x in edge for x in ['note', 'warn']):
                 self.scopes_to_hide.add(self.scope_stack[-1])
+            if 'action' in edge:
+                self.scopes_to_hide_action.add(self.scope_stack[-1])
             if 'return' in edge:
                 if edge['enter'] == edge['return']:
                     line_data = self.__return_from_function(line_data)
@@ -161,16 +176,16 @@ class ParseErrorTrace:
             line_data = self.__return_from_function(line_data)
         elif 'action' not in edge and self.curr_action is not None:
             self.lines.append(self.__return_from_function({
-                'code': None, 'line': None, 'thread': line_data['thread'],
-                'class': line_data['class'], 'offset': line_data['offset']
+                'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
             }, False))
             line_data.update(self.__update_line_data())
         self.lines.append(line_data)
 
     def __update_line_data(self):
-        return {'offset': self.__curr_offset(), 'class': self.scope_stack[-1]}
+        return {'offset': self.__curr_offset(), 'scope': self.scope_stack[-1]}
 
     def __enter_function(self, func, code):
+        enter_data = {}
         if code is None:
             self.action_stack.append(func)
             self.curr_action = func
@@ -178,14 +193,16 @@ class ParseErrorTrace:
             self.action_stack.append(None)
             self.curr_action = None
 
-        enter_data = {}
         self.cnt += 1
-        self.scope_stack.append('scope__%s__%s' % (func, str(self.cnt)))
+        self.scope_stack.append('scope__%s__%s__%s' % (func, str(self.cnt), self.thread_id))
         enter_data['hide_id'] = self.scope_stack[-1]
         if code is not None:
             enter_data['code'] = re.sub(
                 '(^|\W)' + func + '(\W|$)', '\g<1><span class="ETV_Fname">' + func + '</span>\g<2>', code
             )
+        enter_data['type'] = 'enter'
+        if code is not None:
+            enter_data['func'] = func
         self.function_stack.append(func)
         return enter_data
 
@@ -196,8 +213,8 @@ class ParseErrorTrace:
             last_action = self.action_stack.pop()
             if last_action is not None and len(self.action_stack) > 1 and return_from_func:
                 self.lines.append(self.__return_from_function({
-                    'code': None, 'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
-                    'class': line_data['class'], 'thread': line_data['thread']
+                    'code': None, 'line': None, 'hide_id': None,
+                    'offset': self.__curr_offset(), 'scope': line_data['scope']
                 }, False))
         last_scope = self.scope_stack.pop()
         self.function_stack.pop()
@@ -205,8 +222,7 @@ class ParseErrorTrace:
             raise ValueError('The error trace is corrupted')
         line_data = {
             'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-            'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
-            'class': last_scope, 'thread': line_data['thread'],
+            'line': None, 'hide_id': None, 'offset': self.__curr_offset(), 'scope': last_scope, 'type': 'return'
         }
         curr_scope = self.scope_stack[-1]
         if curr_scope in self.double_return:
@@ -216,8 +232,13 @@ class ParseErrorTrace:
         return line_data
 
     def __show_scope(self, comment_type):
-        if comment_type in ['note', 'action']:
+        if comment_type == 'note':
             if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
+                for ss in self.scope_stack[1:]:
+                    if ss not in self.scopes_to_show:
+                        self.scopes_to_show.add(ss)
+        elif comment_type == 'action':
+            if all(ss not in self.scopes_to_hide and ss not in self.scopes_to_hide_action for ss in self.scope_stack):
                 for ss in self.scope_stack[1:]:
                     if ss not in self.scopes_to_show:
                         self.scopes_to_show.add(ss)
@@ -238,28 +259,13 @@ class ParseErrorTrace:
         self.__show_scope('warning')
         return {'warning': warn}
 
-    def __get_thread(self, thread):
-        if thread is None:
-            return {'thread': ' ' * len(self.threads)}
-        thread_id = self.threads.index(thread)
-        if self.curr_thread != thread_id:
-            if thread_id not in self.deoffset:
-                self.deoffset[thread_id] = len(self.scope_stack) - 2
-            self.curr_thread = thread_id
-        return {'thread': '%s<span style="background-color:%s;"> </span>%s' % (
-            ' ' * thread_id, THREAD_COLORS[thread_id % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread_id - 1)
-        )}
-
     def __add_assumptions(self, assumption, assumption_scope):
         assumption_data = {}
         if assumption is None:
             return assumption_data
-        if not self.has_main:
-            self.cnt += 1
-            self.scope_stack.append('scope__klever_main__%s' % str(self.cnt))
+        if len(self.scope_stack) == 1:
+            self.scope_stack.append('scope__klever_main__0')
             self.scopes_to_show.add(self.scope_stack[-1])
-            assumption_data['class'] = self.scope_stack[-1]
-            self.has_main = True
         if not self.include_assumptions:
             return assumption_data
         if assumption_scope is None:
@@ -301,21 +307,27 @@ class ParseErrorTrace:
     def __curr_offset(self):
         if len(self.scope_stack) < 2:
             return ' '
-        return ((len(self.scope_stack) - 2 - self.deoffset[self.curr_thread]) * TAB_LENGTH + 1) * ' '
+        return ((len(self.scope_stack) - 2) * TAB_LENGTH + 1) * ' '
 
-    def __add_initial_line(self):
-        self.lines.append({
-            'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
-            'line': None, 'file': None, 'offset': self.__curr_offset(),
-            'hide_id': 'global_scope', 'thread': ' ' * len(self.threads)
-        })
-
-    def finish_error_lines(self):
+    def finish_error_lines(self, thread, thread_id):
         while len(self.scope_stack) > 2:
             poped_scope = self.scope_stack.pop()
-            self.lines.append({'class': poped_scope, 'code': '', 'offset': '', 'thread': '', 'justspan': True})
+            self.lines.append({
+                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
+                'scope': poped_scope, 'type': 'return'
+            })
+        if len(self.global_lines) > 0:
+            self.lines = [{
+                'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
+                'line': None, 'file': None, 'offset': ' ', 'hide_id': 'global_scope'
+            }] + self.global_lines + self.lines
         for i in range(0, len(self.lines)):
-            if self.lines[i]['code'] is None or 'justspan' in self.lines[i]:
+            if 'thread_id' in self.lines[i]:
+                continue
+            self.lines[i]['thread_id'] = thread_id
+            self.lines[i]['thread'] = thread
+            if self.lines[i]['code'] is None:
                 continue
             if self.lines[i]['line'] is None:
                 self.lines[i]['line_offset'] = ' ' * self.max_line_length
@@ -324,15 +336,16 @@ class ParseErrorTrace:
             other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
             self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
-            if 'class' not in self.lines[i]:
+            if 'scope' not in self.lines[i]:
                 continue
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
-            c = self.lines[i]['class'] not in self.scopes_to_show
+            c = self.lines[i]['scope'] not in self.scopes_to_show
             d = 'hide_id' not in self.lines[i] or self.lines[i]['hide_id'] is None
             e = 'hide_id' in self.lines[i] and self.lines[i]['hide_id'] is not None \
                 and self.lines[i]['hide_id'] not in self.scopes_to_show
-            if a or b and (d or e or c) or not a and not b and c and (d or e):
+            f = self.lines[i]['scope'] != 'scope__klever_main__0' and self.lines[i]['type'] == 'normal'
+            if a or b and (d or e or c) or not a and not b and c and (d or e) or f:
                 self.lines[i]['hidden'] = True
                 if e:
                     self.lines[i]['collapsed'] = True
@@ -343,7 +356,8 @@ class ParseErrorTrace:
                 self.lines[i]['note_line_offset'] = ' ' * self.max_line_length
             if b and c:
                 self.lines[i]['note_hidden'] = True
-        self.lines.append({'class': 'ETV_End_of_trace'})
+        if len(self.global_lines) > 0:
+            self.lines.append({'scope': 'ETV_End_of_trace', 'thread_id': thread_id})
 
     def __wrap_code(self, code, code_type):
         self.ccc = 0
@@ -406,6 +420,8 @@ class GetETV(object):
     def __init__(self, error_trace, include_assumptions=True):
         self.include_assumptions = include_assumptions
         self.data = json.loads(error_trace)
+        self.err_trace_nodes = get_error_trace_nodes(self.data)
+        self.threads = []
         self.html_trace, self.assumes = self.__html_trace()
         self.attributes = []
 
@@ -414,24 +430,44 @@ class GetETV(object):
         pass
 
     def __html_trace(self):
-        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions)
-        err_trace_nodes = get_error_trace_nodes(self.data)
-        for n in err_trace_nodes:
-            edge_data = self.data['edges'][n]
-            if 'thread' in edge_data and edge_data['thread'] not in parsed_trace.threads:
-                parsed_trace.threads.append(edge_data['thread'])
-        for n in err_trace_nodes:
-            edge_data = self.data['edges'][n]
-            parsed_trace.add_line(edge_data)
-        parsed_trace.finish_error_lines()
+        for n in self.err_trace_nodes:
+            if 'thread' not in self.data['edges'][n]:
+                self.data['edges'][n]['thread'] = 'fake'
+                # raise ValueError('All error trace edges should have thread')
+            if self.data['edges'][n]['thread'] not in self.threads:
+                self.threads.append(self.data['edges'][n]['thread'])
+        return self.__add_thread_lines(0)
 
+    def __add_thread_lines(self, i):
+        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i)
+        prev_t = i
         trace_assumes = []
+        for n in self.err_trace_nodes:
+            edge_data = self.data['edges'][n]
+            curr_t = self.threads.index(edge_data['thread'])
+            if prev_t == i and curr_t != i and curr_t > i:
+                (new_lines, new_assumes) = self.__add_thread_lines(curr_t)
+                parsed_trace.lines.extend(new_lines)
+                trace_assumes.extend(new_assumes)
+            prev_t = curr_t
+            if edge_data['thread'] == self.threads[i]:
+                parsed_trace.add_line(edge_data)
+        parsed_trace.finish_error_lines(self.__get_thread(i), i)
+
+        with open('thread-%s.json' % i, mode='w', encoding='utf8') as fp:
+            json.dump(parsed_trace.lines, fp, indent=2)
+
         for sc in parsed_trace.assume_scopes:
             as_cnt = 0
             for a in parsed_trace.assume_scopes[sc]:
                 trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
                 as_cnt += 1
         return parsed_trace.lines, trace_assumes
+
+    def __get_thread(self, thread):
+        return '%s<span style="background-color:%s;"> </span>%s' % (
+            ' ' * thread, THREAD_COLORS[thread % len(THREAD_COLORS)], ' ' * (len(self.threads) - thread - 1)
+        )
 
 
 class GetSource(object):

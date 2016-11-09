@@ -93,20 +93,31 @@ $(document).ready(function () {
     $('.ETV_HideLink').click(function (event) {
         event.preventDefault();
         var whole_line = $(this).parent().parent(),
+            curr_thread = whole_line.attr('data-thread'),
             etv_main_parent = $('#etv-trace'),
             expanded = 'mini icon violet caret down',
             collapsed = 'mini icon violet caret right',
             last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
+            if (whole_line.find('.ETV_ShowCode').find('i').hasClass('hide')) {
+                whole_line.find('.ETV_ShowCode').click();
+            }
+            whole_line.find('.ETV_ShowCode').hide();
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
-                next_line.hide();
-                if (event.shiftKey) {
-                    if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
-                        next_line.addClass('func_collapsed');
-                        next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
+                if (next_line.attr('data-thread') == curr_thread) {
+                    var showcode_link = next_line.find('.ETV_ShowCode');
+                    if (showcode_link.length == 1 && showcode_link.find('i').hasClass('hide')) {
+                        showcode_link.click();
+                    }
+                    next_line.hide();
+                    if (event.shiftKey) {
+                        if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
+                            next_line.addClass('func_collapsed');
+                            next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
+                        }
                     }
                 }
                 next_line = next_line.next('span');
@@ -114,14 +125,18 @@ $(document).ready(function () {
             last_selector.hide();
         }
         else {
+            whole_line.find('.ETV_ShowCode').show();
             $(this).children('i').first().attr('class', expanded);
             whole_line.removeClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 if (!(next_line.hasClass('commented') && (next_line.hasClass('func_collapsed') || next_line.find('a[class="ETV_HideLink"]').length == 0))) {
-                    next_line.show();
+                    if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'normal') {
+                        next_line.show();
+                    }
                 }
                 if (next_line.hasClass('func_collapsed')) {
-                    if (event.shiftKey) {
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread') && next_line.attr('data-type') != 'normal') {
+                        next_line.find('.ETV_ShowCode').show();
                         next_line.show();
                         next_line.removeClass('func_collapsed');
                         next_line.find('i[class="' + collapsed + '"]').attr('class', expanded);
@@ -134,12 +149,11 @@ $(document).ready(function () {
                     }
                 }
                 else {
-                    if (event.shiftKey) {
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread') && next_line.attr('data-type') != 'normal') {
                         next_line.show();
                     }
                     next_line = next_line.next('span');
                 }
-
             }
             last_selector.show();
         }
@@ -423,6 +437,38 @@ $(document).ready(function () {
                 line_link.click();
                 return false;
             }
+        }
+    });
+    $('.ETV_Action').click(function () {
+        $(this).parent().find('.ETV_HideLink').click();
+    });
+    $('.ETV_CallbackAction').click(function () {
+        $(this).parent().find('.ETV_HideLink').click();
+    });
+
+    $('.ETV_ShowCode').click(function () {
+        var whole_line = $(this).parent().parent(),
+            scope = whole_line.find('.ETV_HideLink').attr('id'),
+            showcode_icon = $(this).find('i');
+        if (showcode_icon.hasClass('unhide')) {
+            showcode_icon.removeClass('unhide').addClass('hide');
+            whole_line.find('.ETV_FuncCode').show();
+            whole_line.find('.ETV_FuncName').hide();
+            $('.' + scope).each(function () {
+                if ($(this).attr('data-type') == 'normal') {
+                    $(this).show();
+                }
+            });
+        }
+        else {
+            showcode_icon.removeClass('hide').addClass('unhide');
+            whole_line.find('.ETV_FuncCode').hide();
+            whole_line.find('.ETV_FuncName').show();
+            $('.' + scope).each(function () {
+                if ($(this).attr('data-type') == 'normal') {
+                    $(this).hide();
+                }
+            });
         }
     });
 });
