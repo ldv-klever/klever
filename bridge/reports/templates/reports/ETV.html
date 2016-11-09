@@ -72,7 +72,7 @@
                     {% if l.hide_id == 'global_scope' %}
                         <span data-thread="{{ l.thread_id }}">
                             <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon violet star"></i></a>{% endif %}{{ l.code|safe }}</span>
+                            <span class="ETV_LC">{{ l.offset }}{% if l.hide_id %}<a class="ETV_GlobalExpanderLink"><i class="mini icon unhide"></i></a>{% endif %}{{ l.code|safe }}</span>
                             <br>
                         </span>
                     {% else %}

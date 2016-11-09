@@ -80,12 +80,13 @@ $(document).ready(function () {
 
     $('.ETV_GlobalExpanderLink').click(function (event) {
         event.preventDefault();
-        if ($(this).find('i').first().hasClass('empty')) {
-            $(this).find('i').first().removeClass('empty');
+        var global_icon = $(this).find('i').first();
+        if (global_icon.hasClass('unhide')) {
+            global_icon.removeClass('unhide').addClass('hide');
             etv_window.find('.global').hide();
         }
         else {
-            $(this).find('i').first().addClass('empty');
+            global_icon.removeClass('hide').addClass('unhide');
             etv_window.find('.global').show();
         }
     });

@@ -454,9 +454,6 @@ class GetETV(object):
                 parsed_trace.add_line(edge_data)
         parsed_trace.finish_error_lines(self.__get_thread(i), i)
 
-        with open('thread-%s.json' % i, mode='w', encoding='utf8') as fp:
-            json.dump(parsed_trace.lines, fp, indent=2)
-
         for sc in parsed_trace.assume_scopes:
             as_cnt = 0
             for a in parsed_trace.assume_scopes[sc]:
