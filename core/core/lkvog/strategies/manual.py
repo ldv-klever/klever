@@ -31,6 +31,12 @@ class Manual(AbstractStrategy):
             for module in self.groups.keys():
                 ret.extend(self.divide(module))
             return ret
+        elif module_name.endswith('.o'):
+            # This is subsystem
+            for module in self.groups.keys():
+                if module.startswith(module_name):
+                    ret.extend(self.divide(module))
+            return ret
 
         if module_name.startswith('ext-modules/'):
             is_external = True

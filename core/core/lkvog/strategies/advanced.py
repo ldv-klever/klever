@@ -272,6 +272,13 @@ class Advanced(AbstractStrategy):
             for module in sorted(self.modules.keys()):
                 ret.update(self.divide(module))
             return ret
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            ret = set()
+            for module in sorted(self.modules.keys()):
+                if module.startswith(module_name):
+                    ret.update(self.divide(module))
+            return ret
 
         if module_name not in self.modules:
             # This module has no dependencies
