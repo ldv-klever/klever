@@ -19,6 +19,7 @@ from core.avtg.emg.common import get_necessary_conf_property
 from core.avtg.emg.common.signature import import_declaration
 from core.avtg.emg.common.process import Condition, Dispatch, Receive, Call, Label, Process
 
+
 class EntryProcessGenerator:
 
     def __init__(self, logger, conf):
@@ -35,13 +36,13 @@ class EntryProcessGenerator:
         """
         additional_processes = list()
 
-        with_insmod = get_necessary_conf_property('generate insmod scenario')
+        with_insmod = get_necessary_conf_property(self.__conf, 'generate insmod scenario')
         if with_insmod:
             self.__logger.info('Generate insmod scenario')
-            insmod = self.__generate_insmod_process(analysis, not with_insmod)
+            insmod = self.__generate_insmod_process(analysis, with_insmod)
             additional_processes.append(insmod)
         self.__logger.info('Entry point scenario')
-        entry_process = self.__generate_base_process(with_insmod)
+        entry_process = self.__generate_base_process(not with_insmod)
 
         return entry_process, additional_processes
 
@@ -77,32 +78,44 @@ class EntryProcessGenerator:
         ep.identifier = 0
 
         # Add register
-        init = ep.add_condition('init', [], ["ldv_initialize();"], "Begin main scenario")
-        self.entry_process.process = '({})'.format(init.name)
+        init = ep.add_condition('init', [], ["ldv_initialize();"], "Initialize rule models.")
+        ep.process = '({}).'.format(init.name)
 
         # Add default dispatches
         if default_dispatches:
             expr = self.__generate_default_dispatches(ep)
-            self.entry_process.process += expr
+            ep.process += expr
+        else:
+            # Add insmod signals
+            regd = Dispatch('insmod_register')
+            regd.comment = 'Start environment model scenarios.'
+            ep.actions[regd.name] = regd
+            derd = Dispatch('insmod_deregister')
+            derd.comment = 'Stop environment model scenarios.'
+            ep.actions[derd.name] = derd
+            ep.process += "[{}].[{}]".format(regd.name, derd.name)
 
         # Generate final
-        final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_stop();"], "Finish main scenario")
-        self.entry_process.process += '.<{}>'.format(final.name)
+        final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_stop();"],
+                                 "Check rule model state at the exit.")
+        ep.process += '.<{}>'.format(final.name)
 
         self.__logger.debug("Main process is generated")
+        return ep
 
     def __generate_insmod_process(self, analysis, default_dispatches=False):
         self.__logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
         ep = Process("insmod")
         ep.category = "entry"
         ep.identifier = 0
-        ep = ep
 
         # Add register
         insmod_register = Receive('insmod_register')
+        insmod_register.replicative = True
+        insmod_register.comment = 'Trigger module initialization.'
         insmod_register.parameters = []
         ep.actions[insmod_register.name] = insmod_register
-        self.entry_process.process = '({})'.format(insmod_register.name)
+        ep.process = '(!{}).'.format(insmod_register.name)
 
         if len(analysis.inits) == 0:
             raise RuntimeError('Module does not have Init function')
@@ -160,8 +173,13 @@ class EntryProcessGenerator:
         failed = ep.add_condition('init_failed', ["%ret% != 0"], [], "Failed to initialize the module.")
         ep.actions[failed.name] = failed
 
+        # Add deregister
+        insmod_deregister = Receive('insmod_deregister')
+        insmod_deregister.comment = 'Trigger module exit.'
+        insmod_deregister.parameters = []
+        ep.actions[insmod_deregister.name] = insmod_deregister
+
         # Add subprocesses finally
-        ep.process = ""
         for i, pair in enumerate(analysis.inits):
             ep.process += "[{0}].(<init_failed>.".format(pair[1])
             for j, pair2 in enumerate(analysis.exits[::-1]):
@@ -170,127 +188,79 @@ class EntryProcessGenerator:
             j = 1
             for _, exit_name in analysis.exits[:j - 1:-1]:
                 ep.process += "[{}].".format(exit_name)
-            ep.process += "<stop>|<init_success>."
+            ep.process += "({})|<init_success>.".format(insmod_deregister.name)
 
         # Add default dispatches
         if default_dispatches:
             expr = self.__generate_default_dispatches(ep)
             ep.process += "{}.".format(expr)
-                    
-        # Add deregister
-        insmod_deregister = Dispatch('insmod_deregister')
-        insmod_deregister.parameters = []
-        ep.actions[insmod_deregister.name] = insmod_deregister
 
         for _, exit_name in analysis.exits:
             ep.process += "[{}].".format(exit_name)
-        ep.process += "[{}]".format(insmod_deregister.name)
+        ep.process += "({})".format(insmod_deregister.name)
         ep.process += ")" * len(analysis.inits)
         self.__logger.debug("Artificial process for invocation of Init and Exit module functions is generated")
+        return ep
 
     def __generate_default_dispatches(self, process):
 
-        def make_signal(prs, rp, ra):
-            # Add parameters to alloc memory
-            prs.update(ra.parameters)
-            # Change signal name
-            # Generate artificial dispatch action
-            # Add generated action to the entry pocess
-            return None
+        def make_signal(sp, rp, ra):
+            # Change name
+            signal_name = "default_{}_{}".format(ra.name, rp.identifier)
+            rp.rename_action(ra.name, signal_name)
 
-        for receiver in (p['process'] for p in self.__default_signals):
-            labels_to_init = set()
+            # Deregister dispatch
+            self.__logger.debug("Generate copy of receive {} and make dispatch from it".format(ra.name))
+            new_dispatch = Dispatch(ra.name)
+
+            # Remove parameters
+            new_dispatch.parameters = []
+            ra.parameters = []
+
+            # Replace condition
+            new_dispatch.condition = None
+            ra.condition = None
+
+            sp.actions[new_dispatch.name] = new_dispatch
+            return new_dispatch
+
+        for receiver in (self.__default_signals[n]['process'] for n in self.__default_signals):
             activations = list()
             deactivations = list()
 
             # Process activation signals
             for activation in self.__default_signals[receiver.name]['activation']:
-                nd = make_signal(labels_to_init, receiver, activation)
+                # Alloc memory after default registraton
+                allocation_name = 'default_alloc_{}'.format(receiver.identifier)
+                receiver.add_condition(allocation_name, [],
+                                       ['{0} = $UALLOC({0});'.format(name) for name in activation.parameters],
+                                       "Alloc memory after default registration.")
+                receiver.insert_action(activation.name, after='<{}>'.format(allocation_name))
+
+                # Rename and make dispatch
+                nd = make_signal(process, receiver, activation)
+                nd.comment = "Register {0!r} callbacks with unknown registration function."
                 activations.append(nd)
+
             # process deactivation signals
             for deactivation in self.__default_signals[receiver.name]['deactivation']:
-                nd = make_signal(labels_to_init, receiver, deactivation)
+                # Free memory after default deregistraton
+                free_name = 'default_free_{}'.format(receiver.identifier)
+                receiver.add_condition(free_name, [],
+                                       ['$FREE({0});'.format(name) for name in deactivation.parameters],
+                                       "Free memory before default deregistration.")
+                receiver.insert_action(deactivation.name, before='<{}>'.format(free_name))
+
+                nd = make_signal(process, receiver, deactivation)
+                nd.comment = "Deregister {0!r} callbacks with unknown deregistration function."
                 deactivations.append(nd)
 
-            # Generate alloc action
-            process.add_condition('default_alloc', [], [],
-                                  "Alloc memory to perform registration of callbacks for which an activation event is "
-                                  "undetermined.")
+            process.add_condition('none', [], [], 'Skip default callbacks registrations and deregistrations.')
+            activation_expr = ["[@{}]".format(a.name) for a in activations]
+            deactivation_expr = ["[@{}]".format(a.name) for a in reversed(deactivations)]
+            expression = "({} | <none>)".format(".".join(activation_expr + deactivation_expr))
 
-            # Generate free action
+            return expression
 
-            # Generate expression
-
-
-            # Change name
-            new_subprocess_name = "{}_{}_{}".format(receive.name, process.name, process.identifier)
-            rename_subprocess(process, receive.name, new_subprocess_name)
-
-            # Deregister dispatch
-            self.logger.debug("Generate copy of receive {} and make dispatch from it".format(receive.name))
-            new_dispatch = Dispatch(receive.name)
-
-            # Peer these subprocesses
-            new_dispatch.peers.append(
-                {
-                    "process": process,
-                    "subprocess": process.actions[new_dispatch.name]
-                })
-            process.actions[new_dispatch.name].peers.append(
-                {
-                    "process": self.entry_process,
-                    "subprocess": new_dispatch
-                })
-
-            self.logger.debug("Save dispatch {!r} to be default".format(new_dispatch.name))
-
-            # todo: implement it taking into account that each parameter may have sevaral implementations
-            # todo: relevant to issue #6566
-            # Add labels if necessary
-            # for index in range(len(new_dispatch.parameters)):
-            #    parameter = new_dispatch.parameters[index]
-            #
-            #    # Get label
-            #    label, tail = process.extract_label_with_tail(parameter)
-            #
-            #    # Copy label to add to dispatcher process
-            #    new_label_name = "{}_{}_{}".format(process.name, label.name, process.identifier)
-            #    if new_label_name not in self.entry_process.labels:
-            #        new_label = copy.deepcopy(label)
-            #        new_label.name = new_label_name
-            #        self.logger.debug("To process {} add new label {}".format(self.entry_process.name, new_label_name))
-            #        self.entry_process.labels[new_label.name] = new_label
-            #    else:
-            #        self.logger.debug("Process {} already has label {}".format(self.entry_process.name, new_label_name))
-            #
-            #    # Replace parameter
-            #    new_dispatch.parameters[index] = parameter.replace(label.name, new_label_name)
-            new_dispatch.parameters = []
-            receive.parameters = []
-
-            # Replace condition
-            # todo: do this according to parameters (relevant to issue #6566)
-            new_dispatch.condition = None
-            receive.condition = None
-
-            new_dispatch.comment = "Deregister {0!r} callbacks with unknown deregistration function."
-            new_dispatch.comment = "Register {0!r} callbacks with unknown registration function."
-
-            # All default registrations and then deregistrations
-            names = [name for name in sorted(self.entry_process.actions.keys())
-                     if type(self.entry_process.actions[name]) is Dispatch]
-            for name in names:
-                self.entry_process.actions[name].broadcast = True
-            names.sort()
-            names.reverse()
-            names[len(names):] = reversed(names[len(names):])
-            dispatches.extend(["[@{}]".format(name) for name in names])
-
-            none = Condition('none')
-            none.comment = 'Skip registration of callbacks for which registration and deregistration methods has not been ' \
-                           'found.'
-            none.type = "condition"
-            self.entry_process.actions['none'] = none
-
-            return [new_dispatch.name, new_dispatch]
+__author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 

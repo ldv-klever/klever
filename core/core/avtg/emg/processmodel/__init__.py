@@ -281,11 +281,15 @@ class ProcessModel:
     def __normalize_model(self, analysis):
         # Peer processes with models
         self.logger.info("Try to establish connections between process dispatches and receivings")
-        for model in self.model_processes:
-            for process in self.event_processes:
+        for process in self.event_processes:
+            for model in self.model_processes:
                 self.logger.debug("Analyze signals of processes {} and {} in the model with identifiers {} and {}".
                                   format(model.name, process.name, model.identifier, process.identifier))
                 model.establish_peers(process)
+
+            # Peer with entry process
+            if self.entry_process:
+                self.entry_process.establish_peers(process)
 
         # Peer processes with each other
         for index1 in range(len(self.event_processes)):
@@ -298,7 +302,7 @@ class ProcessModel:
         self.logger.info("Check which callbacks can be called in the intermediate environment model")
         for process in [process for process in self.model_processes] + \
                 [process for process in self.event_processes]:
-            self.logger.debug("Check process callback calls at process {} with category {}".
+            self.logger.debug("Check process callback calls at process {!r} with category {!r}".
                               format(process.name, process.category))
 
             for action in sorted(process.calls, key=lambda a: a.callback):
