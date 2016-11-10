@@ -20,6 +20,9 @@
             "entry point": "ldv_entry_point",
             "callstack deep search": 3,
             "intermediate model options": {
+              "generate insmod scenario": true,
+              "add missing activation signals": ["register", "instance_register", "irq_register"],
+              "add missing deactivation signals": ["deregister", "instance_deregister", "irq_deregister"],
               "ignore missed callbacks": true,
               "roles map file": "linux/emg/roles match.json",
               "callback comment": "Invoke callback {0!r} from {1!r}.",

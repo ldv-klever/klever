@@ -255,9 +255,7 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        body = [
-            "ldv_initialize();",
-        ] + body + given_body
+        body += given_body
 
         ep.body = body
         self.add_function_definition(self.entry_file, ep)
