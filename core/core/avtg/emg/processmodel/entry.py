@@ -84,7 +84,8 @@ class EntryProcessGenerator:
         # Add default dispatches
         if default_dispatches:
             expr = self.__generate_default_dispatches(ep)
-            ep.process += expr
+            if expr:
+                ep.process += "{}.".format(expr)
         else:
             # Add insmod signals
             regd = Dispatch('insmod_register')
@@ -193,7 +194,8 @@ class EntryProcessGenerator:
         # Add default dispatches
         if default_dispatches:
             expr = self.__generate_default_dispatches(ep)
-            ep.process += "{}.".format(expr)
+            if expr:
+                ep.process += "{}.".format(expr)
 
         for _, exit_name in analysis.exits:
             ep.process += "[{}].".format(exit_name)
@@ -224,10 +226,9 @@ class EntryProcessGenerator:
             sp.actions[new_dispatch.name] = new_dispatch
             return new_dispatch
 
+        activations = list()
+        deactivations = list()
         for receiver in (self.__default_signals[n]['process'] for n in self.__default_signals):
-            activations = list()
-            deactivations = list()
-
             # Process activation signals
             for activation in self.__default_signals[receiver.name]['activation']:
                 # Alloc memory after default registraton
@@ -255,12 +256,15 @@ class EntryProcessGenerator:
                 nd.comment = "Deregister {0!r} callbacks with unknown deregistration function."
                 deactivations.append(nd)
 
+        if len(activations + deactivations) == 0:
+            expression = None
+        else:
             process.add_condition('none', [], [], 'Skip default callbacks registrations and deregistrations.')
             activation_expr = ["[@{}]".format(a.name) for a in activations]
             deactivation_expr = ["[@{}]".format(a.name) for a in reversed(deactivations)]
             expression = "({} | <none>)".format(".".join(activation_expr + deactivation_expr))
 
-            return expression
+        return expression
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
 
