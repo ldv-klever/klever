@@ -776,7 +776,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                   ', '.join(param_types))
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
             else:
-                name = 'ldv_{}_{}_{}'.format(automaton.process.category, automaton.process.name, automaton.identifier)
+                name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)
                 cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *data)', False)
 
             self._control_functions[automaton.identifier] = cf
