@@ -17,7 +17,7 @@
         {
           "EMG": {
             "specifications directory": "linux/",
-            "entry point": "ldv_entry_point",
+            "entry point": "main",
             "callstack deep search": 3,
             "intermediate model options": {
               "generate insmod scenario": true,

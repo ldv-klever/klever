@@ -220,7 +220,7 @@ class CModel:
         ep = FunctionDefinition(
             self.entry_name,
             self.entry_file,
-            "void {}(void)".format(self.entry_name),
+            "int {}(void)".format(self.entry_name),
             False
         )
         body = []
@@ -256,9 +256,11 @@ class CModel:
             ])
 
         body += given_body
+        body.append('return 0;')
 
         ep.body = body
         self.add_function_definition(self.entry_file, ep)
+
         return body
 
 
