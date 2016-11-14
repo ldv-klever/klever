@@ -75,7 +75,7 @@ class ParseErrorTrace:
     def __init__(self, data, include_assumptions, thread_id):
         self.cnt = 0
         self.has_main = False
-        self.max_line_length = 1
+        self.max_line_length = 4
         self.scope_stack = ['global']
         self.assume_scopes = {'global': []}
         self.scopes_to_show = set()
@@ -122,8 +122,9 @@ class ParseErrorTrace:
             self.scope_stack.append('scope__klever_main__0')
             self.scopes_to_show.add(self.scope_stack[-1])
             line_data['scope'] = self.scope_stack[-1]
-        line_data.update(self.__get_note(edge.get('note')))
-        line_data.update(self.__get_warn(edge.get('warn')))
+        if 'action' not in edge:
+            line_data.update(self.__get_note(edge.get('note')))
+            line_data.update(self.__get_warn(edge.get('warn')))
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
 
@@ -146,7 +147,11 @@ class ParseErrorTrace:
                     self.actions[edge['action']]
                 )
                 enter_action_data.update(self.__enter_function('action__%s' % edge['action'], None))
+                if edge['action'] in self.callback_actions:
+                    enter_action_data['type'] = 'callback'
                 self.lines.append(enter_action_data)
+                line_data.update(self.__get_note(edge.get('note')))
+                line_data.update(self.__get_warn(edge.get('warn')))
                 line_data.update(self.__update_line_data())
 
         if 'enter' in edge:
@@ -319,8 +324,9 @@ class ParseErrorTrace:
             })
         if len(self.global_lines) > 0:
             self.lines = [{
-                'code': '<span class="ETV_GlobalExpander">Global initialization</span>',
-                'line': None, 'file': None, 'offset': ' ', 'hide_id': 'global_scope'
+                'code': '<span class="ETV_GlobalExpander">Global variable declarations</span>',
+                'line': None, 'file': None, 'offset': ' ', 'hide_id': 'global_scope',
+                'scope': 'global', 'type': 'normal'
             }] + self.global_lines + self.lines
         for i in range(0, len(self.lines)):
             if 'thread_id' in self.lines[i]:
@@ -336,15 +342,17 @@ class ParseErrorTrace:
             other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
             self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
-            if 'scope' not in self.lines[i]:
-                continue
+            if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
+                self.lines[i]['type'] = 'eye-control'
+            elif self.lines[i]['type'] == 'enter' and self.lines[i]['hide_id'] not in self.scopes_to_show:
+                self.lines[i]['type'] = 'eye-control'
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = self.lines[i]['scope'] not in self.scopes_to_show
             d = 'hide_id' not in self.lines[i] or self.lines[i]['hide_id'] is None
             e = 'hide_id' in self.lines[i] and self.lines[i]['hide_id'] is not None \
                 and self.lines[i]['hide_id'] not in self.scopes_to_show
-            f = self.lines[i]['scope'] != 'scope__klever_main__0' and self.lines[i]['type'] == 'normal'
+            f = self.lines[i]['type'] == 'eye-control'
             if a or b and (d or e or c) or not a and not b and c and (d or e) or f:
                 self.lines[i]['hidden'] = True
                 if e:

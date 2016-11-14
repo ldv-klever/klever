@@ -83,11 +83,11 @@ $(document).ready(function () {
         var global_icon = $(this).find('i').first();
         if (global_icon.hasClass('unhide')) {
             global_icon.removeClass('unhide').addClass('hide');
-            etv_window.find('.global').hide();
+            etv_window.find('.global').show();
         }
         else {
             global_icon.removeClass('hide').addClass('unhide');
-            etv_window.find('.global').show();
+            etv_window.find('.global').hide();
         }
     });
 
@@ -101,43 +101,48 @@ $(document).ready(function () {
             last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
-            if (whole_line.find('.ETV_ShowCode').find('i').hasClass('hide')) {
-                whole_line.find('.ETV_ShowCode').click();
-            }
-            whole_line.find('.ETV_ShowCode').hide();
+            whole_line.find('.ETV_ShowCode').remove();
+            whole_line.find('.ETV_FuncCode').hide();
+            whole_line.find('.ETV_FuncName').show();
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 if (next_line.attr('data-thread') == curr_thread) {
-                    var showcode_link = next_line.find('.ETV_ShowCode');
-                    if (showcode_link.length == 1 && showcode_link.find('i').hasClass('hide')) {
-                        showcode_link.click();
-                    }
+                    next_line.find('.ETV_ShowCode').remove();
                     next_line.hide();
-                    if (event.shiftKey) {
-                        if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
+                    if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
+                        if (event.shiftKey) {
+                            next_line.find('.ETV_FuncCode').hide();
+                            next_line.find('.ETV_FuncName').show();
                             next_line.addClass('func_collapsed');
                             next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
                         }
+                        else {
+                            next_line.find('.ETV_FuncCode').show();
+                            next_line.find('.ETV_FuncName').hide();
+                        }
                     }
                 }
+
                 next_line = next_line.next('span');
             }
             last_selector.hide();
         }
         else {
-            whole_line.find('.ETV_ShowCode').show();
             $(this).children('i').first().attr('class', expanded);
             whole_line.removeClass('func_collapsed');
+            whole_line.find('.ETV_FuncCode').show();
+            whole_line.find('.ETV_FuncName').hide();
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 if (!(next_line.hasClass('commented') && (next_line.hasClass('func_collapsed') || next_line.find('a[class="ETV_HideLink"]').length == 0))) {
-                    if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'normal') {
+                    if (next_line.attr('data-thread') == curr_thread) {
                         next_line.show();
                     }
                 }
                 if (next_line.hasClass('func_collapsed')) {
-                    if (event.shiftKey && curr_thread == next_line.attr('data-thread') && next_line.attr('data-type') != 'normal') {
-                        next_line.find('.ETV_ShowCode').show();
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
+                        next_line.find('.ETV_FuncCode').show();
+                        next_line.find('.ETV_FuncName').hide();
                         next_line.show();
                         next_line.removeClass('func_collapsed');
                         next_line.find('i[class="' + collapsed + '"]').attr('class', expanded);
@@ -150,7 +155,7 @@ $(document).ready(function () {
                     }
                 }
                 else {
-                    if (event.shiftKey && curr_thread == next_line.attr('data-thread') && next_line.attr('data-type') != 'normal') {
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
                         next_line.show();
                     }
                     next_line = next_line.next('span');
@@ -456,7 +461,8 @@ $(document).ready(function () {
             whole_line.find('.ETV_FuncCode').show();
             whole_line.find('.ETV_FuncName').hide();
             $('.' + scope).each(function () {
-                if ($(this).attr('data-type') == 'normal') {
+                var curr_line_type = $(this).attr('data-type');
+                if ((curr_line_type == 'normal' || curr_line_type == 'eye-control') && (!$(this).hasClass('commented'))) {
                     $(this).show();
                 }
             });
@@ -466,7 +472,8 @@ $(document).ready(function () {
             whole_line.find('.ETV_FuncCode').hide();
             whole_line.find('.ETV_FuncName').show();
             $('.' + scope).each(function () {
-                if ($(this).attr('data-type') == 'normal') {
+                var curr_line_type = $(this).attr('data-type');
+                if ((curr_line_type == 'normal' || curr_line_type == 'eye-control') && (!$(this).hasClass('commented'))) {
                     $(this).hide();
                 }
             });
