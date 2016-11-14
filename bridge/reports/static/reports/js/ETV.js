@@ -101,14 +101,12 @@ $(document).ready(function () {
             last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
-            whole_line.find('.ETV_ShowCode').remove();
             whole_line.find('.ETV_FuncCode').hide();
             whole_line.find('.ETV_FuncName').show();
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
                 if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'hidden-return') {
-                    next_line.find('.ETV_ShowCode').remove();
                     next_line.hide();
                     if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
                         if (event.shiftKey) {
@@ -117,16 +115,14 @@ $(document).ready(function () {
                             next_line.addClass('func_collapsed');
                             next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
                         }
-                        else {
-                            next_line.find('.ETV_FuncCode').show();
-                            next_line.find('.ETV_FuncName').hide();
-                        }
                     }
                 }
 
                 next_line = next_line.next('span');
             }
-            last_selector.hide();
+            if (last_selector.attr('data-type') != 'hidden-return') {
+                last_selector.hide();
+            }
         }
         else {
             $(this).children('i').first().attr('class', expanded);
@@ -459,9 +455,7 @@ $(document).ready(function () {
     });
 
     $('.ETV_ShowCode').click(function () {
-        var whole_line = $(this).parent().parent(),
-            scope = whole_line.find('.ETV_HideLink').attr('id'),
-            showcode_icon = $(this).find('i');
+        var whole_line = $(this).parent().parent(), scope = $(this).attr('id'), showcode_icon = $(this).find('i');
         if (showcode_icon.hasClass('unhide')) {
             showcode_icon.removeClass('unhide').addClass('hide');
             whole_line.find('.ETV_FuncCode').show();

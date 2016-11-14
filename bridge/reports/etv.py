@@ -72,7 +72,7 @@ def get_error_trace_nodes(data):
 
 
 class ParseErrorTrace:
-    def __init__(self, data, include_assumptions, thread_id):
+    def __init__(self, data, include_assumptions, thread_id, triangles):
         self.cnt = 0
         self.has_main = False
         self.max_line_length = 5
@@ -94,6 +94,7 @@ class ParseErrorTrace:
         self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
         self.functions = list(data['funcs']) if 'funcs' in data else []
         self.include_assumptions = include_assumptions
+        self.triangles = triangles
 
     def add_line(self, edge):
         line = str(edge['start line']) if 'start line' in edge else None
@@ -229,6 +230,10 @@ class ParseErrorTrace:
             'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
             'line': None, 'hide_id': None, 'offset': self.__curr_offset(), 'scope': last_scope, 'type': 'return'
         }
+        if last_scope in self.scopes_to_show:
+            line_data['code'] = '<span><i class="ui mini icon blue caret up"></i></span>'
+            if not self.triangles:
+                line_data['type'] = 'hidden-return'
         curr_scope = self.scope_stack[-1]
         if curr_scope in self.double_return:
             self.double_return.remove(curr_scope)
@@ -239,11 +244,6 @@ class ParseErrorTrace:
     def __show_scope(self, comment_type):
         if comment_type == 'note':
             if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
-                for ss in self.scope_stack[1:]:
-                    if ss not in self.scopes_to_show:
-                        self.scopes_to_show.add(ss)
-        elif comment_type == 'action':
-            if all(ss not in self.scopes_to_hide and ss not in self.scopes_to_hide_action for ss in self.scope_stack):
                 for ss in self.scope_stack[1:]:
                     if ss not in self.scopes_to_show:
                         self.scopes_to_show.add(ss)
@@ -314,14 +314,17 @@ class ParseErrorTrace:
             return ' '
         return ((len(self.scope_stack) - 2) * TAB_LENGTH + 1) * ' '
 
-    def finish_error_lines(self, thread, thread_id, triangles):
+    def finish_error_lines(self, thread, thread_id):
         while len(self.scope_stack) > 2:
             poped_scope = self.scope_stack.pop()
-            if triangles:
+            if self.triangles:
+                if poped_scope in self.scopes_to_show:
+                    ret_code = '<span><i class="ui mini icon blue caret up"></i></span>'
+                else:
+                    ret_code = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
                 end_triangle = {
-                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                    'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
-                    'scope': poped_scope, 'type': 'return'
+                    'code': ret_code, 'line': None, 'hide_id': None,
+                    'offset': self.__curr_offset(), 'scope': poped_scope, 'type': 'return'
                 }
             else:
                 end_triangle = {
@@ -351,7 +354,8 @@ class ParseErrorTrace:
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
             if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
                 self.lines[i]['type'] = 'eye-control'
-            elif self.lines[i]['type'] == 'enter' and self.lines[i]['hide_id'] not in self.scopes_to_show:
+            elif self.lines[i]['type'] == 'enter' and self.lines[i]['scope'] != 'scope__klever_main__0' \
+                    and self.lines[i]['hide_id'] not in self.scopes_to_show:
                 self.lines[i]['type'] = 'eye-control'
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
@@ -455,7 +459,7 @@ class GetETV(object):
         return self.__add_thread_lines(0)
 
     def __add_thread_lines(self, i):
-        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i)
+        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles)
         prev_t = i
         trace_assumes = []
         for n in self.err_trace_nodes:
@@ -468,7 +472,7 @@ class GetETV(object):
             prev_t = curr_t
             if edge_data['thread'] == self.threads[i]:
                 parsed_trace.add_line(edge_data)
-        parsed_trace.finish_error_lines(self.__get_thread(i), i, self.triangles)
+        parsed_trace.finish_error_lines(self.__get_thread(i), i)
 
         for sc in parsed_trace.assume_scopes:
             as_cnt = 0
