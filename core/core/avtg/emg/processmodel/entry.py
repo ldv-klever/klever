@@ -235,7 +235,7 @@ class EntryProcessGenerator:
                 allocation_name = 'default_alloc_{}'.format(receiver.identifier)
                 receiver.add_condition(allocation_name, [],
                                        ['{0} = $UALLOC({0});'.format(name) for name in activation.parameters],
-                                       "Alloc memory after default registration.")
+                                       "Allocate memory after default registration.")
                 receiver.insert_action(activation.name, after='<{}>'.format(allocation_name))
 
                 # Rename and make dispatch
