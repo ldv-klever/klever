@@ -452,8 +452,8 @@ class GetETV(object):
     def __html_trace(self):
         for n in self.err_trace_nodes:
             if 'thread' not in self.data['edges'][n]:
-                self.data['edges'][n]['thread'] = 'fake'
-                # raise ValueError('All error trace edges should have thread')
+                # self.data['edges'][n]['thread'] = 'fake'
+                raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])
         return self.__add_thread_lines(0)
