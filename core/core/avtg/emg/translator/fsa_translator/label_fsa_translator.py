@@ -189,8 +189,7 @@ class LabelTranslator(FSATranslator):
     def _entry_point(self):
         self._logger.info("Finally generate an entry point function {!r}".format(self._cmodel.entry_name))
         body = [
-            '{}(0);'.format(self._control_function(self._entry_fsa).name),
-            'return;'
+            '{}(0);'.format(self._control_function(self._entry_fsa).name)
         ]
         return self._cmodel.compose_entry_point(body)
 

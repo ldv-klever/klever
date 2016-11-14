@@ -110,19 +110,19 @@
             "callback": true
           }
         },
-        "process": "(!instance_register).(<alloc_interface>.{manage_interface} | (instance_deregister))",
+        "process": "(!register).(<alloc_interface>.{manage_interface} | (deregister))",
         "actions": {
           "manage_interface": {
             "comment": "Manage particular interface on a device.",
-            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].[resume] | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(instance_deregister)"
+            "process": "[probe].(<probe_success>.((usb_reset).[pre].[post] | [suspend].[resume] | [callback] | <skip>).[release] | <failed_probe>).{manage_interface} | <free_interface>.(deregister)"
           },
-          "instance_register": {
-            "comment": "USB callbacks invocation scenario.",
+          "register": {
+            "comment": "Begin USB callbacks invocation scenario.",
             "parameters": [
               "%container%"
             ]
           },
-          "instance_deregister": {
+          "deregister": {
             "condition": [
               "%container% == $ARG1"
             ],
@@ -131,7 +131,7 @@
             ]
           },
           "alloc_interface": {
-            "comment": "Initialize new USB interface.",
+            "comment": "Alloc memory and initialize new USB interface.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
               "%usb_device% = $ALLOC(%usb_device%);",
