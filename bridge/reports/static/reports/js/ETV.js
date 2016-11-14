@@ -107,7 +107,7 @@ $(document).ready(function () {
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
-                if (next_line.attr('data-thread') == curr_thread) {
+                if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'hidden-return') {
                     next_line.find('.ETV_ShowCode').remove();
                     next_line.hide();
                     if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
@@ -134,6 +134,10 @@ $(document).ready(function () {
             whole_line.find('.ETV_FuncCode').show();
             whole_line.find('.ETV_FuncName').hide();
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
+                if (next_line.attr('data-type') == 'hidden-return') {
+                    next_line = next_line.next('span');
+                    continue;
+                }
                 if (!(next_line.hasClass('commented') && (next_line.hasClass('func_collapsed') || next_line.find('a[class="ETV_HideLink"]').length == 0))) {
                     if (next_line.attr('data-thread') == curr_thread) {
                         next_line.show();
@@ -161,7 +165,9 @@ $(document).ready(function () {
                     next_line = next_line.next('span');
                 }
             }
-            last_selector.show();
+            if (last_selector.attr('data-type') != 'hidden-return') {
+                last_selector.show();
+            }
         }
     });
     $('.ETV_DownHideLink').click(function () {
@@ -473,7 +479,7 @@ $(document).ready(function () {
             whole_line.find('.ETV_FuncName').show();
             $('.' + scope).each(function () {
                 var curr_line_type = $(this).attr('data-type');
-                if ((curr_line_type == 'normal' || curr_line_type == 'eye-control') && (!$(this).hasClass('commented'))) {
+                if (($(this).hasClass('func_collapsed') || $(this).find('a[class="ETV_HideLink"]').length == 0) && (curr_line_type == 'normal' || curr_line_type == 'eye-control')) {
                     $(this).hide();
                 }
             });

@@ -290,7 +290,7 @@ def report_leaf(request, leaf_type, report_id):
             logger.error(afc.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
         try:
-            etv = GetETV(afc.content, request.user.extended.assumptions)
+            etv = GetETV(afc.content, request.user)
         except Exception as e:
             logger.exception(e, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
@@ -347,7 +347,7 @@ def report_etv_full(request, report_id):
     try:
         return render(request, 'reports/etv_fullscreen.html', {
             'report': report,
-            'etv': GetETV(afc.content, request.user.extended.assumptions),
+            'etv': GetETV(afc.content, request.user),
             'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:

@@ -75,7 +75,7 @@ class ParseErrorTrace:
     def __init__(self, data, include_assumptions, thread_id):
         self.cnt = 0
         self.has_main = False
-        self.max_line_length = 4
+        self.max_line_length = 5
         self.scope_stack = ['global']
         self.assume_scopes = {'global': []}
         self.scopes_to_show = set()
@@ -314,14 +314,21 @@ class ParseErrorTrace:
             return ' '
         return ((len(self.scope_stack) - 2) * TAB_LENGTH + 1) * ' '
 
-    def finish_error_lines(self, thread, thread_id):
+    def finish_error_lines(self, thread, thread_id, triangles):
         while len(self.scope_stack) > 2:
             poped_scope = self.scope_stack.pop()
-            self.lines.append({
-                'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-                'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
-                'scope': poped_scope, 'type': 'return'
-            })
+            if triangles:
+                end_triangle = {
+                    'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
+                    'line': None, 'hide_id': None, 'offset': self.__curr_offset(),
+                    'scope': poped_scope, 'type': 'return'
+                }
+            else:
+                end_triangle = {
+                    'code': None, 'line': None, 'hide_id': None, 'offset': '',
+                    'scope': poped_scope, 'type': 'hidden-return'
+                }
+            self.lines.append(end_triangle)
         if len(self.global_lines) > 0:
             self.lines = [{
                 'code': '<span class="ETV_GlobalExpander">Global variable declarations</span>',
@@ -425,8 +432,9 @@ class ParseErrorTrace:
 
 
 class GetETV(object):
-    def __init__(self, error_trace, include_assumptions=True):
-        self.include_assumptions = include_assumptions
+    def __init__(self, error_trace, user):
+        self.include_assumptions = user.extended.assumptions
+        self.triangles = user.extended.triangles
         self.data = json.loads(error_trace)
         self.err_trace_nodes = get_error_trace_nodes(self.data)
         self.threads = []
@@ -460,7 +468,7 @@ class GetETV(object):
             prev_t = curr_t
             if edge_data['thread'] == self.threads[i]:
                 parsed_trace.add_line(edge_data)
-        parsed_trace.finish_error_lines(self.__get_thread(i), i)
+        parsed_trace.finish_error_lines(self.__get_thread(i), i, self.triangles)
 
         for sc in parsed_trace.assume_scopes:
             as_cnt = 0
