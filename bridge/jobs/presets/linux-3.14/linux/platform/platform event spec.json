@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "__platform_driver_register": {
+        "comment": "Register a driver for platform-level device.",
         "labels": {
           "platform_driver": {
             "container": true,
@@ -9,37 +10,38 @@
             "interface": [
               "platform.platform_driver"
             ]
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[register] | <none>).<return>",
+        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
           "register": {
+            "comment": "Register 'platform_driver' callbacks.",
             "parameters": [
               "%platform_driver%"
             ]
           },
-          "none": {
+          "fail": {
+            "comment": "Fail to register a driver for platform-level device.",
             "statements": [
-              "%res% = ldv_undef_int_negative();"
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
+            "comment": "Get 'platform_driver' argument.",
             "statements": [
-              "%platform_driver% = $ARG1;",
-              "%res% = 0;"
+              "%platform_driver% = $ARG1;"
             ]
           },
-          "return": {
+          "success": {
+            "comment": "Successfully registered a driver for platform-level device.",
             "statements": [
-              "return %res%;"
+              "return 0;"
             ]
           }
         }
       },
       "platform_driver_probe": {
+        "comment": "Register a driver for non-hotpluggable platform-level device.",
         "labels": {
           "platform_driver": {
             "container": true,
@@ -54,39 +56,40 @@
             "interface": [
               "platform.probe"
             ]
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[register] | <none>).<return>",
+        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
           "register": {
+            "comment": "Register 'platform_driver' callbacks and 'probe' routine.",
             "parameters": [
               "%platform_driver%"
             ]
           },
-          "none": {
+          "fail": {
+            "comment": "Failed to register a driver for non-hotpluggable platform-level device.",
             "statements": [
-              "%res% = ldv_undef_int_negative();"
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
+            "comment": "Get 'platform_driver' and 'probe' arguments.",
             "statements": [
               "%platform_driver% = $ARG1;",
               "%probe% = $ARG2;",
-              "%platform_driver.probe%=%probe%;",
-              "%res% = 0;"
+              "%platform_driver.probe%=%probe%;"
             ]
           },
-          "return": {
+          "success": {
+            "comment": "Successfully registered a driver for non-hotpluggable platform-level device.",
             "statements": [
-              "return %res%;"
+              "return 0;"
             ]
           }
         }
       },
       "platform_driver_unregister": {
+        "comment": "Unregister a driver for platform-level device.",
         "labels": {
           "platform_driver": {
             "container": true,
@@ -99,11 +102,13 @@
         "process": "<assign>.[deregister]",
         "actions": {
           "deregister": {
+            "comment": "Deregister 'platform_driver' callbacks.",
             "parameters": [
               "%platform_driver%"
             ]
           },
           "assign": {
+            "comment": "Get 'platform_driver' argument.",
             "statements": [
               "%platform_driver% = $ARG1;"
             ]
@@ -134,12 +139,15 @@
         "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
+            "comment": "Check that device is truely in the system and begin callback invocations.",
             "process": "[probe].(<positive_probe>.{call} | <negative_probe>.{main}) | <free>.(deregister)"
           },
           "call": {
+            "comment": "Driver is probed. Call power management callbacks or release the device.",
             "process": "([callback] | [pm_register].[pm_deregister]).{call} | [release].<after_release>.{main}"
           },
           "register": {
+            "comment": "Register a driver callbacks for platform-level device.",
             "parameters": [
               "%container%"
             ]
@@ -159,12 +167,14 @@
             ]
           },
           "release": {
+            "comment": "Remove device from the system.",
             "callback": "%container.release%",
             "parameters": [
               "%resource%"
             ]
           },
           "probe": {
+            "comment": "Check that the device in the system and do driver initializations.",
             "callback": "%container.probe%",
             "parameters": [
               "%resource%"
@@ -178,34 +188,41 @@
             ]
           },
           "init": {
+            "comment": "Alloc memory for 'platform_device' structure.",
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
           },
           "free": {
+            "comment": "Free memory for 'platform_device' structure.",
             "statements": [
               "$FREE(%resource%);"
             ]
           },
           "after_release": {
+            "comment": "Platform device is released now.",
             "statements": [
               "%probed% = 1;"
             ]
           },
           "positive_probe": {
+            "comment": "Platform device is probed successfully now.",
             "condition": [
               "%probed% == 0"
             ]
           },
           "negative_probe": {
+            "comment": "Failed to probe the device.",
             "condition": [
               "%probed% != 0"
             ]
           },
           "pm_register": {
+            "comment": "Proceed to a power management scenario.",
             "parameters": []
           },
           "pm_deregister": {
+            "comment": "Finish the power management scenario.",
             "parameters": []
           }
         }

@@ -112,9 +112,11 @@
         "process": "(!register).{main}",
         "actions": {
           "main": {
+            "comment": "The RTC device is inserted in the system.",
             "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | (deregister)"
           },
           "call": {
+            "comment": "The RTC device is probed.",
             "process": "[callback].{call} | [release].{main}"
           },
           "register": {
@@ -158,11 +160,13 @@
             ]
           },
           "y_ret": {
+            "comment": "The RTC device has been successfully probed.",
             "condition": [
               "%ret% == 0"
             ]
           },
           "n_ret": {
+            "comment": "Failed to register the RTC device.",
             "condition": [
               "%ret% != 0"
             ]

@@ -116,20 +116,32 @@ def _match_exit_function(edge, stack):
 
 
 def _set_thread(data, error_trace):
-    thread = 0
+    def update_thread(stack):
+        having_thread = [f for f in stack if 'thread' in f['cf']]
+        if len(having_thread) > 0:
+            return having_thread[-1]['cf']['thread']
+        else:
+            return 0
+
     cf_stack = list()
+    current_thread = update_thread(cf_stack)
     for edge in error_trace.trace_iterator():
         # Dict changes its size, so keep it in mind
+        m = None
         if 'enter' in edge:
             m = _match_control_function(error_trace, edge, cf_stack, data)
-            if m and 'thread' in cf_stack[-1]['cf']:
-                thread = cf_stack[-1]['cf']['thread']
-        elif 'return' in edge:
+            if m:
+                # Update current thread if a transition has happen
+                current_thread = update_thread(cf_stack)
+            edge['thread'] = current_thread
+        if 'return' in edge:
             m = _match_exit_function(edge, cf_stack)
-            if m and 'thread' in cf_stack[-1]['cf']:
-                thread = cf_stack[-1]['cf']['thread']
-
-        edge['thread'] = thread
+            edge['thread'] = current_thread
+            if m:
+                # Update current thread if a transition has happen
+                current_thread = update_thread(cf_stack)
+        if not m:
+            edge['thread'] = current_thread
 
     return
 

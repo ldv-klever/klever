@@ -15,20 +15,19 @@
 # limitations under the License.
 #
 
+import glob
 import json
 import os
 import re
-import glob
 
 import core.avtg.plugins
 import core.utils
-
 from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property,\
                                  check_necessary_conf_property
 from core.avtg.emg.interface_categories import CategoriesSpecification
+from core.avtg.emg.processmodel import ProcessModel
+from core.avtg.emg.processmodel.process_parser import parse_event_specification
 from core.avtg.emg.module_categories import ModuleCategoriesSpecification
-from core.avtg.emg.process_parser import parse_event_specification
-from core.avtg.emg.intermediate_model import ProcessModel
 from core.avtg.emg.translator import translate_intermediate_model
 
 

@@ -220,7 +220,7 @@ class CModel:
         ep = FunctionDefinition(
             self.entry_name,
             self.entry_file,
-            "void {}(void)".format(self.entry_name),
+            "int {}(void)".format(self.entry_name),
             False
         )
         body = []
@@ -255,12 +255,12 @@ class CModel:
                 'ldv_initialize_external_data();'
             ])
 
-        body = [
-            "ldv_initialize();",
-        ] + body + given_body
+        body += given_body
+        body.append('return 0;')
 
         ep.body = body
         self.add_function_definition(self.entry_file, ep)
+
         return body
 
 

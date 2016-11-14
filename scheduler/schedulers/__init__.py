@@ -333,7 +333,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                "future" in self.__jobs[job_id] and self.__jobs[job_id]["future"].done()]:
                     self.__process_future(self.process_job_result, self.__jobs[job_id], job_id)
 
+                # Submit tools
+                try:
+                    logging.debug("Update information about available verification tools")
+                    self.update_tools()
+                except Exception as err:
+                    logging.warning('Cannot submit verification tools information: {}'.format(err))
+
+
                 # Get actual information about connected nodes
+                # todo: proper error checking
                 submit = True
                 try:
                     logging.debug("Update information about connected nodes")
