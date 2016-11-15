@@ -109,6 +109,7 @@ JOB_DEF_VIEW = {
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)
     # format [is] (<number>)
+    # finish_date [is, older, younger] (<month:year>)
     'filters': {
         # 'name': {
         #     'type': 'istartswith',
@@ -133,6 +134,10 @@ JOB_DEF_VIEW = {
         # 'format': {
         #     'type': 'is',
         #     'value': '1',
+        # },
+        # 'finish_date': {
+        #     'type': 'is',
+        #     'value': '1:2016',
         # },
     },
 }
