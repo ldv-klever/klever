@@ -350,8 +350,8 @@ class ParseErrorTrace:
                 self.lines[i]['line_offset'] = ' ' * self.max_line_length
             else:
                 self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
-            other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
-            self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
+            # other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
+            # self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
             if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
                 self.lines[i]['type'] = 'eye-control'
