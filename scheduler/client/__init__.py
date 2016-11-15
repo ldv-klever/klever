@@ -148,13 +148,12 @@ def solve_task(conf):
     sys.path.append(bench_exec_location)
     from benchexec.benchexec import BenchExec
 
-    # Add CPAchecker path
-    if "cpachecker location" in conf["client"]:
-        logging.info("Add CPAchecker bin location to path {}".format(conf["client"]["cpachecker location"]))
-        os.environ["PATH"] = "{}:{}".format(conf["client"]["cpachecker location"], os.environ["PATH"])
-        logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
-    else:
-        raise KeyError("Provide configuration option 'client''cpachecker location' as path to CPAchecker executables")
+    # Add verifiers path
+    tool = conf['verifier']['name']
+    version = conf['verifier']['version']
+    path = conf['client']['verification tools'][tool][version]
+    logging.info("Add {!r} of version {!r} bin location {!r} to PATH".format(tool, version, path))
+    os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     benchexec = BenchExec()
 
@@ -203,7 +202,7 @@ def solve_task(conf):
 
     # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
     # around its binary.
-    os.symlink(os.path.join(conf["client"]["cpachecker location"], os.pardir, 'config'), 'config')
+    os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 

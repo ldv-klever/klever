@@ -324,9 +324,7 @@ class RSG(core.avtg.plugins.Plugin):
                                                                   self.conf['shadow source tree']))],
                         'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
                                                                            self.conf['shadow source tree'])),
-                        'opts':
-                            [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
-                             self.conf['model CC options']] +
+                        'opts': self.conf['model CC opts'] +
                             ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
                     }, fp, ensure_ascii=False, sort_keys=True, indent=4)
