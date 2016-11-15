@@ -266,7 +266,7 @@ class LKVOG(core.components.Component):
 
         self.verification_obj_desc = {}
 
-        self.verification_obj_desc['id'] = self.cluster.root.id
+        self.verification_obj_desc['id'] = re.sub(r'\.o$', '.ko', self.cluster.root.id)
 
         if len(self.cluster.modules) > 1:
             self.verification_obj_desc['id'] += self.cluster.md5_hash
