@@ -449,9 +449,17 @@ $(document).ready(function () {
     });
     $('.ETV_Action').click(function () {
         $(this).parent().find('.ETV_HideLink').click();
+        var src_link = $(this).parent().parent().find('.ETV_La').first();
+        if (src_link.length) {
+            src_link.click();
+        }
     });
     $('.ETV_CallbackAction').click(function () {
         $(this).parent().find('.ETV_HideLink').click();
+        var src_link = $(this).parent().parent().find('.ETV_La').first();
+        if (src_link.length) {
+            src_link.click();
+        }
     });
 
     $('.ETV_ShowCode').click(function () {

@@ -80,7 +80,6 @@ class ParseErrorTrace:
         self.assume_scopes = {'global': []}
         self.scopes_to_show = set()
         self.scopes_to_hide = set()
-        self.scopes_to_hide_action = set()
         self.double_return = set()
         self.function_stack = []
         self.curr_file = None
@@ -123,6 +122,8 @@ class ParseErrorTrace:
             self.scope_stack.append('scope__klever_main__0')
             self.scopes_to_show.add(self.scope_stack[-1])
             line_data['scope'] = self.scope_stack[-1]
+        elif len(self.scope_stack) == 3 and self.scope_stack[-1] not in self.scopes_to_show:
+            self.scopes_to_show.add(self.scope_stack[-1])
         if 'action' not in edge:
             line_data.update(self.__get_note(edge.get('note')))
             line_data.update(self.__get_warn(edge.get('warn')))
@@ -131,12 +132,14 @@ class ParseErrorTrace:
 
         if 'action' in edge:
             if self.curr_action != 'action__%s' % edge['action']:
-                if self.curr_action is None:
-                    self.__show_scope('callback action' if edge['action'] in self.callback_actions else 'action')
+                if self.curr_action is None and edge['action'] in self.callback_actions:
+                    self.__show_scope('callback action')
                 if self.curr_action is not None:
                     self.lines.append(self.__return_from_function({
                         'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
                     }, False))
+                    if edge['action'] in self.callback_actions:
+                        self.__show_scope('callback action')
                 enter_action_data = line_data.copy()
                 if 'note' in enter_action_data:
                     del enter_action_data['note']
@@ -164,8 +167,6 @@ class ParseErrorTrace:
             line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
             if any(x in edge for x in ['note', 'warn']):
                 self.scopes_to_hide.add(self.scope_stack[-1])
-            if 'action' in edge:
-                self.scopes_to_hide_action.add(self.scope_stack[-1])
             if 'return' in edge:
                 if edge['enter'] == edge['return']:
                     line_data = self.__return_from_function(line_data)
@@ -357,6 +358,8 @@ class ParseErrorTrace:
             elif self.lines[i]['type'] == 'enter' and self.lines[i]['scope'] != 'scope__klever_main__0' \
                     and self.lines[i]['hide_id'] not in self.scopes_to_show:
                 self.lines[i]['type'] = 'eye-control'
+                if 'func' in self.lines[i]:
+                    del self.lines[i]['func']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = self.lines[i]['scope'] not in self.scopes_to_show
