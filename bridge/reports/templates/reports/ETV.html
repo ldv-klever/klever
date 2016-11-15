@@ -4,6 +4,7 @@
 {% block reports_head_block %}
     <script src="{% static 'reports/js/jquery-ui.min.js' %}"></script>
     <script src="{% static 'reports/js/ETV.js' %}"></script>
+    <script src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
 {% endblock %}
 <div class="ui grid">
@@ -105,7 +106,7 @@
             </div>
         </div>
     </div>
-    <div id="etv-source">
+    <div id="etv-source"{% if include_assumptions %} style="height:70%;"{% endif %}>
         <div style="margin: 10px;">
             <div class="ETVTitleBlock">
                 <h4 id="ETVSourceTitle" class="header" style="padding-bottom: 7px;"></h4>
@@ -116,15 +117,14 @@
             <div class="filecontent" id="ETV_source_code"></div>
         </div>
     </div>
-    <div id="etv-assumes">
-        {% if not include_assumptions %}
-            <h5 style="color: #cc2f9b">{% trans "Error trace assumptions are disabled (you can enable them in your settings)" %}</h5>
-        {% endif %}
-        <div id="ETV_assumes">
-        </div>
-    </div>
     <div id="etv-divider"></div>
-    <div id="etv-divider-2"></div>
+    {% if include_assumptions %}
+        <div id="etv-assumes">
+            <div id="ETV_assumes">
+            </div>
+        </div>
+        <div id="etv-divider-2"></div>
+    {% endif %}
 </div>
 
 <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
