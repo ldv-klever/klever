@@ -7,7 +7,7 @@
 {% if job.runhistory_set.all|length %}
     <div class="ui orange segment">
         <div class="ui top left attached orange large label">{% trans 'History of decisions' %}</div>
-        <div class="ui form">
+        <div class="ui small action input">
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown">
                 {% for rh in job.runhistory_set.all|dictsortreversed:'date' %}
@@ -16,7 +16,7 @@
                             {{ rh.date|naturaltime }}
                         {% else %}
                             {% timezone user.extended.timezone %}
-                                {{ rh.date }}
+                                {{ rh.date|date:"r" }}
                             {% endtimezone %}
                         {% endif %}
                     </option>
