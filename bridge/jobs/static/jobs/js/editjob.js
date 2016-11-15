@@ -816,7 +816,9 @@ $(document).ready(function () {
     $('#fast_start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_fast_job_start_popup', 'show');
-
+    $('#last_start_job_popup').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#show_last_job_start_popup', 'show');
     $('#start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
@@ -833,6 +835,9 @@ $(document).ready(function () {
     });
     $('#cancel_fast_start_job').click(function () {
         $('#fast_start_job_popup').modal('hide');
+    });
+    $('#cancel_last_start_job').click(function () {
+        $('#last_start_job_popup').modal('hide');
     });
     $('#cancel_start_job').click(function () {
         $('#start_job_popup').modal('hide');
@@ -943,6 +948,20 @@ $(document).ready(function () {
     $('#fast_job_start').click(function () {
         $.post(
             job_ajax_url + 'fast_run_decision/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
+    $('#lastconf_job_start').click(function () {
+        $.post(
+            job_ajax_url + 'lastconf_run_decision/',
             {job_id: $('#job_pk').val()},
             function (data) {
                 if (data.error) {

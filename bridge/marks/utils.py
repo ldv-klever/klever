@@ -134,7 +134,7 @@ class NewMark(object):
             mark.problem_pattern = args['problem']
 
             if len(MarkUnknown.objects.filter(
-                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function)) > 0:
+                    component=mark.component, problem_pattern=mark.problem_pattern)) > 0:
                 return _('Could not create a new mark since the similar mark exists already')
 
             if 'link' in args and len(args['link']) > 0:
@@ -221,9 +221,8 @@ class NewMark(object):
                 self.do_recalk = True
                 mark.problem_pattern = args['problem']
 
-            if len(MarkUnknown.objects.filter(Q(
-                    component=mark.component, problem_pattern=mark.problem_pattern, function=mark.function
-            ) & ~Q(pk=mark.pk))) > 0:
+            if len(MarkUnknown.objects.filter(Q(component=mark.component,
+                                                problem_pattern=mark.problem_pattern) & ~Q(pk=mark.pk))) > 0:
                 return _('Could not change the mark since it would be similar to the existing mark')
 
             if 'link' in args and len(args['link']) > 0:

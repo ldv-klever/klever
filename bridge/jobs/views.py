@@ -822,6 +822,31 @@ def fast_run_decision(request):
     return JsonResponse({})
 
 
+@unparallel_group(['decision'])
+@login_required
+def lastconf_run_decision(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
+    if last_run is None:
+        return JsonResponse({'error': _('The job was not decided before')})
+    try:
+        with last_run.configuration.file as fp:
+            configuration = GetConfiguration(file_conf=json.loads(fp.read().decode('utf8'))).configuration
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
 @login_required
 def check_compare_access(request):
     activate(request.user.extended.language)
