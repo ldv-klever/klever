@@ -411,7 +411,7 @@ MARKS_COMPARE_ATTRS = {
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Commit', 'Verification object', 'Rule specification'],
+    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.
