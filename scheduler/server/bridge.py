@@ -79,6 +79,7 @@ class Server(server.AbstractServer):
     def submit_nodes(self, nodes):
         """
         Send string with JSON description of nodes available for verification in VerifierCloud.
+
         :param nodes: String with JSON nodes description.
         """
         data = {"nodes data": json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)}
@@ -87,8 +88,15 @@ class Server(server.AbstractServer):
     def submit_tools(self, tools):
         """
         Send string with JSON description of verification tools available for verification in VerifierCloud.
-        :param tools: String with JSON verification tools description.
+
+        :param tools: Dictionary from scheduler configuration {'tool': {'version': path}}.
         """
-        pass
+        tools_list = list()
+        for tool in tools.keys():
+            for version in tools[tool]:
+                tools_list.append({'tool': tool, 'version': version})
+
+        data = {"tools data": json.dumps(tools_list, ensure_ascii=False, sort_keys=True, indent=4)}
+        self.session.json_exchange("service/update_tools/", data)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

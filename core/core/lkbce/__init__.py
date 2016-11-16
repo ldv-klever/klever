@@ -29,25 +29,13 @@ import core.components
 import core.utils
 import core.lkbce.utils
 
-# Architecture name to search for architecture specific header files can differ from the target architecture.
-# See Linux kernel Makefile for details. Mapping below was extracted from Linux 3.5.
-_arch_hdr_arch = {
-    'i386': 'x86',
-    'x86_64': 'x86',
-    'sparc32': 'sparc',
-    'sparc64': 'sparc',
-    'sh64': 'sh',
-    'tilepro': 'tile',
-    'tilegx': 'tile',
-}
-
 
 def before_launch_sub_job_components(context):
-    context.mqs['model cc options and headers'] = multiprocessing.Queue()
+    context.mqs['model headers'] = multiprocessing.Queue()
 
 
-def after_set_model_cc_opts_and_headers(context):
-    context.mqs['model cc options and headers'].put(context.model_cc_opts_and_headers)
+def after_set_model_headers(context):
+    context.mqs['model headers'].put(context.model_headers)
 
 
 class LKBCE(core.components.Component):
@@ -71,7 +59,6 @@ class LKBCE(core.components.Component):
             if 'conf file' in self.linux_kernel:
                 shutil.copy(self.linux_kernel['conf file'], self.linux_kernel['work src tree'])
             self.set_linux_kernel_attrs()
-            self.set_hdr_arch()
             core.utils.report(self.logger,
                               'attrs',
                               {
@@ -224,6 +211,9 @@ class LKBCE(core.components.Component):
                         fp.write(self.linux_kernel['conf'])
 
             if build_target[0] == 'modules_prepare':
+                # We assume that after preparation for building modules was done model CC options are available, i.e.
+                # a CC command for which they are dumped was executed.
+                self.set_model_cc_opts()
                 self.copy_model_headers()
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
@@ -369,10 +359,6 @@ class LKBCE(core.components.Component):
                               {'architecture': self.linux_kernel['arch']},
                               {'configuration': self.linux_kernel['conf']}]}]
 
-    def set_hdr_arch(self):
-        self.logger.info('Set architecture name to search for architecture specific header files')
-        self.hdr_arch = _arch_hdr_arch[self.linux_kernel['arch']]
-
     def set_shadow_src_tree(self):
         self.logger.info('Set shadow source tree')
         # All other components should find shadow source tree relatively to main working directory.
@@ -478,6 +464,12 @@ class LKBCE(core.components.Component):
     def get_linux_kernel_build_cmd_desc(self):
         pass
 
+    def set_model_cc_opts(self):
+        self.logger.info('Set model CC options')
+
+        with open('model CC opts.json', encoding='utf8') as fp:
+            self.model_cc_opts = json.load(fp)
+
     def copy_model_headers(self):
         self.logger.info('Copy model headers')
 
@@ -485,15 +477,12 @@ class LKBCE(core.components.Component):
 
         os.makedirs('model-headers'.encode('utf8'))
 
-        model_cc_opts_and_headers = self.mqs['model cc options and headers'].get()
+        model_headers = self.mqs['model headers'].get()
 
-        for model_c_file in model_cc_opts_and_headers:
-            self.logger.debug('Copy headers of model with C file "{0}"'.format(model_c_file))
+        for c_file, headers in model_headers.items():
+            self.logger.debug('Copy headers of model with C file "{0}"'.format(c_file))
 
-            model_headers_c_file = os.path.join('model-headers', os.path.basename(model_c_file))
-
-            cc_opts = model_cc_opts_and_headers[model_c_file]['CC options']
-            headers = model_cc_opts_and_headers[model_c_file]['headers']
+            model_headers_c_file = os.path.join('model-headers', os.path.basename(c_file))
 
             with open(model_headers_c_file, mode='w', encoding='utf8') as fp:
                 for header in headers:
@@ -509,8 +498,14 @@ class LKBCE(core.components.Component):
 
             core.utils.execute(self.logger,
                                tuple(
-                                   ['aspectator', '-M', '-MF', os.path.relpath(model_headers_deps_file, linux_kernel_work_src_tree)] +
-                                   cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   ['aspectator'] +
+                                   self.model_cc_opts + ['-isystem{0}'.format(stdout[0])] +
+                                   # Overwrite common options for dumping dependencies. Unfortunately normal "-MF" and
+                                   # even "-MD" doesn't work perhaps non recommended "-Wp" is used originally.
+                                   ['-Wp,-MD,{0}'.format(os.path.relpath(model_headers_deps_file,
+                                                                         linux_kernel_work_src_tree))] +
+                                   # Suppress both preprocessing and compilation - just get dependencies.
+                                   ['-M'] +
                                    [os.path.relpath(model_headers_c_file, linux_kernel_work_src_tree)]
                                ),
                                cwd=self.linux_kernel['work src tree'])
@@ -519,7 +514,7 @@ class LKBCE(core.components.Component):
 
             # Like in Command.copy_deps() in lkbce/wrappers/common.py but much more simpler.
             for dep in deps:
-                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) != \
+                if (os.path.isabs(dep) and os.path.commonprefix((linux_kernel_work_src_tree, dep)) !=
                         linux_kernel_work_src_tree) or dep.endswith('.c'):
                     continue
 
@@ -565,7 +560,6 @@ class LKBCE(core.components.Component):
                 core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                             self.conf['rule specifications DB'])))
         })
-
 
         if collect_build_cmds:
             env.update({
