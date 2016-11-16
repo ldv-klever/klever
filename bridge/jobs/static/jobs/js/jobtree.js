@@ -264,6 +264,12 @@ function getFilters() {
                 value: $('#filter_value__' + filter_name).val()
             };
         }
+        else if (filter_name === 'finish_date') {
+            filter_data = {
+                type: $('#filter_type__' + filter_name ).children('option:selected').val(),
+                value: ($('#filter_value_0__finish_date').children('option:selected').val() + ':' + $('#filter_value_1__finish_date').children('option:selected').val())
+            };
+        }
         if (filter_data) {
             filters[filter_name] = filter_data;
         }

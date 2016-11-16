@@ -290,9 +290,7 @@ class Population(object):
                     logger.error('Wrong unknown mark data: %s' % mark_settings, stack_info=True)
                     continue
                 try:
-                    MarkUnknown.objects.get(
-                        component__name=component, function=data['function'], problem_pattern=data['pattern']
-                    )
+                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
                     continue
                 except ObjectDoesNotExist:
                     try:

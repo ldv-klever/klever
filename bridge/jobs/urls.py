@@ -48,6 +48,7 @@ urlpatterns = [
     url(r'^ajax/stop_decision/$', views.stop_decision),
     url(r'^ajax/run_decision/$', views.run_decision),
     url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
+    url(r'^ajax/lastconf_run_decision/$', views.lastconf_run_decision),
     url(r'^ajax/get_job_data/$', views.get_job_data),
     url(r'^ajax/check_compare_access/$', views.check_compare_access),
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
