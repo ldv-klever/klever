@@ -50,6 +50,8 @@ class ViewJobData(object):
             self.__get_view_data()
         except ObjectDoesNotExist:
             return
+        if len(self.problems) > 0:
+            self.problems.append((_('Without marks'), '0_0'))
 
     def __get_view(self, view, view_id):
         if view is not None:

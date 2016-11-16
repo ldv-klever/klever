@@ -540,7 +540,8 @@ class DownloadFilesForCompetition(object):
                 elif isinstance(f_t, list):
                     self.__add_unknowns(tarobj, f_t)
             if self.xml_root is None:
-                raise ValueError('There are no filters')
+                raise ValueError('There are no filters or there are no reports with needed files '
+                                 'satisfied the selected filters')
             t = tarfile.TarInfo(self.benchmark_fname)
             xml_inmem = BytesIO(
                 minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ").encode('utf8')
@@ -605,9 +606,14 @@ class DownloadFilesForCompetition(object):
             unknowns = []
             for problem in problems:
                 comp_id, problem_id = problem.split('_')[0:2]
-                unknowns.extend(list(ReportUnknown.objects.filter(
-                    root__job=self.job, markreport_set__problem_id=problem_id, component_id=comp_id
-                )))
+                if comp_id == problem_id == '0':
+                    unknowns.extend(list(ReportUnknown.objects.annotate(mr_len=Count('markreport_set')).filter(
+                        root__job=self.job, mr_len=0
+                    )))
+                else:
+                    unknowns.extend(list(ReportUnknown.objects.filter(
+                        root__job=self.job, markreport_set__problem_id=problem_id, component_id=comp_id
+                    )))
         else:
             unknowns = ReportUnknown.objects.filter(root__job=self.job)
         for u in unknowns:
@@ -618,12 +624,16 @@ class DownloadFilesForCompetition(object):
             ver_rule = ''
             for u_a in u.attrs.all():
                 if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('/', '-').replace('~', '-').replace('.ko', '')
+                    # ver_obj = u_a.attr.value.replace('/', '---').replace('~', '-')
+                    ver_obj = u_a.attr.value.replace('~', 'HOME')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            u_id = "Unknowns/f__%s__%s.cil.i" % (ver_rule, ver_obj)
+            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
+            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
+            u_id = os.path.join("Unknowns/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if u_id in u_ids_in_use:
-                u_id = "Unknowns/f__%s__%s__%s.cil.i" % (ver_rule, ver_obj, cnt)
+                ver_obj_path, ver_obj_name = os.path.split(ver_obj)
+                u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
                 cnt += 1
             self.__add_cil_file(parent.archive, tarobj, u_id)
             new_elem = ETree.Element('include')
