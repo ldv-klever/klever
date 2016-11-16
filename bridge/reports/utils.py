@@ -566,7 +566,7 @@ class DownloadFilesForCompetition(object):
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
             ver_obj_path, ver_obj_name = os.path.split(ver_obj)
-            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
+            ver_obj = os.path.join(ver_obj_path, "u__%s" % ver_obj_name)
             u_id = os.path.join("Unsafes/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if u_id in u_ids_in_use:
                 ver_obj_path, ver_obj_name = os.path.split(u_id)
@@ -593,7 +593,7 @@ class DownloadFilesForCompetition(object):
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
             ver_obj_path, ver_obj_name = os.path.split(ver_obj)
-            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
+            ver_obj = os.path.join(ver_obj_path, "s__%s" % ver_obj_name)
             s_id = os.path.join("Safes/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if s_id in u_ids_in_use:
                 ver_obj_path, ver_obj_name = os.path.split(s_id)
