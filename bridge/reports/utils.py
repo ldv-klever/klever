@@ -562,12 +562,15 @@ class DownloadFilesForCompetition(object):
             ver_rule = ''
             for u_a in u.attrs.all():
                 if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('/', '-').replace('~', '-').replace('.ko', '')
+                    ver_obj = u_a.attr.value.replace('~', 'HOME')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            u_id = "Unsafes/u__%s__%s.cil.i" % (ver_rule, ver_obj)
+            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
+            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
+            u_id = os.path.join("Unsafes/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if u_id in u_ids_in_use:
-                u_id = "Unsafes/u__%s__%s__%s.cil.i" % (ver_rule, ver_obj, cnt)
+                ver_obj_path, ver_obj_name = os.path.split(u_id)
+                u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
                 cnt += 1
             self.__add_cil_file(parent.archive, tarobj, u_id)
             new_elem = ETree.Element('include')
@@ -586,12 +589,15 @@ class DownloadFilesForCompetition(object):
             ver_rule = ''
             for u_a in s.attrs.all():
                 if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('/', '-').replace('~', '-').replace('.ko', '')
+                    ver_obj = u_a.attr.value.replace('~', 'HOME')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            s_id = "Safes/s__%s__%s.cil.i" % (ver_rule, ver_obj)
+            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
+            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
+            s_id = os.path.join("Safes/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if s_id in u_ids_in_use:
-                s_id = "Safes/s__%s__%s__%s.cil.i" % (ver_rule, ver_obj, cnt)
+                ver_obj_path, ver_obj_name = os.path.split(s_id)
+                s_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
                 cnt += 1
             self.__add_cil_file(parent.archive, tarobj, s_id)
             new_elem = ETree.Element('include')
@@ -632,7 +638,7 @@ class DownloadFilesForCompetition(object):
             ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
             u_id = os.path.join("Unknowns/%s" % ver_rule, "%s.cil.i" % ver_obj)
             if u_id in u_ids_in_use:
-                ver_obj_path, ver_obj_name = os.path.split(ver_obj)
+                ver_obj_path, ver_obj_name = os.path.split(u_id)
                 u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
                 cnt += 1
             self.__add_cil_file(parent.archive, tarobj, u_id)
