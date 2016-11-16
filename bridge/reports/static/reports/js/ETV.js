@@ -70,9 +70,6 @@ $(document).ready(function () {
                         select_src_string();
                         ready_for_next_string = true;
                     }
-                },
-                error: function (x) {
-                    $('#ETV_source_code').html(x.responseText);
                 }
             });
         }
