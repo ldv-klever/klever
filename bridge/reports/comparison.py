@@ -17,7 +17,6 @@
 
 import re
 import json
-from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.utils.translation import ugettext_lazy as _
@@ -50,89 +49,96 @@ class ReportTree(object):
         self.__get_tree()
 
     def __get_tree(self):
+        leaves_data = {'u': {}, 's': {}, 'f': {}}
+        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job):
+            if leaf.unsafe is not None:
+                if leaf.unsafe_id not in leaves_data['u']:
+                    leaves_data['u'][leaf.unsafe_id] = {}
+                leaves_data['u'][leaf.unsafe_id][leaf.report_id] = leaf.report.parent_id
+            elif leaf.safe is not None:
+                if leaf.safe_id not in leaves_data['s']:
+                    leaves_data['s'][leaf.safe_id] = {}
+                leaves_data['s'][leaf.safe_id][leaf.report_id] = leaf.report.parent_id
+            elif leaf.unknown is not None:
+                if leaf.unknown_id not in leaves_data['f']:
+                    leaves_data['f'][leaf.unknown_id] = {}
+                leaves_data['f'][leaf.unknown_id][leaf.report_id] = leaf.report.parent_id
+
+        leaves = {}
         for u in ReportUnsafe.objects.filter(root__job=self.job):
-            main_attrs = u.attrs.filter(attr__name__name__in=self.attrs)
-            if len(main_attrs) != len(self.attrs):
+            leaves[u.pk] = u.parent_id
+
+        leaves_attrs = {}
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+            if ra.report_id not in leaves_attrs:
+                leaves_attrs[ra.report_id] = {}
+            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+
+        for u_id in leaves:
+            if u_id not in leaves_attrs or any(a_name not in leaves_attrs[u_id] for a_name in self.attrs):
                 continue
-            attr_values = {}
-            for ma in main_attrs:
-                if ma.attr.name.name in self.attrs:
-                    attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
-                                  indent=4)
+            attrs_id = json.dumps(list(leaves_attrs[u_id][a_name] for a_name in self.attrs), ensure_ascii=False)
             if attrs_id not in self.attr_values:
-                self.attr_values[attrs_id] = {
-                    'ids': [u.pk],
-                    'verdict': COMPARE_VERDICT[1][0]
-                }
+                self.attr_values[attrs_id] = {'ids': [u_id], 'verdict': COMPARE_VERDICT[1][0]}
             else:
-                self.attr_values[attrs_id]['ids'].append(u.pk)
-            self.reports[u.pk] = {
-                'type': 'u',
-                'parent': u.parent_id
-            }
-            for leaf in ReportComponentLeaf.objects.filter(Q(unsafe=u) & ~Q(report_id__in=list(self.reports))):
-                self.reports[leaf.report_id] = {
-                    'type': 'c',
-                    'parent': leaf.report.parent_id
-                }
+                self.attr_values[attrs_id]['ids'].append(u_id)
+            self.reports[u_id] = {'type': 'u', 'parent': leaves[u_id]}
+            for r_id in leaves_data['u'][u_id]:
+                if r_id not in self.reports:
+                    self.reports[r_id] = {'type': 'c', 'parent': leaves_data['u'][u_id][r_id]}
+        del leaves_data['u']
+
+        leaves = {}
         for s in ReportSafe.objects.filter(root__job=self.job):
-            main_attrs = s.attrs.filter(attr__name__name__in=self.attrs)
-            if len(main_attrs) != len(self.attrs):
+            leaves[s.pk] = s.parent_id
+
+        leaves_attrs = {}
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+            if ra.report_id not in leaves_attrs:
+                leaves_attrs[ra.report_id] = {}
+            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+
+        for s_id in leaves:
+            if s_id not in leaves_attrs or any(a_name not in leaves_attrs[s_id] for a_name in self.attrs):
                 continue
-            attr_values = {}
-            for ma in main_attrs:
-                if ma.attr.name.name in self.attrs:
-                    attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
-                                  indent=4)
+            attrs_id = json.dumps(list(leaves_attrs[s_id][a_name] for a_name in self.attrs), ensure_ascii=False)
             if attrs_id not in self.attr_values:
-                self.attr_values[attrs_id] = {
-                    'ids': [s.pk],
-                    'verdict': COMPARE_VERDICT[0][0]
-                }
+                self.attr_values[attrs_id] = {'ids': [s_id], 'verdict': COMPARE_VERDICT[0][0]}
             else:
                 raise ValueError('Too many leaf reports for "%s"' % attrs_id)
-            self.reports[s.pk] = {
-                'type': 's',
-                'parent': s.parent_id
-            }
-            for leaf in ReportComponentLeaf.objects.filter(Q(safe=s) & ~Q(report_id__in=list(self.reports))):
-                self.reports[leaf.report_id] = {
-                    'type': 'c',
-                    'parent': leaf.report.parent_id
-                }
-        for f in ReportUnknown.objects.filter(root__job=self.job):
-            main_attrs = f.attrs.filter(attr__name__name__in=self.attrs)
-            if len(main_attrs) != len(self.attrs):
+            self.reports[s_id] = {'type': 's', 'parent': leaves[s_id]}
+            for r_id in leaves_data['s'][s_id]:
+                if r_id not in self.reports:
+                    self.reports[r_id] = {'type': 'c', 'parent': leaves_data['s'][s_id][r_id]}
+        del leaves_data['s']
+
+        leaves = {}
+        for u in ReportUnknown.objects.filter(root__job=self.job):
+            leaves[u.pk] = u.parent_id
+
+        leaves_attrs = {}
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+            if ra.report_id not in leaves_attrs:
+                leaves_attrs[ra.report_id] = {}
+            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+
+        for f_id in leaves:
+            if f_id not in leaves_attrs or any(a_name not in leaves_attrs[f_id] for a_name in self.attrs):
                 continue
-            attr_values = {}
-            for ma in main_attrs:
-                if ma.attr.name.name in self.attrs:
-                    attr_values[ma.attr.name.name] = ma.attr.value
-            attrs_id = json.dumps(list(attr_values[x] for x in self.attrs), ensure_ascii=False, sort_keys=True,
-                                  indent=4)
+            attrs_id = json.dumps(list(leaves_attrs[f_id][a_name] for a_name in self.attrs), ensure_ascii=False)
             if attrs_id not in self.attr_values:
-                self.attr_values[attrs_id] = {
-                    'ids': [f.pk],
-                    'verdict': COMPARE_VERDICT[3][0]
-                }
+                self.attr_values[attrs_id] = {'ids': [f_id], 'verdict': COMPARE_VERDICT[3][0]}
             else:
                 for r_id in self.attr_values[attrs_id]['ids']:
                     if r_id not in self.reports or self.reports[r_id]['type'] != 'u':
                         raise ValueError('Too many leaf reports for "%s"' % attrs_id)
                 else:
                     self.attr_values[attrs_id]['verdict'] = COMPARE_VERDICT[2][0]
-                    self.attr_values[attrs_id]['ids'].append(f.pk)
-            self.reports[f.pk] = {
-                'type': 'f',
-                'parent': f.parent_id
-            }
-            for leaf in ReportComponentLeaf.objects.filter(Q(unknown=f) & ~Q(report_id__in=list(self.reports))):
-                self.reports[leaf.report_id] = {
-                    'type': 'c',
-                    'parent': leaf.report.parent_id
-                }
+                    self.attr_values[attrs_id]['ids'].append(f_id)
+            self.reports[f_id] = {'type': 'f', 'parent': leaves[f_id]}
+            for r_id in leaves_data['f'][f_id]:
+                if r_id not in self.reports:
+                    self.reports[r_id] = {'type': 'c', 'parent': leaves_data['f'][f_id][r_id]}
 
 
 class CompareTree(object):
@@ -168,7 +174,7 @@ class CompareTree(object):
         CompareJobsInfo.objects.filter(user=self.user).delete()
         info = CompareJobsInfo.objects.create(
             user=self.user, root1=j1.reportroot, root2=j2.reportroot,
-            files_diff=json.dumps(CompareFileSet(j1, j2).data, ensure_ascii=False, sort_keys=True, indent=4)
+            files_diff=json.dumps(CompareFileSet(j1, j2).data, ensure_ascii=False)
         )
         for_cache = []
         for x in self.attr_values:
@@ -195,8 +201,8 @@ class CompareTree(object):
             for_cache.append(CompareJobsCache(
                 info=info, attr_values=x,
                 verdict1=self.attr_values[x]['v1'], verdict2=self.attr_values[x]['v2'],
-                reports1=json.dumps(ids1, ensure_ascii=False, sort_keys=True, indent=4),
-                reports2=json.dumps(ids2, ensure_ascii=False, sort_keys=True, indent=4)
+                reports1=json.dumps(ids1, ensure_ascii=False),
+                reports2=json.dumps(ids2, ensure_ascii=False)
             ))
         CompareJobsCache.objects.bulk_create(for_cache)
 
@@ -286,7 +292,7 @@ class ComparisonData(object):
     def __get_data(self, verdict=None, search_attrs=None):
         if search_attrs is not None:
             try:
-                search_attrs = json.dumps(json.loads(search_attrs), ensure_ascii=False, sort_keys=True, indent=4)
+                search_attrs = json.dumps(json.loads(search_attrs), ensure_ascii=False)
             except ValueError:
                 self.error = 'Unknown error'
                 return None
