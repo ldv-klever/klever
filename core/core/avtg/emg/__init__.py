@@ -193,7 +193,10 @@ class EMG(core.avtg.plugins.Plugin):
         # Filter specifications
         for file in sorted(file_candidates):
             with open(file, encoding="utf8") as fh:
-                content = json.loads(fh.read())
+                try:
+                    content = json.loads(fh.read())
+                except json.decoder.JSONDecodeError as err:
+                    raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
             for tag in content:
                 if "categories" in content[tag] or "kernel functions" in content[tag]:
