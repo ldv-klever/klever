@@ -25,19 +25,19 @@
               "add missing deactivation signals": ["deregister", "instance_deregister", "irq_deregister"],
               "ignore missed callbacks": true,
               "roles map file": "linux/emg/roles match.json",
-              "callback comment": "Invoke callback {0!r} from {1!r}.",
+              "callback comment": "Invoke callback {0} from {1}.",
               "action comments": {
                 "dispatch": {
-                  "register": "Register {!r} callbacks.",
-                  "instance_register": "Register {!r} callbacks.",
-                  "deregister": "Deregister {!r} callbacks.",
-                  "instance_deregister": "Deregister {!r} callbacks."
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks."
                 },
                 "receive": {
-                  "register": "Begin {!r} callbacks invocations scenario.",
-                  "instance_register": "Begin {!r} callbacks invocations scenario.",
-                  "deregister": "Finish {!r} callbacks invocations scenario.",
-                  "instance_deregister": "Finish {!r} callbacks invocations scenario."
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
                 }
               }
             },
