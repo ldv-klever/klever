@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "mod_timer, mod_timer_pinned, mod_timer_pending": {
+        "comment": "Modify a timer's timeout",
         "labels": {
           "timer_list": {
             "container": true,
@@ -9,37 +10,37 @@
             "interface": [
               "timer.timer_list"
             ]
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[instance_register] | <none>).<return>",
+        "process": "<assign>.[instance_register].<success> | <fail>",
         "actions": {
           "instance_register": {
             "parameters": [
               "%timer_list%"
             ]
           },
-          "none": {
+          "fail": {
+            "comment": "Failed to modify a timer's timeout",
             "statements": [
-              "%res% = ldv_undef_int_negative();"
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
+            "comment": "Get timer representing structure.",
             "statements": [
-              "%timer_list% = $ARG1;",
-              "%res% = 0;"
+              "%timer_list% = $ARG1;"
             ]
           },
-          "return": {
+          "success": {
+            "comment": "Successfully modified a timer's timeout",
             "statements": [
-              "return %res%;"
+              "return 0;"
             ]
           }
         }
       },
       "setup_timer, setup_timer_on_stack": {
+        "comment": "Setup new timer.",
         "labels": {
           "timer_list": {
             "container": true,
@@ -61,41 +62,29 @@
             "interface": [
               "timer.callback"
             ]
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[instance_register] | <none>).<return>",
+        "process": "<assign>.[instance_register]",
         "actions": {
           "instance_register": {
             "parameters": [
               "%timer_list%"
             ]
           },
-          "none": {
-            "statements": [
-              "%res% = ldv_undef_int_negative();"
-            ]
-          },
           "assign": {
+            "comment": "Get timer representing structure and fill it up.",
             "statements": [
               "%timer_list% = $ARG1;",
               "%function% = $ARG2",
               "%data% = $ARG3",
               "%timer_list.data%=%data%;",
-              "%timer_list.function%=%function%;",
-              "%res% = 0;"
-            ]
-          },
-          "return": {
-            "statements": [
-              "return %res%;"
+              "%timer_list.function%=%function%;"
             ]
           }
         }
       },
       "del_timer, try_to_del_timer_sync, del_timer_sync": {
+        "comment": "Deactivate a timer.",
         "labels": {
           "timer_list": {
             "container": true,
@@ -113,6 +102,7 @@
             ]
           },
           "assign": {
+            "comment": "Get timer representing structure.",
             "statements": [
               "%timer_list% = $ARG1;"
             ]
@@ -121,7 +111,8 @@
       }
     },
     "environment processes": {
-      "timer_instance": {
+      "timer_scenario": {
+        "comment": "Invoke timer callback.",
         "labels": {
           "container": {
             "container": true,
@@ -146,6 +137,7 @@
             ]
           },
           "callback": {
+            "comment": "Time has come: call the timer callback.",
             "callback": "%container.handler%",
             "parameters": [
               "%container.data%"

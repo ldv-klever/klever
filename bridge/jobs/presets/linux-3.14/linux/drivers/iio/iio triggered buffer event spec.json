@@ -87,7 +87,7 @@
       }
     },
     "environment processes": {
-      "iio_triggered_buffer_instance": {
+      "iio_triggered_buffer_scenario": {
         "comment": "Industrial I/O triggered buffer poll function scenario.",
         "labels": {
           "thread": {

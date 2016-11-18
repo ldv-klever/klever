@@ -81,7 +81,7 @@
       }
     },
     "environment processes": {
-      "usb_instance": {
+      "usb_scenario": {
         "labels": {
           "container": {
             "container": true,
@@ -131,7 +131,7 @@
             ]
           },
           "alloc_interface": {
-            "comment": "Alloc memory and initialize new USB interface.",
+            "comment": "Allocate memory and initialize new USB interface.",
             "statements": [
               "%resource% = $ALLOC(%resource%);",
               "%usb_device% = $ALLOC(%usb_device%);",

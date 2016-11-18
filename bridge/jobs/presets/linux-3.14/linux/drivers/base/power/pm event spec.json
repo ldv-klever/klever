@@ -2,7 +2,8 @@
   "Linux 3.14 (base)": {
     "kernel model": {},
     "environment processes": {
-      "pm_ops_instance": {
+      "pm_ops_scenario": {
+        "comment": "Power management scenario.",
         "labels": {
           "pm_ops": {
             "container": true,

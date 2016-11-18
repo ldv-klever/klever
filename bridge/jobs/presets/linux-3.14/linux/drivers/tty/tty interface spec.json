@@ -5,6 +5,10 @@
         "signature": "%tty.tty_driver% alloc_tty_driver($)",
         "header": "linux/tty_driver.h"
       },
+      "__tty_alloc_driver": {
+        "signature": "%tty.tty_driver% __tty_alloc_driver($, $, $)",
+        "header": "linux/tty_driver.h"
+      },
       "tty_set_operations": {
         "signature": "void tty_set_operations(%tty.tty_driver%, *%tty.tty_operations%)",
         "header": "linux/tty_driver.h"

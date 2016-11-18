@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "transport_subsystem_register": {
+        "comment": "Register new target backend operations.",
         "labels": {
           "se_subsystem_api": {
             "container": true,
@@ -9,37 +10,37 @@
             "interface": [
               "se_subsystem.se_subsystem_api"
             ]
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[register] | <none>).<return>",
+        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
           "register": {
             "parameters": [
               "%se_subsystem_api%"
             ]
           },
-          "none": {
+          "fail": {
+            "comment": "Failed to register new target backend operations.",
             "statements": [
-              "%res% = ldv_undef_int_negative();"
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
+            "comment": "Get new target backend operations.",
             "statements": [
-              "%se_subsystem_api% = $ARG1;",
-              "%res% = 0;"
+              "%se_subsystem_api% = $ARG1;"
             ]
           },
-          "return": {
+          "success": {
+            "comment": "Successfully registered new target backend operations.",
             "statements": [
-              "return %res%;"
+              "return 0;"
             ]
           }
         }
       },
       "transport_subsystem_release": {
+        "comment": "Deregister new target backend operations.",
         "labels": {
           "se_subsystem_api": {
             "container": true,
@@ -57,6 +58,7 @@
             ]
           },
           "assign": {
+            "comment": "Get new target backend operations.",
             "statements": [
               "%se_subsystem_api% = $ARG1;"
             ]
@@ -65,7 +67,8 @@
       }
     },
     "environment processes": {
-      "transport_instance": {
+      "io_target_scenario": {
+        "comment": "Linux-IO target callbacks invocation scenario.",
         "labels": {
           "se_subsystem_api": {
             "container": true,
@@ -93,10 +96,14 @@
             "value": "0"
           }
         },
-        "process": "(!register).<init>.[alloc].<post_alloc>.{call}",
+        "process": "(!register).<init>.{call}",
         "actions": {
-          "call": {
-            "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [alloc].<post_alloc>.{call})"
+          "alloc_scenario": {
+            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+          },
+          "call_scenario": {
+            "comment": "Device structure is allocated.",
+            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
           },
           "register": {
             "parameters": [
@@ -124,7 +131,7 @@
               "%se_device%"
             ]
           },
-          "alloc": {
+          "se_alloc": {
             "callback": "%se_subsystem_api.alloc%",
             "parameters": [
               "%se_hba%"
@@ -144,32 +151,25 @@
             ]
           },
           "init": {
+            "comment": "Allocate memory for se_hba structure.",
             "statements": [
               "%se_hba% = $ALLOC(%se_hba%);"
             ]
           },
           "free": {
+            "comment": "Free memory of se_hba structure.",
             "statements": [
               "$FREE(%se_hba%);"
             ]
           },
-          "after_free": {
-            "statements": [
-              "%allocated% = 0;"
-            ]
-          },
-          "post_alloc": {
-            "statements": [
-              "if (%se_device%)",
-              " %allocated% = 1;"
-            ]
-          },
-          "positive_alloc": {
+          "alloc_success": {
+            "comment": "Memory has been allocated for se_device structure successfully.",
             "condition": [
               "%allocated% == 1"
             ]
           },
-          "negative_alloc": {
+          "alloc_failed": {
+            "comment": "Failed to allocate memory for se_device structure.",
             "condition": [
               "%allocated% != 1"
             ]
@@ -238,7 +238,7 @@
       }
     },
     "environment processes": {
-      "transport_instance": {
+      "io_target_scenario": {
         "labels": {
           "target_backend_ops": {
             "container": true,
@@ -269,7 +269,7 @@
         "process": "(!register).<init>.[alloc].<post_alloc>.{call}",
         "actions": {
           "call": {
-            "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [alloc].<post_alloc>.{call})"
+            "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [se_alloc].<post_alloc>.{call})"
           },
           "register": {
             "parameters": [
@@ -297,7 +297,7 @@
               "%se_device%"
             ]
           },
-          "alloc": {
+          "se_alloc": {
             "callback": "%target_backend_ops.alloc%",
             "parameters": [
               "%se_hba%"

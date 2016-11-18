@@ -2,7 +2,8 @@
   "Linux 3.14 (base)": {
     "kernel model": {},
     "environment processes": {
-      "dummy_factory": {
+      "factory_scenario": {
+        "comment": "Begin pattern scenario to model the events interleaving.",
         "labels": {
           "container": {
             "container": true
@@ -11,13 +12,13 @@
         "process": "(!register).[@instance_register].[@instance_deregister].(deregister)",
         "actions": {
           "register": {
-            "comment": "Proceed to {0!r} callbacks invocations scenarios.",
+            "comment": "Proceed to {0} callbacks invocations scenarios.",
             "parameters": [
               "%container%"
             ]
           },
           "deregister": {
-            "comment": "Finish {0!r} callbacks invocations scenarios.",
+            "comment": "Finish {0} callbacks invocations scenarios.",
             "condition": [
               "%container% == $ARG1"
             ],
@@ -26,20 +27,21 @@
             ]
           },
           "instance_register": {
-            "comment": "Initiate scenario for {0!r} callbacks invocations",
+            "comment": "Initiate scenario for {0} callbacks invocations",
             "parameters": [
               "%container%"
             ]
           },
           "instance_deregister": {
-            "comment": "Finish scenario for {0!r} callbacks invocations",
+            "comment": "Finish scenario for {0} callbacks invocations",
             "parameters": [
               "%container%"
             ]
           }
         }
       },
-      "base_instance": {
+      "bus_pattern_scenario": {
+        "comment": "Begin pattern partially ordered scenario for callbacks invocation.",
         "labels": {
           "container": {
             "container": true
@@ -58,10 +60,12 @@
         "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
-            "process": "[probe].(<y_ret>.{call} | <n_ret>).{main} | <free>.(deregister)"
+            "comment": "Try to probe driver.",
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>).{main} | <free>.(deregister)"
           },
           "call": {
-            "process": "[callback].{call} | [suspend].(<y_ret>.[resume] | <n_ret>).{call} | [release].{main}"
+            "comment": "Driver is probed, call the other callbacks.",
+            "process": "[callback].{call} | [suspend].(<suspend_success>.[resume] | <suspend_failed>).{call} | [release].{main}"
           },
           "register": {
             "parameters": [
@@ -77,6 +81,7 @@
             ]
           },
           "callback": {
+            "comment": "Call any random callback.",
             "callback": "%callback%",
             "parameters": [
               "%resource%"
@@ -115,28 +120,44 @@
             ]
           },
           "init": {
+            "comment": "Allocate memory of common callback parameters.",
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
           },
           "free": {
+            "comment": "Free memory of common callback parameters.",
             "statements": [
               "$FREE(%resource%);"
             ]
           },
-          "y_ret": {
+          "probe_success": {
+            "comment": "Probing has been successfull.",
             "condition": [
               "%ret% == 0"
             ]
           },
-          "n_ret": {
+          "probe_failed": {
+            "comment": "Probing has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "suspend_success": {
+            "comment": "Suspending has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "suspend_failed": {
+            "comment": "Suspending has failed.",
             "condition": [
               "%ret% != 0"
             ]
           }
         }
       },
-      "dummy_resourceless_instance": {
+      "random_containerless_scenario": {
         "comment": "Scenario with random invocation of callbacks.",
         "labels": {
           "container": {
@@ -150,7 +171,7 @@
         "process": "(!register).{call}",
         "actions": {
           "call": {
-            "comment": "Choose a callback randomly.",
+            "comment": "Prepare to call a random callback or deregister the callbacks.",
             "process": "[callback].{call} | (deregister)"
           },
           "register": {
@@ -167,6 +188,7 @@
             ]
           },
           "callback": {
+            "comment": "Call any random callback.",
             "callback": "%callback%",
             "parameters": [
               "%container%"
@@ -174,7 +196,7 @@
           }
         }
       },
-      "dummy_instance": {
+      "random_scenario": {
         "comment": "Scenario with random invocation of callbacks.",
         "labels": {
           "container": {
@@ -190,6 +212,7 @@
         "process": "(!register).<init>.{call}",
         "actions": {
           "call": {
+            "comment": "Prepare to call a random callback or deregister the callbacks.",
             "process": "[callback].{call} | <free>.(deregister)"
           },
           "register": {
@@ -206,24 +229,28 @@
             ]
           },
           "callback": {
+            "comment": "Call any random callback.",
             "callback": "%callback%",
             "parameters": [
               "%resource%"
             ]
           },
           "init": {
+            "comment": "Allocate memory of common callback parameters.",
             "statements": [
               "%resource% = $ALLOC(%resource%);"
             ]
           },
           "free": {
+            "comment": "Free memory of common callback parameters.",
             "statements": [
               "$FREE(%resource%);"
             ]
           }
         }
       },
-      "pci_instance": {
+      "partially_ordered_scenario": {
+        "comment": "Scenario for calling callbacks with partitial order.",
         "labels": {
           "container": {
             "container": true
@@ -242,133 +269,11 @@
         "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
-            "process": "[probe].(<y_ret>.{call} | <n_ret>).{main} | <free>.(deregister)"
-          },
-          "call": {
-            "process": "[callback].{call} | [suspend].[suspend_late].[resume_early].[resume].{call} | [shutdown].[release].{main}"
-          },
-          "register": {
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "deregister": {
-            "condition": [
-              "%container% == $ARG1"
-            ],
-            "parameters": [
-              "%container%"
-            ]
-          },
-          "callback": {
-            "callback": "%callback%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "release": {
-            "callback": "%container.release%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "probe": {
-            "callback": "%container.probe%",
-            "parameters": [
-              "%resource%"
-            ],
-            "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_post_probe(%ret%);"
-            ],
-            "pre-call": [
-              "ldv_pre_probe();"
-            ]
-          },
-          "suspend": {
-            "callback": "%container.suspend%",
-            "parameters": [
-              "%resource%"
-            ],
-            "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_filter_err_code(%ret%);"
-            ]
-          },
-          "suspend_late": {
-            "callback": "%container.suspend_late%",
-            "parameters": [
-              "%resource%"
-            ],
-            "callback return value": "%ret%",
-            "post-call": [
-              "%ret% = ldv_filter_err_code(%ret%);"
-            ]
-          },
-          "resume_early": {
-            "callback": "%container.resume_early%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "resume": {
-            "callback": "%container.resume%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "shutdown": {
-            "callback": "%container.shutdown%",
-            "parameters": [
-              "%resource%"
-            ]
-          },
-          "init": {
-            "statements": [
-              "%resource% = $ALLOC(%resource%);"
-            ]
-          },
-          "free": {
-            "statements": [
-              "$FREE(%resource%);"
-            ]
-          },
-          "y_ret": {
-            "condition": [
-              "%ret% == 0"
-            ]
-          },
-          "n_ret": {
-            "condition": [
-              "%ret% != 0"
-            ]
-          }
-        }
-      },
-      "io_instance": {
-        "labels": {
-          "container": {
-            "container": true
-          },
-          "resource": {
-            "resource": true
-          },
-          "callback": {
-            "callback": true
-          },
-          "ret": {
-            "signature": "int a",
-            "value": "1"
-          }
-        },
-        "process": "(!register).<init>.{main}",
-        "actions": {
-          "main": {
-            "comment": "Begin artificial pattern scenario for IO drivers.",
+            "comment": "Start with an initialization callback.",
             "process": "[probe].(<y_ret>.{call} | <n_ret>.{main}) | <free>.(deregister)"
           },
           "call": {
-            "comment": "We are at opened state, call the rest callbacks.",
+            "comment": "Initializations are done, proceed to the other callbacks.",
             "process": "[callback].{call} | [release].{main}"
           },
           "register": {
@@ -385,18 +290,21 @@
             ]
           },
           "callback": {
+            "comment": "Call any random callback.",
             "callback": "%callback%",
             "parameters": [
               "%resource%"
             ]
           },
           "release": {
+            "comment": "Do uninitializations before deregistration.",
             "callback": "%container.release%",
             "parameters": [
               "%resource%"
             ]
           },
           "probe": {
+            "comment": "Call an initialization callback.",
             "callback": "%container.probe%",
             "parameters": [
               "%resource%"
@@ -419,13 +327,13 @@
             ]
           },
           "y_ret": {
-            "comment": "Open/Probe has been successful.",
+            "comment": "Initialization has been successful.",
             "condition": [
               "%ret% == 0"
             ]
           },
           "n_ret": {
-            "comment": "Open/Probe has failed.",
+            "comment": "Initialization has failed.",
             "condition": [
               "%ret% != 0"
             ]

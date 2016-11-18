@@ -1,7 +1,8 @@
 {
   "Linux 3.14 (base)": {
     "kernel model": {
-      "alloc_tty_driver": {
+      "alloc_tty_driver, __tty_alloc_driver": {
+        "comment": "Allocate tty driver",
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -13,23 +14,27 @@
         "process": "<alloc>.<success> | <fail>",
         "actions": {
           "alloc": {
+            "comment": "Allocate memory for tty_driver structure.",
             "statements": [
               "%tty_driver% = $ALLOC(%tty_driver%);"
             ]
           },
           "success": {
+            "comment": "Successfully allocated memory for tty_driver structure.",
             "statements": [
               "return %tty_driver%;"
             ]
           },
           "fail": {
+            "comment": "Failed to allocate memory for tty_driver structure.",
             "statements": [
-              "return 0;"
+              "return ERR_PTR(-ENOMEM);"
             ]
           }
         }
       },
       "tty_port_register_device": {
+        "comment": "Register new tty device.",
         "labels": {
           "tty_port": {
             "resource": true,
@@ -52,6 +57,7 @@
         "process": "<alloc>.[register].<success> | <fail>",
         "actions": {
           "alloc": {
+            "comment": "Allocate memory for device structure and get port and tty driver structures.",
             "statements": [
               "%device% = $ALLOC(%device%);",
               "%tty_port% = $ARG1;",
@@ -65,18 +71,21 @@
             ]
           },
           "success": {
+            "comment": "Successfully registered a new tty device.",
             "statements": [
               "return %device%;"
             ]
           },
           "fail": {
+            "comment": "Failed to register a new tty device.",
             "statements": [
-              "return 0;"
+              "return ERR_PTR(-EFOO);"
             ]
           }
         }
       },
       "tty_unregister_device": {
+        "comment": "Unregister a tty device.",
         "labels": {
           "tty_driver": {
             "resource": true,
@@ -89,6 +98,7 @@
         "process": "<assign>.[deregister]",
         "actions": {
           "assign": {
+            "comment": "Get a tty driver structure.",
             "statements": [
               "%tty_driver% = $ARG1;"
             ]
@@ -102,7 +112,7 @@
       }
     },
     "environment processes": {
-      "tty_instance": {
+      "tty_scenario": {
         "labels": {
           "tty_port_operations": {
             "container": true,
@@ -148,13 +158,15 @@
             "value": "1"
           }
         },
-        "process": "(!register).<init>.[lookup].{main}",
+        "process": "(!register).<init>.{main}",
         "actions": {
           "main": {
-            "process": "[install].(<y_ret>.[open].(<y_ret>.{call} | <n_ret>.[remove]) | <n_ret>).{main} | <free>.(deregister)"
+            "comment": "Install tty or deregister.",
+            "process": "[install].(<install_success>.[open].(<open_success>.{call} | <open_failed>.[remove]) | <install_failed>).{main} | <free>.(deregister)"
           },
           "call": {
-            "process": "([lookup] | [callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox] | [port_activate].(<y_ret>.[port_shutdown] | <n_ret>)).{call} | [close].[shutdown].[remove].[cleanup].{main}"
+            "comment": "Call rest tty callbacks.",
+            "process": "([lookup] | [callback] | [set_termios] | [throttle].[unthrottle] | [start].[stop] | [set_termiox] | [port_activate].(<activate_success>.[port_shutdown] | <activate_failed>)).{call} | [close].[shutdown].[remove].[cleanup].{main}"
           },
           "register": {
             "parameters": [
@@ -176,27 +188,56 @@
               "%tty_struct%"
             ]
           },
-          "y_ret": {
+          "install_success": {
+            "comment": "Successfully installed a new tty into the tty driver internal tables.",
             "condition": [
               "%ret% == 0"
             ]
           },
-          "n_ret": {
+          "install_failed": {
+            "comment": "Failed to install a new tty into the tty driver internal tables.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "open_success": {
+            "comment": "Successfully opened a particular tty device.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "open_failed": {
+            "comment": "Failed to open a particular tty device.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "activate_success": {
+            "comment": "Port activation has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "activate_failed": {
+            "comment": "Port activation has failed.",
             "condition": [
               "%ret% != 0"
             ]
           },
           "init": {
+            "comment": "Allocate memory for file structure.",
             "statements": [
               "%file% = $ALLOC(%file%);"
             ]
           },
           "free": {
+            "comment": "Free memory of file structure.",
             "statements": [
               "$FREE(%file%);"
             ]
           },
           "lookup": {
+            "comment": "Return the tty device corresponding to idx.",
             "callback": "%tty_operations.lookup%",
             "parameters": [
               "%tty_driver%"
@@ -207,6 +248,7 @@
             ]
           },
           "install": {
+            "comment": "Install a new tty into the tty driver internal tables.",
             "callback": "%tty_operations.install%",
             "parameters": [
               "%tty_driver%",
@@ -218,6 +260,7 @@
             ]
           },
           "remove": {
+            "comment": "Remove a closed tty from the tty driver internal tables.",
             "callback": "%tty_operations.remove%",
             "parameters": [
               "%tty_driver%",
@@ -225,6 +268,7 @@
             ]
           },
           "open": {
+            "comment": "Open a tty device.",
             "callback": "%tty_operations.open%",
             "parameters": [
               "%tty_struct%",
@@ -236,6 +280,7 @@
             ]
           },
           "close": {
+            "comment": "Close a tty device.",
             "callback": "%tty_operations.close%",
             "parameters": [
               "%tty_driver%",
@@ -243,6 +288,7 @@
             ]
           },
           "shutdown": {
+            "comment": "Close a tty device for the last time.",
             "callback": "%tty_operations.shutdown%",
             "parameters": [
               "%tty_struct%"
@@ -252,6 +298,7 @@
             ]
           },
           "cleanup": {
+            "comment": "Free resources after a tty device has been closed for the last time.",
             "callback": "%tty_operations.cleanup%",
             "parameters": [
               "%tty_struct%"
@@ -275,6 +322,7 @@
             ]
           },
           "set_termios": {
+            "comment": "Device's termios settings have changed.",
             "callback": "%tty_operations.set_termios%",
             "parameters": [
               "%tty_struct%"
@@ -284,6 +332,7 @@
             ]
           },
           "set_termiox": {
+            "comment": "The device receives a termiox based ioctl.",
             "callback": "%tty_operations.set_termiox%",
             "parameters": [
               "%tty_struct%"
@@ -293,6 +342,7 @@
             ]
           },
           "throttle": {
+            "comment": "Input buffers for the line discipline are close to full.",
             "callback": "%tty_operations.throttle%",
             "parameters": [
               "%tty_struct%"
@@ -302,6 +352,7 @@
             ]
           },
           "unthrottle": {
+            "comment": "Characters can now be sent to the tty without fear of overrunning the input buffers of the line disciplines.",
             "callback": "%tty_operations.unthrottle%",
             "parameters": [
               "%tty_struct%"
@@ -311,12 +362,14 @@
             ]
           },
           "start": {
+            "comment": "Resume sending characters to tty device.",
             "callback": "%tty_operations.start%",
             "parameters": [
               "%tty_struct%"
             ]
           },
           "stop": {
+            "comment": "Stop outputting characters to the tty device",
             "callback": "%tty_operations.stop%",
             "parameters": [
               "%tty_struct%"

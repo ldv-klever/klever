@@ -74,7 +74,8 @@
       }
     },
     "environment processes": {
-      "seq_instance": {
+      "traverse_kernel_items_scenario": {
+        "comment": "Writting /proc file scenario.",
         "labels": {
           "ops": {
             "container": true,
@@ -88,15 +89,19 @@
               "seq_operations.seq_file"
             ]
           },
-          "started": {
-            "signature": "int a",
-            "value": "0"
+          "ret": {
+            "signature": "int a"
           }
         },
-        "process": "(!register).{do}",
+        "process": "(!register).{start_step}",
         "actions": {
-          "do": {
-            "process": "<started>.([stop].<post_stop> | [show] | [next]).{do} | <not_started>.([start].<post_start>.{do} | (deregister))"
+          "start_step": {
+            "comment": "Start sequence or do nothing.",
+            "process": "(start).(<start_success>.{next_step} | <start_failed>.(deregister))"
+          },
+          "next_step": {
+            "comment": "Continue iteration over kernel items.",
+            "process": "(next).(show).(<next_success>.{next_step} | <next_fail>.(stop).{start_step})"
           },
           "deregister": {
             "condition": [
@@ -112,49 +117,59 @@
               "%ops%"
             ]
           },
-          "post_start": {
-            "statements": [
-              "%started% = 1;"
-            ]
-          },
-          "post_stop": {
-            "statements": [
-              "%started% = 0;"
-            ]
-          },
-          "started": {
+          "start_success": {
+            "comment": "A new sequence is initialized successfully.",
             "condition": [
-              "%started% == 1"
+              "%ret% != 0"
             ]
           },
-          "not_started": {
+          "start_failed": {
+            "comment": "Failed to initialize a new sequence.",
             "condition": [
-              "%started% == 0"
+              "%ret% == 0"
+            ]
+          },
+          "next_success": {
+            "comment": "More items to show are left.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "next_fail": {
+            "comment": "The last kernel item is reached.",
+            "condition": [
+              "%ret% == 0"
             ]
           },
           "start": {
+            "comment": "Initialize data for walking through a list of kernel items.",
             "callback": "%ops.start%",
             "parameters": [
               "%seq_file%"
-            ]
+            ],
+            "callback return value": "%ret%"
           },
           "stop": {
+            "comment": "End of the sequence is reached, do necessary cleanup.",
             "callback": "%ops.stop%",
             "parameters": [
               "%seq_file%"
             ]
           },
           "show": {
+            "comment": "Show current item: put data into the seq_file output buffer.",
             "callback": "%ops.show%",
             "parameters": [
               "%seq_file%"
             ]
           },
           "next": {
+            "comment": "Advance to the new item.",
             "callback": "%ops.next%",
             "parameters": [
               "%seq_file%"
-            ]
+            ],
+            "callback return value": "%ret%"
           }
         }
       }
