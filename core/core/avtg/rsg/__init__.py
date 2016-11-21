@@ -325,6 +325,10 @@ class RSG(core.avtg.plugins.Plugin):
                         'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
                                                                            self.conf['shadow source tree'])),
                         'opts': self.conf['model CC opts'] +
+                            # Like in LKBCE.
+                            ['-Wp,-MD,{0}'.format(os.path.relpath(
+                                out_file + '.d',
+                                os.path.join(self.conf['main working directory'], self.conf['shadow source tree'])))] +
                             ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
                     }, fp, ensure_ascii=False, sort_keys=True, indent=4)
