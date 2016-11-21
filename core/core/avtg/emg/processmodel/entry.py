@@ -57,10 +57,10 @@ class EntryProcessGenerator:
         def add_signal(p, s, r):
             if p.name not in self.__default_signals:
                 self.__default_signals[p.name] = {'activation': list(), 'deactivation': list(), 'process': p}
-                if r:
-                    self.__default_signals[p.name]['activation'].append(s)
-                else:
-                    self.__default_signals[p.name]['deactivation'].append(s)
+            if r:
+                self.__default_signals[p.name]['activation'].append(s)
+            else:
+                self.__default_signals[p.name]['deactivation'].append(s)
 
         if receive.name in get_necessary_conf_property(self.__conf, 'add missing deactivation signals'):
             add_signal(process, receive, False)

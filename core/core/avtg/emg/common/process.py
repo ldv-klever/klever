@@ -265,7 +265,7 @@ class Process:
         # Sanity checks
         if not (after or before or instead):
             raise ValueError('Choose where to insert the action')
-        if name not in self.actions:
+        if not name or name not in self.actions:
             raise KeyError('Cannot rename action {!r} in process {!r} because it does not exist'.
                            format(name, self.name))
         if instead:
@@ -286,11 +286,12 @@ class Process:
                     if before:
                         next_expr = "{}.{}".format(before, curr_expr)
                     elif after:
-                        next_expr = "{}.{}".format(curr_expr, before)
+                        next_expr = "{}.{}".format(curr_expr, after)
                     else:
                         next_expr = instead
 
                     process.process = process.process.replace(curr_expr, next_expr)
+                    break
 
     def rename_action(self, name, new_name):
         if name not in self.actions:
