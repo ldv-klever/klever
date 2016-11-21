@@ -209,10 +209,12 @@ class LKBCE(core.components.Component):
                     with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
                               encoding='utf8') as fp:
                         fp.write(self.linux_kernel['conf'])
+                    shutil.move('model CC opts.json',
+                                os.path.join(self.linux_kernel['work src tree'], 'model CC opts.json'))
 
             if build_target[0] == 'modules_prepare':
                 # We assume that after preparation for building modules was done model CC options are available, i.e.
-                # a CC command for which they are dumped was executed.
+                # a CC command for which they are dumped was executed or they were dumped previously and can be reused.
                 self.set_model_cc_opts()
                 self.copy_model_headers()
 
@@ -467,7 +469,7 @@ class LKBCE(core.components.Component):
     def set_model_cc_opts(self):
         self.logger.info('Set model CC options')
 
-        with open('model CC opts.json', encoding='utf8') as fp:
+        with open(os.path.join(self.linux_kernel['work src tree'], 'model CC opts.json'), encoding='utf8') as fp:
             self.model_cc_opts = json.load(fp)
 
     def copy_model_headers(self):
