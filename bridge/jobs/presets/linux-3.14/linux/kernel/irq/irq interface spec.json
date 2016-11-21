@@ -9,6 +9,10 @@
         "signature": "int request_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
         "header": "linux/interrupt.h"
       },
+      "request_any_context_irq": {
+        "signature": "int request_any_context_irq(%interrupt.line%, %interrupt.handler%, $, $, %interrupt.data%)",
+        "header": "linux/interrupt.h"
+      },
       "devm_request_threaded_irq": {
         "signature": "int devm_request_threaded_irq($, %interrupt.line%, %interrupt.handler%, %interrupt.thread%, $, $, %interrupt.data%)",
         "header": "linux/interrupt.h"

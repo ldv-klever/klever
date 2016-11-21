@@ -92,7 +92,7 @@
             ]
           }
         },
-        "process": "(<assign>.[register].<success> | <fail>",
+        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
           "assign": {
             "comment": "Get Scsi_Host structure from parameters.",

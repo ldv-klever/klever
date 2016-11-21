@@ -34,10 +34,12 @@
         },
         "resources": {
           "seq_file": {
-            "signature": "struct seq_file *file"
+            "signature": "struct seq_file *file",
+            "header": "linux/seq_file.h"
           },
           "file": {
-            "signature": "struct file *file"
+            "signature": "struct file *file",
+            "header": "linux/fs.h"
           }
         },
         "callbacks": {

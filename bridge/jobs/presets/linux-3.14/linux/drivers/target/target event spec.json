@@ -90,15 +90,12 @@
           "callback": {
             "resource": true,
             "callback": true
-          },
-          "allocated": {
-            "signature": "int a",
-            "value": "0"
           }
         },
-        "process": "(!register).<init>.{call}",
+        "process": "(!register).<init>.{alloc_scenario}",
         "actions": {
           "alloc_scenario": {
+            "comment": "Device structure is not allocated yet.",
             "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
           },
           "call_scenario": {
@@ -165,13 +162,13 @@
           "alloc_success": {
             "comment": "Memory has been allocated for se_device structure successfully.",
             "condition": [
-              "%allocated% == 1"
+              "%se_device% != 0"
             ]
           },
           "alloc_failed": {
             "comment": "Failed to allocate memory for se_device structure.",
             "condition": [
-              "%allocated% != 1"
+              "%se_device% == 0"
             ]
           }
         }

@@ -56,8 +56,7 @@
               "%line% = $ARG1;",
               "%callback% = $ARG2;",
               "%thread% = $ARG3;",
-              "%data% = $ARG6;",
-              "%res% = 0;"
+              "%data% = $ARG6;"
             ]
           },
           "success": {
@@ -134,7 +133,7 @@
           }
         }
       },
-      "request_irq": {
+      "request_irq, request_any_context_irq": {
         "comment": "Allocate an interrupt line for a managed device.",
         "labels": {
           "thread": {
@@ -163,12 +162,9 @@
               "interrupt.data"
             ],
             "parameter": true
-          },
-          "res": {
-            "signature": "int a"
           }
         },
-        "process": "(<assign>.[irq_register].<success> | <fail>",
+        "process": "<assign>.[irq_register].<success> | <fail>",
         "actions": {
           "irq_register": {
             "comment": "Register interrupt callback (callbacks).",
@@ -191,8 +187,7 @@
               "%line% = $ARG1;",
               "%callback% = $ARG2;",
               "%thread% = 0;",
-              "%data% = $ARG5;",
-              "%res% = 0;"
+              "%data% = $ARG5;"
             ]
           },
           "success": {
@@ -257,8 +252,7 @@
               "%line% = $ARG1;",
               "%callback% = $ARG2;",
               "%thread% = 0;",
-              "%data% = $ARG4;",
-              "%res% = 0;"
+              "%data% = $ARG4;"
             ]
           },
           "success": {

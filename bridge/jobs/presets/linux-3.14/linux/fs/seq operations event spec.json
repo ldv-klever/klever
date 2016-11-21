@@ -2,6 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "seq_open, seq_open_private": {
+        "comment": "Initialize sequential file",
         "labels": {
           "file": {
             "parameter": true,
@@ -33,15 +34,17 @@
             ]
           },
           "assign": {
+            "comment": "Alloc memory for sequential file structure and initialize it.",
             "statements": [
               "%seq_file% = $ALLOC(%seq_file%);",
               "%ops% = $ARG2;",
-              "/* todo: file->private_data = seq_file; */"
+              "%file%->private_data = %seq_file%;"
             ]
           }
         }
       },
       "seq_release, seq_release_private": {
+        "comment": "Free the structures associated with sequential file.",
         "labels": {
           "file": {
             "parameter": true,
@@ -65,9 +68,10 @@
             ]
           },
           "assign": {
+            "comment": "Free memory of the sequential file structure.",
             "statements": [
-              "/* todo: seq_file = file->private_data; */",
-              "/* todo: FREE(seq_file); */"
+              "%seq_file% = %file%->private_data;",
+              "$FREE(%seq_file%);"
             ]
           }
         }
@@ -90,18 +94,18 @@
             ]
           },
           "ret": {
-            "signature": "int a"
+            "signature": "void *a"
           }
         },
         "process": "(!register).{start_step}",
         "actions": {
           "start_step": {
             "comment": "Start sequence or do nothing.",
-            "process": "(start).(<start_success>.{next_step} | <start_failed>.(deregister))"
+            "process": "[start].(<start_success>.{next_step} | <start_failed>.(deregister))"
           },
           "next_step": {
             "comment": "Continue iteration over kernel items.",
-            "process": "(next).(show).(<next_success>.{next_step} | <next_fail>.(stop).{start_step})"
+            "process": "[next].[show].(<next_success>.{next_step} | <next_fail>.[stop].{start_step})"
           },
           "deregister": {
             "condition": [

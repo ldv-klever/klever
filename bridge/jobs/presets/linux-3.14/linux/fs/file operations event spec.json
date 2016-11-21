@@ -30,8 +30,7 @@
             "comment": "Extract a file_operations structure pointer.",
             "statements": [
               "%miscdevice% = $ARG1;",
-              "%file_operations% = %miscdevice%->fops;",
-              "%res% = 0;"
+              "%file_operations% = %miscdevice%->fops;"
             ]
           },
           "fail": {
@@ -211,6 +210,7 @@
             "process": "[probe].(<probe_success>.{call} | <probe_fail>.{main}) | <free>.(deregister)"
           },
           "call": {
+            "comment": "Device file is opened, ready to read and write.",
             "process": "([callback] | [write]).{call} | [release].{main}"
           },
           "register": {

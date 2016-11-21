@@ -79,7 +79,7 @@
           "fail": {
             "comment": "Failed to register a new tty device.",
             "statements": [
-              "return ERR_PTR(-EFOO);"
+              "return ERR_PTR(-ENOMEM);"
             ]
           }
         }
