@@ -28,11 +28,28 @@ from core.avtg.emg.translator.fsa_translator.common import action_model_comment,
 
 class FSATranslator(metaclass=abc.ABCMeta):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, callback_fsa):
+    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
+        """
+        Initialize new FSA translator object. During the initialization an enviornment model in form of finite state
+        machines with process-like actions is translated to C code. Translation includes the following steps: each pair
+        label-interface is translated in a separate variable, each action is translated in code blocks (aux functions
+        can be additionally generated), for each FSA a control function is generated, control functions for event
+        modeling are called in a specific entry point function and control functions for function modeling are called
+        insted of modelled functions. This class has an abstract methods to provide ability to implement different
+        translators.
+
+        :param logger: logging object.
+        :param conf: Configuration properties dictionary.
+        :param analysis: ModuleCategoriesSpecification object.
+        :param cmodel: CModel object.
+        :param entry_fsa: An entry point FSA object.
+        :param model_fsa: List with FSA objects which correspond to function models.
+        :param event_fsa:  List with FSA objects for event modeling.
+        """
         self._cmodel = cmodel
         self._entry_fsa = entry_fsa
         self._model_fsa = model_fsa
-        self._callback_fsa = callback_fsa
+        self._event_fsa = event_fsa
         self._conf = conf
         self._analysis = analysis
         self._logger = logger
@@ -49,7 +66,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         header_list.append(header)
 
         # Get from specifications
-        for process in (a.process for a in self._model_fsa + self._callback_fsa if len(a.process.headers) > 0):
+        for process in (a.process for a in self._model_fsa + self._event_fsa if len(a.process.headers) > 0):
             for header in process.headers:
                 if header not in header_list:
                     header_list.append(header)
@@ -60,7 +77,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         # Generates base code blocks
         self._logger.info("Start the preparation of actions code")
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+        for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
@@ -71,7 +88,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             self._save_digraphs()
 
         # Start generation of control functions
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+        for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._compose_control_function(automaton)
 
         # Generate aspects with kernel models
@@ -114,54 +131,21 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         return
 
-    def __compose_action(self, state, automaton):
-        def compose_single_action(st, code, v_code, conditions, comments):
-            final_code = list()
-            final_code.append(comments[0])
-
-            # Skip or assert action according to conditions
-            if len(st.predecessors) > 0 and len(list(st.predecessors)[0].successors) > 1 and len(conditions) > 0:
-                final_code.append('ldv_assume({});'.format(' && '.join(conditions)))
-                final_code.extend(code)
-            elif len(conditions) > 0 and len(code) > 0:
-                final_code.append('if ({}) '.format(' && '.join(conditions)) + '{')
-                final_code.extend(['\t{}'.format(s) for s in code])
-                final_code.append('}')
-            elif len(code) > 0:
-                final_code.extend(code)
-
-            if len(comments) == 2:
-                final_code.append(comments[1])
-
-            # Append trailing empty space
-            final_code.append('')
-            st.code = (v_code, final_code)
-
-        if type(state.action) is Call:
-            for st, code, v_code, conditions, comments in self._call(state, automaton):
-                compose_single_action(st, code, v_code, conditions, comments)
-        else:
-            if type(state.action) is Dispatch:
-                code_generator = self._dispatch
-            elif type(state.action) is Receive:
-                code_generator = self._receive
-            elif type(state.action) is CallRetval:
-                code_generator = self._call_retval
-            elif type(state.action) is Condition:
-                code_generator = self._condition
-            elif type(state.action) is Subprocess:
-                code_generator = self._subprocess
-            elif state.action is None:
-                code_generator = self._art_action
-            else:
-                raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
-
-            code, v_code, conditions, comments = code_generator(state, automaton)
-            compose_single_action(state, code, v_code, conditions, comments)
-
     def _save_digraphs(self):
+        """
+        Method saves FSA with code in doe format in debug purposes. This functionality can be turned on by setting
+        corresponding configuration property. Each action is saved as a node and for each possible state transition
+        an edge is added. This function can be called only if code blocks for each action of all FSAs are already
+        generated.
+
+        :return: None
+        """
+
+        # Print DOT files to this directory inside plugin working directory
         directory = 'automata'
-        for automaton in self._callback_fsa + self._model_fsa + [self._entry_fsa]:
+
+        # Dump separetly all FSAs
+        for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate graph for automaton based on process {} with category {}".
                                format(automaton.process.name, automaton.process.category))
             dg_file = "{}/{}.dot".format(directory, "{}_{}_{}".
@@ -225,9 +209,26 @@ class FSATranslator(metaclass=abc.ABCMeta):
             self._logger.debug("Graph image has been successfully rendered and saved")
 
     def _prepare_control_functions(self):
+        """
+        Generate code of all control functions for each FSAs. It expects that all actions are already transformed into
+        code blocks and control functions can be combined from such blocks. The implementation of the method depends
+        on configuration properties and chosen kind of an output environment model.
+
+        :return: None
+        """
         raise NotImplementedError
 
     def _art_action(self, state, automaton):
+        """
+        Generate a code block for an artificial node in FSA which does not correspond to any action.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the artificial node.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         # Make comments
         code, v_code, conditions, comments = list(), list(), list(), list()
         comments.append(action_model_comment(state.action, 'Artificial state in scenario'.
@@ -236,13 +237,26 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _dispatch(self, state, automaton):
+        """
+        Generate a code block for a dispatch action of the process for which the FSA is generated. A dispatch code block
+        is always generated in a fixed form: as a function call of auxiliary function. Such a function contains switch
+        or if operator to choose one of available optional receivers to send the signal. Implementation of particular
+        dispatch to particular receiver is configurable and can be implemented differently in various translators.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the dispatch.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Determine peers to receive the signal
         automata_peers = dict()
         if len(state.action.peers) > 0:
             # Do call only if model which can be called will not hang
-            extract_relevant_automata(self._callback_fsa + self._model_fsa + [self._entry_fsa],
+            extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
                                       automata_peers, state.action.peers, Receive)
         else:
             # Generate comment
@@ -310,6 +324,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 df_parameters.append(dispatcher_expr)
 
             # Generate blocks on each receive to another process
+            # You can implement your own translator with different implementations of the function
             pre, blocks, post = self._dispatch_blocks(state, file, automaton, function_parameters, param_interfaces,
                                                       automata_peers,
                                                       replicative)
@@ -375,6 +390,21 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _condition(self, state, automaton):
+        """
+        Always translate a conditional action boolean expression or statement string into a corresponding boolean
+        cnditional expression or C statement string correspondingly. Each such conditional expression or statement is
+        parsed and all entries of labels and the other model expressions are replaced by particular C implementation.
+        Note, that if a label with different interface matches is used than each string can be translated into several
+        ones depending on the number of interfaces but keeping the original order with a respect to the other statements
+        or boolean expressions.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the condition.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
@@ -396,6 +426,20 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _call(self, state, automaton):
+        """
+        Generate code block for callback call. This can not be configured in translator implementations and for each
+        callback call consists of: guard, pre-conditions (similarly to conditional code blocks), function call of the
+        aux function which will be added to the file where function name is definately visible and which contains only
+        the callback call and post-conditions. If a callback is matched with several interfaces then instead several
+        optional nodes will be generated with all additional pre and post- conditions.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the callback call.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         def ret_expression(st):
             # Generate external function retval
             ret_declaration = 'void'
@@ -661,7 +705,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 comments.append(action_model_comment(state.action, None, begin=False))
 
                 relevant_automata = registration_intf_check(self._analysis,
-                                                            self._callback_fsa + self._model_fsa + [self._entry_fsa],
+                                                            self._event_fsa + self._model_fsa + [self._entry_fsa],
                                                             self._model_fsa,
                                                             invoke)
 
@@ -692,16 +736,40 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return generated_callbacks
 
     def _call_retval(self, state, automaton):
+        """
+        Generate code block for returning value to ensure that callback is terminated. This is actual for true parallel
+        environment model.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the callback return value action.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         # Add begin model comment
         code, v_code, conditions, comments = list(), list(), list(), list()
         comment = state.action.comment
         comments.append(action_model_comment(state.action, comment, begin=True))
         comments.append(action_model_comment(state.action, None, begin=False))
         code.append('/* Return value expectation is not supported in the current version of EMG */')
+        # todo: such kind of actions is no needed and not supported now, since no true parallel model can be generated
+        raise NotImplementedError("Avoid using of deprecated return value actions and describe returned values"
+                                  " directly at calling actions")
 
         return code, v_code, conditions, comments
 
     def _subprocess(self, state, automaton):
+        """
+        Generate reduction to a subprocess as a code block. Add your own logic in the corresponding implementation.
+
+        :param state: State object.
+        :param automaton: FSA object which contains the subprocess.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
@@ -718,6 +786,15 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return code, v_code, conditions, comments
 
     def _get_cf_struct(self, automaton, params):
+        """
+        Provides declaration of structure to pack all control function (or maybe other) parameters as a single argument
+        with help of it.
+
+        :param automaton: FSA object.
+        :param params: Declaration objects list.
+        :return: Declaration object.
+        """
+        # todo: ensure proper ordering of structure parameters especially arrays, bit fields and so on.
         cache_identifier = ''
         for param in params:
             cache_identifier += param.identifier
@@ -739,6 +816,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
         return decl
     
     def _call_cf(self, file, automaton, parameter='0'):
+        """
+        Generate statement with control function call.
+
+        :param file: File name string.
+        :param automaton: FSA object.
+        :param parameter: String with argument of the control function.
+        :return: String expression.
+        """
         self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
@@ -747,6 +832,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
             return self._call_cf_code(file, automaton, parameter)
 
     def _join_cf(self, file, automaton):
+        """
+        Generate statement to join control function thread if it is called in a separate thread.
+
+        :param file: File name string.
+        :param automaton: FSA object.
+        :return: String expression.
+        """
         self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
 
         if get_conf_property(self._conf, 'direct control functions calls'):
@@ -755,6 +847,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             return self._join_cf_code(file, automaton)
 
     def _control_function(self, automaton):
+        """
+        Generate control function. This function generates a FunctionDefinition object without a body. It is required
+        to call control function within code blocks until all code blocks are translated and control function body
+        can be generated.
+
+        :param automaton: FSA object.
+        :return: FunctionDefinition object.
+        """
         if automaton.identifier not in self._control_functions:
             # Check that this is an aspect function or not
             if automaton in self._model_fsa:
@@ -785,23 +885,71 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     @abc.abstractstaticmethod
     def _relevant_checks(self, relevent_automata):
+        """
+        This function allows to add your own additional conditions before function calls and dispatches. The
+        implementation in your translator is required.
+
+        :param relevent_automata: {'FSA identifier string': {'automaton': FSA object,
+               'states': set of State objects peered with the considered action}}
+        :return: List with additional C logic expressions.
+        """
         raise NotImplementedError
     
     @abc.abstractstaticmethod
     def _join_cf_code(self, file, automaton):
+        """
+        Generate statement to join control function thread if it is called in a separate thread. Depends on a translator
+        implementation.
+
+        :param file: File name string.
+        :param automaton: FSA object.
+        :return: String expression.
+        """
         raise NotImplementedError
 
     @abc.abstractstaticmethod
     def _call_cf_code(self, file, automaton, parameter='0'):
+        """
+        Generate statement with control function call. Depends on a translator implementation.
+
+        :param file: File name string.
+        :param automaton: FSA object.
+        :param parameter: String with argument of the control function.
+        :return: String expression.
+        """
         raise NotImplementedError
 
     @abc.abstractstaticmethod
     def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
                          replicative):
+        """
+        Generate parts of dispatch code blocks for your translator implementation.
+
+        :param state: State object.
+        :param file: File name string.
+        :param automaton: FSA object.
+        :param function_parameters: list of Label objects.
+        :param param_interfaces: List of Interface objects.
+        :param automata_peers: {'FSA identifier string': {'automaton': FSA object,
+                                'states': set of State objects peered with the considered action}}
+        :param replicative: True/False.
+        :return: [List of C statements before dispatching], [[List of C statements with dispatch]],
+                 [List of C statements after performed dispatch]
+        """
         raise NotImplementedError
 
     @abc.abstractstaticmethod
     def _receive(self, state, automaton):
+        """
+        Generate code block for receive action. Require more detailed implementation in your translator.
+
+        :param state: State object.
+        :param automaton: FSA object.
+        :return: [list of strings with lines of C code statements of the code block],
+                 [list of strings with new local variable declarations required for the block],
+                 [list of strings with boolean conditional expressions which guard code block entering],
+                 [list of strings with model comments which embrace the code block]
+        """
         code, v_code, conditions, comments = list(), list(), list(), list()
 
         # Make comments
@@ -813,10 +961,73 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     @abc.abstractstaticmethod
     def _compose_control_function(self, automaton):
+        """
+        Generate body of a control function according to your translator implementation.
+
+        :param automaton: FSA object.
+        :return: None
+        """
         raise NotImplementedError
 
     @abc.abstractstaticmethod
     def _entry_point(self):
+        """
+        Generate statements for entry point function body.
+
+        :return: [List of C statements]
+        """
         raise NotImplementedError
+
+    def __compose_action(self, state, automaton):
+        """
+        Generate one single code block from given guard, body, model comments statements.
+
+        :param state: State object.
+        :param automaton: FSA object.
+        :return: None
+        """
+        def compose_single_action(st, code, v_code, conditions, comments):
+            final_code = list()
+            final_code.append(comments[0])
+
+            # Skip or assert action according to conditions
+            if len(st.predecessors) > 0 and len(list(st.predecessors)[0].successors) > 1 and len(conditions) > 0:
+                final_code.append('ldv_assume({});'.format(' && '.join(conditions)))
+                final_code.extend(code)
+            elif len(conditions) > 0 and len(code) > 0:
+                final_code.append('if ({}) '.format(' && '.join(conditions)) + '{')
+                final_code.extend(['\t{}'.format(s) for s in code])
+                final_code.append('}')
+            elif len(code) > 0:
+                final_code.extend(code)
+
+            if len(comments) == 2:
+                final_code.append(comments[1])
+
+            # Append trailing empty space
+            final_code.append('')
+            st.code = (v_code, final_code)
+
+        if type(state.action) is Call:
+            for st, code, v_code, conditions, comments in self._call(state, automaton):
+                compose_single_action(st, code, v_code, conditions, comments)
+        else:
+            if type(state.action) is Dispatch:
+                code_generator = self._dispatch
+            elif type(state.action) is Receive:
+                code_generator = self._receive
+            elif type(state.action) is CallRetval:
+                code_generator = self._call_retval
+            elif type(state.action) is Condition:
+                code_generator = self._condition
+            elif type(state.action) is Subprocess:
+                code_generator = self._subprocess
+            elif state.action is None:
+                code_generator = self._art_action
+            else:
+                raise TypeError('Unknown action type: {!r}'.format(type(state.action).__name__))
+
+            code, v_code, conditions, comments = code_generator(state, automaton)
+            compose_single_action(state, code, v_code, conditions, comments)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

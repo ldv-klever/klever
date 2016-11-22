@@ -25,7 +25,7 @@ from core.avtg.emg.translator.fsa_translator.common import choose_file, initiali
 
 class StateTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, callback_fsa):
+    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__state_variables = dict()
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
@@ -35,7 +35,7 @@ class StateTranslator(FSATranslator):
                                  if t.__name__ not in
                                  get_necessary_conf_property(conf, 'no actions composition')])
 
-        super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, callback_fsa)
+        super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         checks = []
@@ -180,7 +180,7 @@ class StateTranslator(FSATranslator):
         self._logger.info("Generate body for entry point function {}".format(self._cmodel.entry_name))
         body = []
         # Init original states
-        for automaton in [self._entry_fsa] + self._callback_fsa:
+        for automaton in [self._entry_fsa] + self._event_fsa:
             body.extend(self.__set_initial_state(automaton))
 
         # Generate loop
@@ -190,7 +190,7 @@ class StateTranslator(FSATranslator):
             "\tswitch(ldv_undef_int()) {"
         ])
 
-        for index, automaton in enumerate([self._entry_fsa] + self._callback_fsa):
+        for index, automaton in enumerate([self._entry_fsa] + self._event_fsa):
             body.extend(
                 [
                     "\t\tcase {}: ".format(index),

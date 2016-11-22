@@ -24,9 +24,9 @@ from core.avtg.emg.translator.fsa_translator.label_control_function import label
 
 class LabelTranslator(FSATranslator):
 
-    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, callback_fsa):
+    def __init__(self, logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa):
         self.__thread_variables = dict()
-        super(LabelTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, callback_fsa)
+        super(LabelTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
 
     def _relevant_checks(self, relevant_automata):
         return list()
@@ -105,7 +105,7 @@ class LabelTranslator(FSATranslator):
         automata_peers = {}
         if len(state.action.peers) > 0:
             # Do call only if model which can be called will not hang
-            extract_relevant_automata(self._callback_fsa + self._model_fsa + [self._entry_fsa],
+            extract_relevant_automata(self._event_fsa + self._model_fsa + [self._entry_fsa],
                                       automata_peers, state.action.peers, Dispatch)
 
             # Add additional condition
