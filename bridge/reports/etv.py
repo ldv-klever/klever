@@ -116,7 +116,8 @@ class ParseErrorTrace:
         line_data.update(self.__add_assumptions(edge.get('assumption'), edge.get('assumption scope')))
         line_data.update(self.__update_line_data())
         if len(self.scope_stack) == 1 and all(x not in edge for x in ['return', 'enter']):
-            self.global_lines.append(line_data)
+            if line_data['code'] is not None:
+                self.global_lines.append(line_data)
             return
         elif len(self.scope_stack) == 1:
             self.scope_stack.append('scope__klever_main__0')
@@ -186,7 +187,8 @@ class ParseErrorTrace:
                 'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
             }, False))
             line_data.update(self.__update_line_data())
-        self.lines.append(line_data)
+        if line_data['code'] is not None:
+            self.lines.append(line_data)
 
     def __update_line_data(self):
         return {'offset': self.__curr_offset(), 'scope': self.scope_stack[-1]}
