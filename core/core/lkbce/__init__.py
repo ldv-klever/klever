@@ -199,24 +199,29 @@ class LKBCE(core.components.Component):
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
 
         for build_target in build_targets:
-            if build_target[0] != 'modules_prepare' or not self.linux_kernel['prepared to build ext modules']:
-                self.__make(build_target,
-                            jobs_num=jobs_num,
-                            specify_arch=True, collect_build_cmds=True)
-
-                if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
-                        self.linux_kernel['prepared to build ext modules']:
-                    with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
-                              encoding='utf8') as fp:
-                        fp.write(self.linux_kernel['conf'])
+            if build_target[0] == 'modules_prepare':
+                # Clean up Linux kernel working source tree and prepare to build external modules just once - this
+                # considerably speeds up testing where many small external modules are built one by one.
+                if not self.linux_kernel['prepared to build ext modules']:
+                    self.__make(build_target, jobs_num=jobs_num, specify_arch=True, collect_build_cmds=True)
+                    # Dump model CC options to Linux kernel working source tree to be able to reuse them later.
                     shutil.move('model CC opts.json',
                                 os.path.join(self.linux_kernel['work src tree'], 'model CC opts.json'))
 
-            if build_target[0] == 'modules_prepare':
+                    # Specify that Linux kernel working directory is prepared to build external modules for a given
+                    # configuration.
+                    if 'external modules' in self.conf['Linux kernel']:
+                        with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
+                                  encoding='utf8') as fp:
+                            fp.write(self.linux_kernel['conf'])
+
                 # We assume that after preparation for building modules was done model CC options are available, i.e.
-                # a CC command for which they are dumped was executed or they were dumped previously and can be reused.
+                # a CC command for which they are dumped was executed and they were dumped to Linux kernel working
+                # source tree.
                 self.set_model_cc_opts()
                 self.copy_model_headers()
+            else:
+                self.__make(build_target, jobs_num=jobs_num, specify_arch=True, collect_build_cmds=True)
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='utf8') as fp:
