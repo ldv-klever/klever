@@ -270,7 +270,7 @@
           }
         }
       },
-      "platform_driver_probe": {
+      "__platform_driver_probe": {
         "comment": "Register a driver for non-hotpluggable platform-level device.",
         "labels": {
           "platform_driver": {

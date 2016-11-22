@@ -178,6 +178,7 @@
   "Linux 4.6.7": {
     "kernel model": {
       "transport_backend_register": {
+        "comment": "Register new target backend operations.",
         "labels": {
           "target_backend_ops": {
             "container": true,
@@ -187,29 +188,35 @@
             ]
           }
         },
-        "process": "<assign>.[register] | <none>",
+        "process": "<assign>.[register].<success> | <fail>",
         "actions": {
           "register": {
             "parameters": [
               "%target_backend_ops%"
             ]
           },
-          "none": {
-            "condition": [
-              "$res != 0"
+          "fail": {
+            "comment": "Failed to register new target backend operations.",
+            "statements": [
+              "return ldv_undef_int_negative();"
             ]
           },
           "assign": {
-            "condition": [
-              "$res == 0"
-            ],
+            "comment": "Get new target backend operations.",
             "statements": [
               "%target_backend_ops% = $ARG1;"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered new target backend operations.",
+            "statements": [
+              "return 0;"
             ]
           }
         }
       },
       "target_backend_unregister": {
+        "comment": "Deregister new target backend operations.",
         "labels": {
           "target_backend_ops": {
             "container": true,
@@ -227,6 +234,7 @@
             ]
           },
           "assign": {
+            "comment": "Get new target backend operations.",
             "statements": [
               "%target_backend_ops% = $ARG1;"
             ]
@@ -236,6 +244,7 @@
     },
     "environment processes": {
       "io_target_scenario": {
+        "comment": "Linux-IO target callbacks invocation scenario.",
         "labels": {
           "target_backend_ops": {
             "container": true,
@@ -257,16 +266,17 @@
           "callback": {
             "resource": true,
             "callback": true
-          },
-          "allocated": {
-            "signature": "int a",
-            "value": "0"
           }
         },
-        "process": "(!register).<init>.[alloc].<post_alloc>.{call}",
+        "process": "(!register).<init>.{alloc_scenario}",
         "actions": {
-          "call": {
-            "process": "<positive_alloc>.([callback].{call} | [attach_hba].[detach_hba].{call} | [se_free].<after_free>.{call}) | <negative_alloc>.(<free>.(deregister) | [se_alloc].<post_alloc>.{call})"
+          "alloc_scenario": {
+            "comment": "Device structure is not allocated yet.",
+            "process": "[se_alloc].(<alloc_success>.{call_scenario} | <alloc_failed>.{alloc_scenario}) | <free>.(deregister)"
+          },
+          "call_scenario": {
+            "comment": "Device structure is allocated.",
+            "process": "[callback].{call_scenario} | [attach_hba].[detach_hba].{call_scenario} | [se_free].{alloc_scenario}"
           },
           "register": {
             "parameters": [
@@ -314,34 +324,27 @@
             ]
           },
           "init": {
+            "comment": "Allocate memory for se_hba structure.",
             "statements": [
               "%se_hba% = $ALLOC(%se_hba%);"
             ]
           },
           "free": {
+            "comment": "Free memory of se_hba structure.",
             "statements": [
               "$FREE(%se_hba%);"
             ]
           },
-          "after_free": {
-            "statements": [
-              "%allocated% = 0;"
-            ]
-          },
-          "post_alloc": {
-            "statements": [
-              "if (%se_device%)",
-              " %allocated% = 1;"
-            ]
-          },
-          "positive_alloc": {
+          "alloc_success": {
+            "comment": "Memory has been allocated for se_device structure successfully.",
             "condition": [
-              "%allocated% == 1"
+              "%se_device% != 0"
             ]
           },
-          "negative_alloc": {
+          "alloc_failed": {
+            "comment": "Failed to allocate memory for se_device structure.",
             "condition": [
-              "%allocated% != 1"
+              "%se_device% == 0"
             ]
           }
         }

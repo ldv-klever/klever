@@ -324,8 +324,8 @@
         "process": "<assign>.[open].(<open_success>.[register].<success> | <fail>) | <fail>",
         "actions": {
           "assign": {
+            "comment": "Get network device structure.",
             "statements": [
-              "%ret% = ldv_pre_register_netdev();",
               "%netdev% = $ARG1;"
             ]
           },
