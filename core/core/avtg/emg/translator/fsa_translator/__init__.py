@@ -33,7 +33,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Initialize new FSA translator object. During the initialization an enviornment model in form of finite state
         machines with process-like actions is translated to C code. Translation includes the following steps: each pair
         label-interface is translated in a separate variable, each action is translated in code blocks (aux functions
-        can be additionally generated), for each FSA a control function is generated, control functions for event
+        can be additionally generated), for each automaton a control function is generated, control functions for event
         modeling are called in a specific entry point function and control functions for function modeling are called
         insted of modelled functions. This class has an abstract methods to provide ability to implement different
         translators.
@@ -42,9 +42,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
         :param conf: Configuration properties dictionary.
         :param analysis: ModuleCategoriesSpecification object.
         :param cmodel: CModel object.
-        :param entry_fsa: An entry point FSA object.
-        :param model_fsa: List with FSA objects which correspond to function models.
-        :param event_fsa:  List with FSA objects for event modeling.
+        :param entry_fsa: An entry point Automaton object.
+        :param model_fsa: List with Automaton objects which correspond to function models.
+        :param event_fsa:  List with Automaton objects for event modeling.
         """
         self._cmodel = cmodel
         self._entry_fsa = entry_fsa
@@ -81,7 +81,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
             self._logger.debug("Generate code for instance {} of process '{}' of categorty '{}'".
                                format(automaton.identifier, automaton.process.name, automaton.process.category))
             for state in sorted(automaton.fsa.states, key=attrgetter('identifier')):
-                self.__compose_action(state, automaton)
+                self._compose_action(state, automaton)
+
+        # Make graph postprocessing
+        for automaton in self._event_fsa + [self._entry_fsa]:
+            self._normalize_event_fsa(automaton)
+        for automaton in self._model_fsa:
+            self._normalize_model_fsa(automaton)
 
         # Dump graphs
         if get_conf_property(self._conf, 'dump automata graphs'):
@@ -133,9 +139,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     def _save_digraphs(self):
         """
-        Method saves FSA with code in doe format in debug purposes. This functionality can be turned on by setting
+        Method saves Automaton with code in doe format in debug purposes. This functionality can be turned on by setting
         corresponding configuration property. Each action is saved as a node and for each possible state transition
-        an edge is added. This function can be called only if code blocks for each action of all FSAs are already
+        an edge is added. This function can be called only if code blocks for each action of all automata are already
         generated.
 
         :return: None
@@ -144,7 +150,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         # Print DOT files to this directory inside plugin working directory
         directory = 'automata'
 
-        # Dump separetly all FSAs
+        # Dump separetly all automata
         for automaton in self._event_fsa + self._model_fsa + [self._entry_fsa]:
             self._logger.debug("Generate graph for automaton based on process {} with category {}".
                                format(automaton.process.name, automaton.process.category))
@@ -210,7 +216,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     def _prepare_control_functions(self):
         """
-        Generate code of all control functions for each FSAs. It expects that all actions are already transformed into
+        Generate code of all control functions for each automata. It expects that all actions are already transformed into
         code blocks and control functions can be combined from such blocks. The implementation of the method depends
         on configuration properties and chosen kind of an output environment model.
 
@@ -223,7 +229,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate a code block for an artificial node in FSA which does not correspond to any action.
 
         :param state: State object.
-        :param automaton: FSA object which contains the artificial node.
+        :param automaton: Automaton object which contains the artificial node.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -238,13 +244,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
     def _dispatch(self, state, automaton):
         """
-        Generate a code block for a dispatch action of the process for which the FSA is generated. A dispatch code block
-        is always generated in a fixed form: as a function call of auxiliary function. Such a function contains switch
-        or if operator to choose one of available optional receivers to send the signal. Implementation of particular
-        dispatch to particular receiver is configurable and can be implemented differently in various translators.
+        Generate a code block for a dispatch action of the process for which the automaton is generated. A dispatch code
+        block is always generated in a fixed form: as a function call of auxiliary function. Such a function contains
+        switch or if operator to choose one of available optional receivers to send the signal. Implementation of
+        particular dispatch to particular receiver is configurable and can be implemented differently in various
+        translators.
 
         :param state: State object.
-        :param automaton: FSA object which contains the dispatch.
+        :param automaton: Automaton object which contains the dispatch.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -399,7 +406,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         or boolean expressions.
 
         :param state: State object.
-        :param automaton: FSA object which contains the condition.
+        :param automaton: Automaton object which contains the condition.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -434,7 +441,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         optional nodes will be generated with all additional pre and post- conditions.
 
         :param state: State object.
-        :param automaton: FSA object which contains the callback call.
+        :param automaton: Automaton object which contains the callback call.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -528,13 +535,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 pre_action = automaton.process.add_condition(pre_name, [], pre_stments,
                                                              "Allocate memory for adhoc callback parameters.")
                 pre_st = automaton.fsa.add_new_predecessor(st, pre_action)
-                self.__compose_action(pre_st, automaton)
+                self._compose_action(pre_st, automaton)
 
                 post_name = 'post_call_{}'.format(st.identifier)
                 post_action = automaton.process.add_condition(post_name, [], post_stments,
                                                               "Free memory of adhoc callback parameters.")
                 post_st = automaton.fsa.add_new_successor(st, post_action)
-                self.__compose_action(post_st, automaton)
+                self._compose_action(post_st, automaton)
 
         def generate_function(st, callback_declaration, invoke, file, check, func_variable):
             pointer_params, label_parameters, external_parameters = match_parameters(callback_declaration)
@@ -619,7 +626,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             return inv
 
-        def compose_action(st, declaration, invoke, file, check, func_variable):
+        def make_action(st, declaration, invoke, file, check, func_variable):
             # Add an additional condition
             if st.action.condition and len(st.action.condition) > 0:
                 for stment in st.action.condition:
@@ -715,7 +722,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     if len(checks) > 0:
                         code.append('ldv_assume({});'.format(' || '.join(checks)))
 
-                inv = compose_action(st, signature, invoke, file, check, func_variable)
+                inv = make_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
                 
                 generated_callbacks.append((st, code, list(), conditions, comments))
@@ -741,7 +748,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         environment model.
 
         :param state: State object.
-        :param automaton: FSA object which contains the callback return value action.
+        :param automaton: Automaton object which contains the callback return value action.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -764,7 +771,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate reduction to a subprocess as a code block. Add your own logic in the corresponding implementation.
 
         :param state: State object.
-        :param automaton: FSA object which contains the subprocess.
+        :param automaton: Automaton object which contains the subprocess.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -790,7 +797,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Provides declaration of structure to pack all control function (or maybe other) parameters as a single argument
         with help of it.
 
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :param params: Declaration objects list.
         :return: Declaration object.
         """
@@ -820,7 +827,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate statement with control function call.
 
         :param file: File name string.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
         :return: String expression.
         """
@@ -836,7 +843,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate statement to join control function thread if it is called in a separate thread.
 
         :param file: File name string.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: String expression.
         """
         self._cmodel.add_function_declaration(file, self._control_function(automaton), extern=True)
@@ -852,7 +859,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         to call control function within code blocks until all code blocks are translated and control function body
         can be generated.
 
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: FunctionDefinition object.
         """
         if automaton.identifier not in self._control_functions:
@@ -889,7 +896,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         This function allows to add your own additional conditions before function calls and dispatches. The
         implementation in your translator is required.
 
-        :param relevent_automata: {'FSA identifier string': {'automaton': FSA object,
+        :param relevent_automata: {'Automaton identifier string': {'automaton': Automaton object,
                'states': set of State objects peered with the considered action}}
         :return: List with additional C logic expressions.
         """
@@ -902,7 +909,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         implementation.
 
         :param file: File name string.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: String expression.
         """
         raise NotImplementedError
@@ -913,7 +920,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate statement with control function call. Depends on a translator implementation.
 
         :param file: File name string.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :param parameter: String with argument of the control function.
         :return: String expression.
         """
@@ -927,10 +934,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
         :param state: State object.
         :param file: File name string.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :param function_parameters: list of Label objects.
         :param param_interfaces: List of Interface objects.
-        :param automata_peers: {'FSA identifier string': {'automaton': FSA object,
+        :param automata_peers: {'Automaton identifier string': {'automaton': Automaton object,
                                 'states': set of State objects peered with the considered action}}
         :param replicative: True/False.
         :return: [List of C statements before dispatching], [[List of C statements with dispatch]],
@@ -944,7 +951,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         Generate code block for receive action. Require more detailed implementation in your translator.
 
         :param state: State object.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: [list of strings with lines of C code statements of the code block],
                  [list of strings with new local variable declarations required for the block],
                  [list of strings with boolean conditional expressions which guard code block entering],
@@ -964,7 +971,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
         """
         Generate body of a control function according to your translator implementation.
 
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: None
         """
         raise NotImplementedError
@@ -978,12 +985,32 @@ class FSATranslator(metaclass=abc.ABCMeta):
         """
         raise NotImplementedError
 
-    def __compose_action(self, state, automaton):
+    @abc.abstractstaticmethod
+    def _normalize_model_fsa(self, automaton):
+        """
+        Normalize function model fsa graph and apply necessary transformations.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        raise NotImplementedError
+
+    @abc.abstractstaticmethod
+    def _normalize_event_fsa(self, automaton):
+        """
+        Normalize event automaton fsa graph and apply necessary transformations.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        raise NotImplementedError
+
+    def _compose_action(self, state, automaton):
         """
         Generate one single code block from given guard, body, model comments statements.
 
         :param state: State object.
-        :param automaton: FSA object.
+        :param automaton: Automaton object.
         :return: None
         """
         def compose_single_action(st, code, v_code, conditions, comments):

@@ -15,11 +15,11 @@
 # limitations under the License.
 #
 from core.avtg.emg.common import get_conf_property, get_necessary_conf_property
-from core.avtg.emg.common.process import Dispatch, Receive, get_common_parameter
+from core.avtg.emg.common.process import Dispatch, get_common_parameter
 from core.avtg.emg.translator.fsa_translator import FSATranslator
-from core.avtg.emg.translator.code import Variable, FunctionDefinition
+from core.avtg.emg.translator.code import Variable
 from core.avtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
-from core.avtg.emg.translator.fsa_translator.label_control_function import label_based_function
+from core.avtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
 class LabelTranslator(FSATranslator):
@@ -192,6 +192,24 @@ class LabelTranslator(FSATranslator):
             '{}(0);'.format(self._control_function(self._entry_fsa).name)
         ]
         return self._cmodel.compose_entry_point(body)
+
+    def _normalize_model_fsa(self, automaton):
+        """
+        Since label-based control functions are generated use correponding function to normalize fsa.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        normalize_fsa(automaton, self._compose_action)
+
+    def _normalize_event_fsa(self, automaton):
+        """
+        Since label-based control functions are generated use correponding function to normalize fsa.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        normalize_fsa(automaton, self._compose_action)
 
     def __thread_variable(self, automaton, number=1):
         if automaton.identifier not in self.__thread_variables:

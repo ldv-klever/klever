@@ -35,7 +35,6 @@ class FSA:
         """
         self.process = process
         self.states = set()
-        self._initial_states = set()
         self.__id_cnt = 0
 
         # Generate AST states
@@ -103,7 +102,7 @@ class FSA:
         p_ast = copy.copy(process.process_ast)
 
         # Generates states exploring the AST of the process itself
-        self._initial_states = generate_nodes(process, p_ast)
+        generate_nodes(process, p_ast)
         asts.append([p_ast, None])
 
         def resolve_last(pr_ast):
@@ -163,28 +162,6 @@ class FSA:
                 for pre_state in last:
                     ast['node'].insert_predecessor(pre_state)
 
-        # Normalize fsa to make life easier for code generators
-        # Keep subprocess states as jumb points
-        # Insert process and subprocess artificial single entry states
-        for subprocess in (a for a in self.process.actions.values() if type(a) is Subprocess):
-            new = self.__new_state(None)
-
-            # Insert state
-            jump_states = sorted([s for s in self.states if s.action and s.action.name == subprocess.name],
-                                  key=attrgetter('identifier'))
-            for jump in jump_states:
-                for successor in jump.successors:
-                    successor.replace_predecessor(jump, new)
-                    jump.replace_successor(successor, new)
-
-        # Add a single artificial initial state if there are several of them
-        if len(self._initial_states) > 1:
-            new = self.__new_state(None)
-            for initial in self._initial_states:
-                initial.insert_predecessor(new)
-
-            self._initial_states = {new}
-
         return
 
     @property
@@ -194,7 +171,8 @@ class FSA:
 
         :return: Sorted list with starting process State objects.
         """
-        return sorted(self._initial_states, key=attrgetter('identifier'))
+        initial_states = sorted([s for s in self.states if len(s.predecessors) == 0], key=attrgetter('identifier'))
+        return initial_states
 
     def resolve_state(self, identifier):
         """
@@ -240,7 +218,7 @@ class FSA:
         :param action: action object (Condition, Dispatch, etc.).
         :return: New State object.
         """
-        new = self.__new_state(action)
+        new = self.new_state(action)
 
         for pred in node.predecessors:
             pred.replace_successor(node, new)
@@ -256,7 +234,7 @@ class FSA:
         :param action: action object (Condition, Dispatch, etc.).
         :return: New State object.
         """
-        new = self.__new_state(action)
+        new = self.new_state(action)
 
         for succ in node.successors:
             succ.replace_predecessor(node, new)
@@ -264,7 +242,7 @@ class FSA:
         node.insert_successor(new)
         return new
 
-    def __new_state(self, action):
+    def new_state(self, action):
         """
         Generates new State object for given action. Action can be None to create artificial states in FSA.
 

@@ -76,6 +76,85 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     return cf.name
 
 
+def normalize_fsa(automaton, composer):
+    """
+    Normalize fsa to make life easier for code generators. Do the following transformations:
+    * Avoid several entry point states;
+    * Generate for each subprocess jump state an artificial state which can be considered as entry point to get into
+      subprocess. All subprocess jumping states will have the only successor - such corresponding artificial state.
+    * For cases when two (or more) predecessor states lead into two (or more) successor states at once insert an
+      intermediate state which will has two (or more) predecessors and two (or more) successors to prevent such cross
+      dependencies.
+
+    :param fsa: Automaton object.
+    :param composer: Method to compose new code blocks.
+    :return: None.
+    """
+    new_states = list()
+
+    # Keep subprocess states as jumb points
+    # Insert process and subprocess artificial single entry states
+    for subprocess in (a for a in automaton.process.actions.values() if type(a) is Subprocess):
+        new = automaton.fsa.new_state(None)
+        new_states.append(new)
+
+        # Insert state
+        jump_states = sorted([s for s in automaton.fsa.states if s.action and s.action.name == subprocess.name],
+                             key=attrgetter('identifier'))
+        for jump in jump_states:
+            for successor in jump.successors:
+                successor.replace_predecessor(jump, new)
+                jump.replace_successor(successor, new)
+
+    # Add a single artificial initial state if there are several of them
+    if len(automaton.fsa.initial_states) > 1:
+        new = automaton.fsa.new_state(None)
+        new_states.append(new)
+        for initial in automaton.fsa.initial_states:
+            initial.insert_predecessor(new)
+
+    # Remove cross dependencies
+    candidates = [s for s in automaton.fsa.states if len(s.successors) > 1 and
+                  len(list(s.successors)[0].predecessors) > 1]
+    while len(candidates) > 0:
+        candidate = candidates.pop()
+        target_set = candidate.successors
+        source_set = list(target_set)[0].predecessors
+
+        # Check that all source nodes have the same target set and vice versa
+        cross_dependency_exist = True
+        for t in target_set:
+            if len(set(t.predecessors).symmetric_difference(source_set)) != 0:
+                cross_dependency_exist = False
+                break
+
+        if cross_dependency_exist:
+            for s in source_set:
+                if len(set(s.successors).symmetric_difference(target_set)) != 0:
+                    cross_dependency_exist = False
+                    break
+
+        # Remove cross dependency
+        if cross_dependency_exist:
+            new = automaton.fsa.new_state(None)
+            new_states.append(new)
+            for s in source_set:
+                for t in target_set:
+                    s.remove_successor(t)
+                    t.remove_predecessor(s)
+                    new.insert_predecessor(s)
+                    new.insert_successor(t)
+
+                # Remove rest candidates
+                if s in candidates:
+                    candidates.remove(s)
+
+    # Compose new action code blocks
+    for state in new_states:
+        composer(state, automaton)
+
+    return
+
 def __merge_points(initial_states):
     # Terminal marking
     def add_terminal(terminal, out_value, split_points, subprocess=False):
@@ -90,7 +169,7 @@ def __merge_points(initial_states):
             split_points[split]['terminal merge sets'][terminal] = out_value[split]
 
     # Condition calculation
-    def do_condition(states, terminal_branches, finals, merge_list, split, split_data, merge_points):
+    def do_condition(states, terminal_branches, finals, merge_list, split, split_data, merge_points, graph):
         # Set up branches
         condition = {'pending': list(), 'terminals': list()}
         largest_unintersected_mergesets = []
@@ -107,7 +186,7 @@ def __merge_points(initial_states):
                     sc_finals = set(merge_points[merge][split])
                     sc_terminals = set(split_data['terminals'].keys()).intersection(merged_states)
                     new_condition = do_condition(set(merged_states), sc_terminals, sc_finals, list(merge_list),
-                                                 split, split_data, merge_points)
+                                                 split, split_data, merge_points, graph)
                     condition['pending'].append(new_condition)
                 else:
                     raise RuntimeError('Invalid merge')
@@ -117,7 +196,8 @@ def __merge_points(initial_states):
         if len(states) > 0:
             condition['pending'].extend(sorted(states))
 
-        # Add predecessors of the latest merge sets if there are not covered in terminals
+        # Add predecessors of the latest merge sets if there are not covered in terminals, but be aware of merge points
+        # that merge branches before original split point is finally closed
         for merge in largest_unintersected_mergesets:
             bad = False
             for terminal_branch in terminal_branches:
@@ -131,12 +211,22 @@ def __merge_points(initial_states):
                 # Add predecessors
                 condition['terminals'].extend(merge_points[merge][split])
                 # Add terminal
+                # todo: do not add merged branches - add their terminals
                 terminal_branches.update(set(split_data['terminals'].keys()).
                                          intersection(split_data['split sets'][merge]))
 
-        # Add terminals which are not belong to any merge set
-        for branch in terminal_branches:
-            condition['terminals'].extend(split_data['terminals'][branch])
+        # Add terminals which are not belong to any merge set. Do not add terminals if there are merged after
+        # considrered merge point
+        # todo: filter terminal branches for intermediate merge points
+        merging_terminal_branches = \
+        [
+            m for m in merge_points if split in merge_points[m] and
+            len(terminal_branches.symmetric_difference(merge_points[m][split])) == 0
+        ]
+        if len(merging_terminal_branches) == 0:
+            for branch in terminal_branches:
+                condition['terminals'].extend(split_data['terminals'][branch])
+
         # Add provided
         condition['terminals'].extend(finals)
 
@@ -144,7 +234,7 @@ def __merge_points(initial_states):
         if len(condition['pending']) == 1:
             condition = condition['pending'][0]
 
-        # Save all branhces
+        # Save all branches
         condition['branches'] = list(condition['pending'])
 
         # Save total number of branches
@@ -172,7 +262,7 @@ def __merge_points(initial_states):
         # Calculate output branches
         out_value = dict()
         if st not in initial_states and len(st.predecessors) > 1 and \
-                        len({s for s in st.predecessors if s.identifier not in processed}) > 0:
+                len({s for s in st.predecessors if s.identifier not in processed}) > 0:
             merge_queue.append(st)
         else:
             if st not in initial_states:
@@ -202,7 +292,7 @@ def __merge_points(initial_states):
                                     {p.identifier for p in st.predecessors
                                      if split in graph[p.identifier][st.identifier]}
 
-                                # Add particular set of merged bracnhes
+                                # Add particular set of merged branches
                                 split_points[split]['split sets'][st.identifier] = out_value[split]
 
                                 # Remove, since all branches are merged
@@ -277,7 +367,7 @@ def __merge_points(initial_states):
         merge_list = sorted(split_points[split]['split sets'].keys(),
                             key=lambda y: len(split_points[split]['split sets'][y]), reverse=True)
         condition = do_condition(left, split_points[split]['terminals'].keys(), set(), merge_list, split,
-                                 split_points[split], merge_points)
+                                 split_points[split], merge_points, graph)
         conditions[split] = condition
 
     return conditions

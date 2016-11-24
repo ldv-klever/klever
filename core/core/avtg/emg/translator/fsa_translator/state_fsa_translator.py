@@ -18,7 +18,7 @@ from core.avtg.emg.common import get_necessary_conf_property, check_or_set_conf_
 from core.avtg.emg.common.process import Receive, Dispatch, CallRetval, Call, Condition, Subprocess
 from core.avtg.emg.translator.code import Variable, FunctionDefinition
 from core.avtg.emg.translator.fsa_translator import FSATranslator
-from core.avtg.emg.translator.fsa_translator.label_fsa_translator import label_based_function
+from core.avtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 from core.avtg.emg.translator.fsa_translator.common import choose_file, initialize_automaton_variables, model_comment,\
     control_function_comment_begin, control_function_comment_end
 
@@ -207,6 +207,24 @@ class StateTranslator(FSATranslator):
         )
 
         return self._cmodel.compose_entry_point(body)
+
+    def _normalize_model_fsa(self, automaton):
+        """
+        Since label-based control functions are generated use correponding function to normalize fsa.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        normalize_fsa(automaton, self._compose_action)
+
+    def _normalize_event_fsa(self, automaton):
+        """
+        There are no specific requirements implied on fsa structure.
+
+        :param automaton: Automaton object.
+        :return: None
+        """
+        pass
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
