@@ -259,7 +259,7 @@
               "%size_cnt%"
             ],
             "pre-call": [
-              "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
+              "ldv_assume(%size_cnt% <= (INT_MAX & PAGE_CACHE_MASK));"
             ]
           },
           "init": {
