@@ -100,7 +100,7 @@ def normalize_fsa(automaton, composer):
 
         # Insert state
         jump_states = sorted([s for s in automaton.fsa.states if s.action and s.action.name == subprocess.name],
-                             key=attrgetter('identifier'))
+                              key=attrgetter('identifier'))
         for jump in jump_states:
             for successor in jump.successors:
                 successor.replace_predecessor(jump, new)
@@ -108,9 +108,13 @@ def normalize_fsa(automaton, composer):
 
     # Add a single artificial initial state if there are several of them
     if len(automaton.fsa.initial_states) > 1:
+        initial_states = automaton.fsa.initial_states
         new = automaton.fsa.new_state(None)
         new_states.append(new)
-        for initial in automaton.fsa.initial_states:
+
+        # Make generator before adding an additional state, since new state without successors and predecessors is
+        # considered as an entry point too
+        for initial in initial_states:
             initial.insert_predecessor(new)
 
     # Remove cross dependencies
@@ -184,7 +188,13 @@ def __merge_points(initial_states):
                     condition['pending'].append(next(iter(merged_states)))
                 elif len(merged_states) > 1:
                     sc_finals = set(merge_points[merge][split])
+                    # Do not add terminals if there is living edge with the branch from the merge point
                     sc_terminals = set(split_data['terminals'].keys()).intersection(merged_states)
+                    for candidate in list(sc_terminals):
+                        living_out_edge = [o for o in graph[merge] if split in graph[merge][o] and
+                                           candidate in graph[merge][o][split]]
+                        if len(living_out_edge) > 0:
+                            sc_terminals.remove(candidate)
                     new_condition = do_condition(set(merged_states), sc_terminals, sc_finals, list(merge_list),
                                                  split, split_data, merge_points, graph)
                     condition['pending'].append(new_condition)
@@ -208,24 +218,18 @@ def __merge_points(initial_states):
                         break
 
             if not bad:
-                # Add predecessors
-                condition['terminals'].extend(merge_points[merge][split])
+                # Check that it is truely last merge point
+                living_outs = [o for o in graph[merge] if split in graph[merge][o] and len(graph[merge][o][split]) > 0]
+                if len(living_outs) == 0:
+                    condition['terminals'].extend(merge_points[merge][split])
+
                 # Add terminal
-                # todo: do not add merged branches - add their terminals
                 terminal_branches.update(set(split_data['terminals'].keys()).
                                          intersection(split_data['split sets'][merge]))
 
-        # Add terminals which are not belong to any merge set. Do not add terminals if there are merged after
-        # considrered merge point
-        # todo: filter terminal branches for intermediate merge points
-        merging_terminal_branches = \
-        [
-            m for m in merge_points if split in merge_points[m] and
-            len(terminal_branches.symmetric_difference(merge_points[m][split])) == 0
-        ]
-        if len(merging_terminal_branches) == 0:
-            for branch in terminal_branches:
-                condition['terminals'].extend(split_data['terminals'][branch])
+        # Add terminals which are not belong to any merge set.
+        for branch in terminal_branches:
+            condition['terminals'].extend(split_data['terminals'][branch])
 
         # Add provided
         condition['terminals'].extend(finals)
