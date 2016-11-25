@@ -13,7 +13,7 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 # Do not use 'error_trace', 'pattern_error_trace', 'error'
 # and 'result' as function name.
 
-DEFAULT_COMPARE = 'callstack_tree_compare'
+DEFAULT_COMPARE = 'model_functions_compare'
 
 
 class CompareTrace(object):
@@ -85,7 +85,11 @@ If call stacks are identical returns 1 else returns 0.
         """
 If model functions are identical returns 1 else returns 0.
         """
-        err_trace1 = error_trace_model_functions(self.error_trace)
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='model_functions'), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+
+        err_trace1 = res.parsed_trace()
         err_trace2 = self.pattern_error_trace
         if err_trace1 == err_trace2:
             return 1

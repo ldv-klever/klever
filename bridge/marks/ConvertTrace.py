@@ -13,7 +13,7 @@ from marks.models import ErrorTraceConvertionCache
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'call_stack_tree'
+DEFAULT_CONVERT = 'model_functions'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
