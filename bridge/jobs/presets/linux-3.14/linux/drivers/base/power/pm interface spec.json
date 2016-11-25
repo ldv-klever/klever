@@ -16,6 +16,8 @@
               "thaw": "%pm.thaw%",
               "poweroff": "%pm.poweroff%",
               "restore": "%pm.restore%",
+              "suspend_late": "%pm.suspend_late%",
+              "resume_early": "%pm.resume_early%",
               "freeze_late": "%pm.freeze_late%",
               "thaw_early": "%pm.thaw_early%",
               "poweroff_late": "%pm.poweroff_late%",
