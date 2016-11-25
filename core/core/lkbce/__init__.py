@@ -220,6 +220,7 @@ class LKBCE(core.components.Component):
                 # source tree.
                 self.set_model_cc_opts()
                 self.copy_model_headers()
+                self.fixup_model_cc_opts()
             else:
                 self.__make(build_target, jobs_num=jobs_num, specify_arch=True, collect_build_cmds=True)
 
@@ -531,6 +532,12 @@ class LKBCE(core.components.Component):
                     self.logger.debug('Copy model header "{0}"'.format(dep))
                     os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
                     shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
+
+    def fixup_model_cc_opts(self):
+        # After model headers were copied we should do the same replacement as for CC options of dumped build commands
+        # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
+        self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['work src tree']) + '/'), '', opt)
+                              for opt in self.model_cc_opts]
 
     def __make_canonical_work_src_tree(self, work_src_tree):
         work_src_tree_root = None
