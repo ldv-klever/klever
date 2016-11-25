@@ -44,7 +44,7 @@ def after_set_shadow_src_tree(context):
     context.mqs['shadow src tree'].put(context.shadow_src_tree)
 
 
-def after_set_model_cc_opts(context):
+def after_fixup_model_cc_opts(context):
     context.mqs['model CC opts'].put(context.model_cc_opts)
 
 
