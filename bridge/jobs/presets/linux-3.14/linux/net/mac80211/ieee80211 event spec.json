@@ -187,5 +187,180 @@
         }
       }
     }
+  },
+  "Linux 2.6.33": {
+    "kernel model": {
+      "ieee80211_alloc_hw": {
+        "comment": "Allocate a new hardware device.",
+        "labels": {
+          "ieee80211_ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "ieee80211.ieee80211_ops"
+            ]
+          },
+          "ieee80211_hw": {
+            "resource": true,
+            "pointer": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          }
+        },
+        "process": "<alloc>.[register].<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for ieee80211_hw structure.",
+            "statements": [
+              "%ieee80211_ops% = $ARG2;",
+              "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
+            ]
+          },
+          "fail": {
+            "comment": "Hardware device structure allocation has failed.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "success": {
+            "comment": "Hardware device structure allocation has been successfull.",
+            "statements": [
+              "return %ieee80211_hw%;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%ieee80211_hw%"
+            ]
+          }
+        }
+      },
+      "ieee80211_free_hw": {
+        "comment": "Free hardware device.",
+        "labels": {
+          "ieee80211_hw": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          }
+        },
+        "process": "[deregister].<free>",
+        "actions": {
+          "free": {
+            "comment": "Free memory of ieee80211_hw structure.",
+            "statements": [
+              "$FREE(%ieee80211_hw%);"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%ieee80211_hw%"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "ieee80211_scenario": {
+        "comment": "Wireless 802.11 driver callbacks invocation scenario.",
+        "headers": [
+          "linux/rtnetlink.h"
+        ],
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "ieee80211.ieee80211_ops"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "resource": {
+            "resource": true,
+            "interface": [
+              "ieee80211.ieee80211_hw"
+            ]
+          },
+          "ret": {
+            "signature": "int a"
+          }
+        },
+        "process": "(!register).{main}",
+        "actions": {
+          "main": {
+            "comment": "No netdevices attached to the hardware or enabled.",
+            "process": "[start].(<start_success>.{started} | <start_fail>).{main} | (deregister)"
+          },
+          "started": {
+            "comment": "The hardware is turned on and frame reception is enabled.",
+            "process": "[callback].{started} | [stop].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%resource% == $ARG1"
+            ],
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "start_success": {
+            "comment": "Successfully started 802.11 driver.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "start_fail": {
+            "comment": "Failed to start 802.11 driver.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "callback": {
+            "comment": "Choose randomly 802.11 driver callback.",
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "start": {
+            "comment": "Before the first netdevice attached to the hardware is enabled.",
+            "callback": "%container.start%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "rtnl_lock();"
+            ],
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);",
+              "rtnl_unlock();"
+            ],
+            "callback return value": "%ret%"
+          },
+          "stop": {
+            "comment": "Last netdevice attached to the hardware is disabled.",
+            "callback": "%container.stop%",
+            "parameters": [
+              "%resource%"
+            ],
+            "pre-call": [
+              "rtnl_lock();"
+            ],
+            "post-call": [
+              "rtnl_unlock();"
+            ]
+          }
+        }
+      }
+    }
   }
 }

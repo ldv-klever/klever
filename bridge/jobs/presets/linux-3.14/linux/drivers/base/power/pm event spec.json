@@ -196,5 +196,165 @@
         }
       }
     }
+  },
+  "Linux 2.6.33": {
+    "kernel model": {},
+    "environment processes": {
+      "pm_ops_scenario": {
+        "comment": "Power management scenario.",
+        "labels": {
+          "pm_ops": {
+            "container": true,
+            "interface": [
+              "pm.dev_pm_ops"
+            ]
+          },
+          "device": {
+            "resource": true,
+            "interface": [
+              "pm.device"
+            ]
+          }
+        },
+        "process": "(!pm_register).{do}",
+        "actions": {
+          "do": {
+            "comment": "Begin a power management scenario.",
+            "process": "[runtime_idle].{do} | [runtime_suspend].[runtime_resume].{do} | [prepare].([suspend].([suspend_noirq].[resume_noirq] | <skip_noirq>).[resume] | [freeze].(<skip_noirq> | [freeze_noirq].[thaw_noirq]).[thaw] | [poweroff].([poweroff_noirq].[restore_noirq] | <skip_noirq>).[restore]).[complete].{do} | (pm_deregister)"
+          },
+          "skip_noirq": {
+            "comment": "Skip noirq callbacks",
+            "statements": []
+          },
+          "pm_register": {
+            "comment": "Ready for a power management scenarios.",
+            "parameters": []
+          },
+          "pm_deregister": {
+            "comment": "Do not expect power management scenarios.",
+            "parameters": []
+          },
+          "prepare": {
+            "comment": "Prevent new children of the device from being registered.",
+            "callback": "%pm_ops.prepare%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "complete": {
+            "comment": "Undo the changes made by @prepare().",
+            "callback": "%pm_ops.complete%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "suspend": {
+            "comment": "Quiesce subsystem-level device before suspend.",
+            "callback": "%pm_ops.suspend%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "resume": {
+            "comment": "Make the device start working again after resume.",
+            "callback": "%pm_ops.resume%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "freeze": {
+            "comment": "Prepare for creating a hibernation image.",
+            "callback": "%pm_ops.freeze%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "thaw": {
+            "comment": "The hibernation image has created or creation has failed.",
+            "callback": "%pm_ops.thaw%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "poweroff": {
+            "comment": "Hibernation image has been created.",
+            "callback": "%pm_ops.poweroff%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "restore": {
+            "comment": "Restoration of the contents of main memory from a hibernation image has been done.",
+            "callback": "%pm_ops.restore%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "suspend_noirq": {
+            "comment": "Expect that the device will be in a low-power state.",
+            "callback": "%pm_ops.suspend_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "resume_noirq": {
+            "comment": "Prepare for the @resume() performing actions that might be racing with device's interrupt handler.",
+            "callback": "%pm_ops.resume_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "freeze_noirq": {
+            "comment": "Complete the actions started by @freeze() that might be racing with device's interrupt handler.",
+            "callback": "%pm_ops.freeze_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "thaw_noirq": {
+            "comment": "Prepare for the execution of @thaw() performing actions that might be racing with device's interrupt handler.",
+            "callback": "%pm_ops.thaw_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "poweroff_noirq": {
+            "comment": "Complete the actions started by @poweroff().",
+            "callback": "%pm_ops.poweroff_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "restore_noirq": {
+            "comment": "Prepare for the execution of @restore() performing actions that might be racing with device's interrupt handler.",
+            "callback": "%pm_ops.restore_noirq%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "runtime_suspend": {
+            "comment": "The device should be put into a low-power state to prevent communication of the device with the CPU(s) and RAM.",
+            "callback": "%pm_ops.runtime_suspend%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "runtime_resume": {
+            "comment": "Put the device into the fully active state in response to a wakeup event generated by hardware or at the request of software.",
+            "callback": "%pm_ops.runtime_resume%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "runtime_idle": {
+            "comment": "Device appears to be inactive and it might be put into a low-power state if all of the necessary conditions are satisfied.",
+            "callback": "%pm_ops.runtime_idle%",
+            "parameters": [
+              "%device%"
+            ]
+          }
+        }
+      }
+    }
   }
 }
