@@ -172,6 +172,9 @@ class FSA:
         :return: Sorted list with starting process State objects.
         """
         initial_states = sorted([s for s in self.states if len(s.predecessors) == 0], key=attrgetter('identifier'))
+        if len(initial_states) == 0:
+            raise ValueError('FSA generated for process {!r} and category {!r} has no entry strates'.
+                             format(self.process.name, self.process.category))
         return initial_states
 
     def resolve_state(self, identifier):
