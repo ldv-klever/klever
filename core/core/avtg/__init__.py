@@ -375,11 +375,11 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.get_shadow_src_tree()
-        self.get_model_cc_opts()
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_headers()
+        self.get_shadow_src_tree()
+        self.get_model_cc_opts()
         self.launch_subcomponents(('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
                                   ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
