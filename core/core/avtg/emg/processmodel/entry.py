@@ -55,12 +55,13 @@ class EntryProcessGenerator:
         :return: True - dispatch can be generated, False - dispatch will not be generated.
         """
         def add_signal(p, s, r):
-            if p.name not in self.__default_signals:
-                self.__default_signals[p.name] = {'activation': list(), 'deactivation': list(), 'process': p}
-            if r:
-                self.__default_signals[p.name]['activation'].append(s)
-            else:
-                self.__default_signals[p.name]['deactivation'].append(s)
+            if p.identifier not in self.__default_signals:
+                self.__default_signals[p.identifier] = {'activation': list(), 'deactivation': list(), 'process': p}
+
+            if r and s not in self.__default_signals[p.identifier]['activation']:
+                self.__default_signals[p.identifier]['activation'].append(s)
+            elif not r and s not in self.__default_signals[p.identifier]['deactivation']:
+                self.__default_signals[p.identifier]['deactivation'].append(s)
 
         if receive.name in get_necessary_conf_property(self.__conf, 'add missing deactivation signals'):
             add_signal(process, receive, False)
@@ -230,7 +231,7 @@ class EntryProcessGenerator:
         deactivations = list()
         for receiver in (self.__default_signals[n]['process'] for n in self.__default_signals):
             # Process activation signals
-            for activation in self.__default_signals[receiver.name]['activation']:
+            for activation in self.__default_signals[receiver.identifier]['activation']:
                 # Alloc memory after default registraton
                 allocation_name = 'default_alloc_{}'.format(receiver.identifier)
                 receiver.add_condition(allocation_name, [],
@@ -244,7 +245,7 @@ class EntryProcessGenerator:
                 activations.append(nd)
 
             # process deactivation signals
-            for deactivation in self.__default_signals[receiver.name]['deactivation']:
+            for deactivation in self.__default_signals[receiver.identifier]['deactivation']:
                 # Free memory after default deregistraton
                 free_name = 'default_free_{}'.format(receiver.identifier)
                 receiver.add_condition(free_name, [],
