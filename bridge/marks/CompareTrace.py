@@ -29,7 +29,7 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 # 5) Add docstring to the created function.
 # Do not use 'pattern_error_trace', 'error' and 'result' as function name.
 
-DEFAULT_COMPARE = 'callstack_tree_compare'
+DEFAULT_COMPARE = 'call_forests_compare'
 
 
 class CompareTrace(object):
@@ -108,6 +108,18 @@ If call stacks trees are identical returns 1 else returns 0.
         err_trace_converted = self.__get_converted_trace('call_stack_tree')
         pattern = self.pattern_error_trace
         return int(err_trace_converted == pattern)
+
+    def call_forests_compare(self):
+        """
+Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
+        """
+
+        err_trace_converted = set(self.__get_converted_trace('call_forests'))
+        pattern = set(self.pattern_error_trace)
+        max_len = max(len(err_trace_converted), len(pattern))
+        if max_len == 0:
+            return 1
+        return len(err_trace_converted & pattern) / max_len
 
     def __get_converted_trace(self, conversion_function_name):
         res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe)

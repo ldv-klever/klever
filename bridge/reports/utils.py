@@ -19,7 +19,7 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
@@ -309,10 +309,9 @@ class ReportTable(object):
                     if list_types[self.type] == 'unsafe':
                         broken = len(report.markreport_set.filter(broken=True))
                     if broken > 0:
-                        val = _('%(all)s (%(broken)s are broken)') % {
-                            'all': num_of_connects,
-                            'broken': broken
-                        }
+                        val = ungettext_lazy(
+                            '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
+                        ) % {'all': num_of_connects, 'broken': broken}
                     else:
                         val = num_of_connects
                 elif col == 'report_verdict':

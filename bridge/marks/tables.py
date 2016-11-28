@@ -19,7 +19,7 @@ import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
 from bridge.utils import unique_id
@@ -546,9 +546,9 @@ class MarksList(object):
                     if self.type == 'unsafe':
                         broken = len(mark.markreport_set.filter(broken=True))
                         if broken > 0:
-                            val = _('%(all)s (%(broken)s are broken)') % {
-                                'all': len(mark.markreport_set.all()), 'broken': broken
-                            }
+                            val = ungettext_lazy(
+                                '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
+                            ) % {'all': len(mark.markreport_set.all()), 'broken': broken}
                 elif col == 'verdict':
                     val = mark.get_verdict_display()
                     if self.type == 'safe':
