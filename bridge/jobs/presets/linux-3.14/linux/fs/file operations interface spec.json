@@ -1,0 +1,77 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "cdev_init": {
+        "signature": "void cdev_init(*%file_operations.cdev%, *%file_operations.file_operations%)",
+        "header": "linux/cdev.h"
+      },
+      "misc_register": {
+        "signature": "int misc_register(*%file_operations.miscdevice%)",
+        "header": "linux/miscdevice.h"
+      },
+      "cdev_del": {
+        "signature": "void cdev_del(*%file_operations.cdev%)",
+        "header": "linux/cdev.h"
+      },
+      "misc_deregister": {
+        "signature": "void misc_deregister(*%file_operations.miscdevice%)",
+        "header": "linux/miscdevice.h"
+      },
+      "unregister_chrdev": {
+        "signature": "void unregister_chrdev($, $)",
+        "header": "linux/fs.h"
+      }
+    },
+    "categories": {
+      "file_operations": {
+        "containers": {
+          "file_operations": {
+            "signature": "struct file_operations ops",
+            "header": "linux/fs.h",
+            "fields": {
+              "release": "%file_operations.release%",
+              "open": "%file_operations.probe%",
+              "write": "%file_operations.write%"
+            }
+          },
+          "cdev": {
+            "signature": "struct cdev cdev",
+            "header": "linux/cdev.h",
+            "fields": {
+              "ops": "*%file_operations.file_operations%"
+            }
+          },
+          "miscdevice": {
+            "signature": "struct miscdevice dev",
+            "header": "linux/miscdevice.h",
+            "fields": {
+              "fops": "*%file_operations.file_operations%"
+            }
+          }
+        },
+        "resources": {
+          "file": {
+            "signature": "struct file *file"
+          },
+          "inode": {
+            "signature": "struct inode *inode"
+          },
+          "write_size": {
+            "signature": "size_t cnt"
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "signature": "int (*probe) (%file_operations.inode%, %file_operations.file%)"
+          },
+          "release": {
+            "signature": "$ (*release) (%file_operations.inode%, %file_operations.file%)"
+          },
+          "write": {
+            "signature": "ssize_t (*write) (%file_operations.file%, const char *, %file_operations.write_size%, loff_t *)"
+          }
+        }
+      }
+    }
+  }
+}

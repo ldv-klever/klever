@@ -1,0 +1,186 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "rtc_device_register": {
+        "comment": "Register Real Time Clock device.",
+        "labels": {
+          "rtc_class_ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "rtc.rtc_class_ops"
+            ]
+          },
+          "device": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "rtc.device"
+            ]
+          },
+          "rtc_device": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "rtc.rtc_device"
+            ]
+          }
+        },
+        "process": "<alloc>.[register].<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "comment": "Alloc memory for rtc_device structure and initialize it.",
+            "statements": [
+              "%rtc_device% = $ALLOC(%rtc_device%);",
+              "%device% = $ARG2;",
+              "%rtc_class_ops% = $ARG3;",
+              "%rtc_device%->ops = %rtc_class_ops%;",
+              "%rtc_device%->dev.parent = %device%;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%rtc_device%",
+              "%rtc_class_ops%",
+              "%device%"
+            ]
+          },
+          "success": {
+            "comment": "RTC device has been registered successfully.",
+            "statements": [
+              "return %rtc_device%;"
+            ]
+          },
+          "fail": {
+            "comment": "RTC device registration has failed.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "rtc_device_unregister": {
+        "comment": "Deregister Real Time Clock device.",
+        "labels": {
+          "rtc_device": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "rtc.rtc_device"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%rtc_device%"
+            ]
+          },
+          "assign": {
+            "comment": "Get rtc_device structure argument.",
+            "statements": [
+              "%rtc_device% = $ARG1;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "rtc_class_scenario": {
+        "comment": "Real Time Clock callbacks invocation scenario.",
+        "labels": {
+          "rtc_class_ops": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_class_ops"
+            ]
+          },
+          "device": {
+            "resource": true,
+            "interface": [
+              "rtc.device"
+            ]
+          },
+          "rtc_device": {
+            "container": true,
+            "interface": [
+              "rtc.rtc_device"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          }
+        },
+        "process": "(!register).{main}",
+        "actions": {
+          "main": {
+            "comment": "The RTC device is inserted in the system.",
+            "process": "[probe].(<probe_success>.{call} | <probe_failed>.{main}) | (deregister)"
+          },
+          "call": {
+            "comment": "The RTC device is probed.",
+            "process": "[callback].{call} | [release].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%rtc_device%",
+              "%rtc_class_ops%",
+              "%device%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%rtc_device% == $ARG1"
+            ],
+            "parameters": [
+              "%rtc_device%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "release": {
+            "callback": "%rtc_class_ops.release%",
+            "parameters": [
+              "%device%"
+            ]
+          },
+          "probe": {
+            "comment": "Probe a new RTC device.",
+            "callback": "%rtc_class_ops.probe%",
+            "parameters": [
+              "%device%"
+            ],
+            "callback return value": "%ret%",
+            "pre-call": [
+              "ldv_pre_probe();"
+            ],
+            "post-call": [
+              "%ret% = ldv_post_probe(%ret%);"
+            ]
+          },
+          "probe_success": {
+            "comment": "The RTC device has been successfully probed.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "probe_failed": {
+            "comment": "Failed to probe the RTC device.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
