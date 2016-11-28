@@ -25,7 +25,7 @@ from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource
+from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 
 
@@ -49,7 +49,7 @@ ORDER_TITLES = {
 
 ALL_FILTERS = [
     'name', 'change_author', 'change_date', 'status', 'resource_component',
-    'problem_component', 'problem_problem', 'format', 'priority'
+    'problem_component', 'problem_problem', 'format', 'priority', 'finish_date'
 ]
 
 FILTER_TITLES = {
@@ -61,7 +61,8 @@ FILTER_TITLES = {
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
-    'priority': _('Priority')
+    'priority': _('Priority'),
+    'finish_date': _('Finish decision date')
 }
 
 
@@ -190,10 +191,10 @@ class FilterForm(object):
                 f = self.view['filters'][f_name]
                 if f_name == 'change_date':
                     date_vals = f['value'].split(':', 1)
-                    f_val = {
-                        'valtype': date_vals[0],
-                        'valval': date_vals[1],
-                    }
+                    f_val = {'valtype': date_vals[0], 'valval': date_vals[1]}
+                elif f_name == 'finish_date':
+                    date_vals = f['value'].split(':', 1)
+                    f_val = {'val_0': int(date_vals[0]), 'val_1': int(date_vals[1])}
                 else:
                     f_val = f['value']
                 selected_filters.append(f_name)
@@ -475,13 +476,25 @@ class TableTree(object):
                         return {'solvingprogress__priority__in': priorities}
             return {}
 
+        def finish_date_filter(fdata):
+            (month, year) = fdata['value'].split(':', 1)
+            try:
+                (month, year) = (int(month), int(year))
+            except ValueError:
+                return {}
+            return {
+                'solvingprogress__finish_date__month__' + fdata['type']: month,
+                'solvingprogress__finish_date__year__' + fdata['type']: year
+            }
+
         action = {
             'name': name_filter,
             'change_author': author_filter,
             'change_date': date_filter,
             'status': lambda fdata: {'status__in': fdata['value']},
             'format': lambda fdata: {'format': fdata['value']} if fdata['type'] == 'is' else {},
-            'priority': priority_filter
+            'priority': priority_filter,
+            'finish_date': finish_date_filter
         }
 
         filters = {}
@@ -559,13 +572,16 @@ class TableTree(object):
     def __unknowns_columns(self):
         problems = {}
         cmup_filter = {'report__parent': None}
+        cu_filter = {'report__parent': None}
         if 'problem_component' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_component'])
+            cu_filter.update(self.head_filters['problem_component'])
         if 'problem_problem' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
             cmup_filter['report__root__job'] = job['job']
+            cu_filter['report__root__job'] = job['job']
             found_comp_ids = []
             for cmup in ComponentMarkUnknownProblem.objects.filter(**cmup_filter):
                 problem = cmup.problem
@@ -598,8 +614,7 @@ class TableTree(object):
                                 'z_total': _('Total')
                             }
                         }
-            for cmup in ComponentUnknown.objects.filter(
-                    Q(**cmup_filter) & ~Q(component_id__in=found_comp_ids)):
+            for cmup in ComponentUnknown.objects.filter(Q(**cu_filter) & ~Q(component_id__in=found_comp_ids)):
                 problems['pr_component_%s' % cmup.component_id] = {
                     'title': cmup.component.name,
                     'problems': {
@@ -721,21 +736,19 @@ class TableTree(object):
                         'date': date
                     })
                     try:
-                        report = ReportComponent.objects.get(
-                            root__job=j['job'], parent=None)
+                        report = ReportComponent.objects.get(root__job=j['job'], parent=None)
                         values_data[j['pk']]['status'] = (
-                            j['job'].get_status_display(),
-                            reverse('reports:component',
-                                    args=[j['pk'], report.pk])
+                            j['job'].get_status_display(), reverse('reports:component', args=[j['pk'], report.pk])
                         )
                     except ObjectDoesNotExist:
-                        values_data[j['pk']]['status'] = \
-                            j['job'].get_status_display()
+                        values_data[j['pk']]['status'] = j['job'].get_status_display()
                 names_data[j['pk']] = j['job'].name
 
         def collect_verdicts():
+            for root in ReportRoot.objects.filter(job_id__in=job_pks, job__light=True):
+                values_data[root.job_id]['safe:total'] = root.safes
             for verdict in Verdict.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+                    report__root__job_id__in=job_pks, report__parent=None, report__root__job__light=False):
                 if verdict.report.root.job_id in values_data:
                     values_data[verdict.report.root.job_id].update({
                         'unsafe:total': (
@@ -765,9 +778,7 @@ class TableTree(object):
                             verdict.unsafe_inconclusive,
                             reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '4'])
                         ),
-                        'safe:total': (
-                            verdict.safe,
-                            reverse('reports:list', args=[verdict.report.pk, 'safes'])),
+                        'safe:total': (verdict.safe, reverse('reports:list', args=[verdict.report.pk, 'safes'])),
                         'safe:missed_bug': (
                             verdict.safe_missed_bug,
                             reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '2'])

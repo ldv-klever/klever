@@ -108,6 +108,7 @@ JOB_DEF_VIEW = {
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)
     # format [is] (<number>)
+    # finish_date [is, older, younger] (<month:year>)
     'filters': {
         # 'name': {
         #     'type': 'istartswith',
@@ -132,6 +133,10 @@ JOB_DEF_VIEW = {
         # 'format': {
         #     'type': 'is',
         #     'value': '1',
+        # },
+        # 'finish_date': {
+        #     'type': 'is',
+        #     'value': '1:2016',
         # },
     },
 }
@@ -406,7 +411,7 @@ MARKS_COMPARE_ATTRS = {
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Commit', 'Verification object', 'Rule specification'],
+    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.

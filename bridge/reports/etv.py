@@ -445,16 +445,17 @@ class GetSource(object):
             return self.__wrap_line(before, 'text') + self.__parse_line(after)
 
         m = re.match('(.*?)/\*(.*)', line)
-        if m is not None:
+        if m is not None and m.group(1).find('"') == -1 and m.group(1).find("'") == -1:
             new_line = self.__parse_line(m.group(1))
             self.is_comment = True
             new_line += self.__parse_line('/*' + m.group(2))
             return new_line
         m = re.match('(.*?)//(.*)', line)
-        if m is not None:
+        if m is not None and m.group(1).find('"') == -1 and m.group(1).find("'") == -1:
             new_line = self.__parse_line(m.group(1))
             new_line += self.__wrap_line('//' + m.group(2), 'comment')
             return new_line
+
         m = re.match('(.*?)"(.*)', line)
         if m is not None:
             new_line = self.__parse_line(m.group(1))
@@ -477,6 +478,7 @@ class GetSource(object):
                 return new_line
             self.is_text = False
             return new_line + self.__parse_line(after)
+
         m = re.match("(.*\W)(\d+)(\W.*)", line)
         if m is not None:
             new_line = self.__parse_line(m.group(1))

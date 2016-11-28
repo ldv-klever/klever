@@ -176,7 +176,7 @@ class JobAccess(object):
     def can_collapse(self):
         if self.job is None:
             return False
-        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) and not self.job.light
 
     def __get_prop(self, user):
         if self.job is not None:
