@@ -82,8 +82,10 @@ function collect_attrs_data() {
 
 function collect_new_markdata() {
     var is_modifiable_checkbox = $('#is_modifiable'), is_modifiable = true,
+        is_manual_checkbox = $('#is_manual'), is_manual = true,
         mark_type = $('#report_type').val(), mark_data,
-        description = $('#mark_description').val();
+        description = $('#mark_description').val(),
+        mf_description = $('#mf_description').val();
 
     var tmp_div = $('<div>').html(description);
     tmp_div.find('script').remove();
@@ -99,6 +101,9 @@ function collect_new_markdata() {
 
     if (is_modifiable_checkbox.length) {
         is_modifiable = is_modifiable_checkbox.is(':checked') ? true:false;
+    }
+    if (is_manual_checkbox.length) {
+        is_manual = is_manual_checkbox.is(':checked') ? true:false;
     }
 
     if (mark_type == 'unknown') {
@@ -130,7 +135,9 @@ function collect_new_markdata() {
             data_type: mark_type,
             is_modifiable: is_modifiable,
             tags: get_tags_values(),
-            description: description
+            description: description,
+            mf_description: mf_description,
+            is_manual: is_manual
         };
     }
 

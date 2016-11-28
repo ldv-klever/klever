@@ -1,5 +1,4 @@
 import re
-import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import logger, ArchiveFileContent
@@ -569,16 +568,65 @@ _CALL = 'CALL'
 _RET = 'RET'
 
 
+def et_to_str(processed_error_trace):
+    level = 0
+    str = ""
+    for elem in processed_error_trace:
+        func_name, op = list(elem.items())[0]
+        spaces = ""
+        for i in range(0, level):
+            spaces += ">"
+        if op == _CALL:
+            level += 1
+            if not str:
+                str = func_name
+            else:
+                str += "\n" + (spaces + func_name)
+        else:
+            level -= 1
+    return str
+
+
+def str_to_et(manual_error_trace):
+    et = []
+    prev_level = -1
+    for elem in manual_error_trace.split('\n'):
+        cur_level = elem.count('>')
+        diff = cur_level - prev_level
+        prev_level = cur_level
+        func = elem.replace(">", "")
+        if diff > 0:
+            et.append({func: _CALL})
+        else:
+            i = 0
+            j = 1
+            tmp = []
+            called = []
+            while i <= -diff:
+                ret_func, op = list(et[-j].items())[0]
+                if op == _CALL and not called.__contains__(ret_func):
+                    i += 1
+                    j += 1
+                    tmp.append({ret_func: _RET})
+                else:
+                    j += 1
+                    called.append(ret_func)
+            et = et + tmp
+            et.append({func: _CALL})
+    return et
+
+
 # Extracts model functions in specific format with some heuristics.
 def error_trace_model_functions(error_trace):
-
-    # TODO: Very bad method.
     model_functions = set()
+    prev_line = None
     for line in error_trace.split("\n"):
-        res = re.search(r'<data key=\"enterFunction\">ldv_linux_(.*)</data>', line)
-        if res:
-            mf = res.group(1)
-            model_functions.add(mf)
+        if re.search(r'<data key=\"warning\">', line) or re.search(r'<data key=\"note\">', line):
+            res = re.search(r'<data key=\"enterFunction\">(\w+)</data>', prev_line)
+            if res:
+                function = res.group(1)
+                model_functions.add(function)
+        prev_line = line
 
     call_tree = [{"entry_point": _CALL}]
     for line in error_trace.split("\n"):
@@ -613,21 +661,8 @@ def error_trace_model_functions(error_trace):
                     call_tree.append({function_return: _RET})
                 else:
                     call_tree = call_tree[:-sublist.__len__()]
+    return call_tree
 
-    # Maybe for debug print?
-    level = 0
-    for elem in call_tree:
-        func_name, op = list(elem.items())[0]
-        spaces = ""
-        for i in range(0, level):
-            spaces += " "
-        if op == _CALL:
-            level += 1
-            print(spaces + func_name)
-        else:
-            level -= 1
-
-    return json.dumps(call_tree)
 
 class ErrorTraceCallstackTree(object):
     def __init__(self, error_trace):

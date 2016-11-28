@@ -1,13 +1,16 @@
 import re
+import json
+from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger, unique_id, ArchiveFileContent
+from bridge.utils import logger, unique_id, ArchiveFileContent, file_get_or_create
 from marks.models import *
 from reports.models import ReportComponent, Verdict
 from marks.ConvertTrace import GetConvertedErrorTrace
 from marks.CompareTrace import CompareTrace
+from reports.etv import str_to_et
 
 
 class NewMark(object):
@@ -83,15 +86,25 @@ class NewMark(object):
             if any(x not in args for x in ['convert_id', 'compare_id']):
                 logger.error('Not enough data to create unsafe mark', stack_info=True)
                 return 'Unknown error'
-            try:
-                func = MarkUnsafeConvert.objects.get(pk=int(args['convert_id']))
-            except ObjectDoesNotExist:
-                logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
-                return _('The error traces conversion function was not found')
-            res = GetConvertedErrorTrace(func, report)
-            if res.error is not None:
-                return res.error
-            mark.error_trace = res.converted
+            if 'mf_description' in args and args['is_manual']:
+                logger.debug("Manual error trace representation will be used")
+                manual_error_trace = args['mf_description']
+                parsed_manual_error_trace = str_to_et(manual_error_trace)
+
+                et_file = file_get_or_create(
+                    BytesIO(json.dumps(parsed_manual_error_trace, indent=4).encode('utf8')), "manual-error-trace.json"
+                )[0]
+                mark.error_trace = et_file
+            else:
+                try:
+                    func = MarkUnsafeConvert.objects.get(pk=int(args['convert_id']))
+                except ObjectDoesNotExist:
+                    logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
+                    return _('The error traces conversion function was not found')
+                res = GetConvertedErrorTrace(func, report)
+                mark.error_trace = res.converted
+                if res.error is not None:
+                    return res.error
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:

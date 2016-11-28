@@ -22,6 +22,7 @@ from marks.utils import NewMark, MarkAccess, DeleteMark
 from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
+from reports.etv import error_trace_model_functions, et_to_str
 
 
 @register.filter
@@ -34,9 +35,15 @@ def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
     problem_description = None
+    mf_description = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
+            afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            mf_description = et_to_str(error_trace_model_functions(afc.content))
         elif mark_type == 'safe':
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
@@ -64,7 +71,8 @@ def create_mark(request, mark_type, report_id):
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
         'can_edit': True,
-        'problem_description': problem_description
+        'problem_description': problem_description,
+        'mf_description': mf_description
     })
 
 

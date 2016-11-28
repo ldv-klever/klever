@@ -1,9 +1,8 @@
 import json
 from types import MethodType
-
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
 from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
+from bridge.utils import logger
 
 # To create new funciton:
 # 1) Add created function to the class CompareTrace;
@@ -13,7 +12,7 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 # Do not use 'error_trace', 'pattern_error_trace', 'error'
 # and 'result' as function name.
 
-DEFAULT_COMPARE = 'model_functions_compare'
+DEFAULT_COMPARE = 'model_functions_include'
 
 
 class CompareTrace(object):
@@ -70,7 +69,6 @@ Always returns 1.
         """
 If call stacks are identical returns 1 else returns 0.
         """
-
         res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='call_stack'), self.unsafe)
         if res.error is not None:
             raise ValueError(res.error)
@@ -88,11 +86,33 @@ If model functions are identical returns 1 else returns 0.
         res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='model_functions'), self.unsafe)
         if res.error is not None:
             raise ValueError(res.error)
-
         err_trace1 = res.parsed_trace()
         err_trace2 = self.pattern_error_trace
+        logger.debug(err_trace1)
+        logger.debug(err_trace2)
         if err_trace1 == err_trace2:
             return 1
+        return 0
+
+    def model_functions_include(self):
+        """
+If compared error trace contains manually selected pattern, then it will be equivalent.
+        """
+        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name='model_functions'), self.unsafe)
+        if res.error is not None:
+            raise ValueError(res.error)
+        err_trace1 = res.parsed_trace()
+        err_trace2 = self.pattern_error_trace
+        logger.debug(err_trace1)
+        logger.debug(err_trace2)
+        for i in range(len(err_trace1)-len(err_trace2)+1):
+            for j in range(len(err_trace2)):
+                if err_trace1[i+j] != err_trace2[j]:
+                    break
+            else:
+                logger.info("Traces are equivalent")
+                return 1
+        logger.info("Traces are different")
         return 0
 
     def callstack_tree_compare(self):

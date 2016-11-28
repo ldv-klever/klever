@@ -6,6 +6,7 @@
 
 {% block body_block %}
 {% if type == 'unsafe' %}
+
     <form autocomplete="off" onsubmit="return false">
         <div class="ui grid">
             <div class="ten wide column">
@@ -42,6 +43,14 @@
                     <div class="ui form">
                         <label for="mark_description"></label>
                         <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
+                    </div>
+                </div>
+                <div class="ui blue segment">
+                    <h4 class="header ui blue">{% trans 'Manually processed error trace (as model functions call tree)' %}</h4>
+                    <h5 class="header ui blue">{% trans 'Specify the part of the error trace, which represents the reason of it.</br> If you intend to use manual filtering, you need to check \'manual\' flag and use \'*_include\' comparison function.' %}</h5>
+                    <div class="ui form">
+                        <label for="mf_description"></label>
+                        <textarea id="mf_description" rows="25">{{ mf_description }}</textarea>
                     </div>
                 </div>
                 <input id="report_pk" type="hidden" value="{{ report.pk }}">
@@ -108,13 +117,19 @@
                         <input type="checkbox" id="is_modifiable" checked>
                         <label for="is_modifiable">{% trans 'Editable' %}</label>
                     </div>
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" id="is_manual" checked>
+                        <label for="is_manual">{% trans 'Manual' %}</label>
+                    </div>
                     <br><br>
                 {% endif %}
                 <a href="{% url 'reports:leaf' type report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
                 <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
             </div>
         </div>
+
     </form>
+
 {% elif type == 'safe' %}
     <form autocomplete="off" onsubmit="return false">
         <div class="ui grid">

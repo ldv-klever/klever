@@ -66,7 +66,6 @@ This function is extracting the error trace call stack tree.
 All its leaves are model functions.
 Return list of lists of levels of function names in json format.
         """
-
         return ErrorTraceCallstackTree(self.error_trace).trace
 
 
@@ -96,19 +95,16 @@ class GetConvertedErrorTrace(object):
         return afc.content
 
     def __convert(self):
-        try:
-            return ErrorTraceConvertionCache.objects.get(unsafe=self.unsafe, function=self.function).converted
-        except ObjectDoesNotExist:
-            res = ConvertTrace(self.function.name, self.error_trace)
-            if res.error is not None:
-                self.error = res.error
-                return None
-            et_file = file_get_or_create(
-                BytesIO(json.dumps(res.pattern_error_trace, indent=4).encode('utf8')), ET_FILE_NAME
-            )[0]
-            ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
-            self._parsed_trace = res.pattern_error_trace
-            return et_file
+        res = ConvertTrace(self.function.name, self.error_trace)
+        if res.error is not None:
+            self.error = res.error
+            return None
+        et_file = file_get_or_create(
+            BytesIO(json.dumps(res.pattern_error_trace, indent=4).encode('utf8')), ET_FILE_NAME
+        )[0]
+        ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
+        self._parsed_trace = res.pattern_error_trace
+        return et_file
 
     def parsed_trace(self):
         if self._parsed_trace is not None:
