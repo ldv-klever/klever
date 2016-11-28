@@ -31,6 +31,10 @@ from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job
+from marks.ConvertTrace import ConvertTrace
+from marks.CompareTrace import CompareTrace
+from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert
+from marks.utils import ConnectMarkWithReports
 from marks.tags import CreateTagsFromFile
 from service.models import Scheduler
 
@@ -45,8 +49,11 @@ def extend_user(user, role=USER_ROLES[1][0]):
         Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
 
 
-class Population(object):
+class PopulationError(Exception):
+    pass
 
+
+class Population(object):
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
@@ -72,10 +79,6 @@ class Population(object):
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
 
     def __populate_functions(self):
-        from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
-        from marks.ConvertTrace import ConvertTrace
-        from marks.CompareTrace import CompareTrace
-
         func_names = []
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
@@ -113,7 +116,7 @@ class Population(object):
             try:
                 return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
             except IndexError:
-                return None
+                raise PopulationError('There are no managers in the system')
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
@@ -146,8 +149,6 @@ class Population(object):
         return password
 
     def __populate_jobs(self):
-        if not isinstance(self.manager, User):
-            return None
         args = {
             'author': self.manager,
             'global_role': JOB_ROLES[1][0],
@@ -167,8 +168,6 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        if not isinstance(self.manager, User):
-            return None
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
@@ -256,10 +255,6 @@ class Population(object):
         return get_fdata(d)
 
     def __populate_unknown_marks(self):
-        if not isinstance(self.manager, User):
-            return None
-        from marks.models import MarkUnknown, MarkUnknownHistory, Component
-        from marks.utils import ConnectMarkWithReports
         presets_dir = os.path.join(BASE_DIR, 'marks', 'presets')
         for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             component = os.path.basename(component_dir)
@@ -270,11 +265,11 @@ class Population(object):
                     try:
                         data = json.load(fp)
                     except Exception as e:
-                        logger.exception("Error while parsing mark's data %s: %s" % (mark_settings, e), stack_info=True)
-                        continue
+                        raise PopulationError("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                            e, os.path.relpath(mark_settings, presets_dir)
+                        ))
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    logger.error('Wrong unknown mark data format: %s' % mark_settings, stack_info=True)
-                    continue
+                    raise PopulationError('Wrong unknown mark data format: %s' % mark_settings)
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
@@ -283,26 +278,18 @@ class Population(object):
                     data['status'] = MARK_STATUS[0][0]
                 if 'is_modifiable' not in data:
                     data['is_modifiable'] = True
-                if data['status'] not in list(x[0] for x in MARK_STATUS) \
-                        or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 \
-                        or not isinstance(data['is_modifiable'], bool):
-                    logger.error('Wrong unknown mark data: %s' % mark_settings, stack_info=True)
-                    continue
+                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
+                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                    raise PopulationError('Wrong unknown mark data: %s' % mark_settings)
                 try:
                     MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
-                    continue
                 except ObjectDoesNotExist:
-                    try:
-                        mark = MarkUnknown.objects.create(
-                            identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
-                            author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                            function=data['function'], problem_pattern=data['pattern'], description=data['description'],
-                            type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
-                        )
-                    except Exception as e:
-                        logger.exception("Can't save mark '%s' to DB: %s" % (mark_settings, e), stack_info=True)
-                        continue
+                    mark = MarkUnknown.objects.create(
+                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                        author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
+                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                    )
                     MarkUnknownHistory.objects.create(
                         mark=mark, version=mark.version, author=mark.author, status=mark.status,
                         function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
@@ -333,7 +320,7 @@ class Population(object):
         with open(preset_tags, mode='rb') as fp:
             res = CreateTagsFromFile(fp, tag_type, True)
             if res.error is not None:
-                logger.error("Error while creating tags: %s" % res.error, stack_info=True)
+                raise PopulationError("Error while creating tags: %s" % res.error)
         return res.number_of_created
 
 
