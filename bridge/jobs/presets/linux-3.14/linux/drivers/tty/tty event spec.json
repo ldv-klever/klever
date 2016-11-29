@@ -408,7 +408,8 @@
           "fail": {
             "comment": "Failed to allocate memory for tty_driver structure.",
             "statements": [
-              "return ERR_PTR(-ENOMEM);"
+              "/* Return -ENOMEM = -12 */",
+              "return ERR_PTR(-12);"
             ]
           }
         }
