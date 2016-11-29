@@ -28,7 +28,7 @@
           "assign": {
             "comment": "Get timer representing structure.",
             "statements": [
-              "%timer_list% = $ARG1;"
+              "%timer_list% = $arg1;"
             ]
           },
           "success": {
@@ -74,9 +74,9 @@
           "assign": {
             "comment": "Get timer representing structure and fill it up.",
             "statements": [
-              "%timer_list% = $ARG1;",
-              "%function% = $ARG2",
-              "%data% = $ARG3",
+              "%timer_list% = $arg1;",
+              "%function% = $arg2",
+              "%data% = $arg3",
               "%timer_list.data%=%data%;",
               "%timer_list.function%=%function%;"
             ]
@@ -104,7 +104,7 @@
           "assign": {
             "comment": "Get timer representing structure.",
             "statements": [
-              "%timer_list% = $ARG1;"
+              "%timer_list% = $arg1;"
             ]
           }
         }

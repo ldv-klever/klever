@@ -32,8 +32,8 @@
             "comment": "Alloc memory for rtc_device structure and initialize it.",
             "statements": [
               "%rtc_device% = $ALLOC(%rtc_device%);",
-              "%device% = $ARG2;",
-              "%rtc_class_ops% = $ARG3;",
+              "%device% = $arg2;",
+              "%rtc_class_ops% = $arg3;",
               "%rtc_device%->ops = %rtc_class_ops%;",
               "%rtc_device%->dev.parent = %device%;"
             ]
@@ -80,7 +80,7 @@
           "assign": {
             "comment": "Get rtc_device structure argument.",
             "statements": [
-              "%rtc_device% = $ARG1;"
+              "%rtc_device% = $arg1;"
             ]
           }
         }

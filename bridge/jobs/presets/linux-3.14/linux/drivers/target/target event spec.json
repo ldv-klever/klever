@@ -28,7 +28,7 @@
           "assign": {
             "comment": "Get new target backend operations.",
             "statements": [
-              "%se_subsystem_api% = $ARG1;"
+              "%se_subsystem_api% = $arg1;"
             ]
           },
           "success": {
@@ -60,7 +60,7 @@
           "assign": {
             "comment": "Get new target backend operations.",
             "statements": [
-              "%se_subsystem_api% = $ARG1;"
+              "%se_subsystem_api% = $arg1;"
             ]
           }
         }
@@ -204,7 +204,7 @@
           "assign": {
             "comment": "Get new target backend operations.",
             "statements": [
-              "%target_backend_ops% = $ARG1;"
+              "%target_backend_ops% = $arg1;"
             ]
           },
           "success": {
@@ -236,7 +236,7 @@
           "assign": {
             "comment": "Get new target backend operations.",
             "statements": [
-              "%target_backend_ops% = $ARG1;"
+              "%target_backend_ops% = $arg1;"
             ]
           }
         }

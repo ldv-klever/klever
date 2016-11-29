@@ -29,7 +29,7 @@
           "assign": {
             "comment": "Get platform_driver structure argument.",
             "statements": [
-              "%platform_driver% = $ARG1;"
+              "%platform_driver% = $arg1;"
             ]
           },
           "success": {
@@ -75,8 +75,8 @@
           "assign": {
             "comment": "Get 'platform_driver' and 'probe' arguments.",
             "statements": [
-              "%platform_driver% = $ARG1;",
-              "%probe% = $ARG2;",
+              "%platform_driver% = $arg1;",
+              "%probe% = $arg2;",
               "%platform_driver.probe%=%probe%;"
             ]
           },
@@ -110,7 +110,7 @@
           "assign": {
             "comment": "Get 'platform_driver' argument.",
             "statements": [
-              "%platform_driver% = $ARG1;"
+              "%platform_driver% = $arg1;"
             ]
           }
         }
@@ -259,7 +259,7 @@
           "assign": {
             "comment": "Get platform_driver structure argument.",
             "statements": [
-              "%platform_driver% = $ARG1;"
+              "%platform_driver% = $arg1;"
             ]
           },
           "success": {
@@ -305,8 +305,8 @@
           "assign": {
             "comment": "Get 'platform_driver' and 'probe' arguments.",
             "statements": [
-              "%platform_driver% = $ARG1;",
-              "%probe% = $ARG2;",
+              "%platform_driver% = $arg1;",
+              "%probe% = $arg2;",
               "%platform_driver.probe%=%probe%;"
             ]
           },
@@ -340,7 +340,7 @@
           "assign": {
             "comment": "Get 'platform_driver' argument.",
             "statements": [
-              "%platform_driver% = $ARG1;"
+              "%platform_driver% = $arg1;"
             ]
           }
         }

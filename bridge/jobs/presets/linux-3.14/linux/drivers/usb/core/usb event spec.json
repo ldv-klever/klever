@@ -35,7 +35,7 @@
           "assign": {
             "comment": "Get callbacks to register provided within 'usb_driver' argument.",
             "statements": [
-              "%usb_driver% = $ARG1;"
+              "%usb_driver% = $arg1;"
             ]
           },
           "fail": {
@@ -74,7 +74,7 @@
           "assign": {
             "comment": "Get callbacks to deregister provided within 'usb_driver' argument.",
             "statements": [
-              "%usb_driver% = $ARG1;"
+              "%usb_driver% = $arg1;"
             ]
           }
         }

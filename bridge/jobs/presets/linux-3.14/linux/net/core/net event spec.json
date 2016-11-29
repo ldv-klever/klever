@@ -58,7 +58,7 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $ARG3;"
+              "%setup% = $arg3;"
             ]
           },
           "setup": {
@@ -97,7 +97,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $ARG1;",
+              "%netdev% = $arg1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -123,7 +123,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $ARG1;"
+              "%netdev% = $arg1;"
             ]
           },
           "open": {
@@ -194,7 +194,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $ARG1;"
+              "%netdev% = $arg1;"
             ]
           }
         }
@@ -261,7 +261,7 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $ARG4;"
+              "%setup% = $arg4;"
             ]
           },
           "setup": {
@@ -300,7 +300,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $ARG1;",
+              "%netdev% = $arg1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -326,7 +326,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $ARG1;"
+              "%netdev% = $arg1;"
             ]
           },
           "open": {
@@ -397,7 +397,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $ARG1;"
+              "%netdev% = $arg1;"
             ]
           }
         }
