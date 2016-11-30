@@ -201,7 +201,7 @@ class LKBCE(core.components.Component):
                                 'There is not directory "{0}" inside "{1}"'.format(modules_dir,
                                                                                    self.linux_kernel['work src tree']))
 
-                        build_targets.append((modules_dir,))
+                        build_targets.append(('M=' + modules_dir, ))
         elif not self.linux_kernel['build kernel']:
             self.logger.warning('Nothing will be verified since modules are not specified')
 

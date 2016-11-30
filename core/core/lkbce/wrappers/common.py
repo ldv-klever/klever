@@ -132,7 +132,17 @@ class Command:
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
+        # Check, whether the output file has init function
+        has_init = False
+        elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
+        if elf_out and elf_out[0].startswith('ELF'):
+            symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
+            for table_entry in symbol_table:
+                if re.search(r'(\.init\.text.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
+                    has_init = True
+                    break
+
+        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file, 'has init': has_init}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 

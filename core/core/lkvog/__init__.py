@@ -19,7 +19,6 @@ import json
 import multiprocessing
 import os
 import re
-import subprocess
 
 from core.lkvog.strategies import scotch
 from core.lkvog.strategies import closure
@@ -57,7 +56,7 @@ class LKVOG(core.components.Component):
         self.linux_kernel_verification_objs_gen = {}
         self.common_prj_attrs = {}
         self.linux_kernel_build_cmd_out_file_desc = multiprocessing.Manager().dict()
-        self.linux_kernel_module_names_mq = multiprocessing.Queue()
+        self.linux_kernel_module_info_mq = multiprocessing.Queue()
         self.linux_kernel_clusters_mq = multiprocessing.Queue()
         self.module = {}
         self.all_modules = set()
@@ -213,12 +212,14 @@ class LKVOG(core.components.Component):
         self.all_clusters = set([cluster for cluster in self.all_clusters if 'all' not in [module.id for module in cluster.modules]])
         cc_ready = set()
         while True:
-            self.module['name'] = self.linux_kernel_module_names_mq.get()
+            module_info = self.linux_kernel_module_info_mq.get()
 
-            if self.module['name'] is None:
+            if module_info is None:
                 self.logger.debug('Linux kernel module names message queue was terminated')
-                self.linux_kernel_module_names_mq.close()
+                self.linux_kernel_module_info_mq.close()
                 break
+
+            self.module['name'], self.module['has init'] = module_info
 
             self.logger.debug('Recieved module {0}'.format(self.module['name']))
             cc_ready.add(self.module['name'])
@@ -239,11 +240,14 @@ class LKVOG(core.components.Component):
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
                 else:
-                    for subystem in subsystems:
-                        if self.module['name'].startswith(subystem) and self.__has_init(self.module['name']):
-                            self.all_modules.add(self.module['name'])
-                            self.checked_modules.add(strategy_utils.Module(self.module['name']))
-                            module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
+                    if self.module['has init']:
+                        for subsystem in subsystems:
+                            if self.module['name'].startswith(subsystem) or \
+                                self.module['name'].startswith(os.path.join('ext-modules', subsystem)) or \
+                                            subsystem == 'all':
+                                self.all_modules.add(self.module['name'])
+                                self.checked_modules.add(strategy_utils.Module(self.module['name']))
+                                module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
 
                 for cluster in module_clusters:
                     self.cluster = cluster
@@ -329,9 +333,14 @@ class LKVOG(core.components.Component):
 
                 for module in set(self.linux_kernel_build_cmd_out_file_desc.keys()) - self.not_head_out_files:
                     if re.search(r'\.o$', module):
-                       self.linux_kernel_module_names_mq.put(module)
+                        has_init = False
+                        for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
+                            if desc['has init']:
+                                has_init = True
+                                break
+                        self.linux_kernel_module_info_mq.put((module, has_init))
 
-                self.linux_kernel_module_names_mq.put(None)
+                self.linux_kernel_module_info_mq.put(None)
                 break
 
             self.process_linux_kernel_build_cmd_desc(desc_file)
@@ -405,9 +414,3 @@ class LKVOG(core.components.Component):
                           encoding='utf8', errors='ignore') as fp:
                     loc += sum(1 for _ in fp)
         return loc
-
-    def __has_init(self, module_name):
-        path = os.path.join(self.linux_kernel_src, module_name)
-        p = subprocess.Popen('objdump -t {0} | grep "\sO \.initcall.*\.init\s"'.format(path),
-                             shell=True, stdout=subprocess.PIPE).communicate()[0]
-        return bool(p)
