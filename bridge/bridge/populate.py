@@ -266,9 +266,20 @@ class Population(object):
                     try:
                         data = json.load(fp)
                     except Exception as e:
-                        raise PopulationError("Can't parse json data of unknown mark: %s (\"%s\")" % (
-                            e, os.path.relpath(mark_settings, presets_dir)
-                        ))
+                        fp.seek(0)
+                        path_to_json = os.path.abspath(fp.read())
+                        if os.path.exists(path_to_json):
+                            with open(path_to_json, encoding='utf8') as fp2:
+                                try:
+                                    data = json.load(fp2)
+                                except Exception as e:
+                                    raise PopulationError("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                                        e, os.path.relpath(path_to_json, presets_dir)
+                                    ))
+                        else:
+                            raise PopulationError("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                                e, os.path.relpath(mark_settings, presets_dir)
+                            ))
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
                     raise PopulationError('Wrong unknown mark data format: %s' % mark_settings)
                 try:
