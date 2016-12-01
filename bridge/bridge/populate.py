@@ -16,6 +16,7 @@
 #
 
 import os
+import re
 import json
 import hashlib
 from time import sleep
@@ -270,6 +271,10 @@ class Population(object):
                         ))
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
                     raise PopulationError('Wrong unknown mark data format: %s' % mark_settings)
+                try:
+                    re.compile(data['function'])
+                except re.error:
+                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
