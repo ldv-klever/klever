@@ -113,9 +113,14 @@ If call stacks trees are identical returns 1 else returns 0.
         """
 Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
         """
-
-        err_trace_converted = set(self.__get_converted_trace('call_forests'))
-        pattern = set(self.pattern_error_trace)
+        converted_et = self.__get_converted_trace('call_forests')
+        pattern = self.pattern_error_trace
+        if any(not isinstance(x, str) for x in converted_et):
+            converted_et = list(json.dumps(x) for x in converted_et)
+        if any(not isinstance(x, str) for x in pattern):
+            pattern = list(json.dumps(x) for x in pattern)
+        err_trace_converted = set(converted_et)
+        pattern = set(pattern)
         max_len = max(len(err_trace_converted), len(pattern))
         if max_len == 0:
             return 1
