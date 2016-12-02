@@ -78,8 +78,8 @@
             "signature": "void (*shutdown)(*%serial_core.uart_port%)"
           },
           "verify_port": {
-	    "signature": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
-	  }
+            "signature": "int (*verify_port)(*%serial_core.uart_port%, struct serial_struct *str)"
+          }
         },
         "resources": {
           "uart_driver": {
@@ -87,11 +87,11 @@
             "header": "linux/serial_core.h"
           },
           "state": {
-	    "signature": "unsigned int state"
-	  },
-	  "oldstate": {
-	    "signature": "unsigned int oldstate"
-	  }
+            "signature": "unsigned int state"
+          },
+          "oldstate": {
+            "signature": "unsigned int oldstate"
+          }
         }
       }
     }
