@@ -62,6 +62,7 @@
             ]
           },
           "setup": {
+            "comment": "Setup the network device.",
             "callback": "%setup%",
             "parameters": [
               "%netdev%"
