@@ -144,11 +144,11 @@ def __import_process(name, dic, conf, model_flag=False):
         # Add comment if it is provided
         if 'comment' in dic['actions'][action_name]:
             process.actions[action_name].comment = dic['actions'][action_name]['comment']
-        else:
+        elif not isinstance(act, Call):
             comments_by_type = get_necessary_conf_property(conf, 'action comments')
             tag = type(act).__name__.lower()
             if tag not in comments_by_type or \
-               not (isinstance(comments_by_type[tag], (str)) or
+               not (isinstance(comments_by_type[tag], str) or
                     (isinstance(comments_by_type[tag], dict) and action_name in comments_by_type[tag])):
                 raise KeyError(
                     "Cannot find comment for action {!r} of type {!r} at process {!r} description. You shoud either "
