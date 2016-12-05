@@ -17,7 +17,7 @@
           "alloc": {
             "comment": "Get port structure.",
             "statements": [
-              "%uart_port% = $arg2;"
+              "%uart_port% = $ARG2;"
             ]
           },
           "register": {
@@ -55,7 +55,7 @@
           "assign": {
             "comment": "Get port structure.",
             "statements": [
-              "%uart_port% = $arg2;"
+              "%uart_port% = $ARG2;"
             ]
           },
           "deregister": {
@@ -253,6 +253,308 @@
             "callback": "%uart_port.uart_ops.unthrottle%",
             "parameters": [
               "%uart_port%"
+            ]
+          },
+          "send_xchar": {
+            "comment": "Transmit a high priority character.",
+            "callback": "%uart_port.uart_ops.send_xchar%",
+            "parameters": [
+              "%uart_port%"
+            ],
+            "contition": [
+              "%uart_port.uart_ops.send_xchar%"
+            ]
+          },
+          "shutdown": {
+            "comment": "Disable the port.",
+            "callback": "%uart_port.uart_ops.shutdown%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "verify_port": {
+            "comment": "Verify the new serial port information contained within serinfo is suitable for this port type.",
+            "callback": "%uart_port.uart_ops.verify_port%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "y_ret": {
+            "comment": "Successfully initialised any low level driver state.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "n_ret": {
+            "comment": "Failed to initialise any low level driver state.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "y_uret": {
+            "comment": "Ready to start transmitting characters.",
+            "condition": [
+              "%uret% == 0"
+            ]
+          },
+          "n_uret": {
+            "comment": "The port is in the process of being closed.",
+            "condition": [
+              "%uret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "Linux 2.6.33": {
+    "kernel model": {
+      "uart_add_one_port": {
+        "comment": "Attach a driver-defined port structure.",
+        "labels": {
+          "uart_port": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "serial_core.uart_port"
+            ]
+          }
+        },
+        "process": "<alloc>.[register].<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "comment": "Get port structure.",
+            "statements": [
+              "%uart_port% = $ARG2;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully attached a driver-defined port structure.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to attach a driver-defined port structure.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          }
+        }
+      },
+      "uart_remove_one_port": {
+        "comment": "Detach a driver defined port structure.",
+        "labels": {
+          "uart_port": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "serial_core.uart_port"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister].<success> | <fail>",
+        "actions": {
+          "assign": {
+            "comment": "Get port structure.",
+            "statements": [
+              "%uart_port% = $ARG2;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "success": {
+            "comment": "Successfully detached a driver-defined port structure.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to detach a driver-defined port structure.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "uart_instance": {
+        "comment": "",
+        "labels": {
+          "uart_port": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "serial_core.uart_port"
+            ]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "1"
+          },
+          "uret": {
+            "signature": "unsigned int b",
+            "value": "1"
+          },
+          "state": {
+            "interface": [
+              "serial_core.state"
+            ]
+          },
+          "oldstate": {
+            "interface": [
+              "serial_core.oldstate"
+            ]
+          }
+        },
+        "process": "(!register).<init_state>.{main}",
+        "actions": {
+          "main": {
+            "comment": "Start initialization.",
+            "process": "<set_state_on>.[pm_on].[verify_port].[startup].(<y_ret>.[set_termios].[get_mctrl].(<y_uret>.[stop_tx] | <n_uret>.[start_tx]).[set_mctrl].{call} | <n_ret>.[stop_rx].[shutdown].<set_state_off>.[pm_off]).{main} | (deregister)"
+          },
+          "call": {
+            "comment": "Call rest TTY callbacks.",
+            "process": "([callback] | [set_termios] | [set_mctrl].[send_xchar].[start_tx_if].[send_xchar].[start_tx_if] | [start_tx].[stop_tx]).{call} | [stop_rx].[set_mctrl].[shutdown].<set_state_off>.[pm_off].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%uart_port% == $ARG1"
+            ],
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "init_state": {
+            "comment": "Initialize UART PM state.",
+            "statements": [
+              "%oldstate% = 4U;"
+            ]
+          },
+          "set_state_on": {
+            "comment": "Set UART PM state on.",
+            "statements": [
+              "%state% = 0U;"
+            ]
+          },
+          "set_state_off": {
+            "comment": "Set UART PM state off.",
+            "statements": [
+              "%state% = 3U;"
+            ]
+          },
+          "pm_on": {
+            "comment": "Set UART_PM_STATE_ON state.",
+            "callback": "%uart_port.uart_ops.pm%",
+            "parameters": [
+              "%uart_port%",
+              "%state%",
+              "%oldstate%"
+            ],
+            "post_call": [
+              "%oldstate% = 0U;"
+            ]
+          },
+          "pm_off": {
+            "comment": "Set UART_PM_STATE_OFF state.",
+            "callback": "%uart_port.uart_ops.pm%",
+            "parameters": [
+              "%uart_port%",
+              "%state%",
+              "%oldstate%"
+            ],
+            "post_call": [
+              "%old% = 3U;"
+            ]
+          },
+          "startup": {
+            "comment": "Grab any interrupt resources and initialise any low level driver state.",
+            "callback": "%uart_port.uart_ops.startup%",
+            "parameters": [
+              "%uart_port%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "set_termios": {
+            "comment": "Change the port parameters, including word length, parity, stop bits.",
+            "callback": "%uart_port.uart_ops.set_termios%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "get_mctrl": {
+            "comment": "Returns the current state of modem control inputs.",
+            "callback": "%uart_port.uart_ops.get_mctrl%",
+            "parameters": [
+              "%uart_port%"
+            ],
+            "callback return value": "%uret%",
+            "post-call": [
+              "%uret% = ldv_filter_err_code(%uret%);"
+            ]
+          },
+          "set_mctrl": {
+            "comment": "Set the modem control lines for port described by 'port' to the state described by mctrl.",
+            "callback": "%uart_port.uart_ops.set_mctrl%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_rx": {
+            "comment": "Stop receiving characters.",
+            "callback": "%uart_port.uart_ops.stop_rx%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "stop_tx": {
+            "comment": "Stop transmitting characters.",
+            "callback": "%uart_port.uart_ops.stop_tx%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx": {
+            "comment": "Start transmitting characters.",
+            "callback": "%uart_port.uart_ops.start_tx%",
+            "parameters": [
+              "%uart_port%"
+            ]
+          },
+          "start_tx_if": {
+            "comment": "Transmit a high priority character.",
+            "callback": "%uart_port.uart_ops.start_tx%",
+            "parameters": [
+              "%uart_port%"
+            ],
+            "contition": [
+              "!%uart_port.uart_ops.send_xchar%"
             ]
           },
           "send_xchar": {
