@@ -68,6 +68,8 @@
             <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
         {% endif %}
         <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
+    {% elif error %}
+        <h2 class="ui red header">{{ error }}</h2>
     {% else %}
         <h1 class="ui violet header">{% trans 'Welcome to Klever Bridge!' %}</h1>
         <form method="post">
