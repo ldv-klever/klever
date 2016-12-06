@@ -320,6 +320,7 @@
     },
     "environment processes": {
       "interrupt_scenario": {
+        "headers": ["linux/interrupt.h"],
         "labels": {
           "thread": {
             "callback": true,
