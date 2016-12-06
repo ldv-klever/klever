@@ -137,7 +137,7 @@ class LabelTranslator(FSATranslator):
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
                     var = Variable('data', None, decl.take_pointer, False)
                     v_code.append('/* Received labels */')
-                    v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('')))
+                    v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')))
                     v_code.append('')
 
                     code.append('/* Assign recieved labels */')

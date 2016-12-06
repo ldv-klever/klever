@@ -367,8 +367,9 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     "ldv_dispatch_{}_{}_{}".format(state.action.name, automaton.identifier, state.identifier),
                     self._cmodel.entry_file,
                     "void f({})".format(', '.
-                                        join([function_parameters[index].to_string('arg{}'.format(index)) for index in
-                                              range(len(function_parameters))])),
+                                        join([function_parameters[index].to_string('arg{}'.format(index),
+                                                                                   typedef='complex_and_params')
+                                              for index in range(len(function_parameters))])),
                     False
                 )
             else:
@@ -475,7 +476,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         label_var = automaton.determine_variable(suits[0].label, suits[0].interface.identifier)
                     else:
                         label_var = automaton.determine_variable(suits[0].label)
-                    ret_declaration = signature.points.return_value.to_string('')
+                    ret_declaration = signature.points.return_value.to_string('', typedef='complex_and_params')
                     callback_return_expression = 'return '
                     external_return_expression = suits[0].access_with_variable(label_var) + ' = '
                 else:
@@ -549,17 +550,17 @@ class FSATranslator(metaclass=abc.ABCMeta):
             ret_declaration, callback_return_expression, external_return_expression = ret_expression(st)
 
             # Determine external function params
-            resources = [signature.to_string('arg0')]
+            resources = [signature.to_string('arg0', typedef='complex_and_params')]
             callback_params = []
             for index in range(len(signature.points.parameters)):
                 if type(signature.points.parameters[index]) is not str:
                     if index in pointer_params:
                         resources.append(signature.points.parameters[index].take_pointer.
-                                         to_string('arg{}'.format(index + 1)))
+                                         to_string('arg{}'.format(index + 1), typedef='complex_and_params'))
                         callback_params.append('*arg{}'.format(index + 1))
                     else:
                         resources.append(signature.points.parameters[index].
-                                         to_string('arg{}'.format(index + 1)))
+                                         to_string('arg{}'.format(index + 1), typedef='complex_and_params'))
                         callback_params.append('arg{}'.format(index + 1))
             callback_params = ", ".join(callback_params)
             resources = ", ".join(resources)
@@ -872,15 +873,16 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     if type(param) is str:
                         params.append(param)
                     else:
-                        params.append(param.to_string('arg{}'.format(str(position))))
+                        params.append(param.to_string('arg{}'.format(str(position)), typedef='complex_and_params'))
 
                 if len(params) == 0:
                     param_types = ['void']
                 else:
                     param_types = params
 
-                declaration = '{0} f({1})'.format(function_obj.declaration.return_value.to_string(''),
-                                                  ', '.join(param_types))
+                declaration = '{0} f({1})'.format(
+                    function_obj.declaration.return_value.to_string('', typedef='complex_and_params'),
+                    ', '.join(param_types))
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
             else:
                 name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)

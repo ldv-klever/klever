@@ -172,7 +172,7 @@ class CModel:
             for tp in self.types:
                 lines.append(tp.to_string('') + " {\n")
                 for field in sorted(list(tp.fields.keys())):
-                    lines.append("\t{};\n".format(tp.fields[field].to_string(field)))
+                    lines.append("\t{};\n".format(tp.fields[field].to_string(field, typedef='complex_and_params')))
                 lines.append("};\n")
                 lines.append("\n")
 
@@ -282,7 +282,7 @@ class Variable:
             raise ValueError("Attempt to create variable {} without signature".format(name))
 
     def declare_with_init(self):
-        # Ger declaration
+        # Get declaration
         declaration = self.declare(extern=False)
 
         # Add memory allocation
@@ -293,7 +293,7 @@ class Variable:
 
     def declare(self, extern=False):
         # Generate declaration
-        expr = self.declaration.to_string(self.name)
+        expr = self.declaration.to_string(self.name, typedef='complex_and_params')
 
         # Add extern prefix
         if extern:
@@ -315,7 +315,7 @@ class FunctionDefinition:
         self.declaration = import_declaration(signature)
 
     def get_declaration(self, extern=False):
-        declaration = self.declaration.to_string(self.name)
+        declaration = self.declaration.to_string(self.name, typedef='complex_and_params')
         declaration += ';'
 
         if extern:
@@ -323,9 +323,11 @@ class FunctionDefinition:
         return [declaration + "\n"]
 
     def get_definition(self):
-        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(), self.name,
-                                         ', '.join([self.declaration.parameters[index].to_string('arg{}'.format(index))
-                                                    for index in range(len(self.declaration.parameters))]))
+        declaration = '{} {}({})'.format(self.declaration.return_value.to_string(typedef='complex_and_params'),
+                                         self.name, ', '.join(
+                                            [self.declaration.parameters[index].to_string('arg{}'.format(index),
+                                                                                          typedef='complex_and_params')
+                                             for index in range(len(self.declaration.parameters))]))
 
         lines = list()
         lines.append(declaration + " {\n")
@@ -369,7 +371,8 @@ class FunctionModels:
 
     def init_pointer(self, signature):
         if get_conf_property(self._conf, 'allocate with sizeof'):
-            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], signature.points.to_string(''))
+            return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"],
+                                           signature.points.to_string('', typedef='complex_and_params'))
         else:
             return "{}(sizeof({}))".format(self.mem_function_map["ALLOC"], '0')
 
@@ -467,7 +470,7 @@ class FunctionModels:
             if get_conf_property(self._conf, 'disable ualloc') and function == 'UALLOC':
                 function = 'ALLOC'
             if function != 'UALLOC' and get_conf_property(self._conf, 'allocate with sizeof'):
-                size = 'sizeof({})'.format(self.signature.points.to_string(''))
+                size = 'sizeof({})'.format(self.signature.points.to_string('', typedef='complex_and_params'))
 
             return "{}({})".format(self.mem_function_map[function], size)
         else:
