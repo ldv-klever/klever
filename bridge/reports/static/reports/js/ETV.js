@@ -178,32 +178,33 @@ $(document).ready(function () {
         var whole_line = $(this).parent().parent();
         whole_line.addClass('ETVSelectedLine');
 
-        var assume_window = $('#ETV_assumes'),
-            add_id = $(this).closest('div[id^="etv-trace"]').attr('id').replace('etv-trace', '');
-        assume_window.empty();
-        whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
-            var assume_ids = $(this).text().split(';');
-            $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v + add_id);
-                if (curr_assume.length) {
-                    assume_window.append($('<span>', {
-                        text: curr_assume.text(),
-                        style: 'color: red'
-                    })).append($('<br>'));
-                }
+        var assume_window = $('#ETV_assumes');
+        if (assume_window.length) {
+            assume_window.empty();
+            whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
+                var assume_ids = $(this).text().split(';');
+                $.each(assume_ids, function (i, v) {
+                    var curr_assume = $('#' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<span>', {
+                            text: curr_assume.text(),
+                            style: 'color: red'
+                        })).append($('<br>'));
+                    }
+                });
             });
-        });
-        whole_line.find('span[class="ETV_Assumptions"]').each(function () {
-            var assume_ids = $(this).text().split(';');
-            $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v + add_id);
-                if (curr_assume.length) {
-                    assume_window.append($('<span>', {
-                        text: curr_assume.text()
-                    })).append($('<br>'));
-                }
+            whole_line.find('span[class="ETV_Assumptions"]').each(function () {
+                var assume_ids = $(this).text().split(';');
+                $.each(assume_ids, function (i, v) {
+                    var curr_assume = $('#' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<span>', {
+                            text: curr_assume.text()
+                        })).append($('<br>'));
+                    }
+                });
             });
-        });
+        }
     });
     $('.ETV_ShowCommentCode').click(function () {
         var next_code = $(this).parent().parent().next('span');

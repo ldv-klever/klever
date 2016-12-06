@@ -98,6 +98,9 @@ def view_mark(request, mark_type, mark_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
 
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
+
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
 
@@ -139,6 +142,8 @@ def edit_mark(request, mark_type, mark_id):
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
 
     if not MarkAccess(request.user, mark=mark).can_edit():
         return HttpResponseRedirect(reverse('error', args=[603]))
@@ -274,9 +279,10 @@ def get_func_description(request):
 @login_required
 def get_mark_version_data(request):
     activate(request.user.extended.language)
-
     if request.method != 'POST':
         return HttpResponse('')
+    if int(request.POST.get('version', '0')) == 0:
+        return JsonResponse({'error': _('The mark is being deleted')})
 
     mark_type = request.POST.get('type', None)
     if mark_type not in ['safe', 'unsafe', 'unknown']:
@@ -378,6 +384,8 @@ def download_mark(request, mark_type, mark_id):
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
 
     mark_tar = CreateMarkTar(mark)
 
@@ -484,6 +492,8 @@ def remove_versions(request):
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'error': 'Unknown error'})
+        if mark.version == 0:
+            return JsonResponse({'error': 'The mark is being deleted'})
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
@@ -517,6 +527,8 @@ def get_mark_versions(request):
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'error': 'Unknown error'})
+        if mark.version == 0:
+            return JsonResponse({'error': 'The mark is being deleted'})
         mark_history = mark.versions.filter(
             ~Q(version__in=[mark.version, 1])).order_by('-version')
     except ObjectDoesNotExist:

@@ -31,7 +31,9 @@
                   "register": "Register {} callbacks.",
                   "instance_register": "Register {} callbacks.",
                   "deregister": "Deregister {} callbacks.",
-                  "instance_deregister": "Deregister {} callbacks."
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
                 },
                 "receive": {
                   "register": "Begin {} callbacks invocations scenario.",

@@ -105,10 +105,8 @@ def __import_process(name, dic, conf, model_flag=False):
     if 'comment' in dic:
         process.comment = dic['comment']
     elif model_flag:
-        a = 1
-        # todo: Uncomment this when all model functions will be commented
-        #raise KeyError("You must specify manually 'comment' attribute within the description of {!r} kernel "
-        #               "function model process".format(name))
+        raise KeyError("You must specify manually 'comment' attribute within the description of {!r} kernel "
+                       "function model process".format(name))
 
     # Import subprocesses
     if 'actions' in dic:
@@ -146,20 +144,18 @@ def __import_process(name, dic, conf, model_flag=False):
         # Add comment if it is provided
         if 'comment' in dic['actions'][action_name]:
             process.actions[action_name].comment = dic['actions'][action_name]['comment']
-        else:
+        elif not isinstance(act, Call):
             comments_by_type = get_necessary_conf_property(conf, 'action comments')
             tag = type(act).__name__.lower()
             if tag not in comments_by_type or \
-               not (isinstance(comments_by_type[tag], (str)) or
+               not (isinstance(comments_by_type[tag], str) or
                     (isinstance(comments_by_type[tag], dict) and action_name in comments_by_type[tag])):
-                a = 1
-            # todo: uncomment this when all specifications will be supplied with proper comments
-            #    raise KeyError(
-            #        "Cannot find comment for action {!r} of type {!r} at process {!r} description. You shoud either "
-            #        "specify in the corresponding environment model specification the comment text manually or set "
-            #        "the default comment text for all actions of the type {!r} at EMG plugin configuration properties "
-            #        "within 'action comments' attribute.".
-            #        format(action_name, tag, name, tag))
+                raise KeyError(
+                    "Cannot find comment for action {!r} of type {!r} at process {!r} description. You shoud either "
+                    "specify in the corresponding environment model specification the comment text manually or set "
+                    "the default comment text for all actions of the type {!r} at EMG plugin configuration properties "
+                    "within 'action comments' attribute.".
+                    format(action_name, tag, name, tag))
 
         # Values from dictionary
         if 'callback' in dic['actions'][action_name]:
