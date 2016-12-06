@@ -458,7 +458,7 @@ class MarksList(object):
 
     def __get_marks(self):
         filters = {}
-        unfilter = {}
+        unfilter = {'version': 0}
         if 'filters' in self.view:
             if 'status' in self.view['filters']:
                 if self.view['filters']['status']['type'] == 'is':
@@ -571,11 +571,13 @@ class MarksList(object):
                 elif col == 'type':
                     val = mark.get_type_display()
                 elif col == 'tags':
-                    val = '; '.join(
-                        tag.tag.tag for tag in mark.versions.order_by('-version').first().tags.order_by('tag__tag')
-                    )
-                    if val == '':
+                    last_version = mark.versions.order_by('-version').first()
+                    if last_version is None:
                         val = '-'
+                    else:
+                        val = '; '.join(tag.tag.tag for tag in last_version.tags.order_by('tag__tag'))
+                        if val == '':
+                            val = '-'
                 if col == 'checkbox':
                     values_str.append({'checkbox': mark.pk})
                 else:

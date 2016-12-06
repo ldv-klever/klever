@@ -24,7 +24,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES, JOB_ROLES
 from bridge.utils import logger, unique_id, ArchiveFileContent, file_checksum, file_get_or_create
 from marks.models import *
-from reports.models import ReportComponent, Verdict
+from reports.models import ReportComponent, Verdict, ReportComponentLeaf
 from marks.ConvertTrace import GetConvertedErrorTrace, ET_FILE_NAME
 from marks.CompareTrace import CompareTrace
 
@@ -761,7 +761,7 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[2][0]:
             return True
-        if not self.mark.is_modifiable:
+        if not self.mark.is_modifiable or self.mark.version == 0:
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
@@ -818,7 +818,7 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[2][0]:
             return True
-        if not self.mark.is_modifiable:
+        if not self.mark.is_modifiable or self.mark.version == 0:
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
@@ -1001,7 +1001,6 @@ class UpdateTags(object):
 
 
 class DeleteMark(object):
-
     def __init__(self, mark):
         self.mark = mark
         self.__delete()
@@ -1010,9 +1009,13 @@ class DeleteMark(object):
         changes = {}
         if not isinstance(self.mark, (MarkSafe, MarkUnsafe, MarkUnknown)):
             return
-        for mark_report in self.mark.markreport_set.all():
+        # Mark the mark as deleted
+        self.mark.version = 0
+        self.mark.save()
+        mark_report_set = self.mark.markreport_set.all()
+        for mark_report in mark_report_set:
             changes[mark_report.report] = {'kind': '-'}
-        self.mark.markreport_set.all().delete()
+        mark_report_set.delete()
         if isinstance(self.mark, MarkUnknown):
             update_unknowns_cache(changes)
         else:
@@ -1067,7 +1070,6 @@ class MatchUnknown(object):
 
 
 def update_unknowns_cache(changes):
-    from reports.models import ReportComponentLeaf
     reports_to_recalc = []
     for leaf in ReportComponentLeaf.objects.filter(unknown__in=list(changes)):
         if leaf.report not in reports_to_recalc:

@@ -21,6 +21,7 @@ import hashlib
 import tarfile
 import tempfile
 from io import BytesIO
+from django.db.models import Q
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -113,17 +114,17 @@ class AllMarksTar(object):
 
     def __create_tar(self):
         with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as arch:
-            for mark in MarkSafe.objects.all():
+            for mark in MarkSafe.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
                 arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnsafe.objects.all():
+            for mark in MarkUnsafe.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
                 arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnknown.objects.all():
+            for mark in MarkUnknown.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
