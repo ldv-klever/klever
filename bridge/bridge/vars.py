@@ -95,7 +95,7 @@ JOB_STATUS = (
 
 # Default view of the table
 JOB_DEF_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem', 'safe', 'resource'],
+    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
     # Available orders: ['date', 'status', 'name', 'author']
     'orders': ['-date'],
 
