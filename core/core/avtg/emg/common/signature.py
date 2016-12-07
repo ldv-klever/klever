@@ -241,6 +241,7 @@ def _take_pointer(exp, tp):
         exp = '*' + exp
     return exp
 
+
 def _add_parent(declaration, parent):
     global __type_collection
 
@@ -307,9 +308,12 @@ class Declaration:
             self.implementations[new.identifier] = new
         return new
 
-    def is_primitive(self):
+    def nameless_type(self):
         queue = [self]
-        primitive = True
+        ret = True
+
+        # todo: this is because CIF provide nameless enums with artificially generated name like 'ldv_26585'
+        enum_regex = re.compile('ldv_')
 
         while len(queue) > 0:
             tp = queue.pop()
@@ -318,11 +322,13 @@ class Declaration:
                 queue.append(tp.element)
             elif isinstance(tp, Pointer):
                 queue.append(tp.points)
-            elif isinstance(tp, Structure) or isinstance(tp, Union) or isinstance(tp, Enum) or isinstance(tp, Function):
-                primitive = False
+            elif ((isinstance(tp, Structure) or isinstance(tp, Union)) and not self.name) or\
+                 (isinstance(tp, Enum) and enum_regex.match(self.name)):
+                # Transform only complex
+                ret = False
                 break
 
-        return primitive
+        return ret
 
     def to_string(self, replacement='', pointer=False, typedef='none'):
         if pointer:
@@ -331,9 +337,9 @@ class Declaration:
         if isinstance(typedef, set) or isinstance(typedef, str):
             if self.typedef and (
                     (isinstance(typedef, set) and self.typedef in typedef) or
-                    (isinstance(typedef, str) and
-                        (typedef == 'all' or
-                         typedef in ('complex', 'complex_and_params') and not self.is_primitive())
+                    (
+                        (isinstance(typedef, str) and typedef == 'all') or
+                        typedef != 'none' and not self.nameless_type()
                      )):
                 return "{} {}".format(self.typedef, replacement)
             else:
@@ -484,7 +490,7 @@ class Structure(Declaration):
 
     @property
     def pretty_name(self):
-        if self._ast['specifiers']['type specifier']['name']:
+        if self.name:
             return 'struct_{}'.format(self.name)
         else:
             global __type_collection
