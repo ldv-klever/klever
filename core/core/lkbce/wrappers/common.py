@@ -138,7 +138,7 @@ class Command:
         if elf_out and elf_out[0].startswith('ELF'):
             symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
             for table_entry in symbol_table:
-                if re.search(r'(\.init\.text.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
+                if re.search(r'(.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
                     has_init = True
                     break
 
