@@ -1,23 +1,39 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import re
 import json
 import tarfile
+import tempfile
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
-from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS
+from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE
 from bridge.utils import logger, file_get_or_create
-from jobs.models import JOBFILE_DIR
+from jobs.models import JOBFILE_DIR, RunHistory
 from jobs.utils import create_job, update_job, change_job_status
-from reports.UploadReport import UploadReportFiles
 from reports.models import *
 from reports.utils import AttrData
 
 ET_FILE = 'unsafe-error-trace.graphml'
-REPORT_LOG_FILE = 'report.log'
 
 
 class KleverCoreDownloadJob(object):
@@ -52,7 +68,7 @@ class KleverCoreDownloadJob(object):
                     'src': src
                 })
 
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8')
         write_file_str(jobtar_obj, 'format', str(job.format))
         for job_class in JOB_CLASSES:
             if job_class[0] == job.type:
@@ -74,108 +90,116 @@ class DownloadJob(object):
     def __init__(self, job):
         self.tarname = ''
         self.job = job
-        self.memory = BytesIO()
+        self.tempfile = tempfile.TemporaryFile()
         self.error = None
         self.__create_tar()
+        self.tempfile.flush()
+        self.size = self.tempfile.tell()
+        self.tempfile.seek(0)
 
     def __create_tar(self):
 
         files_in_tar = {}
         self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz')
+        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as jobtar_obj:
 
-        def write_file_str(file_name, file_content):
-            file_content = file_content.encode('utf-8')
-            t = tarfile.TarInfo(file_name)
-            t.size = len(file_content)
-            jobtar_obj.addfile(t, BytesIO(file_content))
+            def add_json(file_name, data):
+                file_content = json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
+                t = tarfile.TarInfo(file_name)
+                t.size = len(file_content)
+                jobtar_obj.addfile(t, BytesIO(file_content))
 
-        for jobversion in self.job.versions.all():
-            filedata = []
-            for f in jobversion.filesystem_set.all():
-                filedata_element = {
-                    'pk': f.pk,
-                    'parent': f.parent_id,
-                    'name': f.name,
-                    'file': None
-                }
-                if f.file is not None:
-                    filedata_element['file'] = f.file.pk
-                    if f.file.pk not in files_in_tar:
-                        files_in_tar[f.file.pk] = f.file.file.name
-                        jobtar_obj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), f.file.file.name)
-                filedata.append(filedata_element)
-            version_data = {
-                'filedata': filedata,
-                'description': jobversion.description,
-                'name': jobversion.name,
-                'global_role': jobversion.global_role,
-                'comment': jobversion.comment,
-            }
-            write_file_str('version-%s' % jobversion.version, json.dumps(version_data))
+            for jobversion in self.job.versions.all():
+                filedata = []
+                for f in jobversion.filesystem_set.all():
+                    filedata_element = {
+                        'pk': f.pk, 'parent': f.parent_id, 'name': f.name, 'file': None
+                    }
+                    if f.file is not None:
+                        filedata_element['file'] = f.file.pk
+                        if f.file.pk not in files_in_tar:
+                            files_in_tar[f.file.pk] = f.file.file.name
+                            jobtar_obj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), f.file.file.name)
+                    filedata.append(filedata_element)
+                add_json('version-%s.json' % jobversion.version, {
+                    'filedata': filedata,
+                    'description': jobversion.description,
+                    'name': jobversion.name,
+                    'global_role': jobversion.global_role,
+                    'comment': jobversion.comment,
+                })
 
-        self.__add_safe_files(jobtar_obj)
-        self.__add_unsafe_files(jobtar_obj)
-        self.__add_unknown_files(jobtar_obj)
-        self.__add_component_files(jobtar_obj)
-        common_data = {
-            'format': str(self.job.format),
-            'identifier': str(self.job.identifier),
-            'type': str(self.job.type),
-            'status': self.job.status,
-            'filedata': json.dumps(files_in_tar),
-            'reports': ReportsData(self.job).reports
-        }
-        write_file_str('jobdata', json.dumps(common_data))
-        jobtar_obj.close()
+            add_json('job.json', {
+                'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
+                'status': self.job.status, 'files_map': files_in_tar,
+                'run_history': self.__add_run_history_files(jobtar_obj)
+            })
+            add_json('reports.json', ReportsData(self.job).reports)
+            add_json('LightWeightCache.json', LightWeightCache(self.job).data)
+            self.__add_reports_files(jobtar_obj)
 
-    def __add_unsafe_files(self, jobtar):
-        for unsafe in ReportUnsafe.objects.filter(root__job=self.job):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in unsafe.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, unsafe.error_trace.file.name), arcname=ET_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % unsafe.pk
-            tinfo = tarfile.TarInfo(os.path.join('Unsafes', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+    def __add_reports_files(self, jobtar):
+        tables = [ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent]
+        for table in tables:
+            for report in table.objects.filter(root__job=self.job):
+                if report.archive is not None:
+                    jobtar.add(
+                        os.path.join(settings.MEDIA_ROOT, report.archive.file.name),
+                        arcname=os.path.join(table.__name__, '%s.tar.gz' % report.pk)
+                    )
 
-    def __add_safe_files(self, jobtar):
-        for safe in ReportSafe.objects.filter(root__job=self.job):
+    def __add_run_history_files(self, jobtar):
+        data = []
+        for rh in self.job.runhistory_set.order_by('date'):
             jobtar.add(
-                os.path.join(settings.MEDIA_ROOT, safe.proof.file.name),
-                arcname=os.path.join('Safes', str(safe.pk))
+                os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
+                arcname=os.path.join('Configurations', "%s.json" % rh.pk)
             )
+            data.append({
+                'id': rh.pk, 'status': rh.status,
+                'date': [
+                    rh.date.year, rh.date.month, rh.date.day, rh.date.hour,
+                    rh.date.minute, rh.date.second, rh.date.microsecond
+                ]
+            })
+        return data
 
-    def __add_unknown_files(self, jobtar):
-        for unknown in ReportUnknown.objects.filter(root__job=self.job):
-            jobtar.add(
-                os.path.join(settings.MEDIA_ROOT, unknown.problem_description.file.name),
-                arcname=os.path.join('Unknowns', str(unknown.pk))
-            )
 
-    def __add_component_files(self, jobtar):
-        for report in ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(log=None)):
-            memory = BytesIO()
-            tarobj = tarfile.open(fileobj=memory, mode='w:gz')
-            for f in report.files.all():
-                tarobj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), arcname=f.name)
-            tarobj.add(os.path.join(settings.MEDIA_ROOT, report.log.file.name), arcname=REPORT_LOG_FILE)
-            tarobj.close()
-            memory.seek(0)
-            tarname = '%s.tar.gz' % report.pk
-            tinfo = tarfile.TarInfo(os.path.join('Components', tarname))
-            tinfo.size = memory.getbuffer().nbytes
-            jobtar.addfile(tinfo, memory)
+class LightWeightCache(object):
+    def __init__(self, job):
+        self.data = {}
+        try:
+            self.root = ReportRoot.objects.get(job=job)
+        except ObjectDoesNotExist:
+            return
+        self.data['safes'] = self.root.safes
+        if job.light:
+            self.data['resources'] = self.__get_light_resources()
+            self.data['attrs_data'] = self.__get_attrs_statistic()
+
+    def __get_light_resources(self):
+        res_data = []
+        for r in LightResource.objects.filter(report=self.root):
+            res_data.append({
+                'component': r.component.name if r.component is not None else None,
+                'wall_time': r.wall_time, 'cpu_time': r.cpu_time, 'memory': r.memory
+            })
+        return res_data
+
+    def __get_attrs_statistic(self):
+        attrs_data = []
+        for a_c in AttrStatistic.objects.filter(report__root=self.root, report__parent=None):
+            if a_c.attr is None:
+                attrs_data.append([a_c.name.name, None, a_c.safes, a_c.unsafes, a_c.unknowns])
+            else:
+                attrs_data.append([a_c.name.name, a_c.attr.value, a_c.safes, a_c.unsafes, a_c.unknowns])
+        return attrs_data
 
 
 class ReportsData(object):
     def __init__(self, job):
         self.job = job
-        self.reports = json.dumps(self.__reports_data())
+        self.reports = self.__reports_data()
 
     def __report_component_data(self, report):
         self.ccc = 0
@@ -201,17 +225,26 @@ class ReportsData(object):
             'start_date': get_date(report.start_date),
             'finish_date': get_date(report.finish_date),
             'data': data,
-            'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
+            'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id')),
+            'log': report.log
         }
 
     def __report_leaf_data(self, report):
         self.ccc = 0
-        return {
+        data = {
             'pk': report.pk,
             'parent': report.parent_id,
             'identifier': report.identifier,
             'attrs': list((ra.attr.name.name, ra.attr.value) for ra in report.attrs.order_by('id'))
         }
+        if isinstance(report, ReportSafe):
+            data['proof'] = report.proof
+        elif isinstance(report, ReportUnsafe):
+            data['error_trace'] = report.error_trace
+        elif isinstance(report, ReportUnknown):
+            data['problem_description'] = report.problem_description
+            data['component'] = report.component.name
+        return data
 
     def __reports_data(self):
         reports = []
@@ -227,13 +260,13 @@ class ReportsData(object):
                 reports.append(self.__report_component_data(ch))
                 children_ids.append(ch.pk)
             children = list(ReportComponent.objects.filter(parent_id__in=children_ids))
-        reports.append('safes')
+        reports.append(ReportSafe.__name__)
         for safe in ReportSafe.objects.filter(root__job=self.job):
             reports.append(self.__report_leaf_data(safe))
-        reports.append('unsafes')
+        reports.append(ReportUnsafe.__name__)
         for unsafe in ReportUnsafe.objects.filter(root__job=self.job):
             reports.append(self.__report_leaf_data(unsafe))
-        reports.append('unknowns')
+        reports.append(ReportUnknown.__name__)
         for unknown in ReportUnknown.objects.filter(root__job=self.job):
             reports.append(self.__report_leaf_data(unknown))
         return reports
@@ -249,87 +282,121 @@ class UploadJob(object):
 
     def __create_job_from_tar(self):
         jobdata = None
+        reports_data = None
         files_in_db = {}
         versions_data = {}
         report_files = {}
+        run_history_files = {}
+        light_cache = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
-                if file_name == 'jobdata':
+                if dir_path.endswith(JOBFILE_DIR):
+                    try:
+                        files_in_db['/'.join([JOBFILE_DIR, file_name])] = file_get_or_create(
+                            open(os.path.join(dir_path, file_name), mode='rb'), file_name, True
+                        )[1]
+                    except Exception as e:
+                        logger.exception("Can't save job files to DB: %s" % e)
+                        return _("Creating job's file failed")
+                elif file_name == 'job.json':
                     try:
                         with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                             jobdata = json.load(fp)
                     except Exception as e:
-                        logger.exception("Can't parse jobdata: %s" % e, stack_info=True)
+                        logger.exception("Can't parse job data: %s" % e)
                         return _("The job archive is corrupted")
-                elif dir_path.endswith(JOBFILE_DIR):
+                elif file_name == 'LightWeightCache.json':
                     try:
-                        files_in_db['/'.join([JOBFILE_DIR, file_name])] = file_get_or_create(
-                            open(os.path.join(dir_path, file_name), mode='rb'),
-                            file_name, True
-                        )[1]
+                        with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
+                            light_cache = json.load(fp)
                     except Exception as e:
-                        logger.exception("Can't save job files to DB: %s" % e, stack_info=True)
-                        return _("Creating job's file failed")
+                        logger.exception("Can't parse lightweight results data: %s" % e)
+                        return _("The job archive is corrupted")
+                elif file_name == 'reports.json':
+                    try:
+                        with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
+                            reports_data = json.load(fp)
+                    except Exception as e:
+                        logger.exception("Can't parse reports data: %s" % e)
+                        return _("The job archive is corrupted")
+
                 elif file_name.startswith('version-'):
-                    version_id = int(file_name.replace('version-', ''))
+                    m = re.match('version-(\d+)\.json', file_name)
+                    if m is None:
+                        logger.error("Unknown file that startswith 'version-' was found in the archive")
+                        return _("The job archive is corrupted")
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
-                        versions_data[version_id] = json.load(fp)
-                elif dir_path.endswith('Unsafes'):
-                    m = re.match('(\d+)\.tar\.gz', file_name)
-                    if m is not None:
-                        report_files[('unsafe', int(m.group(1)))] = os.path.join(dir_path, file_name)
-                elif dir_path.endswith('Safes'):
-                    report_files[('safe', int(file_name))] = os.path.join(dir_path, file_name)
-                elif dir_path.endswith('Unknowns'):
-                    report_files[('unknown', int(file_name))] = os.path.join(dir_path, file_name)
-                elif dir_path.endswith('Components'):
-                    m = re.match('(\d+)\.tar\.gz', file_name)
-                    if m is not None:
-                        report_files[('component', int(m.group(1)))] = os.path.join(dir_path, file_name)
+                        versions_data[int(m.group(1))] = json.load(fp)
+                elif dir_path.endswith('Configurations'):
+                    try:
+                        run_history_files[int(file_name.replace('.json', ''))] = os.path.join(dir_path, file_name)
+                    except ValueError:
+                        logger.exception("Unknown file was found in 'Configurations' dir: %s" % file_name)
+                        return _("The job archive is corrupted")
+                else:
+                    b_dir = os.path.basename(dir_path)
+                    if b_dir in list(x.__name__ for x in [ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent]):
+                        m = re.match('(\d+)\.tar\.gz', file_name)
+                        if m is not None:
+                            report_files[(b_dir, int(m.group(1)))] = os.path.join(dir_path, file_name)
 
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'filedata', 'reports']):
+        # Check job data
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map', 'run_history']):
+            logger.error('Not enough data in job.json file')
             return _("The job archive is corrupted")
-        if int(jobdata['format']) != FORMAT:
+        if jobdata['format'] != FORMAT:
             return _("The job format is not supported")
-
         if 'identifier' in jobdata:
             if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
                 if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
                     return _("The job with identifier specified in the archive already exists")
             else:
                 del jobdata['identifier']
-
         if jobdata['type'] != self.parent.type:
             return _("The job class does not equal to the parent class")
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
             return _("The job status is wrong")
-        files_map = json.loads(jobdata['filedata'])
-        for f_id in files_map:
-            if files_map[f_id] in files_in_db:
-                files_map[f_id] = files_in_db[files_map[f_id]]
+        for f_id in list(jobdata['files_map']):
+            if jobdata['files_map'][f_id] in files_in_db:
+                jobdata['files_map'][int(f_id)] = files_in_db[jobdata['files_map'][f_id]]
+                del jobdata['files_map'][f_id]
             else:
+                logger.error('Not enough files in "Files" directory')
                 return _("The job archive is corrupted")
 
-        version_list = list(versions_data[v] for v in sorted(versions_data))
-        for i in range(0, len(version_list)):
-            filedata = []
-            for file in version_list[i]['filedata']:
-                fdata_elem = {
-                    'title': file['name'],
-                    'id': file['pk'],
-                    'type': '0',
-                    'parent': file['parent'],
-                    'hash_sum': None
-                }
-                if file['file'] is not None:
-                    if str(file['file']) in jobdata['filedata']:
-                        fdata_elem['type'] = '1'
-                        fdata_elem['hash_sum'] = files_map[str(file['file'])]
-                    else:
-                        return _("The job archive is corrupted")
-                filedata.append(fdata_elem)
-            version_list[i]['filedata'] = filedata
+        # Check versions data
+        if len(versions_data) == 0:
+            logger.error("There are no job's versions in the archive")
+            return _("The job archive is corrupted")
+        for version in versions_data:
+            if any(x not in versions_data[version] for x in
+                   ['name', 'description', 'comment', 'global_role', 'filedata']):
+                logger.exception("The job version data is corrupted")
+                return _("The job archive is corrupted")
 
+        # Update versions' files data
+        try:
+            version_list = list(versions_data[v] for v in sorted(versions_data))
+            for i in range(0, len(version_list)):
+                version_filedata = []
+                for file in version_list[i]['filedata']:
+                    fdata_elem = {
+                        'title': file['name'],
+                        'id': file['pk'],
+                        'type': '0',
+                        'parent': file['parent'],
+                        'hash_sum': None
+                    }
+                    if file['file'] is not None:
+                        fdata_elem['type'] = '1'
+                        fdata_elem['hash_sum'] = jobdata['files_map'][file['file']]
+                    version_filedata.append(fdata_elem)
+                version_list[i]['filedata'] = version_filedata
+        except Exception as e:
+            logger.exception("The job version data is corrupted: %s" % e)
+            return _("The job archive is corrupted")
+
+        # Creating the job
         job = create_job({
             'name': version_list[0]['name'],
             'identifier': jobdata.get('identifier'),
@@ -344,6 +411,23 @@ class UploadJob(object):
         if not isinstance(job, Job):
             return job
 
+        # Creating job's run history
+        try:
+            for rh in jobdata['run_history']:
+                if rh['status'] not in list(x[0] for x in JOB_STATUS):
+                    return _("The job archive is corrupted")
+                with open(run_history_files[rh['id']], mode='rb') as fp:
+                    RunHistory.objects.create(
+                        job=job, status=rh['status'],
+                        date=datetime(*rh['date'], tzinfo=pytz.timezone('UTC')),
+                        configuration=file_get_or_create(fp, 'config.json')[0]
+                    )
+        except Exception as e:
+            logger.exception("Run history data is corrupted: %s" % e)
+            job.delete()
+            return _("The job archive is corrupted")
+
+        # Creating job's versions
         for version_data in version_list[1:]:
             updated_job = update_job({
                 'job': job,
@@ -360,17 +444,46 @@ class UploadJob(object):
                 job.delete()
                 return updated_job
 
+        # Change job's status as it was in downloaded archive
         change_job_status(job, jobdata['status'])
-        self.job = job
-        ReportRoot.objects.create(user=self.user, job=self.job)
+        ReportRoot.objects.create(user=self.user, job=job)
         try:
-            UploadReports(self.job, json.loads(jobdata['reports']), report_files)
+            UploadReports(job, reports_data, report_files)
         except Exception as e:
             logger.exception("Uploading report failed: %s" % e, stack_info=True)
-            self.job.delete()
-            self.job = None
-            return _("One of the reports was not uploaded")
+            job.delete()
+            return _("Uploading reports failed")
+        self.job = job
+        self.__fill_lightweight_cache(light_cache)
         return None
+
+    def __fill_lightweight_cache(self, light_cache):
+        try:
+            root = ReportRoot.objects.get(job=self.job)
+        except ObjectDoesNotExist:
+            return
+        if 'safes' in light_cache:
+            root.safes = int(light_cache['safes'])
+            root.save()
+        if 'resources' in light_cache:
+            self.job.light = True
+            self.job.save()
+            LightResource.objects.bulk_create(list(LightResource(
+                report=root, wall_time=int(d['wall_time']), cpu_time=int(d['cpu_time']), memory=int(d['memory']),
+                component=Component.objects.get_or_create(name=d['component'])[0]
+                if d['component'] is not None else None
+            ) for d in light_cache['resources']))
+        if 'attrs_data' in light_cache:
+            root_report = ReportComponent.objects.get(root=root, parent=None)
+            AttrStatistic.objects.filter(report=root_report).delete()
+            AttrStatistic.objects.bulk_create(list(AttrStatistic(
+                report=root_report,
+                name=AttrName.objects.get_or_create(name=a_data[0])[0],
+                attr=Attr.objects.get_or_create(
+                    name=AttrName.objects.get_or_create(name=a_data[0])[0], value=a_data[1]
+                )[0] if a_data[1] is not None else None,
+                safes=a_data[2], unsafes=a_data[3], unknowns=a_data[4]
+            ) for a_data in light_cache['attrs_data']))
 
 
 class UploadReports(object):
@@ -403,12 +516,14 @@ class UploadReports(object):
         self.__fix_identifiers()
         for data in self.data:
             if isinstance(data, dict):
-                curr_func(data)
-            elif isinstance(data, str) and data == 'safes':
+                report_id = curr_func(data)
+                for attr in data['attrs']:
+                    self._attrs.add(report_id, attr[0], attr[1])
+            elif isinstance(data, str) and data == ReportSafe.__name__:
                 curr_func = self.__create_report_safe
-            elif isinstance(data, str) and data == 'unsafes':
+            elif isinstance(data, str) and data == ReportUnsafe.__name__:
                 curr_func = self.__create_report_unsafe
-            elif isinstance(data, str) and data == 'unknowns':
+            elif isinstance(data, str) and data == ReportUnknown.__name__:
                 curr_func = self.__create_report_unknown
         self._attrs.upload()
 
@@ -417,102 +532,60 @@ class UploadReports(object):
         ))
 
         from tools.utils import Recalculation
-        Recalculation('all', json.dumps([self.job.pk]))
+        Recalculation('all', json.dumps([self.job.pk], ensure_ascii=False, sort_keys=True, indent=4))
 
     def __create_report_component(self, data):
         parent = None
-        if 'parent' in data and data['parent'] is not None:
-            if data['parent'] in self._pk_map:
-                parent = self._pk_map[data['parent']]
-            else:
-                raise ValueError('Report component parent was not found')
-        if ('component', data['pk']) not in self.files:
-            raise ValueError('Component report files was not found')
-        with open(self.files[('component', data['pk'])], mode='rb') as fp:
-            uf = UploadReportFiles(fp, log=REPORT_LOG_FILE, need_other=True)
-        if uf.log is None:
-            raise ValueError('Component report without log was found')
-
+        if data.get('parent') is not None:
+            parent = self._pk_map[data['parent']]
+        if (ReportComponent.__name__, data['pk']) in self.files:
+            with open(self.files[(ReportComponent.__name__, data['pk'])], mode='rb') as fp:
+                archive = file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+        else:
+            archive = None
+        if 'log' not in data:
+            data['log'] = None
+        report_datafile = None
         if data['data'] is not None:
             report_datafile = file_get_or_create(BytesIO(data['data'].encode('utf8')), 'report-data.json')[0]
-        else:
-            report_datafile = None
+
         self._pk_map[data['pk']] = ReportComponent.objects.create(
-            root=self.job.reportroot,
-            parent=parent,
-            identifier=data['identifier'],
+            root=self.job.reportroot, parent=parent, identifier=data['identifier'],
             computer=Computer.objects.get_or_create(description=data['computer'])[0],
             component=Component.objects.get_or_create(name=data['component'])[0],
             cpu_time=data['resource']['cpu_time'] if data['resource'] is not None else None,
             wall_time=data['resource']['wall_time'] if data['resource'] is not None else None,
             memory=data['resource']['memory'] if data['resource'] is not None else None,
             start_date=datetime(*data['start_date'], tzinfo=pytz.timezone('UTC')),
-            finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC'))
-            if data['finish_date'] is not None else None,
-            log=uf.log,
-            data=report_datafile
+            finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC')),
+            log=data['log'], data=report_datafile, archive=archive
         )
-        for attr in data['attrs']:
-            self._attrs.add(self._pk_map[data['pk']].pk, attr[0], attr[1])
-        for rep_f in uf.other_files:
-            ReportFiles.objects.get_or_create(file=rep_f['file'], name=rep_f['name'], report=self._pk_map[data['pk']])
+        return self._pk_map[data['pk']].pk
 
     def __create_report_safe(self, data):
-        if ('safe', data['pk']) not in self.files:
-            raise ValueError('Safe without proof was found')
-        parent = None
-        if 'parent' in data and data['parent'] in self._pk_map:
-            parent = self._pk_map[data['parent']]
-        with open(self.files[('safe', data['pk'])], mode='rb') as fp:
-            report = ReportSafe.objects.create(
-                root=self.job.reportroot,
-                parent=parent,
-                identifier=data['identifier'],
-                proof=file_get_or_create(fp, 'safe-proof.txt')[0]
-            )
-        for attr in data['attrs']:
-            self._attrs.add(report.pk, attr[0], attr[1])
+        if (ReportSafe.__name__, data['pk']) in self.files:
+            with open(self.files[(ReportSafe.__name__, data['pk'])], mode='rb') as fp:
+                return ReportSafe.objects.create(
+                    root=self.job.reportroot, parent=self._pk_map[data['parent']],
+                    identifier=data['identifier'], proof=data['proof'],
+                    archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+                ).pk
+        return ReportSafe.objects.create(
+            root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier']
+        ).pk
 
     def __create_report_unknown(self, data):
-        if ('unknown', data['pk']) not in self.files:
-            raise ValueError('Unknown without problem description was found')
-        parent = None
-        if 'parent' in data and data['parent'] in self._pk_map:
-            parent = self._pk_map[data['parent']]
-        with open(self.files[('unknown', data['pk'])], mode='rb') as fp:
-            report = ReportUnknown.objects.create(
-                root=self.job.reportroot,
-                parent=parent,
-                identifier=data['identifier'],
-                problem_description=file_get_or_create(fp, 'problem-description.txt')[0],
-                component=parent.component
-            )
-        for attr in data['attrs']:
-            self._attrs.add(report.pk, attr[0], attr[1])
+        with open(self.files[(ReportUnknown.__name__, data['pk'])], mode='rb') as fp:
+            return ReportUnknown.objects.create(
+                root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
+                problem_description=data['problem_description'],
+                archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0],
+                component=Component.objects.get_or_create(name=data['component'])[0]
+            ).pk
 
     def __create_report_unsafe(self, data):
-        if ('unsafe', data['pk']) not in self.files:
-            raise ValueError('Unsafe without files was found')
-        with open(self.files[('unsafe', data['pk'])], mode='rb') as fp:
-            uf = UploadReportFiles(fp, file_name=ET_FILE, need_other=True)
-        if uf.main_file is None:
-            raise ValueError('Unsafe without error trace was found')
-        if 'parent' in data and data['parent'] in self._pk_map:
-            parent = self._pk_map[data['parent']]
-        else:
-            return
-        report = ReportUnsafe.objects.create(
-            root=self.job.reportroot,
-            parent=parent,
-            identifier=data['identifier'],
-            error_trace=uf.main_file
-        )
-        for attr in data['attrs']:
-            self._attrs.add(report.pk, attr[0], attr[1])
-        for src_f in uf.other_files:
-            ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
-
-    def __get_log(self, rep_id, component):
-        if ('log', rep_id) in self.files:
-            return file_get_or_create(open(self.files[('log', rep_id)], mode='rb'), '%s.log' % component)[0]
-        return None
+        with open(self.files[(ReportUnsafe.__name__, data['pk'])], mode='rb') as fp:
+            return ReportUnsafe.objects.create(
+                root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
+                error_trace=data['error_trace'], archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+            ).pk

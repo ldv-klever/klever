@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import time
 import shutil
@@ -122,13 +139,13 @@ def file_get_or_create(fp, filename, check_size=False):
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
 def extract_tar_temp(archive):
-    fp = tempfile.NamedTemporaryFile()
-    for chunk in archive.chunks():
-        fp.write(chunk)
-    fp.seek(0)
-    tar = tarfile.open(fileobj=fp, mode='r:gz')
-    tmp_dir_name = tempfile.TemporaryDirectory()
-    tar.extractall(tmp_dir_name.name)
+    with tempfile.NamedTemporaryFile() as fp:
+        for chunk in archive.chunks():
+            fp.write(chunk)
+        fp.seek(0)
+        with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
+            tmp_dir_name = tempfile.TemporaryDirectory()
+            tar.extractall(tmp_dir_name.name)
     return tmp_dir_name
 
 
@@ -152,7 +169,7 @@ def tests_logging_conf():
 class KleverTestCase(TestCase):
     def setUp(self):
         if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
-            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR))
+            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR).encode("utf8"))
         self.client = Client()
         super(KleverTestCase, self).setUp()
 
@@ -169,3 +186,37 @@ def has_references(obj):
         if len(getattr(obj, link).all()) > 0:
             return True
     return False
+
+
+# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
+class ArchiveFileContent(object):
+    def __init__(self, file_model, file_name=None, max_size=None):
+        self._file = file_model
+        self._max_size = max_size
+        self._name = file_name
+        self.error = None
+        try:
+            self.content = self.__extract_file_content()
+        except Exception as e:
+            logger.exception("Error while extracting file from archive: %s" % e)
+            self.error = 'Unknown error'
+
+    def __extract_file_content(self):
+        with File.objects.get(pk=self._file.pk).file as fp:
+            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
+                for f in arch.getmembers():
+                    if f.isreg():
+                        if self._name is not None and f.name != self._name:
+                            continue
+                        file_extracted = arch.extractfile(f)
+                        if self._max_size is not None:
+                            file_extracted.seek(0, 2)
+                            if file_extracted.tell() > self._max_size:
+                                self.error = _('The component log is huge and '
+                                               'can not be showed but you can download it')
+                                return None
+                            file_extracted.seek(0)
+                        self._name = f.name
+                        return file_extracted.read().decode('utf8')
+        self.error = _('Needed file was not found')
+        return None

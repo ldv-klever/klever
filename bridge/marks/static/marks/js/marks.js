@@ -1,16 +1,29 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function encodeData(s) {
     return encodeURIComponent(s).replace(/\-/g, "%2D").replace(/\_/g, "%5F").replace(/\./g, "%2E").replace(/\!/g, "%21").replace(/\~/g, "%7E").replace(/\*/g, "%2A").replace(/\'/g, "%27").replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
 
 function collect_filters_data() {
     var view_values = {columns: []}, filter_values = {},
-        columns = ['num_of_links', 'verdict', 'status', 'component', 'author', 'format', 'pattern', 'type'],
         order_type = $('input[name=marks_enable_order]:checked').val();
-    $.each(columns, function (index, val) {
-        var column_checkbox = $('#marks_filter_checkbox__' + val);
-        if (column_checkbox.length && column_checkbox.is(':checked')) {
-            view_values['columns'].push(val);
-        }
+    $('input[id^="marks_filter_checkbox__"]:checked').each(function () {
+        view_values['columns'].push($(this).attr('id').replace('marks_filter_checkbox__', ''));
     });
     if (order_type == 'attribute') {
         var order = $('#filter__attr__order').val();
@@ -133,7 +146,7 @@ function collect_new_markdata() {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: $('#tag_list').val(),
+            tags: get_tags_values(),
             description: description
         };
     }
@@ -196,7 +209,7 @@ function collect_markdata() {
             status: $("input[name='selected_status']:checked").val(),
             data_type: mark_type,
             is_modifiable: is_modifiable,
-            tags: $('#tag_list').val(),
+            tags: get_tags_values(),
             comment: $('#edit_mark_comment').val(),
             description: description
         };
@@ -276,53 +289,6 @@ function set_actions_for_mark_versions_delete() {
     });
 }
 
-function activate_tags() {
-    $('#tag_list').dropdown({
-        allowAdditions: true,
-        className: {
-            label: 'ui label ' + $('#tag_label_color').text(),
-            selected: 'klever-active'
-        },
-        message: {
-            addResult: $('#tags__add_tag').text() + ' <b>{term}</b>'
-        },
-        onChange: function(value) {
-            var last_added_tag = value.slice(-1)[0];
-            if (last_added_tag && last_added_tag.length > 15) {
-                value.pop();
-                var available_tags = [], taglist = $('#tag_list');
-                taglist.children('option').each(function () {
-                    if ($(this).val() != last_added_tag && value.indexOf($(this).val()) < 0 && $(this).val()) {
-                        available_tags.push($(this).val());
-                    }
-                });
-                taglist.parent().remove();
-                $('label[for=tag_list]').after($('<select>', {
-                    class: 'ui search selection dropdown fluid',
-                    multiple: true,
-                    id: 'tag_list'
-                }));
-                $.each(value, function (i, v) {
-                    $('#tag_list').append($('<option>', {
-                        value: v,
-                        text: v,
-                        selected: true
-                    }));
-                });
-                $.each(available_tags, function (i, v) {
-                    $('#tag_list').append($('<option>', {
-                        value: v,
-                        text: v
-                    }));
-                });
-                activate_tags();
-                err_notify($('#error__tag_is_long').text());
-            }
-        }
-    });
-    return false;
-}
-
 $(document).ready(function () {
     var view_type_input = $('#view_type');
     if (view_type_input.length) {
@@ -391,11 +357,13 @@ $(document).ready(function () {
     });
 
     $('#save_new_mark_btn').click(function () {
+        $(this).addClass('disabled');
         $.post(
             marks_ajax_url + 'save_mark/',
             {savedata: encodeData(collect_new_markdata())},
             function (data) {
                 if (data.error) {
+                    $(this).removeClass('disabled');
                     err_notify(data.error);
                 }
                 else if ('cache_id' in data) {

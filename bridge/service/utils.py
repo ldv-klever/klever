@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
@@ -6,7 +23,7 @@ from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum
+from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
@@ -65,7 +82,7 @@ class ScheduleTask(object):
         self.progress.save()
         new_description = json.loads(task.description.decode('utf8'))
         new_description['id'] = task.pk
-        task.description = json.dumps(new_description).encode('utf8')
+        task.description = json.dumps(new_description, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         task.save()
         return task.pk
 
@@ -216,7 +233,6 @@ class KleverCoreFinishDecision(object):
 # Case 3.1(2)
 class KleverCoreStartDecision(object):
     def __init__(self, job):
-        self.error = None
         self.job = job
         self.__start()
 
@@ -224,14 +240,11 @@ class KleverCoreStartDecision(object):
         try:
             progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = 'Solving progress was not found'
-            return
+            raise ValueError('job decision was not successfully started')
         if progress.start_date is not None:
-            self.error = 'Solving progress already has start date'
-            return
+            raise ValueError('the "start" report of Core was already uploaded')
         elif progress.finish_date is not None:
-            self.error = 'Solving progress already has finish date'
-            return
+            raise ValueError('the job is not solving already')
         progress.start_date = now()
         progress.save()
 
@@ -249,10 +262,8 @@ class StopDecision(object):
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
             return
-        self.__clear_tasks()
-        if self.error is not None:
-            return
         change_job_status(job, JOB_STATUS[6][0])
+        self.__clear_tasks()
 
     def __clear_tasks(self):
         for task in self.progress.task_set.all():
@@ -488,16 +499,18 @@ class GetTasks(object):
                 elif progress.job.status == JOB_STATUS[2][0]:
                     if progress.job.identifier in data['jobs']['finished']:
                         try:
-                            if len(ReportUnknown.objects.filter(
-                                    parent=ReportComponent.objects.get(
-                                        Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                                    )
-                            )) > 0:
-                                change_job_status(progress.job, JOB_STATUS[5][0])
-                            else:
-                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            root_report = ReportComponent.objects.get(
+                                Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
+                            )
                         except ObjectDoesNotExist:
                             change_job_status(progress.job, JOB_STATUS[5][0])
+                        else:
+                            if progress.job.light:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
+                            elif len(ReportUnknown.objects.filter(parent=root_report)) > 0:
+                                change_job_status(progress.job, JOB_STATUS[4][0])
+                            else:
+                                change_job_status(progress.job, JOB_STATUS[3][0])
                     elif progress.job.identifier in data['jobs']['error']:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                         if progress.job.identifier in data['job errors']:
@@ -510,7 +523,7 @@ class GetTasks(object):
                 elif progress.job.status == JOB_STATUS[6][0]:
                     new_data['jobs']['cancelled'].append(progress.job.identifier)
         try:
-            return json.dumps(new_data)
+            return json.dumps(new_data, ensure_ascii=False, sort_keys=True, indent=4)
         except ValueError:
             self.error = "Can't dump json data"
             return None
@@ -832,6 +845,7 @@ class StartJobDecision(object):
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
+        self.job.light = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -857,7 +871,9 @@ class StartJobDecision(object):
             'upload input files of static verifiers': self.data[4][1],
             'upload other intermediate files': self.data[4][2],
             'allow local source directories use': self.data[4][3],
-            'ignore another instances': self.data[4][4],
+            'ignore other instances': self.data[4][4],
+            'ignore failed sub-jobs': self.data[4][5],
+            'lightweightness': self.data[4][6],
             'logging': {
                 'formatters': [
                     {
@@ -921,12 +937,12 @@ class StartJobDecision(object):
         return SolvingProgress.objects.create(
             job=self.job, priority=self.data[0][0],
             scheduler=self.job_scheduler,
-            configuration=json.dumps(self.klever_core_data).encode('utf8')
+            configuration=json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         )
 
     def __save_configuration(self):
         m = BytesIO()
-        m.write(json.dumps(self.klever_core_data, sort_keys=True, indent=4).encode('utf8'))
+        m.write(json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
         m.seek(0)
         check_sum = file_checksum(m)
         try:
@@ -936,7 +952,9 @@ class StartJobDecision(object):
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, status=JOB_STATUS[1][0])
+        RunHistory.objects.create(
+            job=self.job, operator=self.operator, configuration=db_file, status=JOB_STATUS[1][0], date=now()
+        )
 
     def __check_schedulers(self):
         try:

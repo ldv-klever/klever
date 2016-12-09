@@ -1,5 +1,23 @@
-import glob
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import json
 import os
+import re
 import sys
 import shutil
 import logging
@@ -57,18 +75,22 @@ class Run:
         # TODO: Implement options support not just forwarding
         self.options = []
         # Convert list of dictionaries to list
-        options = description["verifier"]["options"]
-        # TODO: like in scheduler/client/__init__.py
-        options.append({"-setprop": "parser.readLineDirectives=true"})
-        options.append({"-setprop": "cpa.arg.errorPath.graphml=witness.graphml"})
-        options.append({"-heap": '{0}m'.format(round(3 * description["resource limits"]["memory size"] / (4 * 1000 ** 2)))})
-        for option in options:
+        for option in description["verifier"]["options"]:
             for name in option:
                 self.options.append(name)
                 self.options.append(option[name])
 
-        # Set source files and property
-        self.propertyfile = os.path.join(work_dir, description["property file"])
+        # Set source, property and specification files if so
+        # Some property file should be always specified
+        self.propertyfile = None
+        if "property file" in description:
+            # Update relative path so that VerifierCloud client will be able to find property file
+            self.propertyfile = os.path.join(work_dir, description["property file"])
+        elif "specification file" in description:
+            # Like with property file above
+            self.options = [re.sub(r'{0}'.format(description["specification file"]),
+                                   os.path.join(work_dir, description["specification file"]),
+                                   opt) for opt in self.options]
         self.sourcefiles = [os.path.join(work_dir, file) for file in description["files"]]
 
 
@@ -80,8 +102,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
     wi = None
 
-    def launch(self):
-        """Start scheduler loop."""
+    def init_scheduler(self):
+        """Do VerifierCloud specific initialization"""
+        super(Scheduler, self).init_scheduler()
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
@@ -94,8 +117,6 @@ class Scheduler(schedulers.SchedulerExchange):
         from webclient import WebInterface
         self.wi = WebInterface(self.conf["scheduler"]["web-interface address"], None)
 
-        return super(Scheduler, self).launch()
-
     @staticmethod
     def scheduler_type():
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
@@ -103,7 +124,8 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
-        Get list of new tasks which can be launched during current scheduler iteration.
+        Get list of new tasks which can be launched during the current scheduler iteration.
+
         :param pending_tasks: List with all pending tasks.
         :param processing_tasks: List with currently ongoing tasks.
         :param sorter: Function which can by used for sorting tasks according to their priorities.
@@ -127,6 +149,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def prepare_task(self, identifier, description=None):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
         """
@@ -134,7 +157,7 @@ class Scheduler(schedulers.SchedulerExchange):
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         task_data_dir = os.path.join(task_work_dir, "data")
         logging.debug("Make directory for the task to solve {0}".format(task_data_dir))
-        os.makedirs(task_data_dir, exist_ok=True)
+        os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
 
         # Pull the task from the Verification gateway
         archive = os.path.join(task_work_dir, "task.tar.gz")
@@ -146,6 +169,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
@@ -155,6 +179,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
+
         :param identifier: Verification task identifier.
         :param description: Verification task description dictionary.
         :param user: User name.
@@ -162,6 +187,9 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         # TODO: Add more exceptions handling to make code more reliable
+        with open(os.path.join(os.path.join(self.work_dir, "tasks", identifier), "task.json"), "w",
+                  encoding="utf8") as fp:
+            json.dump(description, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Prepare command to submit
         logging.debug("Prepare arguments of the task {}".format(identifier))
@@ -190,11 +218,13 @@ class Scheduler(schedulers.SchedulerExchange):
                               priority=run.priority,
                               user_pwd=run.user_pwd,
                               svn_branch=branch,
-                              svn_revision=revision)
+                              svn_revision=revision,
+                              meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
     def solve_job(self, configuration):
         """
         Solve given verification task.
+
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
@@ -209,6 +239,7 @@ class Scheduler(schedulers.SchedulerExchange):
     def process_task_result(self, identifier, future):
         """
         Process result and send results to the verification gateway.
+
         :param identifier:
         :return: Status of the task after solution: FINISHED or ERROR.
         """
@@ -219,26 +250,22 @@ class Scheduler(schedulers.SchedulerExchange):
             with open(solution_file, 'wb') as sa:
                 sa.write(future.result())
         else:
-            logging.warning("Task has been finished but no data has been received for the task {}".
-                            format(identifier))
-            return "ERROR"
+            error_msg = "Task {} has been finished but no data has been received: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         # Unpack results
         task_solution_dir = os.path.join(task_work_dir, "solution")
         logging.debug("Make directory for the solution to extract {0}".format(task_solution_dir))
-        os.makedirs(task_solution_dir, exist_ok=True)
+        os.makedirs(task_solution_dir.encode("utf8"), exist_ok=True)
         logging.debug("Extract results from {} to {}".format(solution_file, task_solution_dir))
         shutil.unpack_archive(solution_file, task_solution_dir)
-
-        # Move content of output directory to root directory (this is done to correspond to
-        # scheduler/client/__init__.py, but this may be wrong and we need to keep output directory as is).
-        for file in glob.glob(os.path.join(task_solution_dir, "output/*")):
-            shutil.move(file, task_solution_dir)
-
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
-        # Simulate BenchExec behaviour when one input file is provided (see scheduler/client/__init__.py)
-        shutil.move(os.path.join(task_solution_dir, "output.log"), os.path.join(task_solution_dir, "cil.i.log"))
+        # Simulate BenchExec behaviour when one input file is provided.
+        os.makedirs(os.path.join(task_solution_dir, "output", "benchmarklogfiles").encode("utf8"))
+        shutil.move(os.path.join(task_solution_dir, "output.log"),
+                    os.path.join(task_solution_dir, "output", "benchmarklogfiles"))
         solution_description = os.path.join(task_solution_dir, "decision results.json")
         logging.debug("Get solution description from {}".format(solution_description))
         try:
@@ -258,7 +285,13 @@ class Scheduler(schedulers.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-        self.server.submit_solution(identifier, solution_description, solution_archive)
+
+        try:
+            self.server.submit_solution(identifier, solution_description, solution_archive)
+        except Exception as err:
+            error_msg = "Cannot submit silution results of task {}: {}".format(identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
 
         if "keep working directory" not in self.conf["scheduler"] or \
                 not self.conf["scheduler"]["keep working directory"]:
@@ -271,26 +304,33 @@ class Scheduler(schedulers.SchedulerExchange):
     def process_job_result(self, identifier, result):
         """
         Process result and send results to the server.
+
         :param identifier:
         :return: Status of the task after solution: FINISHED or ERROR.
         """
         # Cannot be called
         pass
 
-    def cancel_task(self, identifier):
+    def cancel_task(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         logging.debug("Cancel task {}".format(identifier))
         super(Scheduler, self).cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 
-    def cancel_job(self, identifier):
+    def cancel_job(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         # Cannot be called
         pass
@@ -314,6 +354,7 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         Generate dictionary with verification tools available and
         push it to the verification gate.
+
         :return: Dictionary with available verification tools.
         """
         # TODO: Implement proper revisions sending

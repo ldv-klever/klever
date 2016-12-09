@@ -1,11 +1,12 @@
 {% extends 'jobs/base.html' %}
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Start decision of job' %}{% endblock %}
 
 {% block jobs_head_block %}
-    <script src="/static/jobs/js/startjob.js"></script>
-    <link href="/static/jobs/css/start-job.css" rel="stylesheet">
+    <script src="{% static 'jobs/js/startjob.js' %}"></script>
+    <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -237,7 +238,17 @@
                 <br><br>
                 <div class="ui toggle checkbox">
                     <input id="ignore_core_checkbox" type="checkbox"{% if data.default.4.4 %} checked{% endif %}>
-                    <label for="ignore_core_checkbox">{% trans 'Ignore another instances of Klever Core' %}</label>
+                    <label for="ignore_core_checkbox">{% trans 'Ignore other instances of Klever Core' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <input id="ignore_failed_sub_jobs_checkbox" type="checkbox"{% if data.default.4.5 %} checked{% endif %}>
+                    <label for="ignore_failed_sub_jobs_checkbox">{% trans 'Ignore failed sub-jobs' %}</label>
+                </div>
+                <br><br>
+                <div class="ui toggle checkbox">
+                    <label for="is_job_light">{% trans 'Lightweight results' %}<i id="job_light_popup" class="ui help blue icon" data-content="{% trans 'Without safes and most of components' %}" data-variation="very wide"></i></label>
+                    <input id="is_job_light" type="checkbox"{% if data.default.4.6 %} checked{% endif %}>
                 </div>
             </div>
         </div>

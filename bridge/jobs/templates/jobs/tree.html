@@ -1,10 +1,11 @@
 {% extends 'jobs/base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Jobs Tree' %}{% endblock %}
 
-{% block jobs_head_block %}<script src="/static/jobs/js/jobtree.js"></script>{% endblock %}
+{% block jobs_head_block %}<script src="{% static 'jobs/js/jobtree.js' %}"></script>{% endblock %}
 
 {% block body_block %}
     <div id="jobstree-first-big-part" class="ui form violet segment" style="display: none">
@@ -105,17 +106,21 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__name">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="six wide column field">
-                                            <label for="filter_type__name"></label>
-                                            <select id="filter_type__name" class="ui dropdown">
-                                                <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                                                <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                                                <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="eight wide column field">
-                                            <label for="filter_value__name"></label>
-                                            <input id="filter_value__name" type="text" value="{{ fil.value }}">
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__name"></label>
+                                                    <select id="filter_type__name" class="ui dropdown">
+                                                        <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                                                        <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value__name"></label>
+                                                    <input id="filter_value__name" type="text" value="{{ fil.value }}" style="min-width: 300px;">
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__name" class="ui icon red basic button">
@@ -152,28 +157,29 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__change_date">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="four wide column">
-                                            <label for="filter_type__change_date"></label>
-                                            <select id="filter_type__change_date" class="ui dropdown">
-                                                <option value="older"{% if fil.type == 'older' %} selected{% endif %}>{% trans 'older' %}</option>
-                                                <option value="younger"{% if fil.type == 'younger' %} selected{% endif %}>{% trans 'younger' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="two wide column center aligned">
-                                            <h4>{% trans 'than' %}</h4>
-                                        </div>
-                                        <div class="three wide column">
-                                            <label for="filter_value_1__change_date"></label>
-                                            <input id="filter_value_1__change_date" type="number" min="0" value="{{ fil.value.valval }}">
-                                        </div>
-                                        <div class="five wide column">
-                                            <label for="filter_value_0__change_date"></label>
-                                            <select id="filter_value_0__change_date" class="ui dropdown">
-                                                <option value="minutes"{% if fil.value.valtype == 'minutes' %} selected{% endif %}>{% trans 'minutes' %}</option>
-                                                <option value="hours"{% if fil.value.valtype == 'hours' %} selected{% endif %}>{% trans 'hours' %}</option>
-                                                <option value="days"{% if fil.value.valtype == 'days' %} selected{% endif %}>{% trans 'days' %}</option>
-                                                <option value="weeks"{% if fil.value.valtype == 'weeks' %} selected{% endif %}>{% trans 'weeks' %}</option>
-                                            </select>
+                                        <div class="fourteen wide column">
+                                            <div class="inline fields">
+                                                <div class="field">
+                                                    <label for="filter_type__change_date">&nbsp;</label>
+                                                    <select id="filter_type__change_date" class="ui dropdown">
+                                                        <option value="older"{% if fil.type == 'older' %} selected{% endif %}>{% trans 'older' %}</option>
+                                                        <option value="younger"{% if fil.type == 'younger' %} selected{% endif %}>{% trans 'younger' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="inline field">
+                                                    <label for="filter_value_1__change_date">{% trans 'than' %}</label>
+                                                    <input id="filter_value_1__change_date" type="number" min="0" value="{{ fil.value.valval }}">
+                                                </div>
+                                                <div class="inline field">
+                                                    <label for="filter_value_0__change_date">&nbsp;</label>
+                                                    <select id="filter_value_0__change_date" class="ui dropdown">
+                                                        <option value="minutes"{% if fil.value.valtype == 'minutes' %} selected{% endif %}>{% trans 'minutes' %}</option>
+                                                        <option value="hours"{% if fil.value.valtype == 'hours' %} selected{% endif %}>{% trans 'hours' %}</option>
+                                                        <option value="days"{% if fil.value.valtype == 'days' %} selected{% endif %}>{% trans 'days' %}</option>
+                                                        <option value="weeks"{% if fil.value.valtype == 'weeks' %} selected{% endif %}>{% trans 'weeks' %}</option>
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__change_date" class="ui icon red basic button">
@@ -211,17 +217,21 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__resource_component">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="six wide column">
-                                            <label for="filter_type__resource_component"></label>
-                                            <select id="filter_type__resource_component" class="ui dropdown">
-                                                <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                                                <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                                                <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="eight wide column">
-                                            <label for="filter_value__resource_component"></label>
-                                            <input id="filter_value__resource_component" type="text" value="{{ fil.value }}">
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__resource_component"></label>
+                                                    <select id="filter_type__resource_component" class="ui dropdown">
+                                                        <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                                                        <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value__resource_component"></label>
+                                                    <input id="filter_value__resource_component" type="text" value="{{ fil.value }}">
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__resource_component" class="ui icon red basic button">
@@ -236,17 +246,21 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__problem_component">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="six wide column">
-                                            <label for="filter_type__problem_component"></label>
-                                            <select id="filter_type__problem_component" class="ui dropdown">
-                                                <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                                                <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                                                <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="eight wide column">
-                                            <label for="filter_value__problem_component"></label>
-                                            <input id="filter_value__problem_component" type="text" value="{{ fil.value }}">
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__problem_component"></label>
+                                                    <select id="filter_type__problem_component" class="ui dropdown">
+                                                        <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                                                        <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value__problem_component"></label>
+                                                    <input id="filter_value__problem_component" type="text" value="{{ fil.value }}">
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__problem_component" class="ui icon red basic button">
@@ -261,17 +275,21 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__problem_problem">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="six wide column">
-                                            <label for="filter_type__problem_problem"></label>
-                                            <select id="filter_type__problem_problem" class="ui dropdown">
-                                                <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                                                <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                                                <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="eight wide column">
-                                            <label for="filter_value__problem_problem"></label>
-                                            <input id="filter_value__problem_problem" type="text" value="{{ fil.value }}">
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__problem_problem"></label>
+                                                    <select id="filter_type__problem_problem" class="ui dropdown">
+                                                        <option value="iexact"{% if fil.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="istartswith"{% if fil.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                                                        <option value="icontains"{% if fil.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value__problem_problem"></label>
+                                                    <input id="filter_value__problem_problem" type="text" value="{{ fil.value }}">
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__problem_problem" class="ui icon red basic button">
@@ -305,24 +323,69 @@
                                 <div class="ui purple segment">
                                     <h4 class="header" id="filter_title__priority">{{ fil.name_title }}</h4>
                                     <div class="ui grid">
-                                        <div class="seven wide column">
-                                            <label for="filter_type__priority"></label>
-                                            <select id="filter_type__priority" class="ui dropdown">
-                                                <option value="le"{% if fil.type == 'le' %} selected{% endif %}>{% trans 'not greater than' %}</option>
-                                                <option value="e"{% if fil.type == 'e' %} selected{% endif %}>{% trans 'is' %}</option>
-                                                <option value="me"{% if fil.type == 'me' %} selected{% endif %}>{% trans 'not less than' %}</option>
-                                            </select>
-                                        </div>
-                                        <div class="seven wide column">
-                                            <label for="filter_value__priority"></label>
-                                            <select id="filter_value__priority" class="ui dropdown">
-                                                {% for pr in priorities %}
-                                                    <option value="{{ pr.0 }}"{% if fil.value == pr.0 %} selected{% endif %}>{{ pr.1 }}</option>
-                                                {% endfor %}
-                                            </select>
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__priority"></label>
+                                                    <select id="filter_type__priority" class="ui dropdown">
+                                                        <option value="le"{% if fil.type == 'le' %} selected{% endif %}>{% trans 'not greater than' %}</option>
+                                                        <option value="e"{% if fil.type == 'e' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="me"{% if fil.type == 'me' %} selected{% endif %}>{% trans 'not less than' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value__priority"></label>
+                                                    <select id="filter_value__priority" class="ui dropdown">
+                                                        {% for pr in priorities %}
+                                                            <option value="{{ pr.0 }}"{% if fil.value == pr.0 %} selected{% endif %}>{{ pr.1 }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
                                         </div>
                                         <div class="two wide column right aligned">
                                             <button id="remove__filter__priority" class="ui icon red basic button">
+                                                <i class="remove icon"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% elif fil.name == 'finish_date' %}
+                            <div id="filter_form__finish_date">
+                                <div class="ui purple segment">
+                                    <h4 class="header" id="filter_title__finish_date">{{ fil.name_title }}</h4>
+                                    <div class="ui grid">
+                                        <div class="fourteen wide column">
+                                            <div class="fields">
+                                                <div class="field">
+                                                    <label for="filter_type__finish_date"></label>
+                                                    <select id="filter_type__finish_date" class="ui dropdown">
+                                                        <option value="lte"{% if fil.type == 'lte' %} selected{% endif %}>{% trans 'not later' %}</option>
+                                                        <option value="exact"{% if fil.type == 'exact' %} selected{% endif %}>{% trans 'is' %}</option>
+                                                        <option value="gte"{% if fil.type == 'gte' %} selected{% endif %}>{% trans 'not before' %}</option>
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value_0__finish_date"></label>
+                                                    <select id="filter_value_0__finish_date" class="ui dropdown">
+                                                        {% for m in months %}
+                                                            <option value="{{ m.0 }}"{% if fil.value.val_0 == m.0 %} selected{% endif %}>{{ m.1 }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="field">
+                                                    <label for="filter_value_1__finish_date"></label>
+                                                    <select id="filter_value_1__finish_date" class="ui dropdown">
+                                                        {% for y in years %}
+                                                            <option value="{{ y }}"{% if fil.value.val_1 == y %} selected{% endif %}>{{ y }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="two wide column right aligned">
+                                            <button id="remove__filter__finish_date" class="ui icon red basic button">
                                                 <i class="remove icon"></i>
                                             </button>
                                         </div>

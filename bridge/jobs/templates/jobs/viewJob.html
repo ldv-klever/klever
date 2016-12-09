@@ -4,8 +4,9 @@
 
 {% load humanize %}
 {% load tz %}
+{% load staticfiles %}
 
-{% block jobs_head_block %}<script src="/static/jobs/js/editjob.js"></script>{% endblock %}
+{% block jobs_head_block %}<script src="{% static 'jobs/js/editjob.js' %}"></script>{% endblock %}
 
 {% block title %}{% trans 'Job' %}{% endblock %}
 
@@ -26,11 +27,14 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
-                <button id="show_fast_job_start_popup" data-variation="very wide" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
+                <button id="show_fast_job_start_popup" data-variation="very wide" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
                 </div>
-
+                <button id="show_last_job_start_popup" data-variation="very wide" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="history icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Start decision with last configuration' %}</p>
+                </div>
                 <button id="stop_job_btn" class="ui orange button normal-popup{% if not can_stop %} disabled{% endif %}"><i class="stop icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Stop decision' %}</p>
@@ -47,12 +51,16 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Delete' %}</p>
                 </div>
+                <button id="collapse_reports_modal_show" class="ui orange button normal-popup{% if not can_collapse %} disabled{% endif %}"><i class="archive icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Collapse reports' %}</p>
+                </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
                 <thead>
                     <tr>
                         <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ job.name }}</span>
+                            <span class="ui olive header">{{ job.name }}{% if job.light %} ({% trans 'light' %}){% endif %}</span>
                         </th>
                     </tr>
                 </thead>
@@ -114,15 +122,13 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            <span id="last_change_date">
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
-                            </span>
+                            {% if user.extended.data_format == 'hum' %}
+                                {{ last_version.change_date|naturaltime }}
+                            {% else %}
+                                {% timezone user.extended.timezone %}
+                                    {{ last_version.change_date }}
+                                {% endtimezone %}
+                            {% endif %}
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}
@@ -131,37 +137,49 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% if job.solvingprogress.start_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Start decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.start_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.start_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if job.solvingprogress.finish_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Finish decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.finish_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.finish_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata.report %}
-                                <a id="job_status_link" class="
-                                {% if job.status == '0' %}
-                                    status-link status0-link
-                                {% elif job.status == '1' %}
-                                    status-link status1-link
-                                {% elif job.status == '2' %}
-                                    status-link status2-link
-                                {% elif job.status == '3' %}
-                                    status-link status3-link
-                                {% elif job.status == '4' %}
-                                    status-link status4-link
-                                {% elif job.status == '5' %}
-                                    status-link status5-link
-                                {% elif job.status == '6' %}
-                                    status-link status6-link
-                                {% elif job.status == '7' %}
-                                    status-link status7-link
-                                {% endif %}
-                                " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
+                                <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
+                            <input id="job_status_value" type="hidden" value="{{ job.status }}">
                         </td>
                     </tr>
                 </tbody>
             </table>
             <input type="hidden" id="job_pk" value="{{ job.pk }}">
+            <input type="hidden" id="job_identifier" value="{{ job.identifier }}">
             {% if job.solvingprogress.error %}
                 <div id="job_status_popup" class="ui inverted popup wide hidden">
                     <div class="ui red header">{{ job.solvingprogress.error }}</div>
@@ -192,6 +210,23 @@
                 <div class="ui center aligned grid">
                     <button id="cancel_remove_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <button id="remove_job_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                </div>
+            </div>
+        </div>
+        <div id="last_start_job_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_last_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="lastconf_job_start" type="button" class="ui red basic inverted button">{% trans 'Start' %}</button>
                 </div>
             </div>
         </div>
@@ -226,6 +261,23 @@
                 <div class="ui center aligned grid">
                     <button id="cancel_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <a href="{% url 'jobs:prepare_run' job.pk %}" class="ui red basic inverted button">{% trans 'Start' %}</a>
+                </div>
+            </div>
+        </div>
+        <div id="collapse_reports_modal" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'There is no reverse of this action' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_collapse_reports" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="collapse_reports_btn" class="ui orange basic inverted button">{% trans 'Collapse' %}</button>
                 </div>
             </div>
         </div>

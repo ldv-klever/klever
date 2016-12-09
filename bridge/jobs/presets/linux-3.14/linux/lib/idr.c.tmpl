@@ -1,0 +1,95 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <verifier/common.h>
+#include <linux/ldv/common.h>
+
+enum
+{
+	LDV_NOT_INITIALIZED,
+	LDV_INITIALIZED,
+	LDV_CHANGED,
+	LDV_DESTROYED
+};
+
+// for arg_sign in idr_arg_signs
+
+static int ldv_idr{{ arg_sign.id }} = LDV_NOT_INITIALIZED;
+
+/* MODEL_FUNC_DEF Init IDR. */
+void ldv_idr_init{{ arg_sign.id }}(void)
+{
+	/* ASSERT If IDR not initialized it can be initialized */
+	ldv_assert("linux:lib:idr::double init", ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED);
+	/* CHANGE_STATE Initialize state{{ arg_sign.id }} */
+	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
+}
+
+/* MODEL_FUNC_DEF Alloc new object in IDR. */
+void ldv_idr_alloc{{ arg_sign.id }}(void)
+{
+	/* ASSERT IDR should be initialized */
+	ldv_assert("linux:lib:idr::not initialized", ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED);
+	/* ASSERT IDR should not be destroyed */
+	ldv_assert("linux:lib:idr::destroyed before usage", ldv_idr{{ arg_sign.id }} != LDV_DESTROYED);
+	/* CHANGE_STATE Alloc in state{{ arg_sign.id }} */
+	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
+}
+
+/* MODEL_FUNC_DEF Find object in IDR. */
+void ldv_idr_find{{ arg_sign.id }}(void)
+{
+	/* ASSERT IDR should be initialized */
+	ldv_assert("linux:lib:idr::not initialized", ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED);
+	/* ASSERT IDR should not be destroyed */
+	ldv_assert("linux:lib:idr::destroyed before usage", ldv_idr{{ arg_sign.id }} != LDV_DESTROYED);
+	/* CHANGE_STATE Find in state{{ arg_sign.id }} */
+	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
+}
+
+/* MODEL_FUNC_DEF Remove object from IDR. */
+void ldv_idr_remove{{ arg_sign.id }}(void)
+{
+	/* ASSERT IDR should be initialized */
+	ldv_assert("linux:lib:idr::not initialized", ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED);
+	/* ASSERT IDR should not be destroyed */
+	ldv_assert("linux:lib:idr::destroyed before usage", ldv_idr{{ arg_sign.id }} != LDV_DESTROYED);
+	/* CHANGE_STATE Remove from state{{ arg_sign.id }} */
+	ldv_idr{{ arg_sign.id }} = LDV_CHANGED;
+}
+
+/* MODEL_FUNC_DEF Destroy IDR. */
+void ldv_idr_destroy{{ arg_sign.id }}(void)
+{
+	/* ASSERT IDR should be initialized */
+	ldv_assert("linux:lib:idr::not initialized", ldv_idr{{ arg_sign.id }} != LDV_NOT_INITIALIZED);
+	/* ASSERT IDR should not be destroyed */
+	ldv_assert("linux:lib:idr::destroyed before usage", ldv_idr{{ arg_sign.id }} != LDV_DESTROYED);
+	/* CHANGE_STATE Destroy state{{ arg_sign.id }} */
+	ldv_idr{{ arg_sign.id }} = LDV_DESTROYED;
+}
+
+// endfor
+
+/* MODEL_FUNC_DEF Check that all module reference counters have their end values at the end */
+void ldv_check_final_state(void)
+{
+	// for arg_sign in idr_arg_signs
+	/* ASSERT Check if {{ arg_sign.text }} is destroyed or not changed */
+	ldv_assert("linux:lib:idr::more at exit", ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED || ldv_idr{{ arg_sign.id }} == LDV_DESTROYED);
+	// endfor
+}

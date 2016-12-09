@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import re
 import json
@@ -46,8 +63,8 @@ UNSAFES = [
 # Dictionary of titles of static columns
 TITLES = {
     'name': _('Title'),
-    'author': _('Author'),
-    'date': _('Last change'),
+    'author': _('Last change author'),
+    'date': _('Last change date'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
@@ -155,6 +172,11 @@ class JobAccess(object):
 
     def can_download(self):
         return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
+
+    def can_collapse(self):
+        if self.job is None:
+            return False
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) and not self.job.light
 
     def __get_prop(self, user):
         if self.job is not None:
@@ -757,10 +779,13 @@ class GetConfiguration(object):
                 formatters[f['name']] = f['value']
             loggers = {}
             for l in filedata['logging']['loggers']:
-                loggers[l['name']] = {
-                    'formatter': formatters[l['formatter']],
-                    'level': l['level']
-                }
+                # TODO: what to do with other loggers?
+                if l['name'] == 'default':
+                    for l_h in l['handlers']:
+                        loggers[l_h['name']] = {
+                            'formatter': formatters[l_h['formatter']],
+                            'level': l_h['level']
+                        }
             logging = [
                 loggers['console']['level'],
                 loggers['console']['formatter'],
@@ -792,7 +817,9 @@ class GetConfiguration(object):
                     filedata['upload input files of static verifiers'],
                     filedata['upload other intermediate files'],
                     filedata['allow local source directories use'],
-                    filedata['ignore another instances']
+                    filedata['ignore other instances'],
+                    filedata['ignore failed sub-jobs'],
+                    filedata['lightweightness']
                 ]
             ]
         except Exception as e:
@@ -835,7 +862,7 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3], list) or len(self.configuration[3]) != 4:
             return False
-        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 5:
+        if not isinstance(self.configuration[4], list) or len(self.configuration[4]) != 7:
             return False
         if self.configuration[0][0] not in list(x[0] for x in PRIORITY):
             return False

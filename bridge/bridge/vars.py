@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
@@ -23,7 +40,8 @@ ERRORS = {
     509: _("The tag was not found"),
     604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark")
+    602: _("You don't have an access to delete this mark"),
+    704: _("The attribute was not found")
 }
 
 LANGUAGES = (
@@ -41,12 +59,13 @@ USER_ROLES = (
 
 JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
-    ('1', _('Validation on Linux kernel modules')),
-    ('2', _('Verification of commits in Linux kernel Git repositories')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
-    ('4', _('Verification of C programs')),
-    ('5', _('Validation on C programs')),
 )
+
+ATTR_STATISTIC = {
+    '0': ['Rule specification'],
+    '3': ['Rule specification']
+}
 
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
@@ -76,7 +95,7 @@ JOB_STATUS = (
 
 # Default view of the table
 JOB_DEF_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem', 'safe', 'resource'],
+    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
     # Available orders: ['date', 'status', 'name', 'author']
     'orders': ['-date'],
 
@@ -89,6 +108,7 @@ JOB_DEF_VIEW = {
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)
     # format [is] (<number>)
+    # finish_date [is, older, younger] (<month:year>)
     'filters': {
         # 'name': {
         #     'type': 'istartswith',
@@ -114,10 +134,14 @@ JOB_DEF_VIEW = {
         #     'type': 'is',
         #     'value': '1',
         # },
+        # 'finish_date': {
+        #     'type': 'is',
+        #     'value': '1:2016',
+        # },
     },
 }
 
-VIEW_TYPES = {
+VIEW_TYPES = (
     ('1', 'job tree'),
     ('2', 'job view'),
     ('3', 'component children list'),
@@ -127,7 +151,7 @@ VIEW_TYPES = {
     ('7', 'unsafe marks'),
     ('8', 'safe marks'),
     ('9', 'unknown marks')
-}
+)
 
 MARK_TYPE = (
     ('0', _('Created')),
@@ -174,7 +198,8 @@ SAFE_VERDICTS = (
 
 VIEWJOB_DEF_VIEW = {
     # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'safes_attr_stat',
+             'unsafes_attr_stat', 'unknowns_attr_stat'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)
@@ -237,6 +262,7 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
+    'columns': ['marks_number', 'report_verdict', 'tags'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -248,6 +274,7 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
+    'columns': ['marks_number', 'report_verdict', 'tags'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -278,7 +305,7 @@ UNKNOWN_LIST_DEF_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_SAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {
@@ -301,7 +328,7 @@ MARKS_SAFE_VIEW = {
 # status [is, isnot] (<status id>)
 # author [is] (<author id>)
 MARKS_UNSAFE_VIEW = {
-    'columns': ['num_of_links', 'verdict', 'status', 'author', 'format'],
+    'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # 'order': 'num_of_links',
     'filters': {
         # 'verdict': {
@@ -379,20 +406,12 @@ TASK_STATUS = (
 MARKS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Rule specification', 'Verification object'],
     JOB_CLASSES[1][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[2][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[3][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[4][0]: ['Rule specification', 'Verification object'],
-    JOB_CLASSES[5][0]: ['Rule specification', 'Verification object'],
 }
 
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[2][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[3][0]: ['Commit', 'Verification object', 'Rule specification'],
-    JOB_CLASSES[4][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[5][0]: ['Verification object', 'Rule specification']
+    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.
@@ -420,3 +439,5 @@ START_JOB_DEFAULT_MODES = {
     'development': _('Development'),
     'paranoid development': _('Paranoid development')
 }
+
+REPORT_FILES_ARCHIVE = 'data.tar.gz'

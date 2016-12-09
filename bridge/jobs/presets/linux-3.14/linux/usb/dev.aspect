@@ -1,0 +1,45 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+#include <verifier/common.h>
+
+struct usb_device;
+
+struct usb_device *ldv_usb_get_dev(struct usb_device *dev);
+void ldv_usb_put_dev(struct usb_device *dev);
+void ldv_check_return_value_probe(int retval);
+}
+
+around: call(struct usb_device *usb_get_dev(..))
+{
+	/* ASPECT_FUNC_CALL Increment USB device reference counter */
+	return ldv_usb_get_dev($arg1);
+}
+
+around: call(void usb_put_dev(..))
+{
+	/* ASPECT_FUNC_CALL Check that USB device reference counter was incremented and decrement it */
+	ldv_usb_put_dev($arg1);
+}
+
+before: call(int ldv_post_probe(..))
+{
+	/* ASPECT_FUNC_CALL Check that probe() keeps model in proper state */
+	ldv_check_return_value_probe($arg1);
+}

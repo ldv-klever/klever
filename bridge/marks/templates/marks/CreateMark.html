@@ -77,7 +77,7 @@
                         </div>
                     </div>
                 </div>
-                {% include 'marks/Tags.html' %}
+                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
@@ -141,7 +141,7 @@
                 </div>
             </div>
             <div class="seven wide column">
-                {% include 'marks/Tags.html' %}
+                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 <br>
                 <div class="ui styled accordion fluid">
                     <div class="title">
@@ -235,7 +235,7 @@
                 </div>
             </div>
             <div class="eight wide column">
-                <div class="ui red segment filecontent" style="height:400px;">{{ report.problem_description.file.read }}</div>
+                <div class="ui red segment filecontent" style="height:400px;">{{ problem_description }}</div>
             </div>
         </div>
         <div class="ui divider"></div>

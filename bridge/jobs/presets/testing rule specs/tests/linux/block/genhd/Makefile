@@ -1,0 +1,1 @@
+obj-m += safe.o double-alloc.o use-before-alloc.o delete-before-add.o free-before-alloc.o more-initial.o

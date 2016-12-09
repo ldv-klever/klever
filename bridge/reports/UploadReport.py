@@ -1,15 +1,32 @@
-import os
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
-import tarfile
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.timezone import now
 from bridge.utils import logger, file_get_or_create
-from reports.models import *
-from reports.utils import save_attrs
+from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC
 from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
+from reports.utils import save_attrs
+from reports.models import *
+from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
 
 class UploadReport(object):
@@ -19,67 +36,57 @@ class UploadReport(object):
         self.archive = archive
         self.data = {}
         self.ordered_attrs = []
-        self.error = self.__check_data(data)
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.parent = self.__get_parent()
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.root = self.__get_root_report()
-        if self.error is not None:
-            self.__job_failed(self.error)
-            return
-        self.__upload()
-        if self.error is not None:
-            self.__job_failed(self.error)
+        self.error = None
+        try:
+            self.__check_data(data)
+            self.parent = self.__get_parent()
+            self.root = self.__get_root_report()
+            self.__upload()
+        except Exception as e:
+            logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
+            self.__job_failed(str(e))
+            self.error = str(e)
 
     def __job_failed(self, error=None):
         if 'id' in self.data:
-            error = 'Report with id "%s" has led to fail. ' + error
+            error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + str(error)
         KleverCoreFinishDecision(self.job, error)
 
     def __check_data(self, data):
         if not isinstance(data, dict):
-            return 'Data is not a dictionary'
+            raise ValueError('report data is not a dictionary')
         if 'type' not in data or 'id' not in data or not isinstance(data['id'], str) or len(data['id']) == 0 \
                 or not data['id'].startswith('/'):
-            return 'Type and id are required or have wrong format'
+            raise ValueError('type and id are required or have wrong format')
         if 'parent id' in data and not isinstance(data['parent id'], str):
-            return 'Parent id has wrong format'
+            raise ValueError('parent id has wrong format')
 
         if 'resources' in data:
             if not isinstance(data['resources'], dict) \
                     or any(x not in data['resources'] for x in ['wall time', 'CPU time', 'memory size']):
-                return 'Resources has wrong format: %s' % json.dumps(data['resources'])
+                raise ValueError('resources have wrong format')
 
         self.data = {'type': data['type'], 'id': data['id']}
         if 'comp' in data:
-            err = self.__check_comp(data['comp'])
-            if err is not None:
-                return err
+            self.__check_comp(data['comp'])
         if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
-            return 'Component name is too long (max 15 symbols expected)'
+            raise ValueError('component name is too long (max 15 symbols expected)')
         if 'data' in data:
             try:
                 json.loads(data['data'])
-            except Exception as e:
-                logger.exception("Json parsing error: %s" % e, stack_info=True)
-                return "Component data must be represented in JSON"
+            except ValueError:
+                raise ValueError("component data must be represented in JSON")
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                result = KleverCoreStartDecision(self.job)
-                if result.error is not None:
-                    return result.error
+                KleverCoreStartDecision(self.job)
                 try:
                     self.data.update({
                         'attrs': data['attrs'],
                         'comp': data['comp'],
                     })
                 except KeyError as e:
-                    return "Property '%s' is required." % e
+                    raise ValueError("property '%s' is required." % e)
             else:
                 try:
                     self.data.update({
@@ -87,41 +94,43 @@ class UploadReport(object):
                         'name': data['name']
                     })
                 except KeyError as e:
-                    return "Property '%s' is required." % e
+                    raise ValueError("property '%s' is required." % e)
                 if 'attrs' in data:
                     self.data['attrs'] = data['attrs']
                 if 'comp' in data:
                     self.data['comp'] = data['comp']
         elif data['type'] == 'finish':
             try:
-                self.data.update({
-                    'log': data['log'],
-                    'resources': data['resources'],
-                })
+                self.data['resources'] = data['resources']
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'data' in data:
                 self.data.update({'data': data['data']})
+            if 'log' in data:
+                self.data['log'] = data['log']
         elif data['type'] == 'attrs':
             try:
                 self.data['attrs'] = data['attrs']
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'verification':
             try:
                 self.data.update({
                     'parent id': data['parent id'],
                     'attrs': data['attrs'],
                     'name': data['name'],
-                    'resources': data['resources'],
-                    'log': data['log'],
+                    'resources': data['resources']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'data' in data:
                 self.data.update({'data': data['data']})
             if 'comp' in data:
                 self.data['comp'] = data['comp']
+            if 'log' in data:
+                self.data['log'] = data['log']
+        elif data['type'] == 'verification finish':
+            pass
         elif data['type'] == 'safe':
             try:
                 self.data.update({
@@ -130,7 +139,7 @@ class UploadReport(object):
                     'attrs': data['attrs'],
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
@@ -138,7 +147,7 @@ class UploadReport(object):
                     'problem desc': data['problem desc']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
             if 'attrs' in data:
                 self.data['attrs'] = data['attrs']
         elif data['type'] == 'unsafe':
@@ -149,37 +158,34 @@ class UploadReport(object):
                     'attrs': data['attrs'],
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'data':
             try:
                 self.data.update({
                     'data': data['data']
                 })
             except KeyError as e:
-                return "Property '%s' is required." % e
+                raise ValueError("property '%s' is required." % e)
         else:
-            return "Report type is not supported"
-        return None
+            raise ValueError("report type is not supported")
 
     def __check_comp(self, descr):
         self.ccc = 0
         if not isinstance(descr, list):
-            return 'Wrong computer description format'
+            raise ValueError('wrong computer description format')
         for d in descr:
             if not isinstance(d, dict):
-                return 'Wrong computer description format'
+                raise ValueError('wrong computer description format')
             if len(d) != 1:
-                return 'Wrong computer description format'
+                raise ValueError('wrong computer description format')
             if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
-                return 'Wrong computer description format'
-        return None
+                raise ValueError('wrong computer description format')
 
     def __get_root_report(self):
         try:
-            return self.job.reportroot
+            return ReportRoot.objects.get(job=self.job)
         except ObjectDoesNotExist:
-            self.error = "Can't find report root"
-            return None
+            raise ValueError("the job is corrupted: can't find report root")
 
     def __get_parent(self):
         if 'parent id' in self.data:
@@ -189,7 +195,7 @@ class UploadReport(object):
                     identifier=self.job.identifier + self.data['parent id']
                 )
             except ObjectDoesNotExist:
-                self.error = 'Report parent was not found'
+                raise ValueError('report parent was not found')
         elif self.data['id'] == '/':
             return None
         else:
@@ -197,8 +203,7 @@ class UploadReport(object):
                 curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(pk=curr_report.parent_id)
             except ObjectDoesNotExist:
-                self.error = 'Report parent was not found'
-        return None
+                raise ValueError('report parent was not found')
 
     def __upload(self):
         actions = {
@@ -206,6 +211,7 @@ class UploadReport(object):
             'finish': self.__finish_report_component,
             'attrs': self.__update_attrs,
             'verification': self.__create_report_component,
+            'verification finish': self.__finish_verification_report,
             'unsafe': self.__create_report_unsafe,
             'safe': self.__create_report_safe,
             'unknown': self.__create_report_unknown,
@@ -213,20 +219,20 @@ class UploadReport(object):
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if self.error is None:
-            if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
-                    and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-                self.__job_failed("Attributes for the component report with id '%s' are not unique" % self.data['id'])
+        if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
+                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
+            raise ValueError("attributes are not unique")
 
     def __create_report_component(self, identifier):
         try:
             ReportComponent.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report_datafile = None
             if 'data' in self.data:
-                report_datafile = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+                if self.job.light and self.data['id'] == '/' or not self.job.light:
+                    report_datafile = file_get_or_create(
+                        BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report = ReportComponent(
                 identifier=identifier, parent=self.parent, root=self.root, start_date=now(), data=report_datafile,
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
@@ -236,7 +242,9 @@ class UploadReport(object):
             report.finish_date = report.start_date
 
         if 'comp' in self.data:
-            report.computer = Computer.objects.get_or_create(description=json.dumps(self.data['comp']))[0]
+            report.computer = Computer.objects.get_or_create(description=json.dumps(self.data['comp'],
+                                                                                    ensure_ascii=False, sort_keys=True,
+                                                                                    indent=4))[0]
         else:
             report.computer = self.parent.computer
 
@@ -244,119 +252,124 @@ class UploadReport(object):
             report.cpu_time = int(self.data['resources']['CPU time'])
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
-        uf = None
-        if 'log' in self.data:
-            try:
-                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
-            except Exception as e:
-                logger.exception("Files uploading failed: %s" % e, stack_info=True)
-                self.error = 'Files uploading failed'
-                return
-            if uf.log is None:
-                self.error = 'The report log was not found in archive'
-                return
-            report.log = uf.log
+
+        if self.archive is not None:
+            if not self.job.light or self.data['type'] == 'verification' or self.data['id'] == '/':
+                report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+                report.log = self.data.get('log')
 
         report.save()
-        if uf is not None:
-            for src_f in uf.other_files:
-                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
 
         if 'resources' in self.data:
-            self.__update_parent_resources(report)
+            if self.job.light:
+                self.__update_light_resources(report)
+            else:
+                self.__update_parent_resources(report)
 
     def __update_attrs(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
+            raise ValueError('updated report does not exist')
 
     def __update_report_data(self, identifier):
+        if self.job.light and self.data['id'] != '/':
+            return
         try:
             report = ReportComponent.objects.get(identifier=identifier)
             report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
             report.save()
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
+            raise ValueError('updated report does not exist')
 
     def __finish_report_component(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
-            self.error = 'Updated report does not exist'
-            return
+            raise ValueError('updated report does not exist')
         if report.finish_date is not None:
-            self.error = 'The component is finished already (there was finish report earlier)'
+            raise ValueError('trying to finish the finished component')
 
         report.cpu_time = int(self.data['resources']['CPU time'])
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
-        uf = None
-        if 'log' in self.data:
-            try:
-                uf = UploadReportFiles(self.archive, log=self.data['log'], need_other=True)
-            except Exception as e:
-                logger.exception("Files uploading failed: %s" % e, stack_info=True)
-                self.error = 'Files uploading failed'
-                return
-            if uf.log is None:
-                self.error = 'The report log was not found in archive'
-                return
-            report.log = uf.log
+
+        if self.archive is not None:
+            if self.data['id'] == '/' or not self.job.light:
+                report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+                report.log = self.data.get('log')
+
         if 'data' in self.data:
-            report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
+            if not (self.job.light and self.data['id'] != '/'):
+                report.data = file_get_or_create(BytesIO(self.data['data'].encode('utf8')), "report-data.json")[0]
         report.finish_date = now()
         report.save()
-        if uf is not None:
-            for src_f in uf.other_files:
-                ReportFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], report=report)
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
-        self.__update_parent_resources(report)
+        if self.job.light:
+            self.__update_light_resources(report)
+        else:
+            self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
             if len(ReportComponent.objects.filter(finish_date=None, root=self.root)) > 0:
-                self.__job_failed("There are unfinished reports")
-                return
+                raise ValueError('there are unfinished reports')
             KleverCoreFinishDecision(self.job)
+            if self.job.light:
+                self.__collapse_reports()
+        elif self.job.light and len(ReportComponent.objects.filter(parent=report)) == 0:
+            report.delete()
+
+    def __finish_verification_report(self, identifier):
+        if not self.job.light:
+            return
+        try:
+            report = ReportComponent.objects.get(identifier=identifier)
+        except ObjectDoesNotExist:
+            raise ValueError('verification report does not exist')
+        if len(ReportUnsafe.objects.filter(parent=report)) == 0:
+            report.delete()
 
     def __create_report_unknown(self, identifier):
+        if self.job.light:
+            self.__create_light_unknown_report(identifier)
+            return
         try:
             ReportUnknown.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportUnknown(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root,
-                component=self.parent.component
+                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
             )
 
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['problem desc'])
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The unknown report problem description was not found in the archive'
-            return
-        report.problem_description = uf.main_file
+        if self.archive is None:
+            raise ValueError('unknown report must contain archive with problem description')
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.problem_description = self.data['problem desc']
         report.save()
 
         self.__collect_attrs(report)
+        if 'attrs' in self.data:
+            self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
 
         parent = self.parent
         while parent is not None:
             verdict = Verdict.objects.get_or_create(report=parent)[0]
             verdict.unknown += 1
             verdict.save()
+
+            for a in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(
+                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                )[0]
+                attr_stat.unknowns += 1
+                attr_stat.save()
 
             comp_unknown = ComponentUnknown.objects.get_or_create(report=parent, component=report.component)[0]
             comp_unknown.number += 1
@@ -369,28 +382,66 @@ class UploadReport(object):
                 parent = None
         ConnectReportWithMarks(report)
 
-    def __create_report_safe(self, identifier):
+    def __create_light_unknown_report(self, identifier):
         try:
-            ReportSafe.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
+            ReportUnknown.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
-            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
+            report = ReportUnknown(
+                identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component
+            )
 
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['proof'])
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The safe report proof was not found in teh archive'
-            return
-        report.proof = uf.main_file
+        if self.archive is None:
+            raise ValueError('unknown report must contain archive with problem description')
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.problem_description = self.data['problem desc']
         report.save()
 
         self.__collect_attrs(report)
+        if 'attrs' in self.data:
+            self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
+
+        report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+        report.save()
+
+        verdict = Verdict.objects.get_or_create(report=report.parent)[0]
+        verdict.unknown += 1
+        verdict.save()
+
+        for a in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(
+                report=report.parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+            )[0]
+            attr_stat.unknowns += 1
+            attr_stat.save()
+
+        comp_unknown = ComponentUnknown.objects.get_or_create(report=report.parent, component=report.component)[0]
+        comp_unknown.number += 1
+        comp_unknown.save()
+        ReportComponentLeaf.objects.create(report=report.parent, unknown=report)
+        ConnectReportWithMarks(report)
+
+    def __create_report_safe(self, identifier):
+        if self.job.light:
+            self.__create_light_safe_report(identifier)
+            return
+        try:
+            ReportSafe.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
+        except ObjectDoesNotExist:
+            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
+
+        if self.archive is not None:
+            report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+            report.proof = self.data['proof']
+        report.save()
+        self.root.safes += 1
+        self.root.save()
+
+        self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
 
         parent = self.parent
         while parent is not None:
@@ -399,6 +450,13 @@ class UploadReport(object):
             verdict.safe_unassociated += 1
             verdict.save()
 
+            for a in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(
+                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                )[0]
+                attr_stat.safes += 1
+                attr_stat.save()
+
             ReportComponentLeaf.objects.create(report=parent, safe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
@@ -406,35 +464,48 @@ class UploadReport(object):
                 parent = None
         ConnectReportWithMarks(report)
 
-    def __create_report_unsafe(self, identifier):
-        try:
-            ReportUnsafe.objects.get(identifier=identifier)
-            self.error = 'The report with specified identifier already exists'
-            return
-        except ObjectDoesNotExist:
-            report = ReportUnsafe(
-                identifier=identifier,
-                parent=self.parent,
-                root=self.root
-            )
-
-        try:
-            uf = UploadReportFiles(self.archive, file_name=self.data['error trace'], need_other=True)
-        except Exception as e:
-            logger.exception("Files uploading failed: %s" % e, stack_info=True)
-            self.error = 'Files uploading failed'
-            return
-        if uf.main_file is None:
-            self.error = 'The unsafe error trace was not found in the archive'
-            return
-        report.error_trace = uf.main_file
-        report.save()
-
-        for src_f in uf.other_files:
-            ETVFiles.objects.get_or_create(file=src_f['file'], name=src_f['name'], unsafe=report)
+    def __create_light_safe_report(self, identifier):
+        report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root)
+        self.root.safes += 1
+        self.root.save()
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
+
+        parent = self.parent
+        while parent is not None:
+            for a in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(
+                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                )[0]
+                attr_stat.safes += 1
+                attr_stat.save()
+            try:
+                parent = ReportComponent.objects.get(pk=parent.parent_id)
+            except ObjectDoesNotExist:
+                parent = None
+        report.delete()
+
+    def __create_report_unsafe(self, identifier):
+        if self.job.light:
+            self.__create_light_unsafe_report(identifier)
+            return
+        try:
+            ReportUnsafe.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
+        except ObjectDoesNotExist:
+            report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
+
+        if self.archive is None:
+            raise ValueError('unsafe report must contain archive with error trace and source code files')
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.error_trace = self.data['error trace']
+        report.save()
+
+        self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
 
         parent = self.parent
         while parent is not None:
@@ -443,11 +514,65 @@ class UploadReport(object):
             verdict.unsafe_unassociated += 1
             verdict.save()
 
+            for a in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(
+                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                )[0]
+                attr_stat.unsafes += 1
+                attr_stat.save()
+
             ReportComponentLeaf.objects.create(report=parent, unsafe=report)
             try:
                 parent = ReportComponent.objects.get(pk=parent.parent_id)
             except ObjectDoesNotExist:
                 parent = None
+        ConnectReportWithMarks(report)
+
+    def __create_light_unsafe_report(self, identifier):
+        try:
+            ReportUnsafe.objects.get(identifier=identifier)
+            raise ValueError('the report with specified identifier already exists')
+        except ObjectDoesNotExist:
+            report = ReportUnsafe(identifier=identifier, parent=self.parent, root=self.root)
+
+        if self.archive is None:
+            raise ValueError('unsafe report must contain archive with error trace and source code files')
+        report.archive = file_get_or_create(self.archive, REPORT_FILES_ARCHIVE)[0]
+        report.error_trace = self.data['error trace']
+        report.save()
+
+        # Each verification report must have only one unsafe child
+        # In other cases unsafe reports will be without attributes
+        self.__collect_attrs(report)
+        self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        report_attrs = self.__get_attrs(report)
+
+        root_report = ReportComponent.objects.get(parent=None, root=self.root)
+        if self.parent.archive is None:
+            report.parent = root_report
+            report.save()
+        else:
+            self.parent.parent = root_report
+            self.parent.save()
+            verdict = Verdict.objects.get_or_create(report=self.parent)[0]
+            verdict.unsafe += 1
+            verdict.unsafe_unassociated += 1
+            verdict.save()
+            ReportComponentLeaf.objects.create(report=self.parent, unsafe=report)
+
+        verdict = Verdict.objects.get_or_create(report=root_report)[0]
+        verdict.unsafe += 1
+        verdict.unsafe_unassociated += 1
+        verdict.save()
+
+        for a in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(
+                report=root_report, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+            )[0]
+            attr_stat.unsafes += 1
+            attr_stat.save()
+
+        ReportComponentLeaf.objects.create(report=root_report, unsafe=report)
         ConnectReportWithMarks(report)
 
     def __collect_attrs(self, report):
@@ -521,30 +646,87 @@ class UploadReport(object):
             except ObjectDoesNotExist:
                 parent = None
 
+    def __update_light_resources(self, report):
+        try:
+            comp_res = LightResource.objects.get(report=self.root, component=report.component)
+        except ObjectDoesNotExist:
+            comp_res = LightResource(report=self.root, component=report.component, wall_time=0, cpu_time=0, memory=0)
+        comp_res.cpu_time += report.cpu_time
+        comp_res.wall_time += report.wall_time
+        comp_res.memory = max(report.memory, comp_res.memory)
+        comp_res.save()
 
-class UploadReportFiles(object):
-    def __init__(self, archive, log=None, file_name=None, need_other=False):
-        self.log = None
-        self.main_file = None
-        self.need_other = need_other
-        self.other_files = []
-        self.__read_archive(archive, log, file_name)
+        try:
+            total_res = LightResource.objects.get(report=self.root, component=None)
+        except ObjectDoesNotExist:
+            total_res = LightResource(report=self.root, component=None, wall_time=0, cpu_time=0, memory=0)
+        total_res.cpu_time += report.cpu_time
+        total_res.wall_time += report.wall_time
+        total_res.memory = max(report.memory, total_res.memory)
+        total_res.save()
 
-    def __read_archive(self, archive, logname, report_filename):
-        if archive is None:
+    def __collapse_reports(self):
+        root_report = ReportComponent.objects.get(parent=None, root=self.root)
+        reports_to_save = []
+        for u in ReportUnsafe.objects.filter(root=self.root):
+            if u.parent_id != root_report.pk:
+                reports_to_save.append(u.parent_id)
+        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
+
+    def __get_attrs(self, report):
+        report_attrs = {}
+        if self.job.type in ATTR_STATISTIC:
+            report_attr_names = {}
+            for a in ReportAttr.objects.filter(report=report):
+                report_attr_names[a.attr.name.name] = a.attr
+            for a_name in ATTR_STATISTIC[self.job.type]:
+                report_attrs[a_name] = None
+                if a_name in report_attr_names:
+                    report_attrs[a_name] = report_attr_names[a_name]
+        return report_attrs
+
+
+class CollapseReports(object):
+    def __init__(self, job):
+        self.job = job
+        self.__collapse()
+        self.job.light = True
+        self.job.save()
+
+    def __collapse(self):
+        try:
+            root_report = ReportComponent.objects.get(parent=None, root__job=self.job)
+        except ObjectDoesNotExist:
             return
-        inmemory = BytesIO(archive.read())
-        zipfile = tarfile.open(fileobj=inmemory, mode='r')
-        for f in zipfile.getmembers():
-            file_name = f.name
-            if f.isreg():
-                file_obj = zipfile.extractfile(f)
-                if logname is not None and file_name == logname:
-                    self.log = file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                elif report_filename is not None and file_name == report_filename:
-                    self.main_file = file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                elif self.need_other:
-                    self.other_files.append({
-                        'name': file_name,
-                        'file': file_get_or_create(file_obj, os.path.basename(file_name))[0]
-                    })
+        reports_to_save = []
+        for u in ReportUnsafe.objects.filter(root__job=self.job):
+            parent = ReportComponent.objects.get(pk=u.parent_id)
+            if parent.parent is None:
+                continue
+            if parent.archive is None:
+                u.parent = root_report
+                u.save()
+            else:
+                parent.parent = root_report
+                parent.save()
+                reports_to_save.append(parent.pk)
+        for u in ReportUnknown.objects.filter(root__job=self.job):
+            u.parent = root_report
+            u.save()
+        self.__fill_resources()
+        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
+        AttrStatistic.objects.filter(Q(report__root__job=self.job) & ~Q(report=root_report)).delete()
+        RecalculateLeaves([self.job])
+        RecalculateVerdicts([self.job])
+        RecalculateResources([self.job])
+
+    def __fill_resources(self):
+        if self.job.light:
+            return
+        self.job.reportroot.safes = len(ReportSafe.objects.filter(root__job=self.job))
+        self.job.reportroot.save()
+        LightResource.objects.filter(report=self.job.reportroot).delete()
+        LightResource.objects.bulk_create(list(LightResource(
+            report=self.job.reportroot, component=cres.component,
+            cpu_time=cres.cpu_time, wall_time=cres.wall_time, memory=cres.memory
+        ) for cres in ComponentResource.objects.filter(report__root__job=self.job, report__parent=None)))

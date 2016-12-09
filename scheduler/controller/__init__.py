@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import json
 import logging.config
@@ -72,7 +89,7 @@ def setup_consul(conf):
     consul_work_dir = os.path.join(os.path.abspath(os.path.curdir), "consul-dir")
     logging.info("Setup consul working directory {}".format(consul_work_dir))
     # Make consul working directory
-    os.makedirs(consul_work_dir)
+    os.makedirs(consul_work_dir.encode("utf8"))
 
     # Prepare ndde info
     conf["node configuration"] = prepare_node_info(conf["node configuration"])
@@ -111,8 +128,8 @@ def setup_consul(conf):
 
     consul_config_file = os.path.join(consul_work_dir, "config.json")
     logging.info("Save consul configuration file {}".format(consul_config_file))
-    with open(consul_config_file, "w", encoding="ascii") as fh:
-        fh.write(json.dumps(consul_config, sort_keys=True, indent=4))
+    with open(consul_config_file, "w", encoding="utf8") as fh:
+        fh.write(json.dumps(consul_config, ensure_ascii=False, sort_keys=True, indent=4))
 
     logging.debug("Extract system information and add it to the node information")
     node_configuration = os.path.join(os.path.abspath(os.path.curdir), "node configuration.json")
@@ -122,8 +139,8 @@ def setup_consul(conf):
         "node configuration": conf["node configuration"],
         "Klever Bridge": conf["Klever Bridge"]
     }
-    with open(node_configuration, "w", encoding="ascii") as fh:
-        fh.write(json.dumps(data, sort_keys=True, indent=4))
+    with open(node_configuration, "w", encoding="utf8") as fh:
+        fh.write(json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4))
 
     # Add as an environment variable
     logging.info("Set environment variable {} as {}".

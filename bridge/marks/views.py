@@ -1,4 +1,24 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import os
 import json
+import mimetypes
+from io import BytesIO
 from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -6,22 +26,31 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
 from django.shortcuts import render
+from django.template.defaulttags import register
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel
+from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
 from users.models import View
-from marks.utils import NewMark, CreateMarkTar, ReadTarMark, MarkAccess, TagsInfo, DeleteMark
+from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
+from marks.utils import NewMark, MarkAccess, DeleteMark
+from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
+
+
+@register.filter
+def value_type(value):
+    return str(type(value))
 
 
 @login_required
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
+    problem_description = None
     try:
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
@@ -29,18 +58,30 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
+            afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
+            if afc.error is not None:
+                logger.error(afc.error)
+                return HttpResponseRedirect(reverse('error', args=[500]))
+            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
         return HttpResponseRedirect(reverse('error', args=[601]))
+    tags = None
+    if mark_type != 'unknown':
+        tags = TagsInfo(mark_type, [])
+        if tags.error is not None:
+            logger.error(tags.error, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
 
     return render(request, 'marks/CreateMark.html', {
         'report': report,
         'type': mark_type,
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-        'tags': TagsInfo(mark_type),
-        'can_edit': True
+        'tags': tags,
+        'can_edit': True,
+        'problem_description': problem_description
     })
 
 
@@ -61,6 +102,14 @@ def edit_mark(request, mark_type, mark_id):
     can_edit = MarkAccess(request.user, mark=mark).can_edit()
     history_set = mark.versions.order_by('-version')
     last_version = history_set[0]
+
+    tags = None
+    if mark_type != 'unknown':
+        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
+        if tags.error is not None:
+            logger.error(tags.error, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+
     if can_edit:
         template = 'marks/EditMark.html'
         if mark_type == 'unknown':
@@ -70,19 +119,12 @@ def edit_mark(request, mark_type, mark_id):
             if m.version == mark.version:
                 title = _("Current version")
             else:
-                change_time = m.change_date.astimezone(
-                    pytz.timezone(request.user.extended.timezone)
-                )
+                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
                 title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                title += " (%s %s)" % (
-                    m.author.extended.last_name,
-                    m.author.extended.first_name,
-                )
+                if m.author is not None:
+                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
                 title += ': ' + m.comment
-            mark_versions.append({
-                'version': m.version,
-                'title': title
-            })
+            mark_versions.append({'version': m.version, 'title': title})
 
         return render(request, template, {
             'mark': mark,
@@ -93,7 +135,7 @@ def edit_mark(request, mark_type, mark_id):
             'reports': MarkReportsTable(request.user, mark),
             'versions': mark_versions,
             'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-            'tags': TagsInfo(mark_type, mark),
+            'tags': tags,
             'can_edit': True
         })
     else:
@@ -104,7 +146,7 @@ def edit_mark(request, mark_type, mark_id):
             'type': mark_type,
             'markdata': MarkData(mark_type, mark_version=last_version),
             'reports': MarkReportsTable(request.user, mark),
-            'tags': TagsInfo(mark_type, mark)
+            'tags': tags
         })
 
 
@@ -233,9 +275,12 @@ def get_mark_version_data(request):
         })
     else:
         data_templ = get_template('marks/MarkAddData.html')
+        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in mark_version.tags.all()))
+        if tags.error is not None:
+            return JsonResponse({'error': str(tags.error)})
         data = data_templ.render({
             'markdata': MarkData(mark_type, mark_version=mark_version),
-            'tags': TagsInfo(mark_type, mark_version),
+            'tags': tags,
             'can_edit': True
         })
     return JsonResponse({'data': data})
@@ -296,9 +341,8 @@ def download_mark(request, mark_type, mark_id):
     mark_tar = CreateMarkTar(mark)
 
     response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.marktar_name
-    mark_tar.memory.seek(0)
-    response.write(mark_tar.memory.read())
+    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.name
+    response.write(mark_tar.tempfile.read())
     return response
 
 
@@ -438,22 +482,19 @@ def get_mark_versions(request):
         return JsonResponse({'error': _('The mark was not found')})
     mark_versions = []
     for m in mark_history:
-        mark_time = m.change_date.astimezone(
-            pytz.timezone(request.user.extended.timezone)
-        )
+        mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (m.author.extended.last_name,
-                               m.author.extended.first_name)
+        if m.author is not None:
+            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
         title += ': ' + m.comment
-        mark_versions.append({
-            'version': m.version,
-            'title': title
-        })
+        mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
 
 
 @login_required
 def association_changes(request, association_id):
+    activate(request.user.extended.language)
+
     try:
         ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
     except ObjectDoesNotExist:
@@ -466,3 +507,202 @@ def association_changes(request, association_id):
         'MarkTable': data,
         'header': Header(data.get('columns', []), MARK_TITLES).struct
     })
+
+
+@login_required
+def show_tags(request, tags_type):
+    activate(request.user.extended.language)
+
+    if tags_type == 'unsafe':
+        page_title = "Unsafe tags"
+    else:
+        page_title = "Safe tags"
+    tags_data = GetTagsData(tags_type)
+    if tags_data.error is not None:
+        logger.error("Can't get tags data: %s" % tags_data.error)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(request, 'marks/TagsTree.html', {
+        'title': page_title,
+        'tags': tags_data.table.data,
+        'tags_type': tags_type,
+        'can_edit': can_edit_tags(request.user)
+    })
+
+
+@login_required
+def get_tag_parents(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    if 'tag_id' not in request.POST:
+        if request.POST['tag_type'] == 'unsafe':
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
+                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+        else:
+            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
+                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+    res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({
+        'parents': json.dumps(res.parents_ids, ensure_ascii=False, sort_keys=True, indent=4),
+        'current': res.tag.parent_id if res.tag.parent_id is not None else 0
+    })
+
+
+@login_required
+def save_tag(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to edit tags")})
+    res = SaveTag(request.POST)
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({})
+
+
+@login_required
+def remove_tag(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to remove tags") + ''})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    if request.POST['tag_type'] == 'safe':
+        try:
+            SafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The tag was not found')})
+    else:
+        try:
+            UnsafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The tag was not found')})
+    return JsonResponse({})
+
+
+@login_required
+def get_tags_data(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    if 'selected_tags' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    deleted_tag = None
+    if 'deleted' in request.POST and request.POST['deleted'] is not None:
+        try:
+            deleted_tag = int(request.POST['deleted'])
+        except Exception as e:
+            logger.error("Deleted tag has wrong format: %s" % e)
+            return JsonResponse({'error': 'Unknown error'})
+    try:
+        selected_tags = json.loads(request.POST['selected_tags'])
+    except Exception as e:
+        logger.error("Can't parse selected tags: %s" % e, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
+    res = TagsInfo(request.POST['tag_type'], selected_tags, deleted_tag)
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({
+        'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
+        'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
+        'tree': get_template('marks/MarkTagsTree.html').render({
+            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
+        })
+    })
+
+
+@login_required
+def download_tags(request, tags_type):
+    tags_data = []
+    if tags_type == 'safe':
+        tags_table = SafeTag
+    else:
+        tags_table = UnsafeTag
+    for tag in tags_table.objects.all():
+        tag_data = {'name': tag.tag, 'description': tag.description}
+        if tag.parent is not None:
+            tag_data['parent'] = tag.parent.tag
+        tags_data.append(tag_data)
+    fp = BytesIO()
+    fp.write(json.dumps(tags_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
+    fp.seek(0)
+    tags_file_name = 'Tags-%s.json' % tags_type
+    mimetype = mimetypes.guess_type(os.path.basename(tags_file_name))[0]
+    response = HttpResponse(content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % tags_file_name
+    response.write(fp.read())
+    return response
+
+
+@login_required
+def upload_tags(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if not can_edit_tags(request.user):
+        return JsonResponse({'error': _("You don't have an access to create tags") + ''})
+    if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
+        return JsonResponse({'error': 'Unknown error'})
+    fp = None
+    for f in request.FILES.getlist('file'):
+        fp = f
+    if fp is None:
+        return JsonResponse({'error': 'Unknown error'})
+    res = CreateTagsFromFile(fp, request.POST['tags_type'])
+    if res.error is not None:
+        return JsonResponse({'error': str(res.error)})
+    return JsonResponse({})
+
+
+@unparallel_group(['mark'])
+def download_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to download all marks"})
+    arch = AllMarksTar()
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
+    response.write(arch.tempfile.read())
+
+    return response
+
+
+@unparallel_group(['mark'])
+def upload_all(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+
+    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+        return JsonResponse({'error': "You don't have an access to upload marks"})
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Only POST requests are supported'})
+    delete_all_marks = False
+    if int(request.POST.get('delete', 0)) == 1:
+        delete_all_marks = True
+
+    if len(request.FILES.getlist('file')) == 0:
+        return JsonResponse({'error': 'Archive with marks expected'})
+    try:
+        marks_dir = extract_tar_temp(request.FILES.getlist('file')[0])
+    except Exception as e:
+        logger.exception("Archive extraction failed" % e, stack_info=True)
+        return JsonResponse({'error': 'Archive extraction failed'})
+
+    res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
+    if res.error is not None:
+        return JsonResponse({'error': res.error})
+    return JsonResponse(res.numbers)

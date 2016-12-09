@@ -1,0 +1,182 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "seq_open, seq_open_private": {
+        "comment": "Initialize sequential file",
+        "labels": {
+          "file": {
+            "parameter": true,
+            "resource": true,
+            "interface": [
+              "seq_operations.file"
+            ]
+          },
+          "ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          }
+        },
+        "process": "<assign>.[register]",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%seq_file%",
+              "%ops%"
+            ]
+          },
+          "assign": {
+            "comment": "Alloc memory for sequential file structure and initialize it.",
+            "statements": [
+              "%seq_file% = $ALLOC(%seq_file%);",
+              "%ops% = $arg2;",
+              "%file%->private_data = %seq_file%;"
+            ]
+          }
+        }
+      },
+      "seq_release, seq_release_private": {
+        "comment": "Free the structures associated with sequential file.",
+        "labels": {
+          "file": {
+            "parameter": true,
+            "resource": true,
+            "interface": [
+              "seq_operations.file"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "assign": {
+            "comment": "Free memory of the sequential file structure.",
+            "statements": [
+              "%seq_file% = %file%->private_data;",
+              "$FREE(%seq_file%);"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "traverse_kernel_items_scenario": {
+        "comment": "Writting /proc file scenario.",
+        "labels": {
+          "ops": {
+            "container": true,
+            "interface": [
+              "seq_operations.seq_operations"
+            ]
+          },
+          "seq_file": {
+            "resource": true,
+            "interface": [
+              "seq_operations.seq_file"
+            ]
+          },
+          "ret": {
+            "signature": "void *a"
+          }
+        },
+        "process": "(!register).{start_step}",
+        "actions": {
+          "start_step": {
+            "comment": "Start sequence or do nothing.",
+            "process": "[start].(<start_success>.{next_step} | <start_failed>.(deregister))"
+          },
+          "next_step": {
+            "comment": "Continue iteration over kernel items.",
+            "process": "[next].[show].(<next_success>.{next_step} | <next_fail>.[stop].{start_step})"
+          },
+          "deregister": {
+            "condition": [
+              "%seq_file% == $ARG1"
+            ],
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%seq_file%",
+              "%ops%"
+            ]
+          },
+          "start_success": {
+            "comment": "A new sequence is initialized successfully.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "start_failed": {
+            "comment": "Failed to initialize a new sequence.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "next_success": {
+            "comment": "More items to show are left.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "next_fail": {
+            "comment": "The last kernel item is reached.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "start": {
+            "comment": "Initialize data for walking through a list of kernel items.",
+            "callback": "%ops.start%",
+            "parameters": [
+              "%seq_file%"
+            ],
+            "callback return value": "%ret%"
+          },
+          "stop": {
+            "comment": "End of the sequence is reached, do necessary cleanup.",
+            "callback": "%ops.stop%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "show": {
+            "comment": "Show current item: put data into the seq_file output buffer.",
+            "callback": "%ops.show%",
+            "parameters": [
+              "%seq_file%"
+            ]
+          },
+          "next": {
+            "comment": "Advance to the new item.",
+            "callback": "%ops.next%",
+            "parameters": [
+              "%seq_file%"
+            ],
+            "callback return value": "%ret%"
+          }
+        }
+      }
+    }
+  }
+}

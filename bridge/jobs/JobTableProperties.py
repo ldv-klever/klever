@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
@@ -7,10 +24,8 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
-from marks.models import ReportSafeTag, ReportUnsafeTag,\
-    ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent,\
-    ComponentUnknown
+from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
+from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 
 
@@ -34,19 +49,20 @@ ORDER_TITLES = {
 
 ALL_FILTERS = [
     'name', 'change_author', 'change_date', 'status', 'resource_component',
-    'problem_component', 'problem_problem', 'format', 'priority'
+    'problem_component', 'problem_problem', 'format', 'priority', 'finish_date'
 ]
 
 FILTER_TITLES = {
     'name': _('Title'),
-    'change_author': _('Author'),
+    'change_author': _('Last change author'),
     'change_date': _('Last change date'),
     'status': _('Decision status'),
     'resource_component': string_concat(_('Consumed resources'), '/', _('Component name')),
     'problem_component': string_concat(_('Unknowns'), '/', _('Component name')),
     'problem_problem': _('Problem name'),
     'format': _('Format'),
-    'priority': _('Priority')
+    'priority': _('Priority'),
+    'finish_date': _('Finish decision date')
 }
 
 
@@ -58,9 +74,9 @@ def all_user_columns():
     for safe in SAFES:
         columns.append("safe:%s" % safe)
     columns.extend([
-        'problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version', 'type', 'parent_id',
-        'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending', 'tasks_processing',
-        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
+        'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
+        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
+        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
     ])
     return columns
 
@@ -175,10 +191,10 @@ class FilterForm(object):
                 f = self.view['filters'][f_name]
                 if f_name == 'change_date':
                     date_vals = f['value'].split(':', 1)
-                    f_val = {
-                        'valtype': date_vals[0],
-                        'valval': date_vals[1],
-                    }
+                    f_val = {'valtype': date_vals[0], 'valval': date_vals[1]}
+                elif f_name == 'finish_date':
+                    date_vals = f['value'].split(':', 1)
+                    f_val = {'val_0': int(date_vals[0]), 'val_1': int(date_vals[1])}
                 else:
                     f_val = f['value']
                 selected_filters.append(f_name)
@@ -340,11 +356,8 @@ class TableTree(object):
                 elif order.startswith('-') and o[1] == order[1:]:
                     orders.append('-%s' % o[0])
 
-        for job in Job.objects.filter(
-                **self.__view_filters()
-        ).order_by(*orders):
-            job_access = JobAccess(self.user, job)
-            if job_access.can_view():
+        for job in Job.objects.filter(**self.__view_filters()).order_by(*orders):
+            if JobAccess(self.user, job).can_view():
                 rowdata.append(job)
 
         for job in rowdata:
@@ -354,21 +367,22 @@ class TableTree(object):
                 'parent': parent,
                 'parent_pk': None,
                 'black': False,
-                'pk': job.pk
+                'pk': job.pk,
+                'light': job.light
             }
             if parent is not None:
                 row_job_data['parent_id'] = parent.identifier
                 row_job_data['parent_pk'] = parent.pk
             self.jobdata.append(row_job_data)
-            while parent is not None and \
-                    parent not in list(blackdata + rowdata):
+            while parent is not None and parent not in list(blackdata + rowdata):
                 next_parent = parent.parent
                 row_job_data = {
                     'job': parent,
                     'parent': next_parent,
                     'parent_pk': None,
                     'black': True,
-                    'pk': parent.pk
+                    'pk': parent.pk,
+                    'light': job.light
                 }
                 if next_parent is not None:
                     row_job_data['parent_pk'] = next_parent.pk
@@ -405,30 +419,21 @@ class TableTree(object):
         allowed_types = ['iexact', 'istartswith', 'icontains']
         for f in self.view['filters']:
             f_data = self.view['filters'][f]
+            if f_data['type'] not in allowed_types:
+                continue
             if f == 'resource_component':
-                if f_data['type'] in allowed_types:
-                    head_filters['resource_component'] = {
-                        'component__name__' + f_data['type']: f_data['value']
-                    }
+                head_filters['resource_component'] = {'component__name__' + f_data['type']: f_data['value']}
             elif f == 'problem_component':
-                if f_data['type'] in allowed_types:
-                    head_filters['problem_component'] = {
-                        'component__name__' + f_data['type']: f_data['value']
-                    }
+                head_filters['problem_component'] = {'component__name__' + f_data['type']: f_data['value']}
             elif f == 'problem_problem':
-                if f_data['type'] in allowed_types:
-                    head_filters['problem_problem'] = {
-                        'problem__name__' + f_data['type']: f_data['value']
-                    }
+                head_filters['problem_problem'] = {'problem__name__' + f_data['type']: f_data['value']}
         return head_filters
 
     def __view_filters(self):
 
         def name_filter(fdata):
             if fdata['type'] in ['iexact', 'istartswith', 'icontains']:
-                return {
-                    'name__' + fdata['type']: fdata['value']
-                }
+                return {'name__' + fdata['type']: fdata['value']}
             return {}
 
         def author_filter(fdata):
@@ -471,17 +476,25 @@ class TableTree(object):
                         return {'solvingprogress__priority__in': priorities}
             return {}
 
+        def finish_date_filter(fdata):
+            (month, year) = fdata['value'].split(':', 1)
+            try:
+                (month, year) = (int(month), int(year))
+            except ValueError:
+                return {}
+            return {
+                'solvingprogress__finish_date__month__' + fdata['type']: month,
+                'solvingprogress__finish_date__year__' + fdata['type']: year
+            }
+
         action = {
             'name': name_filter,
             'change_author': author_filter,
             'change_date': date_filter,
-            'status': lambda fdata: {
-                'status__in': fdata['value']
-            },
-            'format': lambda fdata: {
-                'format': fdata['value']
-            } if fdata['type'] == 'is' else {},
-            'priority': priority_filter
+            'status': lambda fdata: {'status__in': fdata['value']},
+            'format': lambda fdata: {'format': fdata['value']} if fdata['type'] == 'is' else {},
+            'priority': priority_filter,
+            'finish_date': finish_date_filter
         }
 
         filters = {}
@@ -496,8 +509,7 @@ class TableTree(object):
             'unsafe': lambda: ['unsafe:' + postfix for postfix in UNSAFES],
             'resource': self.__resource_columns,
             'problem': self.__unknowns_columns,
-            'tag': lambda:
-            self.__safe_tags_columns() + self.__unsafe_tags_columns(),
+            'tag': lambda: self.__safe_tags_columns() + self.__unsafe_tags_columns(),
             'tag:safe': self.__safe_tags_columns,
             'tag:unsafe': self.__unsafe_tags_columns
         }
@@ -513,8 +525,7 @@ class TableTree(object):
         tags_data = {}
         for job in self.jobdata:
             try:
-                root_report = ReportComponent.objects.get(root__job=job['job'],
-                                                          parent=None)
+                root_report = ReportComponent.objects.get(root__job=job['job'], parent=None)
             except ObjectDoesNotExist:
                 continue
             for tag in root_report.safe_tags.all():
@@ -529,8 +540,7 @@ class TableTree(object):
         tags_data = {}
         for job in self.jobdata:
             try:
-                root_report = ReportComponent.objects.get(root__job=job['job'],
-                                                          parent=None)
+                root_report = ReportComponent.objects.get(root__job=job['job'], parent=None)
             except ObjectDoesNotExist:
                 continue
             for tag in root_report.unsafe_tags.all():
@@ -544,13 +554,15 @@ class TableTree(object):
     def __resource_columns(self):
         components = {}
         for job in self.jobdata:
-            filters = {
-                'report__root__job': job['job'],
-                'report__parent': None
-            }
+            if job['light']:
+                filters = {'report__job': job['job']}
+                res_table = LightResource
+            else:
+                filters = {'report__root__job': job['job'], 'report__parent': None}
+                res_table = ComponentResource
             if 'resource_component' in self.head_filters:
                 filters.update(self.head_filters['resource_component'])
-            for compres in ComponentResource.objects.filter(~Q(component=None) & Q(**filters)):
+            for compres in res_table.objects.filter(~Q(component=None) & Q(**filters)):
                 components['resource:component_' + str(compres.component.pk)] = compres.component.name
         self.titles.update(components)
         components = list(sorted(components, key=components.get))
@@ -560,13 +572,16 @@ class TableTree(object):
     def __unknowns_columns(self):
         problems = {}
         cmup_filter = {'report__parent': None}
+        cu_filter = {'report__parent': None}
         if 'problem_component' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_component'])
+            cu_filter.update(self.head_filters['problem_component'])
         if 'problem_problem' in self.head_filters:
             cmup_filter.update(self.head_filters['problem_problem'])
 
         for job in self.jobdata:
             cmup_filter['report__root__job'] = job['job']
+            cu_filter['report__root__job'] = job['job']
             found_comp_ids = []
             for cmup in ComponentMarkUnknownProblem.objects.filter(**cmup_filter):
                 problem = cmup.problem
@@ -576,8 +591,7 @@ class TableTree(object):
                 if problem is None:
                     if comp_id in problems:
                         if 'z_no_mark' not in problems[comp_id]['problems']:
-                            problems[comp_id]['problems']['z_no_mark'] = \
-                                _('Without marks')
+                            problems[comp_id]['problems']['z_no_mark'] = _('Without marks')
                     else:
                         problems[comp_id] = {
                             'title': comp_name,
@@ -600,8 +614,7 @@ class TableTree(object):
                                 'z_total': _('Total')
                             }
                         }
-            for cmup in ComponentUnknown.objects.filter(
-                    Q(**cmup_filter) & ~Q(component_id__in=found_comp_ids)):
+            for cmup in ComponentUnknown.objects.filter(Q(**cu_filter) & ~Q(component_id__in=found_comp_ids)):
                 problems['pr_component_%s' % cmup.component_id] = {
                     'title': cmup.component.name,
                     'problems': {
@@ -651,9 +664,7 @@ class TableTree(object):
                 parent_id = '-'
                 if 'parent_id' in job:
                     parent_id = job['parent_id']
-                values_data[job['pk']] = {
-                    'parent_id': parent_id
-                }
+                values_data[job['pk']] = {'parent_id': parent_id}
 
         job_pks = [job['pk'] for job in self.jobdata]
 
@@ -705,10 +716,8 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     author = j['job'].change_author
                     if author is not None:
-                        name = author.extended.last_name + ' ' + \
-                            author.extended.first_name
-                        author_href = reverse('users:show_profile',
-                                              args=[author.pk])
+                        name = author.extended.last_name + ' ' + author.extended.first_name
+                        author_href = reverse('users:show_profile', args=[author.pk])
                         values_data[j['pk']]['author'] = (name, author_href)
 
         def collect_jobs_data():
@@ -727,90 +736,72 @@ class TableTree(object):
                         'date': date
                     })
                     try:
-                        report = ReportComponent.objects.get(
-                            root__job=j['job'], parent=None)
+                        report = ReportComponent.objects.get(root__job=j['job'], parent=None)
                         values_data[j['pk']]['status'] = (
-                            j['job'].get_status_display(),
-                            reverse('reports:component',
-                                    args=[j['pk'], report.pk])
+                            j['job'].get_status_display(), reverse('reports:component', args=[j['pk'], report.pk])
                         )
                     except ObjectDoesNotExist:
-                        values_data[j['pk']]['status'] = \
-                            j['job'].get_status_display()
+                        values_data[j['pk']]['status'] = j['job'].get_status_display()
                 names_data[j['pk']] = j['job'].name
 
         def collect_verdicts():
+            for root in ReportRoot.objects.filter(job_id__in=job_pks, job__light=True):
+                values_data[root.job_id]['safe:total'] = root.safes
             for verdict in Verdict.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+                    report__root__job_id__in=job_pks, report__parent=None, report__root__job__light=False):
                 if verdict.report.root.job_id in values_data:
                     values_data[verdict.report.root.job_id].update({
                         'unsafe:total': (
                             verdict.unsafe,
-                            reverse('reports:list',
-                                    args=[verdict.report.pk, 'unsafes'])),
+                            reverse('reports:list', args=[verdict.report.pk, 'unsafes'])),
                         'unsafe:bug': (
                             verdict.unsafe_bug,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '1'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '1'])
                         ),
                         'unsafe:target_bug': (
                             verdict.unsafe_target_bug,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '2'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '2'])
                         ),
                         'unsafe:false_positive': (
                             verdict.unsafe_false_positive,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '3'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '3'])
                         ),
                         'unsafe:unknown': (
                             verdict.unsafe_unknown,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '0'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '0'])
                         ),
                         'unsafe:unassociated': (
                             verdict.unsafe_unassociated,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '5'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '5'])
                         ),
                         'unsafe:inconclusive': (
                             verdict.unsafe_inconclusive,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'unsafes', '4'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '4'])
                         ),
-                        'safe:total': (
-                            verdict.safe,
-                            reverse('reports:list',
-                                    args=[verdict.report.pk, 'safes'])),
+                        'safe:total': (verdict.safe, reverse('reports:list', args=[verdict.report.pk, 'safes'])),
                         'safe:missed_bug': (
                             verdict.safe_missed_bug,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'safes', '2'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '2'])
                         ),
                         'safe:unknown': (
                             verdict.safe_unknown,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'safes', '0'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '0'])
                         ),
                         'safe:inconclusive': (
                             verdict.safe_inconclusive,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'safes', '3'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '3'])
                         ),
                         'safe:unassociated': (
                             verdict.safe_unassociated,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'safes', '4'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '4'])
                         ),
                         'safe:incorrect': (
                             verdict.safe_incorrect_proof,
-                            reverse('reports:list_verdict',
-                                    args=[verdict.report.pk, 'safes', '1'])
+                            reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '1'])
                         ),
                         'problem:total': (
                             verdict.unknown,
-                            reverse('reports:list',
-                                    args=[verdict.report.pk, 'unknowns'])
+                            reverse('reports:list', args=[verdict.report.pk, 'unknowns'])
                         )
                     })
 
@@ -820,59 +811,54 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     try:
                         first_version = j['job'].versions.get(version=1)
-                        last_version = j['job'].versions.get(
-                            version=j['job'].version)
+                        last_version = j['job'].versions.get(version=j['job'].version)
                     except ObjectDoesNotExist:
                         return
                     if first_version.change_author == self.user:
                         values_data[j['pk']]['role'] = _('Author')
                     elif user_role == USER_ROLES[2][0]:
-                        values_data[j['pk']]['role'] = \
-                            self.user.extended.get_role_display()
+                        values_data[j['pk']]['role'] = self.user.extended.get_role_display()
                     else:
                         job_user_role = last_version.userrole_set.filter(
                             user=self.user)
                         if len(job_user_role):
-                            values_data[j['pk']]['role'] = \
-                                job_user_role[0].get_role_display()
+                            values_data[j['pk']]['role'] = job_user_role[0].get_role_display()
                         else:
-                            values_data[j['pk']]['role'] = \
-                                last_version.get_global_role_display()
+                            values_data[j['pk']]['role'] = last_version.get_global_role_display()
 
         def collect_safe_tags():
-            for st in ReportSafeTag.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+            for st in ReportSafeTag.objects.filter(report__root__job_id__in=job_pks, report__parent=None):
                 curr_job_id = st.report.root.job.pk
                 if curr_job_id in values_data:
-                    values_data[curr_job_id]['tag:safe:tag_' + str(st.tag_id)] \
-                        = (
-                        st.number,
-                        reverse('reports:list_tag',
-                                args=[st.report_id, 'safes', st.tag_id])
+                    values_data[curr_job_id]['tag:safe:tag_' + str(st.tag_id)] = (
+                        st.number, reverse('reports:list_tag', args=[st.report_id, 'safes', st.tag_id])
                     )
 
         def collect_unsafe_tags():
-            for ut in ReportUnsafeTag.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+            for ut in ReportUnsafeTag.objects.filter(report__root__job_id__in=job_pks, report__parent=None):
                 curr_job_id = ut.report.root.job.pk
                 if curr_job_id in values_data:
-                    values_data[curr_job_id][
-                        'tag:unsafe:tag_' + str(ut.tag_id)] = (
-                        ut.number,
-                        reverse('reports:list_tag',
-                                args=[ut.report_id, 'unsafes', ut.tag_id])
+                    values_data[curr_job_id]['tag:unsafe:tag_' + str(ut.tag_id)] = (
+                        ut.number, reverse('reports:list_tag', args=[ut.report_id, 'unsafes', ut.tag_id])
                     )
 
         def collect_resourses():
-            for cr in ComponentResource.objects.filter(report__root__job_id__in=job_pks, report__parent=None):
-                job_pk = cr.report.root.job_id
-                if job_pk in values_data:
-                    rd = get_resource_data(self.user, cr)
-                    resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
-                    if cr.component_id is None:
-                        values_data[job_pk]['resource:total'] = resourses_value
-                    else:
-                        values_data[job_pk]['resource:component_' + str(cr.component_id)] = resourses_value
+            light_job_pks = [j['pk'] for j in self.jobdata if j['light'] and j['pk'] in values_data]
+            other_job_pks = [j['pk'] for j in self.jobdata if not j['light'] and j['pk'] in values_data]
+            for cr in ComponentResource.objects.filter(report__root__job_id__in=other_job_pks, report__parent=None):
+                rd = get_resource_data(self.user, cr)
+                resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
+                if cr.component is None:
+                    values_data[cr.report.root.job_id]['resource:total'] = resourses_value
+                else:
+                    values_data[cr.report.root.job_id]['resource:component_' + str(cr.component_id)] = resourses_value
+            for lr in LightResource.objects.filter(report__job_id__in=light_job_pks):
+                rd = get_resource_data(self.user, lr)
+                resourses_value = "%s %s %s" % (rd[0], rd[1], rd[2])
+                if lr.component is None:
+                    values_data[lr.report.job_id]['resource:total'] = resourses_value
+                else:
+                    values_data[lr.report.job_id]['resource:component_' + str(lr.component_id)] = resourses_value
 
         def collect_unknowns():
             for cmup in ComponentMarkUnknownProblem.objects.filter(
@@ -880,44 +866,27 @@ class TableTree(object):
                 job_pk = cmup.report.root.job_id
                 if job_pk in values_data:
                     if cmup.problem is None:
-                        values_data[job_pk][
-                            'problem:pr_component_' + str(cmup.component_id) +
-                            ':z_no_mark'
-                        ] = (
+                        values_data[job_pk]['problem:pr_component_' + str(cmup.component_id) + ':z_no_mark'] = (
                             cmup.number,
-                            reverse('reports:unknowns_problem',
-                                    args=[cmup.report.pk, cmup.component.pk, 0])
+                            reverse('reports:unknowns_problem', args=[cmup.report.pk, cmup.component.pk, 0])
                         )
                     else:
                         values_data[job_pk][
-                            'problem:pr_component_' + str(cmup.component_id) +
-                            ':problem_' + str(cmup.problem_id)
-                        ] = (
-                            cmup.number,
-                            reverse('reports:unknowns_problem',
-                                    args=[cmup.report.pk, cmup.component.pk,
-                                          cmup.problem_id])
-                        )
-            for cu in ComponentUnknown.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+                            'problem:pr_component_' + str(cmup.component_id) + ':problem_' + str(cmup.problem_id)
+                        ] = (cmup.number, reverse('reports:unknowns_problem',
+                                                  args=[cmup.report.pk, cmup.component.pk, cmup.problem_id]))
+            for cu in ComponentUnknown.objects.filter(report__root__job_id__in=job_pks, report__parent=None):
                 job_pk = cu.report.root.job_id
                 if job_pk in values_data:
-                    values_data[job_pk][
-                        'problem:pr_component_' + str(cu.component_id) +
-                        ':z_total'
-                    ] = (
-                        cu.number,
-                        reverse('reports:unknowns', args=[cu.report_id, cu.component_id])
+                    values_data[job_pk]['problem:pr_component_' + str(cu.component_id) + ':z_total'] = (
+                        cu.number, reverse('reports:unknowns', args=[cu.report_id, cu.component_id])
                     )
 
         if 'author' in self.columns:
             collect_authors()
-        if any(x in [
-            'name', 'identifier', 'format', 'version', 'type', 'date'
-        ] for x in self.columns):
+        if any(x in ['name', 'identifier', 'format', 'version', 'type', 'date'] for x in self.columns):
             collect_jobs_data()
-        if any(x.startswith('safe:') or x.startswith('unsafe:') or
-                x == 'problem:total' for x in self.columns):
+        if any(x.startswith('safe:') or x.startswith('unsafe:') or x == 'problem:total' for x in self.columns):
             collect_verdicts()
         if any(x.startswith('problem:pr_component_') for x in self.columns):
             collect_unknowns()

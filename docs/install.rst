@@ -1,3 +1,15 @@
+.. Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+   Institute for System Programming of the Russian Academy of Sciences
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
 .. _install:
 
 Installation
@@ -23,12 +35,18 @@ Klever Bridge installation
 
    .. note:: Password can be omitted.
 
-#. Create a new MySQL/MariaDB database (**db_name**) with character set utf8 and grant full access on all its tables to
-   **db_user**::
+#. Create a new MySQL/MariaDB database (**db_name**) with character set *utf8* and collation *utf8_bin*. Grant full
+   access on all its tables to **db_user**::
 
     MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8 COLLATE utf8_bin;
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
+
+#. Create :file:`bridge/bridge/settings.py`:
+
+   .. code-block:: python
+
+      from bridge.development import *
 
 #. Create :file:`bridge/bridge/db.json`:
 
@@ -49,7 +67,6 @@ Klever Bridge installation
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
     $ python3 manage.py createsuperuser
 
@@ -91,9 +108,11 @@ Adapt them for your Linux distribution by yourself.
    $ echo "Listen 8998" > /etc/apache2/conf-enabled/bridge.conf
 
 #. Copy directory :file:`bridge` to directory :file:`/var/www/bridge`.
-#. Replace content of file :file:`/var/www/bridge/bridge/settings.py` with *from bridge.production import **::
+#. Create :file:`/var/www/bridge/bridge/settings.py`:
 
-    $ echo "from bridge.production import *" > /var/www/bridge/bridge/settings.py
+   .. code-block:: python
+
+      from bridge.production import *
 
 #. Execute the following manage.py task::
 
@@ -113,18 +132,17 @@ Update for development purposes
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
-    $ python3 manage.py makemigrations jobs marks reports service users
     $ python3 manage.py migrate
 
-#. If some of previous commands failed it is recommended to do the following steps.
-#. Remove previously created migrations::
-
-    find ./ -name "migrations" | xargs -n1 rm -rf
-
-#. Recreate the MySQL/MariaDB database::
+#. If the last command failed it is recommended to do the following steps.
+#. Delete the MySQL/MariaDB database::
 
     MariaDB [(none)]> DROP DATABASE `db_name`;
-    MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8;
+
+#. Create the MySQL/MariaDB database as during normal installation.
+
+   .. note:: The user and its access to this database remain the same from normal installation. You don't need to set up
+             them one more time.
 
 #. Repeat all steps of normal installation starting from execution of manage.py tasks (rerunning of the server might be
    not required).

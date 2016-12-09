@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from urllib.parse import unquote
 from django.contrib.auth.decorators import login_required
 from django.core.urlresolvers import reverse
@@ -7,7 +24,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.populate import Population
 from bridge.vars import ERRORS, USER_ROLES
-from bridge.utils import unparallel
+from bridge.utils import unparallel, logger
 from users.models import Extended
 
 
@@ -62,9 +79,13 @@ def population(request):
             service_username = None
         if need_manager and need_service and (manager_username is None or service_username is None):
             return HttpResponseRedirect(reverse('error', args=[305]))
-        return render(request, 'Population.html', {
-            'changes': Population(request.user, manager_username, service_username).changes
-        })
+        try:
+            changes = Population(request.user, manager_username, service_username).changes
+        except Exception as e:
+            logger.exception(e)
+            return render(request, 'Population.html', {'error': str(e)})
+        else:
+            return render(request, 'Population.html', {'changes': changes})
     return render(request, 'Population.html', {
         'need_manager': need_manager,
         'need_service': need_service,

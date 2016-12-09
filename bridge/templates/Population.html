@@ -57,10 +57,19 @@
                 <h2 class="ui green header">{% trans 'New unknown marks were uploaded' %}</h2>
             </div>
         {% endif %}
+        {% if changes.tags|length > 0 %}
+            <div class="ui green segment">
+                {% for tag_mes in changes.tags %}
+                    <h2 class="ui green header">{{ tag_mes }}</h2>
+                {% endfor %}
+            </div>
+        {% endif %}
         {% if changes|length == 0 %}
             <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
         {% endif %}
         <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
+    {% elif error %}
+        <h2 class="ui red header">{{ error }}</h2>
     {% else %}
         <h1 class="ui violet header">{% trans 'Welcome to Klever Bridge!' %}</h1>
         <form method="post">

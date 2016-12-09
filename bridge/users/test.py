@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.urlresolvers import reverse
 from bridge.utils import KleverTestCase
@@ -75,7 +92,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
         User.objects.create_user(username='service2', password='service2')
@@ -83,7 +101,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
 

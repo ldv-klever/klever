@@ -1,0 +1,6 @@
+{
+"ext-modules/disabled/big_module.ko": 1000000,
+"ext-modules/disabled/small_module.ko": 1000,
+"ext-modules/enabled/big_module.ko": 1000000,
+"ext-modules/enabled/small_module.ko": 1000
+}

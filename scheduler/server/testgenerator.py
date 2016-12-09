@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import uuid
 import logging
 import shutil
@@ -40,7 +57,7 @@ class Server(server.AbstractServer):
             description_file = os.path.join(work_dir, identifier, task_description_filename)
             logging.debug("Import task {} from description file {}".format(identifier, description_file))
 
-            with open(description_file, encoding="ascii") as desc:
+            with open(description_file, encoding="utf8") as desc:
                 description = json.loads(desc.read())
 
             # Add task to the pending list
@@ -74,7 +91,7 @@ class Server(server.AbstractServer):
             # Generate ID and prepare dir
             task_id = str(uuid.uuid4())
             task_dir = os.path.join(work_dir, task_id)
-            os.makedirs(task_dir)
+            os.makedirs(task_dir.encode("utf8"))
 
             # Move data
             shutil.copyfile(os.path.join(location, source), os.path.join(task_dir, source))
@@ -85,9 +102,9 @@ class Server(server.AbstractServer):
             description["id"] = task_id
             description["files"] = [source]
             description["priority"] = random.choice(self.conf["priority options"])
-            json_description = json.dumps(description, sort_keys=True, indent=4)
+            json_description = json.dumps(description, ensure_ascii=False, sort_keys=True, indent=4)
             description_file = os.path.join(task_dir, task_description_filename)
-            with open(description_file, "w", encoding="ascii") as fh:
+            with open(description_file, "w", encoding="utf8") as fh:
                 fh.write(json_description)
             logging.debug("Generated JSON base_description {0}".format(description_file))
 
@@ -139,10 +156,10 @@ class Server(server.AbstractServer):
             shutil.rmtree(self.work_dir, True)
 
             logging.info("Make directory for tasks {0}".format(task_work_dir))
-            os.makedirs(task_work_dir, exist_ok=True)
+            os.makedirs(task_work_dir.encode("utf8"), exist_ok=True)
 
             logging.debug("Create working dir for the test generator: {0}".format(self.work_dir))
-            os.makedirs(self.work_dir, exist_ok=True)
+            os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
             logging.info("Begin task preparation")
             for task_set in self.conf["task prototypes"]:
@@ -157,7 +174,7 @@ class Server(server.AbstractServer):
         logging.info("Clean solution dir for the test generator: {0}".format(self.solution_dir))
         shutil.rmtree(self.solution_dir, True)
         logging.info("Make directory for solutions {0}".format(task_work_dir))
-        os.makedirs(self.solution_dir, exist_ok=True)
+        os.makedirs(self.solution_dir.encode("utf8"), exist_ok=True)
 
     def exchange(self, tasks):
         """
@@ -287,8 +304,8 @@ class Server(server.AbstractServer):
         :param nodes: String with JSON nodes description.
         """
         self.nodes = nodes
-        node_desc = json.dumps(nodes, sort_keys=True, indent=4)
-        with open(os.path.join(self.work_dir, "nodes.json"), "w", encoding="ascii") as fh:
+        node_desc = json.dumps(nodes, ensure_ascii=False, sort_keys=True, indent=4)
+        with open(os.path.join(self.work_dir, "nodes.json"), "w", encoding="utf8") as fh:
             fh.write(node_desc)
 
     def submit_tools(self, tools):
@@ -298,8 +315,8 @@ class Server(server.AbstractServer):
         :param tools: String with JSON verification tools description.
         """
         self.tools = tools
-        tool_desc = json.dumps(tools, sort_keys=True, indent=4)
-        with open(os.path.join(self.work_dir, "tools.json"), "w", encoding="ascii") as fh:
+        tool_desc = json.dumps(tools, ensure_ascii=False, sort_keys=True, indent=4)
+        with open(os.path.join(self.work_dir, "tools.json"), "w", encoding="utf8") as fh:
             fh.write(tool_desc)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
