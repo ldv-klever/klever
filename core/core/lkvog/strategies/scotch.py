@@ -159,6 +159,15 @@ class Scotch(AbstractStrategy):
     def divide(self, module_name):
         if module_name == "all":
             return self.clusters
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            ret = []
+            for cluster in self.clusters:
+                for module in cluster.modules:
+                    if module.startswith(module_name):
+                        ret.append(cluster)
+                        break
+            return ret
 
         ret_clusters = [cluster for cluster in self.clusters if module_name in
                         [module.id for module in cluster.modules]]

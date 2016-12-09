@@ -101,6 +101,12 @@
                       "linux/iio/iio.h",
                       "linux/iio/triggered_buffer.h"
                     ]
+                  },
+                  "Linux 2.6.33": {
+                    "exclude": [
+                      "linux/iio/iio.h",
+                      "linux/iio/triggered_buffer.h"
+                    ]
                   }
                 }
               },

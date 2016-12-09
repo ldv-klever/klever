@@ -49,6 +49,12 @@ class Closure(AbstractStrategy):
             for module in [module for module in self.modules.values() if not module.successors]:
                 clusters.extend(self.divide(module.id))
             return clusters
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            for module in sorted(self.modules.keys()):
+                if module.startswith(module_name):
+                    clusters.extend(self.divide(module.id))
+            return set(clusters)
 
         self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
         self.logger.debug("Calculate dependencies for these 'top' modules")

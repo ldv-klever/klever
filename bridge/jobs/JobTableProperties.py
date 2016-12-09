@@ -25,7 +25,7 @@ from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
 from jobs.models import Job
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource
+from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time, get_job_progress
 
 
@@ -74,9 +74,9 @@ def all_user_columns():
     for safe in SAFES:
         columns.append("safe:%s" % safe)
     columns.extend([
-        'problem', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version', 'type', 'parent_id',
-        'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending', 'tasks_processing',
-        'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
+        'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
+        'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
+        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
         'average_time', 'local_average_time', 'max_time'
     ])
     return columns
@@ -734,21 +734,19 @@ class TableTree(object):
                         'date': date
                     })
                     try:
-                        report = ReportComponent.objects.get(
-                            root__job=j['job'], parent=None)
+                        report = ReportComponent.objects.get(root__job=j['job'], parent=None)
                         values_data[j['pk']]['status'] = (
-                            j['job'].get_status_display(),
-                            reverse('reports:component',
-                                    args=[j['pk'], report.pk])
+                            j['job'].get_status_display(), reverse('reports:component', args=[j['pk'], report.pk])
                         )
                     except ObjectDoesNotExist:
-                        values_data[j['pk']]['status'] = \
-                            j['job'].get_status_display()
+                        values_data[j['pk']]['status'] = j['job'].get_status_display()
                 names_data[j['pk']] = j['job'].name
 
         def collect_verdicts():
+            for root in ReportRoot.objects.filter(job_id__in=job_pks, job__light=True):
+                values_data[root.job_id]['safe:total'] = root.safes
             for verdict in Verdict.objects.filter(
-                    report__root__job_id__in=job_pks, report__parent=None):
+                    report__root__job_id__in=job_pks, report__parent=None, report__root__job__light=False):
                 if verdict.report.root.job_id in values_data:
                     values_data[verdict.report.root.job_id].update({
                         'unsafe:total': (
@@ -778,9 +776,7 @@ class TableTree(object):
                             verdict.unsafe_inconclusive,
                             reverse('reports:list_verdict', args=[verdict.report.pk, 'unsafes', '4'])
                         ),
-                        'safe:total': (
-                            verdict.safe,
-                            reverse('reports:list', args=[verdict.report.pk, 'safes'])),
+                        'safe:total': (verdict.safe, reverse('reports:list', args=[verdict.report.pk, 'safes'])),
                         'safe:missed_bug': (
                             verdict.safe_missed_bug,
                             reverse('reports:list_verdict', args=[verdict.report.pk, 'safes', '2'])
