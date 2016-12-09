@@ -262,7 +262,7 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
-    'columns': ['marks_number', 'report_verdict', 'tags'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {

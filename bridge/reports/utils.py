@@ -28,7 +28,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from bridge.utils import extract_tar_temp
-from jobs.utils import get_resource_data
+from jobs.utils import get_resource_data, get_user_time
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem, MarkUnknown
@@ -44,7 +44,8 @@ REP_MARK_TITLES = {
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
-    'tags': _('Tags')
+    'tags': _('Tags'),
+    'parent_cpu': _('Parent CPU')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -340,6 +341,8 @@ class ReportTable(object):
                         tags.append(t.tag.tag)
                     if len(tags) > 0:
                         val = '; '.join(tags)
+                elif col == 'parent_cpu':
+                    val = get_user_time(self.user, ReportComponent.objects.get(pk=report.parent_id).cpu_time)
                 values_row.append({
                     'value': val,
                     'color': color,
