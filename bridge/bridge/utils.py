@@ -23,13 +23,12 @@ import hashlib
 import tarfile
 import tempfile
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
+from django.core.files import File
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
-from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -113,7 +112,7 @@ def file_checksum(f, block_size=2**20):
     return md5.hexdigest()
 
 
-def file_get_or_create(fp, filename, check_size=False):
+def file_get_or_create(fp, filename, table, check_size=False):
     if check_size:
         file_size = fp.seek(0, os.SEEK_END)
         if file_size > MAX_FILE_SIZE:
@@ -126,10 +125,10 @@ def file_get_or_create(fp, filename, check_size=False):
     fp.seek(0)
     check_sum = file_checksum(fp)
     try:
-        return File.objects.get(hash_sum=check_sum), check_sum
+        return table.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
-        db_file = File()
-        db_file.file.save(filename, NewFile(fp))
+        db_file = table()
+        db_file.file.save(filename, File(fp))
         db_file.hash_sum = check_sum
         db_file.save()
         return db_file, check_sum
@@ -190,8 +189,8 @@ def has_references(obj):
 
 # Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
 class ArchiveFileContent(object):
-    def __init__(self, file_model, file_name=None, max_size=None):
-        self._file = file_model
+    def __init__(self, report, file_name=None, max_size=None):
+        self._report = report
         self._max_size = max_size
         self._name = file_name
         self.error = None
@@ -202,7 +201,7 @@ class ArchiveFileContent(object):
             self.error = 'Unknown error'
 
     def __extract_file_content(self):
-        with File.objects.get(pk=self._file.pk).file as fp:
+        with self._report.archive as fp:
             with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
                 for f in arch.getmembers():
                     if f.isreg():

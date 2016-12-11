@@ -161,7 +161,7 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = file_get_or_create(args['error_trace'], ET_FILE_NAME)[0]
+                mark.error_trace = file_get_or_create(args['error_trace'], ET_FILE_NAME, ConvertedTraces)[0]
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:

@@ -24,8 +24,8 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
-from jobs.models import RunHistory
-from jobs.utils import JobAccess, File, change_job_status
+from jobs.models import RunHistory, JobFile
+from jobs.utils import JobAccess, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent
 from service.models import *
 
@@ -946,9 +946,9 @@ class StartJobDecision(object):
         m.seek(0)
         check_sum = file_checksum(m)
         try:
-            db_file = File.objects.get(hash_sum=check_sum)
+            db_file = JobFile.objects.get(hash_sum=check_sum)
         except ObjectDoesNotExist:
-            db_file = File()
+            db_file = JobFile()
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()

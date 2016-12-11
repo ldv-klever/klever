@@ -31,7 +31,7 @@ from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMA
 from bridge.utils import logger
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
-from jobs.models import Job, JobHistory, FileSystem, File, UserRole
+from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from users.notifications import Notify
 from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
@@ -271,9 +271,7 @@ class SaveFileData(object):
                 fs_elem = FileSystem()
                 fs_elem.job = self.job
                 if lvl_elem['parent']:
-                    parent_pk = self.filedata_hash[lvl_elem['parent']].get(
-                        'pk', None
-                    )
+                    parent_pk = self.filedata_hash[lvl_elem['parent']].get('pk')
                     if parent_pk is None:
                         return _("Saving folder failed")
                     try:
@@ -283,9 +281,7 @@ class SaveFileData(object):
                     fs_elem.parent = parent
                 if lvl_elem['type'] == '1':
                     try:
-                        fs_elem.file = File.objects.get(
-                            hash_sum=lvl_elem['hash_sum']
-                        )
+                        fs_elem.file = JobFile.objects.get(hash_sum=lvl_elem['hash_sum'])
                     except ObjectDoesNotExist:
                         return _("The file was not uploaded")
                 if not all(ord(c) < 128 for c in lvl_elem['title']):

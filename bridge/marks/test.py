@@ -869,7 +869,7 @@ class TestMarks(KleverTestCase):
         unknown = None
 
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            afc = ArchiveFileContent(u.archive, file_name=u.problem_description)
+            afc = ArchiveFileContent(u, file_name=u.problem_description)
             self.assertIsNone(afc.error)
             if afc.content == "ValueError: got wrong attribute: 'rule'.":
                 unknown = u

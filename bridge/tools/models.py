@@ -4,26 +4,21 @@ from django.db.models.signals import pre_delete, post_delete
 from django.dispatch.dispatcher import receiver
 from bridge.settings import FILES_AUTODELETE
 from bridge.utils import has_references
-from jobs.models import File, RunHistory, FileSystem
-from reports.models import ReportComponent, ReportFiles, ReportUnsafe, ETVFiles, ReportSafe, ReportUnknown
-from marks.models import MarkUnsafe
+from jobs.models import RunHistory, FileSystem, JobFile
+from reports.models import ReportComponent, ReportUnsafe, ReportSafe, ReportUnknown
+from marks.models import MarkUnsafe, ConvertedTraces, ErrorTraceConvertionCache
 
 
 MODELS_WITH_FILE = {
-    RunHistory: ['configuration'],
-    FileSystem: ['file'],
-    ReportComponent: ['log', 'data'],
-    ReportFiles: ['file'],
-    ReportUnsafe: ['error_trace'],
-    ETVFiles: ['file'],
-    ReportSafe: ['proof'],
-    ReportUnknown: ['problem_description'],
-    MarkUnsafe: ['error_trace']
+    RunHistory: (JobFile, 'configuration'),
+    FileSystem: (JobFile, 'file'),
+    MarkUnsafe: (ConvertedTraces, 'error_trace'),
+    ErrorTraceConvertionCache: (ConvertedTraces, 'converted')
 }
 
 
 class FilesToCheck(models.Model):
-    instance_id = models.CharField(max_length=64)
+    instance_id = models.CharField(max_length=64, db_index=True)
     file_id = models.IntegerField()
 
     class Meta:
@@ -35,19 +30,16 @@ def create_functions(m):
     @receiver(pre_delete, sender=m)
     def function_pre(**kwargs):
         instance = kwargs['instance']
-        for field in MODELS_WITH_FILE[m]:
-            file_field = getattr(instance, field)
-            if file_field is not None:
-                FilesToCheck.objects.create(instance_id='%s%s' % (type(instance), instance.pk), file_id=file_field.pk)
+        file_field = getattr(instance, MODELS_WITH_FILE[m][1])
+        if file_field is not None:
+            FilesToCheck.objects.create(instance_id='%s%s' % (type(instance), instance.pk), file_id=file_field.pk)
 
     @receiver(post_delete, sender=m)
     def function_post(**kwargs):
         instance = kwargs['instance']
-        checked = []
         for fc in FilesToCheck.objects.filter(instance_id='%s%s' % (type(instance), instance.pk)):
-            checked.append(fc.pk)
             try:
-                f = File.objects.get(pk=fc.file_id)
+                f = MODELS_WITH_FILE[m][0].objects.get(pk=fc.file_id)
                 if not has_references(f):
                     f.delete()
             except ObjectDoesNotExist:

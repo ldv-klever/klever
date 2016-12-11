@@ -21,7 +21,7 @@ from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create
 from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
-from marks.models import ErrorTraceConvertionCache
+from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
@@ -105,7 +105,7 @@ class GetConvertedErrorTrace(object):
         self._parsed_trace = None
 
     def __get_error_trace(self):
-        afc = ArchiveFileContent(self.unsafe.archive, file_name=self.unsafe.error_trace)
+        afc = ArchiveFileContent(self.unsafe, file_name=self.unsafe.error_trace)
         if afc.error is not None:
             logger.error("Can't get error trace for unsafe '%s': %s" % (self.unsafe.pk, afc.error), stack_info=True)
             self.error = "Can't get error trace for unsafe '%s'" % self.unsafe.pk
@@ -120,9 +120,9 @@ class GetConvertedErrorTrace(object):
             if res.error is not None:
                 self.error = res.error
                 return None
-            et_file = file_get_or_create(
-                BytesIO(json.dumps(res.pattern_error_trace,
-                                   ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')), ET_FILE_NAME
+            et_file = file_get_or_create(BytesIO(
+                json.dumps(res.pattern_error_trace, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+            ), ET_FILE_NAME, ConvertedTraces
             )[0]
             ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
             self._parsed_trace = res.pattern_error_trace

@@ -401,7 +401,7 @@ class GetSource(object):
         data = ''
         if file_name.startswith('/'):
             file_name = file_name[1:]
-        afc = ArchiveFileContent(self.report.archive, file_name=file_name)
+        afc = ArchiveFileContent(self.report, file_name=file_name)
         if afc.error is not None:
             self.error = afc.error
             return None

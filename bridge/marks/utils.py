@@ -435,7 +435,7 @@ class ConnectReportWithMarks(object):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
 
-        afc = ArchiveFileContent(self.report.archive, file_name=self.report.problem_description)
+        afc = ArchiveFileContent(self.report, file_name=self.report.problem_description)
         if afc.error is not None:
             logger.error("Can't get problem desc for unknown '%s': %s" % (self.report.pk, afc.error), stack_info=True)
             return
@@ -541,7 +541,7 @@ class ConnectMarkWithReports(object):
             self.changes[mark_unknown.report] = {'kind': '-'}
         self.mark.markreport_set.all().delete()
         for unknown in ReportUnknown.objects.filter(component=self.mark.component):
-            afc = ArchiveFileContent(unknown.archive, file_name=unknown.problem_description)
+            afc = ArchiveFileContent(unknown, file_name=unknown.problem_description)
             if afc.error is not None:
                 logger.error("Can't get problem desc for unknown '%s': %s" % (unknown.pk, afc.error), stack_info=True)
                 return

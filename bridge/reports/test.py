@@ -250,7 +250,7 @@ class TestReports(KleverTestCase):
         # TODO:
         # Next function get random file from archive, but if this file is error trace
         # then request to get source code is not tested.
-        afc = ArchiveFileContent(unsafe.archive)
+        afc = ArchiveFileContent(unsafe)
         self.assertEqual(afc.error, None)
         if afc._name != unsafe.error_trace:
             response = self.client.post('/reports/ajax/get_source/', {

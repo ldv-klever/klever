@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import os
 import re
 import json
 import tarfile
@@ -28,10 +27,11 @@ from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE
 from bridge.utils import logger, file_get_or_create
-from jobs.models import JOBFILE_DIR, RunHistory
-from jobs.utils import create_job, update_job, change_job_status
+from .models import JOBFILE_DIR, RunHistory, JobFile
+from .utils import create_job, update_job, change_job_status
 from reports.models import *
 from reports.utils import AttrData
+from tools.utils import Recalculation
 
 ET_FILE = 'unsafe-error-trace.graphml'
 
@@ -144,7 +144,7 @@ class DownloadJob(object):
             for report in table.objects.filter(root__job=self.job):
                 if report.archive is not None:
                     jobtar.add(
-                        os.path.join(settings.MEDIA_ROOT, report.archive.file.name),
+                        os.path.join(settings.MEDIA_ROOT, report.archive.name),
                         arcname=os.path.join(table.__name__, '%s.tar.gz' % report.pk)
                     )
 
@@ -209,7 +209,7 @@ class ReportsData(object):
 
         data = None
         if report.data is not None:
-            with report.data.file as fp:
+            with report.data as fp:
                 data = fp.read().decode('utf8')
         return {
             'pk': report.pk,
@@ -293,7 +293,7 @@ class UploadJob(object):
                 if dir_path.endswith(JOBFILE_DIR):
                     try:
                         files_in_db['/'.join([JOBFILE_DIR, file_name])] = file_get_or_create(
-                            open(os.path.join(dir_path, file_name), mode='rb'), file_name, True
+                            open(os.path.join(dir_path, file_name), mode='rb'), file_name, JobFile, True
                         )[1]
                     except Exception as e:
                         logger.exception("Can't save job files to DB: %s" % e)
@@ -420,7 +420,7 @@ class UploadJob(object):
                     RunHistory.objects.create(
                         job=job, status=rh['status'],
                         date=datetime(*rh['date'], tzinfo=pytz.timezone('UTC')),
-                        configuration=file_get_or_create(fp, 'config.json')[0]
+                        configuration=file_get_or_create(fp, 'config.json', JobFile)[0]
                     )
         except Exception as e:
             logger.exception("Run history data is corrupted: %s" % e)
@@ -526,49 +526,40 @@ class UploadReports(object):
             elif isinstance(data, str) and data == ReportUnknown.__name__:
                 curr_func = self.__create_report_unknown
         self._attrs.upload()
-
-        Verdict.objects.bulk_create(list(
-            Verdict(report=self._pk_map[rep_id]) for rep_id in self._pk_map
-        ))
-
-        from tools.utils import Recalculation
+        Verdict.objects.bulk_create(list(Verdict(report=self._pk_map[rep_id]) for rep_id in self._pk_map))
         Recalculation('all', json.dumps([self.job.pk], ensure_ascii=False, sort_keys=True, indent=4))
 
     def __create_report_component(self, data):
         parent = None
         if data.get('parent') is not None:
             parent = self._pk_map[data['parent']]
+        create_data = {
+            'root': self.job.reportroot, 'parent': parent, 'identifier': data['identifier'],
+            'computer': Computer.objects.get_or_create(description=data['computer'])[0],
+            'component': Component.objects.get_or_create(name=data['component'])[0],
+            'cpu_time': data['resource']['cpu_time'] if data['resource'] is not None else None,
+            'wall_time': data['resource']['wall_time'] if data['resource'] is not None else None,
+            'memory': data['resource']['memory'] if data['resource'] is not None else None,
+            'start_date': datetime(*data['start_date'], tzinfo=pytz.timezone('UTC')),
+            'finish_date': datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC')),
+            'data': ('report-data.json', BytesIO(data['data'].encode('utf8'))) if data['data'] is not None else None,
+            'log': data.get('log')
+        }
         if (ReportComponent.__name__, data['pk']) in self.files:
             with open(self.files[(ReportComponent.__name__, data['pk'])], mode='rb') as fp:
-                archive = file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+                create_data['archive'] = (REPORT_FILES_ARCHIVE, fp)
+                self._pk_map[data['pk']] = ReportComponent.objects.create(**create_data)
+                del create_data['archive']
         else:
-            archive = None
-        if 'log' not in data:
-            data['log'] = None
-        report_datafile = None
-        if data['data'] is not None:
-            report_datafile = file_get_or_create(BytesIO(data['data'].encode('utf8')), 'report-data.json')[0]
-
-        self._pk_map[data['pk']] = ReportComponent.objects.create(
-            root=self.job.reportroot, parent=parent, identifier=data['identifier'],
-            computer=Computer.objects.get_or_create(description=data['computer'])[0],
-            component=Component.objects.get_or_create(name=data['component'])[0],
-            cpu_time=data['resource']['cpu_time'] if data['resource'] is not None else None,
-            wall_time=data['resource']['wall_time'] if data['resource'] is not None else None,
-            memory=data['resource']['memory'] if data['resource'] is not None else None,
-            start_date=datetime(*data['start_date'], tzinfo=pytz.timezone('UTC')),
-            finish_date=datetime(*data['finish_date'], tzinfo=pytz.timezone('UTC')),
-            log=data['log'], data=report_datafile, archive=archive
-        )
+            self._pk_map[data['pk']] = ReportComponent.objects.create(**create_data)
         return self._pk_map[data['pk']].pk
 
     def __create_report_safe(self, data):
         if (ReportSafe.__name__, data['pk']) in self.files:
             with open(self.files[(ReportSafe.__name__, data['pk'])], mode='rb') as fp:
                 return ReportSafe.objects.create(
-                    root=self.job.reportroot, parent=self._pk_map[data['parent']],
-                    identifier=data['identifier'], proof=data['proof'],
-                    archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+                    root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
+                    proof=data['proof'], archive=(REPORT_FILES_ARCHIVE, fp)
                 ).pk
         return ReportSafe.objects.create(
             root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier']
@@ -578,8 +569,7 @@ class UploadReports(object):
         with open(self.files[(ReportUnknown.__name__, data['pk'])], mode='rb') as fp:
             return ReportUnknown.objects.create(
                 root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
-                problem_description=data['problem_description'],
-                archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0],
+                problem_description=data['problem_description'], archive=(REPORT_FILES_ARCHIVE, fp),
                 component=Component.objects.get_or_create(name=data['component'])[0]
             ).pk
 
@@ -587,5 +577,5 @@ class UploadReports(object):
         with open(self.files[(ReportUnsafe.__name__, data['pk'])], mode='rb') as fp:
             return ReportUnsafe.objects.create(
                 root=self.job.reportroot, parent=self._pk_map[data['parent']], identifier=data['identifier'],
-                error_trace=data['error_trace'], archive=file_get_or_create(fp, REPORT_FILES_ARCHIVE)[0]
+                error_trace=data['error_trace'], archive=(REPORT_FILES_ARCHIVE, fp)
             ).pk

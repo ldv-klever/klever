@@ -17,9 +17,31 @@
 
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
-from jobs.models import Job, File
+from jobs.models import Job
+
+CONVERTED_DIR = 'Error-traces'
+
+
+class ConvertedTraces(models.Model):
+    hash_sum = models.CharField(max_length=255)
+    file = models.FileField(upload_to=CONVERTED_DIR, null=False)
+
+    class Meta:
+        db_table = 'file'
+
+    def __str__(self):
+        return self.hash_sum
+
+
+@receiver(pre_delete, sender=ConvertedTraces)
+def converted_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.file.storage, file.file.path
+    storage.delete(path)
 
 
 class UnknownProblem(models.Model):
@@ -126,7 +148,7 @@ class MarkUnsafe(Mark):
     prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.ForeignKey(File)
+    error_trace = models.ForeignKey(ConvertedTraces)
 
     class Meta:
         db_table = 'mark_unsafe'
@@ -299,7 +321,7 @@ class MarkAssociationsChanges(models.Model):
 class ErrorTraceConvertionCache(models.Model):
     unsafe = models.ForeignKey(ReportUnsafe)
     function = models.ForeignKey(MarkUnsafeConvert)
-    converted = models.ForeignKey(File)
+    converted = models.ForeignKey(ConvertedTraces)
 
     class Meta:
         db_table = 'cache_error_trace_converted'

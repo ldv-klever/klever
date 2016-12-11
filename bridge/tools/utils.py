@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import os
 import json
 from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
@@ -23,17 +22,25 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
 from bridge.utils import logger, has_references
 from bridge.vars import ATTR_STATISTIC
-from jobs.models import JOBFILE_DIR
+from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 from reports.models import *
 from marks.models import *
 
 
-def clear_files():
+def clear_files(files_type):
+    if files_type == 'job':
+        table = JobFile
+        files_dir = JOBFILE_DIR
+    elif files_type == 'converted':
+        table = ConvertedTraces
+        files_dir = CONVERTED_DIR
+    else:
+        return
     files_in_the_system = set()
     files_to_delete = set()
-    for f in File.objects.all():
+    for f in table.objects.all():
         if has_references(f):
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
             files_in_the_system.add(file_path)
@@ -42,8 +49,8 @@ def clear_files():
                 files_to_delete.add(f.pk)
         else:
             files_to_delete.add(f.pk)
-    File.objects.filter(id__in=files_to_delete).delete()
-    files_directory = os.path.join(MEDIA_ROOT, JOBFILE_DIR)
+    table.objects.filter(id__in=files_to_delete).delete()
+    files_directory = os.path.join(MEDIA_ROOT, files_dir)
     if os.path.exists(files_directory):
         for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
             if f not in files_in_the_system:

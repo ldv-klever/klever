@@ -304,7 +304,7 @@ class TestJobs(KleverTestCase):
         self.assertIn('checksum', res)
 
         try:
-            newfile = File.objects.get(hash_sum=res['checksum'])
+            newfile = JobFile.objects.get(hash_sum=res['checksum'])
         except ObjectDoesNotExist:
             self.fail('The file was not uploaded')
 

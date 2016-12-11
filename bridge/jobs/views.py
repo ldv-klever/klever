@@ -531,7 +531,7 @@ def upload_file(request):
             if title_size > 30:
                 fname = fname[(title_size - 30):]
         try:
-            check_sum = file_get_or_create(request.FILES[f], fname, True)[1]
+            check_sum = file_get_or_create(request.FILES[f], fname, JobFile, True)[1]
         except Exception as e:
             return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
         return JsonResponse({'checksum': check_sum})
@@ -892,14 +892,14 @@ def get_file_by_checksum(request):
         return JsonResponse({'error': 'Unknown error'})
     if len(check_sums) == 1:
         try:
-            f = File.objects.get(hash_sum=check_sums[0])
+            f = JobFile.objects.get(hash_sum=check_sums[0])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         return HttpResponse(f.file.read())
     elif len(check_sums) == 2:
         try:
-            f1 = File.objects.get(hash_sum=check_sums[0])
-            f2 = File.objects.get(hash_sum=check_sums[1])
+            f1 = JobFile.objects.get(hash_sum=check_sums[0])
+            f2 = JobFile.objects.get(hash_sum=check_sums[1])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         diff_result = []
@@ -910,7 +910,6 @@ def get_file_by_checksum(request):
             ):
                 diff_result.append(line)
         return HttpResponse('\n'.join(diff_result))
-
     return JsonResponse({'error': 'Unknown error'})
 
 
