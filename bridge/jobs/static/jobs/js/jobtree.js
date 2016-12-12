@@ -304,6 +304,7 @@ function compare_jobs() {
         },
         function (data) {
             if (data.error) {
+                $('#dimmer_of_page').removeClass('active');
                 err_notify(data.error);
             }
             else {
@@ -314,11 +315,11 @@ function compare_jobs() {
                         job2: selected_jobs[1]
                     },
                     function (data) {
+                        $('#dimmer_of_page').removeClass('active');
                         if (data.error) {
                             err_notify(data.error);
                         }
                         else {
-                            $('#dimmer_of_page').removeClass('active');
                             window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
                         }
                     },
