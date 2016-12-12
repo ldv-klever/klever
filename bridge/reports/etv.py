@@ -355,13 +355,14 @@ class ParseErrorTrace:
             # other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
             # self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
-            if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
-                self.lines[i]['type'] = 'eye-control'
-            elif self.lines[i]['type'] == 'enter' and self.lines[i]['scope'] != 'scope__klever_main__0' \
-                    and self.lines[i]['hide_id'] not in self.scopes_to_show:
-                self.lines[i]['type'] = 'eye-control'
-                if 'func' in self.lines[i]:
-                    del self.lines[i]['func']
+
+            if self.lines[i]['scope'] != 'scope__klever_main__0':
+                if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
+                    self.lines[i]['type'] = 'eye-control'
+                elif self.lines[i]['type'] == 'enter' and self.lines[i]['hide_id'] not in self.scopes_to_show:
+                    self.lines[i]['type'] = 'eye-control'
+                    if 'func' in self.lines[i]:
+                        del self.lines[i]['func']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = self.lines[i]['scope'] not in self.scopes_to_show
