@@ -301,14 +301,9 @@ def edit_job(request):
         if j.version == job.version:
             title = _("Current version")
         else:
-            job_time = j.change_date.astimezone(
-                pytz.timezone(request.user.extended.timezone)
-            )
+            job_time = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
             title = job_time.strftime("%d.%m.%Y %H:%M:%S")
-            title += " (%s %s)" % (
-                j.change_author.extended.last_name,
-                j.change_author.extended.first_name,
-            )
+            title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
             title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
@@ -368,7 +363,7 @@ def get_job_versions(request):
     job_versions = []
     for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
         title = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (j.change_author.extended.last_name, j.change_author.extended.first_name)
+        title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
         title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
@@ -394,7 +389,7 @@ def copy_new_job(request):
     for u in User.objects.filter(~Q(pk=request.user.pk)):
         roles['available_users'].append({
             'id': u.pk,
-            'name': u.extended.last_name + ' ' + u.extended.first_name
+            'name': u.last_name + ' ' + u.first_name
         })
 
     job = get_object_or_404(Job, pk=int(request.POST.get('parent_id', 0)))
@@ -487,15 +482,7 @@ def remove_jobs(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
-    status = remove_jobs_by_id(request.user, jobs_for_del)
-    if status == 404:
-        if len(jobs_for_del) == 1:
-            return JsonResponse({'error': _('The job was not found')})
-        return JsonResponse({'error': _('One of the selected jobs was not found')})
-    elif status == 400:
-        if len(jobs_for_del) == 1:
-            return JsonResponse({'error': _("You don't have an access to remove this job")})
-        return JsonResponse({'error': _("You don't have an access to remove one of the selected jobs")})
+    remove_jobs_by_id(request.user, jobs_for_del)
     return JsonResponse({})
 
 
@@ -968,4 +955,19 @@ def collapse_reports(request):
     if not JobAccess(request.user, job).can_collapse():
         return JsonResponse({'error': _("You don't have an access to collapse reports")})
     CollapseReports(job)
+    return JsonResponse({})
+
+
+@login_required
+def do_job_has_children(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        job = Job.objects.get(pk=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': str(_('The job was not found'))})
+    if len(job.children.all()) > 0:
+        return JsonResponse({'children': True})
     return JsonResponse({})

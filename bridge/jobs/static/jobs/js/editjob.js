@@ -811,8 +811,9 @@ $(document).ready(function () {
     view_job_1st_part.find('.ui.dropdown').dropdown();
     $('.normal-popup').popup({position: 'bottom center'});
     $('#remove_job_popup').modal({
-        transition: 'fly up', autofocus: false, closable: false})
+        transition: 'fade in', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
+    $('#remove_job_with_children_popup').modal({transition: 'fade in', autofocus: false, closable: false});
     $('#fast_start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_fast_job_start_popup', 'show');
@@ -832,6 +833,9 @@ $(document).ready(function () {
 
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
+    });
+    $('#cancel_remove_job_with_children').click(function () {
+        $('#remove_job_with_children_popup').modal('hide');
     });
     $('#cancel_fast_start_job').click(function () {
         $('#fast_start_job_popup').modal('hide');
@@ -899,6 +903,35 @@ $(document).ready(function () {
 
     $('#remove_job_btn').click(function () {
         $('#remove_job_popup').modal('hide');
+        $.post(
+            job_ajax_url + 'do_job_has_children/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                    return false;
+                }
+                if (data.children) {
+                    $('#remove_job_with_children_popup').modal('show');
+                }
+                else {
+                    $('#dimmer_of_page').addClass('active');
+                    $.post(
+                        job_ajax_url + 'removejobs/',
+                        {jobs: JSON.stringify([$('#job_pk').val()])},
+                        function (data) {
+                            $('#dimmer_of_page').removeClass('active');
+                            data.error ? err_notify(data.error) : window.location.replace('/jobs/');
+                        },
+                        'json'
+                    );
+                }
+            },
+            'json'
+        );
+    });
+    $('#remove_job_with_children_btn').click(function () {
+        $('#remove_job_with_children_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'removejobs/',

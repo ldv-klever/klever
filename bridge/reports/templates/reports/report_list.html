@@ -14,7 +14,7 @@
                 </div>
                 <div class="seven wide column">
                     <span class="purple-title">{% trans 'Author' %}: </span>
-                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.last_name }} {{ report.root.user.first_name }}</a>
                 </div>
             </div>
         </div>

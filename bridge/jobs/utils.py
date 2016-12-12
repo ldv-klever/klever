@@ -113,6 +113,7 @@ TITLES = {
 class JobAccess(object):
 
     def __init__(self, user, job=None):
+        self.user = user
         self.job = job
         self.__is_author = False
         self.__job_role = None
@@ -162,8 +163,9 @@ class JobAccess(object):
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children.all()) > 0:
-            return False
+        for ch in self.job.children.all():
+            if not JobAccess(self.user, ch).can_delete():
+                return False
         if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
         if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
@@ -406,7 +408,7 @@ def role_info(job, user):
     job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
-        title = ur.user.extended.last_name + ' ' + ur.user.extended.first_name
+        title = ur.user.last_name + ' ' + ur.user.first_name
         u_id = ur.user_id
         user_roles_data.append({
             'user': {'id': u_id, 'name': title},
@@ -421,27 +423,20 @@ def role_info(job, user):
         if u != job_author:
             available_users.append({
                 'id': u.pk,
-                'name': u.extended.last_name + ' ' + u.extended.first_name
+                'name': u.last_name + ' ' + u.first_name
             })
     roles_data['available_users'] = available_users
     return roles_data
 
 
 def create_version(job, kwargs):
-    new_version = JobHistory()
-    new_version.job = job
-    new_version.parent = job.parent
-    new_version.version = job.version
-    new_version.change_author = job.change_author
-    new_version.change_date = job.change_date
-    new_version.name = job.name
-    if 'comment' in kwargs:
-        new_version.comment = kwargs['comment']
-    if 'global_role' in kwargs and \
-            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+    new_version = JobHistory(
+        job=job, parent=job.parent, version=job.version, name=job.name,
+        change_author=job.change_author, change_date=job.change_date,
+        comment=kwargs.get('comment', ''), description=kwargs.get('description', '')
+    )
+    if 'global_role' in kwargs and kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
         new_version.global_role = kwargs['global_role']
-    if 'description' in kwargs:
-        new_version.description = kwargs['description']
     new_version.save()
     if 'user_roles' in kwargs:
         for ur in kwargs['user_roles']:
@@ -449,22 +444,16 @@ def create_version(job, kwargs):
                 ur_user = User.objects.get(pk=int(ur['user']))
             except ObjectDoesNotExist:
                 continue
-            new_ur = UserRole()
-            new_ur.job = new_version
-            new_ur.user = ur_user
-            new_ur.role = ur['role']
-            new_ur.save()
+            UserRole.objects.create(job=new_version, user=ur_user, role=ur['role'])
     return new_version
 
 
 def create_job(kwargs):
-    newjob = Job()
     if 'name' not in kwargs or len(kwargs['name']) == 0:
         return _("The job title is required")
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
         return _("The job author is required")
-    newjob.name = kwargs['name']
-    newjob.change_author = kwargs['author']
+    newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
@@ -472,11 +461,6 @@ def create_job(kwargs):
         newjob.type = kwargs['type']
     else:
         return _("The parent or the job class is required")
-    if 'pk' in kwargs:
-        try:
-            Job.objects.get(pk=int(kwargs['pk']))
-        except ObjectDoesNotExist:
-            newjob.pk = int(kwargs['pk'])
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
@@ -549,22 +533,18 @@ def update_job(kwargs):
 
 
 def remove_jobs_by_id(user, job_ids):
-    jobs = []
     for job_id in job_ids:
         try:
-            jobs.append(Job.objects.get(pk=job_id))
+            job = Job.objects.get(pk=job_id)
         except ObjectDoesNotExist:
-            return 404
-    for job in jobs:
+            continue
         if not JobAccess(user, job).can_delete():
-            return 400
-    for job in jobs:
+            continue
         try:
             Notify(job, 2)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
         job.delete()
-    return 0
 
 
 def delete_versions(job, versions):

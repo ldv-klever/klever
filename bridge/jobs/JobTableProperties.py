@@ -704,8 +704,7 @@ class TableTree(object):
                             )
                     try:
                         values_data[j['pk']]['operator'] = (
-                            j['job'].reportroot.user.extended.last_name +
-                            ' ' + j['job'].reportroot.user.extended.first_name,
+                            j['job'].reportroot.user.last_name + ' ' + j['job'].reportroot.user.first_name,
                             reverse('users:show_profile', args=[j['job'].reportroot.user.pk])
                         )
                     except ObjectDoesNotExist:
@@ -716,7 +715,7 @@ class TableTree(object):
                 if j['pk'] in values_data:
                     author = j['job'].change_author
                     if author is not None:
-                        name = author.extended.last_name + ' ' + author.extended.first_name
+                        name = author.last_name + ' ' + author.first_name
                         author_href = reverse('users:show_profile', args=[author.pk])
                         values_data[j['pk']]['author'] = (name, author_href)
 

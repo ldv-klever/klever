@@ -46,7 +46,7 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.extended.role = role
         user.extended.save()
     except ObjectDoesNotExist:
-        Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
+        Extended.objects.create(role=role, user=user)
 
 
 class PopulationError(Exception):
@@ -120,7 +120,7 @@ class Population(object):
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
-            manager = User.objects.create(username=manager_username)
+            manager = User.objects.create(username=manager_username, first_name='Firstname', last_name='Lastname')
             self.changes['manager'] = {
                 'username': manager.username,
                 'password': self.__add_password(manager)
@@ -134,7 +134,7 @@ class Population(object):
         try:
             extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
         except ObjectDoesNotExist:
-            service = User.objects.create(username=service_username)
+            service = User.objects.create(username=service_username, first_name='Firstname', last_name='Lastname')
             extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
@@ -343,12 +343,10 @@ def populate_users(admin=None, manager=None, service=None):
             admin['first_name'] = 'Firstname'
         try:
             user = User.objects.get(username=admin['username'])
-            Extended.objects.create(
-                last_name=admin['last_name'],
-                first_name=admin['first_name'],
-                role=USER_ROLES[1][0],
-                user=user
-            )
+            user.first_name = admin['first_name']
+            user.last_name = admin['last_name']
+            user.save()
+            Extended.objects.create(user=user, role=USER_ROLES[1][0])
         except ObjectDoesNotExist:
             return 'Administrator with specified username does not exist'
     if manager is not None:
@@ -366,15 +364,12 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=manager['username'])
             return 'Manager with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=manager['username'])
+            newuser = User(
+                username=manager['username'], first_name=manager['first_name'], last_name=manager['last_name']
+            )
             newuser.set_password(manager['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=manager['last_name'],
-                first_name=manager['first_name'],
-                role=USER_ROLES[2][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[2][0])
     if service is not None:
         if not isinstance(service, dict):
             return 'Wrong service format'
@@ -390,13 +385,10 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=service['username'])
             return 'Service with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=service['username'])
+            newuser = User(
+                username=service['username'], last_name=service['last_name'], first_name=service['first_name']
+            )
             newuser.set_password(service['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=service['last_name'],
-                first_name=service['first_name'],
-                role=USER_ROLES[4][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
     return None

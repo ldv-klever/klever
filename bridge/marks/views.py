@@ -122,7 +122,7 @@ def edit_mark(request, mark_type, mark_id):
                 change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
                 title = change_time.strftime("%d.%m.%Y %H:%M:%S")
                 if m.author is not None:
-                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
+                    title += " (%s %s)" % (m.author.last_name, m.author.first_name)
                 title += ': ' + m.comment
             mark_versions.append({'version': m.version, 'title': title})
 
@@ -485,7 +485,7 @@ def get_mark_versions(request):
         mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
         if m.author is not None:
-            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
+            title += " (%s %s)" % (m.author.last_name, m.author.first_name)
         title += ': ' + m.comment
         mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})

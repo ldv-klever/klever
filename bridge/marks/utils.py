@@ -401,9 +401,6 @@ class ConnectReportWithMarks(object):
             if all(x in mark_attrs for x in [x for x in unsafe_attrs if x[0] in [y[0] for y in mark_attrs]]):
                 marks_to_compare.append(mark)
 
-        if len(marks_to_compare) == 0:
-            return
-
         for mark in marks_to_compare:
             compare_failed = False
             with mark.error_trace.file as fp:

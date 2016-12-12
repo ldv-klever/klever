@@ -80,7 +80,7 @@
                     {% if created_by %}
                         <tr>
                             <th class="right aligned">{% trans 'Created by' %}</th>
-                            <td><a class="violet-link" href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.extended.last_name }} {{ created_by.extended.first_name }}</a></td>
+                            <td><a class="violet-link" href="{% url 'users:show_profile' created_by.pk %}">{{ created_by.last_name }} {{ created_by.first_name }}</a></td>
                         </tr>
                     {% endif %}
                     {% if parents %}
@@ -130,7 +130,7 @@
                                 {% endtimezone %}
                             {% endif %}
                             {% if last_version.change_author %}
-                                (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
+                                (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.last_name }} {{ last_version.change_author.first_name }}</a>)
                             {% endif %}
                             {% if last_version.comment|length %}
                                 <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ last_version.comment }}"</small></p>
@@ -278,6 +278,23 @@
                 <div class="ui center aligned grid">
                     <button id="cancel_collapse_reports" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <button id="collapse_reports_btn" class="ui orange basic inverted button">{% trans 'Collapse' %}</button>
+                </div>
+            </div>
+        </div>
+        <div id="remove_job_with_children_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans "The job has children, and all of them will be deleted" %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_remove_job_with_children" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="remove_job_with_children_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
                 </div>
             </div>
         </div>

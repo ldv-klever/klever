@@ -43,10 +43,13 @@ def can_compare(user, job1, job2):
 class ReportTree(object):
     def __init__(self, job):
         self.job = job
-        self.attrs = JOBS_COMPARE_ATTRS[job.type]
+        self.name_ids = self.__get_attr_names()
         self.reports = {}
         self.attr_values = {}
         self.__get_tree()
+
+    def __get_attr_names(self):
+        return list(x.pk for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]))
 
     def __get_tree(self):
         leaves_data = {'u': {}, 's': {}, 'f': {}}
@@ -69,15 +72,15 @@ class ReportTree(object):
             leaves[u.pk] = u.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
-            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
 
         for u_id in leaves:
-            if u_id not in leaves_attrs or any(a_name not in leaves_attrs[u_id] for a_name in self.attrs):
+            if u_id not in leaves_attrs or any(name_id not in leaves_attrs[u_id] for name_id in self.name_ids):
                 continue
-            attrs_id = json.dumps(list(leaves_attrs[u_id][a_name] for a_name in self.attrs), ensure_ascii=False)
+            attrs_id = json.dumps(list(leaves_attrs[u_id][name_id] for name_id in self.name_ids), ensure_ascii=False)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {'ids': [u_id], 'verdict': COMPARE_VERDICT[1][0]}
             else:
@@ -93,15 +96,15 @@ class ReportTree(object):
             leaves[s.pk] = s.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
-            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
 
         for s_id in leaves:
-            if s_id not in leaves_attrs or any(a_name not in leaves_attrs[s_id] for a_name in self.attrs):
+            if s_id not in leaves_attrs or any(name_id not in leaves_attrs[s_id] for name_id in self.name_ids):
                 continue
-            attrs_id = json.dumps(list(leaves_attrs[s_id][a_name] for a_name in self.attrs), ensure_ascii=False)
+            attrs_id = json.dumps(list(leaves_attrs[s_id][name_id] for name_id in self.name_ids), ensure_ascii=False)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {'ids': [s_id], 'verdict': COMPARE_VERDICT[0][0]}
             else:
@@ -117,15 +120,15 @@ class ReportTree(object):
             leaves[u.pk] = u.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name__name__in=self.attrs):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
-            leaves_attrs[ra.report_id][ra.attr.name.name] = ra.attr.value
+            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
 
         for f_id in leaves:
-            if f_id not in leaves_attrs or any(a_name not in leaves_attrs[f_id] for a_name in self.attrs):
+            if f_id not in leaves_attrs or any(name_id not in leaves_attrs[f_id] for name_id in self.name_ids):
                 continue
-            attrs_id = json.dumps(list(leaves_attrs[f_id][a_name] for a_name in self.attrs), ensure_ascii=False)
+            attrs_id = json.dumps(list(leaves_attrs[f_id][name_id] for name_id in self.name_ids), ensure_ascii=False)
             if attrs_id not in self.attr_values:
                 self.attr_values[attrs_id] = {'ids': [f_id], 'verdict': COMPARE_VERDICT[3][0]}
             else:
