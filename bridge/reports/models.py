@@ -26,7 +26,7 @@ LOG_DIR = 'ReportLogs'
 
 
 def get_component_path(instance, filename):
-    return os.path.join('Reprots', instance.component.name, '%Y', '%m', filename)
+    return os.path.join('Reports', instance.component.name, '%Y', '%m', filename)
 
 
 class AttrName(models.Model):
@@ -99,19 +99,6 @@ class ReportComponent(Report):
     archive = models.FileField(upload_to=get_component_path, null=True)
     data = models.FileField(upload_to=get_component_path, null=True)
 
-    def save(self, *args, **kwargs):
-        # kwargs['archive'] and kwargs['data'] are tuples (filename, file_pointer)
-        if not self.pk:
-            if 'archive' in kwargs:
-                if isinstance(kwargs['archive'], tuple):
-                    self.archive.save(kwargs['archive'][0], File(kwargs['archive'][1]), False)
-                del kwargs['archive']
-            if 'data' in kwargs:
-                if isinstance(kwargs['data'], tuple):
-                    self.data.save(kwargs['data'][0], File(kwargs['data'][1]), False)
-                del kwargs['data']
-        super(ReportComponent, self).save(*args, **kwargs)
-
     def new_data(self, fname, fp, save=False):
         self.data.save(fname, File(fp), save)
 
@@ -127,15 +114,6 @@ class ReportUnsafe(Report):
     error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
 
-    def save(self, *args, **kwargs):
-        # kwargs['archive'] is tuple (filename, file_pointer)
-        if not self.pk:
-            if 'archive' not in kwargs or not isinstance(kwargs['archive'], tuple):
-                raise ValueError('ReportUnsafe must have archive tuple')
-            self.archive.save(kwargs['archive'][0], File(kwargs['archive'][1]))
-            del kwargs['archive']
-        super(ReportUnsafe, self).save(*args, **kwargs)
-
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
 
@@ -148,13 +126,8 @@ class ReportSafe(Report):
     proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
 
-    def save(self, *args, **kwargs):
-        # kwargs['archive'] is tuple (filename, file_pointer)
-        if not self.pk and 'archive' in kwargs:
-            if isinstance(kwargs['archive'], tuple):
-                self.archive.save(kwargs['archive'][0], File(kwargs['archive'][1]))
-            del kwargs['archive']
-        super(ReportSafe, self).save(*args, **kwargs)
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_safe'
@@ -165,14 +138,8 @@ class ReportUnknown(Report):
     archive = models.FileField(upload_to='Unknowns/%Y/%m')
     problem_description = models.CharField(max_length=128)
 
-    def save(self, *args, **kwargs):
-        # kwargs['archive'] is tuple (filename, file_pointer)
-        if not self.pk:
-            if 'archive' not in kwargs or not isinstance(kwargs['archive'], tuple):
-                raise ValueError('ReportUnknown must have archive tuple')
-            self.archive.save(kwargs['archive'][0], File(kwargs['archive'][1]))
-            del kwargs['archive']
-        super(ReportUnknown, self).save(*args, **kwargs)
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_unknown'

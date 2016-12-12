@@ -228,14 +228,13 @@ class UploadReport(object):
             ReportComponent.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
-            report_data = None
-            if 'data' in self.data:
-                if self.job.light and self.data['id'] == '/' or not self.job.light:
-                    report_data = ('report-data.json', BytesIO(self.data['data'].encode('utf8')))
             report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root, start_date=now(), data=report_data,
+                identifier=identifier, parent=self.parent, root=self.root, start_date=now(),
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
+            if 'data' in self.data:
+                if self.job.light and self.data['id'] == '/' or not self.job.light:
+                    report.new_data('report-data.json', BytesIO(self.data['data'].encode('utf8')))
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
@@ -254,7 +253,7 @@ class UploadReport(object):
 
         if self.archive is not None:
             if not self.job.light or self.data['type'] == 'verification' or self.data['id'] == '/':
-                report.archive = (REPORT_FILES_ARCHIVE, self.archive)
+                report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
                 report.log = self.data.get('log')
 
         report.save()
@@ -343,10 +342,12 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             if self.archive is None:
                 raise ValueError('unknown report must contain archive with problem description')
-        report = ReportUnknown.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component,
-            archive=(REPORT_FILES_ARCHIVE, self.archive), problem_description=self.data['problem desc']
+        report = ReportUnknown(
+            identifier=identifier, parent=self.parent, root=self.root,
+            component=self.parent.component, problem_description=self.data['problem desc']
         )
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+        report.save()
 
         self.__collect_attrs(report)
         if 'attrs' in self.data:
@@ -384,10 +385,12 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             if self.archive is None:
                 raise ValueError('unknown report must contain archive with problem description')
-        report = ReportUnknown.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root, component=self.parent.component,
-            archive=(REPORT_FILES_ARCHIVE, self.archive), problem_description=self.data['problem desc']
+        report = ReportUnknown(
+            identifier=identifier, parent=self.parent, root=self.root,
+            component=self.parent.component, problem_description=self.data['problem desc']
         )
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+        report.save()
 
         self.__collect_attrs(report)
         if 'attrs' in self.data:
@@ -422,11 +425,11 @@ class UploadReport(object):
             ReportSafe.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
-            report = ReportSafe.objects.create(
-                identifier=identifier, parent=self.parent, root=self.root,
-                archive=(REPORT_FILES_ARCHIVE, self.archive) if self.archive is not None else None,
-                proof=self.data['proof'] if self.archive is not None else None
-            )
+            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
+        if self.archive is not None:
+            report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+            report.proof = self.data['proof']
+        report.save()
 
         self.root.safes += 1
         self.root.save()
@@ -489,10 +492,11 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             if self.archive is None:
                 raise ValueError('unsafe report must contain archive with error trace and source code files')
-        report = ReportUnsafe.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root,
-            archive=(REPORT_FILES_ARCHIVE, self.archive), error_trace=self.data['error trace']
+        report = ReportUnsafe(
+            identifier=identifier, parent=self.parent, root=self.root, error_trace=self.data['error trace']
         )
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+        report.save()
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
@@ -527,9 +531,10 @@ class UploadReport(object):
             if self.archive is None:
                 raise ValueError('unsafe report must contain archive with error trace and source code files')
         report = ReportUnsafe.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root,
-            archive=(REPORT_FILES_ARCHIVE, self.archive), error_trace=self.data['error trace']
+            identifier=identifier, parent=self.parent, root=self.root, error_trace=self.data['error trace']
         )
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+        report.save()
 
         # Each verification report must have only one unsafe child
         # In other cases unsafe reports will be without attributes

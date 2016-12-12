@@ -49,11 +49,12 @@ class ReportTree(object):
         self.__get_tree()
 
     def __get_attr_names(self):
-        return list(x.pk for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]))
+        return list(x.id for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]).only('id'))
 
     def __get_tree(self):
         leaves_data = {'u': {}, 's': {}, 'f': {}}
-        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job):
+        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job).select_related('report')\
+                .only('report__parent_id', 'unsafe', 'safe', 'unknown'):
             if leaf.unsafe is not None:
                 if leaf.unsafe_id not in leaves_data['u']:
                     leaves_data['u'][leaf.unsafe_id] = {}
@@ -68,11 +69,12 @@ class ReportTree(object):
                 leaves_data['f'][leaf.unknown_id][leaf.report_id] = leaf.report.parent_id
 
         leaves = {}
-        for u in ReportUnsafe.objects.filter(root__job=self.job):
-            leaves[u.pk] = u.parent_id
+        for u in ReportUnsafe.objects.filter(root__job=self.job).only('id', 'parent_id'):
+            leaves[u.id] = u.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids)\
+                .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
             leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
@@ -92,11 +94,12 @@ class ReportTree(object):
         del leaves_data['u']
 
         leaves = {}
-        for s in ReportSafe.objects.filter(root__job=self.job):
-            leaves[s.pk] = s.parent_id
+        for s in ReportSafe.objects.filter(root__job=self.job).only('id', 'parent_id'):
+            leaves[s.id] = s.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids)\
+                .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
             leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
@@ -116,11 +119,12 @@ class ReportTree(object):
         del leaves_data['s']
 
         leaves = {}
-        for u in ReportUnknown.objects.filter(root__job=self.job):
-            leaves[u.pk] = u.parent_id
+        for u in ReportUnknown.objects.filter(root__job=self.job).only('id', 'parent_id'):
+            leaves[u.id] = u.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids):
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids)\
+                .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
             leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
