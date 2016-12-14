@@ -60,6 +60,9 @@ class Job(JobBase):
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
     light = models.BooleanField(default=False)
 
+    def __str__(self):
+        return self.name
+
     class Meta:
         db_table = 'job'
 
@@ -91,7 +94,7 @@ class JobHistory(JobBase):
 class FileSystem(models.Model):
     job = models.ForeignKey(JobHistory)
     file = models.ForeignKey(JobFile, null=True)
-    name = models.CharField(max_length=150)
+    name = models.CharField(max_length=128)
     parent = models.ForeignKey('self', null=True, related_name='children')
 
     def __str__(self):

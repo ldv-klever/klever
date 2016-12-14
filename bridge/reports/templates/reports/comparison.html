@@ -96,6 +96,7 @@
                     <i class="dropdown icon"></i>
                     <div class="default text">{% trans 'Value of attribute' %}</div>
                     <div class="menu">
+                        <div class="item" data-value="">{% trans 'Any' %}</div>
                         {% for av in attr.values %}
                             <div class="item">{{ av }}</div>
                         {% endfor %}

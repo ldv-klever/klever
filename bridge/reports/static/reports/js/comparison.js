@@ -90,8 +90,9 @@ function block_hover_off() {
 
 function setup_buttons() {
     $('#fast_backward_btn').click(function () {
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), 1);
+        var cur_v_input = $('#current_verdict');
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), 1);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), 1)
@@ -99,32 +100,36 @@ function setup_buttons() {
 
     });
     $('#fast_forward_btn').click(function () {
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), $('#total_pages').val());
+        var cur_v_input = $('#current_verdict');
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), $('#total_pages').val());
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), $('#total_pages').val())
         }
     });
     $('#backward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val());
+        var curr_page = parseInt($('#current_page_num').val()),
+            cur_v_input = $('#current_verdict');
         if (curr_page > 1) {
             curr_page--;
         }
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), curr_page);
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), curr_page);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
         }
     });
     $('#forward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val()), max_page_num = parseInt($('#total_pages').val());
+        var curr_page = parseInt($('#current_page_num').val()),
+            max_page_num = parseInt($('#total_pages').val()),
+            cur_v_input = $('#current_verdict');
         if (curr_page < max_page_num) {
             curr_page++;
         }
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), curr_page);
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), curr_page);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
@@ -163,6 +168,7 @@ function get_comparison(v_id, page_num) {
 }
 
 function get_comparison_by_attrs(attrs, page_num) {
+    console.log('GO TO: ' + page_num);
     var data = {
         attrs: attrs,
         info_id: $('#compare_info').val(),
@@ -205,7 +211,7 @@ $(document).ready(function () {
                 get_comparison(verdict.val(), curr_page.val());
             }
             else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), 1)
+                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
             }
         }
     });
@@ -216,7 +222,7 @@ $(document).ready(function () {
                 get_comparison(verdict.val(), curr_page.val());
             }
             else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), 1)
+                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
             }
         }
     });
@@ -227,9 +233,7 @@ $(document).ready(function () {
                 attrs.push($(this).val());
             }
             else {
-                err_notify($('#error__no_selected_attribute').text());
-                attrs = null;
-                return false;
+                attrs.push("__REGEXP_ANY__");
             }
         });
         if (attrs) {

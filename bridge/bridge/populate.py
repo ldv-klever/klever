@@ -47,6 +47,9 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.extended.save()
     except ObjectDoesNotExist:
         Extended.objects.create(role=role, user=user)
+        user.first_name = 'Firstname'
+        user.last_name = 'Lastname'
+        user.save()
 
 
 class PopulationError(Exception):

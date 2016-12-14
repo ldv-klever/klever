@@ -607,15 +607,18 @@ class CompareFileSet(object):
 
         def get_files(job):
             files = []
-            last_v = job.versions.order_by('-version')[0]
-            for f in last_v.filesystem_set.all():
-                if f.file is not None:
-                    parent = f.parent
-                    f_name = f.name
-                    while parent is not None:
-                        f_name = os.path.join(parent.name, f_name)
-                        parent = parent.parent
-                    files.append([f_name, f.file.hash_sum])
+            last_v = job.versions.order_by('-version').first()
+            files_data = {}
+            for f in last_v.filesystem_set.only('parent_id', 'name'):
+                files_data[f.pk] = (f.parent_id, f.name)
+            for f in last_v.filesystem_set.exclude(file=None).select_related('file')\
+                    .only('name', 'parent_id', 'file__hash_sum'):
+                f_name = f.name
+                parent = f.parent_id
+                while parent is not None:
+                    f_name = files_data[parent][1] + '/' + f_name
+                    parent = files_data[parent][0]
+                files.append([f_name, f.file.hash_sum])
             return files
 
         files1 = get_files(self.j1)

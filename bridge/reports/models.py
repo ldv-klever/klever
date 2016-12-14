@@ -30,7 +30,7 @@ def get_component_path(instance, filename):
 
 
 class AttrName(models.Model):
-    name = models.CharField(max_length=63, unique=True)
+    name = models.CharField(max_length=63, unique=True, db_index=True)
 
     class Meta:
         db_table = 'attr_name'
@@ -42,6 +42,7 @@ class Attr(models.Model):
 
     class Meta:
         db_table = 'attr'
+        index_together = ["name", "value"]
 
 
 class ReportRoot(models.Model):
@@ -231,7 +232,7 @@ class CompareJobsInfo(models.Model):
 
 class CompareJobsCache(models.Model):
     info = models.ForeignKey(CompareJobsInfo)
-    attr_values = models.TextField()
+    attr_values = models.TextField(db_index=True)
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     reports1 = models.CharField(max_length=1000)
@@ -239,3 +240,4 @@ class CompareJobsCache(models.Model):
 
     class Meta:
         db_table = 'cache_report_jobs_compare'
+        index_together = ["info", "verdict1", "verdict2"]
