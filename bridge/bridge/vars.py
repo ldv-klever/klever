@@ -38,9 +38,11 @@ ERRORS = {
     507: _("You don't have an access to compare these jobs"),
     508: _("The problem was not found"),
     509: _("The tag was not found"),
-    604: _("The mark was not found"),
     601: _("You don't have an access to create new marks"),
     602: _("You don't have an access to delete this mark"),
+    603: _("You don't have an access to edit this mark"),
+    604: _("The mark was not found"),
+    605: _('The mark is being deleted'),
     704: _("The attribute was not found")
 }
 

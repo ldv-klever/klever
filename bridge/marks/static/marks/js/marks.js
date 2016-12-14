@@ -202,6 +202,10 @@ function collect_markdata() {
         };
     }
     else {
+        var error_trace = null, et_selector = $('#mark_error_trace');
+        if (et_selector.length) {
+            error_trace = et_selector.val();
+        }
         mark_data = {
             attrs: collect_attrs_data(),
             mark_id: $('#mark_pk').val(),
@@ -211,7 +215,8 @@ function collect_markdata() {
             is_modifiable: is_modifiable,
             tags: get_tags_values(),
             comment: $('#edit_mark_comment').val(),
-            description: description
+            description: description,
+            error_trace: error_trace
         };
     }
 

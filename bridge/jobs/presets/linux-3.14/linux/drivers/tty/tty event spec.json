@@ -60,8 +60,8 @@
             "comment": "Allocate memory for device structure and get port and tty driver structures.",
             "statements": [
               "%device% = $ALLOC(%device%);",
-              "%tty_port% = $arg1;",
-              "%tty_driver% = $arg2;"
+              "%tty_port% = $ARG1;",
+              "%tty_driver% = $ARG2;"
             ]
           },
           "register": {
@@ -100,7 +100,7 @@
           "assign": {
             "comment": "Get a tty driver structure.",
             "statements": [
-              "%tty_driver% = $arg1;"
+              "%tty_driver% = $ARG1;"
             ]
           },
           "deregister": {
@@ -408,8 +408,7 @@
           "fail": {
             "comment": "Failed to allocate memory for tty_driver structure.",
             "statements": [
-              "/* Return -ENOMEM = -12 */",
-              "return ERR_PTR(-12);"
+              "return ERR_PTR(-ENOMEM);"
             ]
           }
         }
@@ -430,7 +429,7 @@
           "assign": {
             "comment": "Get a tty driver structure.",
             "statements": [
-              "%tty_driver% = $arg1;"
+              "%tty_driver% = $ARG1;"
             ]
           },
           "success": {
@@ -468,7 +467,7 @@
           "assign": {
             "comment": "Get a tty driver structure.",
             "statements": [
-              "%tty_driver% = $arg1;"
+              "%tty_driver% = $ARG1;"
             ]
           },
           "deregister": {

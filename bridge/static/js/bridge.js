@@ -52,6 +52,9 @@ $.ajaxSetup({
         }
     }
 });
+$(document).ajaxError(function () {
+    err_notify($('#error__ajax_error').text());
+});
 
 $.extend({
     redirectPost: function (location, args) {

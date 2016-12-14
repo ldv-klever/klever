@@ -74,9 +74,10 @@ def import_typedefs(tds):
         __typedefs[name] = ast
 
 
-def import_declaration(signature, ast=None):
+def import_declaration(signature, ast=None, track_typedef=False):
     global __type_collection
     global __typedefs
+    typedef = None
 
     if not ast:
         try:
@@ -93,6 +94,8 @@ def import_declaration(signature, ast=None):
                 ast['specifiers']['type specifier']['class'] == 'typedef' and \
                 ast['specifiers']['type specifier']['name'] in __typedefs:
             ret = import_declaration(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
+            ret.typedef = ast['specifiers']['type specifier']['name']
+            typedef = ret.typedef
         elif 'specifiers' in ast and 'type specifier' in ast['specifiers'] and \
                 ast['specifiers']['type specifier']['class'] == 'structure':
             ret = Structure(ast)
@@ -119,21 +122,40 @@ def import_declaration(signature, ast=None):
                     ret = Union(ast)
                 elif ast['specifiers']['type specifier']['class'] == 'typedef' and \
                         ast['specifiers']['type specifier']['name'] in __typedefs:
-                    ret = import_declaration(None, copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
+                    ret = import_declaration(None,
+                                             copy.deepcopy(__typedefs[ast['specifiers']['type specifier']['name']]))
+                    ret.typedef = ast['specifiers']['type specifier']['name']
+                    typedef = ret.typedef
                 else:
                     ret = Primitive(ast)
         elif 'arrays' in ast['declarator'][-1] and len(ast['declarator'][-1]['arrays']) > 0:
             ret = Array(ast)
+            if track_typedef and ret.element.typedef:
+                typedef = ret.element.typedef
         elif 'pointer' not in ast['declarator'][-1] or ast['declarator'][-1]['pointer'] > 0:
             ret = Pointer(ast)
+            if track_typedef and ret.points.typedef:
+                typedef = ret.points.typedef
         else:
             raise NotImplementedError
 
     if ret.identifier not in __type_collection:
         __type_collection[ret.identifier] = ret
     else:
+        if ret.typedef:
+            __type_collection[ret.identifier].typedef = ret.typedef
+        if isinstance(ret, Function):
+            if ret.ret_typedef and not __type_collection[ret.identifier].ret_typedef:
+                __type_collection[ret.identifier].ret_typedef = ret.ret_typedef
+            for index, pt in enumerate(__type_collection[ret.identifier].params_typedef):
+                if not pt and ret.params_typedef[index]:
+                    __type_collection[ret.identifier].params_typedef[index] = ret.params_typedef[index]
         ret = __type_collection[ret.identifier]
-    return ret
+
+    if not track_typedef:
+        return ret
+    else:
+        return ret, typedef
 
 
 def refine_declaration(interfaces, declaration):
@@ -174,6 +196,11 @@ def refine_declaration(interfaces, declaration):
 
         # Update identifier
         if refinement and new.identifier in __type_collection:
+            if new.ret_typedef and not __type_collection[new.identifier].ret_typedef:
+                __type_collection[new.identifier].ret_typedef = new.ret_typedef
+            for index, pt in enumerate(__type_collection[new.identifier].params_typedef):
+                if not pt and new.params_typedef[index]:
+                    __type_collection[new.identifier].params_typedef[index] = new.params_typedef[index]
             new = __type_collection[new.identifier]
         elif refinement:
             __type_collection[new.identifier] = new
@@ -214,6 +241,7 @@ def _take_pointer(exp, tp):
         exp = '*' + exp
     return exp
 
+
 def _add_parent(declaration, parent):
     global __type_collection
 
@@ -253,6 +281,7 @@ class Declaration:
         self.implementations = {}
         self.path = None
         self.parents = []
+        self.typedef = None
 
     def add_parent(self, parent):
         _add_parent(self, parent)
@@ -279,11 +308,44 @@ class Declaration:
             self.implementations[new.identifier] = new
         return new
 
-    def to_string(self, replacement='', pointer=False):
+    def nameless_type(self):
+        queue = [self]
+        ret = True
+
+        # todo: this is because CIF provide nameless enums with artificially generated name like 'ldv_26585'
+        enum_regex = re.compile('ldv_')
+
+        while len(queue) > 0:
+            tp = queue.pop()
+
+            if isinstance(tp, Array):
+                queue.append(tp.element)
+            elif isinstance(tp, Pointer):
+                queue.append(tp.points)
+            elif ((isinstance(tp, Structure) or isinstance(tp, Union)) and not self.name) or\
+                 (isinstance(tp, Enum) and enum_regex.match(self.name)):
+                # Transform only complex
+                ret = False
+                break
+
+        return ret
+
+    def to_string(self, replacement='', pointer=False, typedef='none'):
         if pointer:
             replacement = _take_pointer(replacement, type(self))
 
-        return self._to_string(replacement)
+        if isinstance(typedef, set) or isinstance(typedef, str):
+            if self.typedef and (
+                    (isinstance(typedef, set) and self.typedef in typedef) or
+                    (
+                        (isinstance(typedef, str) and typedef == 'all') or
+                        typedef != 'none' and not self.nameless_type()
+                     )):
+                return "{} {}".format(self.typedef, replacement)
+            else:
+                return self._to_string(replacement, typedef=typedef)
+        else:
+            raise TypeError('Expect typedef flag to be set or str instead of {!r}'.format(type(typedef).__name__))
 
 
 class Primitive(Declaration):
@@ -300,7 +362,7 @@ class Primitive(Declaration):
         pn = self._ast['specifiers']['type specifier']['name']
         return pn.replace(' ', '_')
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if replacement == '':
             return self._ast['specifiers']['type specifier']['name']
         else:
@@ -324,7 +386,7 @@ class Enum(Declaration):
     def pretty_name(self):
         return 'enum_{}'.format(self.name)
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if replacement == '':
             return "enum {}".format(self.name)
         else:
@@ -337,6 +399,8 @@ class Function(Declaration):
         self.common_initialization(ast)
         self.return_value = None
         self.parameters = []
+        self.ret_typedef = None
+        self.params_typedef = list()
 
         if 'specifiers' in self._ast['return value type'] and \
                 'type specifier' in self._ast['return value type']['specifiers'] and \
@@ -344,13 +408,16 @@ class Function(Declaration):
                 self._ast['return value type']['specifiers']['type specifier']['name'] == 'void':
             self.return_value = None
         else:
-            self.return_value = import_declaration(None, self._ast['return value type'])
-
+            self.return_value, self.ret_typedef = import_declaration(None, self._ast['return value type'],
+                                                                     track_typedef=True)
         for parameter in self._ast['declarator'][0]['function arguments']:
             if type(parameter) is str:
                 self.parameters.append(parameter)
+                self.params_typedef.append(None)
             else:
-                self.parameters.append(import_declaration(None, parameter))
+                param, typedef = import_declaration(None, parameter, track_typedef=True)
+                self.parameters.append(param)
+                self.params_typedef.append(typedef)
 
         if len(self.parameters) == 1 and type(self.parameters[0]) is Primitive and \
                 self.parameters[0].pretty_name == 'void':
@@ -372,20 +439,29 @@ class Function(Declaration):
         key = new_identifier()
         return 'func_{}'.format(key)
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
+        def filtered_typedef_param(available):
+            if isinstance(typedef, set):
+                return {available}
+            elif available and typedef == 'complex_and_params':
+                return {available}
+            else:
+                return typedef
+
         if len(self.parameters) == 0:
             replacement += '(void)'
         else:
             parameter_declarations = []
-            for param in self.parameters:
+            for index, param in enumerate(self.parameters):
                 if type(param) is str:
                     parameter_declarations.append(param)
                 else:
-                    parameter_declarations.append(param.to_string(''))
+                    expr = param.to_string('', typedef=filtered_typedef_param(self.params_typedef[index]))
+                    parameter_declarations.append(expr)
             replacement = replacement + '(' + ', '.join(parameter_declarations) + ')'
 
         if self.return_value:
-            replacement = self.return_value.to_string(replacement)
+            replacement = self.return_value.to_string(replacement, typedef=filtered_typedef_param(self.ret_typedef))
         else:
             replacement = 'void {}'.format(replacement)
         return replacement
@@ -414,7 +490,7 @@ class Structure(Declaration):
 
     @property
     def pretty_name(self):
-        if self._ast['specifiers']['type specifier']['name']:
+        if self.name:
             return 'struct_{}'.format(self.name)
         else:
             global __type_collection
@@ -429,9 +505,10 @@ class Structure(Declaration):
         return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + \
+            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef)
+                                     for field in sorted(self.fields.keys())]) + \
                    '; ' + ' }'
         else:
             name = self.name
@@ -457,9 +534,6 @@ class Union(Declaration):
 
     @property
     def clean_declaration(self):
-        #for field in self.fields.values():
-        #    if not field.clean_declaration:
-        #        return False
         return True
 
     @property
@@ -483,9 +557,10 @@ class Union(Declaration):
         return [field for field in sorted(self.fields.keys()) if self.fields[field].compare(target) or
                 self.fields[field].pointer_alias(target)]
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if not self.name:
-            name = '{ ' + '; '.join([self.fields[field].to_string(field) for field in sorted(self.fields.keys())]) + \
+            name = '{ ' + '; '.join([self.fields[field].to_string(field, typedef=typedef)
+                                     for field in sorted(self.fields.keys())]) + \
                    '; ' + ' }'
         else:
             name = self.name
@@ -528,13 +603,13 @@ class Array(Declaration):
         else:
             return False
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if self.size:
             size = self.size
         else:
             size = ''
         replacement += '[{}]'.format(size)
-        return self.element.to_string(replacement)
+        return self.element.to_string(replacement, typedef=typedef)
 
 
 class Pointer(Declaration):
@@ -551,10 +626,10 @@ class Pointer(Declaration):
     def clean_declaration(self):
         return self.points.clean_declaration
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         replacement = _take_pointer(replacement, type(self.points))
 
-        return self.points.to_string(replacement)
+        return self.points.to_string(replacement, typedef=typedef)
 
     @property
     def pretty_name(self):
@@ -567,6 +642,7 @@ class InterfaceReference(Declaration):
         self._ast = ast
         self._identifier = None
         self.parents = []
+        self.typedef = None
 
     @property
     def clean_declaration(self):
@@ -588,7 +664,7 @@ class InterfaceReference(Declaration):
     def pointer(self):
         return self._ast['specifiers']['pointer']
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if self.pointer:
             ptr = '*'
         else:
@@ -605,6 +681,7 @@ class UndefinedReference(Declaration):
     def __init__(self, ast):
         self._ast = ast
         self.parents = []
+        self.typedef = None
 
     @property
     def clean_declaration(self):
@@ -614,7 +691,7 @@ class UndefinedReference(Declaration):
     def _identifier(self):
         return '$'
 
-    def _to_string(self, replacement):
+    def _to_string(self, replacement, typedef='none'):
         if replacement == '':
             return '$'
         else:

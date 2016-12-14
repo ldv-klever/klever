@@ -80,8 +80,52 @@ def create_mark(request, mark_type, report_id):
         'markdata': MarkData(mark_type, report=report),
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'can_edit': True,
         'problem_description': problem_description
+    })
+
+
+@login_required
+def view_mark(request, mark_type, mark_id):
+    activate(request.user.extended.language)
+
+    try:
+        if mark_type == 'unsafe':
+            mark = MarkUnsafe.objects.get(pk=int(mark_id))
+        elif mark_type == 'safe':
+            mark = MarkSafe.objects.get(pk=int(mark_id))
+        else:
+            mark = MarkUnknown.objects.get(pk=int(mark_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[604]))
+
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
+
+    history_set = mark.versions.order_by('-version')
+    last_version = history_set.first()
+
+    error_trace = None
+    if mark_type == 'unsafe':
+        with last_version.error_trace.file.file as fp:
+            error_trace = fp.read().decode('utf8')
+
+    tags = None
+    if mark_type != 'unknown':
+        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
+        if tags.error is not None:
+            logger.error(tags.error, stack_info=True)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+    return render(request, 'marks/ViewMark.html', {
+        'mark': mark,
+        'version': last_version,
+        'first_version': history_set.last(),
+        'type': mark_type,
+        'markdata': MarkData(mark_type, mark_version=last_version),
+        'reports': MarkReportsTable(request.user, mark),
+        'tags': tags,
+        'can_edit': MarkAccess(request.user, mark=mark).can_edit(),
+        'view_tags': True,
+        'error_trace': error_trace
     })
 
 
@@ -98,10 +142,19 @@ def edit_mark(request, mark_type, mark_id):
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
 
-    can_edit = MarkAccess(request.user, mark=mark).can_edit()
+    if not MarkAccess(request.user, mark=mark).can_edit():
+        return HttpResponseRedirect(reverse('error', args=[603]))
+
     history_set = mark.versions.order_by('-version')
-    last_version = history_set[0]
+    last_version = history_set.first()
+
+    error_trace = None
+    if mark_type == 'unsafe':
+        with last_version.error_trace.file.file as fp:
+            error_trace = fp.read().decode('utf8')
 
     tags = None
     if mark_type != 'unknown':
@@ -110,44 +163,33 @@ def edit_mark(request, mark_type, mark_id):
             logger.error(tags.error, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[500]))
 
-    if can_edit:
-        template = 'marks/EditMark.html'
-        if mark_type == 'unknown':
-            template = 'marks/EditUnknownMark.html'
-        mark_versions = []
-        for m in history_set:
-            if m.version == mark.version:
-                title = _("Current version")
-            else:
-                change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-                title = change_time.strftime("%d.%m.%Y %H:%M:%S")
-                if m.author is not None:
-                    title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
-                title += ': ' + m.comment
-            mark_versions.append({'version': m.version, 'title': title})
+    template = 'marks/EditMark.html'
+    if mark_type == 'unknown':
+        template = 'marks/EditUnknownMark.html'
+    mark_versions = []
+    for m in history_set:
+        if m.version == mark.version:
+            title = _("Current version")
+        else:
+            change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
+            title = change_time.strftime("%d.%m.%Y %H:%M:%S")
+            if m.author is not None:
+                title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
+            title += ': ' + m.comment
+        mark_versions.append({'version': m.version, 'title': title})
 
-        return render(request, template, {
-            'mark': mark,
-            'version': last_version,
-            'first_version': history_set.order_by('version')[0],
-            'type': mark_type,
-            'markdata': MarkData(mark_type, mark_version=last_version),
-            'reports': MarkReportsTable(request.user, mark),
-            'versions': mark_versions,
-            'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
-            'tags': tags,
-            'can_edit': True
-        })
-    else:
-        return render(request, 'marks/ViewMark.html', {
-            'mark': mark,
-            'version': last_version,
-            'first_version': history_set.order_by('version')[0],
-            'type': mark_type,
-            'markdata': MarkData(mark_type, mark_version=last_version),
-            'reports': MarkReportsTable(request.user, mark),
-            'tags': tags
-        })
+    return render(request, template, {
+        'mark': mark,
+        'version': last_version,
+        'first_version': history_set.last(),
+        'type': mark_type,
+        'markdata': MarkData(mark_type, mark_version=last_version),
+        'reports': MarkReportsTable(request.user, mark),
+        'versions': mark_versions,
+        'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
+        'tags': tags,
+        'error_trace': error_trace
+    })
 
 
 @unparallel_group(['mark'])
@@ -237,19 +279,23 @@ def get_func_description(request):
 @login_required
 def get_mark_version_data(request):
     activate(request.user.extended.language)
-
     if request.method != 'POST':
         return HttpResponse('')
+    if int(request.POST.get('version', '0')) == 0:
+        return JsonResponse({'error': _('The mark is being deleted')})
 
     mark_type = request.POST.get('type', None)
     if mark_type not in ['safe', 'unsafe', 'unknown']:
         return JsonResponse({'error': _('Unknown error')})
+    error_trace = None
     try:
         if mark_type == 'unsafe':
             mark_version = MarkUnsafeHistory.objects.get(
                 version=int(request.POST.get('version', '0')),
                 mark_id=int(request.POST.get('mark_id', '0'))
             )
+            with mark_version.error_trace.file as fp:
+                error_trace = fp.read().decode('utf8')
         elif mark_type == 'safe':
             mark_version = MarkSafeHistory.objects.get(
                 version=int(request.POST.get('version', '0')),
@@ -281,7 +327,8 @@ def get_mark_version_data(request):
         data = data_templ.render({
             'markdata': MarkData(mark_type, mark_version=mark_version),
             'tags': tags,
-            'can_edit': True
+            'can_edit': True,
+            'error_trace': error_trace
         })
     return JsonResponse({'data': data})
 
@@ -337,6 +384,8 @@ def download_mark(request, mark_type, mark_id):
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
+    if mark.version == 0:
+        return HttpResponseRedirect(reverse('error', args=[605]))
 
     mark_tar = CreateMarkTar(mark)
 
@@ -443,6 +492,8 @@ def remove_versions(request):
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'error': 'Unknown error'})
+        if mark.version == 0:
+            return JsonResponse({'error': 'The mark is being deleted'})
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
@@ -476,6 +527,8 @@ def get_mark_versions(request):
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
             return JsonResponse({'error': 'Unknown error'})
+        if mark.version == 0:
+            return JsonResponse({'error': 'The mark is being deleted'})
         mark_history = mark.versions.filter(
             ~Q(version__in=[mark.version, 1])).order_by('-version')
     except ObjectDoesNotExist:

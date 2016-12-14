@@ -570,7 +570,7 @@ class ComparisonData(object):
             block = CompareBlock('um_%s' % mark.mark_id, 'mark', _('Unsafes mark'))
             block.parents.append('u_%s' % report_id)
             block.add_info = {'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:edit_mark', args=['unsafe', mark.mark_id])
+            block.href = reverse('marks:view_mark', args=['unsafe', mark.mark_id])
             for t in mark.mark.versions.order_by('-version')[0].tags.all():
                 block.list.append({'name': None, 'value': t.tag.tag})
             data.append(block)
@@ -584,7 +584,7 @@ class ComparisonData(object):
             block = CompareBlock('sm_%s' % mark.mark_id, 'mark', _('Safes mark'))
             block.parents.append('s_%s' % report_id)
             block.add_info = {'value': mark.mark.get_verdict_display(), 'color': SAFE_COLOR[mark.mark.verdict]}
-            block.href = reverse('marks:edit_mark', args=['safe', mark.mark_id])
+            block.href = reverse('marks:view_mark', args=['safe', mark.mark_id])
             data.append(block)
         return data
 
@@ -596,7 +596,7 @@ class ComparisonData(object):
             block = CompareBlock("fm_%s" % mark.mark_id, 'mark', _('Unknowns mark'))
             block.parents.append('f_%s' % report_id)
             block.add_info = {'value': mark.problem.name}
-            block.href = reverse('marks:edit_mark', args=['unknown', mark.mark_id])
+            block.href = reverse('marks:view_mark', args=['unknown', mark.mark_id])
             data.append(block)
         return data
 

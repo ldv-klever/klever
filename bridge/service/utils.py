@@ -266,20 +266,18 @@ class StopDecision(object):
         self.__clear_tasks()
 
     def __clear_tasks(self):
-        for task in self.progress.task_set.all():
+        tasks = self.progress.task_set.all()
+        for task in tasks:
             if task.status == TASK_STATUS[1][0]:
                 self.progress.tasks_processing -= 1
                 self.progress.tasks_cancelled += 1
             elif task.status == TASK_STATUS[0][0]:
                 self.progress.tasks_pending -= 1
                 self.progress.tasks_cancelled += 1
-            try:
-                task.delete()
-            except Exception as e:
-                logger.exception(e, stack_info=True)
         self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
+        tasks.delete()
 
 
 # Case 3.2(2) DONE

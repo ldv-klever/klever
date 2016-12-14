@@ -19,7 +19,7 @@ from bridge.common import *
 
 TEMPLATES[0]['OPTIONS']['debug'] = DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'testserver']
 
 STATICFILES_DIRS = (os.path.join(BASE_DIR, 'static'),)
 

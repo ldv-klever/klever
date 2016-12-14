@@ -15,18 +15,20 @@
 # limitations under the License.
 #
 
+import glob
 import json
 import os
 import re
-import glob
 
 import core.avtg.plugins
 import core.utils
-
+from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property,\
+                                 check_necessary_conf_property
 from core.avtg.emg.interface_categories import CategoriesSpecification
+from core.avtg.emg.processmodel import ProcessModel
+from core.avtg.emg.processmodel.process_parser import parse_event_specification
 from core.avtg.emg.module_categories import ModuleCategoriesSpecification
-from core.avtg.emg.process_parser import parse_event_specification
-from core.avtg.emg.intermediate_model import ProcessModel
+from core.avtg.emg.translator import translate_intermediate_model
 
 
 class EMG(core.avtg.plugins.Plugin):
@@ -62,18 +64,6 @@ class EMG(core.avtg.plugins.Plugin):
         self.logger.info("Import results of source analysis from SA plugin")
         analysis = self.__get_analysis(self.abstract_task_desc)
 
-        # Choose translator
-        tr = self.__get_translator(self.abstract_task_desc)
-
-        # Get instance maps if possible
-        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
-        if 'EMG instances' in self.conf:
-            with open(core.utils.find_file_or_dir(self.logger, self.conf["main working directory"],
-                                                  self.conf['EMG instances']), encoding='utf8') as fp:
-                emg_instances = json.load(fp)
-            if vo_identifier in emg_instances:
-                tr.instance_maps = emg_instances[vo_identifier]
-
         # Find specifications
         self.logger.info("Determine which specifications are provided")
         interface_spec, module_interface_spec, event_categories_spec = self.__get_specs(self.logger, spec_dir)
@@ -88,25 +78,45 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Generate module interface specification
         self.logger.info("============== An intermediate model preparation stage ==============")
-        model_processes, env_processes = parse_event_specification(self.logger, event_categories_spec)
+        check_or_set_conf_property(self.conf, 'intermediate model options', default_value=dict(), expected_type=dict)
+        model_processes, env_processes = \
+            parse_event_specification(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
+                                      event_categories_spec)
 
-        if 'intermediate model options' not in self.conf:
-            self.conf['intermediate model options'] = {}
-        model = ProcessModel(self.logger, self.conf['intermediate model options'], model_processes, env_processes,
-                             self.__get_json_content(self.conf['intermediate model options'], "map file"))
+        model = ProcessModel(self.logger, get_necessary_conf_property(self.conf, 'intermediate model options'),
+                             model_processes, env_processes,
+                             self.__get_json_content(get_necessary_conf_property(self.conf,
+                                                                                 'intermediate model options'),
+                                                     "roles map file"))
         model.generate_event_model(mcs)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Generate module interface specification
         self.logger.info("============== An intermediat model translation stage ==============")
-        tr.translate(mcs, model)
+        check_or_set_conf_property(self.conf, 'translation options', default_value=dict(), expected_type=dict)
+
+        # Get instance maps if possible
+        instance_maps = dict()
+        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
+        if get_conf_property(self.conf, "EMG instances"):
+            with open(core.utils.find_file_or_dir(self.logger,
+                                                  get_necessary_conf_property(self.conf, "main working directory"),
+                                                  get_necessary_conf_property(self.conf, "EMG instances")),
+                      encoding='utf8') as fp:
+                emg_instances = json.load(fp)
+            if vo_identifier in emg_instances:
+                instance_maps = emg_instances[vo_identifier]
+
+        # Import additional aspect files
+        instance_maps = translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, mcs, model,
+                                                     instance_maps, self.__read_additional_content("aspects"))
         self.logger.info("An environment model has been generated successfully")
 
         # Dump to disk instance map
         instance_map_file = 'instance map.json'
         self.logger.info("Dump information on chosen instances to file '{}'".format(instance_map_file))
         with open(instance_map_file, "w", encoding="utf8") as fh:
-            fh.writelines(json.dumps(tr.instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
+            fh.writelines(json.dumps(instance_maps, ensure_ascii=False, sort_keys=True, indent=4))
 
         # Send data to the server
         self.logger.info("Send data on generated instances to server")
@@ -115,12 +125,12 @@ class EMG(core.avtg.plugins.Plugin):
                           {
                               'id': self.id,
                               'data': json.dumps(
-                                  {self.abstract_task_desc['attrs'][0]['verification object']: tr.instance_maps},
+                                  {self.abstract_task_desc['attrs'][0]['verification object']: instance_maps},
                                   ensure_ascii=False, sort_keys=True, indent=4
                               )
                           },
                           self.mqs['report files'],
-                          self.conf['main working directory'])
+                          get_necessary_conf_property(self.conf, "main working directory"))
 
     main = generate_environment
 
@@ -130,12 +140,14 @@ class EMG(core.avtg.plugins.Plugin):
 
     def __read_additional_content(self, file_type):
         lines = []
-        if "additional {}".format(file_type) in self.conf:
-            files = sorted(self.conf["additional {}".format(file_type)])
+        if get_conf_property(self.conf, "additional {}".format(file_type)):
+            files = sorted(get_necessary_conf_property(self.conf, "additional {}".format(file_type)))
             if len(files) > 0:
                 for file in files:
                     self.logger.info("Search for {} file {}".format(file, file_type))
-                    path = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], file)
+                    path = core.utils.find_file_or_dir(self.logger,
+                                                       get_necessary_conf_property(self.conf, "main working directory"),
+                                                       file)
                     with open(path, encoding="utf8") as fh:
                         lines.extend(fh.readlines())
                     lines.append("\n")
@@ -149,7 +161,8 @@ class EMG(core.avtg.plugins.Plugin):
     def __get_analysis(self, avt):
         analysis = {}
         if "source analysis" in avt:
-            analysis_file = os.path.join(self.conf["main working directory"], avt["source analysis"])
+            analysis_file = os.path.join(get_necessary_conf_property(self.conf, "main working directory"),
+                                         avt["source analysis"])
             self.logger.info("Read file with results of source analysis from {}".format(analysis_file))
 
             with open(analysis_file, encoding="utf8") as fh:
@@ -158,24 +171,6 @@ class EMG(core.avtg.plugins.Plugin):
             self.logger.warning("Cannot find any results of source analysis provided from SA plugin")
 
         return analysis
-
-    def __get_translator(self, avt):
-        self.logger.info("Choose translator module to translate an intermediate model to C code")
-        if "translator" in self.conf:
-            translator_name = self.conf["translator"]
-        else:
-            translator_name = "default"
-        self.logger.info("Translation module {} has been chosen".format(translator_name))
-
-        translator = getattr(__import__("core.avtg.emg.translator.{}".format(translator_name),
-                                        fromlist=['Translator']),
-                             'Translator')
-
-        # Import additional aspect files
-        self.logger.info("Check whether additional aspect files are provided to be included in an environment model")
-        aspect_lines = self.__read_additional_content("aspects")
-
-        return translator(self.logger, self.conf, avt, aspect_lines)
 
     def __get_specs(self, logger, directory):
         """
@@ -198,7 +193,10 @@ class EMG(core.avtg.plugins.Plugin):
         # Filter specifications
         for file in sorted(file_candidates):
             with open(file, encoding="utf8") as fh:
-                content = json.loads(fh.read())
+                try:
+                    content = json.loads(fh.read())
+                except json.decoder.JSONDecodeError as err:
+                    raise ValueError("Cannot parse EMG specification file {!r}".format(os.path.abspath(file)))
 
             for tag in content:
                 if "categories" in content[tag] or "kernel functions" in content[tag]:
@@ -218,9 +216,11 @@ class EMG(core.avtg.plugins.Plugin):
             raise FileNotFoundError("Environment model generator missed an event categories specification")
 
         # Merge specifications
-        interface_spec = self.__merge_spec_versions(interface_specifications, self.conf['specifications set'])
+        interface_spec = self.__merge_spec_versions(interface_specifications,
+                                                    get_necessary_conf_property(self.conf, 'specifications set'))
         self.__save_collection(logger, interface_spec, 'intf_spec.json')
-        event_categories_spec = self.__merge_spec_versions(event_specifications, self.conf['specifications set'])
+        event_categories_spec = self.__merge_spec_versions(event_specifications,
+                                                           get_necessary_conf_property(self.conf, 'specifications set'))
         self.__save_collection(logger, event_categories_spec, 'event_spec.json')
 
         # toso: search for module categories specification
@@ -228,7 +228,9 @@ class EMG(core.avtg.plugins.Plugin):
 
     def __get_path(self, conf, prop):
         if prop in conf:
-            spec_dir = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], conf[prop])
+            spec_dir = core.utils.find_file_or_dir(self.logger,
+                                                   get_necessary_conf_property(self.conf, "main working directory"),
+                                                   get_necessary_conf_property(conf, prop))
             return spec_dir
         else:
             return None
@@ -251,7 +253,8 @@ class EMG(core.avtg.plugins.Plugin):
                 else:
                     for new_tag in spec[tag]:
                         if new_tag in final_spec[tag]:
-                            raise KeyError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG specification".format(new_tag, tag))
+                            raise KeyError("Do not expect dublication of entry '{}' in '{}' while composing a final EMG"
+                                           " specification".format(new_tag, tag))
                         final_spec[tag][new_tag] = spec[tag][new_tag]
 
         def match_default_tag(entry):

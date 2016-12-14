@@ -21,29 +21,29 @@
 struct clk;
 
 // for arg_sign in clk1_arg_signs
-/* CHANGE_STATE Initialize counter to zero */
+/* NOTE Initialize counter to zero */
 int ldv_counter{{ arg_sign.id }} = 0;
 
-/* MODEL_FUNC_DEF Release */
+/* MODEL_FUNC Release */
 void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
 {
-    /* CHANGE_STATE Increase counter */
+    /* NOTE Increase counter */
     ldv_counter{{ arg_sign.id }} = 0;
 }
 
-/* MODEL_FUNC_DEF Reset counter */
+/* MODEL_FUNC Reset counter */
 int ldv_clk_enable{{ arg_sign.id }}(void)
 {
 	int retval = ldv_undef_int();
 	if (!retval) {
-		/* CHANGE_STATE Increase counter */
+		/* NOTE Increase counter */
 		ldv_counter{{ arg_sign.id }} = 1;
 	}
 	return retval;
 }
 // endfor
 
-/* MODEL_FUNC_DEF Check that all clk are freed at the end */
+/* MODEL_FUNC Check that all clk are freed at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in clk1_arg_signs

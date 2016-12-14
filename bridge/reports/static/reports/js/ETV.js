@@ -16,6 +16,8 @@
  */
 
 $(document).ready(function () {
+    var ready_for_next_string = false, etv_window = $('#ETV_error_trace');
+
     $('#error_trace_options').popup({
         popup: $('#etv-attributes'),
         position: 'right center',
@@ -27,7 +29,6 @@ $(document).ready(function () {
         }
     });
     $('.normal-popup').popup({position: 'bottom left'});
-    var ready_for_next_string = false;
     function get_source_code(line, filename) {
 
         var source_code_window = $('#ETV_source_code');
@@ -69,9 +70,6 @@ $(document).ready(function () {
                         select_src_string();
                         ready_for_next_string = true;
                     }
-                },
-                error: function (x) {
-                    $('#ETV_source_code').html(x.responseText);
                 }
             });
         }
@@ -79,49 +77,69 @@ $(document).ready(function () {
 
     $('.ETV_GlobalExpanderLink').click(function (event) {
         event.preventDefault();
-        if ($(this).find('i').first().hasClass('empty')) {
-            $(this).find('i').first().removeClass('empty');
-            $(this).closest('.ETV_error_trace').find('.global').hide();
+        var global_icon = $(this).find('i').first();
+        if (global_icon.hasClass('unhide')) {
+            global_icon.removeClass('unhide').addClass('hide');
+            etv_window.find('.global').show();
         }
         else {
-            $(this).find('i').first().addClass('empty');
-            $(this).closest('.ETV_error_trace').find('.global').show();
+            global_icon.removeClass('hide').addClass('unhide');
+            etv_window.find('.global').hide();
         }
     });
 
     $('.ETV_HideLink').click(function (event) {
         event.preventDefault();
         var whole_line = $(this).parent().parent(),
-            etv_main_parent = $(this).closest('div[id^="etv-trace"]'),
-            add_id = etv_main_parent.attr('id').replace('etv-trace', ''),
+            curr_thread = whole_line.attr('data-thread'),
+            etv_main_parent = $('#etv-trace'),
             expanded = 'mini icon violet caret down',
             collapsed = 'mini icon violet caret right',
-            last_selector = etv_main_parent.find('.' + $(this).attr('id').replace(add_id, '')).last(),
+            last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
             next_line = whole_line.next('span');
         if ($(this).children('i').first().attr('class') == expanded) {
+            whole_line.find('.ETV_FuncCode').hide();
+            whole_line.find('.ETV_FuncName').show();
             $(this).children('i').first().attr('class', collapsed);
             whole_line.addClass('func_collapsed');
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
-                next_line.hide();
-                if (event.shiftKey) {
+                if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'hidden-return') {
+                    next_line.hide();
                     if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
-                        next_line.addClass('func_collapsed');
-                        next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
+                        if (event.shiftKey) {
+                            next_line.find('.ETV_FuncCode').hide();
+                            next_line.find('.ETV_FuncName').show();
+                            next_line.addClass('func_collapsed');
+                            next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
+                        }
                     }
                 }
+
                 next_line = next_line.next('span');
             }
-            last_selector.hide();
+            if (last_selector.attr('data-type') != 'hidden-return') {
+                last_selector.hide();
+            }
         }
         else {
             $(this).children('i').first().attr('class', expanded);
             whole_line.removeClass('func_collapsed');
+            whole_line.find('.ETV_FuncCode').show();
+            whole_line.find('.ETV_FuncName').hide();
             while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
+                if (next_line.attr('data-type') == 'hidden-return') {
+                    next_line = next_line.next('span');
+                    continue;
+                }
                 if (!(next_line.hasClass('commented') && (next_line.hasClass('func_collapsed') || next_line.find('a[class="ETV_HideLink"]').length == 0))) {
-                    next_line.show();
+                    if (next_line.attr('data-thread') == curr_thread) {
+                        next_line.show();
+                    }
                 }
                 if (next_line.hasClass('func_collapsed')) {
-                    if (event.shiftKey) {
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
+                        next_line.find('.ETV_FuncCode').show();
+                        next_line.find('.ETV_FuncName').hide();
                         next_line.show();
                         next_line.removeClass('func_collapsed');
                         next_line.find('i[class="' + collapsed + '"]').attr('class', expanded);
@@ -134,15 +152,19 @@ $(document).ready(function () {
                     }
                 }
                 else {
-                    if (event.shiftKey) {
+                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
                         next_line.show();
                     }
                     next_line = next_line.next('span');
                 }
-
             }
-            last_selector.show();
+            if (last_selector.attr('data-type') != 'hidden-return') {
+                last_selector.show();
+            }
         }
+    });
+    $('.ETV_DownHideLink').click(function () {
+        $('#etv-trace').find('.' + $(this).parent().parent().attr('class')).first().prev().find('.ETV_HideLink').click();
     });
 
     $('.ETV_La').click(function (event) {
@@ -156,32 +178,33 @@ $(document).ready(function () {
         var whole_line = $(this).parent().parent();
         whole_line.addClass('ETVSelectedLine');
 
-        var assume_window = $('#ETV_assumes'),
-            add_id = $(this).closest('div[id^="etv-trace"]').attr('id').replace('etv-trace', '');
-        assume_window.empty();
-        whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
-            var assume_ids = $(this).text().split(';');
-            $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v + add_id);
-                if (curr_assume.length) {
-                    assume_window.append($('<span>', {
-                        text: curr_assume.text(),
-                        style: 'color: red'
-                    })).append($('<br>'));
-                }
+        var assume_window = $('#ETV_assumes');
+        if (assume_window.length) {
+            assume_window.empty();
+            whole_line.find('span[class="ETV_CurrentAssumptions"]').each(function () {
+                var assume_ids = $(this).text().split(';');
+                $.each(assume_ids, function (i, v) {
+                    var curr_assume = $('#' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<span>', {
+                            text: curr_assume.text(),
+                            style: 'color: red'
+                        })).append($('<br>'));
+                    }
+                });
             });
-        });
-        whole_line.find('span[class="ETV_Assumptions"]').each(function () {
-            var assume_ids = $(this).text().split(';');
-            $.each(assume_ids, function (i, v) {
-                var curr_assume = $('#' + v + add_id);
-                if (curr_assume.length) {
-                    assume_window.append($('<span>', {
-                        text: curr_assume.text()
-                    })).append($('<br>'));
-                }
+            whole_line.find('span[class="ETV_Assumptions"]').each(function () {
+                var assume_ids = $(this).text().split(';');
+                $.each(assume_ids, function (i, v) {
+                    var curr_assume = $('#' + v);
+                    if (curr_assume.length) {
+                        assume_window.append($('<span>', {
+                            text: curr_assume.text()
+                        })).append($('<br>'));
+                    }
+                });
             });
-        });
+        }
     });
     $('.ETV_ShowCommentCode').click(function () {
         var next_code = $(this).parent().parent().next('span');
@@ -269,7 +292,6 @@ $(document).ready(function () {
         if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
-        var etv_window = selected_line.closest('.ETV_error_trace');
         etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 3/10);
         if (!select_next_line()) {
             clearInterval(interval);
@@ -288,7 +310,6 @@ $(document).ready(function () {
         if ($.active > 0 || !ready_for_next_string) {
             return false;
         }
-        var etv_window = selected_line.closest('.ETV_error_trace');
         etv_window.scrollTop(etv_window.scrollTop() + selected_line.position().top - etv_window.height() * 7/10);
         if (!select_prev_line()) {
             clearInterval(interval);
@@ -324,10 +345,92 @@ $(document).ready(function () {
             $(this).addClass('ETV_LN_Warning_Selected');
         }
     });
-    $('.ETV_error_trace').scroll(function () {
+
+    etv_window.scroll(function () {
         $(this).find('.ETV_LN').css('left', $(this).scrollLeft());
     });
     $('#ETV_source_code').scroll(function () {
         $(this).find('.ETVSrcL').css('left', $(this).scrollLeft());
-    })
+    });
+    $('#etv_start').click(function () {
+        etv_window.children().each(function () {
+            if ($(this).is(':visible')) {
+                var line_link = $(this).find('a.ETV_La');
+                etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+                if (line_link.length) {
+                    line_link.click();
+                    return false;
+                }
+            }
+        });
+        $('#etv_play_forward').click();
+    });
+
+    $('#etv_start_backward').click(function () {
+        var next_child = etv_window.children().last();
+        while (next_child) {
+            if (next_child.is(':visible')) {
+                var line_link = next_child.find('a.ETV_La');
+                if (line_link.length) {
+                    etv_window.scrollTop(etv_window.scrollTop() + next_child.position().top - etv_window.height() * 7/10);
+                    line_link.click();
+                    next_child = null;
+                }
+            }
+            if (next_child) {
+                next_child = next_child.prev();
+            }
+        }
+        $('#etv_play_backward').click();
+    });
+    etv_window.children().each(function () {
+        if ($(this).is(':visible')) {
+            var line_link = $(this).find('a.ETV_La');
+            etv_window.scrollTop(etv_window.scrollTop() + $(this).position().top - etv_window.height() * 3/10);
+            if (line_link.length) {
+                line_link.click();
+                return false;
+            }
+        }
+    });
+    $('.ETV_Action').click(function () {
+        $(this).parent().find('.ETV_HideLink').click();
+        var src_link = $(this).parent().parent().find('.ETV_La').first();
+        if (src_link.length) {
+            src_link.click();
+        }
+    });
+    $('.ETV_CallbackAction').click(function () {
+        $(this).parent().find('.ETV_HideLink').click();
+        var src_link = $(this).parent().parent().find('.ETV_La').first();
+        if (src_link.length) {
+            src_link.click();
+        }
+    });
+
+    $('.ETV_ShowCode').click(function () {
+        var whole_line = $(this).parent().parent(), scope = $(this).attr('id'), showcode_icon = $(this).find('i');
+        if (showcode_icon.hasClass('unhide')) {
+            showcode_icon.removeClass('unhide').addClass('hide');
+            whole_line.find('.ETV_FuncCode').show();
+            whole_line.find('.ETV_FuncName').hide();
+            $('.' + scope).each(function () {
+                var curr_line_type = $(this).attr('data-type');
+                if ((curr_line_type == 'normal' || curr_line_type == 'eye-control') && (!$(this).hasClass('commented'))) {
+                    $(this).show();
+                }
+            });
+        }
+        else {
+            showcode_icon.removeClass('hide').addClass('unhide');
+            whole_line.find('.ETV_FuncCode').hide();
+            whole_line.find('.ETV_FuncName').show();
+            $('.' + scope).each(function () {
+                var curr_line_type = $(this).attr('data-type');
+                if (($(this).hasClass('func_collapsed') || $(this).find('a[class="ETV_HideLink"]').length == 0) && (curr_line_type == 'normal' || curr_line_type == 'eye-control')) {
+                    $(this).hide();
+                }
+            });
+        }
+    });
 });

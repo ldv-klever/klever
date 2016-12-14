@@ -58,10 +58,11 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg3;"
+              "%setup% = $ARG3;"
             ]
           },
           "setup": {
+            "comment": "Setup the network device.",
             "callback": "%setup%",
             "parameters": [
               "%netdev%"
@@ -97,7 +98,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -123,7 +124,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -194,7 +195,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }
@@ -261,7 +262,7 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg4;"
+              "%setup% = $ARG4;"
             ]
           },
           "setup": {
@@ -300,7 +301,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -326,7 +327,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -397,7 +398,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }

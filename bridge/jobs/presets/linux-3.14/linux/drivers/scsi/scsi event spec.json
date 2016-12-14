@@ -25,7 +25,7 @@
             "comment": "Allocate memory for a new Scsi_Host structure and initialize it.",
             "statements": [
               "%host% = $ALLOC(%host%);",
-              "%scsi_host_template% = $arg1;",
+              "%scsi_host_template% = $ARG1;",
               "%host%->hostt= %scsi_host_template%;"
             ]
           },
@@ -97,7 +97,7 @@
           "assign": {
             "comment": "Get Scsi_Host structure from parameters.",
             "statements": [
-              "%host% = $arg1;"
+              "%host% = $ARG1;"
             ]
           },
           "register": {
@@ -140,7 +140,7 @@
           "assign": {
             "comment": "Get Scsi_Host structure from parameters.",
             "statements": [
-              "%host% = $arg1;"
+              "%host% = $ARG1;"
             ]
           }
         }
