@@ -45,7 +45,7 @@ REP_MARK_TITLES = {
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
     'tags': _('Tags'),
-    'parent_cpu': _('Parent CPU')
+    'parent_cpu': _('Verifiers time')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -565,12 +565,10 @@ class DownloadFilesForCompetition(object):
             ver_rule = ''
             for u_a in u.attrs.all():
                 if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('~', 'HOME')
+                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
-            ver_obj = os.path.join(ver_obj_path, "u__%s" % ver_obj_name)
-            u_id = os.path.join("Unsafes/%s" % ver_rule, "%s.cil.i" % ver_obj)
+            u_id = 'Unsafes/u__%s__%s.cil.i' % (ver_rule, ver_obj)
             if u_id in u_ids_in_use:
                 ver_obj_path, ver_obj_name = os.path.split(u_id)
                 u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
@@ -595,9 +593,7 @@ class DownloadFilesForCompetition(object):
                     ver_obj = u_a.attr.value.replace('~', 'HOME')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
-            ver_obj = os.path.join(ver_obj_path, "s__%s" % ver_obj_name)
-            s_id = os.path.join("Safes/%s" % ver_rule, "%s.cil.i" % ver_obj)
+            s_id = 'Safes/s__%s__%s.cil.i' % (ver_rule, ver_obj)
             if s_id in u_ids_in_use:
                 ver_obj_path, ver_obj_name = os.path.split(s_id)
                 s_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
@@ -633,22 +629,19 @@ class DownloadFilesForCompetition(object):
             ver_rule = ''
             for u_a in u.attrs.all():
                 if u_a.attr.name.name == 'Verification object':
-                    # ver_obj = u_a.attr.value.replace('/', '---').replace('~', '-')
-                    ver_obj = u_a.attr.value.replace('~', 'HOME')
+                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
                 elif u_a.attr.name.name == 'Rule specification':
                     ver_rule = u_a.attr.value.replace(':', '-')
-            ver_obj_path, ver_obj_name = os.path.split(ver_obj)
-            ver_obj = os.path.join(ver_obj_path, "f__%s" % ver_obj_name)
-            u_id = os.path.join("Unknowns/%s" % ver_rule, "%s.cil.i" % ver_obj)
-            if u_id in u_ids_in_use:
-                ver_obj_path, ver_obj_name = os.path.split(u_id)
-                u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
+            f_id = 'Unknowns/f__%s__%s.cil.i' % (ver_rule, ver_obj)
+            if f_id in u_ids_in_use:
+                ver_obj_path, ver_obj_name = os.path.split(f_id)
+                f_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
                 cnt += 1
-            self.__add_cil_file(parent.archive, tarobj, u_id)
+            self.__add_cil_file(parent.archive, tarobj, f_id)
             new_elem = ETree.Element('include')
-            new_elem.text = u_id
+            new_elem.text = f_id
             self.xml_root.find('tasks').append(new_elem)
-            u_ids_in_use.append(u_id)
+            u_ids_in_use.append(f_id)
 
     def __add_cil_file(self, f, tarobj, fpath):
         extracted_tar = extract_tar_temp(f.file)
