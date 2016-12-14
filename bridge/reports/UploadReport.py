@@ -362,7 +362,7 @@ class UploadReport(object):
 
             for a in report_attrs:
                 attr_stat = AttrStatistic.objects.get_or_create(
-                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                    report=parent, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
                 )[0]
                 attr_stat.unknowns += 1
                 attr_stat.save()
@@ -406,7 +406,7 @@ class UploadReport(object):
 
         for a in report_attrs:
             attr_stat = AttrStatistic.objects.get_or_create(
-                report=report.parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                report=report.parent, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
             )[0]
             attr_stat.unknowns += 1
             attr_stat.save()
@@ -447,7 +447,7 @@ class UploadReport(object):
 
             for a in report_attrs:
                 attr_stat = AttrStatistic.objects.get_or_create(
-                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                    report=parent, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
                 )[0]
                 attr_stat.safes += 1
                 attr_stat.save()
@@ -472,7 +472,7 @@ class UploadReport(object):
         while parent is not None:
             for a in report_attrs:
                 attr_stat = AttrStatistic.objects.get_or_create(
-                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                    report=parent, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
                 )[0]
                 attr_stat.safes += 1
                 attr_stat.save()
@@ -511,7 +511,7 @@ class UploadReport(object):
 
             for a in report_attrs:
                 attr_stat = AttrStatistic.objects.get_or_create(
-                    report=parent, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                    report=parent, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
                 )[0]
                 attr_stat.unsafes += 1
                 attr_stat.save()
@@ -562,7 +562,7 @@ class UploadReport(object):
 
         for a in report_attrs:
             attr_stat = AttrStatistic.objects.get_or_create(
-                report=root_report, name=AttrName.objects.get(name=a), attr=report_attrs[a]
+                report=root_report, name=AttrName.objects.get_or_create(name=a)[0], attr=report_attrs[a]
             )[0]
             attr_stat.unsafes += 1
             attr_stat.save()
@@ -675,9 +675,7 @@ class UploadReport(object):
             for a in ReportAttr.objects.filter(report=report):
                 report_attr_names[a.attr.name.name] = a.attr
             for a_name in ATTR_STATISTIC[self.job.type]:
-                report_attrs[a_name] = None
-                if a_name in report_attr_names:
-                    report_attrs[a_name] = report_attr_names[a_name]
+                report_attrs[a_name] = report_attr_names.get(a_name)
         return report_attrs
 
 
