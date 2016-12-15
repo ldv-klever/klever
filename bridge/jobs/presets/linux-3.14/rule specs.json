@@ -104,7 +104,8 @@
                     "linux/pci.h",
                     "linux/rtc.h",
                     "scsi/scsi_host.h",
-                    "linux/pagemap.h"
+                    "linux/pagemap.h",
+                    "linux/poll.h"
                   ],
                   "Linux 3.5": {
                     "exclude": ["linux/iio/triggered_buffer.h"]
@@ -119,6 +120,11 @@
                     "exclude": [
                       "linux/iio/iio.h",
                       "linux/iio/triggered_buffer.h"
+                    ]
+                  },
+                  "Linux 4.6.7": {
+                    "exclude": [
+                      "linux/poll.h"
                     ]
                   }
                 }
