@@ -19,7 +19,6 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.timezone import now
 from bridge.utils import logger
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC
 from marks.utils import ConnectReportWithMarks
@@ -543,7 +542,7 @@ class UploadReport(object):
         report_attrs = self.__get_attrs(report)
 
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        if self.parent.archive is None:
+        if not self.parent.archive:
             report.parent = root_report
             report.save()
         else:
@@ -696,7 +695,7 @@ class CollapseReports(object):
             parent = ReportComponent.objects.get(pk=u.parent_id)
             if parent.parent is None:
                 continue
-            if parent.archive is None:
+            if not parent.archive:
                 u.parent = root_report
                 u.save()
             else:

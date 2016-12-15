@@ -19,6 +19,7 @@ import os
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.files import File
+from django.utils.timezone import now
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from jobs.models import Job
 
@@ -26,7 +27,8 @@ LOG_DIR = 'ReportLogs'
 
 
 def get_component_path(instance, filename):
-    return os.path.join('Reports', instance.component.name, '%Y', '%m', filename)
+    curr_date = now()
+    return os.path.join('Reports', instance.component.name, str(curr_date.year), str(curr_date.month), filename)
 
 
 class AttrName(models.Model):

@@ -16,8 +16,6 @@
 #
 
 import mimetypes
-import tempfile
-import tarfile
 from datetime import datetime
 from urllib.parse import quote
 from difflib import unified_diff
@@ -35,7 +33,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
-from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
+from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 from jobs.utils import *
 from jobs.models import RunHistory
 from service.utils import StartJobDecision, StopDecision
@@ -552,15 +550,11 @@ def download_job(request, job_id):
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    jobtar = DownloadJob(job)
-    if jobtar.error is not None:
-        return HttpResponseRedirect(
-            reverse('error', args=[500]) + "?back=%s" %
-            quote(reverse('jobs:job', args=[job_id]))
-        )
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
-    response.write(jobtar.tempfile.read())
+
+    generator = JobArchiveGenerator(job)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
     return response
 
 
@@ -571,28 +565,17 @@ def download_jobs(request):
         return HttpResponseRedirect(
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
-    arch_tmp = tempfile.TemporaryFile()
-    with tarfile.open(fileobj=arch_tmp, mode='w:gz', encoding='utf8') as jobs_archive:
-        for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
-            if not JobAccess(request.user, job).can_download():
-                return HttpResponseRedirect(
-                    reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
-                )
-            jobtar = DownloadJob(job)
-            if jobtar.error is not None:
-                return HttpResponseRedirect(
-                    reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-                )
-            tarname = 'Job-%s.tar.gz' % job.identifier[:10]
-            tinfo = tarfile.TarInfo(tarname)
-            tinfo.size = jobtar.size
-            jobs_archive.addfile(tinfo, jobtar.tempfile)
-        jobs_archive.close()
-    arch_tmp.flush()
-    arch_tmp.seek(0)
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=KleverJobs.tar.gz"
-    response.write(arch_tmp.read())
+    jobs = Job.objects.filter(pk__in=json.loads(request.POST['job_ids']))
+    for job in jobs:
+        if not JobAccess(request.user, job).can_download():
+            return HttpResponseRedirect(
+                reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
+            )
+    generator = JobsArchivesGen(jobs)
+
+    mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
     return response
 
 
@@ -683,22 +666,15 @@ def decide_job(request):
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    jobtar = KleverCoreDownloadJob(job)
-    if jobtar.error is not None:
-        return JsonResponse({
-            'error': "Couldn't prepare archive for the job '%s'" % job.identifier
-        })
     change_job_status(job, JOB_STATUS[2][0])
-
-    jobtar.memory.seek(0)
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
     if err is not None:
         return JsonResponse({'error': err})
 
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(jobtar.tarname)
-    response.write(jobtar.memory.read())
-
+    generator = KleverCoreArchiveGen(job)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
     return response
 
 

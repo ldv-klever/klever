@@ -22,6 +22,7 @@ import logging
 import hashlib
 import tarfile
 import tempfile
+import zipfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
 from django.template.defaultfilters import filesizeformat
@@ -142,10 +143,17 @@ def extract_tar_temp(archive):
         for chunk in archive.chunks():
             fp.write(chunk)
         fp.seek(0)
-        with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
-            tmp_dir_name = tempfile.TemporaryDirectory()
-            tar.extractall(tmp_dir_name.name)
-    return tmp_dir_name
+        if os.path.splitext(archive.name)[-1] == '.gz':
+            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
+                tmp_dir_name = tempfile.TemporaryDirectory()
+                tar.extractall(tmp_dir_name.name)
+            return tmp_dir_name
+        elif os.path.splitext(archive.name)[-1] == '.zip':
+            with zipfile.ZipFile(fp, mode='r') as fp:
+                tmp_dir_name = tempfile.TemporaryDirectory()
+                fp.extractall(tmp_dir_name.name)
+            return tmp_dir_name
+        raise ValueError('The archive type is not supported')
 
 
 def unique_id():

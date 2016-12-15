@@ -99,7 +99,7 @@ def report_component(request, job_id, report_id):
         status = 4
 
     report_data = None
-    if report.data is not None:
+    if report.data:
         try:
             with report.data.file as fp:
                 report_data = json.loads(fp.read().decode('utf8'))
@@ -295,7 +295,7 @@ def report_leaf(request, leaf_type, report_id):
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
         main_file_content = None
-        if report.archive is not None and report.proof is not None:
+        if report.archive and report.proof:
             afc = ArchiveFileContent(report, file_name=report.proof)
             if afc.error is not None:
                 logger.error(afc.error)
@@ -553,7 +553,7 @@ def download_report_files(request, report_id):
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
-    if report.archive is None:
+    if not report.archive:
         return HttpResponseRedirect(reverse('error', args=[500]))
 
     with report.archive.file as fp:
