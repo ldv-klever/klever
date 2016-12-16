@@ -20,6 +20,7 @@ import re
 import glob
 from abc import abstractclassmethod, ABCMeta
 from xml.dom import minidom
+import sys
 
 import core.components
 import core.session
@@ -118,8 +119,12 @@ class CommonStrategy(core.components.Component):
                 extra_c_file['new C file'] = trimmed_c_file
                 c_files += (trimmed_c_file, )
 
-            core.utils.execute(self.logger,
-                               (
+            bench_exec_location = os.path.join('/home/alexey/klever/addons/benchexec-1.8/')
+            self.logger.debug("Add to PATH BenchExec location {0}".format(bench_exec_location))
+            sys.path.append(bench_exec_location)
+            from benchexec.runexecutor import RunExecutor
+            executor = RunExecutor()
+            args = (
                                    'cilly.asm.exe',
                                    '--printCilAsIs',
                                    '--domakeCFG',
@@ -136,7 +141,35 @@ class CommonStrategy(core.components.Component):
                                    '--no-split-structs',
                                    '--rmUnusedInlines',
                                    '--out', 'cil.i',
-                               ) + c_files)
+                               ) + c_files
+            result = executor.execute_run(args=args,
+                                          output_filename="output.log",
+                                          softtimelimit=1000000,
+                                          walltimelimit=10000000,
+                                          memlimit=200*1024*1024)
+            exit_code = int(result["exitcode"]) % 255
+            if exit_code != 0:
+                raise ValueError("Cilly.asm.exe consume too much memory")
+
+            # core.utils.execute(self.logger,
+            #                    (
+            #                        'cilly.asm.exe',
+            #                        '--printCilAsIs',
+            #                        '--domakeCFG',
+            #                        '--decil',
+            #                        '--noInsertImplicitCasts',
+            #                        # Now suported by CPAchecker frontend.
+            #                        '--useLogicalOperators',
+            #                        '--ignore-merge-conflicts',
+            #                        # Don't transform simple function calls to calls-by-pointers.
+            #                        '--no-convert-direct-calls',
+            #                        # Don't transform s->f to pointer arithmetic.
+            #                        '--no-convert-field-offsets',
+            #                        # Don't transform structure fields into variables or arrays.
+            #                        '--no-split-structs',
+            #                        '--rmUnusedInlines',
+            #                        '--out', 'cil.i',
+            #                    ) + c_files)
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     if 'new C file' in extra_c_file:
