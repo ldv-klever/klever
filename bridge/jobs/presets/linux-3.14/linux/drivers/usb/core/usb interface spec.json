@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel functions": {
       "usb_reset_device": {
-        "signature": "int usb_reset_device(struct usb_device)",
+        "signature": "int usb_reset_device(%usb.usb_device%)",
         "header": "linux/usb.h"
       },
       "usb_register_driver": {
