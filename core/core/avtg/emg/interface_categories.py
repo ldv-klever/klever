@@ -342,6 +342,14 @@ class CategoriesSpecification:
         return
 
     def _fulfill_function_interfaces(self, interface, category=None):
+        def is_primitive_or_void(decl):
+            if type(decl) is Primitive or \
+                (type(decl) is Pointer and
+                 (type(decl.points) is Primitive or decl.identifier in {'void *', 'void **'})):
+                return True
+            else:
+                return False
+
         self.logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
         if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
             declaration = interface.declaration.points
@@ -355,8 +363,7 @@ class CategoriesSpecification:
             if declaration.return_value and type(declaration.return_value) is InterfaceReference and \
                     declaration.return_value.interface in self.interfaces:
                 interface.rv_interface = self.get_intf(declaration.return_value.interface)
-            elif declaration.return_value and type(declaration.return_value) is not Primitive and not \
-                    (type(declaration.return_value) is Pointer and type(declaration.return_value.points) is Primitive):
+            elif declaration.return_value and not is_primitive_or_void(declaration.return_value):
                 rv_interface = self.resolve_interface(declaration.return_value, category, False)
                 if len(rv_interface) == 0:
                     rv_interface = self.resolve_interface_weakly(declaration.return_value, category, False)
@@ -374,9 +381,7 @@ class CategoriesSpecification:
                         declaration.parameters[index].interface in self.interfaces:
                     p_interface =  self.get_intf(declaration.parameters[index].interface)
                 elif type(declaration.parameters[index]) is not str and \
-                        type(declaration.parameters[index]) is not Primitive and not \
-                        (type(declaration.parameters[index]) is Pointer and
-                         type(declaration.parameters[index].points) is Primitive):
+                        not is_primitive_or_void(declaration.parameters[index]):
                     p_interface = self.resolve_interface(declaration.parameters[index], category, False)
                     if len(p_interface) == 0:
                         p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
