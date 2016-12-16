@@ -249,19 +249,6 @@ def _remove_aux_functions(logger, error_trace):
 
         func_call_edge = next_edge
 
-        # Second pattern. For first pattern it is enough that second edge returns from function since this function can
-        # be just the parent auxiliary one.
-        if 'return' not in func_call_edge:
-            return_edge = error_trace.get_func_return_edge(func_call_edge)
-
-            if return_edge:
-                aux_func_return_edge = error_trace.next_edge(return_edge)
-
-                if 'return' not in aux_func_return_edge or aux_func_return_edge['source'] != 'return;':
-                    continue
-
-                error_trace.remove_edge_and_target_node(aux_func_return_edge)
-
         # Get lhs and actual arguments of called auxiliary function if so.
         m = re.search(r'^(.*){0}\s*\((.*)\);$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
                       aux_func_call_edge['source'])
@@ -315,6 +302,19 @@ def _remove_aux_functions(logger, error_trace):
 
         if not is_all_replaced:
             continue
+
+        # Second pattern. For first pattern it is enough that second edge returns from function since this function can
+        # be just the parent auxiliary one.
+        if 'return' not in func_call_edge:
+            return_edge = error_trace.get_func_return_edge(func_call_edge)
+
+            if return_edge:
+                aux_func_return_edge = error_trace.next_edge(return_edge)
+
+                if 'return' not in aux_func_return_edge or aux_func_return_edge['source'] != 'return;':
+                    continue
+
+                error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         aux_func_call_edge['source'] = lhs + func_name + '(' + (', '.join(actual_args) if actual_args else '') + ');'
         aux_func_call_edge['enter'] = func_call_edge['enter']
