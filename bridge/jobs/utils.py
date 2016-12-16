@@ -184,8 +184,7 @@ class JobAccess(object):
         if self.job is not None:
             try:
                 first_version = self.job.versions.get(version=1)
-                last_version = self.job.versions.get(
-                    version=self.job.version)
+                last_version = self.job.versions.get(version=self.job.version)
             except ObjectDoesNotExist:
                 return
             self.__is_author = (first_version.change_author == user)
@@ -571,11 +570,11 @@ def check_new_parent(job, parent):
     return True
 
 
-def get_resource_data(user, resource):
-    if user.extended.data_format == 'hum':
-        wall = convert_time(resource.wall_time, user.extended.accuracy)
-        cpu = convert_time(resource.cpu_time, user.extended.accuracy)
-        mem = convert_memory(resource.memory, user.extended.accuracy)
+def get_resource_data(data_format, accuracy, resource):
+    if data_format == 'hum':
+        wall = convert_time(resource.wall_time, accuracy)
+        cpu = convert_time(resource.cpu_time, accuracy)
+        mem = convert_memory(resource.memory, accuracy)
     else:
         wall = "%s %s" % (resource.wall_time, _('ms'))
         cpu = "%s %s" % (resource.cpu_time, _('ms'))

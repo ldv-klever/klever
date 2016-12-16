@@ -89,6 +89,7 @@ class JobHistory(JobBase):
 
     class Meta:
         db_table = 'jobhistory'
+        index_together = ['job', 'version']
 
 
 class FileSystem(models.Model):

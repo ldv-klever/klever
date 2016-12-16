@@ -85,7 +85,7 @@ def get_parents(report):
 
 def report_resources(report, user):
     if all(x is not None for x in [report.wall_time, report.cpu_time, report.memory]):
-        rd = get_resource_data(user, report)
+        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, report)
         return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
     return None
 

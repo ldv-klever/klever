@@ -168,7 +168,7 @@ class ViewJobData(object):
         for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)):
             if cr.component.name not in res_data:
                 res_data[cr.component.name] = {}
-            rd = get_resource_data(self.user, cr)
+            rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, cr)
             res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
@@ -179,7 +179,7 @@ class ViewJobData(object):
             else:
                 res_total = resource_table.filter(component=None).first()
             if res_total is not None:
-                rd = get_resource_data(self.user, res_total)
+                rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, res_total)
                 resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
         return resource_data
 

@@ -57,7 +57,6 @@ def tree_view(request):
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
         'priorities': list(reversed(PRIORITY)),
-        'can_create': JobAccess(request.user).can_create(),
         'months': months_choices,
         'years': list(range(curr_year - 3, curr_year + 1)),
         'TableData': TableTree(*tree_args)
@@ -603,39 +602,32 @@ def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
     if len(parent_id) == 0:
-        return JsonResponse({
-            'status': False,
-            'message': _("The parent identifier was not got")
-        })
+        return JsonResponse({'error': str(_("The parent identifier was not got"))})
     parents = Job.objects.filter(identifier__startswith=parent_id)
     if len(parents) == 0:
-        return JsonResponse({
-            'status': False,
-            'message': _("The parent with the specified identifier was not found")
-        })
+        return JsonResponse({'error': str(_("The parent with the specified identifier was not found"))})
     elif len(parents) > 1:
-        return JsonResponse({
-            'status': False,
-            'message': _("Too many jobs starts with the specified identifier")
-        })
+        return JsonResponse({'error': str(_("Too many jobs starts with the specified identifier"))})
     parent = parents[0]
-    failed_jobs = []
+    errors = []
     for f in request.FILES.getlist('file'):
         try:
             job_dir = extract_tar_temp(f)
         except Exception as e:
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
-            failed_jobs.append([str(_('Archive extracting error')), f.name])
+            errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
-            failed_jobs.append([zipdata.err_message + '', f.name])
-    if len(failed_jobs) > 0:
-        return JsonResponse({
-            'status': False,
-            'messages': failed_jobs
-        })
-    return JsonResponse({'status': True})
+            errors.append(
+                _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': f.name,
+                    'message': str(zipdata.err_message)
+                }
+            )
+    if len(errors) > 0:
+        return JsonResponse({'errors': list(str(x) for x in errors)})
+    return JsonResponse({})
 
 
 @unparallel_group(['job', 'report'])

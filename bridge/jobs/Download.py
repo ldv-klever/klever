@@ -495,6 +495,9 @@ class UploadJob(object):
                             logger.exception("Can't save job files to DB: %s" % e)
                             return _("Creating job's file failed")
 
+        if not isinstance(jobdata, dict):
+            logger.error('job.json file was not found or contains wrong data')
+            return _("The job archive is corrupted")
         # Check job data
         if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map', 'run_history']):
             logger.error('Not enough data in job.json file')
