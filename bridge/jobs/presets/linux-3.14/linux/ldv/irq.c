@@ -24,11 +24,13 @@
 
 static bool __ldv_in_interrupt_context = false;
 
+/* MODEL_FUNC Switch to interrupt context */
 void ldv_switch_to_interrupt_context(void)
 {
 	__ldv_in_interrupt_context = true;
 }
 
+/* MODEL_FUNC Switch to process context */
 void ldv_switch_to_process_context(void)
 {
 	__ldv_in_interrupt_context = false;

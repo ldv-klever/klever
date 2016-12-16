@@ -24,7 +24,7 @@
           "alloc": {
             "comment": "Allocate memory for ieee80211_hw structure.",
             "statements": [
-              "%ieee80211_ops% = $arg2;",
+              "%ieee80211_ops% = $ARG2;",
               "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
             ]
           },
@@ -213,7 +213,7 @@
           "alloc": {
             "comment": "Allocate memory for ieee80211_hw structure.",
             "statements": [
-              "%ieee80211_ops% = $arg2;",
+              "%ieee80211_ops% = $ARG2;",
               "%ieee80211_hw% = $ALLOC(%ieee80211_hw%);"
             ]
           },

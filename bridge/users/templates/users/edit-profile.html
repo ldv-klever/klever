@@ -72,6 +72,13 @@
                         </div>
                         <br>
                     </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            {{ profile_form.triangles }}
+                            <label>{{ profile_form.triangles.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace closing triangles at the end of each thread.' %}"></i></label>
+                        </div>
+                        <br>
+                    </div>
                 </div>
                 <div class="six wide column">
                     <h3 class="header">{% trans 'VerifierCloud Credentials' %}</h3>

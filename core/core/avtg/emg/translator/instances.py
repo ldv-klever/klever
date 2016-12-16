@@ -16,11 +16,177 @@
 #
 
 import copy
+from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property
 from core.avtg.emg.common.interface import Resource, Container
 from core.avtg.emg.common.signature import Implementation
+from core.avtg.emg.translator.fsa import Automaton
 
 
-def split_into_instances(analysis, process, resource_new_insts, simplified_map=None):
+def yield_instances(logger, conf, analysis, model, instance_maps):
+    """
+    Generate automata for all processes in an intermediate environment model.
+
+    :param logger: logging initialized object.
+    :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
+    :param analysis: ModuleCategoriesSpecification object.
+    :param model: ProcessModel object.
+    :param instance_maps: Dictionary {'category name' -> {'process name' ->
+           {'Access.expression string'->'Interface.identifier string'->'value string'}}}.
+    :return: Entry point autmaton, list with model qutomata, list with callback automata.
+    """
+    def yeild_identifier():
+        """Return unique identifier."""
+        identifier_counter = 0
+        while True:
+            identifier_counter += 1
+            yield identifier_counter
+    logger.info("Generate automata for processes with callback calls")
+    identifiers = yeild_identifier()
+    
+    # Check configuraition properties first
+    check_or_set_conf_property(conf, "max instances number", default_value=1000, expected_type=int)
+    check_or_set_conf_property(conf, "instance modifier", default_value=1, expected_type=int)
+    check_or_set_conf_property(conf, "instances per resource implementation", default_value=1, expected_type=int)
+    instances_left = get_necessary_conf_property(conf, "max instances number")
+
+    # Returning values
+    entry_fsa, model_fsa, callback_fsa = None, list(), list()
+
+    # Determine how many instances is required for a model
+    for process in model.event_processes:
+        base_list = _original_process_copies(logger, conf, analysis, process, instances_left)
+        base_list = _fulfill_label_maps(logger, conf, analysis, base_list, process, instance_maps, instances_left)
+        logger.info("Generate {} FSA instances for environment model processes {} with category {}".
+                    format(len(base_list), process.name, process.category))
+
+        for instance in base_list:
+            fsa = Automaton(instance, identifiers.__next__())
+            callback_fsa.append(fsa)
+
+    # Generate automata for models
+    logger.info("Generate automata for kernel model processes")
+    for process in model.model_processes:
+        logger.info("Generate FSA for kernel model process {}".format(process.name))
+        processes = _fulfill_label_maps(logger, conf, analysis, [process], process, instance_maps, instances_left)
+        for instance in processes:
+            fsa = Automaton(instance, identifiers.__next__())
+            model_fsa.append(fsa)
+
+    # Generate state machine for init an exit
+    logger.info("Generate FSA for module initialization and exit functions")
+    entry_fsa = Automaton(model.entry_process, identifiers.__next__())
+
+    return entry_fsa, model_fsa, callback_fsa
+
+
+def _original_process_copies(logger, conf, analysis, process, instances_left):
+    """
+    Generate process copies which would be used independently for instance creation.
+
+    :param logger: logging initialized object.
+    :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
+    :param analysis: ModuleCategoriesSpecification object.
+    :param process: Process object.
+    :param instances_left: Number of instances which EMG is still allowed to generate.
+    :return: List of process copies.
+    """
+    # Determine max number of instances that can be generated
+    original_instances = list()
+
+    base_list = []
+    if get_necessary_conf_property(conf, "instance modifier"):
+        # Used by a parallel env model
+        base_list.append(_copy_process(process, instances_left))
+    else:
+        undefined_labels = []
+        # Determine nonimplemented containers
+        logger.debug("Calculate number of not implemented labels and collateral values for process {} with "
+                     "category {}".format(process.name, process.category))
+        for label in [process.labels[name] for name in sorted(process.labels.keys())
+                      if len(process.labels[name].interfaces) > 0]:
+            nonimplemented_intrerfaces = [interface for interface in label.interfaces
+                                          if len(analysis.implementations(analysis.get_intf(interface))) == 0]
+            if len(nonimplemented_intrerfaces) > 0:
+                undefined_labels.append(label)
+
+        # Determine is it necessary to make several instances
+        if len(undefined_labels) > 0:
+            for i in range(get_necessary_conf_property(conf, "instance modifier")):
+                base_list.append(_copy_process(process, instances_left))
+        else:
+            base_list.append(_copy_process(process, instances_left))
+
+        logger.info("Prepare {} instances for {} undefined labels of process {} with category {}".
+                    format(len(base_list), len(undefined_labels), process.name, process.category))
+
+    return base_list
+
+
+def _fulfill_label_maps(logger, conf, analysis, instances, process, instance_maps, instances_left):
+    """
+    Generate instances and finally assign to each process its instance map which maps accesses to particular
+    implementations of relevant interfaces.
+
+    :param logger: logging initialized object.
+    :param conf: Dictionary with configuration properties {'property name'->{'child property' -> {... -> value}}.
+    :param analysis: ModuleCategoriesSpecification object.
+    :param instances: List of Process objects.
+    :param process: Process object.
+    :param instance_maps: Dictionary {'category name' -> {'process name' ->
+           {'Access.expression string'->'Interface.identifier string'->'value string'}}}
+    :param instances_left: Number of instances which EMG is still allowed to generate.
+    :return: List of Process objects.
+    """
+    base_list = instances
+
+    # Get map from accesses to implementations
+    logger.info("Determine number of instances for process '{}' with category '{}'".
+                format(process.name, process.category))
+
+    if process.category not in instance_maps:
+        instance_maps[process.category] = dict()
+
+    if process.name in instance_maps[process.category]:
+        cached_map = instance_maps[process.category][process.name]
+    else:
+        cached_map = None
+    maps, cached_map = _split_into_instances(analysis, process,
+                                             get_necessary_conf_property(conf, "instances per resource implementation"),
+                                             cached_map)
+    instance_maps[process.category][process.name] = cached_map
+
+    logger.info("Going to generate {} instances for process '{}' with category '{}'".
+                format(len(maps), process.name, process.category))
+    new_base_list = []
+    for access_map in maps:
+        for instance in base_list:
+            newp = _copy_process(instance, instances_left)
+            newp.allowed_implementations = access_map
+            new_base_list.append(newp)
+
+    return new_base_list
+
+
+def _copy_process(process, instances_left):
+    """
+    Return a copy of a process. The copy is not recursive and Process object would has the same objects in its
+    attributes.
+
+    :param process: Process object.
+    :param instances_left: Number of instances which EMG is still allowed to generate.
+    :return: Process object copy.
+    """
+    inst = copy.copy(process)
+    if instances_left == 0:
+        raise RuntimeError('EMG tries to generate more instances than it is allowed by configuration')
+    elif instances_left:
+        instances_left -= 1
+
+    inst.allowed_implementations = dict(process.allowed_implementations)
+    return inst
+
+
+def _split_into_instances(analysis, process, resource_new_insts, simplified_map=None):
     """
     Get a process and calculate instances to get automata with exactly one implementation per interface.
 

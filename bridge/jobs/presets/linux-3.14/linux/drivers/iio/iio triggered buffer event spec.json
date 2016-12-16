@@ -45,9 +45,9 @@
           "assign": {
             "comment": "Get IIO device structure and handler functions.",
             "statements": [
-              "%dev% = $arg1;",
-              "%callback% = $arg2;",
-              "%thread% = $arg3;"
+              "%dev% = $ARG1;",
+              "%callback% = $ARG2;",
+              "%thread% = $ARG3;"
             ]
           },
           "success": {
@@ -80,7 +80,7 @@
           "assign": {
             "comment": "Get IIO device structure.",
             "statements": [
-              "%dev% = $arg1;"
+              "%dev% = $ARG1;"
             ]
           }
         }
@@ -88,6 +88,7 @@
     },
     "environment processes": {
       "iio_triggered_buffer_scenario": {
+        "headers": ["linux/interrupt.h"],
         "comment": "Industrial I/O triggered buffer poll function scenario.",
         "labels": {
           "thread": {

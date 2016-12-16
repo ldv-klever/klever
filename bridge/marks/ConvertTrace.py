@@ -20,17 +20,17 @@ from io import BytesIO
 from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions, ErrorTraceForests
 from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
 # 2) Use self.error_trace for convertion
-# 3) Return the converted trace. This value MUST be json serializable.
+# 3) Return the converted trace. This value MUST be json serializable. Dict and list are good choices.
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'call_stack_tree'
+DEFAULT_CONVERT = 'call_forests'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
@@ -85,6 +85,15 @@ Return list of lists of levels of function names in json format.
         """
 
         return ErrorTraceCallstackTree(self.error_trace).trace
+
+    def call_forests(self):
+        """
+This function is extracting the error trace call stack "forests".
+The forest is a couple of call trees under callback action.
+Return list of forests.
+        """
+
+        return ErrorTraceForests(self.error_trace).trace
 
 
 class GetConvertedErrorTrace(object):

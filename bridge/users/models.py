@@ -29,6 +29,7 @@ class Extended(models.Model):
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
     timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
     assumptions = models.BooleanField(default=DEF_USER['assumptions'])
+    triangles = models.BooleanField(default=DEF_USER['triangles'])
 
     def __str__(self):
         return self.user.username

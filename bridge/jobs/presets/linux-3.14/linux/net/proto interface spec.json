@@ -11,19 +11,19 @@
               "bind": "%proto.probe%",
               "release": "%proto.release%"
             }
-          }
-        },
-        "resources": {
+          },
           "socket": {
-            "signature": "struct socket *socket"
+            "signature": "struct socket socket",
+            "header": "linux/net.h"
           }
         },
+        "resources": {},
         "callbacks": {
           "probe": {
-            "signature": "int (*probe)(%proto.socket%, $, $)"
+            "signature": "int (*probe)(*%proto.socket%, $, $)"
           },
           "release": {
-            "signature": "int (*release)(%proto.socket%)"
+            "signature": "int (*release)(*%proto.socket%)"
           }
         }
       }

@@ -13,7 +13,12 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="seven wide column">
-            <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button top attached">{% trans 'Download' %}</a>
+            <div class="ui buttons top attached">
+                <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
+                {% if can_edit %}
+                    <a href="{% url 'marks:edit_mark' type mark.pk %}" class="ui blue button">{% trans 'Edit' %}</a>
+                {% endif %}
+            </div>
             <table class="ui selectable compact inverted violet table attached">
                 <tbody>
                     <tr>
@@ -107,10 +112,13 @@
                     {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
                 </div>
                 <div class="ui teal segment">
-                    <h4 class="header ui teal">{% trans 'Error traces comparison function' %}</h4>
+                    <h4 class="header ui teal">{% trans 'Error traces comparison function and converted error trace' %}</h4>
                     <div class="ui teal raised segment">
                         <a class="ui teal ribbon label">{% for f in markdata.comparison %}{% if f.selected %}{{ f.name }}{% endif %}{% endfor %}</a>
                         <div class="filecontent">{{ markdata.compare_desc }}</div>
+                    </div>
+                    <div class="ui teal raised segment">
+                        <div class="filecontent">{{ error_trace }}</div>
                     </div>
                 </div>
                 <div class="ui styled accordion fluid">

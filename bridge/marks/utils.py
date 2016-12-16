@@ -16,14 +16,16 @@
 #
 
 import re
+import json
+from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger, unique_id, ArchiveFileContent
+from bridge.utils import logger, unique_id, ArchiveFileContent, file_checksum, file_get_or_create
 from marks.models import *
-from reports.models import ReportComponent, Verdict
-from marks.ConvertTrace import GetConvertedErrorTrace
+from reports.models import ReportComponent, Verdict, ReportComponentLeaf
+from marks.ConvertTrace import GetConvertedErrorTrace, ET_FILE_NAME
 from marks.CompareTrace import CompareTrace
 
 
@@ -96,6 +98,7 @@ class NewMark(object):
         mark.author = self.user
         mark.prime = report
 
+        error_trace = None
         if self.type == 'unsafe':
             if any(x not in args for x in ['convert_id', 'compare_id']):
                 logger.error('Not enough data to create unsafe mark', stack_info=True)
@@ -108,7 +111,7 @@ class NewMark(object):
             res = GetConvertedErrorTrace(func, report)
             if res.error is not None:
                 return res.error
-            mark.error_trace = res.converted
+            error_trace = res.converted
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
@@ -161,7 +164,7 @@ class NewMark(object):
         except Exception as e:
             logger.exception('Saving mark failed: %s' % e, stack_info=True)
             return 'Unknown error'
-        res = self.__update_mark(mark, args.get('tags'))
+        res = self.__update_mark(mark, args.get('tags'), error_trace)
         if res is not None:
             mark.delete()
             return res
@@ -190,7 +193,8 @@ class NewMark(object):
             old_tags = list(tag.tag for tag in last_v.tags.all())
 
         mark.author = self.user
-        if self.type == 'unsafe' and 'compare_id' in args:
+        error_trace = None
+        if self.type == 'unsafe':
             try:
                 new_func = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
@@ -199,6 +203,15 @@ class NewMark(object):
             if mark.function != new_func:
                 mark.function = new_func
                 self.do_recalk = True
+
+            error_trace = BytesIO(
+                json.dumps(json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+            )
+            if file_checksum(error_trace) != last_v.error_trace.hash_sum:
+                self.do_recalk = True
+                error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+            else:
+                error_trace = last_v.error_trace
 
         if self.type == 'unknown':
             if 'function' not in args or len(args['function']) == 0:
@@ -249,7 +262,7 @@ class NewMark(object):
             mark.description = str(args['description'])
         mark.version += 1
 
-        res = self.__update_mark(mark, args.get('tags', []), args['comment'])
+        res = self.__update_mark(mark, args.get('tags', []), error_trace=error_trace, comment=args['comment'])
         if res is not None:
             self.mark_version.delete()
             return res
@@ -280,7 +293,7 @@ class NewMark(object):
             UpdateTags(self.mark, changes=self.changes, old_tags=old_tags)
         return None
 
-    def __update_mark(self, mark, tags, comment=''):
+    def __update_mark(self, mark, tags, error_trace=None, comment=''):
         args = {
             'mark': mark,
             'version': mark.version,
@@ -290,6 +303,8 @@ class NewMark(object):
             'author': mark.author,
             'description': mark.description,
         }
+        if error_trace is not None:
+            args['error_trace'] = error_trace
         if self.type != 'safe':
             args['function'] = mark.function
         if self.type == 'unknown':
@@ -403,7 +418,7 @@ class ConnectReportWithMarks(object):
 
         for mark in marks_to_compare:
             compare_failed = False
-            with mark.error_trace.file as fp:
+            with mark.versions.order_by('-version').first().error_trace.file as fp:
                 compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), self.report)
             if compare.error is not None:
                 logger.error("Error traces comparison failed: %s" % compare.error, stack_info=True)
@@ -482,7 +497,7 @@ class ConnectMarkWithReports(object):
                 'kind': '-', 'result1': mark_unsafe.result, 'verdict1': mark_unsafe.report.verdict,
             }
         self.mark.markreport_set.all().delete()
-        with self.mark.error_trace.file as fp:
+        with self.mark.versions.order_by('-version').first().error_trace.file as fp:
             pattern_error_trace = fp.read().decode('utf8')
         for unsafe in ReportUnsafe.objects.all():
             unsafe_attrs = []
@@ -743,7 +758,7 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[2][0]:
             return True
-        if not self.mark.is_modifiable:
+        if not self.mark.is_modifiable or self.mark.version == 0:
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
@@ -800,7 +815,7 @@ class MarkAccess(object):
             return False
         if self.user.extended.role == USER_ROLES[2][0]:
             return True
-        if not self.mark.is_modifiable:
+        if not self.mark.is_modifiable or self.mark.version == 0:
             return False
         if self.user.extended.role == USER_ROLES[3][0]:
             return True
@@ -983,7 +998,6 @@ class UpdateTags(object):
 
 
 class DeleteMark(object):
-
     def __init__(self, mark):
         self.mark = mark
         self.__delete()
@@ -992,9 +1006,13 @@ class DeleteMark(object):
         changes = {}
         if not isinstance(self.mark, (MarkSafe, MarkUnsafe, MarkUnknown)):
             return
-        for mark_report in self.mark.markreport_set.all():
+        # Mark the mark as deleted
+        self.mark.version = 0
+        self.mark.save()
+        mark_report_set = self.mark.markreport_set.all()
+        for mark_report in mark_report_set:
             changes[mark_report.report] = {'kind': '-'}
-        self.mark.markreport_set.all().delete()
+        mark_report_set.delete()
         if isinstance(self.mark, MarkUnknown):
             update_unknowns_cache(changes)
         else:
@@ -1049,7 +1067,6 @@ class MatchUnknown(object):
 
 
 def update_unknowns_cache(changes):
-    from reports.models import ReportComponentLeaf
     reports_to_recalc = []
     for leaf in ReportComponentLeaf.objects.filter(unknown__in=list(changes)):
         if leaf.report not in reports_to_recalc:

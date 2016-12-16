@@ -23,7 +23,7 @@
           "assign": {
             "comment": "Get callbacks to register provided within 'usb_serial_driver' argument.",
             "statements": [
-              "%usb_device_id% = $arg3;"
+              "%usb_device_id% = $ARG3;"
             ]
           },
           "fail": {
@@ -61,7 +61,7 @@
           "assign": {
             "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
             "statements": [
-              "%usb_device_id% = $arg1;"
+              "%usb_device_id% = $ARG1;"
             ]
           }
         }
@@ -341,7 +341,8 @@
           "assign": {
             "comment": "Get callbacks to register provided within 'usb_serial_driver' argument.",
             "statements": [
-              "%usb_device_id% = $arg3;"
+              "%usb_device_id% = $ARG3;"
+
             ]
           },
           "fail": {
@@ -379,7 +380,7 @@
           "assign": {
             "comment": "Get callbacks to deregister provided within 'usb_serial_driver' argument.",
             "statements": [
-              "%usb_device_id% = $arg1;"
+              "%usb_device_id% = $ARG1;"
             ]
           }
         }
