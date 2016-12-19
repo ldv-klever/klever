@@ -911,7 +911,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
-        # Add kernel functionrelevant interfaces
+        # Add kernel function relevant interfaces
         for name in self.kernel_functions:
             relevant_interfaces.update(__check_category_relevance(self.get_kernel_function(name)))
 
@@ -924,11 +924,15 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Add callbacks and their resources
         for callback in self.callbacks():
-            if len(self.implementations(callback)) > 0:
+            containers = self.resolve_containers(callback, callback.category)
+            if len(containers) > 0 and len(self.implementations(callback)) > 0:
                 relevant_interfaces.add(callback)
                 relevant_interfaces.update(__check_category_relevance(callback))
-            else:
-                containers = self.resolve_containers(callback, callback.category)
+            elif len(containers) == 0 and len(self.implementations(callback)) > 0 and \
+                    callback.category in {i.category for i in relevant_interfaces}:
+                relevant_interfaces.add(callback)
+                relevant_interfaces.update(__check_category_relevance(callback))
+            elif len(containers) > 0 and len(self.implementations(callback)) == 0:
                 for container in containers:
                     if self.get_intf(container) in relevant_interfaces and \
                             len(self.get_intf(container).declaration.implementations) == 0:
