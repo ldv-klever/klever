@@ -342,7 +342,30 @@ class CategoriesSpecification:
         return
 
     def _fulfill_function_interfaces(self, interface, category=None):
+        """
+        Check an interface declaration (function or function pointer) and try to match its return value type and
+        parameters arguments types with existing interfaces. The algorythm should be the following:
+
+        * Match explicitly stated interface References (only if they meet given category).
+        * Match rest parameters:
+            - Avoid matching primitives and arrays and pointers of primitives;
+            - Match interfaces from given category or from the category of already matched interfaces by interface
+              references;
+            - If there are more that one category is matched - do not do match to avoid mistakes in match.
+
+        :param interface: Interface object: KernelFunction or Callback
+        :param category: Category filter
+        :return: None
+        """
+
         def is_primitive_or_void(decl):
+            """
+            Return True if given declaration object has type of Primitive or pointer(* and **) to Primitive.
+
+            :param decl: Declaration object
+            :return: True - it is primitive, False - otherwise
+            """
+            # todo: Implement check agains arrays of primitives
             if type(decl) is Primitive or \
                 (type(decl) is Pointer and
                  (type(decl.points) is Primitive or decl.identifier in {'void *', 'void **'})):
@@ -350,7 +373,23 @@ class CategoriesSpecification:
             else:
                 return False
 
+        def assign_parameter_interface(function_intf, matched_intf, position):
+            """
+            Add matched parameter interface to the list of matched parameters. This takes care of unfilled list of
+            parameters in the interface list.
+
+            :param function_intf: KernelFunction or Callback object.
+            :param matched_intf: Interface object.
+            :param position: int.
+            :return: None
+            """
+            if len(function_intf.param_interfaces) > position and not function_intf.param_interfaces[position]:
+                function_intf.param_interfaces[position] = matched_intf
+            else:
+                function_intf.param_interfaces.append(matched_intf)
+
         self.logger.debug("Try to match collateral interfaces for function '{}'".format(interface.identifier))
+        # Check declaration type
         if type(interface.declaration) is Pointer and type(interface.declaration.points) is Function:
             declaration = interface.declaration.points
         elif type(interface.declaration) is Function:
@@ -359,46 +398,64 @@ class CategoriesSpecification:
             raise TypeError('Expect pointer to function or function declaration but got {}'.
                             format(str(type(interface.declaration))))
 
-        if not interface.rv_interface:
-            if declaration.return_value and type(declaration.return_value) is InterfaceReference and \
-                    declaration.return_value.interface in self.interfaces:
-                interface.rv_interface = self.get_intf(declaration.return_value.interface)
-            elif declaration.return_value and not is_primitive_or_void(declaration.return_value):
-                rv_interface = self.resolve_interface(declaration.return_value, category, False)
-                if len(rv_interface) == 0:
-                    rv_interface = self.resolve_interface_weakly(declaration.return_value, category, False)
+        # First check explicitly stated interfaces
+        if not interface.rv_interface and declaration.return_value and \
+                type(declaration.return_value) is InterfaceReference and \
+                declaration.return_value.interface in self.interfaces:
+            interface.rv_interface = self.get_intf(declaration.return_value.interface)
+        elif interface.rv_interface and not category:
+            category = interface.rv_interface.category
 
-                if len(rv_interface) == 1:
-                    interface.rv_interface = rv_interface[-1]
-                elif len(rv_interface) > 1:
-                    # todo: how to match several interfaces with the same signature?
-                    #raise ValueError('Cannot match two return values')
-                    interface.rv_interface = rv_interface[-1]
-
+        # Check explicit parameter interface references
         for index in range(len(declaration.parameters)):
             if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]):
                 if type(declaration.parameters[index]) is InterfaceReference and \
                         declaration.parameters[index].interface in self.interfaces:
-                    p_interface =  self.get_intf(declaration.parameters[index].interface)
-                elif type(declaration.parameters[index]) is not str and \
-                        not is_primitive_or_void(declaration.parameters[index]):
-                    p_interface = self.resolve_interface(declaration.parameters[index], category, False)
-                    if len(p_interface) == 0:
-                        p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
-                    if len(p_interface) == 1:
-                        p_interface = p_interface[0]
-                    elif len(p_interface) == 0:
-                        p_interface = None
-                    else:
-                        # todo: how to match several interfaces with the same signature?
-                        p_interface = p_interface[0]
+                    p_interface = self.get_intf(declaration.parameters[index].interface)
                 else:
                     p_interface = None
 
-                if len(interface.param_interfaces) > index:
-                    interface.param_interfaces[index] = p_interface
+                assign_parameter_interface(interface, p_interface, index)
+
+                if p_interface and not category:
+                    category = p_interface.category
+
+        # Second match rest types
+        if not interface.rv_interface and \
+                declaration.return_value and not is_primitive_or_void(declaration.return_value):
+            rv_interface = self.resolve_interface(declaration.return_value, category, False)
+            if len(rv_interface) == 0:
+                rv_interface = self.resolve_interface_weakly(declaration.return_value, category, False)
+            if len(rv_interface) == 1:
+                interface.rv_interface = rv_interface[-1]
+            elif len(rv_interface) > 1:
+                self.logger.warning('Interface {!r} return value signature {!r} can be match with several '
+                                    'following interfaces: {}'.
+                                    format(interface.identifier, declaration.return_value.identifier,
+                                           ', '.join((i.identifier for i in rv_interface))))
+
+        for index in range(len(declaration.parameters)):
+            if not (len(interface.param_interfaces) > index and interface.param_interfaces[index]) and \
+                    type(declaration.parameters[index]) is not str and \
+                    not is_primitive_or_void(declaration.parameters[index]):
+                p_interface = self.resolve_interface(declaration.parameters[index], category, False)
+                if len(p_interface) == 0:
+                    p_interface = self.resolve_interface_weakly(declaration.parameters[index], category, False)
+                if len(p_interface) == 1:
+                    p_interface = p_interface[0]
+                elif len(p_interface) == 0:
+                    p_interface = None
                 else:
-                    interface.param_interfaces.append(p_interface)
+                    self.logger.warning('Interface {!r} parameter in the position {} with signature {!r} can be match '
+                                        'with several following interfaces: {}'.
+                                        format(interface.identifier, index, declaration.parameters[index].identifier,
+                                               ', '.join((i.identifier for i in p_interface))))
+                    p_interface = None
+
+                assign_parameter_interface(interface, p_interface, index)
+
+                if p_interface and not category:
+                    category = p_interface.category
 
     def __import_kernel_interfaces(self, category_name, collection):
         for identifier in sorted(collection[category_name].keys()):
