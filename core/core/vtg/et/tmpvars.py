@@ -25,35 +25,41 @@ def generic_simplifications(logger, trace):
 
 
 def _basic_simplification(error_trace):
+    # Remove all edges without source (at the modmen only enterLoopHead expected)
+    for edge in (e for e in error_trace.trace_iterator() if 'source' not in e):
+        if 'enterLoopHead' in edge and edge['enterLoopHead']:
+            error_trace.remove_edge_and_target_node(edge)
+        else:
+            raise ValueError('Do not expect edges without source attribute')
+
     # Simple transformations.
     for edge in error_trace.trace_iterator():
         # Make source code more human readable.
-        if 'source' in edge:
-            # Remove all broken indentations - error traces visualizer will add its own ones but will do this in much
-            # more attractive way.
-            edge['source'] = re.sub(r'[ \t]*\n[ \t]*', ' ', edge['source'])
+        # Remove all broken indentations - error traces visualizer will add its own ones but will do this in much
+        # more attractive way.
+        edge['source'] = re.sub(r'[ \t]*\n[ \t]*', ' ', edge['source'])
 
-            # Remove "[...]" around conditions.
-            if 'condition' in edge:
-                edge['source'] = edge['source'].strip('[]')
+        # Remove "[...]" around conditions.
+        if 'condition' in edge:
+            edge['source'] = edge['source'].strip('[]')
 
-            # Get rid of continues whitespaces.
-            edge['source'] = re.sub(r'[ \t]+', ' ', edge['source'])
+        # Get rid of continues whitespaces.
+        edge['source'] = re.sub(r'[ \t]+', ' ', edge['source'])
 
-            # Remove space before trailing ";".
-            edge['source'] = re.sub(r' ;$', ';', edge['source'])
+        # Remove space before trailing ";".
+        edge['source'] = re.sub(r' ;$', ';', edge['source'])
 
-            # Remove space before "," and ")".
-            edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
+        # Remove space before "," and ")".
+        edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
 
-            # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
-            edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
-            edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
-            edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
-            edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
+        # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
+        edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
+        edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
+        edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
+        edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
 
-            # Remove unnessary "(...)" around returned values/expressions.
-            edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
+        # Remove unnessary "(...)" around returned values/expressions.
+        edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
 
         # Make source code and assumptions more human readable (common improvements).
         for source_kind in ('source', 'assumption'):
@@ -72,8 +78,9 @@ def _remove_artificial_edges(logger, error_trace):
     for edge in error_trace.trace_iterator():
         if 'return' in edge:
             next_edge = error_trace.next_edge(edge)
-            error_trace.remove_edge_and_target_node(next_edge)
-            removed_edges_num += 1
+            if 'return' in next_edge and next_edge['return'] == edge['return']:
+                error_trace.remove_edge_and_target_node(next_edge)
+                removed_edges_num += 1
     if removed_edges_num:
         logger.debug('{0} useless edges were removed'.format(removed_edges_num))
 
@@ -183,7 +190,7 @@ def _remove_tmp_vars(error_trace, edge):
         #   tmp... = func(...);
         #   ... gunc(... tmp... ...);
         # since it requires two entered functions from one edge.
-        if 'enter' in tmp_var_use_edge:
+        if 'enter' in tmp_var_use_edge and tmp_var_decl_id in unused_tmp_var_decl_ids:
             unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
         else:
             m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), tmp_var_use_edge['source'])

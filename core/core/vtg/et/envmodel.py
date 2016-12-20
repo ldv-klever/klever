@@ -279,6 +279,7 @@ def _remove_callback_wrappers(error_trace):
             edge = replace_callback_call(edge, true_call)
             if not edge:
                 break
+
         edge = error_trace.next_edge(edge)
         if not edge:
             break
