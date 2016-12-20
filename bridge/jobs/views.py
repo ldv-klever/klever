@@ -450,11 +450,12 @@ def save_job(request):
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
-        updated_job = update_job(job_kwargs)
-        if isinstance(updated_job, Job):
-            return JsonResponse({'job_id': job.pk})
-        else:
-            return JsonResponse({'error': updated_job + ''})
+        try:
+            update_job(job_kwargs)
+        except Exception as e:
+            logger.exception(str(e), stack_info=True)
+            return JsonResponse({'error': _('Updating the job failed')})
+        return JsonResponse({'job_id': job.pk})
     elif parent_identifier is not None:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
@@ -464,7 +465,11 @@ def save_job(request):
             return JsonResponse({'error': _("You don't have an access to create new jobs")})
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()
-        newjob = create_job(job_kwargs)
+        try:
+            newjob = create_job(job_kwargs)
+        except Exception as e:
+            logger.exception(str(e), stack_info=True)
+            return JsonResponse({'error': _('Saving the job failed')})
         if isinstance(newjob, Job):
             return JsonResponse({'job_id': newjob.pk})
         return JsonResponse({'error': newjob + ''})

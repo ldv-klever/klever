@@ -58,7 +58,7 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
-            afc = ArchiveFileContent(report, file_name=report.problem_description)
+            afc = ArchiveFileContent(report, report.problem_description)
             if afc.error is not None:
                 logger.error(afc.error)
                 return HttpResponseRedirect(reverse('error', args=[500]))

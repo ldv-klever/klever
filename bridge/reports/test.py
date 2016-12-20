@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import os
 import json
 import random
 from django.core.urlresolvers import reverse
@@ -247,10 +246,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
         unsafe = ReportUnsafe.objects.all()[0]
 
-        # TODO:
-        # Next function get random file from archive, but if this file is error trace
-        # then request to get source code is not tested.
-        afc = ArchiveFileContent(unsafe)
+        afc = ArchiveFileContent(unsafe, 'error trace.json')
         self.assertEqual(afc.error, None)
         if afc._name != unsafe.error_trace:
             response = self.client.post('/reports/ajax/get_source/', {

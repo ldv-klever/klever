@@ -285,7 +285,7 @@ def report_leaf(request, leaf_type, report_id):
     main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        afc = ArchiveFileContent(report, file_name=report.error_trace)
+        afc = ArchiveFileContent(report, report.error_trace)
         if afc.error is not None:
             logger.error(afc.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
@@ -297,13 +297,13 @@ def report_leaf(request, leaf_type, report_id):
     elif leaf_type == 'safe':
         main_file_content = None
         if report.archive and report.proof:
-            afc = ArchiveFileContent(report, file_name=report.proof)
+            afc = ArchiveFileContent(report, report.proof)
             if afc.error is not None:
                 logger.error(afc.error)
                 return HttpResponseRedirect(reverse('error', args=[500]))
             main_file_content = afc.content
     elif leaf_type == 'unknown':
-        afc = ArchiveFileContent(report, file_name=report.problem_description)
+        afc = ArchiveFileContent(report, report.problem_description)
         if afc.error is not None:
             logger.error(afc.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
@@ -340,7 +340,7 @@ def report_etv_full(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    afc = ArchiveFileContent(report, file_name=report.error_trace)
+    afc = ArchiveFileContent(report, report.error_trace)
     if afc.error is not None:
         logger.error(afc.error)
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -405,17 +405,12 @@ def get_component_log(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = '%s-log.txt' % report.component.name
 
-    afc = ArchiveFileContent(report, file_name=report.log)
+    afc = ArchiveFileContent(report, report.log)
     if afc.error is not None:
         logger.error(afc.error)
         return HttpResponseRedirect(reverse('error', args=[500]))
-    # TODO: get just extracted file, don't read it and store to memory
-    file_inmem = BytesIO(afc.content.encode('utf8'))
-    file_inmem.seek(0, 2)
-    size = file_inmem.tell()
-    file_inmem.seek(0)
-    response = StreamingHttpResponse(FileWrapper(file_inmem, 8192), content_type='text/plain')
-    response['Content-Length'] = size
+    response = StreamingHttpResponse(FileWrapper(BytesIO(afc.content.encode('utf8')), 8192), content_type='text/plain')
+    response['Content-Length'] = len(afc.content)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
@@ -433,7 +428,7 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    afc = ArchiveFileContent(report, file_name=report.log, max_size=10**5)
+    afc = ArchiveFileContent(report, report.log, max_size=10**5)
     if afc.error is not None:
         return HttpResponse(str(afc.error))
     return HttpResponse(afc.content)

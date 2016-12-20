@@ -224,7 +224,8 @@ class JobsArchivesGen:
                 if len(buf) > CHUNK_SIZE:
                     yield buf
                     buf = b''
-            yield buf
+            if len(buf) > 0:
+                yield buf
         yield self.stream.close_stream()
 
 
@@ -555,19 +556,21 @@ class UploadJob(object):
             return _("The job archive is corrupted")
 
         # Creating the job
-        job = create_job({
-            'name': version_list[0]['name'],
-            'identifier': jobdata.get('identifier'),
-            'author': self.user,
-            'description': version_list[0]['description'],
-            'parent': self.parent,
-            'type': self.parent.type,
-            'global_role': version_list[0]['global_role'],
-            'filedata': version_list[0]['filedata'],
-            'comment': version_list[0]['comment']
-        })
-        if not isinstance(job, Job):
-            return job
+        try:
+            job = create_job({
+                'name': version_list[0]['name'],
+                'identifier': jobdata.get('identifier'),
+                'author': self.user,
+                'description': version_list[0]['description'],
+                'parent': self.parent,
+                'type': self.parent.type,
+                'global_role': version_list[0]['global_role'],
+                'filedata': version_list[0]['filedata'],
+                'comment': version_list[0]['comment']
+            })
+        except Exception as e:
+            logger.exception(str(e), stack_info=True)
+            return _('Saving the job failed')
 
         # Creating job's run history
         try:
@@ -587,20 +590,22 @@ class UploadJob(object):
 
         # Creating job's versions
         for version_data in version_list[1:]:
-            updated_job = update_job({
-                'job': job,
-                'name': version_data['name'],
-                'author': self.user,
-                'description': version_data['description'],
-                'parent': self.parent,
-                'type': self.parent.type,
-                'filedata': version_data['filedata'],
-                'global_role': version_data['global_role'],
-                'comment': version_data['comment']
-            })
-            if not isinstance(updated_job, Job):
+            try:
+                update_job({
+                    'job': job,
+                    'name': version_data['name'],
+                    'author': self.user,
+                    'description': version_data['description'],
+                    'parent': self.parent,
+                    'type': self.parent.type,
+                    'filedata': version_data['filedata'],
+                    'global_role': version_data['global_role'],
+                    'comment': version_data['comment']
+                })
+            except Exception as e:
+                logger.exception(str(e), stack_info=True)
                 job.delete()
-                return updated_job
+                return _('Updating the job failed')
 
         # Change job's status as it was in downloaded archive
         change_job_status(job, jobdata['status'])

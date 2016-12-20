@@ -102,10 +102,10 @@ def unparallel_group(groups):
     return unparallel_inner
 
 
-def file_checksum(f, block_size=2**20):
+def file_checksum(f):
     md5 = hashlib.md5()
     while True:
-        data = f.read(block_size)
+        data = f.read(8 * 1024)
         if not data:
             break
         md5.update(data)
@@ -149,9 +149,9 @@ def extract_tar_temp(archive):
                 tar.extractall(tmp_dir_name.name)
             return tmp_dir_name
         elif os.path.splitext(archive.name)[-1] == '.zip':
-            with zipfile.ZipFile(fp, mode='r') as fp:
+            with zipfile.ZipFile(fp, mode='r') as zfp:
                 tmp_dir_name = tempfile.TemporaryDirectory()
-                fp.extractall(tmp_dir_name.name)
+                zfp.extractall(tmp_dir_name.name)
             return tmp_dir_name
         raise ValueError('The archive type is not supported')
 
@@ -190,14 +190,14 @@ class KleverTestCase(TestCase):
 
 def has_references(obj):
     for link in list(rel.get_accessor_name() for rel in getattr(obj, '_meta').get_all_related_objects()):
-        if len(getattr(obj, link).all()) > 0:
+        if getattr(obj, link).count() > 0:
             return True
     return False
 
 
 # Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
 class ArchiveFileContent(object):
-    def __init__(self, report, file_name=None, max_size=None):
+    def __init__(self, report, file_name, max_size=None):
         self._report = report
         self._max_size = max_size
         self._name = file_name
@@ -210,20 +210,33 @@ class ArchiveFileContent(object):
 
     def __extract_file_content(self):
         with self._report.archive as fp:
-            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
-                for f in arch.getmembers():
-                    if f.isreg():
-                        if self._name is not None and f.name != self._name:
-                            continue
-                        file_extracted = arch.extractfile(f)
-                        if self._max_size is not None:
-                            file_extracted.seek(0, 2)
-                            if file_extracted.tell() > self._max_size:
-                                self.error = _('The component log is huge and '
-                                               'can not be showed but you can download it')
-                                return None
-                            file_extracted.seek(0)
-                        self._name = f.name
-                        return file_extracted.read().decode('utf8')
+            arc_ext = os.path.splitext(fp.name)[-1]
+            if arc_ext == '.gz':
+                with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
+                    for f in arch.getmembers():
+                        if f.isreg():
+                            if self._name is not None and f.name != self._name:
+                                continue
+                            file_extracted = arch.extractfile(f)
+                            if self._max_size is not None:
+                                file_extracted.seek(0, 2)
+                                if file_extracted.tell() > self._max_size:
+                                    self.error = _('The component log is huge and '
+                                                   'can not be showed but you can download it')
+                                    return None
+                                file_extracted.seek(0)
+                            self._name = f.name
+                            return file_extracted.read().decode('utf8')
+            elif arc_ext == '.zip':
+                with zipfile.ZipFile(fp, 'r') as z:
+                    file_content = z.read(self._name)
+                    if self._max_size is not None:
+                        if len(file_content) > self._max_size:
+                            self.error = _('The component log is huge and can not be showed but you can download it')
+                            return None
+                    return file_content
+            else:
+                self.error = _('Archive type is not supported')
+                return None
         self.error = _('Needed file was not found')
         return None

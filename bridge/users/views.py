@@ -42,33 +42,26 @@ from service.models import SchedulerUser
 
 def user_signin(request):
     activate(request.LANGUAGE_CODE)
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        next_url = request.POST.get('next_url', None)
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            if user.is_active:
-                login(request, user)
-                try:
-                    Extended.objects.get(user=user)
-                except ObjectDoesNotExist:
-                    extend_user(user)
-                if len(Job.objects.all()) > 0:
-                    if next_url is not None and next_url != '':
-                        return HttpResponseRedirect(next_url)
-                    return HttpResponseRedirect(reverse('jobs:tree'))
-                if user.is_staff:
-                    return HttpResponseRedirect(reverse('population'))
-                else:
-                    return HttpResponseRedirect(reverse('jobs:tree'))
-            else:
-                login_error = _("Account has been disabled")
-        else:
-            login_error = _("Incorrect username or password")
-        return render(request, 'users/login.html', {'login_errors': login_error})
-    else:
+    if request.method != 'POST':
         return render(request, 'users/login.html')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    next_url = request.POST.get('next_url', None)
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return render(request, 'users/login.html', {'login_errors': _("Incorrect username or password")})
+    if not user.is_active:
+        return render(request, 'users/login.html', {'login_errors': _("Account has been disabled")})
+    login(request, user)
+    try:
+        Extended.objects.get(user=user)
+    except ObjectDoesNotExist:
+        extend_user(user)
+    if Job.objects.count() == 0 and user.is_staff:
+        return HttpResponseRedirect(reverse('population'))
+    if next_url is not None and next_url != '':
+        return HttpResponseRedirect(next_url)
+    return HttpResponseRedirect(reverse('jobs:tree'))
 
 
 def user_signout(request):
@@ -172,15 +165,13 @@ def edit_profile(request):
 @login_required
 def show_profile(request, user_id):
     activate(request.user.extended.language)
-    if len(user_id) == 0:
-        return HttpResponseRedirect(reverse('jobs:tree'))
     target = get_object_or_404(User, pk=user_id)
     activity = []
-    for act in target.jobhistory.all().order_by('-change_date')[:30]:
+    for act in target.jobhistory.order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
-        if len(act_comment) > 47:
-            small_comment = act_comment[:50] + '...'
+        if len(act_comment) > 50:
+            small_comment = act_comment[:47] + '...'
         if act.version == 1:
             act_type = _('Creation')
             act_color = '#58bd2a'
@@ -199,11 +190,11 @@ def show_profile(request, user_id):
         if JobAccess(request.user, act.job).can_view():
             new_act['href'] = reverse('jobs:job', args=[act.job_id])
         activity.append(new_act)
-    for act in target.marksafehistory.all().order_by('-change_date')[:30]:
+    for act in target.marksafehistory.order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
-        if len(act_comment) > 47:
-            small_comment = act_comment[:50] + '...'
+        if len(act_comment) > 50:
+            small_comment = act_comment[:47] + '...'
         if act.version == 1:
             act_type = _('Creation')
             act_color = '#58bd2a'
@@ -220,7 +211,7 @@ def show_profile(request, user_id):
             'obj_link': act.mark.identifier,
             'href': reverse('marks:view_mark', args=['safe', act.mark_id]),
         })
-    for act in target.markunsafehistory.all().order_by('-change_date')[:30]:
+    for act in target.markunsafehistory.order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
         if len(act_comment) > 47:
@@ -241,11 +232,11 @@ def show_profile(request, user_id):
             'obj_link': act.mark.identifier,
             'href': reverse('marks:view_mark', args=['unsafe', act.mark_id])
         })
-    for act in target.markunknownhistory.all().order_by('-change_date')[:30]:
+    for act in target.markunknownhistory.order_by('-change_date')[:30]:
         act_comment = act.comment
         small_comment = act_comment
-        if len(act_comment) > 47:
-            small_comment = act_comment[:50] + '...'
+        if len(act_comment) > 50:
+            small_comment = act_comment[:47] + '...'
         if act.version == 1:
             act_type = _('Creation')
             act_color = '#58bd2a'
@@ -269,43 +260,41 @@ def show_profile(request, user_id):
 
 
 def service_signin(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        for p in request.POST:
-            if p == 'job identifier':
-                try:
-                    request.session['job id'] = Job.objects.get(identifier__startswith=request.POST[p]).pk
-                except ObjectDoesNotExist:
-                    return JsonResponse({
-                        'error': 'The job with specified identifier "%s" was not found' % request.POST[p]
-                    })
-                except MultipleObjectsReturned:
-                    return JsonResponse({'error': 'The specified job identifier is not unique'})
-            elif p == 'scheduler':
-                if request.POST[p] not in list(x[1] for x in SCHEDULER_TYPE):
-                    return JsonResponse({
-                        'error': 'The specified scheduler "%s" is not supported' % request.POST[p]
-                    })
-                for s in SCHEDULER_TYPE:
-                    if s[1] == request.POST[p]:
-                        request.session['scheduler'] = s[0]
-
-        user = authenticate(username=username, password=password)
-        if user is not None:
-            if user.is_active:
-                try:
-                    Extended.objects.get(user=user)
-                except ObjectDoesNotExist:
-                    return JsonResponse({'error': 'User does not have extended data'})
-                login(request, user)
-                return HttpResponse('')
-            else:
-                return JsonResponse({'error': 'Account has been disabled'})
-        return JsonResponse({'error': 'Incorrect username or password'})
-    else:
+    if request.method != 'POST':
         get_token(request)
         return HttpResponse('')
+    username = request.POST.get('username')
+    password = request.POST.get('password')
+    for p in request.POST:
+        if p == 'job identifier':
+            try:
+                request.session['job id'] = Job.objects.get(identifier__startswith=request.POST[p]).pk
+            except ObjectDoesNotExist:
+                return JsonResponse({
+                    'error': 'The job with specified identifier "%s" was not found' % request.POST[p]
+                })
+            except MultipleObjectsReturned:
+                return JsonResponse({'error': 'The specified job identifier is not unique'})
+        elif p == 'scheduler':
+            if request.POST[p] not in list(x[1] for x in SCHEDULER_TYPE):
+                return JsonResponse({
+                    'error': 'The specified scheduler "%s" is not supported' % request.POST[p]
+                })
+            for s in SCHEDULER_TYPE:
+                if s[1] == request.POST[p]:
+                    request.session['scheduler'] = s[0]
+
+    user = authenticate(username=username, password=password)
+    if user is None:
+        return JsonResponse({'error': 'Incorrect username or password'})
+    if not user.is_active:
+        return JsonResponse({'error': 'Account has been disabled'})
+    try:
+        Extended.objects.get(user=user)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': 'User does not have extended data'})
+    login(request, user)
+    return HttpResponse('')
 
 
 def service_signout(request):

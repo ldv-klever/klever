@@ -22,7 +22,7 @@ import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Case, When, IntegerField
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
@@ -37,7 +37,7 @@ from reports.models import CompareJobsInfo, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
-READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl']
+READABLE = {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
 
 # List of available types of 'safe' column class.
 SAFES = [
@@ -200,34 +200,19 @@ class FileData(object):
     def __init__(self, job):
         self.filedata = []
         self.__get_filedata(job)
-        self.__order_by_type()
         self.__order_by_lvl()
 
     def __get_filedata(self, job):
-        for f in job.filesystem_set.all().order_by('name'):
-            file_info = {
-                'title': f.name,
+        for f in job.filesystem_set\
+                .annotate(is_file=Case(When(file=None, then=0), default=1, output_field=IntegerField()))\
+                .order_by('is_file', 'name').select_related('file'):
+            self.filedata.append({
                 'id': f.pk,
-                'parent': None,
-                'hash_sum': None,
-                'type': 0
-            }
-            if f.parent:
-                file_info['parent'] = f.parent_id
-            if f.file:
-                file_info['type'] = 1
-                file_info['hash_sum'] = f.file.hash_sum
-            self.filedata.append(file_info)
-
-    def __order_by_type(self):
-        newfilesdata = []
-        for fd in self.filedata:
-            if fd['type'] == 0:
-                newfilesdata.append(fd)
-        for fd in self.filedata:
-            if fd['type'] == 1:
-                newfilesdata.append(fd)
-        self.filedata = newfilesdata
+                'title': f.name,
+                'parent': f.parent_id,
+                'type': f.is_file,
+                'hash_sum': f.file.hash_sum if f.file is not None else None
+            })
 
     def __order_by_lvl(self):
         ordered_data = []
@@ -261,83 +246,71 @@ class SaveFileData(object):
         self.filedata = filedata
         self.job = job
         self.filedata_by_lvl = []
-        self.filedata_hash = {}
-        self.err_message = self.__validate()
-        if self.err_message is None:
-            self.err_message = self.__save_file_data()
+        self.__check_data()
+        self._files = self.__get_files()
+        self.__save_file_data()
 
     def __save_file_data(self):
+        saved_files = {}
         for lvl in self.filedata_by_lvl:
             for lvl_elem in lvl:
                 fs_elem = FileSystem()
                 fs_elem.job = self.job
                 if lvl_elem['parent']:
-                    parent_pk = self.filedata_hash[lvl_elem['parent']].get('pk')
-                    if parent_pk is None:
-                        return _("Saving folder failed")
-                    try:
-                        parent = FileSystem.objects.get(pk=parent_pk, file=None)
-                    except ObjectDoesNotExist:
-                        return _("Saving folder failed")
-                    fs_elem.parent = parent
+                    fs_elem.parent = saved_files[lvl_elem['parent']]
                 if lvl_elem['type'] == '1':
-                    try:
-                        fs_elem.file = JobFile.objects.get(hash_sum=lvl_elem['hash_sum'])
-                    except ObjectDoesNotExist:
-                        return _("The file was not uploaded")
+                    if lvl_elem['hash_sum'] not in self._files:
+                        raise ValueError('The file was not uploaded before')
+                    fs_elem.file = self._files[lvl_elem['hash_sum']]
                 if not all(ord(c) < 128 for c in lvl_elem['title']):
                     t_size = len(lvl_elem['title'])
                     if t_size > 30:
                         lvl_elem['title'] = lvl_elem['title'][(t_size - 30):]
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
-                self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
+                saved_files[lvl_elem['id']] = fs_elem
         return None
 
-    def __validate(self):
+    def __check_data(self):
         num_of_elements = 0
         element_of_lvl = []
         cnt = 0
         while num_of_elements < len(self.filedata):
             cnt += 1
             if cnt > 1000:
-                return _("Unknown error")
+                raise ValueError('The file is too deep, maybe there is a loop in the files tree')
             num_of_elements += len(element_of_lvl)
             element_of_lvl = self.__get_lower_level(element_of_lvl)
             if len(element_of_lvl):
                 self.filedata_by_lvl.append(element_of_lvl)
         for lvl in self.filedata_by_lvl:
-            names_of_lvl = []
-            names_with_parents = []
+            names_with_parents = set()
             for fd in lvl:
-                self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
-                    return _("You can't specify an empty name")
+                    raise ValueError("The file/folder name can't be empty")
                 if not all(ord(c) < 128 for c in fd['title']):
                     title_size = len(fd['title'])
                     if title_size > 30:
                         fd['title'] = fd['title'][(title_size - 30):]
                 if fd['type'] == '1' and fd['hash_sum'] is None:
-                    return _("The file was not uploaded")
-                if [fd['title'], fd['parent']] in names_with_parents:
-                    return _("You can't use the same names in one folder")
-                names_of_lvl.append(fd['title'])
-                names_with_parents.append([fd['title'], fd['parent']])
-        return None
+                    raise ValueError('The file was not uploaded before')
+                rel_path = fd['parent'] + '/' + fd['title']
+                if rel_path in names_with_parents:
+                    raise ValueError("The same names in one folder found")
+                names_with_parents.add(rel_path)
 
     def __get_lower_level(self, data):
-        new_level = []
-        if len(data):
-            for d in data:
-                for fd in self.filedata:
-                    if fd['parent'] == d['id']:
-                        if fd not in new_level:
-                            new_level.append(fd)
-        else:
-            for fd in self.filedata:
-                if fd['parent'] is None:
-                    new_level.append(fd)
-        return new_level
+        if len(data) == 0:
+            return list(fd for fd in self.filedata if fd['parent'] is None)
+        parents = set(fd['id'] for fd in data)
+        return list(fd for fd in self.filedata if fd['parent'] in parents)
+
+    def __get_files(self):
+        files_data = {}
+        hash_sums = set(fd['hash_sum'] for fd in self.filedata if fd['hash_sum'] is not None)
+        for f in JobFile.objects.filter(hash_sum__in=list(hash_sums)):
+            files_data[f.hash_sum] = f
+        return files_data
 
 
 def convert_time(val, acc):
@@ -434,24 +407,24 @@ def create_version(job, kwargs):
         change_author=job.change_author, change_date=job.change_date,
         comment=kwargs.get('comment', ''), description=kwargs.get('description', '')
     )
-    if 'global_role' in kwargs and kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+    if 'global_role' in kwargs and kwargs['global_role'] in set(x[0] for x in JOB_ROLES):
         new_version.global_role = kwargs['global_role']
     new_version.save()
     if 'user_roles' in kwargs:
-        for ur in kwargs['user_roles']:
-            try:
-                ur_user = User.objects.get(pk=int(ur['user']))
-            except ObjectDoesNotExist:
-                continue
-            UserRole.objects.create(job=new_version, user=ur_user, role=ur['role'])
+        user_roles = dict((int(ur['user']), ur['role']) for ur in kwargs['user_roles'])
+        user_roles_to_create = []
+        for u in User.objects.filter(id__in=list(user_roles)).only('id'):
+            user_roles_to_create.append(UserRole(job=new_version, user=u, role=user_roles[u.id]))
+        if len(user_roles_to_create) > 0:
+            UserRole.objects.bulk_create(user_roles_to_create)
     return new_version
 
 
 def create_job(kwargs):
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        return _("The job title is required")
+        raise ValueError('The job title is required')
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("The job author is required")
+        raise ValueError('The job author is required')
     newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
@@ -459,7 +432,7 @@ def create_job(kwargs):
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        return _("The parent or the job class is required")
+        raise ValueError('The parent or the job class is required')
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
@@ -471,10 +444,11 @@ def create_job(kwargs):
     new_version = create_version(newjob, kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = SaveFileData(kwargs['filedata'], new_version)
-        if db_fdata.err_message is not None:
+        try:
+            SaveFileData(kwargs['filedata'], new_version)
+        except Exception as e:
             newjob.delete()
-            return db_fdata.err_message
+            raise e
     if 'absolute_url' in kwargs:
         newjob_url = reverse('jobs:job', args=[newjob.pk])
         try:
@@ -493,12 +467,12 @@ def create_job(kwargs):
 
 def update_job(kwargs):
     if 'job' not in kwargs or not isinstance(kwargs['job'], Job):
-        return _("Unknown error")
+        raise ValueError('The job is required')
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Change author is required")
+        raise ValueError('Change author is required')
     if 'comment' in kwargs:
         if len(kwargs['comment']) == 0:
-            return _("Change comment is required")
+            raise ValueError('Change comment is required')
     else:
         kwargs['comment'] = ''
     if 'parent' in kwargs:
@@ -512,12 +486,13 @@ def update_job(kwargs):
     newversion = create_version(kwargs['job'], kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = SaveFileData(kwargs['filedata'], newversion)
-        if db_fdata.err_message is not None:
+        try:
+            SaveFileData(kwargs['filedata'], newversion)
+        except Exception as e:
             newversion.delete()
             kwargs['job'].version -= 1
             kwargs['job'].save()
-            return db_fdata.err_message
+            raise e
     if 'absolute_url' in kwargs:
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
@@ -528,7 +503,6 @@ def update_job(kwargs):
             Notify(kwargs['job'], 1)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
-    return kwargs['job']
 
 
 def remove_jobs_by_id(user, job_ids):
@@ -673,7 +647,7 @@ def change_job_status(job, status):
     if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
         return
     if status in [JOB_STATUS[3], JOB_STATUS[4]]:
-        ReportComponent.objects.filter(root=job.reportroot, finish_date=None).update(finish_date=now())
+        ReportComponent.objects.filter(root__job=job, finish_date=None).update(finish_date=now())
     job.status = status
     job.save()
     try:

@@ -1,12 +1,13 @@
 {% extends 'base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Registration' %}{% endblock %}
 
 {% block head_block %}
-    <script src="/static/users/js/users.js"></script>
-    <link href="/static/users/css/style.css" rel="stylesheet">
+    <script src="{% static 'users/js/users.js' %}"></script>
+    <link href="{% static 'users/css/style.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}

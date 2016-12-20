@@ -21,12 +21,13 @@ $(document).ready(function () {
         var err_found = false, login = $('#scheduler_login'),
             password = $('#scheduler_password'),
             password_retype = $('#scheduler_password_retype'),
-            confirm = $('#submit_settings');
-        if (login.val().length == 0 && $('#sch_user_delete_warn').length) {
-            $('#sch_user_delete_warn').show();
+            confirm = $('#submit_settings'),
+            sch_user_del_warn =  $('#sch_user_delete_warn');
+        if (login.val().length == 0 && sch_user_del_warn.length) {
+            sch_user_del_warn.show();
         }
         else {
-            $('#sch_user_delete_warn').hide();
+            sch_user_del_warn.hide();
             if (password.val().length == 0) {
                 err_found = true;
                 $('#sch_u_password_warn').show();

@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
 {% load i18n %}
-
+{% load staticfiles %}
 {% block title %}{% trans 'Settings' %}{% endblock %}
 
 {% block head_block %}
-    <script src="/static/users/js/users.js"></script>
-    <script src="/static/users/js/schedulerUser.js"></script>
-    <link href="/static/users/css/style.css" rel="stylesheet">
+    <script src="{% static 'users/js/users.js' %}"></script>
+    <script src="{% static 'users/js/schedulerUser.js' %}"></script>
+    <link href="{% static 'users/css/style.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}

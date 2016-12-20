@@ -114,7 +114,7 @@ class GetConvertedErrorTrace(object):
         self._parsed_trace = None
 
     def __get_error_trace(self):
-        afc = ArchiveFileContent(self.unsafe, file_name=self.unsafe.error_trace)
+        afc = ArchiveFileContent(self.unsafe, self.unsafe.error_trace)
         if afc.error is not None:
             logger.error("Can't get error trace for unsafe '%s': %s" % (self.unsafe.pk, afc.error), stack_info=True)
             self.error = "Can't get error trace for unsafe '%s'" % self.unsafe.pk

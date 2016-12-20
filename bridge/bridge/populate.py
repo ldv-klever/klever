@@ -205,10 +205,9 @@ class Population(object):
                 'parent': parent,
                 'filedata': self.__get_filedata(jobdir)
             })
-            if isinstance(job, Job):
-                if 'default_jobs' not in self.changes:
-                    self.changes['default_jobs'] = []
-                self.changes['default_jobs'].append([job.name, job.identifier])
+            if 'default_jobs' not in self.changes:
+                self.changes['default_jobs'] = []
+            self.changes['default_jobs'].append([job.name, job.identifier])
 
     def __get_filedata(self, d):
         self.cnt = 0
