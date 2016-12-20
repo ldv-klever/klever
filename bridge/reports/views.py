@@ -147,7 +147,7 @@ def report_list(request, report_id, ltype, component_id=None,
     if ltype == 'safes':
         title = _("All safes")
         if tag is not None:
-            title = string_concat(_("Safes"), ': ', tag.tag)
+            title = string_concat(_("Safes"), ': ', tag)
         elif verdict is not None:
             for s in SAFE_VERDICTS:
                 if s[0] == verdict:
@@ -160,7 +160,7 @@ def report_list(request, report_id, ltype, component_id=None,
     elif ltype == 'unsafes':
         title = _("All unsafes")
         if tag is not None:
-            title = string_concat(_("Unsafes"), ': ', tag.tag)
+            title = string_concat(_("Unsafes"), ': ', tag)
         elif verdict is not None:
             for s in UNSAFE_VERDICTS:
                 if s[0] == verdict:
@@ -213,7 +213,7 @@ def report_list_tag(request, report_id, ltype, tag_id):
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[509]))
-    return report_list(request, report_id, ltype, tag=tag)
+    return report_list(request, report_id, ltype, tag=tag.tag)
 
 
 @login_required

@@ -19,13 +19,13 @@ import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
-from django.utils.translation import ugettext_lazy as _, ungettext_lazy
+from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from jobs.utils import get_resource_data
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
-from marks.models import UnknownProblem, MarkUnknown
+from marks.models import UnknownProblem, MarkUnknown, UnsafeReportTag, SafeReportTag
 from bridge.tableHead import Header
 
 
@@ -69,11 +69,11 @@ def get_parents(report):
         parent = None
     while parent is not None:
         parent_attrs = []
-        for rep_attr in parent.attrs.order_by('attr__name__name'):
-            parent_attrs.append([rep_attr.attr.name.name, rep_attr.attr.value])
+        for rep_attr in parent.attrs.order_by('attr__name__name').values_list('attr__name__name', 'attr__value'):
+            parent_attrs.append(rep_attr)
         parents_data.insert(0, {
             'title': parent.component.name,
-            'href': reverse('reports:component', args=[report.root.job.pk, parent.pk]),
+            'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
             'attrs': parent_attrs
         })
         try:
@@ -122,15 +122,15 @@ class ReportTable(object):
         if view is not None:
             return json.loads(view), None
         if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.type)
-            if len(pref_view) > 0:
-                return json.loads(pref_view[0].view.view), pref_view[0].view_id
+            pref_view = self.user.preferableview_set.filter(view__type=self.type).first()
+            if pref_view:
+                return json.loads(pref_view.view.view), pref_view.view_id
         elif view_id == 'default':
             return def_views[self.type], 'default'
         else:
-            user_view = self.user.view_set.filter(pk=int(view_id), type=self.type)
-            if len(user_view):
-                return json.loads(user_view[0].view), user_view[0].pk
+            user_view = self.user.view_set.filter(id=int(view_id), type=self.type).first()
+            if user_view:
+                return json.loads(user_view.view), user_view.id
         return def_views[self.type], 'default'
 
     def __views(self):
@@ -146,8 +146,8 @@ class ReportTable(object):
         actions = {
             '0': self.__self_data,
             '3': self.__component_data,
-            '4': self.__verdict_data,
-            '5': self.__verdict_data,
+            '4': self.__unsafes_data,
+            '5': self.__safes_data,
             '6': self.__unknowns_data,
         }
         if self.type in actions:
@@ -162,9 +162,9 @@ class ReportTable(object):
     def __self_data(self):
         columns = []
         values = []
-        for rep_attr in self.report.attrs.order_by('id'):
-            columns.append(rep_attr.attr.name.name)
-            values.append(rep_attr.attr.value)
+        for rep_attr in self.report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+            columns.append(rep_attr[0])
+            values.append(rep_attr[1])
         return columns, values
 
     def __component_data(self):
@@ -176,17 +176,21 @@ class ReportTable(object):
             component_filters[
                 'component__name__' + self.view['filters']['component']['type']
                 ] = self.view['filters']['component']['value']
+
         finish_dates = {}
-        for report in ReportComponent.objects.filter(**component_filters):
-            for rep_attr in report.attrs.order_by('id'):
-                if rep_attr.attr.name.name not in data:
-                    columns.append(rep_attr.attr.name.name)
-                    data[rep_attr.attr.name.name] = {}
-                data[rep_attr.attr.name.name][report.pk] = rep_attr.attr.value
-                if self.view['order'][0] == 'date':
-                    if report.finish_date is not None:
-                        finish_dates[report.pk] = report.finish_date
-            components[report.pk] = report.component
+        report_ids = set()
+        for report in ReportComponent.objects.filter(**component_filters).select_related('component'):
+            report_ids.add(report.id)
+            components[report.id] = report.component
+            if self.view['order'][0] == 'date' and report.finish_date is not None:
+                finish_dates[report.id] = report.finish_date
+
+        for ra in ReportAttr.objects.filter(report_id__in=report_ids).order_by('id')\
+                .values_list('report_id', 'attr__name__name', 'attr__value'):
+            if ra[1] not in data:
+                columns.append(ra[1])
+                data[ra[1]] = {}
+            data[ra[1]][ra[0]] = ra[2]
 
         comp_data = []
         for pk in components:
@@ -234,14 +238,7 @@ class ReportTable(object):
         columns.insert(0, 'component')
         return columns, values_data
 
-    def __verdict_data(self):
-        list_types = {
-            '4': 'unsafe',
-            '5': 'safe',
-        }
-        if self.type not in list_types:
-            return None, None
-
+    def __safes_data(self):
         data = {}
 
         columns = ['number']
@@ -251,88 +248,78 @@ class ReportTable(object):
             columns.append(col)
 
         if self.verdict is not None:
-            leaf_filter = {list_types[self.type] + '__verdict': self.verdict}
-            leaves_set = self.report.leaves.filter(Q(**leaf_filter) & ~Q(**{list_types[self.type]: None}))
+            leaves_set = self.report.leaves.filter(Q(safe__verdict=self.verdict) & ~Q(safe=None))\
+                .annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
         elif self.mark is not None:
-            leaf_filter = {list_types[self.type] + '__markreport_set__mark': self.mark}
-            leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
+            leaves_set = self.report.leaves.filter(safe__markreport_set__mark=self.mark).distinct()\
+                .exclude(safe=None).annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
         elif self.attr is not None:
-            leaf_filter = {list_types[self.type] + '__attrs__attr': self.attr}
-            leaves_set = self.report.leaves.filter(**leaf_filter).distinct().filter(~Q(**{list_types[self.type]: None}))
+            leaves_set = self.report.leaves.filter(safe__attrs__attr=self.attr).distinct()\
+                .exclude(safe=None).annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
         else:
-            leaves_set = self.report.leaves.filter(~Q(**{list_types[self.type]: None}))
+            leaves_set = self.report.leaves.exclude(safe=None).annotate(marks_number=Count('safe__markreport_set'))\
+                .select_related('safe')
 
+        reports = {}
         for leaf in leaves_set:
-            report = getattr(leaf, list_types[self.type])
-            if not self.__has_tag(report):
-                continue
-            for rep_attr in report.attrs.order_by('id'):
-                if rep_attr.attr.name.name not in data:
-                    columns.append(rep_attr.attr.name.name)
-                    data[rep_attr.attr.name.name] = {}
-                data[rep_attr.attr.name.name][report] = rep_attr.attr.value
+            reports[leaf.safe_id] = {
+                'marks_number': leaf.marks_number,
+                'verdict': leaf.safe.verdict,
+                'tags': []
+            }
+        for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).order_by('tag__tag').select_related('tag'):
+            reports[srt.report_id]['tags'].append(srt.tag.tag)
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+                .values_list('report_id', 'attr__name__name', 'attr__value'):
+            if rep_attr[1] not in data:
+                columns.append(rep_attr[1])
+                data[rep_attr[1]] = {}
+            data[rep_attr[1]][rep_attr[0]] = rep_attr[2]
 
         reports_ordered = []
         if 'order' in self.view and self.view['order'][0] in data:
-            for report in data[self.view['order'][0]]:
-                reports_ordered.append(
-                    (data[self.view['order'][0]][report], report)
-                )
+            for rep_id in data[self.view['order'][0]]:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(
+                        (data[self.view['order'][0]][rep_id], rep_id)
+                    )
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
         else:
             for attr in data:
-                for report in data[attr]:
-                    if report not in reports_ordered:
-                        reports_ordered.append(report)
-            reports_ordered = sorted(reports_ordered, key=lambda x: x.pk)
+                for rep_id in data[attr]:
+                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
+                        reports_ordered.append(rep_id)
+            reports_ordered = sorted(reports_ordered)
         if 'order' in self.view and self.view['order'][1] == 'up':
             reports_ordered = list(reversed(reports_ordered))
 
         cnt = 1
         values_data = []
-        for report in reports_ordered:
+        for rep_id in reports_ordered:
             values_row = []
             for col in columns:
                 val = '-'
                 href = None
                 color = None
-                if col in data and report in data[col]:
-                    val = data[col][report]
-                    if not self.__filter_attr(col, val):
-                        break
+                if col in data:
+                    if rep_id in data[col]:
+                        val = data[col][rep_id]
+                        if not self.__filter_attr(col, val):
+                            break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf', args=[list_types[self.type], report.pk])
+                    href = reverse('reports:leaf', args=['safe', rep_id])
                 elif col == 'marks_number':
-                    broken = 0
-                    num_of_connects = len(report.markreport_set.all())
-                    if list_types[self.type] == 'unsafe':
-                        broken = len(report.markreport_set.filter(broken=True))
-                    if broken > 0:
-                        val = ungettext_lazy(
-                            '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
-                        ) % {'all': num_of_connects, 'broken': broken}
-                    else:
-                        val = num_of_connects
+                    val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':
-                    if list_types[self.type] == 'unsafe':
-                        for uns in UNSAFE_VERDICTS:
-                            if uns[0] == report.verdict:
-                                val = uns[1]
-                                break
-                        color = UNSAFE_COLOR[report.verdict]
-                    else:
-                        for s in SAFE_VERDICTS:
-                            if s[0] == report.verdict:
-                                val = s[1]
-                                break
-                        color = SAFE_COLOR[report.verdict]
+                    for s in SAFE_VERDICTS:
+                        if s[0] == reports[rep_id]['verdict']:
+                            val = s[1]
+                            break
+                    color = SAFE_COLOR[reports[rep_id]['verdict']]
                 elif col == 'tags':
-                    tags = []
-                    for t in report.tags.filter(number__gt=0).order_by('tag__tag'):
-                        tags.append(t.tag.tag)
-                    if len(tags) > 0:
-                        val = '; '.join(tags)
+                    if len(reports[rep_id]['tags']) > 0:
+                        val = '; '.join(reports[rep_id]['tags'])
                 values_row.append({
                     'value': val,
                     'color': color,
@@ -343,27 +330,101 @@ class ReportTable(object):
                 values_data.append(values_row)
         return columns, values_data
 
-    def __has_tag(self, report):
-        if self.tag is None:
-            return True
-        has_tag = False
-        if self.type == '4':  # unsafe
-            for mark_rep in report.markreport_set.all():
-                try:
-                    mark_rep.mark.versions\
-                        .order_by('-version')[0].tags.get(tag=self.tag)
-                    has_tag = True
-                except ObjectDoesNotExist:
-                    continue
-        elif self.type == '5':  # safe
-            for mark_rep in report.markreport_set.all():
-                try:
-                    mark_rep.mark.versions\
-                        .order_by('-version')[0].tags.get(tag=self.tag)
-                    has_tag = True
-                except ObjectDoesNotExist:
-                    continue
-        return has_tag
+    def __unsafes_data(self):
+        data = {}
+
+        columns = ['number']
+        for col in self.view['columns']:
+            if self.verdict is not None and col == 'report_verdict':
+                continue
+            columns.append(col)
+
+        if self.verdict is not None:
+            leaves_set = self.report.leaves.filter(Q(unsafe__verdict=self.verdict) & ~Q(unsafe=None))\
+                .annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+        elif self.mark is not None:
+            leaves_set = self.report.leaves.filter(unsafe__markreport_set__mark=self.mark).distinct()\
+                .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+        elif self.attr is not None:
+            leaves_set = self.report.leaves.filter(safe__attrs__attr=self.attr).distinct()\
+                .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+        else:
+            leaves_set = self.report.leaves.exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set'))\
+                .select_related('unsafe')
+
+        reports = {}
+        for leaf in leaves_set:
+            reports[leaf.unsafe_id] = {
+                'marks_number': leaf.marks_number,
+                'verdict': leaf.unsafe.verdict,
+                'tags': []
+            }
+        for srt in UnsafeReportTag.objects.filter(report_id__in=list(reports))\
+                .order_by('tag__tag').select_related('tag'):
+            reports[srt.report_id]['tags'].append(srt.tag.tag)
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+                .values_list('report_id', 'attr__name__name', 'attr__value'):
+            if rep_attr[1] not in data:
+                columns.append(rep_attr[1])
+                data[rep_attr[1]] = {}
+            data[rep_attr[1]][rep_attr[0]] = rep_attr[2]
+
+        reports_ordered = []
+        if 'order' in self.view and self.view['order'][0] in data:
+            for rep_id in data[self.view['order'][0]]:
+                if self.__has_tag(reports[rep_id]['tags']):
+                    reports_ordered.append(
+                        (data[self.view['order'][0]][rep_id], rep_id)
+                    )
+            reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+        else:
+            for attr in data:
+                for rep_id in data[attr]:
+                    if rep_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
+                        reports_ordered.append(rep_id)
+            reports_ordered = sorted(reports_ordered)
+        if 'order' in self.view and self.view['order'][1] == 'up':
+            reports_ordered = list(reversed(reports_ordered))
+
+        cnt = 1
+        values_data = []
+        for rep_id in reports_ordered:
+            values_row = []
+            for col in columns:
+                val = '-'
+                href = None
+                color = None
+                if col in data:
+                    if rep_id in data[col]:
+                        val = data[col][rep_id]
+                        if not self.__filter_attr(col, val):
+                            break
+                elif col == 'number':
+                    val = cnt
+                    href = reverse('reports:leaf', args=['unsafe', rep_id])
+                elif col == 'marks_number':
+                    val = reports[rep_id]['marks_number']
+                elif col == 'report_verdict':
+                    for u in UNSAFE_VERDICTS:
+                        if u[0] == reports[rep_id]['verdict']:
+                            val = u[1]
+                            break
+                    color = UNSAFE_COLOR[reports[rep_id]['verdict']]
+                elif col == 'tags':
+                    if len(reports[rep_id]['tags']) > 0:
+                        val = '; '.join(reports[rep_id]['tags'])
+                values_row.append({
+                    'value': val,
+                    'color': color,
+                    'href': href
+                })
+            else:
+                cnt += 1
+                values_data.append(values_row)
+        return columns, values_data
+
+    def __has_tag(self, tags):
+        return self.tag is None or self.tag in tags
 
     def __unknowns_data(self):
         data = {}
@@ -437,15 +498,13 @@ class ReportTable(object):
 
     def __filter_attr(self, attribute, value):
         if 'attr' in self.view['filters']:
-
             fattr = self.view['filters']['attr']['attr']
             fvalue = self.view['filters']['attr']['value']
             ftype = self.view['filters']['attr']['type']
             if fattr is not None and fattr.lower() == attribute.lower():
                 if ftype == 'iexact' and fvalue.lower() != value.lower():
                     return False
-                elif ftype == 'istartswith' and \
-                        not value.lower().startswith(fvalue.lower()):
+                elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
                     return False
         return True
 
@@ -495,15 +554,29 @@ class AttrData(object):
         self.__upload_names()
         self.__upload_attrs()
         ReportAttr.objects.bulk_create(
-            list(ReportAttr(report_id=d[0], attr=self._attrs[(d[1], d[2])]) for d in self._data)
+            list(ReportAttr(report_id=d[0], attr_id=self._attrs[(d[1], d[2])]) for d in self._data)
         )
         self.__init__()
 
     def __upload_names(self):
+        existing_names = set(n.name for n in AttrName.objects.filter(name__in=self._name))
+        names_to_create = []
         for name in self._name:
-            self._name[name] = AttrName.objects.get_or_create(name=name)[0]
+            if name not in existing_names:
+                names_to_create.append(AttrName(name=name))
+        AttrName.objects.bulk_create(names_to_create)
+        for n in AttrName.objects.filter(name__in=self._name):
+            self._name[n] = n.id
 
     def __upload_attrs(self):
+        for a in Attr.objects.filter(value__in=list(attr[1] for attr in self._attrs)).select_related('name'):
+            if (a.name.name, a.value) in self._attrs:
+                self._attrs[(a.name.name, a.value)] = a.id
+        attrs_to_create = []
         for attr in self._attrs:
-            if attr[0] in self._name:
-                self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]
+            if self._attrs[attr] is None and attr[0] in self._name:
+                attrs_to_create.append(Attr(name_id=self._name[attr[0]], value=attr[1]))
+        Attr.objects.bulk_create(attrs_to_create)
+        for a in Attr.objects.filter(value__in=list(attr[1] for attr in self._attrs)).select_related('name'):
+            if (a.name.name, a.value) in self._attrs:
+                self._attrs[(a.name.name, a.value)] = a.id

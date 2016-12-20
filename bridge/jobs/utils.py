@@ -294,7 +294,10 @@ class SaveFileData(object):
                         fd['title'] = fd['title'][(title_size - 30):]
                 if fd['type'] == '1' and fd['hash_sum'] is None:
                     raise ValueError('The file was not uploaded before')
-                rel_path = fd['parent'] + '/' + fd['title']
+                if fd['parent'] is not None:
+                    rel_path = "%s/%s" % (fd['parent'], fd['title'])
+                else:
+                    rel_path = fd['title']
                 if rel_path in names_with_parents:
                     raise ValueError("The same names in one folder found")
                 names_with_parents.add(rel_path)

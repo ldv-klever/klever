@@ -33,8 +33,6 @@ from reports.models import *
 from reports.utils import AttrData
 from tools.utils import Recalculation
 
-ET_FILE = 'unsafe-error-trace.graphml'
-
 
 class KleverCoreArchiveGen:
     def __init__(self, job):
