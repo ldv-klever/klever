@@ -13,7 +13,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "22517"
+        "version": "trunk:23932"
       },
       "resource limits": {
         "wall time": 1000000,
