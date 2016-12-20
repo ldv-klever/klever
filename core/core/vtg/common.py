@@ -365,7 +365,7 @@ class CommonStrategy(core.components.Component):
 
             # Do not compress witnesses as, say, CPAchecker r20376 we still used did.
             self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'counterexample.export.compressErrorWitness=false'})
+                {'-setprop': 'counterexample.export.compressWitness=false'})
 
             # Adjust JAVA heap size for static memory (Java VM, stack, and native libraries e.g. MathSAT) to be 1/4 of
             # general memory size limit if users don't specify their own sizes.
