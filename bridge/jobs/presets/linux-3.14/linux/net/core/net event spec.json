@@ -58,10 +58,11 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg3;"
+              "%setup% = $ARG3;"
             ]
           },
           "setup": {
+            "comment": "Setup the network device.",
             "callback": "%setup%",
             "parameters": [
               "%netdev%"
@@ -97,7 +98,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -118,12 +119,12 @@
             "value": "1"
           }
         },
-        "process": "<assign>.[open].(<open_success>.[register].<success> | <fail>) | <fail>",
+        "process": "<assign>.[open].(<open_success>.[register].<success> | <open_fail>) | <fail>",
         "actions": {
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -153,11 +154,18 @@
               "return 0;"
             ]
           },
-          "fail": {
+          "open_fail": {
             "comment": "Registration of the network device has failed.",
             "condition": [
               "%ret% == 0"
             ],
+            "statements": [
+              "ldv_failed_register_netdev();",
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "fail": {
+            "comment": "Registration of the network device has failed.",
             "statements": [
               "ldv_failed_register_netdev();",
               "return ldv_undef_int_negative();"
@@ -194,7 +202,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }
@@ -261,7 +269,7 @@
             "comment": "Allocate memory for a network device.",
             "statements": [
               "%netdev% = $ALLOC(%netdev%);",
-              "%setup% = $arg4;"
+              "%setup% = $ARG4;"
             ]
           },
           "setup": {
@@ -300,7 +308,7 @@
           "free": {
             "comment": "Freeing memory of a network device.",
             "statements": [
-              "%netdev% = $arg1;",
+              "%netdev% = $ARG1;",
               "$FREE(%netdev%);"
             ]
           }
@@ -326,7 +334,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           },
           "open": {
@@ -397,7 +405,7 @@
           "assign": {
             "comment": "Get network device structure.",
             "statements": [
-              "%netdev% = $arg1;"
+              "%netdev% = $ARG1;"
             ]
           }
         }

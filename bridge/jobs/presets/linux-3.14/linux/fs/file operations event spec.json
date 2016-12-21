@@ -29,7 +29,7 @@
           "assign": {
             "comment": "Extract a file_operations structure pointer.",
             "statements": [
-              "%miscdevice% = $arg1;",
+              "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
             ]
           },
@@ -75,7 +75,7 @@
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
             "statements": [
-              "%miscdevice% = $arg1;",
+              "%miscdevice% = $ARG1;",
               "%file_operations% = %miscdevice%->fops;"
             ]
           }
@@ -110,8 +110,8 @@
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
-              "%file_operations% = $arg2;",
+              "%cdev% = $ARG1;",
+              "%file_operations% = $ARG2;",
               "%cdev%->ops = %file_operations%;"
             ]
           }
@@ -145,7 +145,7 @@
             "comment": "Extract a file_operations structure pointer.",
             "condition": [],
             "statements": [
-              "%cdev% = $arg1;",
+              "%cdev% = $ARG1;",
               "%file_operations% = %cdev%->ops;"
             ]
           }

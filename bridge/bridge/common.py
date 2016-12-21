@@ -185,7 +185,8 @@ DEF_USER = {
     'language': 'en',  # See bridge.vars.LANGUAGES for options
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
-    'assumptions': False
+    'assumptions': False,
+    'triangles': True
 }
 
 LOGGING = {

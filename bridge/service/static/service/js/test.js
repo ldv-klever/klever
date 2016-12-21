@@ -59,9 +59,6 @@ $(document).ready(function () {
                 else {
                     console.log(data);
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -80,9 +77,6 @@ $(document).ready(function () {
                 else {
                     success_notify("Task status: " + data['task status']);
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -101,9 +95,6 @@ $(document).ready(function () {
                 else {
                     success_notify("Task was removed");
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -131,9 +122,6 @@ $(document).ready(function () {
                 else {
                     success_notify("Task was cancelled");
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -164,18 +152,15 @@ $(document).ready(function () {
                 'jobs and tasks status': $('#get_tasks_and_jobs_json').val()
             },
             success: function (data) {
+                var get_jobs_and_tasks_res = $('#get_tasks_and_jobs_result');
                 if (data.error) {
-                    $('#get_tasks_and_jobs_result').hide();
+                    get_jobs_and_tasks_res.hide();
                     err_notify(data.error);
                 }
                 else {
-                    $('#get_tasks_and_jobs_result').text(data['jobs and tasks status']);
-                    $('#get_tasks_and_jobs_result').show();
+                    get_jobs_and_tasks_res.text(data['jobs and tasks status']);
+                    get_jobs_and_tasks_res.show();
                 }
-            },
-            error: function (x) {
-                $('#get_tasks_and_jobs_result').hide();
-                console.log(x.responseText);
             }
         });
     });
@@ -212,9 +197,6 @@ $(document).ready(function () {
                 else {
                     success_notify("Solution was successfully uploaded");
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -233,9 +215,6 @@ $(document).ready(function () {
                 else {
                     success_notify("Updated!");
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -254,9 +233,6 @@ $(document).ready(function () {
                 else {
                     success_notify('Tools were updated');
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });
@@ -275,9 +251,6 @@ $(document).ready(function () {
                 else {
                     success_notify('Success!');
                 }
-            },
-            error: function (x) {
-                console.log(x.responseText);
             }
         });
     });

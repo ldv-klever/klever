@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_files_comparison, name='comparison'),
     url(r'^download_configuration/(?P<runhistory_id>[0-9]+)/$', views.download_configuration),
     url(r'^create/$', views.copy_new_job, name='create'),
+    url(r'^downloadcompetfile/(?P<job_id>[0-9]+)/$', views.download_files_for_compet, name='download_file_for_compet'),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),

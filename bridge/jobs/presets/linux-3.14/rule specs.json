@@ -17,24 +17,37 @@
         {
           "EMG": {
             "specifications directory": "linux/",
-            "entry point": "entry_point",
-            "translator": "default",
+            "entry point": "main",
             "callstack deep search": 3,
             "intermediate model options": {
+              "generate insmod scenario": true,
+              "add missing activation signals": ["register", "instance_register", "irq_register"],
+              "add missing deactivation signals": ["deregister", "instance_deregister", "irq_deregister"],
               "ignore missed callbacks": true,
-              "map file": "linux/emg/roles match.json"
+              "roles map file": "linux/emg/roles match.json",
+              "callback comment": "Invoke callback {0} from {1}.",
+              "action comments": {
+                "dispatch": {
+                  "register": "Register {} callbacks.",
+                  "instance_register": "Register {} callbacks.",
+                  "deregister": "Deregister {} callbacks.",
+                  "instance_deregister": "Deregister {} callbacks.",
+                  "irq_register": "Register {} interrupt handler.",
+                  "irq_deregister": "Deregister {} interrupt handler."
+                },
+                "receive": {
+                  "register": "Begin {} callbacks invocations scenario.",
+                  "instance_register": "Begin {} callbacks invocations scenario.",
+                  "deregister": "Finish {} callbacks invocations scenario.",
+                  "instance_deregister": "Finish {} callbacks invocations scenario."
+                }
+              }
             },
             "translation options": {
               "dump automata graphs": false,
-              "direct control function calls": true,
-              "omit all states": true,
+              "direct control functions calls": true,
               "nested automata": true,
-              "omit parallel composition": {
-                "dispatch": false,
-                "receive": false,
-                "call": false,
-                "condition": true
-              },
+              "no actions composition": ["Condition"],
               "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,
@@ -91,7 +104,8 @@
                     "linux/pci.h",
                     "linux/rtc.h",
                     "scsi/scsi_host.h",
-                    "linux/pagemap.h"
+                    "linux/pagemap.h",
+                    "linux/poll.h"
                   ],
                   "Linux 3.5": {
                     "exclude": ["linux/iio/triggered_buffer.h"]
@@ -106,6 +120,11 @@
                     "exclude": [
                       "linux/iio/iio.h",
                       "linux/iio/triggered_buffer.h"
+                    ]
+                  },
+                  "Linux 4.6.7": {
+                    "exclude": [
+                      "linux/poll.h"
                     ]
                   }
                 }

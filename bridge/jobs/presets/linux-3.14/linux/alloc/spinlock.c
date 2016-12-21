@@ -21,7 +21,7 @@
 
 extern int ldv_exclusive_spin_is_locked(void);
 
-/* MODEL_FUNC_DEF Check that correct flag was used when spinlock is aquired */
+/* MODEL_FUNC Check that correct flag was used when spinlock is aquired */
 void ldv_check_alloc_flags(gfp_t flags)
 {
 	if (!CHECK_WAIT_FLAGS(flags)) {
@@ -30,7 +30,7 @@ void ldv_check_alloc_flags(gfp_t flags)
 	}
 }
 
-/* MODEL_FUNC_DEF Check that spinlock is not acquired */
+/* MODEL_FUNC Check that spinlock is not acquired */
 void ldv_check_alloc_nonatomic(void)
 {
 	/* ASSERT Spinlock{{ arg_sign.text }} should not be acquired */

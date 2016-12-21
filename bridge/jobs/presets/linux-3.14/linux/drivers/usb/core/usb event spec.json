@@ -4,10 +4,17 @@
       "usb_reset_device": {
         "comment": "Reset USB device.",
         "labels": {},
-        "process": "[@usb_reset]",
+        "process": "[@usb_reset].<success>",
         "actions": {
           "usb_reset": {
+            "comment": "Trigger reset of the USB device.",
             "parameters": []
+          },
+          "success": {
+            "comment": "Proceed to reset.",
+            "statements": [
+              "return 0;"
+            ]
           }
         }
       },
@@ -35,7 +42,7 @@
           "assign": {
             "comment": "Get callbacks to register provided within 'usb_driver' argument.",
             "statements": [
-              "%usb_driver% = $arg1;"
+              "%usb_driver% = $ARG1;"
             ]
           },
           "fail": {
@@ -74,7 +81,7 @@
           "assign": {
             "comment": "Get callbacks to deregister provided within 'usb_driver' argument.",
             "statements": [
-              "%usb_driver% = $arg1;"
+              "%usb_driver% = $ARG1;"
             ]
           }
         }
@@ -201,7 +208,7 @@
             ]
           },
           "usb_reset": {
-            "comment": "Reset device."
+            "comment": "Reset USB device."
           },
           "probe_success": {
             "comment": "Check that interface has been probed successfully.",

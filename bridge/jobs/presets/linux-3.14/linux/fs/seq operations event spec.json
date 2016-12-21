@@ -37,7 +37,7 @@
             "comment": "Alloc memory for sequential file structure and initialize it.",
             "statements": [
               "%seq_file% = $ALLOC(%seq_file%);",
-              "%ops% = $arg2;",
+              "%ops% = $ARG2;",
               "%file%->private_data = %seq_file%;"
             ]
           }

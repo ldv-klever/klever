@@ -21,6 +21,7 @@ import hashlib
 import tarfile
 import tempfile
 from io import BytesIO
+from django.db.models import Q
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -86,6 +87,9 @@ class CreateMarkTar(object):
                     })
             write_file_str(marktar_obj, 'version-%s' % markversion.version,
                            json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4))
+            if self.type == 'unsafe':
+                marktar_obj.add(os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name),
+                                arcname='error_trace_%s' % str(markversion.version))
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -95,8 +99,6 @@ class CreateMarkTar(object):
         if self.type == 'unknown':
             common_data['component'] = self.mark.component.name
         write_file_str(marktar_obj, 'markdata', json.dumps(common_data, ensure_ascii=False, sort_keys=True, indent=4))
-        if self.type == 'unsafe':
-            marktar_obj.add(os.path.join(settings.MEDIA_ROOT, self.mark.error_trace.file.name), arcname='error-trace')
         marktar_obj.close()
 
 
@@ -112,17 +114,17 @@ class AllMarksTar(object):
 
     def __create_tar(self):
         with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as arch:
-            for mark in MarkSafe.objects.all():
+            for mark in MarkSafe.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
                 arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnsafe.objects.all():
+            for mark in MarkUnsafe.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
                 arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnknown.objects.all():
+            for mark in MarkUnknown.objects.filter(~Q(version=0)):
                 marktar = CreateMarkTar(mark)
                 t = tarfile.TarInfo(marktar.name)
                 t.size = marktar.size
@@ -161,7 +163,12 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = file_get_or_create(args['error_trace'], ET_FILE_NAME)[0]
+                mark.error_trace = file_get_or_create(
+                    BytesIO(
+                        json.dumps(json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True,
+                                   indent=4).encode('utf8')
+                    ), ET_FILE_NAME
+                )[0]
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
@@ -209,7 +216,10 @@ class ReadTarMark(object):
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
                 return 'Unknown error'
 
-            res = self.__update_mark(mark, tags=tags)
+            error_trace = None
+            if 'error_trace' in args:
+                error_trace = args['error_trace']
+            res = self.__update_mark(mark, error_trace=error_trace, tags=tags)
             if res is not None:
                 return res
             if self.type != 'unknown':
@@ -220,7 +230,7 @@ class ReadTarMark(object):
             self.mark = mark
             return None
 
-        def __update_mark(self, mark, comment='', tags=None):
+        def __update_mark(self, mark, error_trace=None, tags=None):
             if self.type == 'unsafe':
                 new_version = MarkUnsafeHistory()
             elif self.type == 'safe':
@@ -229,6 +239,12 @@ class ReadTarMark(object):
                 new_version = MarkUnknownHistory()
 
             new_version.mark = mark
+            if error_trace is not None:
+                new_version.error_trace = file_get_or_create(
+                    BytesIO(
+                        json.dumps(json.loads(error_trace), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+                    ), ET_FILE_NAME
+                )[0]
             if self.type == 'unsafe':
                 new_version.function = mark.function
             if self.type == 'unknown':
@@ -240,7 +256,7 @@ class ReadTarMark(object):
             new_version.version = mark.version
             new_version.status = mark.status
             new_version.change_date = mark.change_date
-            new_version.comment = comment
+            new_version.comment = ''
             new_version.author = mark.author
             new_version.description = mark.description
             new_version.save()
@@ -300,7 +316,7 @@ class ReadTarMark(object):
         inmemory = BytesIO(self.tar_arch.read())
         marktar_file = tarfile.open(fileobj=inmemory, mode='r', encoding='utf8')
         mark_data = None
-        err_trace = None
+        err_traces = {}
 
         versions_data = {}
         for f in marktar_file.getmembers():
@@ -311,23 +327,21 @@ class ReadTarMark(object):
                     mark_data = json.loads(file_obj.read().decode('utf-8'))
                 except ValueError:
                     return _("The mark archive is corrupted")
-            elif file_name == 'error-trace':
-                err_trace = file_obj
             elif file_name.startswith('version-'):
                 version_id = int(file_name.replace('version-', ''))
                 try:
                     versions_data[version_id] = json.loads(file_obj.read().decode('utf-8'))
                 except ValueError:
                     return _("The mark archive is corrupted")
+            elif file_name.startswith('error_trace_'):
+                err_traces[int(file_name.replace('error_trace_', ''))] = file_obj
 
         if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
             return _("The mark archive is corrupted")
         self.type = mark_data['mark_type']
         if self.type not in ['safe', 'unsafe', 'unknown']:
             return _("The mark archive is corrupted")
-        if self.type == 'unsafe' and err_trace is None:
-            return _("The mark archive is corrupted: the pattern error trace is not found")
-        elif self.type == 'unknown' and 'component' not in mark_data:
+        if self.type == 'unknown' and 'component' not in mark_data:
             return _("The mark archive is corrupted")
 
         mark_table = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
@@ -337,6 +351,12 @@ class ReadTarMark(object):
                     return _("The mark with identifier specified in the archive already exists")
             else:
                 del mark_data['identifier']
+
+        if self.type == 'unsafe':
+            for v_id in versions_data:
+                if v_id not in err_traces:
+                    return _("The mark archive is corrupted")
+                versions_data[v_id]['error_trace'] = err_traces[v_id].read().decode('utf8')
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
@@ -352,7 +372,6 @@ class ReadTarMark(object):
         new_m_args = mark_data.copy()
         new_m_args.update(version_list[0])
         if self.type == 'unsafe':
-            new_m_args['error_trace'] = err_trace
             new_m_args['compare_id'] = get_func_id(version_list[0]['function'])
             del new_m_args['function'], new_m_args['mark_type']
 

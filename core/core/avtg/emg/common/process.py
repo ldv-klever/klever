@@ -41,33 +41,6 @@ def generate_regex_set(subprocess_name):
     return regexes
 
 
-def rename_subprocess(pr, old_name, new_name):
-    if old_name not in pr.actions:
-        raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
-                       format(old_name, pr.name))
-
-    subprocess = pr.actions[old_name]
-    subprocess.name = new_name
-
-    # Delete old subprocess
-    del pr.actions[old_name]
-
-    # Set new subprocess
-    pr.actions[subprocess.name] = subprocess
-
-    # Replace subprocess entries
-    processes = [pr]
-    processes.extend([pr.actions[name] for name in sorted(pr.actions.keys()) if type(pr.actions[name]) is Subprocess])
-    regexes = generate_regex_set(old_name)
-    for process in processes:
-        for regex in regexes:
-            if regex['regex'].search(process.process):
-                # Replace signal entries
-                old_match = regex['regex'].search(process.process).group()
-                new_match = old_match.replace(old_name, new_name)
-                process.process = process.process.replace(old_match, new_match)
-
-
 def get_common_parameter(action, process, position):
     interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
                   if access.interface]
@@ -83,8 +56,6 @@ def get_common_parameter(action, process, position):
     else:
         # Todo how to choose between several ones?
         return list(interfaces)[0]
-
-    return interfaces
 
 
 class Access:
@@ -222,6 +193,7 @@ class Process:
         self.category = None
         self.process = None
         self.headers = list()
+        self.comment = None
         self.__process_ast = None
         self.__accesses = None
         self.allowed_implementations = dict()
@@ -280,13 +252,73 @@ class Process:
         self.__accesses[acc.expression] = [acc]
         return lb
 
-    def add_condition(self, name, condition, statements):
+    def add_condition(self, name, condition, statements, comment):
         new = Condition(name)
         self.actions[name] = new
 
         new.condition = condition
         new.statements = statements
+        new.comment = comment
         return new
+
+    def insert_action(self, name, after=None, before=None, instead=None):
+        # Sanity checks
+        if not (after or before or instead):
+            raise ValueError('Choose where to insert the action')
+        if not name or name not in self.actions:
+            raise KeyError('Cannot rename action {!r} in process {!r} because it does not exist'.
+                           format(name, self.name))
+        if instead:
+            # Delete old subprocess
+            del self.actions[name]
+
+        # Replace action entries
+        processes = [self]
+        processes.extend(
+            [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Subprocess])
+        regexes = generate_regex_set(name)
+        for process in processes:
+            for regex in regexes:
+                m = regex['regex'].search(process.process)
+                if m:
+                    # Replace signal entries
+                    curr_expr = m.group(0)
+                    if before:
+                        next_expr = "{}.{}".format(before, curr_expr)
+                    elif after:
+                        next_expr = "{}.{}".format(curr_expr, after)
+                    else:
+                        next_expr = instead
+
+                    process.process = process.process.replace(curr_expr, next_expr)
+                    break
+
+    def rename_action(self, name, new_name):
+        if name not in self.actions:
+            raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
+                           format(name, self.name))
+
+        action = self.actions[name]
+        action.name = new_name
+
+        # Delete old subprocess
+        del self.actions[name]
+
+        # Set new subprocess
+        self.actions[action.name] = action
+
+        # Replace subprocess entries
+        processes = [self]
+        processes.extend(
+            [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Subprocess])
+        regexes = generate_regex_set(name)
+        for process in processes:
+            for regex in regexes:
+                if regex['regex'].search(process.process):
+                    # Replace signal entries
+                    old_match = regex['regex'].search(process.process).group()
+                    new_match = old_match.replace(name, new_name)
+                    process.process = process.process.replace(old_match, new_match)
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -429,10 +461,17 @@ class Process:
             return None
 
 
-class Subprocess:
+class Action:
 
     def __init__(self, name):
         self.name = name
+        self.comment = None
+
+
+class Subprocess(Action):
+
+    def __init__(self, name):
+        super().__init__(name)
         self.process = None
         self.condition = None
         self.__process_ast = None
@@ -444,30 +483,30 @@ class Subprocess:
         return self.__process_ast
 
 
-class Dispatch:
+class Dispatch(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.parameters = []
         self.broadcast = False
         self.peers = []
 
 
-class Receive:
+class Receive(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.condition = None
         self.replicative = False
         self.peers = []
 
 
-class Call:
+class Call(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.callback = None
         self.parameters = []
@@ -476,20 +515,20 @@ class Call:
         self.post_call = []
 
 
-class CallRetval:
+class CallRetval(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.callback = None
         self.retlabel = None
         self.condition = None
 
 
-class Condition:
+class Condition(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.statements = []
         self.condition = None
 

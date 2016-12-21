@@ -5,7 +5,7 @@
     <div id="tags_tree" class="tagsmap">
         {% include 'marks/MarkTagsTree.html' with tags=tags tags_type=markdata.type %}
     </div>
-    {% if can_edit %}
+    {% if not view_tags %}
         <div id="selected_tags" hidden>
             {% for t_id in selected %}
                 <span>{{ t_id }}</span>

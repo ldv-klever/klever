@@ -25,7 +25,7 @@
     font-size: 12px;
     border-top: 1px solid #ca8f1d;
 }
-.ETV_error_trace {
+#ETV_error_trace {
     width: 100%;
     position: absolute;
     left: 0;
@@ -34,10 +34,7 @@
     font-size: 12px;
     font-family: monospace;
     overflow: auto;
-    white-space: nowrap
-}
-
-.ETV_TopTrace {
+    white-space: nowrap;
     border-top: 1px solid #ca8f1d;
     top: 35px;
 }
@@ -71,7 +68,7 @@
     top: 0;
     right: 0;
     width: 54.7%;
-    height: 70%;
+    height: 100%;
     background-color: #f5ffff;
 }
 #etv-divider {
@@ -118,10 +115,10 @@
 
 /* Error trace: Line number object */
 .ETV_LN {
+    z-index: 999;
     position: relative;
     white-space: pre;
     background-color: #ffe6d7;
-    padding-left: 5px;
     padding-right: 5px;
     cursor: pointer;
 }
@@ -215,4 +212,42 @@
 .ETV_Fname {
     color: #67238f;
     font-weight: bold;
+}
+.ETV_THREAD {
+    background-color: #fffff1;
+}
+.ETV_TOP_BORDER {
+    border-top: 1px solid #000000;
+    color: #7d909e;
+}
+
+#etv-trace {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 45%;
+    background-color: #fffaf0;
+}
+
+.ETV_CallbackAction {
+    font-style: italic;
+    font-weight: bold;
+    color: #9e4b2e;
+    cursor: pointer;
+}
+.ETV_CallbackAction:hover {
+    color: #dd5e3f;
+}
+
+.ETV_Action {
+    font-style: italic;
+    color: #9e7926;
+    cursor: pointer;
+}
+.ETV_Action:hover {
+    color: #cfa62a;
+}
+.ETV_ShowCode {
+    cursor: pointer;
 }
