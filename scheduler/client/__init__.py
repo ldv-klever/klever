@@ -71,6 +71,9 @@ def solve_job(conf):
     else:
         bin = conf["client"]["Klever Core path"]
 
+    # Do it to make it possible to use runexec inside Klever
+    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
+
     # Check existence of the file
     logging.info("Going to use Klever Core from {}".format(bin))
     if not os.path.isfile(bin):
