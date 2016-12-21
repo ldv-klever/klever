@@ -796,6 +796,50 @@ function set_actions_for_versions_delete() {
         );
     });
 }
+function activate_download_for_compet() {
+    var dfc_modal = $('#dfc_modal');
+    $('#dfc_modal_show').popup();
+    dfc_modal.modal({transition: 'slide down', autofocus: false, closable: false}).modal('attach events', '#dfc_modal_show', 'show');
+    dfc_modal.find('.ui.checkbox').checkbox();
+    $('#dfc__f').parent().checkbox({
+        onChecked: function () {
+            $('#dfc_problems').show();
+        },
+        onUnchecked: function () {
+            $('#dfc_problems').hide();
+        }
+    });
+    $('#dfc__cancel').click(function () {
+        $('#dfc_modal').modal('hide');
+    });
+    $('#dfc__confirm').click(function () {
+        var svcomp_filters = [];
+        if ($('#dfc__u').parent().checkbox('is checked')) {
+            svcomp_filters.push('u');
+        }
+        if ($('#dfc__s').parent().checkbox('is checked')) {
+            svcomp_filters.push('s');
+        }
+        if ($('#dfc__f').parent().checkbox('is checked')) {
+            var unknowns_filters = [];
+            $('input[id^="dfc__p__"]').each(function () {
+                if ($(this).parent().checkbox('is checked')) {
+                    unknowns_filters.push($(this).val());
+                }
+            });
+            svcomp_filters.push(unknowns_filters);
+        }
+        if (svcomp_filters.length == 0) {
+            err_notify($('#error___dfc_notype').text());
+        }
+        else {
+            $('#dfc_modal').modal('hide');
+            $.redirectPost('/jobs/downloadcompetfile/' + $('#job_pk').val() + '/', {'filters': JSON.stringify(svcomp_filters)});
+        }
+    });
+
+}
+
 
 $(document).ready(function () {
     function set_actions_for_run_history() {
@@ -804,6 +848,7 @@ $(document).ready(function () {
             window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
         });
     }
+    activate_download_for_compet();
     $('#resources-note').popup();
     $('.for_popup').popup();
     $('#job_scheduler').dropdown();
@@ -1021,6 +1066,13 @@ $(document).ready(function () {
                         if (data['jobstatus'] != $('#job_status_value').val()) {
                             window.location.replace('');
                         }
+                    }
+                    if ('progress_data' in data) {
+                        var progress_data = JSON.parse(data['progress_data']);
+                        $('#progress_val').text(progress_data[0]);
+                        $('#average_time').text(progress_data[1]);
+                        $('#local_average_time').text(progress_data[2]);
+                        $('#max_time').text(progress_data[3]);
                     }
                 }
             ).fail(function () {

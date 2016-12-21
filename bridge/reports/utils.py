@@ -15,15 +15,21 @@
 # limitations under the License.
 #
 
+import os
 import json
+import tarfile
+from io import BytesIO
+import xml.etree.ElementTree as ETree
+from xml.dom import minidom
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
-from jobs.utils import get_resource_data
-from reports.models import ReportComponent, Attr, AttrName, ReportAttr
+from bridge.utils import extract_tar_temp
+from jobs.utils import get_resource_data, get_user_time
+from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem, MarkUnknown
 from bridge.tableHead import Header
@@ -38,7 +44,8 @@ REP_MARK_TITLES = {
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
-    'tags': _('Tags')
+    'tags': _('Tags'),
+    'parent_cpu': _('Verifiers time')
 }
 
 MARK_COLUMNS = ['mark_verdict', 'mark_result', 'mark_status']
@@ -333,6 +340,8 @@ class ReportTable(object):
                         tags.append(t.tag.tag)
                     if len(tags) > 0:
                         val = '; '.join(tags)
+                elif col == 'parent_cpu':
+                    val = get_user_time(self.user, ReportComponent.objects.get(pk=report.parent_id).cpu_time)
                 values_row.append({
                     'value': val,
                     'color': color,
@@ -507,3 +516,151 @@ class AttrData(object):
         for attr in self._attrs:
             if attr[0] in self._name:
                 self._attrs[attr] = Attr.objects.get_or_create(name=self._name[attr[0]], value=attr[1])[0]
+
+
+class DownloadFilesForCompetition(object):
+    def __init__(self, job, filters):
+        self.name = 'svcomp.tar.gz'
+        self.benchmark_fname = 'benchmark.xml'
+        self.prp_fname = 'unreach-call.prp'
+        self.job = job
+        self.filters = filters
+        self.xml_root = None
+        self.prp_file_added = False
+        self.memory = BytesIO()
+        self.__get_archive()
+        self.memory.flush()
+        self.memory.seek(0)
+
+    def __get_archive(self):
+        with tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8') as tarobj:
+            for f_t in self.filters:
+                if f_t == 'u':
+                    self.__add_unsafes(tarobj)
+                elif f_t == 's':
+                    self.__add_safes(tarobj)
+                elif isinstance(f_t, list):
+                    self.__add_unknowns(tarobj, f_t)
+            if self.xml_root is None:
+                raise ValueError('There are no filters or there are no reports with needed files '
+                                 'satisfied the selected filters')
+            t = tarfile.TarInfo(self.benchmark_fname)
+            xml_inmem = BytesIO(
+                minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ").encode('utf8')
+            )
+            t.size = xml_inmem.seek(0, 2)
+            xml_inmem.seek(0)
+            tarobj.addfile(t, xml_inmem)
+            tarobj.close()
+
+    def __add_unsafes(self, tarobj):
+        cnt = 1
+        u_ids_in_use = []
+        for u in ReportUnsafe.objects.filter(root__job=self.job):
+            parent = ReportComponent.objects.get(id=u.parent_id)
+            if parent.parent is None or parent.archive is None:
+                continue
+            ver_obj = ''
+            ver_rule = ''
+            for u_a in u.attrs.all():
+                if u_a.attr.name.name == 'Verification object':
+                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
+                elif u_a.attr.name.name == 'Rule specification':
+                    ver_rule = u_a.attr.value.replace(':', '-')
+            u_id = 'Unsafes/u__%s__%s.cil.i' % (ver_rule, ver_obj)
+            if u_id in u_ids_in_use:
+                ver_obj_path, ver_obj_name = os.path.split(u_id)
+                u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
+                cnt += 1
+            self.__add_cil_file(parent.archive, tarobj, u_id)
+            new_elem = ETree.Element('include')
+            new_elem.text = u_id
+            self.xml_root.find('tasks').append(new_elem)
+            u_ids_in_use.append(u_id)
+
+    def __add_safes(self, tarobj):
+        cnt = 1
+        u_ids_in_use = []
+        for s in ReportSafe.objects.filter(root__job=self.job):
+            parent = ReportComponent.objects.get(id=s.parent_id)
+            if parent.parent is None or parent.archive is None:
+                continue
+            ver_obj = ''
+            ver_rule = ''
+            for u_a in s.attrs.all():
+                if u_a.attr.name.name == 'Verification object':
+                    ver_obj = u_a.attr.value.replace('~', 'HOME')
+                elif u_a.attr.name.name == 'Rule specification':
+                    ver_rule = u_a.attr.value.replace(':', '-')
+            s_id = 'Safes/s__%s__%s.cil.i' % (ver_rule, ver_obj)
+            if s_id in u_ids_in_use:
+                ver_obj_path, ver_obj_name = os.path.split(s_id)
+                s_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
+                cnt += 1
+            self.__add_cil_file(parent.archive, tarobj, s_id)
+            new_elem = ETree.Element('include')
+            new_elem.text = s_id
+            self.xml_root.find('tasks').append(new_elem)
+            u_ids_in_use.append(s_id)
+
+    def __add_unknowns(self, tarobj, problems):
+        cnt = 1
+        u_ids_in_use = []
+        if len(problems) > 0:
+            unknowns = []
+            for problem in problems:
+                comp_id, problem_id = problem.split('_')[0:2]
+                if comp_id == problem_id == '0':
+                    unknowns.extend(list(ReportUnknown.objects.annotate(mr_len=Count('markreport_set')).filter(
+                        root__job=self.job, mr_len=0
+                    )))
+                else:
+                    unknowns.extend(list(ReportUnknown.objects.filter(
+                        root__job=self.job, markreport_set__problem_id=problem_id, component_id=comp_id
+                    )))
+        else:
+            unknowns = ReportUnknown.objects.filter(root__job=self.job)
+        for u in unknowns:
+            parent = ReportComponent.objects.get(id=u.parent_id)
+            if parent.parent is None or parent.archive is None:
+                continue
+            ver_obj = ''
+            ver_rule = ''
+            for u_a in u.attrs.all():
+                if u_a.attr.name.name == 'Verification object':
+                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
+                elif u_a.attr.name.name == 'Rule specification':
+                    ver_rule = u_a.attr.value.replace(':', '-')
+            f_id = 'Unknowns/f__%s__%s.cil.i' % (ver_rule, ver_obj)
+            if f_id in u_ids_in_use:
+                ver_obj_path, ver_obj_name = os.path.split(f_id)
+                f_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
+                cnt += 1
+            self.__add_cil_file(parent.archive, tarobj, f_id)
+            new_elem = ETree.Element('include')
+            new_elem.text = f_id
+            self.xml_root.find('tasks').append(new_elem)
+            u_ids_in_use.append(f_id)
+
+    def __add_cil_file(self, f, tarobj, fpath):
+        extracted_tar = extract_tar_temp(f.file)
+        files_dir = extracted_tar.name
+        with open(os.path.join(files_dir, self.benchmark_fname), encoding='utf8') as fp:
+            xml_root = ETree.fromstring(fp.read())
+            cil_file = xml_root.find('tasks').find('include').text
+        if self.xml_root is None:
+            self.xml_root = xml_root
+            self.xml_root.find('tasks').clear()
+
+        with open(os.path.join(files_dir, cil_file), mode='rb') as fp:
+            t = tarfile.TarInfo(fpath)
+            t.size = fp.seek(0, 2)
+            fp.seek(0)
+            tarobj.addfile(t, fp)
+        if not self.prp_file_added:
+            with open(os.path.join(files_dir, self.prp_fname), mode='rb') as fp:
+                t = tarfile.TarInfo(self.prp_fname)
+                t.size = fp.seek(0, 2)
+                fp.seek(0)
+                tarobj.addfile(t, fp)
+                self.prp_file_added = True
