@@ -27,6 +27,7 @@ import tarfile
 import threading
 import time
 import queue
+from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
@@ -236,6 +237,25 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
         raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output
+
+
+def execute_external_tool(logger, args, timelimit=100000, memlimit=100000000):
+    logger.debug('Execute:\n{!r}'.format(' '.join(args)))
+    executor = RunExecutor()
+    result = executor.execute_run(args=args,
+                                  output_filename="output.log",
+                                  walltimelimit=timelimit,
+                                  memlimit=memlimit,
+                                  maxLogfileSize=10000000)
+    exit_code = int(result["exitcode"]) % 255
+    if exit_code != 0:
+        os.rename("output.log", "problem desc.txt")
+        raise ValueError("Tool {!r} exited with non-zero exit code: {}".format(args[0], exit_code))
+    else:
+        with open("output.log") as fd:
+            output = fd.read()
+
+    return output
 
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
