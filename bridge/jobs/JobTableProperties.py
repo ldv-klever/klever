@@ -231,19 +231,6 @@ class TableTree(object):
         self.footer_title_length = self.__count_footer()
         self.values = self.__get_values()
         self.footer = self.__get_footer()
-        self.counter = self.Counter()
-
-    class Counter:
-        def __init__(self):
-            self.cnt = 1
-            self.dark = False
-
-        def increment(self):
-            self.cnt += 1
-            if self.cnt % 2:
-                self.dark = False
-            else:
-                self.dark = True
 
     class Header:
         def __init__(self, columns, titles):

@@ -17,7 +17,7 @@
         <tbody>
             {% for row_data in TableData.values %}
                 <tr class="treegrid-{{ row_data.id }}{% if row_data.parent %} treegrid-parent-{{ row_data.parent }}{% endif %}"
-                    style="{% if TableData.counter.dark %}background: #e8f9fe;{% endif %}{% if row_data.black %}color: silver;{% endif %}">
+                    style="{% if row_data.black %}color: silver;{% endif %}{% if row_data.parent %}display:none;{% endif %}">
                 <td id="value__{{ row_data.id }}" class="one wide">
                     <div class="ui fitted checkbox">
                         <input type="checkbox" id="job_checkbox__{{ row_data.id }}">
@@ -33,23 +33,24 @@
                         {% endif %}
                     </td>
                 {% endfor %}
-                <span hidden>{{ TableData.counter.increment }}</span>
                 </tr>
             {%  endfor %}
         </tbody>
     {% if TableData.footer|length %}
-        <tr style="background: #cafdff">
-            <th class="right aligned" colspan="{{ TableData.footer_title_length }}">{% trans 'All' %}</th>
+        <thead>
+        <tr style="background: #cafdff;">
+            <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All' %}</th>
             {% for fc in TableData.footer %}
                 <td id="all__{{ fc }}">-</td>
             {% endfor %}
         </tr>
         <tr style="background: #cafdff">
-            <th class="right aligned" colspan="{{ TableData.footer_title_length }}">{% trans 'All for checked' %}</th>
+            <th class="right aligned" colspan="{{ TableData.footer_title_length }}" style="background: #cafdff;">{% trans 'All for checked' %}</th>
             {% for fc in TableData.footer %}
                 <td id="checked__{{ fc }}">-</td>
             {% endfor %}
         </tr>
+        </thead>
     {% endif %}
     </table>
     {% endtimezone %}

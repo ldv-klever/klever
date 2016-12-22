@@ -368,7 +368,7 @@ $(document).ready(function () {
 
     var max_table_height = $(window).height() - 150,
         small_table_height = $(window).height() - 400;
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', false);
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
     $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;');
     check_order_form();
     check_filters_form();

@@ -32,7 +32,7 @@
     <table id="file_tree_table" class="ui compact teal table tree">
         <tbody>
         {% for f in filedata %}
-            <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}"{% if f.type == 0 %} style="background: #a3edef;"{% endif %}>
+            <tr id="filerow__{{ f.type }}__{{ f.id }}" class="treegrid-{{ f.id }}{% if f.parent %} treegrid-parent-{{ f.parent }}{% endif %}" style="{% if f.type == 0 %}background: #a3edef;{% endif %}{% if f.parent %}display:none;{% endif %}">
                 <td class="one wide right aligned">
                     <div class="ui radio checkbox">
                         <label for="selected_filerow__{{ f.type }}__{{ f.id }}"></label>

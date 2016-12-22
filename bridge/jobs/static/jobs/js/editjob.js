@@ -351,7 +351,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
     if (type === 0) {
         new_row.attr('style', 'background:#eee8b7;')
     }
-    new_row.append($('<td>', {class: 'one wide'}).append($('<div>', {class: 'ui radio checkbox'}).append($('<input>', {
+    new_row.append($('<td>', {class: 'one wide right aligned'}).append($('<div>', {class: 'ui radio checkbox'}).append($('<input>', {
         id: 'selected_filerow__' + type + '__' + id,
         type: 'radio',
         name: 'selected_filerow',
@@ -383,7 +383,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 
 function update_treegrid() {
-    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon', true);
+    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
 }
 
 function selected_row() {
@@ -862,7 +862,7 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
-                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon', true);
+                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
                 set_actions_for_run_history();
             }
