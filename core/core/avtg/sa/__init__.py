@@ -268,7 +268,7 @@ class SA(core.avtg.plugins.Plugin):
                 if not isinstance(self.collection["init"][path], str):
                     self.collection["init"][path] = func
                     self.logger.debug("Extracted Init function {} in {}".format(func, path))
-                else:
+                elif self.collection["init"][path] != func:
                     raise ValueError("Module cannot contain two initialization functions but file {} contains".
                                      format(path))
             else:
