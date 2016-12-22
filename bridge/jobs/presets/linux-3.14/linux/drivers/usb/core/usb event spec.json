@@ -4,11 +4,17 @@
       "usb_reset_device": {
         "comment": "Reset USB device.",
         "labels": {},
-        "process": "[@usb_reset]",
+        "process": "[@usb_reset].<success>",
         "actions": {
           "usb_reset": {
             "comment": "Trigger reset of the USB device.",
             "parameters": []
+          },
+          "success": {
+            "comment": "Proceed to reset.",
+            "statements": [
+              "return 0;"
+            ]
           }
         }
       },

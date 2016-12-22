@@ -45,10 +45,13 @@ class ViewJobData(object):
         self.safes_total = None
         self.unsafes_total = None
         self.view_data = {}
+        self.problems = []
         try:
             self.__get_view_data()
         except ObjectDoesNotExist:
             return
+        if len(self.problems) > 0:
+            self.problems.append((_('Without marks'), '0_0'))
 
     def __get_view(self, view, view_id):
         if view is not None:
@@ -202,6 +205,12 @@ class ViewJobData(object):
                 .select_related('component', 'problem'):
             if cmup.component.name not in unknowns_data:
                 unknowns_data[cmup.component.name] = {}
+            problem_tuple = (
+                cmup.component.name + '/' + cmup.problem.name,
+                "%s_%s" % (cmup.component_id, cmup.problem_id)
+            )
+            if problem_tuple not in self.problems:
+                self.problems.append(problem_tuple)
             unknowns_data[cmup.component.name][cmup.problem.name] = (
                 cmup.number,
                 reverse('reports:unknowns_problem', args=[self.report.pk, cmup.component_id, cmup.problem_id])
@@ -251,6 +260,7 @@ class ViewJobData(object):
                 'component': comp,
                 'problems': unknowns_sorted[comp]
             })
+        self.problems.sort()
         return unknowns_sorted_by_comp
 
     def __safes_info(self):

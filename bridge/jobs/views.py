@@ -33,6 +33,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
+from reports.utils import DownloadFilesForCompetition
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 from jobs.utils import *
 from jobs.models import RunHistory
@@ -225,6 +226,7 @@ def show_job(request, job_id=None):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
+    progress_data = get_job_progress(request.user, job) if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
     return render(
         request,
         'jobs/viewJob.html',
@@ -233,6 +235,7 @@ def show_job(request, job_id=None):
             'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
+            'progress_data': progress_data,
             'reportdata': ViewJobData(*view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
@@ -241,7 +244,8 @@ def show_job(request, job_id=None):
             'can_decide': job_access.can_decide(),
             'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop(),
-            'can_collapse': job_access.can_collapse()
+            'can_collapse': job_access.can_collapse(),
+            'can_dfc': job_access.can_dfc()
         }
     )
 
@@ -268,6 +272,8 @@ def get_job_data(request):
         })
     except ObjectDoesNotExist:
         pass
+    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        data['progress_data'] = json.dumps(list(get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
@@ -944,3 +950,25 @@ def do_job_has_children(request):
     if len(job.children.all()) > 0:
         return JsonResponse({'children': True})
     return JsonResponse({})
+
+
+@unparallel_group(['job'])
+@login_required
+def download_files_for_compet(request, job_id):
+    if request.method != 'POST':
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[404]))
+    if not JobAccess(request.user, job).can_download():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+    try:
+        jobtar = DownloadFilesForCompetition(job, json.loads(request.POST['filters']))
+    except Exception as e:
+        logger.exception(e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.name
+    response.write(jobtar.memory.read())
+    return response

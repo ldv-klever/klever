@@ -1,7 +1,7 @@
 {
   "Common": {
     "Linux kernel": {
-      "source": "linux-2.6.33",
+      "source": "linux-2.6.33.20",
       "configuration": "allmodconfig"
     },
     "LKVOG strategy": {"name": "separate modules"},
@@ -15,7 +15,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "trunk:23430"
+        "version": "trunk:23932"
       },
       "resource limits": {
         "wall time": 1000000,

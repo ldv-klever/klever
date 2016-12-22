@@ -137,6 +137,8 @@ class ErrorTraceParser:
                         _edge['assumption scope'] = self.error_trace.resolve_function_id(data.text)
                 elif data_key == 'control':
                     _edge['condition'] = True
+                elif data_key == 'enterLoopHead':
+                    _edge['enterLoopHead'] = bool(data.text)
                 elif data_key == 'assumption':
                     _edge['assumption'] = data.text
                 elif data_key == 'thread':

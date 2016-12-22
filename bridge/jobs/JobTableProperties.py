@@ -21,10 +21,11 @@ from django.db.models import Q, F
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY
-from jobs.models import Job, JobHistory, UserRole
+from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS
+from jobs.models import Job, JobHistory, UserRole, RunHistory
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot
+from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
+    TaskStatistic
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
 
@@ -76,7 +77,8 @@ def all_user_columns():
     columns.extend([
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
         'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
-        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress'
+        'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
+        'average_time', 'local_average_time', 'max_time'
     ])
     return columns
 
@@ -728,11 +730,43 @@ class TableTree(object):
                         int((progress.finish_date - progress.start_date).total_seconds() * 1000)
                     )
             jobs_with_progress.add(progress.job_id)
+
+        stat_average_time = TaskStatistic.objects.get_or_create()[0].average_time
+        solving_jobs = set(j.id for j in Job.objects.filter(
+            id__in=self._job_ids, status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]
+        ))
         for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress)).select_related('user'):
             self._values_data[root.job_id]['operator'] = (
                 root.user.last_name + ' ' + root.user.first_name,
                 reverse('users:show_profile', args=[root.user_id])
             )
+            if root.job_id in solving_jobs:
+                total_tasks = root.tasks_total
+                solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
+                    self._values_data[root.job_id]['tasks_finished']
+                progress = '-'
+                if total_tasks > 0:
+                    curr_progress = int(solved_tasks / total_tasks * 100)
+                    if curr_progress < 100:
+                        progress = '%s%%' % curr_progress
+                else:
+                    progress = '0%'
+                if progress != '-' and total_tasks > solved_tasks:
+                    self._values_data[root.job_id]['progress'] = progress
+                    self._values_data[root.job_id]['average_time'] = get_user_time(
+                        self._user, (total_tasks - solved_tasks) * stat_average_time
+                    )
+                    self._values_data[root.job_id]['local_average_time'] = get_user_time(
+                        self._user, (total_tasks - solved_tasks) * root.average_time
+                    )
+                    if 'max_time' in self._columns:
+                        # TODO: optimize it
+                        with RunHistory.objects.filter(job=root.job_id).order_by('id').last().configuration.file as fp:
+                            time_limit = json.loads(fp.read().decode('utf8'))['resource limits']['CPU time']
+                        if isinstance(time_limit, int):
+                            self._values_data[root.job_id]['max_time'] = get_user_time(
+                                self._user, time_limit * (total_tasks - solved_tasks)
+                            )
 
     def __collect_authors(self):
         for j in Job.objects.filter(id__in=self._job_ids) \

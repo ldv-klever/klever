@@ -28,10 +28,7 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     if model:
         kfunction_obj = analysis.get_kernel_function(automaton.process.name)
         if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
-            # This because all declarations of artificial functions are generated with the same argument names like
-            # arg0, arg1 and etc. Here we just keep in mind that first argument of kernel model with non-void return
-            # value type is returned value itself.
-            ret_expression = 'return arg0;'
+            ret_expression = None
 
     # Initialize variables
     for var in automaton.variables():
@@ -42,7 +39,8 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     v_code.extend(main_v_code)
     f_code.extend(main_f_code)
     f_code.append("/* End of the process */")
-    f_code.append(ret_expression)
+    if ret_expression:
+        f_code.append(ret_expression)
 
     processed = []
     for subp in [s for s in sorted(automaton.fsa.states, key=lambda s: s.identifier)
@@ -58,7 +56,8 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
             ])
             f_code.extend(sp_f_code)
             f_code.append("/* End of the subprocess '{}' */".format(subp.action.name))
-            f_code.append(ret_expression)
+            if ret_expression:
+                f_code.append(ret_expression)
             processed.append(subp.action.name)
 
     v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
@@ -479,8 +478,9 @@ def __label_sequence(automaton, initial_state, ret_expression):
             new_f_code.extend([
                 ''
                 "/* Exit function at a terminal state */",
-                ret_expression
             ])
+            if ret_expression:
+                new_f_code.append(ret_expression)
 
         f_code.extend(['\t' * tab + stm for stm in new_f_code])
 

@@ -26,7 +26,7 @@ from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
-from reports.models import ReportRoot, ReportUnknown, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
 from service.models import *
 
 
@@ -348,6 +348,7 @@ class GetTasks(object):
             for status in status_map:
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
+        roots_to_save = []
         for task in all_tasks['pending']:
             if str(task.pk) in data['tasks']['pending']:
                 new_data['tasks']['pending'].append(str(task.pk))
@@ -367,7 +368,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -410,7 +411,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -435,6 +436,8 @@ class GetTasks(object):
             else:
                 new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
+        for r in roots_to_save:
+            r.save()
         for task in all_tasks['error']:
             if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
@@ -599,6 +602,19 @@ class SaveSolution(object):
         )
         self.task.progress.solutions += 1
         self.task.progress.save()
+        try:
+            wall_time = json.loads(description)['resources']['wall time']
+            statistic = TaskStatistic.objects.get_or_create()[0]
+            statistic.average_time = (statistic.average_time * statistic.number_of_tasks + wall_time) / \
+                                     (statistic.number_of_tasks + 1)
+            statistic.number_of_tasks += 1
+            statistic.save()
+            root = ReportRoot.objects.get(pk=self.task.progress.job.reportroot.pk)
+            solved_tasks = self.task.progress.tasks_finished + self.task.progress.tasks_error
+            root.average_time = (root.average_time * solved_tasks + wall_time) / (solved_tasks + 1)
+            root.save()
+        except Exception as e:
+            logger.exception("Expected another format of solution description: %s" % e)
 
 
 # Case 3.2(5) DONE
