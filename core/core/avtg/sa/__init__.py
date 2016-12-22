@@ -265,13 +265,12 @@ class SA(core.avtg.plugins.Plugin):
         for line in content:
             if short_pair_re.fullmatch(line):
                 path, func = short_pair_re.fullmatch(line).groups()
-                if not self.collection["init"][path]:
+                if not isinstance(self.collection["init"][path], str):
                     self.collection["init"][path] = func
                     self.logger.debug("Extracted Init function {} in {}".format(func, path))
-                # todo: code below does not work properly
-                #else:
-                #    raise ValueError("Module cannot contain two initialization functions but file {} contains".
-                #                     format(path))
+                else:
+                    raise ValueError("Module cannot contain two initialization functions but file {} contains".
+                                     format(path))
             else:
                 raise ValueError("Cannot parse line '{}' in file {}".format(line, init_file))
 
