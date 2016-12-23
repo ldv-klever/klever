@@ -239,7 +239,7 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
     return out_q.output
 
 
-def execute_external_tool(logger, args, timelimit=100000, memlimit=100000000):
+def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
     logger.debug('Execute:\n{!r}'.format(' '.join(args)))
     executor = RunExecutor()
     result = executor.execute_run(args=args,
