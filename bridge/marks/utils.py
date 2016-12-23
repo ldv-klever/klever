@@ -447,12 +447,14 @@ class ConnectReportWithMarks(object):
         self.report.markreport_set.all().delete()
         changes = {self.report: {}}
 
-        afc = ArchiveFileContent(self.report, self.report.problem_description)
-        if afc.error is not None:
-            logger.error("Can't get problem desc for unknown '%s': %s" % (self.report.pk, afc.error), stack_info=True)
+        try:
+            problem_description = ArchiveFileContent(self.report, self.report.problem_description)\
+                .content.decode('utf8')
+        except Exception as e:
+            logger.exception("Can't get problem desc for unknown '%s': %s" % (self.report.id, e))
             return
         for mark in MarkUnknown.objects.filter(component=self.report.component):
-            problem = MatchUnknown(afc.content, mark.function, mark.problem_pattern).problem
+            problem = MatchUnknown(problem_description, mark.function, mark.problem_pattern).problem
             if problem is None:
                 continue
             elif len(problem) > 15:
@@ -553,11 +555,12 @@ class ConnectMarkWithReports(object):
             self.changes[mark_unknown.report] = {'kind': '-'}
         self.mark.markreport_set.all().delete()
         for unknown in ReportUnknown.objects.filter(component=self.mark.component):
-            afc = ArchiveFileContent(unknown, unknown.problem_description)
-            if afc.error is not None:
-                logger.error("Can't get problem desc for unknown '%s': %s" % (unknown.pk, afc.error), stack_info=True)
+            try:
+                problem_description = ArchiveFileContent(unknown, unknown.problem_description).content.decode('utf8')
+            except Exception as e:
+                logger.exception("Can't get problem description for unknown '%s': %s" % (unknown.id, e))
                 return
-            problem = MatchUnknown(afc.content, self.mark.function, self.mark.problem_pattern).problem
+            problem = MatchUnknown(problem_description, self.mark.function, self.mark.problem_pattern).problem
             if problem is None:
                 continue
             elif len(problem) > 15:

@@ -27,13 +27,13 @@ from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
+from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_archive
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
-from reports.utils import DownloadFilesForCompetition
+from reports.utils import FilesForCompetitionArchive
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 from jobs.utils import *
 from jobs.models import RunHistory
@@ -623,7 +623,7 @@ def upload_job(request, parent_id=None):
     errors = []
     for f in request.FILES.getlist('file'):
         try:
-            job_dir = extract_tar_temp(f)
+            job_dir = extract_archive(f)
         except Exception as e:
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
@@ -963,12 +963,9 @@ def download_files_for_compet(request, job_id):
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    try:
-        jobtar = DownloadFilesForCompetition(job, json.loads(request.POST['filters']))
-    except Exception as e:
-        logger.exception(e)
-        return HttpResponseRedirect(reverse('error', args=[500]))
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.name
-    response.write(jobtar.memory.read())
+
+    generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response

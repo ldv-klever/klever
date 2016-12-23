@@ -20,7 +20,6 @@ import time
 import shutil
 import logging
 import hashlib
-import tarfile
 import tempfile
 import zipfile
 from django.core.exceptions import ObjectDoesNotExist
@@ -138,22 +137,17 @@ def file_get_or_create(fp, filename, table, check_size=False):
 # archive - django.core.files.File object
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
-def extract_tar_temp(archive):
+def extract_archive(archive):
     with tempfile.NamedTemporaryFile() as fp:
         for chunk in archive.chunks():
             fp.write(chunk)
         fp.seek(0)
-        if os.path.splitext(archive.name)[-1] == '.gz':
-            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
-                tmp_dir_name = tempfile.TemporaryDirectory()
-                tar.extractall(tmp_dir_name.name)
-            return tmp_dir_name
-        elif os.path.splitext(archive.name)[-1] == '.zip':
-            with zipfile.ZipFile(fp, mode='r') as zfp:
-                tmp_dir_name = tempfile.TemporaryDirectory()
-                zfp.extractall(tmp_dir_name.name)
-            return tmp_dir_name
-        raise ValueError('The archive type is not supported')
+        if os.path.splitext(archive.name)[-1] != '.zip':
+            raise ValueError('Only zip archives are supported')
+        with zipfile.ZipFile(fp, mode='r') as zfp:
+            tmp_dir_name = tempfile.TemporaryDirectory()
+            zfp.extractall(tmp_dir_name.name)
+        return tmp_dir_name
 
 
 def unique_id():
@@ -195,48 +189,15 @@ def has_references(obj):
     return False
 
 
-# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
 class ArchiveFileContent(object):
-    def __init__(self, report, file_name, max_size=None):
+    def __init__(self, report, file_name):
         self._report = report
-        self._max_size = max_size
         self._name = file_name
-        self.error = None
-        try:
-            self.content = self.__extract_file_content()
-        except Exception as e:
-            logger.exception("Error while extracting file from archive: %s" % e)
-            self.error = 'Unknown error'
+        self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
         with self._report.archive as fp:
-            arc_ext = os.path.splitext(fp.name)[-1]
-            if arc_ext == '.gz':
-                with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
-                    for f in arch.getmembers():
-                        if f.isreg():
-                            if self._name is not None and f.name != self._name:
-                                continue
-                            file_extracted = arch.extractfile(f)
-                            if self._max_size is not None:
-                                file_extracted.seek(0, 2)
-                                if file_extracted.tell() > self._max_size:
-                                    self.error = _('The component log is huge and '
-                                                   'can not be showed but you can download it')
-                                    return None
-                                file_extracted.seek(0)
-                            self._name = f.name
-                            return file_extracted.read().decode('utf8')
-            elif arc_ext == '.zip':
-                with zipfile.ZipFile(fp, 'r') as z:
-                    file_content = z.read(self._name)
-                    if self._max_size is not None:
-                        if len(file_content) > self._max_size:
-                            self.error = _('The component log is huge and can not be showed but you can download it')
-                            return None
-                    return file_content
-            else:
-                self.error = _('Archive type is not supported')
-                return None
-        self.error = _('Needed file was not found')
-        return None
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                return zfp.read(self._name)

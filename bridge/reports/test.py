@@ -24,7 +24,7 @@ from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
 from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES
-from bridge.utils import KleverTestCase, ArchiveFileContent
+from bridge.utils import KleverTestCase
 from reports.models import *
 
 
@@ -46,8 +46,8 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe2.tar.gz', 'unsafe3.tar.gz'],
-        'unknown': 'unknown2.tar.gz'
+        'unsafes': ['unsafe2.zip', 'unsafe3.zip'],
+        'unknown': 'unknown2.zip'
     },
     {
         'attrs': [
@@ -56,7 +56,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.tar.gz']
+        'unsafes': ['new_unsafe.zip']
     },
     {
         'attrs': [
@@ -65,7 +65,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'safe': 'safe.tar.gz'
+        'safe': 'safe.zip'
     },
     {
         'attrs': [
@@ -74,7 +74,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['multi_unsafe.tar.gz']
+        'unsafes': ['multi_unsafe.zip']
     },
     {
         'attrs': [
@@ -82,7 +82,7 @@ CHUNKS1 = [
             {'Rule specification': 'linux:rule1'}
         ],
         'fail': 'EMG',
-        'unknown': 'unknown0.tar.gz'
+        'unknown': 'unknown0.zip'
     },
     {
         'attrs': [
@@ -91,8 +91,8 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['actions_unsafe.tar.gz', 'good_unsafe.tar.gz'],
-        'unknown': 'unknown1.tar.gz'
+        'unsafes': ['actions_unsafe.zip', 'good_unsafe.zip'],
+        'unknown': 'unknown1.zip'
     },
     {
         'attrs': [
@@ -100,7 +100,7 @@ CHUNKS1 = [
             {'Rule specification': 'linux:mutex'}
         ],
         'fail': 'SA',
-        'unknown': 'unknown3.tar.gz'
+        'unknown': 'unknown3.zip'
     }
 ]
 CHUNKS2 = [
@@ -111,7 +111,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unknown': 'unknown1.tar.gz'
+        'unknown': 'unknown1.zip'
     },
     {
         'attrs': [
@@ -120,7 +120,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'safe': 'safe.tar.gz'
+        'safe': 'safe.zip'
     },
     {
         'attrs': [
@@ -129,7 +129,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.tar.gz']
+        'unsafes': ['new_unsafe.zip']
     },
     {
         'attrs': [
@@ -138,7 +138,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.tar.gz']
+        'unsafes': ['new_unsafe.zip']
     },
     {
         'attrs': [
@@ -147,8 +147,8 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.tar.gz', 'new_unsafe.tar.gz'],
-        'unknown': 'unknown1.tar.gz'
+        'unsafes': ['new_unsafe.zip', 'new_unsafe.zip'],
+        'unknown': 'unknown1.zip'
     },
     {
         'attrs': [
@@ -157,7 +157,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'safe': 'safe.tar.gz'
+        'safe': 'safe.zip'
     }
 ]
 ARCHIVE_PATH = os.path.join(BASE_DIR, 'reports', 'test_files')
@@ -244,17 +244,16 @@ class TestReports(KleverTestCase):
         response = self.client.get(reverse('reports:download_files', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
-        unsafe = ReportUnsafe.objects.all()[0]
 
-        afc = ArchiveFileContent(unsafe, 'error trace.json')
-        self.assertEqual(afc.error, None)
-        if afc._name != unsafe.error_trace:
-            response = self.client.post('/reports/ajax/get_source/', {
-                'report_id': unsafe.pk, 'file_name': afc._name
-            })
-            self.assertEqual(response.status_code, 200)
-            self.assertEqual(response['Content-Type'], 'application/json')
-            self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        # TODO: test get_source(); how to get source code file name?
+        # unsafe = ReportUnsafe.objects.all()[0]
+        # ArchiveFileContent(unsafe, source_name).content
+        # response = self.client.post('/reports/ajax/get_source/', {
+        #     'report_id': unsafe.pk, 'file_name': afc._name
+        # })
+        # self.assertEqual(response.status_code, 200)
+        # self.assertEqual(response['Content-Type'], 'application/json')
+        # self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         response = self.client.post('/reports/logcontent/%s/' % main_report.pk)
         self.assertEqual(response.status_code, 200)
@@ -363,7 +362,7 @@ class TestReports(KleverTestCase):
         return r_id
 
     def __upload_finish_report(self, r_id):
-        with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': r_id, 'type': 'finish', 'resources': resources(),
@@ -405,7 +404,7 @@ class TestReports(KleverTestCase):
         if isinstance(attrs, list):
             report['attrs'] = attrs
 
-        with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -641,7 +640,7 @@ class DecideJobs(object):
         return r_id
 
     def __upload_finish_report(self, r_id):
-        with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
             self.service.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': r_id, 'type': 'finish', 'resources': resources(),
@@ -670,7 +669,7 @@ class DecideJobs(object):
         if isinstance(attrs, list):
             report['attrs'] = attrs
         if random.randint(1, 10) > 4:
-            with open(os.path.join(ARCHIVE_PATH, 'report.tar.gz'), mode='rb') as fp:
+            with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
                 self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         else:
             report['log'] = None

@@ -285,29 +285,25 @@ def report_leaf(request, leaf_type, report_id):
     main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        afc = ArchiveFileContent(report, report.error_trace)
-        if afc.error is not None:
-            logger.error(afc.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
         try:
-            etv = GetETV(afc.content, request.user)
+            etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
         except Exception as e:
             logger.exception(e, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
         main_file_content = None
         if report.archive and report.proof:
-            afc = ArchiveFileContent(report, report.proof)
-            if afc.error is not None:
-                logger.error(afc.error)
+            try:
+                main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
+            except Exception as e:
+                logger.exception("Couldn't extract proof from archive: %s" % e)
                 return HttpResponseRedirect(reverse('error', args=[500]))
-            main_file_content = afc.content
     elif leaf_type == 'unknown':
-        afc = ArchiveFileContent(report, report.problem_description)
-        if afc.error is not None:
-            logger.error(afc.error)
+        try:
+            main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+        except Exception as e:
+            logger.exception("Couldn't extract problem description from archive: %s" % e)
             return HttpResponseRedirect(reverse('error', args=[500]))
-        main_file_content = afc.content
     try:
         return render(
             request, template,
@@ -339,15 +335,10 @@ def report_etv_full(request, report_id):
 
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
-
-    afc = ArchiveFileContent(report, report.error_trace)
-    if afc.error is not None:
-        logger.error(afc.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
     try:
         return render(request, 'reports/etv_fullscreen.html', {
             'report': report,
-            'etv': GetETV(afc.content, request.user),
+            'etv': GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user),
             'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:
@@ -405,12 +396,14 @@ def get_component_log(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = '%s-log.txt' % report.component.name
 
-    afc = ArchiveFileContent(report, report.log)
-    if afc.error is not None:
-        logger.error(afc.error)
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(str(e))
         return HttpResponseRedirect(reverse('error', args=[500]))
-    response = StreamingHttpResponse(FileWrapper(BytesIO(afc.content.encode('utf8')), 8192), content_type='text/plain')
-    response['Content-Length'] = len(afc.content)
+
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='text/plain')
+    response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
@@ -428,10 +421,16 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    afc = ArchiveFileContent(report, report.log, max_size=10**5)
-    if afc.error is not None:
-        return HttpResponse(str(afc.error))
-    return HttpResponse(afc.content)
+
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(str(e))
+        return HttpResponse(str(_('Extraction of the component log from archive failed')))
+
+    if len(content) > 10**5:
+        return HttpResponse(str(_('The component log is huge and can not be showed but you can download it')))
+    return HttpResponse(content.decode('utf8'))
 
 
 @login_required
@@ -553,5 +552,5 @@ def download_report_files(request, report_id):
     with report.archive.file as fp:
         response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
         response['Content-Length'] = len(fp)
-        response['Content-Disposition'] = 'attachment; filename="%s files.tar.gz"' % report.component.name
+        response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
         return response

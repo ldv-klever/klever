@@ -38,7 +38,7 @@ class TestJobs(KleverTestCase):
         )
         self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
         self.test_filename = 'test_jobfile.txt'
-        self.test_archive = 'test_jobarchive.tar.gz'
+        self.test_archive = 'test_jobarchive.zip'
 
     def test_tree_and_views(self):
         # Check jobs tree before and after population

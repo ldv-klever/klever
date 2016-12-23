@@ -114,12 +114,12 @@ class GetConvertedErrorTrace(object):
         self._parsed_trace = None
 
     def __get_error_trace(self):
-        afc = ArchiveFileContent(self.unsafe, self.unsafe.error_trace)
-        if afc.error is not None:
-            logger.error("Can't get error trace for unsafe '%s': %s" % (self.unsafe.pk, afc.error), stack_info=True)
-            self.error = "Can't get error trace for unsafe '%s'" % self.unsafe.pk
+        try:
+            return ArchiveFileContent(self.unsafe, self.unsafe.error_trace).content.decode('utf8')
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            self.error = "Can't exctract error trace for unsafe '%s' from archive" % self.unsafe.pk
             return None
-        return afc.content
 
     def __convert(self):
         try:

@@ -271,7 +271,7 @@ $(document).ready(function () {
                 $('#dimmer_of_page').removeClass('active');
                 if (data.status) {
                     if (data.mark_id.length && data.mark_type.length) {
-                        window.location.replace("/marks/" + data.mark_type + "/edit/" + data.mark_id + "/")
+                        window.location.replace("/marks/" + data.mark_type + "/view/" + data.mark_id + "/")
                     }
                 }
                 else {

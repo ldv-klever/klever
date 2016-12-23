@@ -24,7 +24,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
 from django.template.loader import get_template
@@ -32,11 +32,11 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
+from bridge.utils import logger, unparallel_group, unparallel, extract_archive, ArchiveFileContent
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
-from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
+from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -58,11 +58,11 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
-            afc = ArchiveFileContent(report, report.problem_description)
-            if afc.error is not None:
-                logger.error(afc.error)
+            try:
+                problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+            except Exception as e:
+                logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
                 return HttpResponseRedirect(reverse('error', args=[500]))
-            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
@@ -387,11 +387,10 @@ def download_mark(request, mark_type, mark_id):
     if mark.version == 0:
         return HttpResponseRedirect(reverse('error', args=[605]))
 
-    mark_tar = CreateMarkTar(mark)
-
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.name
-    response.write(mark_tar.tempfile.read())
+    generator = MarkArchiveGenerator(mark)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
 
 
@@ -411,13 +410,13 @@ def upload_marks(request):
     mark_type = None
     num_of_new_marks = 0
     for f in request.FILES.getlist('file'):
-        tardata = ReadTarMark(request.user, f)
-        if tardata.error is not None:
-            failed_marks.append([tardata.error + '', f.name])
+        res = ReadMarkArchive(request.user, f)
+        if res.error is not None:
+            failed_marks.append([res.error + '', f.name])
         else:
             num_of_new_marks += 1
-            mark_id = tardata.mark.pk
-            mark_type = tardata.type
+            mark_id = res.mark.id
+            mark_type = res.type
     if len(failed_marks) > 0:
         return JsonResponse({'status': False, 'messages': failed_marks})
     if num_of_new_marks == 1:
@@ -725,11 +724,10 @@ def download_all(request):
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': "You don't have an access to download all marks"})
-    arch = AllMarksTar()
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
-    response.write(arch.tempfile.read())
-
+    generator = AllMarksGen()
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
 
 
@@ -750,7 +748,7 @@ def upload_all(request):
     if len(request.FILES.getlist('file')) == 0:
         return JsonResponse({'error': 'Archive with marks expected'})
     try:
-        marks_dir = extract_tar_temp(request.FILES.getlist('file')[0])
+        marks_dir = extract_archive(request.FILES.getlist('file')[0])
     except Exception as e:
         logger.exception("Archive extraction failed" % e, stack_info=True)
         return JsonResponse({'error': 'Archive extraction failed'})

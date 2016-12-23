@@ -17,8 +17,6 @@
 
 import re
 import json
-import tarfile
-import tempfile
 from io import BytesIO
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -79,54 +77,6 @@ class KleverCoreArchiveGen:
                 'src': job_file_system[f_id]['src']
             })
         return job_files
-
-
-class KleverCoreDownloadJob(object):
-    def __init__(self, job):
-        self.tarname = 'VJ__' + job.identifier + '.tar.gz'
-        self.memory = BytesIO()
-        self.__create_tar(job)
-
-    def __create_tar(self, job):
-        last_version = job.versions.get(version=job.version)
-
-        def write_file_str(jobtar, file_name, file_content):
-            file_content = file_content.encode('utf-8')
-            t = tarfile.TarInfo(file_name)
-            t.size = len(file_content)
-            jobtar.addfile(t, BytesIO(file_content))
-
-        files_for_tar = []
-        for f in last_version.filesystem_set.all():
-            if len(f.children.all()) == 0:
-                src = None
-                if f.file is not None:
-                    src = os.path.join(settings.MEDIA_ROOT, f.file.file.name)
-                file_path = f.name
-                file_parent = f.parent
-                while file_parent is not None:
-                    file_path = os.path.join(file_parent.name, file_path)
-                    file_parent = file_parent.parent
-                files_for_tar.append({
-                    'path': os.path.join('root', file_path),
-                    'src': src
-                })
-
-        jobtar_obj = tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8')
-        write_file_str(jobtar_obj, 'format', str(job.format))
-        for job_class in JOB_CLASSES:
-            if job_class[0] == job.type:
-                with override('en'):
-                    write_file_str(jobtar_obj, 'class', job_class[1])
-                break
-        for f in files_for_tar:
-            if f['src'] is None:
-                folder = tarfile.TarInfo(f['path'])
-                folder.type = tarfile.DIRTYPE
-                jobtar_obj.addfile(folder)
-            else:
-                jobtar_obj.add(f['src'], f['path'])
-        jobtar_obj.close()
 
 
 class JobArchiveGenerator:
@@ -204,7 +154,7 @@ class JobArchiveGenerator:
                 if report.archive:
                     self.files_to_add.append((
                         os.path.join(settings.MEDIA_ROOT, report.archive.name),
-                        os.path.join(table.__name__, '%s.tar.gz' % report.pk)
+                        os.path.join(table.__name__, '%s.zip' % report.pk)
                     ))
 
 
@@ -225,86 +175,6 @@ class JobsArchivesGen:
             if len(buf) > 0:
                 yield buf
         yield self.stream.close_stream()
-
-
-class DownloadJob(object):
-
-    def __init__(self, job):
-        self.tarname = ''
-        self.job = job
-        self.tempfile = tempfile.TemporaryFile()
-        self.error = None
-        self.__create_tar()
-        self.tempfile.flush()
-        self.size = self.tempfile.tell()
-        self.tempfile.seek(0)
-
-    def __create_tar(self):
-
-        files_in_tar = {}
-        self.tarname = 'Job-%s-%s.tar.gz' % (self.job.identifier[:10], self.job.type)
-        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as jobtar_obj:
-
-            def add_json(file_name, data):
-                file_content = json.dumps(data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
-                t = tarfile.TarInfo(file_name)
-                t.size = len(file_content)
-                jobtar_obj.addfile(t, BytesIO(file_content))
-
-            for jobversion in self.job.versions.all():
-                filedata = []
-                for f in jobversion.filesystem_set.all():
-                    filedata_element = {
-                        'pk': f.pk, 'parent': f.parent_id, 'name': f.name, 'file': None
-                    }
-                    if f.file is not None:
-                        filedata_element['file'] = f.file.pk
-                        if f.file.pk not in files_in_tar:
-                            files_in_tar[f.file.pk] = f.file.file.name
-                            jobtar_obj.add(os.path.join(settings.MEDIA_ROOT, f.file.file.name), f.file.file.name)
-                    filedata.append(filedata_element)
-                add_json('version-%s.json' % jobversion.version, {
-                    'filedata': filedata,
-                    'description': jobversion.description,
-                    'name': jobversion.name,
-                    'global_role': jobversion.global_role,
-                    'comment': jobversion.comment,
-                })
-
-            add_json('job.json', {
-                'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
-                'status': self.job.status, 'files_map': files_in_tar,
-                'run_history': self.__add_run_history_files(jobtar_obj)
-            })
-            add_json('reports.json', ReportsData(self.job).reports)
-            add_json('LightWeightCache.json', LightWeightCache(self.job).data)
-            self.__add_reports_files(jobtar_obj)
-
-    def __add_reports_files(self, jobtar):
-        tables = [ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent]
-        for table in tables:
-            for report in table.objects.filter(root__job=self.job):
-                if report.archive:
-                    jobtar.add(
-                        os.path.join(settings.MEDIA_ROOT, report.archive.name),
-                        arcname=os.path.join(table.__name__, '%s.tar.gz' % report.pk)
-                    )
-
-    def __add_run_history_files(self, jobtar):
-        data = []
-        for rh in self.job.runhistory_set.order_by('date'):
-            jobtar.add(
-                os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
-                arcname=os.path.join('Configurations', "%s.json" % rh.pk)
-            )
-            data.append({
-                'id': rh.pk, 'status': rh.status,
-                'date': [
-                    rh.date.year, rh.date.month, rh.date.day, rh.date.hour,
-                    rh.date.minute, rh.date.second, rh.date.microsecond
-                ]
-            })
-        return data
 
 
 class LightWeightCache(object):

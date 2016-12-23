@@ -17,8 +17,7 @@
 
 import os
 import json
-import tarfile
-from io import BytesIO
+import zipfile
 import xml.etree.ElementTree as ETree
 from xml.dom import minidom
 from django.core.exceptions import ObjectDoesNotExist
@@ -27,9 +26,11 @@ from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
-from bridge.utils import extract_tar_temp
+from bridge.utils import logger
+from bridge.ZipGenerator import ZipStream
 from jobs.utils import get_resource_data, get_user_time
-from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown
+from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
+    ReportRoot
 from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem, MarkUnknown, UnsafeReportTag, SafeReportTag
 from bridge.tableHead import Header
@@ -253,7 +254,6 @@ class ReportTable(object):
             if self.verdict is not None and col == 'report_verdict':
                 continue
             columns.append(col)
-
         if self.verdict is not None:
             leaves_set = self.report.leaves.filter(Q(safe__verdict=self.verdict) & ~Q(safe=None))\
                 .annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
@@ -360,7 +360,7 @@ class ReportTable(object):
             leaves_set = self.report.leaves.filter(unsafe__markreport_set__mark=self.mark).distinct()\
                 .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
         elif self.attr is not None:
-            leaves_set = self.report.leaves.filter(safe__attrs__attr=self.attr).distinct()\
+            leaves_set = self.report.leaves.filter(unsafe__attrs__attr=self.attr).distinct()\
                 .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
         else:
             leaves_set = self.report.leaves.exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set'))\
@@ -587,7 +587,7 @@ class AttrData(object):
                 names_to_create.append(AttrName(name=name))
         AttrName.objects.bulk_create(names_to_create)
         for n in AttrName.objects.filter(name__in=self._name):
-            self._name[n] = n.id
+            self._name[n.name] = n.id
 
     def __upload_attrs(self):
         for a in Attr.objects.filter(value__in=list(attr[1] for attr in self._attrs)).select_related('name'):
@@ -603,150 +603,124 @@ class AttrData(object):
                 self._attrs[(a.name.name, a.value)] = a.id
 
 
-# TODO: zipfile instead of tarfile
-class DownloadFilesForCompetition(object):
+class FilesForCompetitionArchive(object):
     def __init__(self, job, filters):
-        self.name = 'svcomp.tar.gz'
+        self.name = 'svcomp.zip'
         self.benchmark_fname = 'benchmark.xml'
         self.prp_fname = 'unreach-call.prp'
-        self.job = job
+        self.obj_attr = 'Verification object'
+        self.rule_attr = 'Rule specification'
+        try:
+            self.root = ReportRoot.objects.get(job=job)
+        except ObjectDoesNotExist:
+            raise ValueError('The job is not decided')
+        self._archives = self.__get_archives()
         self.filters = filters
         self.xml_root = None
         self.prp_file_added = False
-        self.memory = BytesIO()
-        self.__get_archive()
-        self.memory.flush()
-        self.memory.seek(0)
+        self.stream = ZipStream()
 
-    def __get_archive(self):
-        with tarfile.open(fileobj=self.memory, mode='w:gz', encoding='utf8') as tarobj:
-            for f_t in self.filters:
-                if f_t == 'u':
-                    self.__add_unsafes(tarobj)
-                elif f_t == 's':
-                    self.__add_safes(tarobj)
-                elif isinstance(f_t, list):
-                    self.__add_unknowns(tarobj, f_t)
-            if self.xml_root is None:
-                raise ValueError('There are no filters or there are no reports with needed files '
-                                 'satisfied the selected filters')
-            t = tarfile.TarInfo(self.benchmark_fname)
-            xml_inmem = BytesIO(
-                minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ").encode('utf8')
-            )
-            t.size = xml_inmem.seek(0, 2)
-            xml_inmem.seek(0)
-            tarobj.addfile(t, xml_inmem)
-            tarobj.close()
+    def __iter__(self):
+        for f_t in self.filters:
+            if isinstance(f_t, str) and f_t in {'u', 's'}:
+                for data in self.__reports_data(f_t):
+                    yield data
+            elif isinstance(f_t, list):
+                for data in self.__reports_data('f', f_t):
+                    yield data
+        if self.xml_root is None:
+            for data in self.stream.compress_string('NOFILES', ''):
+                yield data
+        else:
+            benchmark_content = minidom.parseString(ETree.tostring(self.xml_root, 'utf-8')).toprettyxml(indent="  ")
+            for data in self.stream.compress_string(self.benchmark_fname, benchmark_content):
+                yield data
+        yield self.stream.close_stream()
 
-    def __add_unsafes(self, tarobj):
-        cnt = 1
-        u_ids_in_use = []
-        for u in ReportUnsafe.objects.filter(root__job=self.job):
-            parent = ReportComponent.objects.get(id=u.parent_id)
-            if parent.parent is None or parent.archive is None:
-                continue
-            ver_obj = ''
-            ver_rule = ''
-            for u_a in u.attrs.all():
-                if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
-                elif u_a.attr.name.name == 'Rule specification':
-                    ver_rule = u_a.attr.value.replace(':', '-')
-            u_id = 'Unsafes/u__%s__%s.cil.i' % (ver_rule, ver_obj)
-            if u_id in u_ids_in_use:
-                ver_obj_path, ver_obj_name = os.path.split(u_id)
-                u_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
-                cnt += 1
-            self.__add_cil_file(parent.archive, tarobj, u_id)
-            new_elem = ETree.Element('include')
-            new_elem.text = u_id
-            self.xml_root.find('tasks').append(new_elem)
-            u_ids_in_use.append(u_id)
+    def __get_archives(self):
+        archives = {}
+        for c in ReportComponent.objects.filter(root=self.root).only('id', 'archive'):
+            if c.archive:
+                archives[c.id] = c.archive
+        return archives
 
-    def __add_safes(self, tarobj):
-        cnt = 1
-        u_ids_in_use = []
-        for s in ReportSafe.objects.filter(root__job=self.job):
-            parent = ReportComponent.objects.get(id=s.parent_id)
-            if parent.parent is None or parent.archive is None:
-                continue
-            ver_obj = ''
-            ver_rule = ''
-            for u_a in s.attrs.all():
-                if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('~', 'HOME')
-                elif u_a.attr.name.name == 'Rule specification':
-                    ver_rule = u_a.attr.value.replace(':', '-')
-            s_id = 'Safes/s__%s__%s.cil.i' % (ver_rule, ver_obj)
-            if s_id in u_ids_in_use:
-                ver_obj_path, ver_obj_name = os.path.split(s_id)
-                s_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
-                cnt += 1
-            self.__add_cil_file(parent.archive, tarobj, s_id)
-            new_elem = ETree.Element('include')
-            new_elem.text = s_id
-            self.xml_root.find('tasks').append(new_elem)
-            u_ids_in_use.append(s_id)
+    def __reports_data(self, f_type, problems=None):
+        if f_type == 'u':
+            table = ReportUnsafe
+            cil_dir = 'Unsafes'
+        elif f_type == 's':
+            table = ReportSafe
+            cil_dir = 'Safes'
+        elif f_type == 'f':
+            table = ReportUnknown
+            cil_dir = 'Unknowns'
+        else:
+            raise ValueError('Wrong filter type')
 
-    def __add_unknowns(self, tarobj, problems):
-        cnt = 1
-        u_ids_in_use = []
-        if len(problems) > 0:
-            unknowns = []
+        reports = {}
+        if f_type == 'f' and problems is not None and len(problems) > 0:
             for problem in problems:
                 comp_id, problem_id = problem.split('_')[0:2]
                 if comp_id == problem_id == '0':
-                    unknowns.extend(list(ReportUnknown.objects.annotate(mr_len=Count('markreport_set')).filter(
-                        root__job=self.job, mr_len=0
-                    )))
+                    for r in ReportUnknown.objects.annotate(mr_len=Count('markreport_set'))\
+                            .filter(root=self.root, mr_len=0).exclude(parent__parent=None).only('id', 'parent_id'):
+                        if r.parent_id not in self._archives:
+                            continue
+                        reports[r.id] = r.parent_id
                 else:
-                    unknowns.extend(list(ReportUnknown.objects.filter(
-                        root__job=self.job, markreport_set__problem_id=problem_id, component_id=comp_id
-                    )))
+                    for r in ReportUnknown.objects\
+                            .filter(root=self.root, markreport_set__problem_id=problem_id, component_id=comp_id)\
+                            .exclude(parent__parent=None).only('id', 'parent_id'):
+                        if r.parent_id not in self._archives:
+                            continue
+                        reports[r.id] = r.parent_id
         else:
-            unknowns = ReportUnknown.objects.filter(root__job=self.job)
-        for u in unknowns:
-            parent = ReportComponent.objects.get(id=u.parent_id)
-            if parent.parent is None or parent.archive is None:
-                continue
-            ver_obj = ''
-            ver_rule = ''
-            for u_a in u.attrs.all():
-                if u_a.attr.name.name == 'Verification object':
-                    ver_obj = u_a.attr.value.replace('~', 'HOME').replace('/', '---')
-                elif u_a.attr.name.name == 'Rule specification':
-                    ver_rule = u_a.attr.value.replace(':', '-')
-            f_id = 'Unknowns/f__%s__%s.cil.i' % (ver_rule, ver_obj)
-            if f_id in u_ids_in_use:
-                ver_obj_path, ver_obj_name = os.path.split(f_id)
-                f_id = os.path.join(ver_obj_path, "%s__%s" % (cnt, ver_obj_name))
-                cnt += 1
-            self.__add_cil_file(parent.archive, tarobj, f_id)
-            new_elem = ETree.Element('include')
-            new_elem.text = f_id
-            self.xml_root.find('tasks').append(new_elem)
-            u_ids_in_use.append(f_id)
+            for r in table.objects.filter(root=self.root).exclude(parent__parent=None).only('id', 'parent_id'):
+                if r.parent_id not in self._archives:
+                    continue
+                reports[r.id] = r.parent_id
+        attrs_data = {}
+        for ra in ReportAttr.objects\
+                .filter(report_id__in=list(reports), attr__name__name__in=[self.obj_attr, self.rule_attr])\
+                .select_related('attr', 'attr__name'):
+            if ra.report_id not in attrs_data:
+                attrs_data[ra.report_id] = {}
+            attrs_data[ra.report_id][ra.attr.name.name] = ra.attr.value
+        cnt = 1
+        paths_in_use = []
+        for r_id in reports:
+            if r_id in attrs_data and self.obj_attr in attrs_data[r_id] and self.rule_attr in attrs_data[r_id]:
+                ver_obj = attrs_data[r_id][self.obj_attr].replace('~', 'HOME').replace('/', '---')
+                ver_rule = attrs_data[r_id][self.rule_attr].replace(':', '-')
+                r_path = '%s/%s__%s__%s.cil.i' % (cil_dir, f_type, ver_rule, ver_obj)
+                if r_path in paths_in_use:
+                    ver_obj_path, ver_obj_name = r_path.split('/')
+                    r_path = '/'.join([ver_obj_path, "%s__%s" % (cnt, ver_obj_name)])
+                    cnt += 1
+                try:
+                    for data in self.__cil_data(reports[r_id], r_path):
+                        yield data
+                except Exception as e:
+                    logger.exception(e)
+                else:
+                    new_elem = ETree.Element('include')
+                    new_elem.text = r_path
+                    self.xml_root.find('tasks').append(new_elem)
+                    paths_in_use.append(r_path)
 
-    def __add_cil_file(self, f, tarobj, fpath):
-        extracted_tar = extract_tar_temp(f.file)
-        files_dir = extracted_tar.name
-        with open(os.path.join(files_dir, self.benchmark_fname), encoding='utf8') as fp:
-            xml_root = ETree.fromstring(fp.read())
-            cil_file = xml_root.find('tasks').find('include').text
-        if self.xml_root is None:
-            self.xml_root = xml_root
-            self.xml_root.find('tasks').clear()
-
-        with open(os.path.join(files_dir, cil_file), mode='rb') as fp:
-            t = tarfile.TarInfo(fpath)
-            t.size = fp.seek(0, 2)
-            fp.seek(0)
-            tarobj.addfile(t, fp)
-        if not self.prp_file_added:
-            with open(os.path.join(files_dir, self.prp_fname), mode='rb') as fp:
-                t = tarfile.TarInfo(self.prp_fname)
-                t.size = fp.seek(0, 2)
-                fp.seek(0)
-                tarobj.addfile(t, fp)
-                self.prp_file_added = True
+    def __cil_data(self, report_id, arcname):
+        with self._archives[report_id] as fp:
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                xml_root = ETree.fromstring(zfp.read(self.benchmark_fname))
+                cil_content = zfp.read(xml_root.find('tasks').find('include').text)
+                for data in self.stream.compress_string(arcname, cil_content):
+                    yield data
+                if not self.prp_file_added:
+                    for data in self.stream.compress_string(self.prp_fname, zfp.read(self.prp_fname)):
+                        yield data
+                    self.prp_file_added = True
+            if self.xml_root is None:
+                self.xml_root = xml_root
+                self.xml_root.find('tasks').clear()

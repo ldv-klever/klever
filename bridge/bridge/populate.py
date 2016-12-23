@@ -18,7 +18,6 @@
 import os
 import re
 import json
-import hashlib
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
@@ -146,7 +145,7 @@ class Population(object):
 
     def __add_password(self, user):
         self.__is_not_used()
-        password = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()[:8]
+        password = unique_id()[:8]
         user.set_password(password)
         user.save()
         return password

@@ -52,11 +52,11 @@ class TestMarks(KleverTestCase):
             self.job = Job.objects.all()[0]
         self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
         DecideJobs('service', 'service', CHUNKS1)
-        self.safe_archive = 'test_safemark.tar.gz'
-        self.unsafe_archive = 'test_unsafemark.tar.gz'
-        self.unknown_archive = 'test_unknownmark.tar.gz'
+        self.safe_archive = 'test_safemark.zip'
+        self.unsafe_archive = 'test_unsafemark.zip'
+        self.unknown_archive = 'test_unknownmark.zip'
         self.test_tagsfile = 'test_tags.json'
-        self.all_marks_arch = 'All-marks.tar.gz'
+        self.all_marks_arch = 'All-marks.zip'
 
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
@@ -874,9 +874,9 @@ class TestMarks(KleverTestCase):
 
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
             afc = ArchiveFileContent(u, u.problem_description)
-            self.assertIsNone(afc.error)
             if afc.content == "ValueError: got wrong attribute: 'rule'.":
                 unknown = u
+                break
         parent = ReportComponent.objects.get(pk=unknown.parent_id)
         if unknown is None:
             self.fail("Unknown with needed problem description was not found in test job decision")

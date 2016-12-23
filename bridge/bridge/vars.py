@@ -442,4 +442,4 @@ START_JOB_DEFAULT_MODES = {
     'paranoid development': _('Paranoid development')
 }
 
-REPORT_FILES_ARCHIVE = 'data.tar.gz'
+REPORT_FILES_ARCHIVE = 'data.zip'
