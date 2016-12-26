@@ -182,8 +182,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :param password: Password.
         :return: Return Future object.
         """
-        logging.debug("Start solution of task {}".format(identifier))
-        return self.__pool.submit(self.__execute, self.__task_processes[identifier])
+        logging.debug("Start solution of task {!r}".format(identifier))
+        return self.__pool.submit(self.__execute, self.__task_processes[identifier], identifier)
 
     def solve_job(self, identifier, configuration):
         """
@@ -193,8 +193,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :param configuration: Job configuration.
         :return: Return Future object.
         """
-        logging.debug("Start solution of job {}".format(identifier))
-        return self.__pool.submit(self.__execute, self.__job_processes[identifier])
+        logging.debug("Start solution of job {!r}".format(identifier))
+        return self.__pool.submit(self.__execute, self.__job_processes[identifier], identifier)
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
@@ -335,14 +335,18 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: None
         """
         def thread(args):
-            prc = subprocess.Popen(args, preexec_fn=os.setsid)
-
             def handler(arg1, arg2):
+                logging.debug('Somebody wants to kill me!')
                 os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
 
             signal.signal(signal.SIGTERM, handler)
             signal.signal(signal.SIGINT, handler)
+
+            logging.debug('Start command {!r}'.format(' '.join(args)))
+            prc = subprocess.Popen(args, preexec_fn=os.setsid)
+            logging.debug('Waiting for termination of {!r}'.format(' '.join(args)))
             prc.wait()
+            logging.debug('Finished command: {!r}'.format(' '.join(args)))
 
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         self.__check_resource_limits(configuration)
@@ -495,28 +499,37 @@ class Scheduler(schedulers.SchedulerExchange):
             shutil.rmtree(work_dir)
 
     @staticmethod
-    def __execute(process):
+    def __execute(process, identifier):
         """
         Common implementation for running of a multiprocessing process and waiting till its termination.
 
         :param process: multiprocessing.Process
         :return: None
         """
+        logging.debug("Future task {!r}: Going to start a new process which will start native scheduler client".
+                          format(identifier))
         process.start()
+        logging.debug("Future task {!r}: get pid of the started process.".format(identifier))
         if process.pid:
+            logging.debug("Future task {!r}: the pid is {!r}.".format(identifier, process.pid))
             process.join()
+            logging.debug("Future task {!r}: process {!r} joined, going to check its exit code".
+                              format(identifier, process.pid))
             ec = process.exitcode
+            logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
+                              format(identifier, process.pid, str(-ec)))
             if ec is not None:
                 if ec == 0:
                     return 0
                 else:
                     if ec < 0:
-                        error_msg = 'Process {} killed by a signal {}'. \
-                            format(process.pid, str(-ec))
+                        error_msg = 'Process {!r} killed by a signal {!r}'.format(process.pid, str(-ec))
                     else:
-                        error_msg = 'Process {} exited with a non-zero exit code {}'. \
-                            format(process.pid, str(ec))
+                        error_msg = 'Process {!r} exited with a non-zero exit code {!r}'.format(process.pid, str(ec))
                     raise schedulers.SchedulerException(error_msg)
+            else:
+                error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
+                raise schedulers.SchedulerException(error_msg)
         else:
             raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
 
