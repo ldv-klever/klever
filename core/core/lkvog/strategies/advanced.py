@@ -15,9 +15,11 @@
 # limitations under the License.
 #
 
+import re
+from operator import itemgetter
+
 from core.lkvog.strategies.strategy_utils import Module, Graph
 from core.lkvog.strategies.abstract_strategy import AbstractStrategy
-from operator import itemgetter
 
 
 class Advanced(AbstractStrategy):
@@ -32,7 +34,12 @@ class Advanced(AbstractStrategy):
         self.max_g_for_m = params.get('max group for module', 5)
         self.minimize_groups_for_module = params.get('minimize groups for module', True)
         self.priority_on_module_size = params.get('priority on module size', True) and bool(module_sizes)
-        self.user_deps = params.get('user deps', {})
+
+        self.user_deps = {}
+        for module, dep_modules in params.get('user deps', {}).items():
+            module = re.subn('.ko$', '.o', module)[0]
+            self.user_deps[module] = [re.subn('.ko$', '.o', dep_module)[0] for dep_module in dep_modules]
+
         self.division_type = params.get('division type', 'All')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
