@@ -488,9 +488,10 @@ class TestReports(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
-        core_data = None
+        core_data1 = None
+        core_data2 = None
         if self.job.type == JOB_CLASSES[0][0]:
-            core_data = {
+            core_data1 = {
                 'module1': {
                     'ideal verdict': 'safe',
                     'verification status': 'unsafe',
@@ -499,7 +500,9 @@ class TestReports(KleverTestCase):
                 'module2': {
                     'ideal verdict': 'safe',
                     'verification status': 'safe'
-                },
+                }
+            }
+            core_data2 = {
                 'module3': {
                     'ideal verdict': 'unsafe',
                     'verification status': 'unsafe',
@@ -511,7 +514,7 @@ class TestReports(KleverTestCase):
                 }
             }
         elif self.job.type == JOB_CLASSES[1][0]:
-            core_data = {
+            core_data1 = {
                 'module1': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
                     'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 after fix'},
@@ -519,7 +522,9 @@ class TestReports(KleverTestCase):
                 'module2': {
                     'before fix': {'verification status': 'safe'},
                     'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module2 after fix'},
-                },
+                }
+            }
+            core_data2 = {
                 'module3': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module3 before fix'},
                     'after fix': {'verification status': 'safe'},
@@ -529,7 +534,8 @@ class TestReports(KleverTestCase):
                 }
             }
 
-        self.__upload_data_report('/', core_data)
+        self.__upload_data_report('/', core_data1)
+        self.__upload_data_report('/', core_data2)
 
         lkbce = self.__upload_start_report('LKBCE', '/')
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])

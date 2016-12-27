@@ -553,7 +553,7 @@ def save_attrs(report, attrs):
     attrorder = []
     for attr, value in children('', attrs):
         attrorder.append(attr)
-        attrdata.add(report.pk, attr, value)
+        attrdata.add(report.id, attr, value)
     attrdata.upload()
     return attrorder
 

@@ -196,9 +196,9 @@ class Verdict(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
+    cpu_time = models.BigIntegerField(default=0)
+    wall_time = models.BigIntegerField(default=0)
+    memory = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_resource'
@@ -207,9 +207,9 @@ class ComponentResource(models.Model):
 class LightResource(models.Model):
     report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
+    cpu_time = models.BigIntegerField(default=0)
+    wall_time = models.BigIntegerField(default=0)
+    memory = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_light_resource'

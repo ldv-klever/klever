@@ -183,7 +183,9 @@ class KleverTestCase(TestCase):
 
 
 def has_references(obj):
-    for link in list(rel.get_accessor_name() for rel in getattr(obj, '_meta').get_all_related_objects()):
+    relations = [f for f in getattr(obj, '_meta').get_fields()
+                 if (f.one_to_many or f.one_to_one) and f.auto_created and not f.concrete]
+    for link in list(rel.get_accessor_name() for rel in relations):
         if getattr(obj, link).count() > 0:
             return True
     return False

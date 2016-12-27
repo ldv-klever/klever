@@ -78,21 +78,21 @@ def clear_computers():
 
 class RecalculateLeaves(object):
     def __init__(self, jobs):
-        self.jobs = jobs
-        self.leaves = LeavesData()
+        self._jobs = jobs
+        self._leaves = LeavesData()
         self.__recalc()
 
     def __recalc(self):
-        ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs).delete()
-        for u in ReportComponent.objects.filter(root__job__in=self.jobs).order_by('id'):
-            self.leaves.add(u)
-        for u in ReportUnsafe.objects.filter(root__job__in=self.jobs):
-            self.leaves.add(u)
-        for s in ReportSafe.objects.filter(root__job__in=self.jobs):
-            self.leaves.add(s)
-        for u in ReportUnknown.objects.filter(root__job__in=self.jobs):
-            self.leaves.add(u)
-        self.leaves.upload()
+        ReportComponentLeaf.objects.filter(report__root__job__in=self._jobs).delete()
+        for rc in ReportComponent.objects.filter(root__job__in=self._jobs).order_by('id').only('id', 'parent_id'):
+            self._leaves.add(rc)
+        for u in ReportUnsafe.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+            self._leaves.add(u)
+        for s in ReportSafe.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+            self._leaves.add(s)
+        for f in ReportUnknown.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+            self._leaves.add(f)
+        self._leaves.upload()
 
 
 class RecalculateVerdicts(object):
@@ -104,7 +104,8 @@ class RecalculateVerdicts(object):
         Verdict.objects.filter(report__root__job__in=self.jobs).delete()
         ComponentUnknown.objects.filter(report__root__job__in=self.jobs).delete()
         data = VerdictsData()
-        for leaf in ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs):
+        for leaf in ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs)\
+                .select_related('safe', 'unsafe', 'unknown'):
             data.add(leaf)
         data.upload()
 
@@ -162,67 +163,72 @@ class RecalculateAttrStatistic(object):
         AttrStatistic.objects.filter(report__root__job__in=self.jobs).delete()
         attrs_data = []
         for j_type in ATTR_STATISTIC:
-            for report in ReportComponent.objects.filter(root__job__in=[j.pk for j in self.jobs if j.type == j_type]):
-                for a_name in ATTR_STATISTIC[j_type]:
+            attr_names = set(a['id'] for a in AttrName.objects.filter(name__in=ATTR_STATISTIC[j_type]).values('id'))
+            reports = set()
+            for report in ReportComponent.objects.filter(root__job__in=[j.id for j in self.jobs if j.type == j_type]):
+                reports.add(report.id)
+
+            safes = {}
+            unsafes = {}
+            unknowns = {}
+            for leaf in ReportComponentLeaf.objects.filter(report_id__in=reports):
+                if leaf.safe_id is not None:
+                    if leaf.safe_id not in safes:
+                        safes[leaf.safe_id] = set()
+                    safes[leaf.safe_id].add(leaf.report_id)
+                elif leaf.unsafe_id is not None:
+                    if leaf.unsafe_id not in unsafes:
+                        unsafes[leaf.unsafe_id] = set()
+                    unsafes[leaf.unsafe_id].add(leaf.report_id)
+                elif leaf.unknown_id is not None:
+                    if leaf.unknown_id not in unknowns:
+                        unknowns[leaf.unknown_id] = set()
+                    unknowns[leaf.unknown_id].add(leaf.report_id)
+
+            report_attrs = {}
+            for ra in ReportAttr.objects.filter(report_id__in=safes, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+                    .values_list('report_id', 'attr__name_id', 'attr_id'):
+                report_attrs[('s', ra[0], ra[1])] = ra[2]
+            for ra in ReportAttr.objects.filter(report_id__in=unsafes, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+                    .values_list('report_id', 'attr__name_id', 'attr_id'):
+                report_attrs[('u', ra[0], ra[1])] = ra[2]
+            for ra in ReportAttr.objects.filter(report_id__in=unknowns, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+                    .values_list('report_id', 'attr__name_id', 'attr_id'):
+                report_attrs[('f', ra[0], ra[1])] = ra[2]
+
+            for r_id in reports:
+                for n_id in attr_names:
                     safes_num = {}
                     unsafes_num = {}
                     unknowns_num = {}
-                    for leaf in report.leaves.all():
-
-                        if leaf.safe is not None:
-                            try:
-                                r_attr = ReportAttr.objects.get(report_id=leaf.safe_id, attr__name__name=a_name)
-                            except ObjectDoesNotExist:
-                                if None not in safes_num:
-                                    safes_num[None] = 0
-                                safes_num[None] += 1
-                            except MultipleObjectsReturned:
-                                raise ValueError('Safe with similar attributes was found (id: %s)!' % leaf.safe_id)
-                            else:
-                                if r_attr.attr not in safes_num:
-                                    safes_num[r_attr.attr] = 0
-                                safes_num[r_attr.attr] += 1
-                        elif leaf.unsafe is not None:
-                            try:
-                                r_attr = ReportAttr.objects.get(report_id=leaf.unsafe_id, attr__name__name=a_name)
-                            except ObjectDoesNotExist:
-                                if None not in unsafes_num:
-                                    unsafes_num[None] = 0
-                                unsafes_num[None] += 1
-                            except MultipleObjectsReturned:
-                                raise ValueError('Unsafe with similar attributes was found (id: %s)!' % leaf.unsafe_id)
-                            else:
-                                if r_attr.attr not in unsafes_num:
-                                    unsafes_num[r_attr.attr] = 0
-                                unsafes_num[r_attr.attr] += 1
-                        elif leaf.unknown is not None:
-                            try:
-                                r_attr = ReportAttr.objects.get(report_id=leaf.unknown_id, attr__name__name=a_name)
-                            except ObjectDoesNotExist:
-                                if None not in unknowns_num:
-                                    unknowns_num[None] = 0
-                                unknowns_num[None] += 1
-                            except MultipleObjectsReturned:
-                                raise ValueError('Unknown with similar attrs was found (id: %s)!' % leaf.unknown_id)
-                            else:
-                                if r_attr.attr not in unknowns_num:
-                                    unknowns_num[r_attr.attr] = 0
-                                unknowns_num[r_attr.attr] += 1
-                    all_attrs = list(safes_num)
-                    for a in unsafes_num:
-                        if a not in all_attrs:
-                            all_attrs.append(a)
-                    for a in unknowns_num:
-                        if a not in all_attrs:
-                            all_attrs.append(a)
-                    for a in all_attrs:
-                        attrs_data.append(
-                            AttrStatistic(
-                                report=report, attr=a, name=AttrName.objects.get_or_create(name=a_name)[0],
-                                safes=safes_num.get(a, 0), unsafes=unsafes_num.get(a, 0),
-                                unknowns=unknowns_num.get(a, 0)
-                            )
-                        )
+                    for s_id in safes:
+                        if r_id not in safes[s_id]:
+                            continue
+                        a_id = report_attrs.get(('s', s_id, n_id), None)
+                        if a_id not in safes_num:
+                            safes_num[a_id] = 0
+                        safes_num[a_id] += 1
+                    for u_id in unsafes:
+                        if r_id not in unsafes[u_id]:
+                            continue
+                        a_id = report_attrs.get(('u', u_id, n_id), None)
+                        if a_id not in unsafes_num:
+                            unsafes_num[a_id] = 0
+                        unsafes_num[a_id] += 1
+                    for f_id in unknowns:
+                        if r_id not in unknowns[f_id]:
+                            continue
+                        a_id = report_attrs.get(('f', f_id, n_id), None)
+                        if a_id not in unknowns_num:
+                            unknowns_num[a_id] = 0
+                        unknowns_num[a_id] += 1
+                    for a_id in set(safes_num) | set(unsafes_num) | set(unknowns_num):
+                        attrs_data.append(AttrStatistic(
+                            report_id=r_id, attr_id=a_id, name_id=n_id,
+                            safes=safes_num.get(a_id, 0),
+                            unsafes=unsafes_num.get(a_id, 0),
+                            unknowns=unknowns_num.get(a_id, 0)
+                        ))
         AttrStatistic.objects.bulk_create(attrs_data)
 
 
@@ -350,7 +356,7 @@ class ResourceData(object):
 
     def add(self, report):
         if not isinstance(report, ReportComponent):
-            raise ValueError('Value must be class of ReportComponent')
+            raise ValueError('Value must be ReportComponent object')
         self._data[report.pk] = {'id': report.pk, 'parent': report.parent_id}
         self.__update_resources({
             'id': report.pk,
@@ -383,7 +389,7 @@ class LeavesData(object):
 
     def add(self, report):
         if isinstance(report, ReportComponent):
-            self._data[report.pk] = {
+            self._data[report.id] = {
                 'parent': report.parent_id,
                 'unsafes': [],
                 'safes': [],
@@ -394,11 +400,11 @@ class LeavesData(object):
             while parent_id is not None:
                 if parent_id in self._data:
                     if isinstance(report, ReportSafe):
-                        self._data[parent_id]['safes'].append(report.pk)
+                        self._data[parent_id]['safes'].append(report.id)
                     elif isinstance(report, ReportUnsafe):
-                        self._data[parent_id]['unsafes'].append(report.pk)
+                        self._data[parent_id]['unsafes'].append(report.id)
                     elif isinstance(report, ReportUnknown):
-                        self._data[parent_id]['unknowns'].append(report.pk)
+                        self._data[parent_id]['unknowns'].append(report.id)
                 parent_id = self._data[parent_id]['parent']
 
     def upload(self):

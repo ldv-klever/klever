@@ -18,7 +18,7 @@
 import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
@@ -78,9 +78,9 @@ SAFE_COLOR = {
 }
 
 CHANGE_DATA = {
-    '=': [_("Changed"), '#FF8533'],
-    '+': [_("New"), '#00B800'],
-    '-': [_("Deleted"), '#D11919']
+    '=': (_("Changed"), '#FF8533'),
+    '+': (_("New"), '#00B800'),
+    '-': (_("Deleted"), '#D11919')
 }
 
 
@@ -94,8 +94,7 @@ def result_color(result):
     return None
 
 
-class MarkChangesTable(object):
-
+class MarkChangesTable:
     def __init__(self, user, mark, changes):
         self.columns = ['report', 'change_kind', 'sum_verdict', 'job', 'format']
         if isinstance(mark, MarkUnknown):
@@ -142,12 +141,12 @@ class MarkChangesTable(object):
         data = {}
         columns = []
         for report in self.changes:
-            for rep_attr in report.attrs.order_by('id'):
-                if rep_attr.attr.name.name not in columns:
-                    columns.append(rep_attr.attr.name.name)
-                if rep_attr.attr.name.name not in data:
-                    data[rep_attr.attr.name.name] = {}
-                data[rep_attr.attr.name.name][report] = rep_attr.attr.value
+            for ra in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+                if ra[0] not in columns:
+                    columns.append(ra[0])
+                if ra[0] not in data:
+                    data[ra[0]] = {}
+                data[ra[0]][report] = ra[1]
         values = {}
         for report in self.changes:
             values[report] = {}
@@ -162,7 +161,7 @@ class MarkChangesTable(object):
     def __get_unsafe_values(self):
 
         def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in ['verdict1', 'verdict2']):
+            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
                 tmp_unsafe = ReportUnsafe()
                 tmp_unsafe.verdict = self.changes[rep]['verdict1']
                 val1 = tmp_unsafe.get_verdict_display()
@@ -201,10 +200,10 @@ class MarkChangesTable(object):
                 elif col == 'author':
                     if self.mark.author is not None:
                         val = self.mark.author.last_name + ' ' + self.mark.author.first_name
-                        href = reverse('users:show_profile', args=[self.mark.author.pk])
+                        href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job.pk])
+                    href = reverse('jobs:job', args=[report.root.job_id])
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
@@ -218,7 +217,7 @@ class MarkChangesTable(object):
     def __get_safe_values(self):
 
         def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in ['verdict1', 'verdict2']):
+            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
                 tmp_safe = ReportSafe()
                 tmp_safe.verdict = self.changes[rep]['verdict1']
                 val1 = tmp_safe.get_verdict_display()
@@ -257,10 +256,10 @@ class MarkChangesTable(object):
                 elif col == 'author':
                     if self.mark.author is not None:
                         val = self.mark.author.last_name + ' ' + self.mark.author.first_name
-                        href = reverse('users:show_profile', args=[self.mark.author.pk])
+                        href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job.pk])
+                    href = reverse('jobs:job', args=[report.root.job_id])
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
@@ -311,10 +310,10 @@ class MarkChangesTable(object):
                 elif col == 'author':
                     if self.mark.author is not None:
                         val = self.mark.author.last_name + ' ' + self.mark.author.first_name
-                        href = reverse('users:show_profile', args=[self.mark.author.pk])
+                        href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job.pk])
+                    href = reverse('jobs:job', args=[report.root.job_id])
                 elif col == 'format':
                     val = report.root.job.format
                 values_str.append({
@@ -327,7 +326,7 @@ class MarkChangesTable(object):
 
 
 # Table data for showing links between the specified report and marks
-class ReportMarkTable(object):
+class ReportMarkTable:
     def __init__(self, user, report):
         self.report = report
         self.user = user
@@ -348,7 +347,7 @@ class ReportMarkTable(object):
     def __get_values(self):
         value_data = []
         cnt = 0
-        for mark_rep in self.report.markreport_set.all():
+        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author'):
             cnt += 1
             values_row = []
             for col in self.columns:
@@ -358,7 +357,7 @@ class ReportMarkTable(object):
                 comment = None
                 if col == 'number':
                     value = cnt
-                    href = reverse('marks:view_mark', args=[self.type, mark_rep.mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark_rep.mark_id])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -380,7 +379,7 @@ class ReportMarkTable(object):
                 elif col == 'author':
                     if mark_rep.mark.author is not None:
                         value = mark_rep.mark.author.last_name + ' ' + mark_rep.mark.author.first_name
-                        href = reverse('users:show_profile', args=[mark_rep.mark.author.pk])
+                        href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
                 elif col == 'problem':
                     value = mark_rep.problem.name
                     if mark_rep.mark.link is not None:
@@ -398,12 +397,11 @@ class ReportMarkTable(object):
         return value_data
 
 
-class MarksList(object):
-
+class MarksList:
     def __init__(self, user, marks_type, view=None, view_id=None):
         self.user = user
         self.type = marks_type
-        if self.type not in ['unsafe', 'safe', 'unknown']:
+        if self.type not in {'unsafe', 'safe', 'unknown'}:
             return
         self.authors = []
         self.view, self.view_id = self.__get_view(view, view_id)
@@ -491,26 +489,38 @@ class MarksList(object):
         return MarkUnknown.objects.filter(table_filters)
 
     def __get_attrs(self):
+        if self.type == 'safe':
+            vers_model = MarkSafeHistory
+            attr_model = MarkSafeAttr
+        else:
+            vers_model = MarkUnsafeHistory
+            attr_model = MarkUnsafeAttr
+        last_versions = vers_model.objects.filter(version=F('mark__version'), mark__in=self.marks)
+
         data = {}
+        attr_order = {}
+        for ma in attr_model.objects.filter(mark__in=last_versions).order_by('id')\
+                .values_list('mark__mark_id', 'attr__name__name', 'attr__value'):
+            if ma[0] not in data:
+                data[ma[0]] = {}
+                attr_order[ma[0]] = []
+            data[ma[0]][ma[1]] = ma[2]
+            attr_order[ma[0]].append(ma[1])
+
         columns = []
         for mark in self.marks:
-            try:
-                for attr in mark.versions.get(version=mark.version).attrs.order_by('id'):
-                    if attr.is_compare:
-                        if attr.attr.name.name not in columns:
-                            columns.append(attr.attr.name.name)
-                        if attr.attr.name.name not in data:
-                            data[attr.attr.name.name] = {}
-                        data[attr.attr.name.name][mark] = attr.attr.value
-            except ObjectDoesNotExist:
-                pass
+            if mark.id in attr_order:
+                for a_name in attr_order[mark.id]:
+                    if a_name not in columns:
+                        columns.append(a_name)
+
         values = {}
         for mark in self.marks:
             values[mark] = {}
             for col in columns:
                 cell_val = '-'
-                if mark in data[col]:
-                    cell_val = data[col][mark]
+                if mark.id in data and col in data[mark.id]:
+                    cell_val = data[mark.id][col]
                 values[mark][col] = cell_val
         self.columns.extend(columns)
         return values
@@ -536,9 +546,9 @@ class MarksList(object):
                         break
                 elif col == 'mark_num':
                     val = cnt
-                    href = reverse('marks:view_mark', args=[self.type, mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark.id])
                 elif col == 'num_of_links':
-                    val = len(mark.markreport_set.all())
+                    val = mark.markreport_set.count()
                     if 'order' in self.view and self.view['order'] == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
@@ -559,7 +569,7 @@ class MarksList(object):
                 elif col == 'author':
                     if mark.author is not None:
                         val = mark.author.last_name + ' ' + mark.author.first_name
-                        href = reverse('users:show_profile', args=[mark.author.pk])
+                        href = reverse('users:show_profile', args=[mark.author_id])
                 elif col == 'format':
                     val = mark.format
                 elif col == 'component':
@@ -569,11 +579,11 @@ class MarksList(object):
                 elif col == 'type':
                     val = mark.get_type_display()
                 elif col == 'tags':
-                    last_version = mark.versions.order_by('-version').first()
-                    if last_version is None:
+                    last_v = mark.versions.get(version=mark.version)
+                    if last_v is None:
                         val = '-'
                     else:
-                        val = '; '.join(tag.tag.tag for tag in last_version.tags.order_by('tag__tag'))
+                        val = '; '.join(tag['tag__tag'] for tag in last_v.tags.order_by('tag__tag').values('tag__tag'))
                         if val == '':
                             val = '-'
                 if col == 'checkbox':
@@ -623,15 +633,16 @@ class MarkData(object):
     def __get_attributes(self, report):
         values = []
         if isinstance(self.mark_version, (MarkUnsafeHistory, MarkSafeHistory)):
-            for attr in self.mark_version.attrs.order_by('id'):
-                values.append((attr.attr.name.name, attr.attr.value, attr.is_compare))
+            values = list(
+                self.mark_version.attrs.order_by('id').values_list('attr__name__name', 'attr__value', 'is_compare')
+            )
         elif isinstance(report, (ReportUnsafe, ReportSafe)):
-            for rep_attr in report.attrs.order_by('id'):
+            for ra in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
                 is_compare = False
-                if report.root.job.type in MARKS_COMPARE_ATTRS \
-                        and rep_attr.attr.name.name in MARKS_COMPARE_ATTRS[report.root.job.type]:
+                if report.root.job.type in MARKS_COMPARE_ATTRS and ra[0] in MARKS_COMPARE_ATTRS[report.root.job.type]:
                     is_compare = True
-                values.append((rep_attr.attr.name.name, rep_attr.attr.value, is_compare))
+                ra += (is_compare,)
+                values.append(ra)
         else:
             return None
         return values
@@ -694,7 +705,7 @@ class MarkData(object):
         if func_type == 'compare':
             selected_description = None
 
-            for f in MarkUnsafeCompare.objects.all().order_by('name'):
+            for f in MarkUnsafeCompare.objects.order_by('name'):
                 func_data = {
                     'name': f.name,
                     'selected': False,
@@ -714,7 +725,7 @@ class MarkData(object):
 
             selected_description = None
 
-            for f in MarkUnsafeConvert.objects.all().order_by('name'):
+            for f in MarkUnsafeConvert.objects.order_by('name'):
                 func_data = {
                     'name': f.name,
                     'selected': False,
@@ -752,7 +763,7 @@ class MarkReportsTable(object):
         values = []
         cnt = 0
         if self.type == 'unsafe':
-            for mark_report in self.mark.markreport_set.all():
+            for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job'):
                 report = mark_report.report
                 cnt += 1
                 values_str = []
@@ -764,7 +775,7 @@ class MarkReportsTable(object):
                     if col == 'report':
                         val = cnt
                         if JobAccess(self.user, report.root.job).can_view():
-                            href = reverse('reports:leaf', args=[self.type, report.pk])
+                            href = reverse('reports:leaf', args=[self.type, report.id])
                     elif col == 'result':
                         if mark_report.broken:
                             val = _("Comparison failed")
@@ -777,7 +788,7 @@ class MarkReportsTable(object):
                     elif col == 'job':
                         val = report.root.job.name
                         if JobAccess(self.user, report.root.job).can_view():
-                            href = reverse('jobs:job', args=[report.root.job.pk])
+                            href = reverse('jobs:job', args=[report.root.job_id])
                     elif col == 'is_prime':
                         if self.mark.prime == mark_report.report:
                             val = _('No')
@@ -791,7 +802,8 @@ class MarkReportsTable(object):
                 'parent': None,
                 'leaves__%s__markreport_set__mark' % self.type: self.mark
             }
-            for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name'):
+            for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name')\
+                    .select_related('root', 'root__job'):
                 len_filter = {self.type + '__markreport_set__mark': self.mark}
                 mark_leaves = report.leaves.filter(**len_filter)
 
@@ -805,10 +817,8 @@ class MarkReportsTable(object):
                     {'value': report.root.job.name, 'href': reverse('jobs:job', args=[report.root.job_id])},
                     {
                         'value': len(mark_leaves),
-                        'href': reverse('reports:list_mark', args=[report.pk, self.type + 's', self.mark.pk])
+                        'href': reverse('reports:list_mark', args=[report.id, self.type + 's', self.mark.id])
                     },
-                    {
-                        'value': has_primary, 'color': color
-                    }
+                    {'value': has_primary, 'color': color}
                 ])
         return values

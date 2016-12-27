@@ -352,7 +352,7 @@ class UploadJob(object):
                 else:
                     b_dir = os.path.basename(dir_path)
                     if b_dir in list(x.__name__ for x in [ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent]):
-                        m = re.match('(\d+)\.tar\.gz', file_name)
+                        m = re.match('(\d+)\.zip', file_name)
                         if m is not None:
                             report_files[(b_dir, int(m.group(1)))] = os.path.join(dir_path, file_name)
                     else:

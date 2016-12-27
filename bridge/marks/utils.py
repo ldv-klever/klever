@@ -379,9 +379,7 @@ class NewMark:
             create_args = {'mark_id': self.mark_version.id, 'attr_id': a['attr_id']}
             for u_at in attrs:
                 if u_at['attr'] == a['attr__name__name']:
-                    if u_at['is_compare'] != create_args['is_compare']:
-                        create_args['is_compare'] = u_at['is_compare']
-                        self.do_recalk = True
+                    create_args['is_compare'] = u_at['is_compare']
                     break
             else:
                 raise ValueError('Attribute %s was not found in the new mark data' % a['attr__name__name'])
@@ -438,7 +436,6 @@ class ConnectReportWithMarks:
 
     def __connect_unknown(self):
         self.report.markreport_set.all().delete()
-        changes = {self.report: {}}
 
         try:
             problem_desc = ArchiveFileContent(self.report, self.report.problem_description).content.decode('utf8')
@@ -458,12 +455,10 @@ class ConnectReportWithMarks:
             new_markreports.append(MarkUnknownReport(
                 mark=mark, report=self.report, problem=UnknownProblem.objects.get_or_create(name=problem)[0]
             ))
-            if self.report not in changes:
-                changes[self.report]['kind'] = '+'
         if len(new_markreports) > 0:
             MarkUnknownReport.objects.bulk_create(new_markreports)
         if self.update_cache:
-            update_unknowns_cache(list(changes))
+            update_unknowns_cache([self.report])
 
 
 class ConnectMarkWithReports:
@@ -649,7 +644,7 @@ class UpdateVerdict:
                 '4': 'safe_unassociated'
             }
             leaves_filter = {'safe': report}
-        elif isinstance(report, ReportSafe):
+        elif isinstance(report, ReportUnsafe):
             verdict_attrs = {
                 '0': 'unsafe_unknown',
                 '1': 'unsafe_bug',
@@ -660,6 +655,7 @@ class UpdateVerdict:
             }
             leaves_filter = {'unsafe': report}
         else:
+            print(type(report))
             return
         reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(**leaves_filter))
         Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[report.verdict]: 0})\
@@ -987,11 +983,18 @@ def update_unknowns_cache(unknowns):
             components_data[leaf['unknown__component_id']] = set()
         components_data[leaf['unknown__component_id']].add(leaf['unknown_id'])
 
+    unknowns_ids = set()
+    for rc_id in all_unknowns:
+        unknowns_ids = unknowns_ids | all_unknowns[rc_id]
+    marked_unknowns = set()
     problems_data = {}
-    for mr in MarkUnknownReport.objects.filter(report_id__in=all_unknowns):
+    for mr in MarkUnknownReport.objects.filter(report_id__in=unknowns_ids):
         if mr.problem_id not in problems_data:
             problems_data[mr.problem_id] = set()
         problems_data[mr.problem_id].add(mr.report_id)
+        marked_unknowns.add(mr.report_id)
+
+    problems_data[None] = unknowns_ids - marked_unknowns
 
     new_cache = []
     for r_id in all_unknowns:
@@ -999,6 +1002,8 @@ def update_unknowns_cache(unknowns):
             for c_id in components_data:
                 number = len(all_unknowns[r_id] & problems_data[p_id] & components_data[c_id])
                 if number > 0:
-                    new_cache.append(ComponentMarkUnknownProblem(report_id=r_id, component_id=c_id, problem_id=p_id))
+                    new_cache.append(ComponentMarkUnknownProblem(
+                        report_id=r_id, component_id=c_id, problem_id=p_id, number=number
+                    ))
     ComponentMarkUnknownProblem.objects.filter(report_id__in=reports).delete()
     ComponentMarkUnknownProblem.objects.bulk_create(new_cache)
