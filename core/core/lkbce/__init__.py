@@ -127,7 +127,15 @@ class LKBCE(core.components.Component):
         # First of all collect all targets to be built.
         # Always prepare for building modules since it brings all necessary headers that can be included from ones
         # required for model headers that should be copied before any real module will be built.
-        build_targets = [('modules_prepare',)]
+        if 'conf file' not in self.linux_kernel:
+            config_modules = self.is_config_modules(os.path.join(self.linux_kernel['work src tree'], '.config'))
+        else:
+            config_modules = self.is_config_modules(self.linux_kernel['conf file'])
+
+        if config_modules:
+            build_targets = [('modules_prepare',)]
+        else:
+            build_targets = [('scripts/mod/empty.ko',)]
 
         if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
             build_targets.append(('all',))
@@ -162,7 +170,7 @@ class LKBCE(core.components.Component):
             # Specially process building of all modules.
             if 'all' in self.linux_kernel['modules']:
                 build_targets.append(('M=ext-modules', 'modules')
-                                     if 'external modules' in self.conf['Linux kernel'] else ('modules',))
+                                     if 'external modules' in self.conf['Linux kernel'] else ('all',))
                 self.linux_kernel['modules'] = [module for module in self.linux_kernel['modules'] if module != 'all']
             # Check that module sets aren't intersect explicitly.
             for i, modules1 in enumerate(self.linux_kernel['modules']):
@@ -199,7 +207,7 @@ class LKBCE(core.components.Component):
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
 
         for build_target in build_targets:
-            if build_target[0] == 'modules_prepare':
+            if build_target[0] == 'modules_prepare' or build_target[0] == 'scripts/mod/empty.ko':
                 # Clean up Linux kernel working source tree and prepare to build external modules just once - this
                 # considerably speeds up testing where many small external modules are built one by one.
                 if not self.linux_kernel['prepared to build ext modules']:
@@ -227,6 +235,13 @@ class LKBCE(core.components.Component):
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='utf8') as fp:
             fp.write('\n')
+
+    def is_config_modules(self, config_file):
+        with open(config_file, 'r', encoding='utf8') as fp:
+            for line in fp:
+                if line == 'CONFIG_MODULES=y\n':
+                    return True
+        return False
 
     def extract_all_linux_kernel_mod_deps_function(self):
         self.logger.info('Extract all Linux kernel module dependencies')

@@ -350,7 +350,7 @@ class LKVOG(core.components.Component):
             desc = json.load(fp)
 
         # Skip specific files
-        if re.match(r'.*/built-in\.o', desc['out file']) or desc['out file'] == 'vmlinux':
+        if re.match(r'.*/built-in\.o', desc['out file']) or desc['out file'] == 'vmlinux.o':
             return
 
         if desc['type'] == 'LD' and desc['out file'].endswith('.ko'):

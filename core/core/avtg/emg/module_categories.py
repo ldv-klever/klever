@@ -519,7 +519,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in self.kernel_functions:
             obj = self.get_kernel_function(function)
-            if len(obj.functions_called_at) == 0:
+            if len(obj.functions_called_at) == 0 or function in modules_functions:
                 self._remove_kernel_function(function)
 
         self._modules_functions = modules_functions
