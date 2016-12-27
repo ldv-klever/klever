@@ -278,6 +278,7 @@ class MarkUnknown(Mark):
 
     class Meta:
         db_table = 'mark_unknown'
+        index_together = ['component', 'problem_pattern']
 
 
 class MarkUnknownHistory(MarkHistory):

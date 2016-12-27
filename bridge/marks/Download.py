@@ -27,7 +27,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.utils import file_get_or_create, logger
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
-from marks.utils import NewMark, UpdateTags, ConnectMarkWithReports, DeleteMark
+from marks.utils import NewMark, RecalculateTags, ConnectMarkWithReports, DeleteMark
 from marks.ConvertTrace import ET_FILE_NAME
 from marks.models import *
 
@@ -376,7 +376,8 @@ class ReadMarkArchive:
                 mark.delete()
                 return upd_mark.error
 
-        UpdateTags(mark, changes=ConnectMarkWithReports(mark).changes)
+        for report in ConnectMarkWithReports(mark).changes:
+            RecalculateTags(report)
         self.mark = mark
         return None
 

@@ -96,7 +96,7 @@ Return list of forests.
         return ErrorTraceForests(self.error_trace).trace
 
 
-class GetConvertedErrorTrace(object):
+class GetConvertedErrorTrace:
     def __init__(self, function, unsafe):
         self.error = None
         self.unsafe = unsafe
