@@ -29,6 +29,37 @@ import signal
 import schedulers as schedulers
 
 
+def executor(timeout, args):
+    """
+    Function just executes native scheduler client and waits until its termination.
+
+    :param timeout: Check that tool will exit definetly within this period of time.
+    :param args: Native scheduler client execution command arguments.
+    :return: It exits with the exit code returne by a client.
+    """
+    # Kill handler
+    def handler(arg1, arg2):
+        logging.debug('Somebody wants to kill me!')
+        os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
+
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, handler)
+
+    logging.debug('Start command {!r}'.format(' '.join(args)))
+    prc = subprocess.Popen(args, preexec_fn=os.setsid)
+    logging.debug('Waiting for termination of {!r}'.format(' '.join(args)))
+    try:
+        prc.wait(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        logging.debug('Expired timeout {!r} fr command: {!r}'.format(timeout, ' '.join(args)))
+        os._exit(-1)
+
+    logging.debug('Finished command: {!r}'.format(' '.join(args)))
+
+    # Be sure that process will exit
+    os._exit(prc.returncode)
+
+
 class Scheduler(schedulers.SchedulerExchange):
     """
     Implement scheduler which is used to run tasks and jobs on the system locally.
@@ -334,20 +365,6 @@ class Scheduler(schedulers.SchedulerExchange):
         :param mode: 'task' or 'job'.
         :return: None
         """
-        def thread(args):
-            def handler(arg1, arg2):
-                logging.debug('Somebody wants to kill me!')
-                os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
-
-            signal.signal(signal.SIGTERM, handler)
-            signal.signal(signal.SIGINT, handler)
-
-            logging.debug('Start command {!r}'.format(' '.join(args)))
-            prc = subprocess.Popen(args, preexec_fn=os.setsid)
-            logging.debug('Waiting for termination of {!r}'.format(' '.join(args)))
-            prc.wait()
-            logging.debug('Finished command: {!r}'.format(' '.join(args)))
-
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         self.__check_resource_limits(configuration)
         if mode == 'task':
@@ -358,6 +375,7 @@ class Scheduler(schedulers.SchedulerExchange):
             subdir = 'jobs'
             args = [self.__client_bin, "JOB"]
             client_conf = self.__job_conf_prototype.copy()
+
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
         client_conf["identifier"] = identifier
@@ -365,7 +383,13 @@ class Scheduler(schedulers.SchedulerExchange):
         file_name = os.path.join(work_dir, 'client.json')
         args.extend(['--file', file_name])
         self.__reserved[subdir][identifier] = dict()
-        process = multiprocessing.Process(None, thread, identifier, [args])
+
+        if configuration["resource limits"]["CPU time"]:
+            # This is emergency timer if something will hang
+            timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
+        else:
+            timeout = None
+        process = multiprocessing.Process(None, executor, identifier, [timeout, args])
 
         if mode == 'task':
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -507,17 +531,17 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: None
         """
         logging.debug("Future task {!r}: Going to start a new process which will start native scheduler client".
-                          format(identifier))
+                      format(identifier))
         process.start()
         logging.debug("Future task {!r}: get pid of the started process.".format(identifier))
         if process.pid:
             logging.debug("Future task {!r}: the pid is {!r}.".format(identifier, process.pid))
             process.join()
             logging.debug("Future task {!r}: process {!r} joined, going to check its exit code".
-                              format(identifier, process.pid))
+                          format(identifier, process.pid))
             ec = process.exitcode
             logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
-                              format(identifier, process.pid, str(-ec)))
+                          format(identifier, process.pid, str(-ec)))
             if ec is not None:
                 if ec == 0:
                     return 0
