@@ -17,9 +17,10 @@
 
 import os
 import mimetypes
+from wsgiref.util import FileWrapper
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
@@ -28,7 +29,6 @@ from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
 
 
-# Case 3.1(3)
 @unparallel_group(['service', 'task'])
 def schedule_task(request):
     if not request.user.is_authenticated():
@@ -46,13 +46,14 @@ def schedule_task(request):
         archive = f
     if archive is None:
         return JsonResponse({'error': 'The task archive was not got'})
-    result = ScheduleTask(request.session['job id'], request.POST['description'], archive)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'task id': result.task_id})
+    try:
+        res = ScheduleTask(request.session['job id'], request.POST['description'], archive)
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'task id': res.task_id})
 
 
-# Case 3.1(4)
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -62,13 +63,13 @@ def get_task_status(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    result = GetTaskStatus(request.POST['task id'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'task status': result.status})
+    try:
+        res = GetTaskStatus(request.POST['task id'])
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'task status': res.status})
 
 
-# Case 3.1(5)
 @unparallel_group(['solution'])
 def download_solution(request):
     if not request.user.is_authenticated():
@@ -80,19 +81,20 @@ def download_solution(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
 
-    result = GetSolution(request.POST['task id'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    if result.task.status == TASK_STATUS[3][0]:
-        return JsonResponse({'task error': result.task.error})
-    mimetype = mimetypes.guess_type(os.path.basename(result.solution.archname))[0]
-    with result.solution.archive as fp:
-        response = HttpResponse(fp.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.solution.archname)
+    try:
+        res = GetSolution(request.POST['task id'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
+    if res.task.status == TASK_STATUS[3][0]:
+        return JsonResponse({'task error': res.task.error})
+    mimetype = mimetypes.guess_type(os.path.basename(res.solution.archname))[0]
+    response = StreamingHttpResponse(FileWrapper(res.solution.archive, 8192), content_type=mimetype)
+    response['Content-Length'] = len(res.solution.archive)
+    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.solution.archname)
     return response
 
 
-# Case 3.1(6)
 @unparallel_group(['service'])
 def remove_task(request):
     if not request.user.is_authenticated():
@@ -104,13 +106,14 @@ def remove_task(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
 
-    result = RemoveTask(request.POST['task id'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        RemoveTask(request.POST['task id'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
-# Case 3.1(7)
 @unparallel_group(['service'])
 def cancel_task(request):
     if not request.user.is_authenticated():
@@ -121,13 +124,13 @@ def cancel_task(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-    result = CancelTask(request.POST['task id'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        CancelTask(request.POST['task id'])
+    except Exception as e:
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
-# Case 3.2(2)
 @unparallel_group(['service', 'job'])
 def get_jobs_and_tasks(request):
     if not request.user.is_authenticated():
@@ -140,13 +143,15 @@ def get_jobs_and_tasks(request):
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'jobs and tasks status' not in request.POST:
         return JsonResponse({'error': 'Tasks data is required'})
-    result = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
-    return JsonResponse({'jobs and tasks status': result.data})
+    try:
+        jobs_and_tasks = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status']).newtasks
+    except Exception as e:
+        # TODO: email notification
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
+    return JsonResponse({'jobs and tasks status': jobs_and_tasks})
 
 
-# Case 3.2(3)
 @unparallel_group(['service'])
 def download_task(request):
     if not request.user.is_authenticated():
@@ -158,18 +163,19 @@ def download_task(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
 
-    result = GetTaskData(request.POST['task id'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        res = GetTaskData(request.POST['task id'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
 
-    mimetype = mimetypes.guess_type(os.path.basename(result.task.archname))[0]
-    with result.task.archive as fp:
+    mimetype = mimetypes.guess_type(os.path.basename(res.task.archname))[0]
+    with res.task.archive as fp:
         response = HttpResponse(fp.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(result.task.archname)
+    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(res.task.archname)
     return response
 
 
-# Case 3.2(4)
 @unparallel_group(['task', 'solution'])
 def upload_solution(request):
     if not request.user.is_authenticated():
@@ -188,13 +194,14 @@ def upload_solution(request):
         archive = f
     if archive is None:
         return JsonResponse({'error': 'The solution archive was not got'})
-    result = SaveSolution(request.POST['task id'], archive, request.POST['description'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        SaveSolution(request.POST['task id'], archive, request.POST['description'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
-# Case 3.2(5)
 @unparallel
 def update_nodes(request):
     if not request.user.is_authenticated():
@@ -206,13 +213,14 @@ def update_nodes(request):
     if 'nodes data' not in request.POST:
         return JsonResponse({'error': 'Nodes data is not specified'})
 
-    result = SetNodes(request.POST['nodes data'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        SetNodes(request.POST['nodes data'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
-# Case 3.2(6)
 @unparallel
 def update_tools(request):
     if not request.user.is_authenticated():
@@ -225,13 +233,14 @@ def update_tools(request):
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'tools data' not in request.POST:
         return JsonResponse({'error': 'Tools data is not specified'})
-    result = UpdateTools(request.session['scheduler'], request.POST['tools data'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        UpdateTools(request.session['scheduler'], request.POST['tools data'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 
-# Case 3.3(2)
 @unparallel_group(['service'])
 def set_schedulers_status(request):
     if not request.user.is_authenticated():
@@ -242,9 +251,11 @@ def set_schedulers_status(request):
         return JsonResponse({'error': 'Only POST requests are supported'})
     if 'statuses' not in request.POST:
         return JsonResponse({'error': 'Statuses were not got'})
-    result = SetSchedulersStatus(request.POST['statuses'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        SetSchedulersStatus(request.POST['statuses'])
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(e)})
     return JsonResponse({})
 
 

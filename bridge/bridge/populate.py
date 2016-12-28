@@ -23,13 +23,13 @@ from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
-from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job, JobFile
+from reports.models import TaskStatistic
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert
@@ -65,6 +65,7 @@ class Population(object):
             self.__add_service_user(service)
 
     def __population(self):
+        TaskStatistic.objects.get_or_create()
         if self.user is not None:
             try:
                 Extended.objects.get(user=self.user)

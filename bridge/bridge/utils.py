@@ -203,3 +203,84 @@ class ArchiveFileContent(object):
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 return zfp.read(self._name)
+
+
+class RemoveFilesBeforeDelete:
+    def __init__(self, obj):
+        model_name = getattr(obj, '_meta').object_name
+        if model_name == 'SolvingProgress':
+            self.__remove_progress_files(obj)
+        elif model_name == 'ReportRoot':
+            self.__remove_reports_files(obj)
+        elif model_name == 'Job':
+            self.__remove_job_files(obj)
+        elif model_name == 'ReportComponent':
+            self.__remove_component_files(obj)
+
+    def __remove_progress_files(self, progress):
+        from service.models import Solution, Task
+        for files in Solution.objects.filter(progress=progress).values_list('archive'):
+            self.__remove(files)
+        for files in Task.objects.filter(progress=progress).values_list('archive'):
+            self.__remove(files)
+
+    def __remove_reports_files(self, root):
+        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+        for files in ReportSafe.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnsafe.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnknown.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportComponent.objects.filter(root=root).values_list('archive', 'data'):
+            self.__remove(files)
+
+    def __remove_job_files(self, job):
+        from service.models import SolvingProgress
+        from reports.models import ReportRoot
+        try:
+            self.__remove_reports_files(ReportRoot.objects.get(job=job))
+        except ObjectDoesNotExist:
+            pass
+        try:
+            self.__remove_progress_files(SolvingProgress.objects.get(job=job))
+        except ObjectDoesNotExist:
+            pass
+
+    def __remove_component_files(self, report):
+        from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown
+        reports = set()
+        parents = {report.parent_id}
+        while len(parents) > 0:
+            reports |= parents
+            parents = set(rc['id'] for rc in ReportComponent.objects.filter(parent_id__in=parents).values('id'))
+        for files in ReportUnsafe.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportSafe.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnknown.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportComponent.objects.filter(id__in=reports).values_list('archive', 'data'):
+            self.__remove(files)
+
+    def __remove_task_files(self, task):
+        self.__is_not_used()
+        from service.models import Solution
+        try:
+            Solution.objects.get(task=task).delete()
+        except ObjectDoesNotExist:
+            pass
+
+    def __remove(self, files):
+        self.__is_not_used()
+        for f in files:
+            if f:
+                path = os.path.join(MEDIA_ROOT, f)
+                if os.path.exists(path):
+                    try:
+                        os.remove(path)
+                    except Exception as e:
+                        logger.exception(e)
+
+    def __is_not_used(self):
+        pass

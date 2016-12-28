@@ -20,6 +20,7 @@ from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
+from bridge.utils import RemoveFilesBeforeDelete
 from jobs.models import Job
 
 FILE_DIR = 'Service'
@@ -111,6 +112,11 @@ class SolvingProgress(models.Model):
         db_table = 'solving_progress'
 
 
+@receiver(pre_delete, sender=SolvingProgress)
+def progress_delete_signal(**kwargs):
+    RemoveFilesBeforeDelete(kwargs['instance'])
+
+
 @receiver(post_init, sender=SolvingProgress)
 def get_progress_configuration(**kwargs):
     progress = kwargs['instance']
@@ -123,7 +129,7 @@ class Task(models.Model):
     status = models.CharField(max_length=10, choices=TASK_STATUS, default='PENDING')
     error = models.CharField(max_length=1024, null=True)
     description = models.BinaryField()
-    archname = models.CharField(max_length=256)  # Original name of the archive
+    archname = models.CharField(max_length=256)
     archive = models.FileField(upload_to=FILE_DIR, null=False)
 
     class Meta:
@@ -142,12 +148,13 @@ def task_delete_signal(**kwargs):
     task = kwargs['instance']
     storage, path = task.archive.storage, task.archive.path
     storage.delete(path)
+    RemoveFilesBeforeDelete(task)
 
 
 class Solution(models.Model):
     task = models.OneToOneField(Task)
     description = models.BinaryField()
-    archname = models.CharField(max_length=256)  # Original name of the archive
+    archname = models.CharField(max_length=256)
     archive = models.FileField(upload_to=FILE_DIR, null=False)
 
     class Meta:
@@ -162,9 +169,9 @@ def get_solution_description(**kwargs):
 
 
 @receiver(pre_delete, sender=Solution)
-def solution_delete(**kwargs):
-    file = kwargs['instance']
-    storage, path = file.archive.storage, file.archive.path
+def solution_delete_signal(**kwargs):
+    solution = kwargs['instance']
+    storage, path = solution.archive.storage, solution.archive.path
     try:
         storage.delete(path)
     except PermissionError:

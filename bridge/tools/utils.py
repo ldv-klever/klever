@@ -17,10 +17,9 @@
 
 import json
 from django.db.models import ProtectedError
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.utils import logger, has_references
 from bridge.vars import ATTR_STATISTIC
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
@@ -29,45 +28,50 @@ from reports.models import *
 from marks.models import *
 
 
-def clear_files(files_type):
-    if files_type == 'job':
-        table = JobFile
-        files_dir = JOBFILE_DIR
-    elif files_type == 'converted':
-        table = ConvertedTraces
-        files_dir = CONVERTED_DIR
-    else:
-        return
-    files_in_the_system = set()
-    files_to_delete = set()
-    for f in table.objects.all():
-        if has_references(f):
+class ClearFiles:
+    def __init__(self):
+        self.__clear_files_with_ref(JobFile, JOBFILE_DIR)
+        self.__clear_files_with_ref(ConvertedTraces, CONVERTED_DIR)
+        self.__clear_service_files()
+
+    def __clear_files_with_ref(self, table, files_dir):
+        self.__is_not_used()
+        filters = dict(
+            (rel.get_accessor_name(), None)
+            for rel in [f for f in getattr(table, '_meta').get_fields()
+                        if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete])
+        table.objects.filter(**filters).delete()
+
+        files_in_the_system = set()
+        files_to_delete = set()
+        for f in table.objects.all():
             file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
             files_in_the_system.add(file_path)
             if not (os.path.exists(file_path) and os.path.isfile(file_path)):
                 logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
                 files_to_delete.add(f.pk)
-        else:
-            files_to_delete.add(f.pk)
-    table.objects.filter(id__in=files_to_delete).delete()
-    files_directory = os.path.join(MEDIA_ROOT, files_dir)
-    if os.path.exists(files_directory):
-        for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
-            if f not in files_in_the_system:
+        table.objects.filter(id__in=files_to_delete).delete()
+        files_directory = os.path.join(MEDIA_ROOT, files_dir)
+        if os.path.exists(files_directory):
+            files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
+            for f in files_on_disk - files_in_the_system:
                 os.remove(f)
 
-
-def clear_service_files():
-    files_in_the_system = []
-    for s in Solution.objects.all():
-        files_in_the_system.append(os.path.abspath(os.path.join(MEDIA_ROOT, s.archive.name)))
-    for s in Task.objects.all():
-        files_in_the_system.append(os.path.abspath(os.path.join(MEDIA_ROOT, s.archive.name)))
-    files_directory = os.path.join(MEDIA_ROOT, FILE_DIR)
-    if os.path.exists(files_directory):
-        for f in [os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory)]:
-            if f not in files_in_the_system:
+    def __clear_service_files(self):
+        self.__is_not_used()
+        files_in_the_system = set()
+        for s in Solution.objects.values_list('archive'):
+            files_in_the_system.add(os.path.abspath(os.path.join(MEDIA_ROOT, s[0])))
+        for s in Task.objects.values_list('archive'):
+            files_in_the_system.add(os.path.abspath(os.path.join(MEDIA_ROOT, s[0])))
+        files_directory = os.path.join(MEDIA_ROOT, FILE_DIR)
+        if os.path.exists(files_directory):
+            files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
+            for f in files_on_disk - files_in_the_system:
                 os.remove(f)
+
+    def __is_not_used(self):
+        pass
 
 
 def clear_computers():

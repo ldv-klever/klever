@@ -158,9 +158,7 @@ def clear_system(request):
         return JsonResponse({'error': _('Unknown error')})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
-    clear_files('job')
-    clear_files('converted')
-    clear_service_files()
+    ClearFiles()
     clear_computers()
     return JsonResponse({'message': _("All unused files and DB rows were deleted")})
 

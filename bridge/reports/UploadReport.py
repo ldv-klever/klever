@@ -19,7 +19,6 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from bridge.utils import logger
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC
 from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision

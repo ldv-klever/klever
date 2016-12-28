@@ -17,10 +17,13 @@
 
 import os
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from django.core.files import File
 from django.utils.timezone import now
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
+from bridge.utils import RemoveFilesBeforeDelete, logger
 from jobs.models import Job
 
 LOG_DIR = 'ReportLogs'
@@ -56,6 +59,13 @@ class ReportRoot(models.Model):
 
     class Meta:
         db_table = 'report_root'
+
+
+@receiver(pre_delete, sender=ReportRoot)
+def reportroot_delete_signal(**kwargs):
+    logger.info('Deleting ReportRoot files...')
+    RemoveFilesBeforeDelete(kwargs['instance'])
+    logger.info('Deleting ReportRoot object...')
 
 
 class Report(models.Model):
@@ -114,6 +124,15 @@ class ReportComponent(Report):
         db_table = 'report_component'
 
 
+@receiver(pre_delete, sender=ReportComponent)
+def report_component_delete_signal(**kwargs):
+    report = kwargs['instance']
+    if report.archive:
+        report.archive.storage.delete(report.archive.path)
+    if report.data:
+        report.data.storage.delete(report.data.path)
+
+
 class ReportUnsafe(Report):
     archive = models.FileField(upload_to='Unsafes/%Y/%m')
     error_trace = models.CharField(max_length=128)
@@ -136,6 +155,13 @@ class ReportSafe(Report):
 
     class Meta:
         db_table = 'report_safe'
+
+
+@receiver(pre_delete, sender=ReportSafe)
+def safe_delete_signal(**kwargs):
+    safe = kwargs['instance']
+    if safe.archive:
+        safe.archive.storage.delete(safe.archive.path)
 
 
 class ReportUnknown(Report):

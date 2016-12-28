@@ -514,18 +514,33 @@ def update_job(kwargs):
 
 
 def remove_jobs_by_id(user, job_ids):
-    for job_id in job_ids:
+    job_struct = {}
+    all_jobs = {}
+    for j in Job.objects.only('id', 'parent_id'):
+        if j.parent_id not in job_struct:
+            job_struct[j.parent_id] = set()
+        job_struct[j.parent_id].add(j.id)
+        all_jobs[j.id] = j
+
+    def remove_job_with_children(j_id):
+        j_id = int(j_id)
+        if j_id not in all_jobs:
+            return
+        if j_id in job_struct:
+            for ch_id in job_struct[j_id]:
+                remove_job_with_children(ch_id)
+        if not JobAccess(user, all_jobs[j_id]).can_delete():
+            raise ValueError("You don't have an access to delete one of the childrens")
         try:
-            job = Job.objects.get(pk=job_id)
-        except ObjectDoesNotExist:
-            continue
-        if not JobAccess(user, job).can_delete():
-            continue
-        try:
-            Notify(job, 2)
+            Notify(all_jobs[j_id], 2)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
-        job.delete()
+        del all_jobs[j_id]
+        del job_struct[j_id]
+        all_jobs[j_id].delete()
+
+    for job_id in job_ids:
+        remove_job_with_children(job_id)
 
 
 def delete_versions(job, versions):

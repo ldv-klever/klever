@@ -20,6 +20,7 @@ from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from bridge.utils import logger, RemoveFilesBeforeDelete
 
 JOBFILE_DIR = 'Job'
 
@@ -36,10 +37,13 @@ class JobFile(models.Model):
 
 
 @receiver(pre_delete, sender=JobFile)
-def jobfile_delete(**kwargs):
+def jobfile_delete_signal(**kwargs):
     file = kwargs['instance']
     storage, path = file.file.storage, file.file.path
-    storage.delete(path)
+    try:
+        storage.delete(path)
+    except PermissionError:
+        pass
 
 
 class JobBase(models.Model):
@@ -67,12 +71,19 @@ class Job(JobBase):
         db_table = 'job'
 
 
+@receiver(pre_delete, sender=Job)
+def job_delete_signal(**kwargs):
+    logger.info('Deleting Job files...')
+    RemoveFilesBeforeDelete(kwargs['instance'])
+    logger.info('Deleting Job object...')
+
+
 class RunHistory(models.Model):
     job = models.ForeignKey(Job)
     operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
     configuration = models.ForeignKey(JobFile)
-    date = models.DateTimeField()
-    status = models.CharField(choices=JOB_STATUS, max_length=1)
+    date = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])
 
     class Meta:
         db_table = 'job_run_history'

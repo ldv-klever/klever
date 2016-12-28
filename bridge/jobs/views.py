@@ -167,9 +167,7 @@ def remove_view(request):
     if v_id == 'default':
         return JsonResponse({'error': _("You can't remove the default view")})
     try:
-        View.objects.get(
-            author=request.user, pk=int(v_id), type=view_type
-        ).delete()
+        View.objects.get(author=request.user, pk=int(v_id), type=view_type).delete()
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The view was not found")})
     return JsonResponse({'message': _("The view was successfully removed")})
