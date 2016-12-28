@@ -71,6 +71,9 @@ def solve_job(conf):
     else:
         bin = conf["client"]["Klever Core path"]
 
+    # Do it to make it possible to use runexec inside Klever
+    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
+
     # Check existence of the file
     logging.info("Going to use Klever Core from {}".format(bin))
     if not os.path.isfile(bin):
@@ -111,11 +114,7 @@ def solve_job(conf):
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
 
-    def handler(a, b):
-        executor.stop()
-        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
-        logging.info("Trying to kill the job")
-    signal.signal(signal.SIGTERM, handler)
+    set_signal_handler(executor)
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -206,11 +205,7 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
-    def handler(a, b):
-        benchexec.stop()
-        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
-        logging.info("Trying to kill the task")
-    signal.signal(signal.SIGTERM, handler)
+    set_signal_handler(benchexec)
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
@@ -290,6 +285,29 @@ def split_archive_name(path):
         extension = split[1] + extension
 
     return name, extension
+
+
+def set_signal_handler(executor):
+    """
+    Set custom sigterm handler in order to terminate job/task execution with all process group.
+
+    :param executor: Object which corresponds RunExec or BenchExec. Should have method stop().
+    :return: None
+    """
+    # Save default handler
+    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
+
+    def handler(a, b):
+        executor.stop()
+        logging.info("Trying to kill the task")
+        signal.signal(signal.SIGTERM, original_sigtrm_handler)
+        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
+
+        # Restore handler
+        exit(-1)
+
+    # Set custom handler
+    signal.signal(signal.SIGTERM, handler)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

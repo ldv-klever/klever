@@ -20,6 +20,8 @@ import json
 import os
 import re
 from abc import abstractclassmethod, ABCMeta
+import sys
+
 import core.components
 import core.session
 import core.utils
@@ -79,6 +81,7 @@ class CommonStrategy(core.components.Component):
             # Safely use id of corresponding abstract verification task since all bug kinds will be merged and each
             # abstract verification task will correspond to exactly one verificatoin task.
             'id': self.conf['abstract task desc']['id'],
+            'job id': self.conf['identifier'],
             'format': 1,
         }
         # Copy attributes from parent job.
@@ -118,25 +121,26 @@ class CommonStrategy(core.components.Component):
                 extra_c_file['new C file'] = trimmed_c_file
                 c_files += (trimmed_c_file, )
 
-            core.utils.execute(self.logger,
-                               (
-                                   'cilly.asm.exe',
-                                   '--printCilAsIs',
-                                   '--domakeCFG',
-                                   '--decil',
-                                   '--noInsertImplicitCasts',
-                                   # Now supported by CPAchecker frontend.
-                                   '--useLogicalOperators',
-                                   '--ignore-merge-conflicts',
-                                   # Don't transform simple function calls to calls-by-pointers.
-                                   '--no-convert-direct-calls',
-                                   # Don't transform s->f to pointer arithmetic.
-                                   '--no-convert-field-offsets',
-                                   # Don't transform structure fields into variables or arrays.
-                                   '--no-split-structs',
-                                   '--rmUnusedInlines',
-                                   '--out', 'cil.i',
-                               ) + c_files)
+            args = (
+                       'cilly.asm.exe',
+                       '--printCilAsIs',
+                       '--domakeCFG',
+                       '--decil',
+                       '--noInsertImplicitCasts',
+                       # Now supported by CPAchecker frontend.
+                       '--useLogicalOperators',
+                       '--ignore-merge-conflicts',
+                       # Don't transform simple function calls to calls-by-pointers.
+                       '--no-convert-direct-calls',
+                       # Don't transform s->f to pointer arithmetic.
+                       '--no-convert-field-offsets',
+                       # Don't transform structure fields into variables or arrays.
+                       '--no-split-structs',
+                       '--rmUnusedInlines',
+                       '--out', 'cil.i',
+                   ) + c_files
+            core.utils.execute_external_tool(self.logger, args=args)
+
             if not self.conf['keep intermediate files']:
                 for extra_c_file in self.conf['abstract task desc']['extra C files']:
                     if 'new C file' in extra_c_file:

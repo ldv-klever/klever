@@ -62,6 +62,63 @@ around: define(__EXPORT_SYMBOL(sym, sec))
 info: expand(module_init(arg)){
 	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
 }
+info: expand(early_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(pure_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(core_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(core_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(postcore_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(postcore_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(arch_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(arch_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(subsys_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(subsys_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(fs_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(fs_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(rootfs_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(device_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(device_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(late_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(late_initcall_sync(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(console_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
+info: expand(security_initcall(arg)){
+	$fprintf<"$env<CWD>/init.txt","%s %s\n",$path,$arg_val1>
+}
 
 info: expand(module_exit(arg)){
 	$fprintf<"$env<CWD>/exit.txt","%s %s\n",$path,$arg_val1>

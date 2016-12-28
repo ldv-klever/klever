@@ -322,8 +322,8 @@ class Declaration:
                 queue.append(tp.element)
             elif isinstance(tp, Pointer):
                 queue.append(tp.points)
-            elif ((isinstance(tp, Structure) or isinstance(tp, Union)) and not self.name) or\
-                 (isinstance(tp, Enum) and enum_regex.match(self.name)):
+            elif ((isinstance(tp, Structure) or isinstance(tp, Union)) and not tp.name) or\
+                 (isinstance(tp, Enum) and enum_regex.match(tp.name)):
                 # Transform only complex
                 ret = False
                 break
