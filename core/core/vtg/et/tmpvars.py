@@ -78,7 +78,7 @@ def _remove_artificial_edges(logger, error_trace):
     for edge in error_trace.trace_iterator():
         if 'return' in edge:
             next_edge = error_trace.next_edge(edge)
-            if 'return' in next_edge and next_edge['return'] == edge['return']:
+            if next_edge is not None and 'return' in next_edge and next_edge['return'] == edge['return']:
                 error_trace.remove_edge_and_target_node(next_edge)
                 removed_edges_num += 1
     if removed_edges_num:
@@ -318,7 +318,8 @@ def _remove_aux_functions(logger, error_trace):
             if return_edge:
                 aux_func_return_edge = error_trace.next_edge(return_edge)
 
-                if 'return' not in aux_func_return_edge or aux_func_return_edge['source'] != 'return;':
+                if aux_func_return_edge is None or 'return' not in aux_func_return_edge or \
+                                aux_func_return_edge['source'] != 'return;':
                     continue
 
                 error_trace.remove_edge_and_target_node(aux_func_return_edge)
