@@ -77,11 +77,6 @@ class UploadReport(object):
             self.__check_comp(data['comp'])
         if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
             raise ValueError('component name is too long (max 15 symbols expected)')
-        if 'data' in data:
-            try:
-                json.loads(data['data'])
-            except ValueError:
-                raise ValueError("component data must be represented in JSON")
 
         if data['type'] == 'start':
             if data['id'] == '/':
@@ -167,9 +162,7 @@ class UploadReport(object):
                 raise ValueError("property '%s' is required." % e)
         elif data['type'] == 'data':
             try:
-                self.data.update({
-                    'data': data['data']
-                })
+                self.data.update({'data': data['data']})
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
         else:

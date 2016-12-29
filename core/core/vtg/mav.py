@@ -104,9 +104,10 @@ class MAV(CommonStrategy):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps({
-                                  'the number of verification tasks prepared for abstract verification task': iterations
-                              }, ensure_ascii=False, sort_keys=True, indent=4)
+                              'data': {
+                                  'the number of verification tasks prepared for abstract verification task':
+                                      iterations
+                              }
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])

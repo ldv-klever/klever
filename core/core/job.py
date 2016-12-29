@@ -449,7 +449,7 @@ class Job(core.utils.CallbacksCaller):
                                   'data',
                                   {
                                       'id': self.parent['id'],
-                                      'data': json.dumps(results, ensure_ascii=False, sort_keys=True, indent=4)
+                                      'data': results
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
