@@ -146,6 +146,8 @@ class LabelTranslator(FSATranslator):
                         code.append('\t{} = data->arg{};'.format(param_expressions[index], index))
                     code.append('\t{}({});'.format(self._cmodel.free_function_map["FREE"], 'data'))
                     code.append('}')
+                else:
+                    code.append('{}({});'.format(self._cmodel.free_function_map["FREE"], 'arg0'))
             else:
                 code.append('/* Skip a non-replicative signal receiving */'.format(state.desc['label']))
         else:
