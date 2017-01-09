@@ -80,10 +80,10 @@ class MarkUnsafeCompare(models.Model):
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
-    author = models.ForeignKey(User, related_name="%(class)s", null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
@@ -99,7 +99,7 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     change_date = models.DateTimeField()
     comment = models.TextField()
@@ -206,7 +206,7 @@ class UnsafeTag(models.Model):
 
 class ReportSafeTag(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='safe_tags')
-    tag = models.ForeignKey(SafeTag, related_name='+')
+    tag = models.ForeignKey(SafeTag)
     number = models.IntegerField(default=0)
 
     def __str__(self):
@@ -303,7 +303,7 @@ class MarkUnknownReport(models.Model):
 class ComponentMarkUnknownProblem(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='mark_unknowns_cache')
     component = models.ForeignKey(Component, related_name='+', on_delete=models.PROTECT)
-    problem = models.ForeignKey(UnknownProblem, null=True, related_name='+', on_delete=models.PROTECT)
+    problem = models.ForeignKey(UnknownProblem, null=True, on_delete=models.PROTECT)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:

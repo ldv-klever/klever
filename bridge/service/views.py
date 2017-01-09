@@ -24,12 +24,12 @@ from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
-from bridge.utils import unparallel_group, unparallel
+from bridge.utils import unparallel_group
 from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
 
 
-@unparallel_group(['service', 'task'])
+@unparallel_group([SolvingProgress])
 def schedule_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -54,6 +54,7 @@ def schedule_task(request):
     return JsonResponse({'task id': res.task_id})
 
 
+@unparallel_group(['Task'])
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -70,7 +71,7 @@ def get_task_status(request):
     return JsonResponse({'task status': res.status})
 
 
-@unparallel_group(['solution'])
+@unparallel_group(['Solution'])
 def download_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -95,7 +96,7 @@ def download_solution(request):
     return response
 
 
-@unparallel_group(['service'])
+@unparallel_group([Task])
 def remove_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -105,7 +106,6 @@ def remove_task(request):
         return JsonResponse({'error': 'Just POST requests are supported'})
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
-
     try:
         RemoveTask(request.POST['task id'])
     except Exception as e:
@@ -114,7 +114,7 @@ def remove_task(request):
     return JsonResponse({})
 
 
-@unparallel_group(['service'])
+@unparallel_group([SolvingProgress])
 def cancel_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -131,7 +131,7 @@ def cancel_task(request):
     return JsonResponse({})
 
 
-@unparallel_group(['service', 'job'])
+@unparallel_group([Job])
 def get_jobs_and_tasks(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -152,7 +152,7 @@ def get_jobs_and_tasks(request):
     return JsonResponse({'jobs and tasks status': jobs_and_tasks})
 
 
-@unparallel_group(['service'])
+@unparallel_group(['Task'])
 def download_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -176,7 +176,7 @@ def download_task(request):
     return response
 
 
-@unparallel_group(['task', 'solution'])
+@unparallel_group([ReportRoot, TaskStatistic, SolvingProgress])
 def upload_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -202,7 +202,7 @@ def upload_solution(request):
     return JsonResponse({})
 
 
-@unparallel
+@unparallel_group([NodesConfiguration, Workload])
 def update_nodes(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -221,7 +221,7 @@ def update_nodes(request):
     return JsonResponse({})
 
 
-@unparallel
+@unparallel_group([VerificationTool])
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -241,7 +241,7 @@ def update_tools(request):
     return JsonResponse({})
 
 
-@unparallel_group(['service'])
+@unparallel_group([Scheduler, Job])
 def set_schedulers_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -260,6 +260,7 @@ def set_schedulers_status(request):
 
 
 @login_required
+@unparallel_group([NodesConfiguration, Workload])
 def schedulers_info(request):
     activate(request.user.extended.language)
     return render(request, 'service/scheduler.html', {
@@ -296,6 +297,7 @@ def fill_session(request):
 
 
 @login_required
+@unparallel_group([Job])
 def process_job(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Only POST requests are supported'})
@@ -316,6 +318,7 @@ def process_job(request):
 
 
 @login_required
+@unparallel_group([SchedulerUser])
 def add_scheduler_user(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -324,12 +327,7 @@ def add_scheduler_user(request):
         return JsonResponse({'error': 'Unknown error'})
     if 'password' not in request.POST or len(request.POST['password']) == 0:
         return JsonResponse({'error': 'Unknown error'})
-    try:
-        sch_u = request.user.scheduleruser
-    except ObjectDoesNotExist:
-        sch_u = SchedulerUser()
-        sch_u.user = request.user
-    sch_u.login = request.POST['login']
-    sch_u.password = request.POST['password']
-    sch_u.save()
+    SchedulerUser.objects.get_or_create(
+        user=request.user, defaults={'login': request.POST['login'], 'password': request.POST['password']}
+    )
     return JsonResponse({})

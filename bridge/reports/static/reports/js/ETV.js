@@ -16,18 +16,20 @@
  */
 
 $(document).ready(function () {
-    var ready_for_next_string = false, etv_window = $('#ETV_error_trace');
+    var ready_for_next_string = false, etv_window = $('#ETV_error_trace'), etv_attrs = $('#etv-attributes');
 
-    $('#error_trace_options').popup({
-        popup: $('#etv-attributes'),
-        position: 'right center',
-        hoverable: true,
-        lastResort: true,
-        delay: {
-            show: 100,
-            hide: 100
-        }
-    });
+    if (etv_attrs.length) {
+        $('#error_trace_options').popup({
+            popup: etv_attrs,
+            position: 'right center',
+            hoverable: true,
+            lastResort: true,
+            delay: {
+                show: 100,
+                hide: 100
+            }
+        });
+    }
     $('.normal-popup').popup({position: 'bottom left'});
     function get_source_code(line, filename) {
 

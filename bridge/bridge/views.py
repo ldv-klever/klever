@@ -24,7 +24,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.populate import Population
 from bridge.vars import ERRORS, USER_ROLES
-from bridge.utils import unparallel, logger
+from bridge.utils import unparallel_group, logger
 from users.models import Extended
 
 
@@ -59,7 +59,7 @@ def klever_bridge_error(request, err_code=0, user_message=None):
     return render(request, 'error.html', {'message': message, 'back': back})
 
 
-@unparallel
+@unparallel_group(['Job', 'MarkUnknown', 'TaskStatistic', 'Scheduler', 'Component'])
 @login_required
 def population(request):
     try:

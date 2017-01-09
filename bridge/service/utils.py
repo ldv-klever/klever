@@ -37,22 +37,20 @@ class ServiceError(Exception):
 class ScheduleTask:
     def __init__(self, job_id, description, archive):
         try:
-            self.job = Job.objects.get(id=job_id)
+            self.progress = SolvingProgress.objects\
+                .annotate(job_status=F('job__status'), sch_status=F('scheduler__status'))\
+                .get(job_id=job_id)
         except ObjectDoesNotExist:
-            raise ServiceError('Job %s was not found was not found' % job_id)
+            raise ServiceError('Solving progress of the job was not found')
         try:
             priority = json.loads(description)['priority']
         except Exception:
             raise ServiceError('Wrong description format')
         if priority not in list(x[0] for x in PRIORITY):
             raise ServiceError('Wrong priority')
-        try:
-            self.progress = self.job.solvingprogress
-        except ObjectDoesNotExist:
-            raise ServiceError('Solving progress of the job was not found')
-        if self.progress.job.status != JOB_STATUS[2][0]:
+        if self.progress.job_status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
-        if self.progress.scheduler.status == SCHEDULER_STATUS[2][0]:
+        if self.progress.sch_status == SCHEDULER_STATUS[2][0]:
             raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
             raise ServiceError('Priority of the task is too big')
@@ -76,7 +74,7 @@ class GetTaskStatus:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
             raise ServiceError("The task '%s' was not found" % task_id)
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         self.status = self.task.status
 
@@ -87,7 +85,7 @@ class GetSolution:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
             raise ServiceError("The task '%s' was not found" % task_id)
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
@@ -107,7 +105,7 @@ class RemoveTask:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
             raise ServiceError("The task '%s' was not found" % task_id)
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
@@ -141,7 +139,7 @@ class CancelTask:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
             raise ServiceError("The task '%s' was not found" % task_id)
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
 
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
@@ -196,15 +194,15 @@ class KleverCoreStartDecision:
 class StopDecision:
     def __init__(self, job):
         self.error = None
-        self.job = job
+        if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            self.error = _("Only pending and processing jobs can be stopped")
+            return
         try:
-            self.progress = self.job.solvingprogress
+            self.progress = SolvingProgress.objects.get(job=job)
         except ObjectDoesNotExist:
             self.error = _('The job solving progress does not exist')
             return
-        if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-            self.error = _("Only pending and processing jobs can be stopped")
-            return
+
         change_job_status(job, JOB_STATUS[6][0])
         self.__clear_tasks()
 
@@ -436,7 +434,7 @@ class GetTaskData:
             self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
             raise ServiceError('The task %s was not found' % task_id)
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
         if self.task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
             raise ServiceError('The task status is wrong')

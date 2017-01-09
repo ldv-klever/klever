@@ -51,7 +51,7 @@ class Attr(models.Model):
 
 
 class ReportRoot(models.Model):
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     job = models.OneToOneField(Job)
     safes = models.PositiveIntegerField(default=0)
     tasks_total = models.PositiveIntegerField(default=0)
@@ -145,6 +145,12 @@ class ReportUnsafe(Report):
         db_table = 'report_unsafe'
 
 
+@receiver(pre_delete, sender=ReportUnsafe)
+def unsafe_delete_signal(**kwargs):
+    unsafe = kwargs['instance']
+    unsafe.archive.storage.delete(unsafe.archive.path)
+
+
 class ReportSafe(Report):
     archive = models.FileField(upload_to='Safes/%Y/%m', null=True)
     proof = models.CharField(max_length=128, null=True)
@@ -174,6 +180,12 @@ class ReportUnknown(Report):
 
     class Meta:
         db_table = 'report_unknown'
+
+
+@receiver(pre_delete, sender=ReportUnknown)
+def unknown_delete_signal(**kwargs):
+    unknown = kwargs['instance']
+    unknown.archive.storage.delete(unknown.archive.path)
 
 
 class ReportComponentLeaf(models.Model):

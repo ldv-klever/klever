@@ -21,7 +21,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.utils import logger
 from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *

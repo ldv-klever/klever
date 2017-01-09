@@ -27,7 +27,7 @@ from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_archive
+from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
@@ -41,6 +41,7 @@ from service.utils import StartJobDecision, StopDecision
 
 
 @login_required
+@unparallel_group(['Job'])
 def tree_view(request):
     activate(request.user.extended.language)
 
@@ -64,8 +65,8 @@ def tree_view(request):
     })
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([PreferableView, 'View'])
 def preferable_view(request):
     activate(request.user.extended.language)
 
@@ -96,8 +97,8 @@ def preferable_view(request):
     return JsonResponse({'message': _("The preferred view was successfully changed")})
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group(['View'])
 def check_view_name(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -116,8 +117,8 @@ def check_view_name(request):
     return JsonResponse({})
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([View])
 def save_view(request):
     activate(request.user.extended.language)
 
@@ -153,8 +154,8 @@ def save_view(request):
     })
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([View])
 def remove_view(request):
     activate(request.user.extended.language)
 
@@ -174,6 +175,7 @@ def remove_view(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
 
@@ -249,6 +251,7 @@ def show_job(request, job_id=None):
 
 
 @login_required
+@unparallel_group(['Job'])
 def get_job_data(request):
     activate(request.user.extended.language)
 
@@ -276,6 +279,7 @@ def get_job_data(request):
 
 
 @login_required
+@unparallel_group([Job])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -327,8 +331,8 @@ def edit_job(request):
     })
 
 
-@unparallel
 @login_required
+@unparallel_group(['Job', JobHistory])
 def remove_versions(request):
     activate(request.user.extended.language)
 
@@ -351,6 +355,7 @@ def remove_versions(request):
 
 
 @login_required
+@unparallel_group(['Job', 'JobHistory'])
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -374,6 +379,7 @@ def get_job_versions(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -405,8 +411,8 @@ def copy_new_job(request):
     })
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group([Job])
 def save_job(request):
     activate(request.user.extended.language)
 
@@ -480,8 +486,8 @@ def save_job(request):
     return JsonResponse({'error': 'Unknown error'})
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group([Job])
 def remove_jobs(request):
     activate(request.user.extended.language)
 
@@ -493,6 +499,7 @@ def remove_jobs(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def showjobdata(request):
     activate(request.user.extended.language)
 
@@ -510,8 +517,8 @@ def showjobdata(request):
     })
 
 
-@unparallel
 @login_required
+@unparallel_group(['JobFile'])
 def upload_file(request):
     activate(request.user.extended.language)
 
@@ -532,6 +539,7 @@ def upload_file(request):
 
 
 @login_required
+@unparallel_group(['FileSystem', 'JobFile'])
 def download_file(request, file_id):
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -549,8 +557,8 @@ def download_file(request, file_id):
     return response
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
 def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
@@ -566,8 +574,8 @@ def download_job(request, job_id):
     return response
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
         return HttpResponseRedirect(
@@ -588,6 +596,7 @@ def download_jobs(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def check_access(request):
     activate(request.user.extended.language)
 
@@ -604,9 +613,9 @@ def check_access(request):
     return JsonResponse({})
 
 
-@unparallel_group(['job'])
 @login_required
 @print_exec_time
+@unparallel_group([Job])
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
@@ -639,7 +648,7 @@ def upload_job(request, parent_id=None):
     return JsonResponse({})
 
 
-@unparallel_group(['job', 'report'])
+@unparallel_group([Job])
 def decide_job(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -680,6 +689,7 @@ def decide_job(request):
 
 
 @login_required
+@unparallel_group(['FileSystem', 'JobFile'])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
@@ -696,8 +706,8 @@ def getfilecontent(request):
     return HttpResponse(source.file.file.read())
 
 
-@unparallel
 @login_required
+@unparallel_group([Job])
 def stop_decision(request):
     activate(request.user.extended.language)
 
@@ -715,8 +725,8 @@ def stop_decision(request):
     return JsonResponse({})
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -736,6 +746,7 @@ def run_decision(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def prepare_decision(request, job_id):
     activate(request.user.extended.language)
     try:
@@ -769,8 +780,8 @@ def prepare_decision(request, job_id):
     })
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def fast_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -786,8 +797,8 @@ def fast_run_decision(request):
     return JsonResponse({})
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def lastconf_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -812,6 +823,7 @@ def lastconf_run_decision(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def check_compare_access(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -827,6 +839,7 @@ def check_compare_access(request):
 
 
 @login_required
+@unparallel_group(['Job', 'JobFile'])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -845,6 +858,7 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
+@unparallel_group(['JobFile'])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -877,6 +891,7 @@ def get_file_by_checksum(request):
     return JsonResponse({'error': 'Unknown error'})
 
 
+@unparallel_group(['RunHistory'])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -921,6 +936,7 @@ def get_def_start_job_val(request):
 
 
 @login_required
+@unparallel_group([Job])
 def collapse_reports(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -936,6 +952,7 @@ def collapse_reports(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def do_job_has_children(request):
     activate(request.user.extended.language)
 
@@ -944,14 +961,14 @@ def do_job_has_children(request):
     try:
         job = Job.objects.get(pk=request.POST['job_id'])
     except ObjectDoesNotExist:
-        return JsonResponse({'error': str(_('The job was not found'))})
-    if len(job.children.all()) > 0:
+        return JsonResponse({'error': _('The job was not found')})
+    if job.children.count() > 0:
         return JsonResponse({'children': True})
     return JsonResponse({})
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -961,6 +978,9 @@ def download_files_for_compet(request, job_id):
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
+    if job.status in {x[0] for x in JOB_STATUS[:3]}:
+        logger.error("Files for competition can't be downloaded for undecided jobs")
+        return HttpResponseRedirect(reverse('error', args=[500]))
 
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]

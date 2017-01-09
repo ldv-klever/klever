@@ -24,6 +24,7 @@ import tempfile
 import zipfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
+from django.db.models.base import ModelBase
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
@@ -59,25 +60,29 @@ def print_exec_time(f):
     return wrapper
 
 
-def unparallel(f):
-
-    def wait_other(*args, **kwargs):
-        if f.__name__ not in BLOCKER:
-            BLOCKER[f.__name__] = 0
-        while BLOCKER[f.__name__] == 1:
-            time.sleep(0.1)
-        BLOCKER[f.__name__] = 1
-        res = f(*args, **kwargs)
-        BLOCKER[f.__name__] = 0
-        return res
-    return wait_other
+def affected_models(model):
+    curr_name = getattr(model, '_meta').object_name
+    related_models = {curr_name}
+    for rel in [f for f in getattr(model, '_meta').get_fields()
+                if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
+        rel_model_name = getattr(rel.field.model, '_meta').object_name
+        if rel_model_name not in related_models and rel_model_name != curr_name:
+            related_models.add(rel_model_name)
+            related_models |= affected_models(rel.field.model)
+    return related_models
 
 
 def unparallel_group(groups):
     def unparallel_inner(f):
+        block = set()
+        for group in groups:
+            if isinstance(group, ModelBase):
+                block |= affected_models(group)
+            else:
+                block.add(str(group))
 
         def block_access():
-            for g in groups:
+            for g in block:
                 if g not in GROUP_BLOCKER:
                     GROUP_BLOCKER[g] = 0
                 if GROUP_BLOCKER[g] == 1:
@@ -85,7 +90,7 @@ def unparallel_group(groups):
             return True
 
         def change_block(status):
-            for g in groups:
+            for g in block:
                 GROUP_BLOCKER[g] = status
 
         def wait(*args, **kwargs):
@@ -216,10 +221,12 @@ class RemoveFilesBeforeDelete:
             self.__remove_job_files(obj)
         elif model_name == 'ReportComponent':
             self.__remove_component_files(obj)
+        elif model_name == 'Task':
+            self.__remove_task_files(obj)
 
     def __remove_progress_files(self, progress):
         from service.models import Solution, Task
-        for files in Solution.objects.filter(progress=progress).values_list('archive'):
+        for files in Solution.objects.filter(task__progress=progress).values_list('archive'):
             self.__remove(files)
         for files in Task.objects.filter(progress=progress).values_list('archive'):
             self.__remove(files)
@@ -266,21 +273,25 @@ class RemoveFilesBeforeDelete:
     def __remove_task_files(self, task):
         self.__is_not_used()
         from service.models import Solution
+        files = set()
         try:
-            Solution.objects.get(task=task).delete()
+            files.add(Solution.objects.get(task=task).archive.path)
         except ObjectDoesNotExist:
             pass
+        files.add(task.archive.path)
+        self.__remove(files)
 
     def __remove(self, files):
         self.__is_not_used()
         for f in files:
             if f:
                 path = os.path.join(MEDIA_ROOT, f)
-                if os.path.exists(path):
-                    try:
-                        os.remove(path)
-                    except Exception as e:
-                        logger.exception(e)
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                except Exception as e:
+                    logger.exception(e)
 
     def __is_not_used(self):
         pass

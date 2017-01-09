@@ -79,7 +79,7 @@ class Node(models.Model):
     config = models.ForeignKey(NodesConfiguration)
     status = models.CharField(max_length=13, choices=NODE_STATUS)
     hostname = models.CharField(max_length=128)
-    workload = models.OneToOneField(Workload, null=True, on_delete=models.SET_NULL)
+    workload = models.OneToOneField(Workload, null=True, on_delete=models.SET_NULL, related_name='+')
 
     class Meta:
         db_table = 'node'
@@ -88,7 +88,7 @@ class Node(models.Model):
 @receiver(pre_delete, sender=Node)
 def node_delete_signal(**kwargs):
     node = kwargs['instance']
-    if node.workload is not None:
+    if node.workload:
         node.workload.delete()
 
 
@@ -145,10 +145,7 @@ def get_task_description(**kwargs):
 
 @receiver(pre_delete, sender=Task)
 def task_delete_signal(**kwargs):
-    task = kwargs['instance']
-    storage, path = task.archive.storage, task.archive.path
-    storage.delete(path)
-    RemoveFilesBeforeDelete(task)
+    RemoveFilesBeforeDelete(kwargs['instance'])
 
 
 class Solution(models.Model):

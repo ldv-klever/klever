@@ -23,9 +23,20 @@ from bridge.settings import MEDIA_ROOT
 from bridge.vars import ATTR_STATISTIC
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
-from marks.utils import ConnectReportWithMarks, update_unknowns_cache
 from reports.models import *
 from marks.models import *
+from marks.utils import ConnectReportWithMarks, update_unknowns_cache
+
+
+def objects_without_relations(table):
+    filters = {}
+    for rel in [f for f in getattr(table, '_meta').get_fields()
+                if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
+        accessor_name = rel.get_accessor_name()
+        if not rel.related_name and accessor_name.endswith('_set'):
+            accessor_name = accessor_name[:-4]
+        filters[accessor_name] = None
+    return table.objects.filter(**filters)
 
 
 class ClearFiles:
@@ -36,11 +47,7 @@ class ClearFiles:
 
     def __clear_files_with_ref(self, table, files_dir):
         self.__is_not_used()
-        filters = dict(
-            (rel.get_accessor_name(), None)
-            for rel in [f for f in getattr(table, '_meta').get_fields()
-                        if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete])
-        table.objects.filter(**filters).delete()
+        objects_without_relations(table).delete()
 
         files_in_the_system = set()
         files_to_delete = set()
@@ -72,12 +79,6 @@ class ClearFiles:
 
     def __is_not_used(self):
         pass
-
-
-def clear_computers():
-    for c in Computer.objects.all():
-        if len(c.reportcomponent_set.all()) == 0:
-            c.delete()
 
 
 class RecalculateLeaves(object):

@@ -48,7 +48,7 @@ def jobfile_delete_signal(**kwargs):
 
 class JobBase(models.Model):
     name = models.CharField(max_length=150)
-    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
+    change_author = models.ForeignKey(User, blank=True, null=True, on_delete=models.SET_NULL, related_name='+')
 
     class Meta:
         abstract = True
@@ -80,7 +80,7 @@ def job_delete_signal(**kwargs):
 
 class RunHistory(models.Model):
     job = models.ForeignKey(Job)
-    operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    operator = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     configuration = models.ForeignKey(JobFile)
     date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(choices=JOB_STATUS, max_length=1, default=JOB_STATUS[1][0])
@@ -117,7 +117,7 @@ class FileSystem(models.Model):
 
 
 class UserRole(models.Model):
-    user = models.ForeignKey(User, related_name='+')
+    user = models.ForeignKey(User)
     job = models.ForeignKey(JobHistory)
     role = models.CharField(max_length=1, choices=JOB_ROLES)
 

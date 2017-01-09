@@ -25,7 +25,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, logger, ArchiveFileContent
+from bridge.utils import unparallel_group, ArchiveFileContent
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -55,6 +55,7 @@ def sort_bugs_list(l):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
@@ -126,6 +127,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
+@unparallel_group(['ReportComponent', 'ReportSafe', 'ReportUnsafe', 'ReportUnknown'])
 def report_list(request, report_id, ltype, component_id=None,
                 verdict=None, tag=None, problem=None, mark=None, attr=None):
     activate(request.user.extended.language)
@@ -189,15 +191,22 @@ def report_list(request, report_id, ltype, component_id=None,
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
+    table_data = ReportTable(
+        *report_attrs_data, table_type=list_types[ltype],
+        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr
+    )
+    # If there is only one element in table, and first column of table is link, redirect to this link
+    if len(table_data.table_data['values']) == 1 and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+            and table_data.table_data['values'][0][0]['href']:
+        return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
     return render(
         request,
         'reports/report_list.html',
         {
             'report': report,
             'parents': get_parents(report),
-            'TableData': ReportTable(
-                *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr),
+            'TableData': table_data,
             'view_type': list_types[ltype],
             'title': title
         }
@@ -205,6 +214,7 @@ def report_list(request, report_id, ltype, component_id=None,
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def report_list_tag(request, report_id, ltype, tag_id):
     try:
         if ltype == 'unsafes':
@@ -222,6 +232,7 @@ def report_list_by_verdict(request, report_id, ltype, verdict):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def report_list_by_mark(request, report_id, ltype, mark_id):
     tables = {
         'safes': MarkSafe,
@@ -235,6 +246,7 @@ def report_list_by_mark(request, report_id, ltype, mark_id):
 
 
 @login_required
+@unparallel_group(['Attr'])
 def report_list_by_attr(request, report_id, ltype, attr_id):
     try:
         return report_list(request, report_id, ltype, attr=Attr.objects.get(pk=attr_id))
@@ -248,6 +260,7 @@ def report_unknowns(request, report_id, component_id):
 
 
 @login_required
+@unparallel_group(['UnknownProblem'])
 def report_unknowns_by_problem(request, report_id, component_id, problem_id):
     problem_id = int(problem_id)
     if problem_id == 0:
@@ -261,6 +274,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
 
 
 @login_required
+@unparallel_group(['ReportUnsafe', 'ReportSafe', 'ReportUnknown'])
 def report_leaf(request, leaf_type, report_id):
     activate(request.user.extended.language)
 
@@ -325,6 +339,7 @@ def report_leaf(request, leaf_type, report_id):
 
 
 @login_required
+@unparallel_group(['ReportUnsafe'])
 def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
@@ -346,7 +361,7 @@ def report_etv_full(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[505]))
 
 
-@unparallel_group(['mark', 'report'])
+@unparallel_group([ReportRoot, AttrName])
 def upload_report(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signed in'})
@@ -382,6 +397,7 @@ def upload_report(request):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
@@ -409,6 +425,7 @@ def get_component_log(request, report_id):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
@@ -434,6 +451,7 @@ def get_log_content(request, report_id):
 
 
 @login_required
+@unparallel_group(['ReportUnsafe'])
 def get_source_code(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -454,8 +472,8 @@ def get_source_code(request):
     })
 
 
-@unparallel_group(['decision', 'job'])
 @login_required
+@unparallel_group(['Job', 'ReportRoot', CompareJobsInfo])
 def fill_compare_cache(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -465,6 +483,8 @@ def fill_compare_cache(request):
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
@@ -474,6 +494,7 @@ def fill_compare_cache(request):
 
 
 @login_required
+@unparallel_group([CompareJobsInfo])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -499,6 +520,7 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
+@unparallel_group([CompareJobsInfo])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -540,7 +562,7 @@ def get_compare_jobs_data(request):
 
 
 @login_required
-@unparallel_group(['report'])
+@unparallel_group(['ReportComponent'])
 def download_report_files(request, report_id):
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
@@ -554,3 +576,20 @@ def download_report_files(request, report_id):
         response['Content-Length'] = len(fp)
         response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
         return response
+
+
+@login_required
+@unparallel_group(['ReportUnsafe'])
+def download_error_trace(request, report_id):
+    if request.method != 'GET':
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        report = ReportUnsafe.objects.get(id=report_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    content = ArchiveFileContent(report, report.error_trace).content
+    memory = BytesIO(content)
+    response = StreamingHttpResponse(FileWrapper(memory, 8192), content_type='application/x-tar-gz')
+    response['Content-Length'] = len(content)
+    response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
+    return response

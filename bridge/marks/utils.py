@@ -655,7 +655,6 @@ class UpdateVerdict:
             }
             leaves_filter = {'unsafe': report}
         else:
-            print(type(report))
             return
         reports = set(leaf.report_id for leaf in ReportComponentLeaf.objects.filter(**leaves_filter))
         Verdict.objects.filter(**{'report_id__in': reports, '%s__gt' % verdict_attrs[report.verdict]: 0})\

@@ -35,7 +35,7 @@ ERRORS = {
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
     506: _("The comparison cache was not found or was corrupted"),
-    507: _("You don't have an access to compare these jobs"),
+    507: _("You can't compare the selected jobs"),
     508: _("The problem was not found"),
     509: _("The tag was not found"),
     601: _("You don't have an access to create new marks"),
