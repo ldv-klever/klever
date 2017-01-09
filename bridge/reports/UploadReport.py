@@ -76,6 +76,8 @@ class UploadReport(object):
             self.__check_comp(data['comp'])
         if 'name' in data and isinstance(data['name'], str) and len(data['name']) > 15:
             raise ValueError('component name is too long (max 15 symbols expected)')
+        if 'data' in data and not isinstance(data['data'], dict):
+            raise ValueError('report data must be a dictionary object')
 
         if data['type'] == 'start':
             if data['id'] == '/':
@@ -243,7 +245,9 @@ class UploadReport(object):
             )
             if 'data' in self.data:
                 if self.job.light and self.data['id'] == '/' or not self.job.light:
-                    report.new_data('report-data.json', BytesIO(self.data['data'].encode('utf8')))
+                    report.new_data('report-data.json', BytesIO(json.dumps(
+                        self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
+                    ).encode('utf8')))
 
         if self.data['type'] == 'verification':
             report.finish_date = report.start_date
@@ -291,10 +295,7 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
 
-        try:
-            report_data = json.loads(self.data['data'])
-        except ValueError:
-            raise ValueError("report's data must be json parsable")
+        report_data = self.data['data']
         if report.component == 'AVTG':
             if AVTG_FAIL_NAME not in report_data and AVTG_TOTAL_NAME not in report_data:
                 self.__update_dict_data(report, report_data)
@@ -335,7 +336,7 @@ class UploadReport(object):
                 old_data = json.loads(fp.read().decode('utf8'))
                 old_data.update(new_data)
                 new_data = old_data
-            os.remove(report.data.name)
+            report.data.storage.delete(report.data.path)
         report.new_data('report-data.json', BytesIO(json.dumps(new_data, indent=2).encode('utf8')), True)
 
     def __finish_report_component(self, identifier):
@@ -355,11 +356,12 @@ class UploadReport(object):
                 report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
                 report.log = self.data.get('log')
 
-        if 'data' in self.data:
-            if not (self.job.light and self.data['id'] != '/'):
-                report.new_data('report-data.json', BytesIO(self.data['data'].encode('utf8')))
         report.finish_date = now()
-        report.save()
+        if 'data' in self.data and (not self.job.light or self.data['id'] == '/'):
+            # Report is saved after the data is updated
+            self.__update_dict_data(report, self.data['data'])
+        else:
+            report.save()
 
         if 'attrs' in self.data:
             self.ordered_attrs = save_attrs(report, self.data['attrs'])
