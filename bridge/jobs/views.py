@@ -614,8 +614,8 @@ def check_access(request):
 
 
 @login_required
-@print_exec_time
 @unparallel_group([Job])
+@print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
@@ -635,6 +635,7 @@ def upload_job(request, parent_id=None):
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
+        # TODO: ensure that tempdir is deleted after job is uploaded (on Linux)
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
             errors.append(

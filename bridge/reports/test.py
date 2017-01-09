@@ -389,7 +389,7 @@ class TestReports(KleverTestCase):
             data = {"newdata": str(random.randint(0, 100))}
 
         response = self.service_client.post('/reports/upload/', {
-            'report': json.dumps({'id': r_id, 'type': 'data', 'data': json.dumps(data)})
+            'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -399,7 +399,7 @@ class TestReports(KleverTestCase):
         r_id = self.__get_report_id(name)
         report = {
             'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name,
-            'resources': resources(), 'data': '{"description": "%s"}' % r_id, 'log': 'log.txt'
+            'resources': resources(), 'data': {'description': str(r_id)}, 'log': 'log.txt'
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
@@ -663,14 +663,14 @@ class DecideJobs(object):
         if data is None:
             data = {"newdata": str(random.randint(0, 100))}
         self.service.post('/reports/upload/', {
-            'report': json.dumps({'id': r_id, 'type': 'data', 'data': json.dumps(data)})
+            'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
 
     def __upload_verification_report(self, name, parent, attrs=None):
         r_id = self.__get_report_id(name)
         report = {
             'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name,
-            'resources': resources(), 'data': '{"description": "%s"}' % r_id, 'log': 'log.txt'
+            'resources': resources(), 'data': {'description': str(r_id)}, 'log': 'log.txt'
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs

@@ -529,15 +529,15 @@ def remove_jobs_by_id(user, job_ids):
         if j_id in job_struct:
             for ch_id in job_struct[j_id]:
                 remove_job_with_children(ch_id)
+            del job_struct[j_id]
         if not JobAccess(user, all_jobs[j_id]).can_delete():
             raise ValueError("You don't have an access to delete one of the childrens")
         try:
             Notify(all_jobs[j_id], 2)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
-        del all_jobs[j_id]
-        del job_struct[j_id]
         all_jobs[j_id].delete()
+        del all_jobs[j_id]
 
     for job_id in job_ids:
         remove_job_with_children(job_id)

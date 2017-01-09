@@ -23,7 +23,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE
-from bridge.utils import logger, file_get_or_create
+from bridge.utils import file_get_or_create
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from .models import RunHistory, JobFile
 from .utils import create_job, update_job, change_job_status
@@ -314,36 +314,36 @@ class UploadJob(object):
         light_cache = {}
         for dir_path, dir_names, file_names in os.walk(self.job_dir):
             for file_name in file_names:
-                if file_name == 'job.json':
+                rel_path = os.path.relpath(os.path.join(dir_path, file_name), self.job_dir)
+                if rel_path == 'job.json':
                     try:
                         with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                             jobdata = json.load(fp)
                     except Exception as e:
                         logger.exception("Can't parse job data: %s" % e)
                         return _("The job archive is corrupted")
-                elif file_name == 'LightWeightCache.json':
+                elif rel_path == 'LightWeightCache.json':
                     try:
                         with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                             light_cache = json.load(fp)
                     except Exception as e:
                         logger.exception("Can't parse lightweight results data: %s" % e)
                         return _("The job archive is corrupted")
-                elif file_name == 'reports.json':
+                elif rel_path == 'reports.json':
                     try:
                         with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                             reports_data = json.load(fp)
                     except Exception as e:
                         logger.exception("Can't parse reports data: %s" % e)
                         return _("The job archive is corrupted")
-
-                elif file_name.startswith('version-'):
+                elif rel_path.startswith('version-'):
                     m = re.match('version-(\d+)\.json', file_name)
                     if m is None:
                         logger.error("Unknown file that startswith 'version-' was found in the archive")
                         return _("The job archive is corrupted")
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         versions_data[int(m.group(1))] = json.load(fp)
-                elif dir_path.endswith('Configurations'):
+                elif rel_path.startswith('Configurations'):
                     try:
                         run_history_files[int(file_name.replace('.json', ''))] = os.path.join(dir_path, file_name)
                     except ValueError:
@@ -351,7 +351,10 @@ class UploadJob(object):
                         return _("The job archive is corrupted")
                 else:
                     b_dir = os.path.basename(dir_path)
-                    if b_dir in list(x.__name__ for x in [ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent]):
+                    if not rel_path.startswith(b_dir):
+                        logger.error('Unknown file in archive: %s' % rel_path)
+                        return _("The job archive is corrupted")
+                    if b_dir in {'ReportSafe', 'ReportUnsafe', 'ReportUnknown', 'ReportComponent'}:
                         m = re.match('(\d+)\.zip', file_name)
                         if m is not None:
                             report_files[(b_dir, int(m.group(1)))] = os.path.join(dir_path, file_name)
@@ -368,7 +371,7 @@ class UploadJob(object):
             logger.error('job.json file was not found or contains wrong data')
             return _("The job archive is corrupted")
         # Check job data
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map', 'run_history']):
+        if any(x not in jobdata for x in {'format', 'type', 'status', 'files_map', 'run_history'}):
             logger.error('Not enough data in job.json file')
             return _("The job archive is corrupted")
         if jobdata['format'] != FORMAT:

@@ -23,7 +23,7 @@ from django.db.models import Q, F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum, logger
+from bridge.utils import file_checksum
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
 from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
@@ -265,7 +265,8 @@ class GetTasks:
             'finished': [],
             'cancelled': []
         }
-        for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0]):
+        for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
+                .annotate(sol=F('solution__id')):
             for status in status_map:
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
@@ -282,6 +283,9 @@ class GetTasks:
                 self.__add_description(task)
             elif str(task.id) in data['tasks']['finished']:
                 self.__change_status(task, 'pending', 'finished')
+                if task.sol is None:
+                    # TODO: email notification
+                    logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
                 self.__change_status(task, 'pending', 'error')
 
@@ -306,6 +310,9 @@ class GetTasks:
                 self._solution_req.add(task.id)
             elif str(task.id) in data['tasks']['finished']:
                 self.__change_status(task, 'processing', 'finished')
+                if task.sol is None:
+                    # TODO: email notification
+                    logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
                 self.__change_status(task, 'processing', 'error')
 
@@ -317,16 +324,15 @@ class GetTasks:
             else:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
-        for old_status in {'error', 'finished', 'cancelled'}:
+        for old_status in {'error', 'finished'}:
             for task in all_tasks[old_status]:
-                # TODO: is it possible for tasks to change its status from error/finished to cancelled?
-                # If not remove 'cancelled' from the next set and
-                # add case when status changes from cancelled to cancelled
-                for new_status in {'pending', 'processing', 'error', 'finished', 'cancelled'}:
+                for new_status in {'pending', 'processing', 'error', 'finished'}:
                     if str(task.pk) in data['tasks'][new_status]:
                         raise ServiceError("The task '%s' with status '%s' has become '%s'" % (
                             task.id, old_status.upper(), new_status.upper()
                         ))
+        # There are no cancelled tasks because when the task is cancelled it is deleted,
+        # and there are no changes of status to cancelled in get_jobs_and_tasks_status()
 
         self.__finish_with_tasks()
         if self._scheduler.type == SCHEDULER_TYPE[0][0]:
@@ -419,13 +425,8 @@ class GetTasks:
             Task.objects.filter(id__in=self._tasks_statuses[status]).update(status=status)
         for progress_id in self._progresses:
             self._progresses[progress_id].save()
-        tasks_with_solution = set()
         for solution in Solution.objects.filter(task_id__in=self._solution_req):
-            tasks_with_solution.add(solution.task_id)
             self._data['task solutions'][str(solution.task_id)] = json.loads(solution.description.decode('utf8'))
-        if len(self._solution_req - tasks_with_solution) > 0:
-            # TODO: email notification
-            logger.error('There are finished tasks without solutions', stack_info=True)
 
 
 class GetTaskData:

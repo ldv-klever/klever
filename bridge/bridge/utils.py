@@ -203,7 +203,7 @@ class ArchiveFileContent(object):
         self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
-        with self._report.archive as fp:
+        with getattr(self._report, '_meta').model.objects.get(id=self._report.id).archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -218,7 +218,9 @@ class RemoveFilesBeforeDelete:
         elif model_name == 'ReportRoot':
             self.__remove_reports_files(obj)
         elif model_name == 'Job':
-            self.__remove_job_files(obj)
+            # Deleting of the job automatically send signals of deleting OneToOne fields
+            # (ReportRoot and SolvingProgress), so we don't need to do here something
+            pass
         elif model_name == 'ReportComponent':
             self.__remove_component_files(obj)
         elif model_name == 'Task':
@@ -241,18 +243,6 @@ class RemoveFilesBeforeDelete:
             self.__remove(files)
         for files in ReportComponent.objects.filter(root=root).values_list('archive', 'data'):
             self.__remove(files)
-
-    def __remove_job_files(self, job):
-        from service.models import SolvingProgress
-        from reports.models import ReportRoot
-        try:
-            self.__remove_reports_files(ReportRoot.objects.get(job=job))
-        except ObjectDoesNotExist:
-            pass
-        try:
-            self.__remove_progress_files(SolvingProgress.objects.get(job=job))
-        except ObjectDoesNotExist:
-            pass
 
     def __remove_component_files(self, report):
         from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown

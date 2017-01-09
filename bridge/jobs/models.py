@@ -20,7 +20,6 @@ from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
-from bridge.utils import logger, RemoveFilesBeforeDelete
 
 JOBFILE_DIR = 'Job'
 
@@ -59,7 +58,7 @@ class Job(JobBase):
     type = models.CharField(max_length=1, choices=JOB_CLASSES, default='0')
     version = models.PositiveSmallIntegerField(default=1)
     change_date = models.DateTimeField(auto_now=True)
-    identifier = models.CharField(max_length=255, unique=True)
+    identifier = models.CharField(max_length=255, unique=True, db_index=True)
     parent = models.ForeignKey('self', null=True, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
     light = models.BooleanField(default=False)
@@ -69,13 +68,6 @@ class Job(JobBase):
 
     class Meta:
         db_table = 'job'
-
-
-@receiver(pre_delete, sender=Job)
-def job_delete_signal(**kwargs):
-    logger.info('Deleting Job files...')
-    RemoveFilesBeforeDelete(kwargs['instance'])
-    logger.info('Deleting Job object...')
 
 
 class RunHistory(models.Model):

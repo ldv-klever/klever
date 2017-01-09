@@ -571,11 +571,10 @@ def download_report_files(request, report_id):
     if not report.archive:
         return HttpResponseRedirect(reverse('error', args=[500]))
 
-    with report.archive.file as fp:
-        response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
-        response['Content-Length'] = len(fp)
-        response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
-        return response
+    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/x-tar-gz')
+    response['Content-Length'] = len(report.archive.file)
+    response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
+    return response
 
 
 @login_required
@@ -588,8 +587,7 @@ def download_error_trace(request, report_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     content = ArchiveFileContent(report, report.error_trace).content
-    memory = BytesIO(content)
-    response = StreamingHttpResponse(FileWrapper(memory, 8192), content_type='application/x-tar-gz')
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/x-tar-gz')
     response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
     return response

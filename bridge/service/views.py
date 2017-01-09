@@ -278,7 +278,7 @@ def test(request):
         'defvals': {
             'task_description': '{"priority": "LOW"}',
             'sch_json': json.dumps(TEST_JSON),
-            'solution_description': "{}",
+            'solution_description': '{"resources": {"wall time": 10000}}',
             'nodes_data': json.dumps(TEST_NODES_DATA),
             'tools_data': json.dumps(TEST_TOOLS_DATA),
         },

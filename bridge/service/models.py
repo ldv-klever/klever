@@ -20,7 +20,7 @@ from django.db.models.signals import pre_delete, post_init
 from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
 from bridge.vars import PRIORITY, NODE_STATUS, TASK_STATUS, SCHEDULER_STATUS, SCHEDULER_TYPE
-from bridge.utils import RemoveFilesBeforeDelete
+from bridge.utils import RemoveFilesBeforeDelete, logger
 from jobs.models import Job
 
 FILE_DIR = 'Service'
@@ -114,7 +114,9 @@ class SolvingProgress(models.Model):
 
 @receiver(pre_delete, sender=SolvingProgress)
 def progress_delete_signal(**kwargs):
+    logger.info('Deleting SolvingProgress files...')
     RemoveFilesBeforeDelete(kwargs['instance'])
+    logger.info('Deleting SolvingProgress object...')
 
 
 @receiver(post_init, sender=SolvingProgress)

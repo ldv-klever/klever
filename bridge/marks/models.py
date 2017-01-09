@@ -27,7 +27,7 @@ CONVERTED_DIR = 'Error-traces'
 
 
 class ConvertedTraces(models.Model):
-    hash_sum = models.CharField(max_length=255)
+    hash_sum = models.CharField(max_length=255, db_index=True)
     file = models.FileField(upload_to=CONVERTED_DIR, null=False)
 
     class Meta:
@@ -45,7 +45,7 @@ def converted_delete(**kwargs):
 
 
 class UnknownProblem(models.Model):
-    name = models.CharField(max_length=15)
+    name = models.CharField(max_length=15, db_index=True)
 
     def __str__(self):
         return self.name
@@ -56,7 +56,7 @@ class UnknownProblem(models.Model):
 
 # Tables with functions
 class MarkUnsafeConvert(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
@@ -67,7 +67,7 @@ class MarkUnsafeConvert(models.Model):
 
 
 class MarkUnsafeCompare(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
@@ -186,7 +186,7 @@ class MarkUnsafeReport(models.Model):
 # Tags tables
 class SafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
-    tag = models.CharField(max_length=32)
+    tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
 
@@ -196,7 +196,7 @@ class SafeTag(models.Model):
 
 class UnsafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
-    tag = models.CharField(max_length=32)
+    tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
 
