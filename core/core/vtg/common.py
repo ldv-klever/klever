@@ -81,6 +81,7 @@ class CommonStrategy(core.components.Component):
             # Safely use id of corresponding abstract verification task since all bug kinds will be merged and each
             # abstract verification task will correspond to exactly one verificatoin task.
             'id': self.conf['abstract task desc']['id'],
+            'job id': self.conf['identifier'],
             'format': 1,
         }
         # Copy attributes from parent job.

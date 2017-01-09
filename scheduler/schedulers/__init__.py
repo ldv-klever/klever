@@ -272,6 +272,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         cancelled = self.__jobs[job_id]["future"].cancel()
                         if not cancelled:
                             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
+
+                            # Then terminate all pending and processing tasks for the job
+                            for task_id in [task_id for task_id in self.__tasks
+                                            if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
+                                            self.__tasks[task_id]["description"]["job id"] == job_id]:
+                                self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+
                     del self.__jobs[job_id]
 
                 # Update jobs processing status
