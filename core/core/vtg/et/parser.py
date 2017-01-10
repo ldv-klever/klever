@@ -145,6 +145,8 @@ class ErrorTraceParser:
                     _edge['thread'] = data.text
                 elif data_key in ('startoffset', 'endoffset'):
                     pass
+                elif data_key in ('note', 'warning'):
+                    _edge[data_key] = data.text
                 elif data_key not in unsupported_edge_data_keys:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None

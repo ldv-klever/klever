@@ -312,9 +312,6 @@ class Declaration:
         queue = [self]
         ret = True
 
-        # todo: this is because CIF provide nameless enums with artificially generated name like 'ldv_26585'
-        enum_regex = re.compile('ldv_')
-
         while len(queue) > 0:
             tp = queue.pop()
 
@@ -322,9 +319,7 @@ class Declaration:
                 queue.append(tp.element)
             elif isinstance(tp, Pointer):
                 queue.append(tp.points)
-            elif ((isinstance(tp, Structure) or isinstance(tp, Union)) and not tp.name) or\
-                 (isinstance(tp, Enum) and enum_regex.match(tp.name)):
-                # Transform only complex
+            elif (isinstance(tp, Structure) or isinstance(tp, Union) or isinstance(tp, Enum)) and not tp.name:
                 ret = False
                 break
 
@@ -373,6 +368,10 @@ class Enum(Declaration):
 
     def __init__(self, ast):
         self.common_initialization(ast)
+        self.enumerators = []
+
+        if 'enumerators' in self._ast['specifiers']['type specifier']:
+            self.enumerators = self._ast['specifiers']['type specifier']['enumerators']
 
     @property
     def name(self):
@@ -387,10 +386,15 @@ class Enum(Declaration):
         return 'enum_{}'.format(self.name)
 
     def _to_string(self, replacement, typedef='none'):
-        if replacement == '':
-            return "enum {}".format(self.name)
+        if not self.name:
+            name = '{ ' + ', '.join(self.enumerators) + ' }'
         else:
-            return "enum {} {}".format(self.name, replacement)
+            name = self.name
+
+        if replacement == '':
+            return "enum {}".format(name)
+        else:
+            return "enum {} {}".format(name, replacement)
 
 
 class Function(Declaration):
