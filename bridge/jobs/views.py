@@ -251,7 +251,7 @@ def show_job(request, job_id=None):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group(['Job', 'Report'])
 def get_job_data(request):
     activate(request.user.extended.language)
 
