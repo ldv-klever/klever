@@ -43,13 +43,13 @@ def can_compare(user, job1, job2):
 class ReportTree(object):
     def __init__(self, job):
         self.job = job
-        self.name_ids = self.__get_attr_names()
+        self._name_ids = self.__get_attr_names()
         self.attr_values = {}
         self._leaves_data = {'u': {}, 's': {}, 'f': {}}
         self.__get_tree()
 
     def __get_attr_names(self):
-        return list(x.id for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]).only('id'))
+        return list(x[0] for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]).values_list('id'))
 
     def __get_tree(self):
         leaves_fields = {
@@ -57,8 +57,9 @@ class ReportTree(object):
             's': 'safe_id',
             'f': 'unknown_id'
         }
-        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job).select_related('report')\
-                .only('report__parent_id', *leaves_fields.values()):
+        only = list(leaves_fields.values())
+        only.append('report__parent_id')
+        for leaf in ReportComponentLeaf.objects.filter(report__root__job=self.job).select_related('report').only(*only):
             for l_type in leaves_fields:
                 l_id = leaf.__getattribute__(leaves_fields[l_type])
                 if l_id is not None:
@@ -83,16 +84,16 @@ class ReportTree(object):
             leaves[r.id] = r.parent_id
 
         leaves_attrs = {}
-        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self.name_ids)\
+        for ra in ReportAttr.objects.filter(report_id__in=list(leaves), attr__name_id__in=self._name_ids)\
                 .select_related('attr').only('report_id', 'attr__name_id', 'attr__value'):
             if ra.report_id not in leaves_attrs:
                 leaves_attrs[ra.report_id] = {}
-            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr.value
+            leaves_attrs[ra.report_id][ra.attr.name_id] = ra.attr_id
 
         for l_id in leaves:
-            if l_id not in leaves_attrs or any(name_id not in leaves_attrs[l_id] for name_id in self.name_ids):
+            if l_id not in leaves_attrs or any(name_id not in leaves_attrs[l_id] for name_id in self._name_ids):
                 continue
-            attrs_id = json.dumps(list(leaves_attrs[l_id][name_id] for name_id in self.name_ids), ensure_ascii=False)
+            attrs_id = '|'.join(str(leaves_attrs[l_id][name_id]) for name_id in self._name_ids)
 
             branch_ids = [(l_type, l_id)]
             parent = leaves[l_id]
@@ -198,7 +199,7 @@ class ComparisonTableData(object):
         all_attrs = {}
         for compare in info.comparejobscache_set.all():
             try:
-                attr_values = json.loads(compare.attr_values)
+                attr_values = compare.attr_values.split('|')
             except Exception as e:
                 logger.exception("Json parsing error: %s" % e, stack_info=True)
                 self.error = 'Unknown error'
@@ -213,8 +214,9 @@ class ComparisonTableData(object):
                     all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]].append(attr_values[i])
 
         for a in JOBS_COMPARE_ATTRS[info.root1.job.type]:
+            values = list(Attr.objects.filter(id__in=all_attrs[a]).order_by('value').values_list('id', 'value'))
             if a in all_attrs:
-                self.attrs.append({'name': a, 'values': list(sorted(all_attrs[a]))})
+                self.attrs.append({'name': a, 'values': values})
 
 
 class ComparisonData(object):
@@ -252,13 +254,13 @@ class ComparisonData(object):
     def __get_data(self, verdict=None, search_attrs=None):
         if search_attrs is not None:
             try:
-                search_attrs = json.dumps(json.loads(search_attrs), ensure_ascii=False)
+                search_attrs = '|'.join(json.loads(search_attrs))
             except ValueError:
                 self.error = 'Unknown error'
                 return None
             if '__REGEXP_ANY__' in search_attrs:
                 search_attrs = re.escape(search_attrs)
-                search_attrs = search_attrs.replace('__REGEXP_ANY__', '[^,]+')
+                search_attrs = search_attrs.replace('__REGEXP_ANY__', '\d+')
                 search_attrs = '^' + search_attrs + '$'
                 data = self.info.comparejobscache_set.filter(attr_values__regex=search_attrs).order_by('id')
             else:

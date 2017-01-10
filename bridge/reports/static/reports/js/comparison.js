@@ -168,7 +168,6 @@ function get_comparison(v_id, page_num) {
 }
 
 function get_comparison_by_attrs(attrs, page_num) {
-    console.log('GO TO: ' + page_num);
     var data = {
         attrs: attrs,
         info_id: $('#compare_info').val(),
@@ -228,8 +227,8 @@ $(document).ready(function () {
     });
     $('#search_by_attrs').click(function () {
         var attrs = [];
-        $('input[name^="attr_value"]').each(function () {
-            if ($(this).val().length > 0) {
+        $('select[id^="attr_value__"]').each(function () {
+            if ($(this).val() != '0') {
                 attrs.push($(this).val());
             }
             else {
