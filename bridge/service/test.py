@@ -202,7 +202,7 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertEqual(response['Content-Type'], 'application/zip')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks
@@ -550,7 +550,7 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertEqual(response['Content-Type'], 'application/zip')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks
@@ -865,7 +865,7 @@ class TestService(KleverTestCase):
                     self.fail("Node was not created")
                 if 'workload' in n_conf['nodes'][n]:
                     self.assertEqual(len(Workload.objects.filter(
-                        node=node,
+                        id=node.workload_id,
                         jobs=n_conf['nodes'][n]['workload']['running verification jobs'],
                         tasks=n_conf['nodes'][n]['workload']['running verification tasks'],
                         cores=n_conf['nodes'][n]['workload']['reserved CPU number'],

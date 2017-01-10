@@ -571,7 +571,7 @@ def download_report_files(request, report_id):
     if not report.archive:
         return HttpResponseRedirect(reverse('error', args=[500]))
 
-    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/x-tar-gz')
+    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/zip')
     response['Content-Length'] = len(report.archive.file)
     response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
     return response
@@ -587,7 +587,7 @@ def download_error_trace(request, report_id):
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     content = ArchiveFileContent(report, report.error_trace).content
-    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/x-tar-gz')
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/json')
     response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
     return response

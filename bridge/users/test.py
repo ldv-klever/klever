@@ -136,6 +136,7 @@ class TestLoggedInUser(KleverTestCase):
             'accuracy': 2, 'language': LANGUAGES[1][0], 'data_format': DATAFORMAT[0][0],
             'last_name': 'Newlastname', 'first_name': 'Newname'
         })
+        self.user = User.objects.get(pk=self.user.pk)
         self.assertRedirects(response, reverse('users:edit_profile'))
         self.assertEqual(self.user.first_name, 'Newname')
         self.assertEqual(self.user.last_name, 'Newlastname')

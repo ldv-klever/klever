@@ -275,8 +275,8 @@ class NewMark:
         if self.calculate:
             if self.do_recalk:
                 self.changes = ConnectMarkWithReports(self.mark).changes
-                for mr in self.changes:
-                    RecalculateTags(mr.report)
+                for r in self.changes:
+                    RecalculateTags(r)
             elif self.type != 'unknown':
                 if recalc_verdicts:
                     UpdateVerdict(mark)
@@ -322,11 +322,13 @@ class NewMark:
                 tags_in_db[t.id] = t.parent_id
             if any(t not in tags_in_db for t in tags):
                 return _('One of tags was not found')
+            tags_parents = set()
             for t in tags:
                 parent = tags_in_db[t]
                 while parent is not None and parent not in tags:
-                    tags.add(parent)
+                    tags_parents.add(parent)
                     parent = tags_in_db[parent]
+            tags |= tags_parents
             tables[self.type][1].objects.bulk_create(
                 list(tables[self.type][1](tag_id=t, mark_version=self.mark_version) for t in tags)
             )
@@ -835,12 +837,14 @@ class RecalculateTags:
 
         # Get all safes for each affected report
         reports_data = {}
+        all_safes = set()
         for leaf in ReportComponentLeaf.objects.filter(report_id__in=reports).exclude(safe=None)\
                 .values('safe_id', 'report_id'):
             if leaf['report_id'] not in reports_data:
                 reports_data[leaf['report_id']] = {'leaves': set(), 'numbers': {}}
             reports_data[leaf['report_id']]['leaves'].add(leaf['safe_id'])
-        for rt in SafeReportTag.objects.filter(report_id__in=reports_data):
+            all_safes.add(leaf['safe_id'])
+        for rt in SafeReportTag.objects.filter(report_id__in=all_safes):
             for rc_id in reports_data:
                 if rt.report_id in reports_data[rc_id]['leaves']:
                     if rt.tag_id in reports_data[rc_id]['numbers']:
@@ -868,14 +872,16 @@ class RecalculateTags:
 
         # Get all unsafes for each affected report
         reports_data = {}
+        all_unsafes = set()
         for leaf in ReportComponentLeaf.objects.filter(report_id__in=reports).exclude(unsafe=None)\
                 .values('unsafe_id', 'report_id'):
             if leaf['report_id'] not in reports_data:
                 reports_data[leaf['report_id']] = {'leaves': set(), 'numbers': {}}
             reports_data[leaf['report_id']]['leaves'].add(leaf['unsafe_id'])
+            all_unsafes.add(leaf['unsafe_id'])
 
         # Get numbers of tags for each affected report
-        for rt in UnsafeReportTag.objects.filter(report_id__in=reports_data):
+        for rt in UnsafeReportTag.objects.filter(report_id__in=all_unsafes):
             for rc_id in reports_data:
                 if rt.report_id in reports_data[rc_id]['leaves']:
                     if rt.tag_id in reports_data[rc_id]['numbers']:
