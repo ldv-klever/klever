@@ -259,8 +259,9 @@ def solve_task(conf):
 
     with zipfile.ZipFile('decision result files.zip', mode='w') as zfp:
         zfp.write("decision results.json")
-        for file in glob.glob("output/*"):
-            zfp.write(file)
+        for dirpath, dirnames, filenames in os.walk("output"):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename))
         if conf["upload input files of static verifiers"]:
             zfp.write("benchmark.xml")
 
