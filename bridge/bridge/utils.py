@@ -33,6 +33,7 @@ from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+CALL_STATISTIC = {}
 TESTS_DIR = 'Tests'
 
 logger = logging.getLogger('bridge')
@@ -72,6 +73,19 @@ def affected_models(model):
     return related_models
 
 
+def dump_statistic():
+    logger.info('=========FUNCTION CALL STATISTIC========')
+    for f_name in CALL_STATISTIC:
+        if CALL_STATISTIC[f_name][0] > 0 or CALL_STATISTIC[f_name][1] > 0:
+            logger.info(
+                '%s called %d times and waited for other functions for %0.1f seconds' % (
+                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0]
+                )
+            )
+            CALL_STATISTIC[f_name][0] = 0
+            CALL_STATISTIC[f_name][1] = 0
+
+
 def unparallel_group(groups):
     def unparallel_inner(f):
         block = set()
@@ -94,10 +108,16 @@ def unparallel_group(groups):
                 GROUP_BLOCKER[g] = status
 
         def wait(*args, **kwargs):
+            if f.__name__ not in CALL_STATISTIC:
+                CALL_STATISTIC[f.__name__] = [0, 0]
             while not block_access():
                 time.sleep(0.1)
+                CALL_STATISTIC[f.__name__][0] += 1
             change_block(1)
+            CALL_STATISTIC[f.__name__][1] += 1
             res = f(*args, **kwargs)
+            if CALL_STATISTIC[f.__name__][0] > 36000:
+                dump_statistic()
             change_block(0)
             return res
 
