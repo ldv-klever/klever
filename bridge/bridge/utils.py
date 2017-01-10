@@ -79,7 +79,7 @@ def dump_statistic():
         if CALL_STATISTIC[f_name][0] > 0 or CALL_STATISTIC[f_name][1] > 0:
             logger.info(
                 '%s called %d times and waited for other functions for %0.1f seconds' % (
-                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0]
+                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0] / 10
                 )
             )
             CALL_STATISTIC[f_name][0] = 0
