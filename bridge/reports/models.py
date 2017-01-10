@@ -274,7 +274,7 @@ class CompareJobsInfo(models.Model):
 
 class CompareJobsCache(models.Model):
     info = models.ForeignKey(CompareJobsInfo)
-    attr_values = models.TextField(db_index=True)
+    attr_values = models.TextField()
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     reports1 = models.CharField(max_length=1000)
