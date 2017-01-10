@@ -14,7 +14,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "22517"
+        "version": "trunk:23932"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -105,6 +105,17 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "c822fb57ba12~"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
+      },
+      "rule specifications": ["linux:drivers:clk2"],
+      "ideal verdicts": [{
+        "ideal verdict": "unsafe",
+        "comment": "Non-target bug"
+      }]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "7ce77510c9c7"},
         "modules": ["drivers/usb/serial/opticon.ko"]
       },
@@ -183,13 +194,24 @@
     },
     {
       "Linux kernel": {
+        "Git repository": {"commit": "c822fb57ba12"},
+        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
+      },
+      "rule specifications": ["linux:drivers:clk2"],
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
+    },
+    {
+      "Linux kernel": {
         "Git repository": {"commit": "5c256d215753~"},
         "modules": ["drivers/media/usb/dvb-usb/dvb-usb-dw2102.ko"]
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "???"
+        "comment": "CPAchecker spends all time when treating call to function containing target bug from module itself while target bug can be reached just when that function is called from environment model later. Some time ago target bug was found."
       }]
     },
     {
@@ -215,7 +237,7 @@
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "???"
+        "comment": "[Kernel model] One should add model for function request_firmware_nowait() (model for function request_firmware() is also welcome since it is used much often) but this will likely lead to calls by function pointers that aren't supported well by verifiers"
       }]
     },
     {
@@ -230,7 +252,7 @@
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "???"
+        "comment": "See comment for drivers/leds/leds-lp5521.ko"
       }]
     },
     {
@@ -245,7 +267,7 @@
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "???"
+        "comment": "[Kernel model] Model for function __list_add() is missed. It is wondering but target bug was found by LDV Tools"
       }]
     },
     {
@@ -256,7 +278,7 @@
       "rule specifications": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "Incredibly complex module with great number of process instances and large call stack to target bug. EMG doesn't generate environment model since the number of generated instances more than it is allowed by configuration (60)."
+        "comment": "[Environment model] EMG doesn't generate environment model since the number of generated instances is more than it is allowed by configuration (<a href='https://forge.ispras.ru/issues/7547'>feature #7547</a>). Any way this is incredibly complex module with great number of process instances and large call stack to target bug."
       }]
     },
     {
@@ -267,7 +289,7 @@
       "rule specifications": ["linux:kernel:module"],
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
-        "comment": "???"
+        "comment": "[Environment model] EMG doesn't generate environment model since the number of generated instances is more than it is allowed by configuration (<a href='https://forge.ispras.ru/issues/7547'>feature #7547</a>)"
       }]
     },
     {
@@ -299,17 +321,6 @@
       "ideal verdicts": [{
         "ideal verdict": "unsafe",
         "comment": "Complex module with complex environment model. Using other configurations (value analysis and BAM) can help to find bugs (for BAM it is even real bug). To find target bug it is required at least to switch off function pointers analysis that doesn't track structure fields."
-      }]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "c822fb57ba12~"},
-        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
-      },
-      "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{
-        "ideal verdict": "unsafe",
-        "comment": "???"
       }]
     },
     {
@@ -370,7 +381,10 @@
         "modules": ["fs/nfs/nfs.ko"]
       },
       "rule specifications": ["linux:kernel:locking:spinlock"],
-      "ideal verdicts": [{"ideal verdict": "safe"}]
+      "ideal verdicts": [{
+        "ideal verdict": "safe",
+        "comment": "See comment for unsafe"
+      }]
     },
     {
       "Linux kernel": {
@@ -410,17 +424,6 @@
       "specifications set": "Linux 3.2",
       "rule specifications": ["linux:kernel:locking:spinlock"],
       "ideal verdicts": [{"ideal verdict": "safe"}]
-    },
-    {
-      "Linux kernel": {
-        "Git repository": {"commit": "c822fb57ba12"},
-        "modules": ["drivers/spi/spi-pxa2xx-platform.ko"]
-      },
-      "rule specifications": ["linux:drivers:clk1"],
-      "ideal verdicts": [{
-        "ideal verdict": "safe",
-        "comment": "See comment for unsafe"
-      }]
     }
   ],
   "Source code > 25 KLOC": [

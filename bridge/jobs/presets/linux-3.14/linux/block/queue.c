@@ -29,34 +29,34 @@ enum {
 
 static int ldv_queue_state = LDV_NO_QUEUE;
 
-/* MODEL_FUNC_DEF Allocate queue. */
+/* MODEL_FUNC Allocate queue. */
 struct request_queue *ldv_request_queue(void)
 {
 	/* ASSERT Queue should not be allocated twice. */
 	ldv_assert("linux:block:queue::double allocation", ldv_queue_state == LDV_NO_QUEUE);
-	/* OTHER Choose an arbitrary return value. */
+	/* NOTE Choose an arbitrary return value. */
 	struct request_queue *res = (struct request_queue *)ldv_undef_ptr();
-	/* OTHER If memory is not available. */
+	/* NOTE If memory is not available. */
 	if (res) {
-		/* CHANGE_STATE Allocate gendisk. */
+		/* NOTE Allocate gendisk. */
 		ldv_queue_state = LDV_INITIALIZED_QUEUE;
-		/* RETURN Queue was successfully created. */
+		/* NOTE Queue was successfully created. */
 		return res;
 	}
-	/* RETURN There was an error during queue creation. */
+	/* NOTE There was an error during queue creation. */
 	return res;
 }
 
-/* MODEL_FUNC_DEF Free queue. */
+/* MODEL_FUNC Free queue. */
 void ldv_blk_cleanup_queue(void)
 {
 	/* ASSERT Queue should be allocated . */
 	ldv_assert("linux:block:queue::use before allocation", ldv_queue_state == LDV_INITIALIZED_QUEUE);
-	/* CHANGE_STATE Free queue. */
+	/* NOTE Free queue. */
 	ldv_queue_state = LDV_NO_QUEUE;
 }
 
-/* MODEL_FUNC_DEF Check that queue are not allocated at the end */
+/* MODEL_FUNC Check that queue are not allocated at the end */
 void ldv_check_final_state(void)
 {
 	/* ASSERT Queue must be freed at the end. */

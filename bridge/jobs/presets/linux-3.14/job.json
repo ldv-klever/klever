@@ -1,6 +1,6 @@
 {
   "Linux kernel": {
-    "source": "linux-3.5.tar.bz2",
+    "source": "linux-3.14",
     "configuration": "allmodconfig",
     "modules": ["drivers/net/usb/kaweth.ko"]
   },
@@ -8,14 +8,14 @@
   "maximum verification object size": 30000,
   "rule specifications DB": "rule specs.json",
   "specifications set": "Linux 3.14 (base)",
-  "rule specifications": ["linux:alloc:spinlock", "linux:mutex", "linux:module"],
+  "rule specifications": ["linux:alloc:spinlock", "linux:kernel:locking:mutex", "linux:kernel:module"],
   "unite rule specifications": false,
   "RSG strategy": "instrumentation",
   "VTG strategy": {
     "name": "single bug type",
     "verifier": {
       "name": "CPAchecker",
-      "version": "22517"
+      "version": "trunk:23932"
     },
     "resource limits": {
       "wall time": 1000000,

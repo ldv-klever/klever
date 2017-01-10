@@ -4,8 +4,9 @@
 
 {% load humanize %}
 {% load tz %}
+{% load staticfiles %}
 
-{% block jobs_head_block %}<script src="/static/jobs/js/editjob.js"></script>{% endblock %}
+{% block jobs_head_block %}<script src="{% static 'jobs/js/editjob.js' %}"></script>{% endblock %}
 
 {% block title %}{% trans 'Job' %}{% endblock %}
 
@@ -26,11 +27,14 @@
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision' %}</p>
                 </div>
-                <button id="show_fast_job_start_popup" data-variation="very wide" class="ui pink button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
+                <button id="show_fast_job_start_popup" data-variation="very wide" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="play forward icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Start decision with default values' %}</p>
                 </div>
-
+                <button id="show_last_job_start_popup" data-variation="very wide" class="ui purple button normal-popup{% if not can_decide %} disabled{% endif %}"><i class="history icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Start decision with last configuration' %}</p>
+                </div>
                 <button id="stop_job_btn" class="ui orange button normal-popup{% if not can_stop %} disabled{% endif %}"><i class="stop icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Stop decision' %}</p>
@@ -50,6 +54,10 @@
                 <button id="collapse_reports_modal_show" class="ui orange button normal-popup{% if not can_collapse %} disabled{% endif %}"><i class="archive icon"></i></button>
                 <div class="ui popup">
                     <p style="white-space: nowrap">{% trans 'Collapse reports' %}</p>
+                </div>
+                <button id="dfc_modal_show" class="ui teal button normal-popup{% if not can_dfc %} disabled{% endif %}"><i class="download icon"></i></button>
+                <div class="ui popup">
+                    <p style="white-space: nowrap">{% trans 'Download files for competition' %}</p>
                 </div>
             </div>
             <table class="ui selectable compact inverted violet table attached">
@@ -118,15 +126,13 @@
                     <tr>
                         <th class="right aligned">{% trans 'Last change' %}</th>
                         <td>
-                            <span id="last_change_date">
-                                {% if user.extended.data_format == 'hum' %}
-                                    {{ last_version.change_date|naturaltime }}
-                                {% else %}
-                                    {% timezone user.extended.timezone %}
-                                        {{ last_version.change_date }}
-                                    {% endtimezone %}
-                                {% endif %}
-                            </span>
+                            {% if user.extended.data_format == 'hum' %}
+                                {{ last_version.change_date|naturaltime }}
+                            {% else %}
+                                {% timezone user.extended.timezone %}
+                                    {{ last_version.change_date }}
+                                {% endtimezone %}
+                            {% endif %}
                             {% if last_version.change_author %}
                                 (<a class="violet-link" href="{% url 'users:show_profile' last_version.change_author.pk %}">{{ last_version.change_author.extended.last_name }} {{ last_version.change_author.extended.first_name }}</a>)
                             {% endif %}
@@ -135,37 +141,67 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% if job.solvingprogress.start_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Start decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.start_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.start_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if job.solvingprogress.finish_date %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Finish decision date' %}</th>
+                            <td>
+                                {% if user.extended.data_format == 'hum' %}
+                                    {{ job.solvingprogress.finish_date|naturaltime }}
+                                {% else %}
+                                    {% timezone user.extended.timezone %}
+                                        {{ job.solvingprogress.finish_date|date:"r" }}
+                                    {% endtimezone %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                    {% if progress_data %}
+                        <tr>
+                            <th class="right aligned">{% trans 'Decision progress' %}</th>
+                            <td id="progress_val">{{ progress_data.0 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Average time before finishing decision (all jobs)' %}</th>
+                            <td id="average_time">{{ progress_data.1 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Average time before finishing decision (just this jobs)' %}</th>
+                            <td id="local_average_time">{{ progress_data.2 }}</td>
+                        </tr>
+                        <tr>
+                            <th class="right aligned">{% trans 'Maximum time before finishing decision' %}</th>
+                            <td id="max_time">{{ progress_data.3 }}</td>
+                        </tr>
+                    {% endif %}
                     <tr id="job_status_popup_activator">
                         <th class="right aligned">{% trans 'Decision status' %}</th>
                         <td>
                             {% if reportdata.report %}
-                                <a id="job_status_link" class="
-                                {% if job.status == '0' %}
-                                    status-link status0-link
-                                {% elif job.status == '1' %}
-                                    status-link status1-link
-                                {% elif job.status == '2' %}
-                                    status-link status2-link
-                                {% elif job.status == '3' %}
-                                    status-link status3-link
-                                {% elif job.status == '4' %}
-                                    status-link status4-link
-                                {% elif job.status == '5' %}
-                                    status-link status5-link
-                                {% elif job.status == '6' %}
-                                    status-link status6-link
-                                {% elif job.status == '7' %}
-                                    status-link status7-link
-                                {% endif %}
-                                " href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
+                                <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p id="job_status_p" style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
                             {% endif %}
+                            <input id="job_status_value" type="hidden" value="{{ job.status }}">
                         </td>
                     </tr>
                 </tbody>
             </table>
             <input type="hidden" id="job_pk" value="{{ job.pk }}">
+            <input type="hidden" id="job_identifier" value="{{ job.identifier }}">
             {% if job.solvingprogress.error %}
                 <div id="job_status_popup" class="ui inverted popup wide hidden">
                     <div class="ui red header">{{ job.solvingprogress.error }}</div>
@@ -196,6 +232,23 @@
                 <div class="ui center aligned grid">
                     <button id="cancel_remove_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <button id="remove_job_btn" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
+                </div>
+            </div>
+        </div>
+        <div id="last_start_job_popup" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans 'All existing reports of this job will be deleted' %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_last_start_job" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="lastconf_job_start" type="button" class="ui red basic inverted button">{% trans 'Start' %}</button>
                 </div>
             </div>
         </div>
@@ -250,5 +303,56 @@
                 </div>
             </div>
         </div>
+        {% if can_dfc %}
+            <div id="dfc_modal" class="ui small dinamic modal">
+                <div class="ui header">{% trans 'Choose filters' %}</div>
+                <div class="content">
+                    <div class="ui grid">
+                        <div class="six wide column">
+                            {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.tags_unsafe|length %}
+                                <div class="ui checkbox">
+                                    <label for="dfc__u">{% trans 'Unsafes' %}</label>
+                                    <input id="dfc__u" type="checkbox">
+                                </div>
+                                <br>
+                            {% endif %}
+                            {% if reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.tags_safe|length %}
+                                <div class="ui checkbox">
+                                    <label for="dfc__s">{% trans 'Safes' %}</label>
+                                    <input id="dfc__s" type="checkbox">
+                                </div>
+                                <br>
+                            {% endif %}
+                            {% if reportdata.view_data.unknowns|length %}
+                                <div class="ui checkbox">
+                                    <label for="dfc__f">{% trans 'Unknowns' %}</label>
+                                    <input id="dfc__f" type="checkbox">
+                                </div>
+                                <br>
+                            {% endif %}
+                        </div>
+                        <div id="dfc_problems" class="ten wide column" style="display: none">
+                            {% if reportdata.problems|length %}
+                                <p><small>{% trans "If you don't choose unknowns' problems then all unknowns files will be downloaded" %}</small></p>
+                            {% endif %}
+                            {% for problem in reportdata.problems %}
+                                <div class="ui checkbox">
+                                    <label for="dfc__p__{{ problem.1 }}">{{ problem.0 }}</label>
+                                    <input id="dfc__p__{{ problem.1 }}" type="checkbox" value="{{ problem.1 }}">
+                                </div>
+                                <br>
+                            {% endfor %}
+                        </div>
+                        <div class="sixteen wide column right aligned">
+                            <div class="ui buttons">
+                                <button id="dfc__confirm" href="{% url 'jobs:download_file_for_compet' job.pk %}" class="ui green button">{% trans 'Download' %}</button>
+                                <button id="dfc__cancel" class="ui blue button">{% trans 'Cancel' %}</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span id="error___dfc_notype" hidden>{% trans 'Choose at least one type of reports' %}</span>
+        {% endif %}
     {% endif %}
 {% endblock %}

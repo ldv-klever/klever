@@ -5,6 +5,7 @@
     "password": "password"
   },
   "scheduler": {
+    "production": true,
     "type": "native",
     "processes": 1.0,
     "process pool": false,
@@ -12,11 +13,6 @@
     "keep working directory": false,
     "job client configuration": "/abs/path/to/job-client.json",
     "task client configuration": "/abs/path/to/task-client.json",
-    "verification tools": {
-      "CPAchecker": {
-        "trunk@17959": "cpachecker/scripts/cpa.sh"
-      }
-    },
     "iteration timeout": 3
   },
   "common": {

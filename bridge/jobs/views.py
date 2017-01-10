@@ -18,6 +18,7 @@
 import mimetypes
 import tempfile
 import tarfile
+from datetime import datetime
 from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
@@ -34,6 +35,7 @@ from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
+from reports.utils import DownloadFilesForCompetition
 from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
 from jobs.utils import *
 from jobs.models import RunHistory
@@ -48,13 +50,19 @@ def tree_view(request):
     if request.method == 'POST':
         tree_args.append(request.POST.get('view', None))
         tree_args.append(request.POST.get('view_id', None))
+    months_choices = []
+    for i in range(1, 13):
+        months_choices.append((i, datetime(2016, i, 1).strftime('%B')))
+    curr_year = datetime.now().year
 
     return render(request, 'jobs/tree.html', {
         'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
-        'priorities': reversed(PRIORITY),
+        'priorities': list(reversed(PRIORITY)),
         'can_create': JobAccess(request.user).can_create(),
+        'months': months_choices,
+        'years': list(range(curr_year - 3, curr_year + 1)),
         'TableData': TableTree(*tree_args)
     })
 
@@ -221,6 +229,7 @@ def show_job(request, job_id=None):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
+    progress_data = get_job_progress(request.user, job) if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
     return render(
         request,
         'jobs/viewJob.html',
@@ -229,6 +238,7 @@ def show_job(request, job_id=None):
             'last_version': job.versions.get(version=job.version),
             'parents': parents,
             'children': children,
+            'progress_data': progress_data,
             'reportdata': ViewJobData(*view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
@@ -237,7 +247,8 @@ def show_job(request, job_id=None):
             'can_decide': job_access.can_decide(),
             'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop(),
-            'can_collapse': job_access.can_collapse()
+            'can_collapse': job_access.can_collapse(),
+            'can_dfc': job_access.can_dfc()
         }
     )
 
@@ -248,50 +259,24 @@ def get_job_data(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
-    if 'job_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
     try:
-        job = Job.objects.get(pk=int(request.POST['job_id']))
+        job = Job.objects.get(pk=request.POST.get('job_id', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': 'Unknown error'})
-    job_access = JobAccess(request.user, job)
+
+    data = {'jobstatus': job.status}
     try:
-        report = ReportComponent.objects.get(root__job=job, parent=None)
-    except ObjectDoesNotExist:
-        report = None
-    except ValueError:
-        return JsonResponse({'error': 'Unknown error'})
-
-    if request.user.extended.data_format == 'hum':
-        change_date = Template('{% load humanize %}{{ change_date|naturaltime }}').render(Context({
-            'change_date': job.versions.order_by('version').last().change_date
-        }))
-    else:
-        change_date = None
-
-    data = {
-        'can_delete': job_access.can_delete(),
-        'can_edit': job_access.can_edit(),
-        'can_create': job_access.can_create(),
-        'can_decide': job_access.can_decide(),
-        'can_download': job_access.can_download(),
-        'can_stop': job_access.can_stop(),
-        'can_collapse': job_access.can_collapse(),
-        'jobstatus': job.status,
-        'jobstatus_text': job.get_status_display() + '',
-        'job_history': loader.get_template('jobs/jobRunHistory.html').render({
-            'user': request.user,
-            'job': job,
-            'checked_option': request.POST.get('checked_run_history', 0)
-        })
-    }
-    if change_date is not None:
-        data['last_change_date'] = change_date
-    if report is not None:
-        data['jobstatus_href'] = reverse('reports:component', args=[job.pk, report.pk])
         data['jobdata'] = loader.get_template('jobs/jobData.html').render({
-            'reportdata': ViewJobData(request.user, report, view=request.POST.get('view', None))
+            'reportdata': ViewJobData(
+                request.user,
+                ReportComponent.objects.get(root__job=job, parent=None),
+                view=request.POST.get('view', None)
+            )
         })
+    except ObjectDoesNotExist:
+        pass
+    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        data['progress_data'] = json.dumps(list(get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
@@ -675,8 +660,8 @@ def upload_job(request, parent_id=None):
         try:
             job_dir = extract_tar_temp(f)
         except Exception as e:
-            logger.exception("Archive extraction failed" % e, stack_info=True)
-            failed_jobs.append([_('Archive extracting error') + '', f.name])
+            logger.exception("Archive extraction failed: %s" % e, stack_info=True)
+            failed_jobs.append([str(_('Archive extracting error')), f.name])
             continue
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
@@ -843,6 +828,31 @@ def fast_run_decision(request):
     return JsonResponse({})
 
 
+@unparallel_group(['decision'])
+@login_required
+def lastconf_run_decision(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    if 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
+    if last_run is None:
+        return JsonResponse({'error': _('The job was not decided before')})
+    try:
+        with last_run.configuration.file as fp:
+            configuration = GetConfiguration(file_conf=json.loads(fp.read().decode('utf8'))).configuration
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
+    if configuration is None:
+        return JsonResponse({'error': 'Unknown error'})
+    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
+    if result.error is not None:
+        return JsonResponse({'error': result.error + ''})
+    return JsonResponse({})
+
+
 @login_required
 def check_compare_access(request):
     activate(request.user.extended.language)
@@ -966,3 +976,25 @@ def collapse_reports(request):
         return JsonResponse({'error': _("You don't have an access to collapse reports")})
     CollapseReports(job)
     return JsonResponse({})
+
+
+@unparallel_group(['job'])
+@login_required
+def download_files_for_compet(request, job_id):
+    if request.method != 'POST':
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        job = Job.objects.get(pk=int(job_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[404]))
+    if not JobAccess(request.user, job).can_download():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+    try:
+        jobtar = DownloadFilesForCompetition(job, json.loads(request.POST['filters']))
+    except Exception as e:
+        logger.exception(e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    response = HttpResponse(content_type="application/x-tar-gz")
+    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.name
+    response.write(jobtar.memory.read())
+    return response

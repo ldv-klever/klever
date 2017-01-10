@@ -78,16 +78,18 @@ class VTG(core.components.Component):
 
     main = generate_verification_tasks
 
-    def get_strategy(self):
+    def get_strategy(self, specific_strategy_desc=None):
         self.logger.info('Get strategy')
 
-        self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
+        strategy_desc = specific_strategy_desc if specific_strategy_desc else self.conf['VTG strategy']
+
+        self.strategy_name = ''.join([word[0] for word in strategy_desc['name'].split(' ')])
 
         try:
             self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
                                     self.strategy_name.upper())
         except ImportError:
-            raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
+            raise NotImplementedError('Strategy "{0}" is not supported'.format(strategy_desc['name']))
 
 
     def get_common_prj_attrs(self):
@@ -176,14 +178,23 @@ class VTG(core.components.Component):
             work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
                                     abstract_task_desc['attrs'][1]['rule specification'],
                                     self.strategy_name)
-            os.makedirs(work_dir)
+            os.makedirs(work_dir.encode('utf8'))
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc
 
+            if 'VTG strategy' in abstract_task_desc:
+                self.get_strategy(abstract_task_desc['VTG strategy'])
+
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
-                              work_dir, [abstract_task_desc['attrs'][0]], True, True)
+                              work_dir,
+                              # Always report just verification object as attribute.
+                              attrs=[abstract_task_desc['attrs'][0]],
+                              # Rule specification will be added just in case of failures since otherwise it is added
+                              # somehow by strategies themselves.
+                              unknown_attrs=[abstract_task_desc['attrs'][1]],
+                              separate_from_parent=True, include_child_resources=True)
             try:
                 p.start()
                 p.join()

@@ -289,12 +289,13 @@ def report_leaf(request, leaf_type, report_id):
         if afc.error is not None:
             logger.error(afc.error)
             return HttpResponseRedirect(reverse('error', args=[500]))
-        etv = GetETV(afc.content, request.user.extended.assumptions)
-        if etv.error is not None:
-            logger.error(etv.error, stack_info=True)
+        try:
+            etv = GetETV(afc.content, request.user)
+        except Exception as e:
+            logger.exception(e, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
-        main_file_content = ''
+        main_file_content = None
         if report.archive is not None and report.proof is not None:
             afc = ArchiveFileContent(report.archive, file_name=report.proof)
             if afc.error is not None:
@@ -343,17 +344,15 @@ def report_etv_full(request, report_id):
     if afc.error is not None:
         logger.error(afc.error)
         return HttpResponseRedirect(reverse('error', args=[500]))
-    etv = GetETV(afc.content, request.user.extended.assumptions)
-    if etv.error is not None:
-        logger.error(etv.error, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[505]))
     try:
         return render(request, 'reports/etv_fullscreen.html', {
-            'report': report, 'etv': etv, 'include_assumptions': request.user.extended.assumptions
+            'report': report,
+            'etv': GetETV(afc.content, request.user),
+            'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:
-        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        logger.exception(e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[505]))
 
 
 @unparallel_group(['mark', 'report'])

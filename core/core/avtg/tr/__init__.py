@@ -61,7 +61,7 @@ class TR(core.avtg.plugins.Plugin):
                 file = os.path.splitext(tmpl)[0]
 
                 # Rendered templates will be placed into files inside TR working directory.
-                os.makedirs(os.path.dirname(file), exist_ok=True)
+                os.makedirs(os.path.dirname(file).encode('utf8'), exist_ok=True)
                 with open(file, 'w', encoding='utf8') as fp:
                     fp.write(env.get_template(tmpl).render(
                         self.abstract_task_desc['template context'][os.path.splitext(os.path.basename(file))[0]]))

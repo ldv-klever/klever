@@ -43,7 +43,7 @@ def clear_files():
     for u in ReportUnknown.objects.all():
         if u.archive_id not in files_in_use:
             files_in_use.append(u.archive_id)
-    for u in MarkUnsafe.objects.all():
+    for u in MarkUnsafeHistory.objects.all():
         if u.error_trace_id not in files_in_use:
             files_in_use.append(u.error_trace_id)
     for f in FileSystem.objects.all():

@@ -26,7 +26,7 @@ from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory
 from jobs.utils import JobAccess, File, change_job_status
-from reports.models import ReportRoot, ReportUnknown, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
 from service.models import *
 
 
@@ -233,7 +233,6 @@ class KleverCoreFinishDecision(object):
 # Case 3.1(2)
 class KleverCoreStartDecision(object):
     def __init__(self, job):
-        self.error = None
         self.job = job
         self.__start()
 
@@ -241,14 +240,11 @@ class KleverCoreStartDecision(object):
         try:
             progress = self.job.solvingprogress
         except ObjectDoesNotExist:
-            self.error = 'Job decision was not successfully started'
-            return
+            raise ValueError('job decision was not successfully started')
         if progress.start_date is not None:
-            self.error = 'The start report of Core was already uploaded'
-            return
+            raise ValueError('the "start" report of Core was already uploaded')
         elif progress.finish_date is not None:
-            self.error = 'The job is not solving already'
-            return
+            raise ValueError('the job is not solving already')
         progress.start_date = now()
         progress.save()
 
@@ -266,26 +262,22 @@ class StopDecision(object):
         if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             self.error = _("Only pending and processing jobs can be stopped")
             return
-        self.__clear_tasks()
-        if self.error is not None:
-            return
         change_job_status(job, JOB_STATUS[6][0])
+        self.__clear_tasks()
 
     def __clear_tasks(self):
-        for task in self.progress.task_set.all():
+        tasks = self.progress.task_set.all()
+        for task in tasks:
             if task.status == TASK_STATUS[1][0]:
                 self.progress.tasks_processing -= 1
                 self.progress.tasks_cancelled += 1
             elif task.status == TASK_STATUS[0][0]:
                 self.progress.tasks_pending -= 1
                 self.progress.tasks_cancelled += 1
-            try:
-                task.delete()
-            except Exception as e:
-                logger.exception(e, stack_info=True)
         self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
+        tasks.delete()
 
 
 # Case 3.2(2) DONE
@@ -356,6 +348,7 @@ class GetTasks(object):
             for status in status_map:
                 if status_map[status] == task.status:
                     all_tasks[status].append(task)
+        roots_to_save = []
         for task in all_tasks['pending']:
             if str(task.pk) in data['tasks']['pending']:
                 new_data['tasks']['pending'].append(str(task.pk))
@@ -375,7 +368,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -418,7 +411,7 @@ class GetTasks(object):
                 task.status = status_map['finished']
                 task.save()
                 try:
-                    task.solution
+                    Solution.objects.get(task=task)
                 except ObjectDoesNotExist:
                     # TODO: notify admin with email
                     logger.exception(
@@ -443,6 +436,8 @@ class GetTasks(object):
             else:
                 new_data['tasks']['processing'].append(str(task.pk))
                 new_data = self.__add_solution(task, new_data)
+        for r in roots_to_save:
+            r.save()
         for task in all_tasks['error']:
             if str(task.pk) in data['tasks']['pending']:
                 self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
@@ -607,6 +602,19 @@ class SaveSolution(object):
         )
         self.task.progress.solutions += 1
         self.task.progress.save()
+        try:
+            wall_time = json.loads(description)['resources']['wall time']
+            statistic = TaskStatistic.objects.get_or_create()[0]
+            statistic.average_time = (statistic.average_time * statistic.number_of_tasks + wall_time) / \
+                                     (statistic.number_of_tasks + 1)
+            statistic.number_of_tasks += 1
+            statistic.save()
+            root = ReportRoot.objects.get(pk=self.task.progress.job.reportroot.pk)
+            solved_tasks = self.task.progress.tasks_finished + self.task.progress.tasks_error
+            root.average_time = (root.average_time * solved_tasks + wall_time) / (solved_tasks + 1)
+            root.save()
+        except Exception as e:
+            logger.exception("Expected another format of solution description: %s" % e)
 
 
 # Case 3.2(5) DONE

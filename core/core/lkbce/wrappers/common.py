@@ -85,7 +85,7 @@ class Command:
 
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
-            os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
+            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
             with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
@@ -96,13 +96,6 @@ class Command:
                 else:
                     shutil.copy2(dep, dest_dep)
 
-        # Fix up absolute paths including current working directory. We rely on exact matching that will not be the
-        # case if there will be ".." in file paths.
-        self.other_opts = [re.sub(re.escape(os.getcwd()),
-                                  os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                  opt)
-                           for opt in self.other_opts]
-
     def dump(self):
         full_desc_file = None
 
@@ -112,13 +105,17 @@ class Command:
                                        os.environ['KLEVER_MAIN_WORK_DIR']),
                 'in files': self.in_files,
                 'out file': self.out_file,
-                'opts': self.other_opts
+                # Fix up absolute paths including current working directory. We rely on exact matching that will not be
+                # the case if there will be ".." in file paths.
+                'opts': [re.sub(re.escape(os.getcwd()),
+                                os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                opt) for opt in self.other_opts]
             }
 
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
 
-            os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
+            os.makedirs(os.path.dirname(full_desc_file).encode('utf8'), exist_ok=True)
 
             full_desc_file_suffix = 2
             while True:
@@ -132,14 +129,30 @@ class Command:
             with open(full_desc_file, 'w', encoding='utf8') as fp:
                 json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
+            # Options used for compilation of this file will be used for compilation of model files written in C.
+            if self.in_files[0] == 'scripts/mod/empty.c':
+                with open(os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                       'model CC opts.json'), 'w', encoding='utf8') as fp:
+                    json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        # Check, whether the output file has init function
+        has_init = False
+        elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
+        if elf_out and elf_out[0].startswith('ELF'):
+            symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
+            for table_entry in symbol_table:
+                if re.search(r'(.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
+                    has_init = True
+                    break
+
+        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file, 'has init': has_init}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
 
-        os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.desc_file).encode('utf8'), exist_ok=True)
 
         desc_file_suffix = 2
         while True:
@@ -198,6 +211,7 @@ class Command:
                 self.dump()
                 self.enqueue()
         except Exception:
+            # TODO: KLEVER_BUILD_CMD_DESCS_FILE could be not specified at this point.
             with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
                 fp.write('KLEVER FATAL ERROR\n')
             raise

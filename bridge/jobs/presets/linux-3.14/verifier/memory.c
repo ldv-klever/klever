@@ -113,7 +113,7 @@ void *ldv_zalloc_unknown_size(void)
 
 void *ldv_xmalloc_unknown_size(size_t size)
 {
-	void *res = ldv_undef_ptr();
+	void *res = external_allocated_data();
 	ldv_assume(res != NULL);
 	ldv_assume(!ldv_is_err(res));
 	return res;

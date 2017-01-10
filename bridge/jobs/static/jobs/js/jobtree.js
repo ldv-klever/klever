@@ -17,7 +17,8 @@
 
 var do_not_count = [
     'name', 'author', 'date', 'status', '', 'resource', 'format', 'version', 'type', 'identifier', 'progress',
-    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator'
+    'parent_id', 'role', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator',
+    'average_time', 'local_average_time'
 ];
 
 function fill_all_values() {
@@ -264,6 +265,12 @@ function getFilters() {
                 value: $('#filter_value__' + filter_name).val()
             };
         }
+        else if (filter_name === 'finish_date') {
+            filter_data = {
+                type: $('#filter_type__' + filter_name ).children('option:selected').val(),
+                value: ($('#filter_value_0__finish_date').children('option:selected').val() + ':' + $('#filter_value_1__finish_date').children('option:selected').val())
+            };
+        }
         if (filter_data) {
             filters[filter_name] = filter_data;
         }
@@ -289,6 +296,7 @@ function compare_jobs() {
         err_notify($('#error__no_jobs_to_compare').text());
         return false;
     }
+    $('#dimmer_of_page').addClass('active');
     $.post(
         job_ajax_url + 'check_compare_access/',
         {
@@ -311,6 +319,7 @@ function compare_jobs() {
                             err_notify(data.error);
                         }
                         else {
+                            $('#dimmer_of_page').removeClass('active');
                             window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
                         }
                     },

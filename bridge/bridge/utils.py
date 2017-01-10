@@ -169,7 +169,7 @@ def tests_logging_conf():
 class KleverTestCase(TestCase):
     def setUp(self):
         if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
-            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR))
+            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR).encode("utf8"))
         self.client = Client()
         super(KleverTestCase, self).setUp()
 

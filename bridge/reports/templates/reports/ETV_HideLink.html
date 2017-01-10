@@ -1,0 +1,1 @@
+{% if l.hide_id %}{% if not l.collapsed %}<a id="{{ l.hide_id }}" class="ETV_ShowCode"><i class="mini icon unhide"></i></a>{% else %}<a id="{{ l.hide_id }}" class="ETV_HideLink"><i class="mini icon violet caret {% if l.collapsed %}right{% else %}down{% endif %}"></i></a>{% endif %}{% endif %}

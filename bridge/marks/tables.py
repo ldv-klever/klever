@@ -19,7 +19,7 @@ import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
 from bridge.utils import unique_id
@@ -358,7 +358,7 @@ class ReportMarkTable(object):
                 comment = None
                 if col == 'number':
                     value = cnt
-                    href = reverse('marks:edit_mark', args=[self.type, mark_rep.mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark_rep.mark.pk])
                 elif col == 'verdict':
                     value = mark_rep.mark.get_verdict_display()
                     if self.type == 'unsafe':
@@ -458,7 +458,7 @@ class MarksList(object):
 
     def __get_marks(self):
         filters = {}
-        unfilter = {}
+        unfilter = {'version': 0}
         if 'filters' in self.view:
             if 'status' in self.view['filters']:
                 if self.view['filters']['status']['type'] == 'is':
@@ -538,7 +538,7 @@ class MarksList(object):
                         break
                 elif col == 'mark_num':
                     val = cnt
-                    href = reverse('marks:edit_mark', args=[self.type, mark.pk])
+                    href = reverse('marks:view_mark', args=[self.type, mark.pk])
                 elif col == 'num_of_links':
                     val = len(mark.markreport_set.all())
                     if 'order' in self.view and self.view['order'] == 'num_of_links':
@@ -546,9 +546,9 @@ class MarksList(object):
                     if self.type == 'unsafe':
                         broken = len(mark.markreport_set.filter(broken=True))
                         if broken > 0:
-                            val = _('%(all)s (%(broken)s are broken)') % {
-                                'all': len(mark.markreport_set.all()), 'broken': broken
-                            }
+                            val = ungettext_lazy(
+                                '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
+                            ) % {'all': len(mark.markreport_set.all()), 'broken': broken}
                 elif col == 'verdict':
                     val = mark.get_verdict_display()
                     if self.type == 'safe':
@@ -571,11 +571,13 @@ class MarksList(object):
                 elif col == 'type':
                     val = mark.get_type_display()
                 elif col == 'tags':
-                    val = '; '.join(
-                        tag.tag.tag for tag in mark.versions.order_by('-version').first().tags.order_by('tag__tag')
-                    )
-                    if val == '':
+                    last_version = mark.versions.order_by('-version').first()
+                    if last_version is None:
                         val = '-'
+                    else:
+                        val = '; '.join(tag.tag.tag for tag in last_version.tags.order_by('tag__tag'))
+                        if val == '':
+                            val = '-'
                 if col == 'checkbox':
                     values_str.append({'checkbox': mark.pk})
                 else:

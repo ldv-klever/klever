@@ -49,7 +49,7 @@
                         <br>{{ profile_form.errors.accuracy }}
                     </div>
                     <div class="field">
-                        <label>{{ profile_form.data_format.label }}</label>
+                        <label>{{ profile_form.data_format.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'Most of dates are not updated automatically, so human-readable dates could become outdated until you reload page by hand' %}"></i></label>
                         {{ profile_form.data_format }}
                     </div>
                     <div class="field">
@@ -69,6 +69,13 @@
                         <div class="ui checkbox">
                             {{ profile_form.assumptions }}
                             <label>{{ profile_form.assumptions.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace assumptions. This can take very much time for big error traces.' %}"></i></label>
+                        </div>
+                        <br>
+                    </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            {{ profile_form.triangles }}
+                            <label>{{ profile_form.triangles.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace closing triangles at the end of each thread.' %}"></i></label>
                         </div>
                         <br>
                     </div>

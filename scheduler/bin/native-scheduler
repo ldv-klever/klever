@@ -34,7 +34,7 @@ if "scheduler" not in conf:
 if "Klever Bridge" not in conf:
     raise KeyError("Provide configuration property 'Klever Bridge' as an JSON-object")
 
-scheduler_impl = native.Scheduler(conf, conf["common"]["working directory"] + "/scheduler/")
+scheduler_impl = native.Scheduler(conf, "scheduler/")
 scheduler_impl.launch()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

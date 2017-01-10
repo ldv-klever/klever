@@ -49,9 +49,6 @@ class Core(core.utils.CallbacksCaller):
 
     def main(self):
         try:
-            # Use English everywhere below.
-            os.environ['LANG'] = 'C'
-            os.environ['LC_ALL'] = 'C'
             # Remember approximate time of start to count wall time.
             self.start_time = time.time()
             self.get_conf()
@@ -78,11 +75,13 @@ class Core(core.utils.CallbacksCaller):
         except SystemExit:
             self.exit_code = 1
         except Exception:
-            if self.mqs:
-                with open('problem desc.txt', 'w', encoding='utf8') as fp:
-                    traceback.print_exc(file=fp)
+            self.process_exception()
 
-                if os.path.isfile('problem desc.txt'):
+            if self.mqs:
+                try:
+                    with open('problem desc.txt', 'w', encoding='utf8') as fp:
+                        traceback.print_exc(file=fp)
+
                     core.utils.report(self.logger,
                                       'unknown',
                                       {
@@ -92,17 +91,20 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['problem desc.txt']
                                       },
                                       self.mqs['report files'])
-
-            if self.logger:
-                self.logger.exception('Catch exception')
-            else:
-                traceback.print_exc()
-
-            self.exit_code = 1
+                except Exception:
+                    self.process_exception()
         finally:
-            # This try ... except block is primarily to catch exceptions during reports uploading.
             try:
                 if self.mqs:
+                    self.logger.info('Terminate report files message queue')
+                    self.mqs['report files'].put(None)
+
+                    if self.uploading_reports_process.is_alive():
+                        self.logger.info('Wait for uploading all reports except Core finish report')
+                        self.uploading_reports_process.join()
+
+                    # Create Core finish report just after other reports are uploaded. Otherwise time between creating
+                    # Core finish report and finishing uploading all reports won't be included into wall time of Core.
                     core.utils.report(self.logger,
                                       'finish',
                                       {
@@ -114,12 +116,16 @@ class Core(core.utils.CallbacksCaller):
                                           'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
                                       self.mqs['report files'])
-
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 
-                    self.logger.info('Wait for uploading all reports')
-                    self.uploading_reports_process.join()
+                    # Do not try to upload Core finish report if uploading of other reports already failed.
+                    if not self.uploading_reports_process.exitcode:
+                        self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
+                        self.uploading_reports_process.start()
+                        self.logger.info('Wait for uploading Core finish report')
+                        self.uploading_reports_process.join()
+
                     # Do not override exit code of main program with the one of auxiliary process uploading reports.
                     if not self.exit_code:
                         self.exit_code = self.uploading_reports_process.exitcode
@@ -127,17 +133,12 @@ class Core(core.utils.CallbacksCaller):
                 if self.session:
                     self.session.sign_out()
             except Exception:
-                if self.logger:
-                    self.logger.exception('Catch exception')
-                else:
-                    traceback.print_exc()
+                self.process_exception()
 
                 # Do not upload reports and wait for corresponding process any more if something else went wrong above.
-                if self.uploading_reports_process:
+                if self.uploading_reports_process.is_alive():
                     self.uploading_reports_process.terminate()
-
-                self.exit_code = 1
-            # At least release working directory if cleaning code above will raise some exception.
+            # At least release working directory even if cleaning code above raised some exceptions.
             finally:
                 if self.is_solving_file_fp and not self.is_solving_file_fp.closed:
                     if self.logger:
@@ -182,7 +183,7 @@ class Core(core.utils.CallbacksCaller):
         # - occupy working directory.
         shutil.rmtree(self.conf['working directory'], True)
 
-        os.makedirs(self.conf['working directory'], exist_ok=True)
+        os.makedirs(self.conf['working directory'].encode('utf8'), exist_ok=True)
 
         check_another_instance()
 
@@ -256,3 +257,11 @@ class Core(core.utils.CallbacksCaller):
             # If we can't send reports to Klever Bridge by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Klever Bridge')
             exit(1)
+
+    def process_exception(self):
+        self.exit_code = 1
+
+        if self.logger:
+            self.logger.exception('Catch exception')
+        else:
+            traceback.print_exc()

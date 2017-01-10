@@ -28,6 +28,10 @@ class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
+        if 'VTG strategy' in self.conf:
+            self.logger.info('Verifier task generation strategy is "{0}"'.format(self.conf['VTG strategy']))
+            self.abstract_task_desc['VTG strategy'] = self.conf['VTG strategy']
+
         if 'verifier configuration' in self.conf:
             self.logger.info('Verifier configuration is "{0}"'.format(self.conf['verifier configuration']))
             self.abstract_task_desc['verifier configuration'] = self.conf['verifier configuration']
@@ -139,7 +143,7 @@ class RSG(core.avtg.plugins.Plugin):
 
         # CC extra full description files will be put to this directory as well as corresponding intermediate and final
         # output files.
-        os.makedirs('models')
+        os.makedirs('models'.encode('utf8'))
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
         for model_c_file in models:
@@ -320,9 +324,11 @@ class RSG(core.avtg.plugins.Plugin):
                                                                   self.conf['shadow source tree']))],
                         'out file': os.path.relpath(out_file, os.path.join(self.conf['main working directory'],
                                                                            self.conf['shadow source tree'])),
-                        'opts':
-                            [string.Template(opt).substitute(hdr_arch=self.conf['header architecture']) for opt in
-                             self.conf['model CC options']] +
+                        'opts': self.conf['model CC opts'] +
+                            # Like in LKBCE.
+                            ['-Wp,-MD,{0}'.format(os.path.relpath(
+                                out_file + '.d',
+                                os.path.join(self.conf['main working directory'], self.conf['shadow source tree'])))] +
                             ['-DLDV_SETS_MODEL_' + (model['sets model'] if 'sets model' in model
                                                     else self.conf['common sets model']).upper()]
                     }, fp, ensure_ascii=False, sort_keys=True, indent=4)

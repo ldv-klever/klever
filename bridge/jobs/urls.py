@@ -27,6 +27,7 @@ urlpatterns = [
     url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_files_comparison, name='comparison'),
     url(r'^download_configuration/(?P<runhistory_id>[0-9]+)/$', views.download_configuration),
     url(r'^create/$', views.copy_new_job, name='create'),
+    url(r'^downloadcompetfile/(?P<job_id>[0-9]+)/$', views.download_files_for_compet, name='download_file_for_compet'),
 
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
@@ -48,6 +49,7 @@ urlpatterns = [
     url(r'^ajax/stop_decision/$', views.stop_decision),
     url(r'^ajax/run_decision/$', views.run_decision),
     url(r'^ajax/fast_run_decision/$', views.fast_run_decision),
+    url(r'^ajax/lastconf_run_decision/$', views.lastconf_run_decision),
     url(r'^ajax/get_job_data/$', views.get_job_data),
     url(r'^ajax/check_compare_access/$', views.check_compare_access),
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),

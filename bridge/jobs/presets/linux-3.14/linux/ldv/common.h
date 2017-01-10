@@ -75,34 +75,25 @@ extern int ldv_post_probe(int probe_ret_val);
 extern int ldv_filter_err_code(int ret_val);
 
 /**
- * ldv_pre_usb_register_driver() - perform some actions and checks specific for
- *                                 rule specifications before calling module USB
- *                                 callbacks.
+ * ldv_failed_usb_register_driver() - do specific for rule specifications actions if
+ *                                    USB callbacks registration failed.
  *
- * ldv_pre_usb_register_driver() can be defined by rule specification models.
+ * ldv_failed_usb_register_driver() can be defined by rule specification models.
  *
- * ldv_pre_usb_register_driver() should be always called by generated
- * environment models just before calling module USB callbacks.
- *
- * Return: Return value of usb_register_driver(). Callers should use this
- *         returned value.
+ * ldv_failed_usb_register_driver() should be always called by generated
+ * environment models in a failing branch of usb_register model function.
  */
-int ldv_pre_usb_register_driver(void);
+int ldv_failed_usb_register_driver(void);
 
 /**
- * ldv_pre_register_netdev() - perform some actions and checks specific for
- *                             rule specifications before calling module net
- *                             device callbacks.
+ * ldv_failed_register_netdev() - perform some actions and checks specific for
+ *                                rule specifications after failed call of register_netdev.
  *
- * ldv_pre_register_netdev() can be defined by rule specification models.
+ * ldv_failed_register_netdev() can be defined by rule specification models.
  *
- * ldv_pre_register_netdev() should be always called by generated environment
- * models just before calling module net device callbacks.
- *
- * Return: Return value of register_netdev(). Callers should use this returned
- *         value.
+ * ldv_failed_register_netdev() should be always called by generated environment.
  */
-int ldv_pre_register_netdev(void);
+int ldv_failed_register_netdev(void);
 
 /**
  * ldv_check_final_state() - perform some checks of final state specific for

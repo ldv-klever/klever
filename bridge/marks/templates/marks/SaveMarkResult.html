@@ -35,5 +35,5 @@
         <h1 class="header" style="text-align:center;">{% trans 'No changes in associations of marks with leaf reports' %}</h1>
     {% endif %}
     <br>
-    <a href="{% url 'marks:edit_mark' MarkTable.mark_type MarkTable.mark_id %}" class="ui green button" style="float: right">{% trans 'Continue editing' %}</a>
+    <a href="{% url 'marks:view_mark' MarkTable.mark_type MarkTable.mark_id %}" class="ui green button" style="float: right">{% trans 'Show mark' %}</a>
 {% endblock %}

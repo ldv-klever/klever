@@ -370,18 +370,6 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             return list(self._modules_functions[label_name])[0]
         raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
 
-    @staticmethod
-    def __check_category_relevance(function):
-        relevant = []
-
-        if function.rv_interface:
-            relevant.append(function.rv_interface)
-        for parameter in function.param_interfaces:
-            if parameter:
-                relevant.append(parameter)
-
-        return relevant
-
     def __set_declaration(self, interface, declaration):
         if type(interface.declaration) is Function:
             if interface.rv_interface:
@@ -531,7 +519,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self.logger.info("Remove kernel functions which are not called at driver functions")
         for function in self.kernel_functions:
             obj = self.get_kernel_function(function)
-            if len(obj.functions_called_at) == 0:
+            if len(obj.functions_called_at) == 0 or function in modules_functions:
                 self._remove_kernel_function(function)
 
         self._modules_functions = modules_functions
@@ -908,13 +896,24 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self._del_intf(interface.identifier)
 
     def __calculate_relevant_interfaces(self):
+        def __check_category_relevance(function):
+            relevant = []
+
+            if function.rv_interface:
+                relevant.append(function.rv_interface)
+            for parameter in function.param_interfaces:
+                if parameter:
+                    relevant.append(parameter)
+
+            return relevant
+
         relevant_interfaces = set()
 
         # If category interfaces are not used in kernel functions it means that this structure is not transferred to
         # the kernel or just source analysis cannot find all containers
-        # Add kernel functionrelevant interfaces
+        # Add kernel function relevant interfaces
         for name in self.kernel_functions:
-            relevant_interfaces.update(self.__check_category_relevance(self.get_kernel_function(name)))
+            relevant_interfaces.update(__check_category_relevance(self.get_kernel_function(name)))
 
         # Add all interfaces for non-container categories
         for interface in set(relevant_interfaces):
@@ -925,16 +924,20 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Add callbacks and their resources
         for callback in self.callbacks():
-            if len(self.implementations(callback)) > 0:
+            containers = self.resolve_containers(callback, callback.category)
+            if len(containers) > 0 and len(self.implementations(callback)) > 0:
                 relevant_interfaces.add(callback)
-                relevant_interfaces.update(self.__check_category_relevance(callback))
-            else:
-                containers = self.resolve_containers(callback, callback.category)
+                relevant_interfaces.update(__check_category_relevance(callback))
+            elif len(containers) == 0 and len(self.implementations(callback)) > 0 and \
+                    callback.category in {i.category for i in relevant_interfaces}:
+                relevant_interfaces.add(callback)
+                relevant_interfaces.update(__check_category_relevance(callback))
+            elif len(containers) > 0 and len(self.implementations(callback)) == 0:
                 for container in containers:
                     if self.get_intf(container) in relevant_interfaces and \
                             len(self.get_intf(container).declaration.implementations) == 0:
                         relevant_interfaces.add(callback)
-                        relevant_interfaces.update(self.__check_category_relevance(callback))
+                        relevant_interfaces.update(__check_category_relevance(callback))
                         break
 
         # Add containers

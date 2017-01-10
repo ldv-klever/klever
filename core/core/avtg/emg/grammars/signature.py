@@ -249,6 +249,7 @@ def p_type_specifier_list(p):
 def p_struct_specifier(p):
     """
     struct_specifier : STRUCT IDENTIFIER
+                     | STRUCT BLOCK_OPEN BLOCK_CLOSE
                      | STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
     if len(p) == 3:

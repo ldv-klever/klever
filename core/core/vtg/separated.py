@@ -31,15 +31,10 @@ from core.vtg.common import CommonStrategy
 
 # This class represent sequential VTG strategies.
 class SeparatedStrategy(CommonStrategy):
-
     __metaclass__ = ABCMeta
 
     automaton_file = None
     resources_written = False
-
-    def perform_sanity_checks(self):
-        if 'unite rule specifications' in self.conf and self.conf['unite rule specifications']:
-            raise AttributeError("Current VTG strategy does not support united bug types")
 
     def perform_preprocess_actions(self):
         self.create_mea()
