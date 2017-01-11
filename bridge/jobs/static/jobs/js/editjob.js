@@ -214,6 +214,7 @@ function set_actions_for_edit_form () {
             user_roles.push({user: user_id, role: user_role});
         });
         user_roles = JSON.stringify(user_roles);
+        $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'savejob/',
             {
@@ -228,6 +229,7 @@ function set_actions_for_edit_form () {
                 last_version: last_job_version
             },
             function (data) {
+                $('#dimmer_of_page').removeClass('active');
                 data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data.job_id + '/');
             },
             "json"
