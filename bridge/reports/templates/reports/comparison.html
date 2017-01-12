@@ -90,17 +90,13 @@
         </div>
         <div class="six wide column">
             {% for attr in attrs %}
-                <span style="font-weight: bold;">{{ attr.name }}</span>
-                <div class="ui small search selection fluid dropdown attrs-dropdown">
-                    <input type="hidden" name="attr_value">
-                    <i class="dropdown icon"></i>
-                    <div class="default text">{% trans 'Value of attribute' %}</div>
-                    <div class="menu">
-                        {% for av in attr.values %}
-                            <div class="item">{{ av }}</div>
-                        {% endfor %}
-                    </div>
-                </div>
+                <label for="attr_value__{{ attr.name }}" style="font-weight: bold;">{{ attr.name }}</label>
+                <select id="attr_value__{{ attr.name }}" class="ui small search selection dropdown fluid attrs-dropdown">
+                    <option value="0">{% trans 'Any' %}</option>
+                    {% for av in attr.values %}
+                        <option value="{{ av.0 }}">{{ av.1 }}</option>
+                    {% endfor %}
+                </select>
                 <br>
             {% endfor %}
             <div class="ui grid">

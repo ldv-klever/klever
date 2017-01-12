@@ -305,6 +305,7 @@ function compare_jobs() {
         },
         function (data) {
             if (data.error) {
+                $('#dimmer_of_page').removeClass('active');
                 err_notify(data.error);
             }
             else {
@@ -315,11 +316,11 @@ function compare_jobs() {
                         job2: selected_jobs[1]
                     },
                     function (data) {
+                        $('#dimmer_of_page').removeClass('active');
                         if (data.error) {
                             err_notify(data.error);
                         }
                         else {
-                            $('#dimmer_of_page').removeClass('active');
                             window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
                         }
                     },
@@ -368,7 +369,7 @@ $(document).ready(function () {
 
     var max_table_height = $(window).height() - 150,
         small_table_height = $(window).height() - 400;
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', false);
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
     $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;');
     check_order_form();
     check_filters_form();

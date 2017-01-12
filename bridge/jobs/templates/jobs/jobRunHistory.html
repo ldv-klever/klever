@@ -11,7 +11,7 @@
             <label for="run_history"></label>
             <select id="run_history" class="ui dropdown">
                 {% for rh in job.runhistory_set.all|dictsortreversed:'date' %}
-                    <option value="{{ rh.pk }}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.extended.last_name }} {{ rh.operator.extended.first_name }}){% endif %} -
+                    <option value="{{ rh.pk }}"{% if rh.pk|slugify == checked_option %} selected{% endif %}>{{ rh.get_status_display }}{% if rh.operator %} ({{ rh.operator.last_name }} {{ rh.operator.first_name }}){% endif %} -
                         {% if user.extended.data_format == 'hum' %}
                             {{ rh.date|naturaltime }}
                         {% else %}

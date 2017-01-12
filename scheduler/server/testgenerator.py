@@ -49,11 +49,11 @@ class Server(server.AbstractServer):
         """
 
         archives = [file for file in os.listdir(work_dir) if os.path.isfile(os.path.join(work_dir, file)) and
-                    utils.split_archive_name(file)[1] == ".tar.gz"]
+                    os.path.splitext(file)[-1] == ".zip"]
         logging.info("Found {} tasks in {}".format(len(archives), work_dir))
 
         for archive in archives:
-            identifier = utils.split_archive_name(archive)[0]
+            identifier = os.path.splitext(archive)[0]
             description_file = os.path.join(work_dir, identifier, task_description_filename)
             logging.debug("Import task {} from description file {}".format(identifier, description_file))
 
@@ -111,12 +111,12 @@ class Server(server.AbstractServer):
             # Make archive package
             archive = os.path.join(work_dir, task_id)
             shutil.make_archive(archive, 'gztar', task_dir)
-            logging.debug("Generated archive with task {0}.tar.gz".format(archive))
+            logging.debug("Generated archive with task {0}.zip".format(archive))
 
             # Add task to the pending list
             self.tasks[task_id] = {
                 "status": "PENDING",
-                "data": "{0}.tar.gz".format(archive),
+                "data": "{0}.zip".format(archive),
                 "description file": description_file,
                 "description": description
             }
@@ -287,7 +287,7 @@ class Server(server.AbstractServer):
         :param description: JSON string to send.
         """
         if self.tasks[identifier]["status"] in ["PENDING", "PROCESSING"]:
-            data_file = os.path.join(self.solution_dir, "{}.tar.gz".format(identifier))
+            data_file = os.path.join(self.solution_dir, "{}.zip".format(identifier))
             logging.debug("Copy the solution {} to {}".format(archive, data_file))
             shutil.copyfile(archive, data_file)
 

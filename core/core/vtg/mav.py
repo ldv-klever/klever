@@ -17,7 +17,7 @@
 
 import json
 import os
-import tarfile
+import zipfile
 import time
 import glob
 import re
@@ -104,9 +104,10 @@ class MAV(CommonStrategy):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps({
-                                  'the number of verification tasks prepared for abstract verification task': iterations
-                              }, ensure_ascii=False, sort_keys=True, indent=4)
+                              'data': {
+                                  'the number of verification tasks prepared for abstract verification task':
+                                      iterations
+                              }
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -122,11 +123,11 @@ class MAV(CommonStrategy):
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
 
-        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
+        with zipfile.ZipFile('task files.zip', mode='w') as zfp:
             if os.path.isfile(self.path_to_property_automata):
-                tar.add(self.path_to_property_automata)
+                zfp.write(self.path_to_property_automata)
             for file in self.task_desc['files']:
-                tar.add(file)
+                zfp.write(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
@@ -340,8 +341,8 @@ class MAV(CommonStrategy):
 
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
-                    tar.extractall()
+                with zipfile.ZipFile("decision result files.zip") as zfp:
+                    zfp.extractall()
 
                 with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)

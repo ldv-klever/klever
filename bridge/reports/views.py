@@ -25,7 +25,7 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, logger, ArchiveFileContent
+from bridge.utils import unparallel_group, ArchiveFileContent
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable
@@ -55,6 +55,7 @@ def sort_bugs_list(l):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
@@ -99,7 +100,7 @@ def report_component(request, job_id, report_id):
         status = 4
 
     report_data = None
-    if report.data is not None:
+    if report.data:
         try:
             with report.data.file as fp:
                 report_data = json.loads(fp.read().decode('utf8'))
@@ -126,6 +127,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
+@unparallel_group(['ReportComponent', 'ReportSafe', 'ReportUnsafe', 'ReportUnknown'])
 def report_list(request, report_id, ltype, component_id=None,
                 verdict=None, tag=None, problem=None, mark=None, attr=None):
     activate(request.user.extended.language)
@@ -147,7 +149,7 @@ def report_list(request, report_id, ltype, component_id=None,
     if ltype == 'safes':
         title = _("All safes")
         if tag is not None:
-            title = string_concat(_("Safes"), ': ', tag.tag)
+            title = string_concat(_("Safes"), ': ', tag)
         elif verdict is not None:
             for s in SAFE_VERDICTS:
                 if s[0] == verdict:
@@ -160,7 +162,7 @@ def report_list(request, report_id, ltype, component_id=None,
     elif ltype == 'unsafes':
         title = _("All unsafes")
         if tag is not None:
-            title = string_concat(_("Unsafes"), ': ', tag.tag)
+            title = string_concat(_("Unsafes"), ': ', tag)
         elif verdict is not None:
             for s in UNSAFE_VERDICTS:
                 if s[0] == verdict:
@@ -189,15 +191,22 @@ def report_list(request, report_id, ltype, component_id=None,
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
+    table_data = ReportTable(
+        *report_attrs_data, table_type=list_types[ltype],
+        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr
+    )
+    # If there is only one element in table, and first column of table is link, redirect to this link
+    if len(table_data.table_data['values']) == 1 and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+            and table_data.table_data['values'][0][0]['href']:
+        return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
     return render(
         request,
         'reports/report_list.html',
         {
             'report': report,
             'parents': get_parents(report),
-            'TableData': ReportTable(
-                *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr),
+            'TableData': table_data,
             'view_type': list_types[ltype],
             'title': title
         }
@@ -205,6 +214,7 @@ def report_list(request, report_id, ltype, component_id=None,
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def report_list_tag(request, report_id, ltype, tag_id):
     try:
         if ltype == 'unsafes':
@@ -213,7 +223,7 @@ def report_list_tag(request, report_id, ltype, tag_id):
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[509]))
-    return report_list(request, report_id, ltype, tag=tag)
+    return report_list(request, report_id, ltype, tag=tag.tag)
 
 
 @login_required
@@ -222,6 +232,7 @@ def report_list_by_verdict(request, report_id, ltype, verdict):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def report_list_by_mark(request, report_id, ltype, mark_id):
     tables = {
         'safes': MarkSafe,
@@ -235,6 +246,7 @@ def report_list_by_mark(request, report_id, ltype, mark_id):
 
 
 @login_required
+@unparallel_group(['Attr'])
 def report_list_by_attr(request, report_id, ltype, attr_id):
     try:
         return report_list(request, report_id, ltype, attr=Attr.objects.get(pk=attr_id))
@@ -248,6 +260,7 @@ def report_unknowns(request, report_id, component_id):
 
 
 @login_required
+@unparallel_group(['UnknownProblem'])
 def report_unknowns_by_problem(request, report_id, component_id, problem_id):
     problem_id = int(problem_id)
     if problem_id == 0:
@@ -261,6 +274,7 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
 
 
 @login_required
+@unparallel_group(['ReportUnsafe', 'ReportSafe', 'ReportUnknown'])
 def report_leaf(request, leaf_type, report_id):
     activate(request.user.extended.language)
 
@@ -285,29 +299,25 @@ def report_leaf(request, leaf_type, report_id):
     main_file_content = None
     if leaf_type == 'unsafe':
         template = 'reports/report_unsafe.html'
-        afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
-        if afc.error is not None:
-            logger.error(afc.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
         try:
-            etv = GetETV(afc.content, request.user)
+            etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
         except Exception as e:
             logger.exception(e, stack_info=True)
             return HttpResponseRedirect(reverse('error', args=[505]))
     elif leaf_type == 'safe':
         main_file_content = None
-        if report.archive is not None and report.proof is not None:
-            afc = ArchiveFileContent(report.archive, file_name=report.proof)
-            if afc.error is not None:
-                logger.error(afc.error)
+        if report.archive and report.proof:
+            try:
+                main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
+            except Exception as e:
+                logger.exception("Couldn't extract proof from archive: %s" % e)
                 return HttpResponseRedirect(reverse('error', args=[500]))
-            main_file_content = afc.content
     elif leaf_type == 'unknown':
-        afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
-        if afc.error is not None:
-            logger.error(afc.error)
+        try:
+            main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+        except Exception as e:
+            logger.exception("Couldn't extract problem description from archive: %s" % e)
             return HttpResponseRedirect(reverse('error', args=[500]))
-        main_file_content = afc.content
     try:
         return render(
             request, template,
@@ -329,6 +339,7 @@ def report_leaf(request, leaf_type, report_id):
 
 
 @login_required
+@unparallel_group(['ReportUnsafe'])
 def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
@@ -339,15 +350,10 @@ def report_etv_full(request, report_id):
 
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
-
-    afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
-    if afc.error is not None:
-        logger.error(afc.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
     try:
         return render(request, 'reports/etv_fullscreen.html', {
             'report': report,
-            'etv': GetETV(afc.content, request.user),
+            'etv': GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user),
             'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:
@@ -355,7 +361,7 @@ def report_etv_full(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[505]))
 
 
-@unparallel_group(['mark', 'report'])
+@unparallel_group([ReportRoot, AttrName])
 def upload_report(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signed in'})
@@ -391,6 +397,7 @@ def upload_report(request):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
@@ -405,21 +412,20 @@ def get_component_log(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[500]))
     logname = '%s-log.txt' % report.component.name
 
-    afc = ArchiveFileContent(report.archive, file_name=report.log)
-    if afc.error is not None:
-        logger.error(afc.error)
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(str(e))
         return HttpResponseRedirect(reverse('error', args=[500]))
-    file_inmem = BytesIO(afc.content.encode('utf8'))
-    file_inmem.seek(0, 2)
-    size = file_inmem.tell()
-    file_inmem.seek(0)
-    response = StreamingHttpResponse(FileWrapper(file_inmem, 8192), content_type='text/plain')
-    response['Content-Length'] = size
+
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='text/plain')
+    response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
@@ -432,13 +438,20 @@ def get_log_content(request, report_id):
 
     if report.log is None:
         return HttpResponseRedirect(reverse('error', args=[500]))
-    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
-    if afc.error is not None:
-        return HttpResponse(str(afc.error))
-    return HttpResponse(afc.content)
+
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(str(e))
+        return HttpResponse(str(_('Extraction of the component log from archive failed')))
+
+    if len(content) > 10**5:
+        return HttpResponse(str(_('The component log is huge and can not be showed but you can download it')))
+    return HttpResponse(content.decode('utf8'))
 
 
 @login_required
+@unparallel_group(['ReportUnsafe'])
 def get_source_code(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -459,8 +472,8 @@ def get_source_code(request):
     })
 
 
-@unparallel_group(['decision', 'job'])
 @login_required
+@unparallel_group(['Job', 'ReportRoot', CompareJobsInfo])
 def fill_compare_cache(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -470,6 +483,8 @@ def fill_compare_cache(request):
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
@@ -479,6 +494,7 @@ def fill_compare_cache(request):
 
 
 @login_required
+@unparallel_group([CompareJobsInfo])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -504,6 +520,7 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
+@unparallel_group([CompareJobsInfo])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -545,17 +562,32 @@ def get_compare_jobs_data(request):
 
 
 @login_required
-@unparallel_group(['report'])
+@unparallel_group(['ReportComponent'])
 def download_report_files(request, report_id):
     try:
         report = ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
-    if report.archive is None:
+    if not report.archive:
         return HttpResponseRedirect(reverse('error', args=[500]))
 
-    with report.archive.file as fp:
-        response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
-        response['Content-Length'] = len(fp)
-        response['Content-Disposition'] = 'attachment; filename="%s files.tar.gz"' % report.component.name
-        return response
+    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.archive.file)
+    response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
+    return response
+
+
+@login_required
+@unparallel_group(['ReportUnsafe'])
+def download_error_trace(request, report_id):
+    if request.method != 'GET':
+        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        report = ReportUnsafe.objects.get(id=report_id)
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    content = ArchiveFileContent(report, report.error_trace).content
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/json')
+    response['Content-Length'] = len(content)
+    response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
+    return response

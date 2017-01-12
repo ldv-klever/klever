@@ -15,16 +15,27 @@
 # limitations under the License.
 #
 
+import os
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from django.contrib.auth.models import User
+from django.core.files import File
+from django.utils.timezone import now
 from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
-from jobs.models import File, Job
+from bridge.utils import RemoveFilesBeforeDelete, logger
+from jobs.models import Job
 
 LOG_DIR = 'ReportLogs'
 
 
+def get_component_path(instance, filename):
+    curr_date = now()
+    return os.path.join('Reports', instance.component.name, str(curr_date.year), str(curr_date.month), filename)
+
+
 class AttrName(models.Model):
-    name = models.CharField(max_length=63, unique=True)
+    name = models.CharField(max_length=63, unique=True, db_index=True)
 
     class Meta:
         db_table = 'attr_name'
@@ -36,10 +47,11 @@ class Attr(models.Model):
 
     class Meta:
         db_table = 'attr'
+        index_together = ["name", "value"]
 
 
 class ReportRoot(models.Model):
-    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
+    user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     job = models.OneToOneField(Job)
     safes = models.PositiveIntegerField(default=0)
     tasks_total = models.PositiveIntegerField(default=0)
@@ -47,6 +59,13 @@ class ReportRoot(models.Model):
 
     class Meta:
         db_table = 'report_root'
+
+
+@receiver(pre_delete, sender=ReportRoot)
+def reportroot_delete_signal(**kwargs):
+    logger.info('Deleting ReportRoot files...')
+    RemoveFilesBeforeDelete(kwargs['instance'])
+    logger.info('Deleting ReportRoot object...')
 
 
 class Report(models.Model):
@@ -74,7 +93,7 @@ class Computer(models.Model):
 
 
 class Component(models.Model):
-    name = models.CharField(max_length=15, unique=True)
+    name = models.CharField(max_length=15, unique=True, db_index=True)
 
     def __str__(self):
         return self.name
@@ -91,39 +110,82 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    archive = models.ForeignKey(File, null=True, on_delete=models.SET_NULL, related_name='reports1')
     log = models.CharField(max_length=128, null=True)
-    data = models.ForeignKey(File, null=True, related_name='reports2')
+    archive = models.FileField(upload_to=get_component_path, null=True)
+    data = models.FileField(upload_to=get_component_path, null=True)
+
+    def new_data(self, fname, fp, save=False):
+        self.data.save(fname, File(fp), save)
+
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_component'
 
 
+@receiver(pre_delete, sender=ReportComponent)
+def report_component_delete_signal(**kwargs):
+    report = kwargs['instance']
+    if report.archive:
+        report.archive.storage.delete(report.archive.path)
+    if report.data:
+        report.data.storage.delete(report.data.path)
+
+
 class ReportUnsafe(Report):
-    archive = models.ForeignKey(File)
+    archive = models.FileField(upload_to='Unsafes/%Y/%m')
     error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
+
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_unsafe'
 
 
+@receiver(pre_delete, sender=ReportUnsafe)
+def unsafe_delete_signal(**kwargs):
+    unsafe = kwargs['instance']
+    unsafe.archive.storage.delete(unsafe.archive.path)
+
+
 class ReportSafe(Report):
-    archive = models.ForeignKey(File, null=True)
+    archive = models.FileField(upload_to='Safes/%Y/%m', null=True)
     proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
+
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_safe'
 
 
+@receiver(pre_delete, sender=ReportSafe)
+def safe_delete_signal(**kwargs):
+    safe = kwargs['instance']
+    if safe.archive:
+        safe.archive.storage.delete(safe.archive.path)
+
+
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    archive = models.ForeignKey(File)
+    archive = models.FileField(upload_to='Unknowns/%Y/%m')
     problem_description = models.CharField(max_length=128)
+
+    def new_archive(self, fname, fp, save=False):
+        self.archive.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_unknown'
+
+
+@receiver(pre_delete, sender=ReportUnknown)
+def unknown_delete_signal(**kwargs):
+    unknown = kwargs['instance']
+    unknown.archive.storage.delete(unknown.archive.path)
 
 
 class ReportComponentLeaf(models.Model):
@@ -172,9 +234,9 @@ class Verdict(models.Model):
 class ComponentResource(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='resources_cache')
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
+    cpu_time = models.BigIntegerField(default=0)
+    wall_time = models.BigIntegerField(default=0)
+    memory = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_component_resource'
@@ -183,9 +245,9 @@ class ComponentResource(models.Model):
 class LightResource(models.Model):
     report = models.ForeignKey(ReportRoot)
     component = models.ForeignKey(Component, null=True, on_delete=models.PROTECT)
-    cpu_time = models.BigIntegerField()
-    wall_time = models.BigIntegerField()
-    memory = models.BigIntegerField()
+    cpu_time = models.BigIntegerField(default=0)
+    wall_time = models.BigIntegerField(default=0)
+    memory = models.BigIntegerField(default=0)
 
     class Meta:
         db_table = 'cache_report_light_resource'
@@ -212,7 +274,7 @@ class CompareJobsInfo(models.Model):
 
 class CompareJobsCache(models.Model):
     info = models.ForeignKey(CompareJobsInfo)
-    attr_values = models.TextField()
+    attr_values = models.CharField(max_length=64, db_index=True)
     verdict1 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     verdict2 = models.CharField(max_length=1, choices=COMPARE_VERDICT)
     reports1 = models.CharField(max_length=1000)
@@ -220,6 +282,7 @@ class CompareJobsCache(models.Model):
 
     class Meta:
         db_table = 'cache_report_jobs_compare'
+        index_together = ["info", "verdict1", "verdict2"]
 
 
 class TasksNumbers(models.Model):

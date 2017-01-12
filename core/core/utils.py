@@ -23,7 +23,7 @@ import re
 import resource
 import subprocess
 import sys
-import tarfile
+import zipfile
 import threading
 import time
 import queue
@@ -536,13 +536,13 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
+        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         if os.path.isfile(report_files_archive):
             raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with tarfile.open(report_files_archive, 'w:gz', encoding='utf8') as tar:
+        with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
             for file in report['files']:
-                tar.add(file)
+                zfp.write(file)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))

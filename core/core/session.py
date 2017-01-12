@@ -89,7 +89,7 @@ class Session:
     def schedule_task(self, task_desc):
         resp = self.__request('service/schedule_task/',
                               {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-                              files={'file': open('task files.tar.gz', 'rb')})
+                              files={'file': open('task files.zip', 'rb')})
         return resp.json()['task id']
 
     def get_task_status(self, task_id):
@@ -103,7 +103,7 @@ class Session:
     def download_decision(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
 
-        with open('decision result files.tar.gz', 'wb') as fp:
+        with open('decision result files.zip', 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 

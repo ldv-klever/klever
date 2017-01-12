@@ -20,19 +20,20 @@ import time
 import shutil
 import logging
 import hashlib
-import tarfile
 import tempfile
+import zipfile
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.files import File as NewFile
+from django.core.files import File
+from django.db.models.base import ModelBase
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
-from jobs.models import File
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
+CALL_STATISTIC = {}
 TESTS_DIR = 'Tests'
 
 logger = logging.getLogger('bridge')
@@ -60,25 +61,42 @@ def print_exec_time(f):
     return wrapper
 
 
-def unparallel(f):
+def affected_models(model):
+    curr_name = getattr(model, '_meta').object_name
+    related_models = {curr_name}
+    for rel in [f for f in getattr(model, '_meta').get_fields()
+                if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
+        rel_model_name = getattr(rel.field.model, '_meta').object_name
+        if rel_model_name not in related_models and rel_model_name != curr_name:
+            related_models.add(rel_model_name)
+            related_models |= affected_models(rel.field.model)
+    return related_models
 
-    def wait_other(*args, **kwargs):
-        if f.__name__ not in BLOCKER:
-            BLOCKER[f.__name__] = 0
-        while BLOCKER[f.__name__] == 1:
-            time.sleep(0.1)
-        BLOCKER[f.__name__] = 1
-        res = f(*args, **kwargs)
-        BLOCKER[f.__name__] = 0
-        return res
-    return wait_other
+
+def dump_statistic():
+    logger.info('=========FUNCTION CALL STATISTIC========')
+    for f_name in CALL_STATISTIC:
+        if CALL_STATISTIC[f_name][0] > 0 or CALL_STATISTIC[f_name][1] > 0:
+            logger.info(
+                '%s called %d times and waited for other functions for %0.1f seconds' % (
+                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0] / 10
+                )
+            )
+            CALL_STATISTIC[f_name][0] = 0
+            CALL_STATISTIC[f_name][1] = 0
 
 
 def unparallel_group(groups):
     def unparallel_inner(f):
+        block = set()
+        for group in groups:
+            if isinstance(group, ModelBase):
+                block |= affected_models(group)
+            else:
+                block.add(str(group))
 
         def block_access():
-            for g in groups:
+            for g in block:
                 if g not in GROUP_BLOCKER:
                     GROUP_BLOCKER[g] = 0
                 if GROUP_BLOCKER[g] == 1:
@@ -86,14 +104,20 @@ def unparallel_group(groups):
             return True
 
         def change_block(status):
-            for g in groups:
+            for g in block:
                 GROUP_BLOCKER[g] = status
 
         def wait(*args, **kwargs):
+            if f.__name__ not in CALL_STATISTIC:
+                CALL_STATISTIC[f.__name__] = [0, 0]
             while not block_access():
                 time.sleep(0.1)
+                CALL_STATISTIC[f.__name__][0] += 1
             change_block(1)
+            CALL_STATISTIC[f.__name__][1] += 1
             res = f(*args, **kwargs)
+            if CALL_STATISTIC[f.__name__][0] > 36000:
+                dump_statistic()
             change_block(0)
             return res
 
@@ -102,10 +126,10 @@ def unparallel_group(groups):
     return unparallel_inner
 
 
-def file_checksum(f, block_size=2**20):
+def file_checksum(f):
     md5 = hashlib.md5()
     while True:
-        data = f.read(block_size)
+        data = f.read(8 * 1024)
         if not data:
             break
         md5.update(data)
@@ -113,7 +137,7 @@ def file_checksum(f, block_size=2**20):
     return md5.hexdigest()
 
 
-def file_get_or_create(fp, filename, check_size=False):
+def file_get_or_create(fp, filename, table, check_size=False):
     if check_size:
         file_size = fp.seek(0, os.SEEK_END)
         if file_size > MAX_FILE_SIZE:
@@ -126,10 +150,10 @@ def file_get_or_create(fp, filename, check_size=False):
     fp.seek(0)
     check_sum = file_checksum(fp)
     try:
-        return File.objects.get(hash_sum=check_sum), check_sum
+        return table.objects.get(hash_sum=check_sum), check_sum
     except ObjectDoesNotExist:
-        db_file = File()
-        db_file.file.save(filename, NewFile(fp))
+        db_file = table()
+        db_file.file.save(filename, File(fp))
         db_file.hash_sum = check_sum
         db_file.save()
         return db_file, check_sum
@@ -138,15 +162,17 @@ def file_get_or_create(fp, filename, check_size=False):
 # archive - django.core.files.File object
 # Example: archive = File(open(<path>, mode='rb'))
 # Note: files from requests are already File objects
-def extract_tar_temp(archive):
+def extract_archive(archive):
     with tempfile.NamedTemporaryFile() as fp:
         for chunk in archive.chunks():
             fp.write(chunk)
         fp.seek(0)
-        with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as tar:
+        if os.path.splitext(archive.name)[-1] != '.zip':
+            raise ValueError('Only zip archives are supported')
+        with zipfile.ZipFile(fp, mode='r') as zfp:
             tmp_dir_name = tempfile.TemporaryDirectory()
-            tar.extractall(tmp_dir_name.name)
-    return tmp_dir_name
+            zfp.extractall(tmp_dir_name.name)
+        return tmp_dir_name
 
 
 def unique_id():
@@ -181,35 +207,101 @@ class KleverTestCase(TestCase):
             pass
 
 
-# Only extracting component log content uses max_size. If you add another usage, change error messages according to it.
+def has_references(obj):
+    relations = [f for f in getattr(obj, '_meta').get_fields()
+                 if (f.one_to_many or f.one_to_one) and f.auto_created and not f.concrete]
+    for link in list(rel.get_accessor_name() for rel in relations):
+        if getattr(obj, link).count() > 0:
+            return True
+    return False
+
+
 class ArchiveFileContent(object):
-    def __init__(self, file_model, file_name=None, max_size=None):
-        self._file = file_model
-        self._max_size = max_size
+    def __init__(self, report, file_name):
+        self._report = report
         self._name = file_name
-        self.error = None
-        try:
-            self.content = self.__extract_file_content()
-        except Exception as e:
-            logger.exception("Error while extracting file from archive: %s" % e)
-            self.error = 'Unknown error'
+        self.content = self.__extract_file_content()
 
     def __extract_file_content(self):
-        with File.objects.get(pk=self._file.pk).file as fp:
-            with tarfile.open(fileobj=fp, mode='r:gz', encoding='utf8') as arch:
-                for f in arch.getmembers():
-                    if f.isreg():
-                        if self._name is not None and f.name != self._name:
-                            continue
-                        file_extracted = arch.extractfile(f)
-                        if self._max_size is not None:
-                            file_extracted.seek(0, 2)
-                            if file_extracted.tell() > self._max_size:
-                                self.error = _('The component log is huge and '
-                                               'can not be showed but you can download it')
-                                return None
-                            file_extracted.seek(0)
-                        self._name = f.name
-                        return file_extracted.read().decode('utf8')
-        self.error = _('Needed file was not found')
-        return None
+        with getattr(self._report, '_meta').model.objects.get(id=self._report.id).archive as fp:
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                return zfp.read(self._name)
+
+
+class RemoveFilesBeforeDelete:
+    def __init__(self, obj):
+        model_name = getattr(obj, '_meta').object_name
+        if model_name == 'SolvingProgress':
+            self.__remove_progress_files(obj)
+        elif model_name == 'ReportRoot':
+            self.__remove_reports_files(obj)
+        elif model_name == 'Job':
+            # Deleting of the job automatically send signals of deleting OneToOne fields
+            # (ReportRoot and SolvingProgress), so we don't need to do here something
+            pass
+        elif model_name == 'ReportComponent':
+            self.__remove_component_files(obj)
+        elif model_name == 'Task':
+            self.__remove_task_files(obj)
+
+    def __remove_progress_files(self, progress):
+        from service.models import Solution, Task
+        for files in Solution.objects.filter(task__progress=progress).values_list('archive'):
+            self.__remove(files)
+        for files in Task.objects.filter(progress=progress).values_list('archive'):
+            self.__remove(files)
+
+    def __remove_reports_files(self, root):
+        from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+        for files in ReportSafe.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnsafe.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnknown.objects.filter(root=root).values_list('archive'):
+            self.__remove(files)
+        for files in ReportComponent.objects.filter(root=root).values_list('archive', 'data'):
+            self.__remove(files)
+
+    def __remove_component_files(self, report):
+        from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown
+        reports = set()
+        parents = {report.parent_id}
+        while len(parents) > 0:
+            reports |= parents
+            parents = set(rc['id'] for rc in ReportComponent.objects.filter(parent_id__in=parents).values('id'))
+        for files in ReportUnsafe.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportSafe.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportUnknown.objects.filter(parent_id__in=reports).values_list('archive'):
+            self.__remove(files)
+        for files in ReportComponent.objects.filter(id__in=reports).values_list('archive', 'data'):
+            self.__remove(files)
+
+    def __remove_task_files(self, task):
+        self.__is_not_used()
+        from service.models import Solution
+        files = set()
+        try:
+            files.add(Solution.objects.get(task=task).archive.path)
+        except ObjectDoesNotExist:
+            pass
+        files.add(task.archive.path)
+        self.__remove(files)
+
+    def __remove(self, files):
+        self.__is_not_used()
+        for f in files:
+            if f:
+                path = os.path.join(MEDIA_ROOT, f)
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+                except Exception as e:
+                    logger.exception(e)
+
+    def __is_not_used(self):
+        pass

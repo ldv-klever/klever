@@ -124,10 +124,7 @@ class EMG(core.avtg.plugins.Plugin):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps(
-                                  {self.abstract_task_desc['attrs'][0]['verification object']: instance_maps},
-                                  ensure_ascii=False, sort_keys=True, indent=4
-                              )
+                              'data': {self.abstract_task_desc['attrs'][0]['verification object']: instance_maps}
                           },
                           self.mqs['report files'],
                           get_necessary_conf_property(self.conf, "main working directory"))

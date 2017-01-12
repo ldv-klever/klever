@@ -18,20 +18,18 @@
 import os
 import re
 import json
-import hashlib
-from time import sleep
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
-from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import file_get_or_create, logger, unique_id
 from users.models import Extended
 from jobs.utils import create_job
-from jobs.models import Job
+from jobs.models import Job, JobFile
+from reports.models import TaskStatistic
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert
@@ -47,7 +45,10 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.extended.role = role
         user.extended.save()
     except ObjectDoesNotExist:
-        Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
+        Extended.objects.create(role=role, user=user)
+        user.first_name = 'Firstname'
+        user.last_name = 'Lastname'
+        user.save()
 
 
 class PopulationError(Exception):
@@ -64,13 +65,14 @@ class Population(object):
             self.__add_service_user(service)
 
     def __population(self):
+        TaskStatistic.objects.get_or_create()
         if self.user is not None:
             try:
                 Extended.objects.get(user=self.user)
             except ObjectDoesNotExist:
                 extend_user(self.user)
         self.__populate_functions()
-        if len(Job.objects.filter(parent=None)) < 3:
+        if len(Job.objects.filter(parent=None)) < len(JOB_CLASSES):
             self.__populate_jobs()
         self.__populate_default_jobs()
         self.__populate_unknown_marks()
@@ -104,7 +106,7 @@ class Population(object):
         MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
 
     def __correct_description(self, descr):
-        self.ccc = 0
+        self.__is_not_used()
         descr_strs = descr.split('\n')
         new_descr_strs = []
         for s in descr_strs:
@@ -121,7 +123,7 @@ class Population(object):
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
-            manager = User.objects.create(username=manager_username)
+            manager = User.objects.create(username=manager_username, first_name='Firstname', last_name='Lastname')
             self.changes['manager'] = {
                 'username': manager.username,
                 'password': self.__add_password(manager)
@@ -135,7 +137,7 @@ class Population(object):
         try:
             extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
         except ObjectDoesNotExist:
-            service = User.objects.create(username=service_username)
+            service = User.objects.create(username=service_username, first_name='Firstname', last_name='Lastname')
             extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
@@ -143,8 +145,8 @@ class Population(object):
             }
 
     def __add_password(self, user):
-        self.ccc = 0
-        password = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()[:8]
+        self.__is_not_used()
+        password = unique_id()[:8]
         user.set_password(password)
         user.save()
         return password
@@ -165,45 +167,36 @@ class Population(object):
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
                     args['type'] = JOB_CLASSES[i][0]
                     create_job(args)
-                    sleep(0.1)
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                logger.error('There is default job without settings file (%s)' % jobdir, stack_info=True)
-                continue
+                raise PopulationError('There is default job without settings file (%s)' % jobdir)
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
-                    logger.exception('The default job was not created: %s' % e, stack_info=True)
-                    continue
+                    raise PopulationError('The default job settings file is wrong json: %s' % e)
             if any(x not in job_settings for x in ['name', 'class', 'description']):
-                logger.error(
+                raise PopulationError(
                     'Default job settings must contain name, class and description. Job in "%s" has %s' % (
                         jobdir, str(list(job_settings))
-                    ), stack_info=True
+                    )
                 )
-                continue
             if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                logger.error(
-                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class'],
-                    stack_info=True
+                raise PopulationError(
+                    'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
                 )
-                continue
             if len(job_settings['name']) == 0:
-                logger.error('Default job name is required', stack_info=True)
-                continue
+                raise PopulationError('Default job name is required')
             try:
                 parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
-                logger.exception(
-                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class'],
-                    stack_info=True
+                raise PopulationError(
+                    "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
                 )
-                continue
             job = create_job({
                 'author': self.manager,
                 'global_role': '1',
@@ -212,11 +205,9 @@ class Population(object):
                 'parent': parent,
                 'filedata': self.__get_filedata(jobdir)
             })
-            if isinstance(job, Job):
-                if 'default_jobs' not in self.changes:
-                    self.changes['default_jobs'] = []
-                self.changes['default_jobs'].append([job.name, job.identifier])
-            sleep(0.1)
+            if 'default_jobs' not in self.changes:
+                self.changes['default_jobs'] = []
+            self.changes['default_jobs'].append([job.name, job.identifier])
 
     def __get_filedata(self, d):
         self.cnt = 0
@@ -231,10 +222,10 @@ class Population(object):
                 self.cnt += 1
                 if os.path.isfile(f):
                     try:
-                        check_sum = file_get_or_create(open(f, 'rb'), base_f, True)[1]
+                        with open(f, mode='rb') as fp:
+                            check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
                     except Exception as e:
-                        logger.exception('One of the job files was not uploaded (%s): %s' % (f, e), stack_info=True)
-                        continue
+                        raise PopulationError('One of the job files was not uploaded (%s): %s' % (f, e))
                     fdata.append({
                         'id': self.cnt,
                         'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
@@ -335,6 +326,9 @@ class Population(object):
                 raise PopulationError("Error while creating tags: %s" % res.error)
         return res.number_of_created
 
+    def __is_not_used(self):
+        pass
+
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
 # last_name and first_name are not required; username and password are required (for admin password is not required)z
@@ -351,12 +345,10 @@ def populate_users(admin=None, manager=None, service=None):
             admin['first_name'] = 'Firstname'
         try:
             user = User.objects.get(username=admin['username'])
-            Extended.objects.create(
-                last_name=admin['last_name'],
-                first_name=admin['first_name'],
-                role=USER_ROLES[1][0],
-                user=user
-            )
+            user.first_name = admin['first_name']
+            user.last_name = admin['last_name']
+            user.save()
+            Extended.objects.create(user=user, role=USER_ROLES[1][0])
         except ObjectDoesNotExist:
             return 'Administrator with specified username does not exist'
     if manager is not None:
@@ -374,15 +366,12 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=manager['username'])
             return 'Manager with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=manager['username'])
+            newuser = User(
+                username=manager['username'], first_name=manager['first_name'], last_name=manager['last_name']
+            )
             newuser.set_password(manager['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=manager['last_name'],
-                first_name=manager['first_name'],
-                role=USER_ROLES[2][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[2][0])
     if service is not None:
         if not isinstance(service, dict):
             return 'Wrong service format'
@@ -398,13 +387,10 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=service['username'])
             return 'Service with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=service['username'])
+            newuser = User(
+                username=service['username'], last_name=service['last_name'], first_name=service['first_name']
+            )
             newuser.set_password(service['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=service['last_name'],
-                first_name=service['first_name'],
-                role=USER_ROLES[4][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
     return None

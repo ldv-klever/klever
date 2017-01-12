@@ -518,12 +518,13 @@ class GetSource(object):
         data = ''
         if file_name.startswith('/'):
             file_name = file_name[1:]
-        afc = ArchiveFileContent(self.report.archive, file_name=file_name)
-        if afc.error is not None:
-            self.error = afc.error
+        try:
+            source_content = ArchiveFileContent(self.report, file_name).content.decode('utf8')
+        except Exception as e:
+            self.error = _("Error while extracting source from archive: %(error)s") % {'error': str(e)}
             return None
         cnt = 1
-        lines = afc.content.split('\n')
+        lines = source_content.split('\n')
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH)
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)

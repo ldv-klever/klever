@@ -17,7 +17,7 @@
 
 import json
 import os
-import tarfile
+import zipfile
 import time
 import glob
 import re
@@ -115,13 +115,13 @@ class MPV(CommonStrategy):
 
     def prepare_verification_task_files_archive(self):
         self.logger.debug('Prepare archive with verification task files')
-        with tarfile.open('task files.tar.gz', 'w:gz', encoding='utf8') as tar:
+        with zipfile.ZipFile('task files.zip', mode='w') as zfp:
             for assertion, automaton in self.property_automata.items():
                 path_to_file = assertion + '.spc'
                 if os.path.isfile(path_to_file):
-                    tar.add(path_to_file)
+                    zfp.write(path_to_file)
             for file in self.task_desc['files']:
-                tar.add(file)
+                zfp.write(file)
             self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def create_property_automata(self):
@@ -242,8 +242,8 @@ class MPV(CommonStrategy):
             if task_status == 'FINISHED':
                 session.download_decision(task_id)
 
-                with tarfile.open("decision result files.tar.gz", encoding='utf8') as tar:
-                    tar.extractall()
+                with zipfile.ZipFile("decision result files.zip") as zfp:
+                    zfp.extractall()
 
                 with open('decision results.json', encoding='utf8') as fp:
                     decision_results = json.load(fp)

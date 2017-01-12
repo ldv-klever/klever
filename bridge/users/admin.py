@@ -16,7 +16,6 @@
 #
 
 from django.contrib import admin
-from users.models import Extended, User
+from users.models import Extended
 
-# Register your models here.
 admin.site.register(Extended)

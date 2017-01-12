@@ -23,8 +23,6 @@ from bridge.settings import DEF_USER
 
 class Extended(models.Model):
     user = models.OneToOneField(User)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
     accuracy = models.SmallIntegerField(default=DEF_USER['accuracy'])
     data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=DEF_USER['dataformat'])
     language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER['language'])
@@ -55,7 +53,7 @@ class View(models.Model):
 
 class PreferableView(models.Model):
     user = models.ForeignKey(User)
-    view = models.ForeignKey(View, related_name='+', on_delete=models.CASCADE)
+    view = models.ForeignKey(View, related_name='+')
 
     def __str__(self):
         return self.view.name

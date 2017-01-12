@@ -24,7 +24,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect
+from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
 from django.template.loader import get_template
@@ -32,11 +32,11 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, unparallel, extract_tar_temp, ArchiveFileContent
+from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
-from marks.Download import ReadTarMark, CreateMarkTar, AllMarksTar, UploadAllMarks
+from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 from marks.models import *
 
@@ -47,6 +47,7 @@ def value_type(value):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
@@ -58,11 +59,11 @@ def create_mark(request, mark_type, report_id):
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
-            afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
-            if afc.error is not None:
-                logger.error(afc.error)
+            try:
+                problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+            except Exception as e:
+                logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
                 return HttpResponseRedirect(reverse('error', args=[500]))
-            problem_description = afc.content
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
     if not MarkAccess(request.user, report=report).can_create():
@@ -85,6 +86,7 @@ def create_mark(request, mark_type, report_id):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
 def view_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -130,6 +132,7 @@ def view_mark(request, mark_type, mark_id):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def edit_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -174,7 +177,7 @@ def edit_mark(request, mark_type, mark_id):
             change_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
             title = change_time.strftime("%d.%m.%Y %H:%M:%S")
             if m.author is not None:
-                title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
+                title += " (%s %s)" % (m.author.last_name, m.author.first_name)
             title += ': ' + m.comment
         mark_versions.append({'version': m.version, 'title': title})
 
@@ -192,8 +195,8 @@ def edit_mark(request, mark_type, mark_id):
     })
 
 
-@unparallel_group(['mark'])
 @login_required
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def save_mark(request):
     activate(request.user.extended.language)
 
@@ -250,6 +253,7 @@ def save_mark(request):
 
 
 @login_required
+@unparallel_group(['MarkUnsafeCompare', 'MarkUnsafeConvert'])
 def get_func_description(request):
     activate(request.user.extended.language)
 
@@ -277,6 +281,7 @@ def get_func_description(request):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def get_mark_version_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -334,6 +339,7 @@ def get_mark_version_data(request):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
     titles = {
@@ -371,6 +377,7 @@ def mark_list(request, marks_type):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def download_mark(request, mark_type, mark_id):
 
     if request.method == 'POST':
@@ -387,16 +394,15 @@ def download_mark(request, mark_type, mark_id):
     if mark.version == 0:
         return HttpResponseRedirect(reverse('error', args=[605]))
 
-    mark_tar = CreateMarkTar(mark)
-
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % mark_tar.name
-    response.write(mark_tar.tempfile.read())
+    generator = MarkArchiveGenerator(mark)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
 
 
-@unparallel_group(['mark'])
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def upload_marks(request):
     activate(request.user.extended.language)
 
@@ -411,13 +417,13 @@ def upload_marks(request):
     mark_type = None
     num_of_new_marks = 0
     for f in request.FILES.getlist('file'):
-        tardata = ReadTarMark(request.user, f)
-        if tardata.error is not None:
-            failed_marks.append([tardata.error + '', f.name])
+        res = ReadMarkArchive(request.user, f)
+        if res.error is not None:
+            failed_marks.append([res.error + '', f.name])
         else:
             num_of_new_marks += 1
-            mark_id = tardata.mark.pk
-            mark_type = tardata.type
+            mark_id = res.mark.id
+            mark_type = res.type
     if len(failed_marks) > 0:
         return JsonResponse({'status': False, 'messages': failed_marks})
     if num_of_new_marks == 1:
@@ -427,8 +433,8 @@ def upload_marks(request):
     return JsonResponse({'status': True})
 
 
-@unparallel_group(['mark'])
 @login_required
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def delete_mark(request, mark_type, mark_id):
     try:
         if mark_type == 'unsafe':
@@ -445,8 +451,8 @@ def delete_mark(request, mark_type, mark_id):
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
 
 
-@unparallel_group(['mark'])
 @login_required
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def delete_marks(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -474,8 +480,8 @@ def delete_marks(request):
     return JsonResponse({})
 
 
-@unparallel
 @login_required
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def remove_versions(request):
     activate(request.user.extended.language)
 
@@ -511,6 +517,7 @@ def remove_versions(request):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def get_mark_versions(request):
     activate(request.user.extended.language)
 
@@ -538,13 +545,14 @@ def get_mark_versions(request):
         mark_time = m.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
         title = mark_time.strftime("%d.%m.%Y %H:%M:%S")
         if m.author is not None:
-            title += " (%s %s)" % (m.author.extended.last_name, m.author.extended.first_name)
+            title += " (%s %s)" % (m.author.last_name, m.author.first_name)
         title += ': ' + m.comment
         mark_versions.append({'version': m.version, 'title': title})
     return render(request, 'marks/markVersions.html', {'versions': mark_versions})
 
 
 @login_required
+@unparallel_group([MarkAssociationsChanges])
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
@@ -563,6 +571,7 @@ def association_changes(request, association_id):
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def show_tags(request, tags_type):
     activate(request.user.extended.language)
 
@@ -583,6 +592,7 @@ def show_tags(request, tags_type):
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def get_tag_parents(request):
     activate(request.user.extended.language)
 
@@ -607,6 +617,7 @@ def get_tag_parents(request):
 
 
 @login_required
+@unparallel_group([UnsafeTag, SafeTag])
 def save_tag(request):
     activate(request.user.extended.language)
 
@@ -621,6 +632,7 @@ def save_tag(request):
 
 
 @login_required
+@unparallel_group([UnsafeTag, SafeTag])
 def remove_tag(request):
     activate(request.user.extended.language)
 
@@ -644,6 +656,7 @@ def remove_tag(request):
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def get_tags_data(request):
     activate(request.user.extended.language)
 
@@ -678,6 +691,7 @@ def get_tags_data(request):
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def download_tags(request, tags_type):
     tags_data = []
     if tags_type == 'safe':
@@ -701,6 +715,7 @@ def download_tags(request, tags_type):
 
 
 @login_required
+@unparallel_group([UnsafeTag, SafeTag])
 def upload_tags(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
@@ -719,21 +734,20 @@ def upload_tags(request):
     return JsonResponse({})
 
 
-@unparallel_group(['mark'])
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def download_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
         return JsonResponse({'error': "You don't have an access to download all marks"})
-    arch = AllMarksTar()
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(arch.name)
-    response.write(arch.tempfile.read())
-
+    generator = AllMarksGen()
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
 
 
-@unparallel_group(['mark'])
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def upload_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -750,7 +764,7 @@ def upload_all(request):
     if len(request.FILES.getlist('file')) == 0:
         return JsonResponse({'error': 'Archive with marks expected'})
     try:
-        marks_dir = extract_tar_temp(request.FILES.getlist('file')[0])
+        marks_dir = extract_archive(request.FILES.getlist('file')[0])
     except Exception as e:
         logger.exception("Archive extraction failed" % e, stack_info=True)
         return JsonResponse({'error': 'Archive extraction failed'})

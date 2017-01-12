@@ -271,7 +271,7 @@ $(document).ready(function () {
                 $('#dimmer_of_page').removeClass('active');
                 if (data.status) {
                     if (data.mark_id.length && data.mark_type.length) {
-                        window.location.replace("/marks/" + data.mark_type + "/edit/" + data.mark_id + "/")
+                        window.location.replace("/marks/" + data.mark_type + "/view/" + data.mark_id + "/")
                     }
                 }
                 else {
@@ -352,19 +352,16 @@ $(document).ready(function () {
             },
             success: function (data) {
                 $('#dimmer_of_page').removeClass('active');
-                if (data.status) {
-                    window.location.replace('')
+                if ('error' in data) {
+                    err_notify(data['error']);
+                }
+                else if ('errors' in data) {
+                    for (var i = 0; i < data['errors'].length; i++) {
+                        err_notify(data['errors'][i]);
+                    }
                 }
                 else {
-                    if (data.messages) {
-                        for (var i = 0; i < data.messages.length; i++) {
-                            var err_message = data.messages[i][0] + ' (' + data.messages[i][1] + ')';
-                            err_notify(err_message);
-                        }
-                    }
-                    else {
-                        err_notify(data.message);
-                    }
+                    window.location.replace('');
                 }
             }
         });

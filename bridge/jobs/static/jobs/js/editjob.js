@@ -214,6 +214,7 @@ function set_actions_for_edit_form () {
             user_roles.push({user: user_id, role: user_role});
         });
         user_roles = JSON.stringify(user_roles);
+        $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'savejob/',
             {
@@ -228,6 +229,7 @@ function set_actions_for_edit_form () {
                 last_version: last_job_version
             },
             function (data) {
+                $('#dimmer_of_page').removeClass('active');
                 data.error ? err_notify(data.error) : window.location.replace('/jobs/' + data.job_id + '/');
             },
             "json"
@@ -351,7 +353,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
     if (type === 0) {
         new_row.attr('style', 'background:#eee8b7;')
     }
-    new_row.append($('<td>', {class: 'one wide'}).append($('<div>', {class: 'ui radio checkbox'}).append($('<input>', {
+    new_row.append($('<td>', {class: 'one wide right aligned'}).append($('<div>', {class: 'ui radio checkbox'}).append($('<input>', {
         id: 'selected_filerow__' + type + '__' + id,
         type: 'radio',
         name: 'selected_filerow',
@@ -383,7 +385,7 @@ function new_filetable_row(type, id, parent_id, title, hash_sum, href) {
 
 
 function update_treegrid() {
-    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon', true);
+    inittree($('.tree'), 2, 'folder open violet icon', 'folder violet icon');
 }
 
 function selected_row() {
@@ -856,8 +858,9 @@ $(document).ready(function () {
     view_job_1st_part.find('.ui.dropdown').dropdown();
     $('.normal-popup').popup({position: 'bottom center'});
     $('#remove_job_popup').modal({
-        transition: 'fly up', autofocus: false, closable: false})
+        transition: 'fade in', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');
+    $('#remove_job_with_children_popup').modal({transition: 'fade in', autofocus: false, closable: false});
     $('#fast_start_job_popup').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#show_fast_job_start_popup', 'show');
@@ -877,6 +880,9 @@ $(document).ready(function () {
 
     $('#cancel_remove_job').click(function () {
         $('#remove_job_popup').modal('hide');
+    });
+    $('#cancel_remove_job_with_children').click(function () {
+        $('#remove_job_with_children_popup').modal('hide');
     });
     $('#cancel_fast_start_job').click(function () {
         $('#fast_start_job_popup').modal('hide');
@@ -903,7 +909,7 @@ $(document).ready(function () {
             type: 'POST',
             success: function (data) {
                 $('#edit_job_div').html(data);
-                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon', true);
+                inittree($('.tree'), 1, 'folder open violet icon', 'folder violet icon');
                 set_action_on_file_click();
                 set_actions_for_run_history();
             }
@@ -944,6 +950,35 @@ $(document).ready(function () {
 
     $('#remove_job_btn').click(function () {
         $('#remove_job_popup').modal('hide');
+        $.post(
+            job_ajax_url + 'do_job_has_children/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                    return false;
+                }
+                if (data.children) {
+                    $('#remove_job_with_children_popup').modal('show');
+                }
+                else {
+                    $('#dimmer_of_page').addClass('active');
+                    $.post(
+                        job_ajax_url + 'removejobs/',
+                        {jobs: JSON.stringify([$('#job_pk').val()])},
+                        function (data) {
+                            $('#dimmer_of_page').removeClass('active');
+                            data.error ? err_notify(data.error) : window.location.replace('/jobs/');
+                        },
+                        'json'
+                    );
+                }
+            },
+            'json'
+        );
+    });
+    $('#remove_job_with_children_btn').click(function () {
+        $('#remove_job_with_children_popup').modal('hide');
         $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'removejobs/',

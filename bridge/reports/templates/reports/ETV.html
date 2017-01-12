@@ -63,9 +63,7 @@
         <div style="margin: 10px;">
             <div class="ui grid">
                 <div class="sixteen wide column center aligned">
-                    <h3 class="ui blue header">
-                        <span id="error_trace_options">{% trans 'Error trace' %}</span>
-                    </h3>
+                    <h3><a id="error_trace_options" href="{% url 'reports:download_error_trace' report.pk %}">{% trans 'Error trace' %}</a></h3>
                 </div>
             </div>
             <div id="ETV_error_trace">
@@ -127,15 +125,17 @@
     {% endif %}
 </div>
 
-<div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
-    <div class="ui grid">
-        <div class="sixteen wide column left aligned">
-            {% for attribute in etv.attributes %}
-                <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
-            {% endfor %}
+{% if etv.attributes|length %}
+    <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
+        <div class="ui grid">
+            <div class="sixteen wide column left aligned">
+                {% for attribute in etv.attributes %}
+                    <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
+                {% endfor %}
+            </div>
         </div>
     </div>
-</div>
+{% endif %}
 
 <span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
 <span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>

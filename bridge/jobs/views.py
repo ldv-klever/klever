@@ -16,8 +16,6 @@
 #
 
 import mimetypes
-import tempfile
-import tarfile
 from datetime import datetime
 from urllib.parse import quote
 from difflib import unified_diff
@@ -29,20 +27,21 @@ from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel, unparallel_group, print_exec_time, file_get_or_create, extract_tar_temp
+from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
-from reports.utils import DownloadFilesForCompetition
-from jobs.Download import UploadJob, DownloadJob, KleverCoreDownloadJob
+from reports.utils import FilesForCompetitionArchive
+from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 from jobs.utils import *
 from jobs.models import RunHistory
 from service.utils import StartJobDecision, StopDecision
 
 
 @login_required
+@unparallel_group(['Job'])
 def tree_view(request):
     activate(request.user.extended.language)
 
@@ -60,15 +59,14 @@ def tree_view(request):
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
         'priorities': list(reversed(PRIORITY)),
-        'can_create': JobAccess(request.user).can_create(),
         'months': months_choices,
         'years': list(range(curr_year - 3, curr_year + 1)),
         'TableData': TableTree(*tree_args)
     })
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([PreferableView, 'View'])
 def preferable_view(request):
     activate(request.user.extended.language)
 
@@ -99,8 +97,8 @@ def preferable_view(request):
     return JsonResponse({'message': _("The preferred view was successfully changed")})
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group(['View'])
 def check_view_name(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -119,8 +117,8 @@ def check_view_name(request):
     return JsonResponse({})
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([View])
 def save_view(request):
     activate(request.user.extended.language)
 
@@ -156,8 +154,8 @@ def save_view(request):
     })
 
 
-@unparallel_group(['view'])
 @login_required
+@unparallel_group([View])
 def remove_view(request):
     activate(request.user.extended.language)
 
@@ -170,15 +168,14 @@ def remove_view(request):
     if v_id == 'default':
         return JsonResponse({'error': _("You can't remove the default view")})
     try:
-        View.objects.get(
-            author=request.user, pk=int(v_id), type=view_type
-        ).delete()
+        View.objects.get(author=request.user, pk=int(v_id), type=view_type).delete()
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The view was not found")})
     return JsonResponse({'message': _("The view was successfully removed")})
 
 
 @login_required
+@unparallel_group(['Job'])
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
 
@@ -254,6 +251,7 @@ def show_job(request, job_id=None):
 
 
 @login_required
+@unparallel_group(['Job', 'Report'])
 def get_job_data(request):
     activate(request.user.extended.language)
 
@@ -281,6 +279,7 @@ def get_job_data(request):
 
 
 @login_required
+@unparallel_group([Job])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -307,14 +306,9 @@ def edit_job(request):
         if j.version == job.version:
             title = _("Current version")
         else:
-            job_time = j.change_date.astimezone(
-                pytz.timezone(request.user.extended.timezone)
-            )
+            job_time = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
             title = job_time.strftime("%d.%m.%Y %H:%M:%S")
-            title += " (%s %s)" % (
-                j.change_author.extended.last_name,
-                j.change_author.extended.first_name,
-            )
+            title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
             title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
@@ -337,8 +331,8 @@ def edit_job(request):
     })
 
 
-@unparallel
 @login_required
+@unparallel_group(['Job', JobHistory])
 def remove_versions(request):
     activate(request.user.extended.language)
 
@@ -361,6 +355,7 @@ def remove_versions(request):
 
 
 @login_required
+@unparallel_group(['Job', 'JobHistory'])
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -374,7 +369,7 @@ def get_job_versions(request):
     job_versions = []
     for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
         title = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (j.change_author.extended.last_name, j.change_author.extended.first_name)
+        title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
         title += ': ' + j.comment
         job_versions.append({
             'version': j.version,
@@ -384,6 +379,7 @@ def get_job_versions(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -400,7 +396,7 @@ def copy_new_job(request):
     for u in User.objects.filter(~Q(pk=request.user.pk)):
         roles['available_users'].append({
             'id': u.pk,
-            'name': u.extended.last_name + ' ' + u.extended.first_name
+            'name': u.last_name + ' ' + u.first_name
         })
 
     job = get_object_or_404(Job, pk=int(request.POST.get('parent_id', 0)))
@@ -415,8 +411,8 @@ def copy_new_job(request):
     })
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group([Job])
 def save_job(request):
     activate(request.user.extended.language)
 
@@ -464,11 +460,12 @@ def save_job(request):
         job_kwargs['job'] = job
         job_kwargs['comment'] = request.POST.get('comment', '')
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
-        updated_job = update_job(job_kwargs)
-        if isinstance(updated_job, Job):
-            return JsonResponse({'job_id': job.pk})
-        else:
-            return JsonResponse({'error': updated_job + ''})
+        try:
+            update_job(job_kwargs)
+        except Exception as e:
+            logger.exception(str(e), stack_info=True)
+            return JsonResponse({'error': _('Updating the job failed')})
+        return JsonResponse({'job_id': job.pk})
     elif parent_identifier is not None:
         try:
             parent = Job.objects.get(identifier=parent_identifier)
@@ -478,34 +475,31 @@ def save_job(request):
             return JsonResponse({'error': _("You don't have an access to create new jobs")})
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()
-        newjob = create_job(job_kwargs)
+        try:
+            newjob = create_job(job_kwargs)
+        except Exception as e:
+            logger.exception(str(e), stack_info=True)
+            return JsonResponse({'error': _('Saving the job failed')})
         if isinstance(newjob, Job):
             return JsonResponse({'job_id': newjob.pk})
         return JsonResponse({'error': newjob + ''})
     return JsonResponse({'error': 'Unknown error'})
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group([Job])
 def remove_jobs(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'error': 'Unknown error'})
     jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
-    status = remove_jobs_by_id(request.user, jobs_for_del)
-    if status == 404:
-        if len(jobs_for_del) == 1:
-            return JsonResponse({'error': _('The job was not found')})
-        return JsonResponse({'error': _('One of the selected jobs was not found')})
-    elif status == 400:
-        if len(jobs_for_del) == 1:
-            return JsonResponse({'error': _("You don't have an access to remove this job")})
-        return JsonResponse({'error': _("You don't have an access to remove one of the selected jobs")})
+    remove_jobs_by_id(request.user, jobs_for_del)
     return JsonResponse({})
 
 
 @login_required
+@unparallel_group(['Job'])
 def showjobdata(request):
     activate(request.user.extended.language)
 
@@ -523,8 +517,8 @@ def showjobdata(request):
     })
 
 
-@unparallel
 @login_required
+@unparallel_group(['JobFile'])
 def upload_file(request):
     activate(request.user.extended.language)
 
@@ -537,7 +531,7 @@ def upload_file(request):
             if title_size > 30:
                 fname = fname[(title_size - 30):]
         try:
-            check_sum = file_get_or_create(request.FILES[f], fname, True)[1]
+            check_sum = file_get_or_create(request.FILES[f], fname, JobFile, True)[1]
         except Exception as e:
             return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
         return JsonResponse({'checksum': check_sum})
@@ -545,6 +539,7 @@ def upload_file(request):
 
 
 @login_required
+@unparallel_group(['FileSystem', 'JobFile'])
 def download_file(request, file_id):
     if request.method == 'POST':
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -562,8 +557,8 @@ def download_file(request, file_id):
     return response
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
 def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
@@ -571,51 +566,37 @@ def download_job(request, job_id):
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    jobtar = DownloadJob(job)
-    if jobtar.error is not None:
-        return HttpResponseRedirect(
-            reverse('error', args=[500]) + "?back=%s" %
-            quote(reverse('jobs:job', args=[job_id]))
-        )
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.tarname
-    response.write(jobtar.tempfile.read())
+
+    generator = JobArchiveGenerator(job)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
     return response
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
         return HttpResponseRedirect(
             reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
         )
-    arch_tmp = tempfile.TemporaryFile()
-    with tarfile.open(fileobj=arch_tmp, mode='w:gz', encoding='utf8') as jobs_archive:
-        for job in Job.objects.filter(pk__in=json.loads(request.POST['job_ids'])):
-            if not JobAccess(request.user, job).can_download():
-                return HttpResponseRedirect(
-                    reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
-                )
-            jobtar = DownloadJob(job)
-            if jobtar.error is not None:
-                return HttpResponseRedirect(
-                    reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-                )
-            tarname = 'Job-%s.tar.gz' % job.identifier[:10]
-            tinfo = tarfile.TarInfo(tarname)
-            tinfo.size = jobtar.size
-            jobs_archive.addfile(tinfo, jobtar.tempfile)
-        jobs_archive.close()
-    arch_tmp.flush()
-    arch_tmp.seek(0)
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=KleverJobs.tar.gz"
-    response.write(arch_tmp.read())
+    jobs = Job.objects.filter(pk__in=json.loads(request.POST['job_ids']))
+    for job in jobs:
+        if not JobAccess(request.user, job).can_download():
+            return HttpResponseRedirect(
+                reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
+            )
+    generator = JobsArchivesGen(jobs)
+
+    mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=KleverJobs.zip"
     return response
 
 
 @login_required
+@unparallel_group(['Job'])
 def check_access(request):
     activate(request.user.extended.language)
 
@@ -632,49 +613,43 @@ def check_access(request):
     return JsonResponse({})
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group([Job])
 @print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
     if len(parent_id) == 0:
-        return JsonResponse({
-            'status': False,
-            'message': _("The parent identifier was not got")
-        })
+        return JsonResponse({'error': str(_("The parent identifier was not got"))})
     parents = Job.objects.filter(identifier__startswith=parent_id)
     if len(parents) == 0:
-        return JsonResponse({
-            'status': False,
-            'message': _("The parent with the specified identifier was not found")
-        })
+        return JsonResponse({'error': str(_("The parent with the specified identifier was not found"))})
     elif len(parents) > 1:
-        return JsonResponse({
-            'status': False,
-            'message': _("Too many jobs starts with the specified identifier")
-        })
+        return JsonResponse({'error': str(_("Too many jobs starts with the specified identifier"))})
     parent = parents[0]
-    failed_jobs = []
+    errors = []
     for f in request.FILES.getlist('file'):
         try:
-            job_dir = extract_tar_temp(f)
+            job_dir = extract_archive(f)
         except Exception as e:
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
-            failed_jobs.append([str(_('Archive extracting error')), f.name])
+            errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
+        # TODO: ensure that tempdir is deleted after job is uploaded (on Linux)
         zipdata = UploadJob(parent, request.user, job_dir.name)
         if zipdata.err_message is not None:
-            failed_jobs.append([zipdata.err_message + '', f.name])
-    if len(failed_jobs) > 0:
-        return JsonResponse({
-            'status': False,
-            'messages': failed_jobs
-        })
-    return JsonResponse({'status': True})
+            errors.append(
+                _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': f.name,
+                    'message': str(zipdata.err_message)
+                }
+            )
+    if len(errors) > 0:
+        return JsonResponse({'errors': list(str(x) for x in errors)})
+    return JsonResponse({})
 
 
-@unparallel_group(['job', 'report'])
+@unparallel_group([Job])
 def decide_job(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -702,26 +677,20 @@ def decide_job(request):
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    jobtar = KleverCoreDownloadJob(job)
-    if jobtar.error is not None:
-        return JsonResponse({
-            'error': "Couldn't prepare archive for the job '%s'" % job.identifier
-        })
     change_job_status(job, JOB_STATUS[2][0])
-
-    jobtar.memory.seek(0)
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
     if err is not None:
         return JsonResponse({'error': err})
 
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = 'attachment; filename={0}'.format(jobtar.tarname)
-    response.write(jobtar.memory.read())
-
+    generator = KleverCoreArchiveGen(job)
+    mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.arcname
     return response
 
 
 @login_required
+@unparallel_group(['FileSystem', 'JobFile'])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
@@ -738,8 +707,8 @@ def getfilecontent(request):
     return HttpResponse(source.file.file.read())
 
 
-@unparallel
 @login_required
+@unparallel_group([Job])
 def stop_decision(request):
     activate(request.user.extended.language)
 
@@ -757,8 +726,8 @@ def stop_decision(request):
     return JsonResponse({})
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -778,6 +747,7 @@ def run_decision(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def prepare_decision(request, job_id):
     activate(request.user.extended.language)
     try:
@@ -811,8 +781,8 @@ def prepare_decision(request, job_id):
     })
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def fast_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -828,8 +798,8 @@ def fast_run_decision(request):
     return JsonResponse({})
 
 
-@unparallel_group(['decision'])
 @login_required
+@unparallel_group([Job])
 def lastconf_run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -854,6 +824,7 @@ def lastconf_run_decision(request):
 
 
 @login_required
+@unparallel_group(['Job'])
 def check_compare_access(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -869,6 +840,7 @@ def check_compare_access(request):
 
 
 @login_required
+@unparallel_group(['Job', 'JobFile'])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -887,6 +859,7 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
+@unparallel_group(['JobFile'])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -898,14 +871,14 @@ def get_file_by_checksum(request):
         return JsonResponse({'error': 'Unknown error'})
     if len(check_sums) == 1:
         try:
-            f = File.objects.get(hash_sum=check_sums[0])
+            f = JobFile.objects.get(hash_sum=check_sums[0])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         return HttpResponse(f.file.read())
     elif len(check_sums) == 2:
         try:
-            f1 = File.objects.get(hash_sum=check_sums[0])
-            f2 = File.objects.get(hash_sum=check_sums[1])
+            f1 = JobFile.objects.get(hash_sum=check_sums[0])
+            f2 = JobFile.objects.get(hash_sum=check_sums[1])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The file was not found') + ''})
         diff_result = []
@@ -916,10 +889,10 @@ def get_file_by_checksum(request):
             ):
                 diff_result.append(line)
         return HttpResponse('\n'.join(diff_result))
-
     return JsonResponse({'error': 'Unknown error'})
 
 
+@unparallel_group(['RunHistory'])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -964,6 +937,7 @@ def get_def_start_job_val(request):
 
 
 @login_required
+@unparallel_group([Job])
 def collapse_reports(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -978,8 +952,24 @@ def collapse_reports(request):
     return JsonResponse({})
 
 
-@unparallel_group(['job'])
 @login_required
+@unparallel_group(['Job'])
+def do_job_has_children(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': 'Unknown error'})
+    try:
+        job = Job.objects.get(pk=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    if job.children.count() > 0:
+        return JsonResponse({'children': True})
+    return JsonResponse({})
+
+
+@login_required
+@unparallel_group(['Job'])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
         return HttpResponseRedirect(reverse('error', args=[500]))
@@ -989,12 +979,12 @@ def download_files_for_compet(request, job_id):
         return HttpResponseRedirect(reverse('error', args=[404]))
     if not JobAccess(request.user, job).can_download():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    try:
-        jobtar = DownloadFilesForCompetition(job, json.loads(request.POST['filters']))
-    except Exception as e:
-        logger.exception(e)
+    if job.status in {x[0] for x in JOB_STATUS[:3]}:
+        logger.error("Files for competition can't be downloaded for undecided jobs")
         return HttpResponseRedirect(reverse('error', args=[500]))
-    response = HttpResponse(content_type="application/x-tar-gz")
-    response["Content-Disposition"] = "attachment; filename=%s" % jobtar.name
-    response.write(jobtar.memory.read())
+
+    generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
+    mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
+    response = StreamingHttpResponse(generator, content_type=mimetype)
+    response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response

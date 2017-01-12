@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Manager Tools' %}{% endblock %}
 
 {% block head_block %}
-    <script src="/static/tools/js/manager.js"></script>
+    <script src="{% static 'tools/js/manager.js' %}"></script>
 {% endblock %}
 
 {% block body_block %}
@@ -22,7 +23,6 @@
                                     <div class="ui action input fluid">
                                         <input id="component_name_input__{{ component.pk }}" type="text" placeholder="{% trans 'Component name' %}" value="{{ component.name }}">
                                         <button id="rename_component_btn__{{ component.pk }}" class="ui teal button">{% trans 'Rename' %}</button>
-                                        <button id="delete_component_btn__{{ component.pk }}" class="ui red button">{% trans 'Delete' %}</button>
                                     </div>
                                     <br>
                                 </div>
@@ -40,14 +40,11 @@
                     <h3 class="header">{% trans 'Problems' %}</h3>
                     {% if problems|length > 0 %}
                         <div style="height: 340px; overflow-y: auto">
-                            <table class="ui compact table">
-                            {% for problem in problems %}
-                                <tr id="problem__{{ problem.pk }}">
-                                    <th class="eleven wide column">{{ problem.name }}</th>
-                                    <td class="five wide column"><button id="delete_problem_btn__{{ problem.pk }}" class="ui red small button">{% trans 'Delete' %}</button></td>
-                                </tr>
-                            {% endfor %}
-                            </table>
+                            <ul>
+                                {% for problem in problems %}
+                                    <li>{{ problem.name }}</li>
+                                {% endfor %}
+                            </ul>
                         </div>
                         <br>
                         <button id="clear_all_problems" class="ui red button">{% trans 'Delete all unused problems' %}</button>
@@ -67,7 +64,7 @@
         </div>
         <div class="ui grid">
             <div class="ten wide column">
-                <h3>{% trans 'Jobs' %}</h3>
+                <h3>{% trans 'Jobs' %}<i class="ui help blue icon simple-popup" data-content="{% trans "Non-light jobs are shown as light jobs' cache can't be recalculated" %}"></i></h3>
                 <table class="ui compact violet table celled">
                     <thead>
                         <tr>
@@ -96,7 +93,7 @@
                 <h3>{% trans 'Recalculate' %}:</h3>
                 <div id="recalc_for_all_jobs_checkbox" class="ui checkbox">
                     <input id="recalc_for_all_jobs" type="checkbox">
-                    <label for="recalc_for_all_jobs">{% trans 'All non-light jobs' %}</label>
+                    <label for="recalc_for_all_jobs">{% trans 'All jobs' %}</label>
                 </div>
                 <br><br>
                 <div class="ui vertical orange buttons">

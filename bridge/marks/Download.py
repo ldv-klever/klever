@@ -18,8 +18,7 @@
 import os
 import json
 import hashlib
-import tarfile
-import tempfile
+import zipfile
 from io import BytesIO
 from django.db.models import Q
 from django.conf import settings
@@ -27,13 +26,13 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.utils import file_get_or_create, logger
-from marks.utils import NewMark, UpdateTags, ConnectMarkWithReports, DeleteMark
+from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
+from marks.utils import NewMark, RecalculateTags, ConnectMarkWithReports, DeleteMark
 from marks.ConvertTrace import ET_FILE_NAME
 from marks.models import *
 
 
-class CreateMarkTar(object):
-
+class MarkArchiveGenerator(object):
     def __init__(self, mark):
         self.mark = mark
         if isinstance(self.mark, MarkUnsafe):
@@ -44,22 +43,10 @@ class CreateMarkTar(object):
             self.type = 'unknown'
         else:
             return
-        self.name = 'Mark-%s-%s.tar.gz' % (self.type, self.mark.identifier[:10])
-        self.tempfile = tempfile.TemporaryFile()
-        self.__full_tar()
-        self.tempfile.flush()
-        self.size = self.tempfile.tell()
-        self.tempfile.seek(0)
+        self.name = 'Mark-%s-%s.zip' % (self.type, self.mark.identifier[:10])
+        self.stream = ZipStream()
 
-    def __full_tar(self):
-
-        def write_file_str(jobtar, file_name, file_content):
-            file_content = file_content.encode('utf-8')
-            t = tarfile.TarInfo(file_name)
-            t.size = len(file_content)
-            jobtar.addfile(t, BytesIO(file_content))
-
-        marktar_obj = tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8')
+    def __iter__(self):
         for markversion in self.mark.versions.all():
             version_data = {
                 'status': markversion.status,
@@ -85,11 +72,13 @@ class CreateMarkTar(object):
                         'value': attr.attr.value,
                         'is_compare': attr.is_compare
                     })
-            write_file_str(marktar_obj, 'version-%s' % markversion.version,
-                           json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4))
+            content = json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4)
+            for data in self.stream.compress_string('version-%s' % markversion.version, content):
+                yield data
             if self.type == 'unsafe':
-                marktar_obj.add(os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name),
-                                arcname='error_trace_%s' % str(markversion.version))
+                err_trace_file = os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name)
+                for data in self.stream.compress_file(err_trace_file, 'error_trace_%s' % str(markversion.version)):
+                    yield data
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -98,51 +87,42 @@ class CreateMarkTar(object):
         }
         if self.type == 'unknown':
             common_data['component'] = self.mark.component.name
-        write_file_str(marktar_obj, 'markdata', json.dumps(common_data, ensure_ascii=False, sort_keys=True, indent=4))
-        marktar_obj.close()
+        content = json.dumps(common_data, ensure_ascii=False, sort_keys=True, indent=4)
+        for data in self.stream.compress_string('markdata', content):
+            yield data
+        yield self.stream.close_stream()
 
 
-class AllMarksTar(object):
+class AllMarksGen(object):
     def __init__(self):
-        self.tempfile = tempfile.TemporaryFile()
-        self.__create_tar()
-        self.tempfile.flush()
-        self.size = self.tempfile.tell()
-        self.tempfile.seek(0)
         curr_time = now()
-        self.name = 'Marks--%s-%s-%s.tar.gz' % (curr_time.day, curr_time.month, curr_time.year)
+        self.name = 'Marks--%s-%s-%s.zip' % (curr_time.day, curr_time.month, curr_time.year)
+        self.stream = ZipStream()
 
-    def __create_tar(self):
-        with tarfile.open(fileobj=self.tempfile, mode='w:gz', encoding='utf8') as arch:
-            for mark in MarkSafe.objects.filter(~Q(version=0)):
-                marktar = CreateMarkTar(mark)
-                t = tarfile.TarInfo(marktar.name)
-                t.size = marktar.size
-                arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnsafe.objects.filter(~Q(version=0)):
-                marktar = CreateMarkTar(mark)
-                t = tarfile.TarInfo(marktar.name)
-                t.size = marktar.size
-                arch.addfile(t, marktar.tempfile)
-            for mark in MarkUnknown.objects.filter(~Q(version=0)):
-                marktar = CreateMarkTar(mark)
-                t = tarfile.TarInfo(marktar.name)
-                t.size = marktar.size
-                arch.addfile(t, marktar.tempfile)
-            arch.close()
+    def __iter__(self):
+        for table in [MarkSafe, MarkUnsafe, MarkUnknown]:
+            for mark in table.objects.filter(~Q(version=0)):
+                markgen = MarkArchiveGenerator(mark)
+                buf = b''
+                for data in self.stream.compress_stream(markgen.name, markgen):
+                    buf += data
+                    if len(buf) > CHUNK_SIZE:
+                        yield buf
+                        buf = b''
+                if len(buf) > 0:
+                    yield buf
+        yield self.stream.close_stream()
 
 
-class ReadTarMark(object):
-
-    def __init__(self, user, tar_archive):
+class ReadMarkArchive:
+    def __init__(self, user, archive):
         self.mark = None
         self.type = None
-        self.user = user
-        self.tar_arch = tar_archive
-        self.error = self.__create_mark_from_tar()
+        self._user = user
+        self._archive = archive
+        self.error = self.__create_mark_from_archive()
 
     class UploadMark(object):
-
         def __init__(self, user, mark_type, args):
             self.mark = None
             self.mark_version = None
@@ -163,12 +143,6 @@ class ReadTarMark(object):
             mark.author = self.user
 
             if self.type == 'unsafe':
-                mark.error_trace = file_get_or_create(
-                    BytesIO(
-                        json.dumps(json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True,
-                                   indent=4).encode('utf8')
-                    ), ET_FILE_NAME
-                )[0]
                 try:
                     mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
                 except ObjectDoesNotExist:
@@ -243,7 +217,7 @@ class ReadTarMark(object):
                 new_version.error_trace = file_get_or_create(
                     BytesIO(
                         json.dumps(json.loads(error_trace), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-                    ), ET_FILE_NAME
+                    ), ET_FILE_NAME, ConvertedTraces
                 )[0]
             if self.type == 'unsafe':
                 new_version.function = mark.function
@@ -305,7 +279,7 @@ class ReadTarMark(object):
                     MarkSafeAttr.objects.get_or_create(**create_args)
             return None
 
-    def __create_mark_from_tar(self):
+    def __create_mark_from_archive(self):
 
         def get_func_id(func_name):
             try:
@@ -313,28 +287,24 @@ class ReadTarMark(object):
             except ObjectDoesNotExist:
                 return 0
 
-        inmemory = BytesIO(self.tar_arch.read())
-        marktar_file = tarfile.open(fileobj=inmemory, mode='r', encoding='utf8')
         mark_data = None
         err_traces = {}
-
         versions_data = {}
-        for f in marktar_file.getmembers():
-            file_name = f.name
-            file_obj = marktar_file.extractfile(f)
-            if file_name == 'markdata':
-                try:
-                    mark_data = json.loads(file_obj.read().decode('utf-8'))
-                except ValueError:
-                    return _("The mark archive is corrupted")
-            elif file_name.startswith('version-'):
-                version_id = int(file_name.replace('version-', ''))
-                try:
-                    versions_data[version_id] = json.loads(file_obj.read().decode('utf-8'))
-                except ValueError:
-                    return _("The mark archive is corrupted")
-            elif file_name.startswith('error_trace_'):
-                err_traces[int(file_name.replace('error_trace_', ''))] = file_obj
+        with zipfile.ZipFile(self._archive, 'r') as zfp:
+            for file_name in zfp.namelist():
+                if file_name == 'markdata':
+                    try:
+                        mark_data = json.loads(zfp.read(file_name).decode('utf-8'))
+                    except ValueError:
+                        return _("The mark archive is corrupted")
+                elif file_name.startswith('version-'):
+                    version_id = int(file_name.replace('version-', ''))
+                    try:
+                        versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf-8'))
+                    except ValueError:
+                        return _("The mark archive is corrupted")
+                elif file_name.startswith('error_trace_'):
+                    err_traces[int(file_name.replace('error_trace_', ''))] = zfp.open(file_name)
 
         if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
             return _("The mark archive is corrupted")
@@ -375,7 +345,7 @@ class ReadTarMark(object):
             new_m_args['compare_id'] = get_func_id(version_list[0]['function'])
             del new_m_args['function'], new_m_args['mark_type']
 
-        umark = self.UploadMark(self.user, self.type, new_m_args)
+        umark = self.UploadMark(self._user, self.type, new_m_args)
         if umark.error is not None:
             return umark.error
         mark = umark.mark
@@ -401,17 +371,18 @@ class ReadTarMark(object):
             if self.type == 'unsafe':
                 version_data['compare_id'] = get_func_id(version_data['function'])
                 del version_data['function']
-            upd_mark = NewMark(mark, self.user, self.type, version_data, False)
+            upd_mark = NewMark(mark, self._user, self.type, version_data, False)
             if upd_mark.error is not None:
                 mark.delete()
                 return upd_mark.error
 
-        UpdateTags(mark, changes=ConnectMarkWithReports(mark).changes)
+        for report in ConnectMarkWithReports(mark).changes:
+            RecalculateTags(report)
         self.mark = mark
         return None
 
 
-class UploadAllMarks(object):
+class UploadAllMarks:
     def __init__(self, user, marks_dir, delete_all_marks):
         self.error = None
         self.user = user
@@ -434,7 +405,7 @@ class UploadAllMarks(object):
             mark_path = os.path.join(marks_dir, file_name)
             if os.path.isfile(mark_path):
                 with open(mark_path, mode='rb') as fp:
-                    res = ReadTarMark(self.user, fp)
+                    res = ReadMarkArchive(self.user, fp)
                 if res.error is None and res.type in self.numbers:
                     self.numbers[res.type] += 1
                 else:

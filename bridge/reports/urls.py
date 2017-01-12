@@ -39,6 +39,7 @@ urlpatterns = [
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/problem/(?P<problem_id>[0-9]+)/$',
         views.report_unknowns_by_problem, name='unknowns_problem'),
     url(r'^comparison/(?P<job1_id>[0-9]+)/(?P<job2_id>[0-9]+)/$', views.jobs_comparison, name='comparison'),
+    url(r'^download-error-trace/(?P<report_id>[0-9]+)/$', views.download_error_trace, name='download_error_trace'),
 
     url(r'^upload/$', views.upload_report),
     url(r'^ajax/get_source/$', views.get_source_code),

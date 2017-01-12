@@ -55,6 +55,7 @@ urlpatterns = [
     url(r'^ajax/get_file_by_checksum/$', views.get_file_by_checksum),
     url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
     url(r'^ajax/collapse_reports/$', views.collapse_reports),
+    url(r'^ajax/do_job_has_children/$', views.do_job_has_children),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),

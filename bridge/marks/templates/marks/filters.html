@@ -162,7 +162,7 @@
                         <label for="filter__value__author"></label>
                         <select id="filter__value__author" class="ui dropdown fluid">
                             {% for author in authors %}
-                                <option value="{{ author.pk }}"{% if tabledata.view.filters.author.value == author.pk|slugify %} selected{% endif %}>{{ author.extended.last_name }} {{ author.extended.first_name }}</option>
+                                <option value="{{ author.pk }}"{% if tabledata.view.filters.author.value == author.pk|slugify %} selected{% endif %}>{{ author.last_name }} {{ author.first_name }}</option>
                             {% endfor %}
                         </select>
                     </div>

@@ -21,7 +21,7 @@ import logging
 import os
 import re
 import sys
-import tarfile
+import zipfile
 import signal
 from xml.etree import ElementTree
 from xml.dom import minidom
@@ -173,9 +173,9 @@ def solve_task(conf):
     logging.info("Download task")
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
-    server.pull_task(conf["identifier"], "task files.tar.gz")
-    with tarfile.open("task files.tar.gz", encoding="utf8") as tar:
-        tar.extractall()
+    server.pull_task(conf["identifier"], "task files.zip")
+    with zipfile.ZipFile('task files.zip') as zfp:
+        zfp.extractall()
 
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
@@ -257,14 +257,15 @@ def solve_task(conf):
     with open("decision results.json", "w", encoding="utf8") as fp:
         json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    with tarfile.open("decision result files.tar.gz", "w:gz", encoding="utf8") as tar:
-        tar.add("decision results.json")
-        for file in glob.glob("output/*"):
-            tar.add(file)
+    with zipfile.ZipFile('decision result files.zip', mode='w') as zfp:
+        zfp.write("decision results.json")
+        for dirpath, dirnames, filenames in os.walk("output"):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename))
         if conf["upload input files of static verifiers"]:
-            tar.add("benchmark.xml")
+            zfp.write("benchmark.xml")
 
-    server.submit_solution(conf["identifier"], decision_results, "decision result files.tar.gz")
+    server.submit_solution(conf["identifier"], decision_results, "decision result files.zip")
 
     return exit_code
 
