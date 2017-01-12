@@ -433,7 +433,11 @@ class ReportTable(object):
                     if len(reports[rep_id]['tags']) > 0:
                         val = '; '.join(reports[rep_id]['tags'])
                 elif col == 'parent_cpu':
-                    val = get_user_time(self.user, parent_cpus[reports[rep_id]['parent_id']])
+                    parent_cpu = parent_cpus[reports[rep_id]['parent_id']]
+                    if parent_cpu is None:
+                        val = '-'
+                    else:
+                        val = get_user_time(self.user, parent_cpu)
                 values_row.append({
                     'value': val,
                     'color': color,

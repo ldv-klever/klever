@@ -315,7 +315,7 @@ class UploadReport(object):
                 self.__save_total_tasks_number(tasks_nums)
             else:
                 self.__update_dict_data(report, report_data)
-        elif report.component in ['SBT', 'MBT']:
+        elif report.component in {'SBT', 'MBT'}:
             if BT_TOTAL_NAME in report_data:
                 tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
                 tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
