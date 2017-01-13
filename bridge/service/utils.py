@@ -287,13 +287,12 @@ class GetTasks:
                     # TODO: email notification
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
-                self.__change_status(task, 'pending', 'error')
-
                 if str(task.id) in data['task errors']:
                     task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
+                self.__change_status(task, 'pending', 'error')
             else:
                 self._data['tasks']['pending'].append(str(task.id))
                 self._solution_req.add(task.id)
@@ -314,13 +313,12 @@ class GetTasks:
                     # TODO: email notification
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
-                self.__change_status(task, 'processing', 'error')
-
                 if str(task.id) in data['task errors']:
                     task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
+                self.__change_status(task, 'processing', 'error')
             else:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
@@ -411,8 +409,10 @@ class GetTasks:
             self._progresses[task.progress_id] = SolvingProgress.objects.get(id=task.progress_id)
         old_num = getattr(self._progresses[task.progress_id], fields[status_map[old]])
         if old_num <= 0:
-            logger.error('Something wrong with SolvingProgress cache', stack_info=True)
-        setattr(self._progresses[task.progress_id], fields[status_map[old]], old_num - 1)
+            logger.error('Something wrong with SolvingProgress cache: '
+                         'number of %s tasks is 0, but there is at least one such task in the system' % old)
+        else:
+            setattr(self._progresses[task.progress_id], fields[status_map[old]], old_num - 1)
         new_num = getattr(self._progresses[task.progress_id], fields[status_map[new]])
         setattr(self._progresses[task.progress_id], fields[status_map[new]], new_num + 1)
 
