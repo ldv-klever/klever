@@ -186,7 +186,7 @@ DEF_USER = {
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
     'assumptions': False,
-    'triangles': True
+    'triangles': False
 }
 
 LOGGING = {
