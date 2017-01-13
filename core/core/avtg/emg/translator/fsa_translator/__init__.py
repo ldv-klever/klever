@@ -567,7 +567,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             fname = "ldv_{}_{}_{}_{}".format(automaton.process.name, st.action.name, automaton.identifier,
                                              st.identifier)
-            function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources), True)
+            function = FunctionDefinition(fname, file, "{} {}({})".format(ret_declaration, fname, resources),
+                                          export=True, callback=True)
 
             # Determine label params
             external_parameters = [external_parameters[i] for i in sorted(external_parameters.keys())]

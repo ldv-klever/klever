@@ -95,7 +95,11 @@ class CModel:
         if self.entry_file not in self._function_definitions:
             self._function_definitions[self.entry_file] = dict()
 
-        self._function_definitions[file][function.name] = ['/* AUX_FUNC {} */\n'.format(function.name)] + \
+        if function.callback:
+            prefix = 'AUX_FUNC_CALLBACK'
+        else:
+            prefix = 'AUX_FUNC'
+        self._function_definitions[file][function.name] = ['/* {} {} */\n'.format(prefix, function.name)] + \
                                                           list(function.get_definition())
         self.add_function_declaration(file, function, extern=False)
 
@@ -304,11 +308,12 @@ class Variable:
 
 class FunctionDefinition:
 
-    def __init__(self, name, file, signature=None, export=False):
+    def __init__(self, name, file, signature=None, export=False, callback=False):
         self.name = name
         self.file = file
         self.export = export
         self.body = []
+        self.callback = callback
 
         if not signature:
             signature = 'void f(void)'
