@@ -175,17 +175,10 @@
       "EMG" : {
         "translation options": {
           "dump automata graphs": false,
-          "direct control function calls": true,
-          "omit all states": true,
+          "direct control functions calls": true,
           "nested automata": true,
-          "omit parallel composition": {
-            "dispatch": false,
-            "receive": false,
-            "call": false,
-            "condition": true
-          },
+          "no actions composition": ["Condition"],
           "instance modifier": 1,
-          "max instances number": 60,
           "pointer initialization": {
             "structures": true,
             "arrays": true,
@@ -223,7 +216,7 @@
           "merge source files": true
         },
         "verifier configuration": "-smg-ldv",
-        "verifier options": [{"-setprop": "analysis.machineModel=LINUX64_BITFIELD"}],
+        "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
           "LTL(G valid-free)",
           "LTL(G valid-deref)",
