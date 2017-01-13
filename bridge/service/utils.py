@@ -58,10 +58,10 @@ class ScheduleTask:
         self._task = None
         try:
             self.__create_task(archive)
-        except Exception:
+        except Exception as e:
             if self._task is not None:
                 self._task.delete()
-            raise ServiceError('Unknown error')
+            raise e
         self.task_id = self._task.id
 
     def __create_task(self, archive):
