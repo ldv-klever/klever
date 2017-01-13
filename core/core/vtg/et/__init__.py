@@ -38,3 +38,13 @@ def import_error_trace(logger, witness):
     envmodel_simplifications(logger, trace)
 
     return trace.serialize()
+
+# This is intended for testing purposes, when one has a witness and would like to debug its transformations.
+if __name__ == '__main__':
+    import json
+    import logging
+
+    et = import_error_trace(logging.getLogger(), 'witness.0.graphml')
+
+    with open('error trace.json', 'w', encoding='utf8') as fp:
+        json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
