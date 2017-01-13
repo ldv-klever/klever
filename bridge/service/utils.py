@@ -43,7 +43,8 @@ class ScheduleTask:
         except ObjectDoesNotExist:
             raise ServiceError('Solving progress of the job was not found')
         try:
-            priority = json.loads(description)['priority']
+            self.description = json.loads(description)
+            priority = self.description['priority']
         except Exception:
             raise ServiceError('Wrong description format')
         if priority not in list(x[0] for x in PRIORITY):
@@ -54,18 +55,24 @@ class ScheduleTask:
             raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
             raise ServiceError('Priority of the task is too big')
-        self.task_id = self.__create_task(description, archive)
+        self._task = None
+        try:
+            self.__create_task(archive)
+        except Exception as e:
+            if self._task is not None:
+                self._task.delete()
+            raise e
+        self.task_id = self._task.id
 
-    def __create_task(self, description, archive):
-        task = Task.objects.create(progress=self.progress, archname=archive.name, archive=archive, description=b'')
+    def __create_task(self, archive):
+        self._task = Task.objects.create(progress=self.progress, archname=archive.name,
+                                         archive=archive, description=b'{}')
         self.progress.tasks_total += 1
         self.progress.tasks_pending += 1
         self.progress.save()
-        description = json.loads(description)
-        description['id'] = task.id
-        task.description = json.dumps(description, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-        task.save()
-        return task.id
+        self.description['id'] = str(self._task.id)
+        self._task.description = json.dumps(self.description, ensure_ascii=False).encode('utf8')
+        self._task.save()
 
 
 class GetTaskStatus:
