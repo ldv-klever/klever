@@ -287,13 +287,12 @@ class GetTasks:
                     # TODO: email notification
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
-                self.__change_status(task, 'pending', 'error')
-
                 if str(task.id) in data['task errors']:
                     task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
+                self.__change_status(task, 'pending', 'error')
             else:
                 self._data['tasks']['pending'].append(str(task.id))
                 self._solution_req.add(task.id)
@@ -314,13 +313,12 @@ class GetTasks:
                     # TODO: email notification
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
-                self.__change_status(task, 'processing', 'error')
-
                 if str(task.id) in data['task errors']:
                     task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
+                self.__change_status(task, 'processing', 'error')
             else:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
