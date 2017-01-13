@@ -737,7 +737,7 @@ class TableTree(object):
         ))
         for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress)).select_related('user'):
             self._values_data[root.job_id]['operator'] = (
-                root.user.last_name + ' ' + root.user.first_name,
+                root.user.get_full_name(),
                 reverse('users:show_profile', args=[root.user_id])
             )
             if root.job_id in solving_jobs:
@@ -773,7 +773,7 @@ class TableTree(object):
                 .exclude(change_author=None)\
                 .only('id', 'change_author_id', 'change_author__first_name', 'change_author__last_name'):
             self._values_data[j.id]['author'] = (
-                j.change_author.last_name + ' ' + j.change_author.first_name,
+                j.change_author.get_full_name(),
                 reverse('users:show_profile', args=[j.change_author_id])
             )
 

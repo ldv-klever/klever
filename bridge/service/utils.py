@@ -411,8 +411,10 @@ class GetTasks:
             self._progresses[task.progress_id] = SolvingProgress.objects.get(id=task.progress_id)
         old_num = getattr(self._progresses[task.progress_id], fields[status_map[old]])
         if old_num <= 0:
-            logger.error('Something wrong with SolvingProgress cache', stack_info=True)
-        setattr(self._progresses[task.progress_id], fields[status_map[old]], old_num - 1)
+            logger.error('Something wrong with SolvingProgress cache: '
+                         'number of %s tasks is 0, but there is at least one such task in the system' % old)
+        else:
+            setattr(self._progresses[task.progress_id], fields[status_map[old]], old_num - 1)
         new_num = getattr(self._progresses[task.progress_id], fields[status_map[new]])
         setattr(self._progresses[task.progress_id], fields[status_map[new]], new_num + 1)
 

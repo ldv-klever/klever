@@ -388,10 +388,9 @@ def role_info(job, user):
     job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
-        title = ur.user.last_name + ' ' + ur.user.first_name
         u_id = ur.user_id
         user_roles_data.append({
-            'user': {'id': u_id, 'name': title},
+            'user': {'id': u_id, 'name': ur.user.get_full_name()},
             'role': {'val': ur.role, 'title': ur.get_role_display()}
         })
         users.append(u_id)
@@ -401,10 +400,7 @@ def role_info(job, user):
     available_users = []
     for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)):
         if u != job_author:
-            available_users.append({
-                'id': u.pk,
-                'name': u.last_name + ' ' + u.first_name
-            })
+            available_users.append({'id': u.pk, 'name': u.get_full_name()})
     roles_data['available_users'] = available_users
     return roles_data
 

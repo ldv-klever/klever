@@ -199,7 +199,7 @@ class MarkChangesTable:
                         color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
                     if self.mark.author is not None:
-                        val = self.mark.author.last_name + ' ' + self.mark.author.first_name
+                        val = self.mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
@@ -255,7 +255,7 @@ class MarkChangesTable:
                         color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
                     if self.mark.author is not None:
-                        val = self.mark.author.last_name + ' ' + self.mark.author.first_name
+                        val = self.mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
@@ -309,7 +309,7 @@ class MarkChangesTable:
                         color = CHANGE_DATA[self.changes[report]['kind']][1]
                 elif col == 'author':
                     if self.mark.author is not None:
-                        val = self.mark.author.last_name + ' ' + self.mark.author.first_name
+                        val = self.mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[self.mark.author_id])
                 elif col == 'job':
                     val = report.root.job.name
@@ -378,7 +378,7 @@ class ReportMarkTable:
                     color = STATUS_COLOR[mark_rep.mark.status]
                 elif col == 'author':
                     if mark_rep.mark.author is not None:
-                        value = mark_rep.mark.author.last_name + ' ' + mark_rep.mark.author.first_name
+                        value = mark_rep.mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
                 elif col == 'problem':
                     value = mark_rep.problem.name
@@ -568,7 +568,7 @@ class MarksList:
                     color = STATUS_COLOR[mark.status]
                 elif col == 'author':
                     if mark.author is not None:
-                        val = mark.author.last_name + ' ' + mark.author.first_name
+                        val = mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark.author_id])
                 elif col == 'format':
                     val = mark.format

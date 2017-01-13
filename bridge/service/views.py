@@ -225,7 +225,7 @@ def update_nodes(request):
 def update_tools(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
-    if request.user.extended.role not in [USER_ROLES[2][0], USER_ROLES[4][0]]:
+    if request.user.extended.role not in {USER_ROLES[2][0], USER_ROLES[4][0]}:
         return JsonResponse({'error': 'No access'})
     if 'scheduler' not in request.session:
         return JsonResponse({'error': 'The scheduler was not found in session'})

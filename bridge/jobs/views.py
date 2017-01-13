@@ -307,9 +307,7 @@ def edit_job(request):
             title = _("Current version")
         else:
             job_time = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone))
-            title = job_time.strftime("%d.%m.%Y %H:%M:%S")
-            title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
-            title += ': ' + j.comment
+            title = '%s (%s): %s' % (job_time.strftime("%d.%m.%Y %H:%M:%S"), j.change_author.get_full_name(), j.comment)
         job_versions.append({
             'version': j.version,
             'title': title
@@ -368,9 +366,10 @@ def get_job_versions(request):
         return JsonResponse({'message': _('The job was not found')})
     job_versions = []
     for j in job.versions.filter(~Q(version__in=[job.version, 1])).order_by('-version'):
-        title = j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S")
-        title += " (%s %s)" % (j.change_author.last_name, j.change_author.first_name)
-        title += ': ' + j.comment
+        title = '%s (%s): %s' % (
+            j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S"),
+            j.change_author.get_full_name(), j.comment
+        )
         job_versions.append({
             'version': j.version,
             'title': title
@@ -394,10 +393,7 @@ def copy_new_job(request):
         'available_users': []
     }
     for u in User.objects.filter(~Q(pk=request.user.pk)):
-        roles['available_users'].append({
-            'id': u.pk,
-            'name': u.last_name + ' ' + u.first_name
-        })
+        roles['available_users'].append({'id': u.pk, 'name': u.get_full_name()})
 
     job = get_object_or_404(Job, pk=int(request.POST.get('parent_id', 0)))
     job_version = job.versions.order_by('-change_date')[0]
