@@ -57,7 +57,7 @@ class ScheduleTask:
         self.task_id = self.__create_task(description, archive)
 
     def __create_task(self, description, archive):
-        task = Task.objects.create(progress=self.progress, archname=archive.name, archive=archive, description=b'')
+        task = Task.objects.create(progress=self.progress, archname=archive.name, archive=archive, description=b'{}')
         self.progress.tasks_total += 1
         self.progress.tasks_pending += 1
         self.progress.save()
