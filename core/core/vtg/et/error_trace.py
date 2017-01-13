@@ -20,7 +20,7 @@ import json
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'AUX_FUNC|MODEL_FUNC|NOTE|ASSERT'
+    MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
 
     def __init__(self, logger):
         self._nodes = dict()
@@ -131,8 +131,8 @@ class ErrorTrace:
 
         return action_id
 
-    def add_aux_func(self, identifier, formal_arg_names):
-        self.aux_funcs[identifier] = formal_arg_names
+    def add_aux_func(self, identifier, is_callback, formal_arg_names):
+        self.aux_funcs[identifier] = {'is callback': is_callback, 'formal arg names': formal_arg_names}
 
     def add_emg_comment(self, file, line, data):
         if file not in self.emg_comments:
@@ -287,14 +287,14 @@ class ErrorTrace:
 
                         comment = comment.rstrip()
 
-                        if kind == 'AUX_FUNC' or kind == 'MODEL_FUNC':
+                        if kind in ('AUX_FUNC', 'AUX_FUNC_CALLBACK', 'MODEL_FUNC'):
                             # Get necessary function declaration located on following line.
                             try:
                                 func_decl = next(fp)
                                 # Don't forget to increase counter.
                                 line += 1
 
-                                if kind == 'AUX_FUNC':
+                                if kind in ('AUX_FUNC', 'AUX_FUNC_CALLBACK'):
                                     func_name = comment
                                 else:
                                     match = re.search(r'(ldv_\w+)', func_decl)
@@ -326,8 +326,12 @@ class ErrorTrace:
                             for func_id, ref_func_name in self.functions:
                                 if ref_func_name == func_name:
                                     if kind == 'AUX_FUNC':
-                                        self.add_aux_func(func_id, formal_arg_names)
+                                        self.add_aux_func(func_id, False, formal_arg_names)
                                         self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
+                                                           format(func_name, file, line))
+                                    elif kind == 'AUX_FUNC_CALLBACK':
+                                        self.add_aux_func(func_id, True, formal_arg_names)
+                                        self._logger.debug("Get auxiliary function '{0}' for callback from '{1}:{2}'".
                                                            format(func_name, file, line))
                                     else:
                                         self._model_funcs[func_id] = comment

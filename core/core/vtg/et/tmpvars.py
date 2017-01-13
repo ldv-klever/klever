@@ -286,7 +286,7 @@ def _remove_aux_functions(logger, error_trace):
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
 
-            for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]):
+            for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
                 if formal_arg_name == actual_arg:
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
@@ -324,6 +324,10 @@ def _remove_aux_functions(logger, error_trace):
                     continue
 
                 error_trace.remove_edge_and_target_node(aux_func_return_edge)
+
+        if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
+            for attr in ('file', 'start line'):
+                aux_func_call_edge[attr] = error_trace.next_edge(next_edge)[attr]
 
         aux_func_call_edge['source'] = lhs + func_name + '(' + (', '.join(actual_args) if actual_args else '') + ');'
         aux_func_call_edge['enter'] = func_call_edge['enter']
