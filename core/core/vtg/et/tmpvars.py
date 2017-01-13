@@ -19,18 +19,20 @@ import re
 
 def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
-    _basic_simplification(trace)
+    _basic_simplification(logger, trace)
     _remove_artificial_edges(logger, trace)
     _remove_aux_functions(logger, trace)
 
 
-def _basic_simplification(error_trace):
+def _basic_simplification(logger, error_trace):
     # Remove all edges without source (at the modmen only enterLoopHead expected)
     for edge in (e for e in error_trace.trace_iterator() if 'source' not in e):
         if 'enterLoopHead' in edge and edge['enterLoopHead']:
             error_trace.remove_edge_and_target_node(edge)
         else:
-            raise ValueError('Do not expect edges without source attribute')
+            # Now we do need source code to be presented with all edges. Otherwise visualization will be very poor.
+            logger.warning('Do not expect edges without source attribute')
+            error_trace.remove_edge_and_target_node(edge)
 
     # Simple transformations.
     for edge in error_trace.trace_iterator():
