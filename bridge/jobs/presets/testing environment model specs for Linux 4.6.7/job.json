@@ -15,7 +15,7 @@
       "name": "single bug type",
       "verifier": {
         "name": "CPAchecker",
-        "version": "trunk:24084"
+        "version": "trunk:24102"
       },
       "resource limits": {
         "wall time": 1000000,
