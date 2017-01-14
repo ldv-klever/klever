@@ -83,8 +83,6 @@ class ScopeInfo:
         self._hidden = set()
 
     def current(self):
-        if not self.initialised:
-            return 'global'
         if len(self._stack) == 0:
             return '_'.join(str(x) for x in self._main_scope)
         return '_'.join(str(x) for x in self._stack[-1])
@@ -121,7 +119,10 @@ class ScopeInfo:
         return (len(self._stack) * TAB_LENGTH + 1) * ' '
 
     def is_shown(self, scope_str):
-        return tuple(int(x) for x in scope_str.split('_')) in self._shown
+        try:
+            return tuple(int(x) for x in scope_str.split('_')) in self._shown
+        except ValueError:
+            return False
 
     def current_action(self):
         if len(self._stack) > 0 and self._stack[-1][1]:
@@ -200,7 +201,7 @@ class ParseErrorTrace:
                 self.scope.initialised = True
             else:
                 if line_data['code'] is not None:
-                    line_data['scope'] = self.scope.current()
+                    line_data['scope'] = 'global'
                     self.global_lines.append(line_data)
                 return
         line_data['scope'] = self.scope.current()
@@ -359,9 +360,8 @@ class ParseErrorTrace:
         self.__return_all()
         if len(self.global_lines) > 0:
             self.lines = [{
-                'code': '<span class="ETV_GlobalExpander">Global variable declarations</span>',
-                'line': None, 'file': None, 'offset': ' ', 'hide_id': 'global_scope',
-                'scope': 'global', 'type': 'normal'
+                'code': '', 'line': None, 'file': None, 'offset': ' ',
+                'hide_id': 'global', 'scope': 'global', 'type': 'normal'
             }] + self.global_lines + self.lines
         for i in range(0, len(self.lines)):
             if 'thread_id' in self.lines[i]:
@@ -417,11 +417,11 @@ class ParseErrorTrace:
             )
         m = re.match('^(.*?)<(.*)$', code)
         while m is not None:
-            code = m.group(1) + '&lt;' + m.group(2)
+            code = "%s&lt;%s" % (m.group(1), m.group(2))
             m = re.match('^(.*?)<(.*)$', code)
         m = re.match('^(.*?)>(.*)$', code)
         while m is not None:
-            code = m.group(1) + '&gt;' + m.group(2)
+            code = "%s&gt;%s" % (m.group(1), m.group(2))
             m = re.match('^(.*?)>(.*)$', code)
         m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
