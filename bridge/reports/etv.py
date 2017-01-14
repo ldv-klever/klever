@@ -71,29 +71,111 @@ def get_error_trace_nodes(data):
     return err_path
 
 
+class ScopeInfo:
+    def __init__(self):
+        self.initialised = False
+        self._cnt = 0
+        # (index, is_action, thread, counter)
+        self._stack = []
+        # Klever main
+        self._main_scope = (0, 0, 0, 0)
+        self._shown = {self._main_scope}
+        self._hidden = set()
+
+    def current(self):
+        if not self.initialised:
+            return 'global'
+        if len(self._stack) == 0:
+            return '_'.join(str(x) for x in self._main_scope)
+        return '_'.join(str(x) for x in self._stack[-1])
+
+    def add(self, index, thread_id, is_action=False):
+        self._cnt += 1
+        scope_id = (index, int(is_action), thread_id, self._cnt)
+        self._stack.append(scope_id)
+        if len(self._stack) == 1:
+            self._shown.add(scope_id)
+
+    def remove(self):
+        curr_scope = self.current()
+        self._stack.pop()
+        return curr_scope
+
+    def show_current_scope(self, comment_type):
+        if comment_type == 'note':
+            if all(ss not in self._hidden for ss in self._stack):
+                for ss in self._stack:
+                    if ss not in self._shown:
+                        self._shown.add(ss)
+        elif comment_type in {'warning', 'callback action'}:
+            for ss in self._stack:
+                if ss not in self._shown:
+                    self._shown.add(ss)
+
+    def hide_current_scope(self):
+        self._hidden.add(self._stack[-1])
+
+    def offset(self):
+        if len(self._stack) == 0:
+            return ' '
+        return (len(self._stack) * TAB_LENGTH + 1) * ' '
+
+    def is_shown(self, scope_str):
+        return tuple(int(x) for x in scope_str.split('_')) in self._shown
+
+    def current_action(self):
+        if len(self._stack) > 0 and self._stack[-1][1]:
+            return self._stack[-1][0]
+        return None
+
+    def is_return_correct(self, func_id):
+        if len(self._stack) == 0:
+            return False
+        if self._stack[-1][1]:
+            return False
+        if func_id is None or self._stack[-1][0] == func_id:
+            return True
+        return False
+
+    def is_double_return_correct(self, func_id):
+        if len(self._stack) < 2:
+            return False
+        if self._stack[-2][1]:
+            if len(self._stack) < 3:
+                return False
+            if self._stack[-3][0] == func_id:
+                return True
+        elif self._stack[-2][0] == func_id:
+            return True
+        return False
+
+    def can_return(self):
+        if len(self._stack) > 0:
+            return True
+        return False
+
+    def is_main(self, scope_str):
+        if scope_str == '_'.join(str(x) for x in self._main_scope):
+            return True
+        return False
+
+
 class ParseErrorTrace:
     def __init__(self, data, include_assumptions, thread_id, triangles):
-        self.cnt = 0
-        self.has_main = False
-        self.max_line_length = 5
-        self.scope_stack = ['global']
-        self.assume_scopes = {'global': []}
-        self.scopes_to_show = set()
-        self.scopes_to_hide = set()
-        self.double_return = set()
-        self.function_stack = []
-        self.curr_file = None
-        self.curr_action = None
-        self.action_stack = []
-        self.global_lines = []
-        self.lines = []
-        self.thread_id = thread_id
         self.files = list(data['files']) if 'files' in data else []
         self.actions = list(data['actions']) if 'actions' in data else []
         self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
         self.functions = list(data['funcs']) if 'funcs' in data else []
         self.include_assumptions = include_assumptions
         self.triangles = triangles
+        self.thread_id = thread_id
+        self.scope = ScopeInfo()
+        self.global_lines = []
+        self.lines = []
+        self.curr_file = None
+        self.max_line_length = 5
+        self.assume_scopes = {}
+        self.double_return = set()
 
     def add_line(self, edge):
         line = str(edge['start line']) if 'start line' in edge else None
@@ -108,233 +190,173 @@ class ParseErrorTrace:
             'line': line,
             'file': self.curr_file,
             'code': code,
-            'scope': self.scope_stack[-1],
+            'offset': self.scope.offset(),
             'type': 'normal'
         }
-        if line is not None and 'assumption' not in edge and self.include_assumptions:
-            line_data.update(self.__fill_assumptions())
-        line_data.update(self.__add_assumptions(edge.get('assumption'), edge.get('assumption scope')))
-        line_data.update(self.__update_line_data())
-        if len(self.scope_stack) == 1 and all(x not in edge for x in ['return', 'enter']):
-            if line_data['code'] is not None:
-                self.global_lines.append(line_data)
-            return
-        elif len(self.scope_stack) == 1:
-            self.scope_stack.append('scope__klever_main__0')
-            self.scopes_to_show.add(self.scope_stack[-1])
-            line_data['scope'] = self.scope_stack[-1]
-        elif len(self.scope_stack) == 3 and self.scope_stack[-1] not in self.scopes_to_show:
-            self.scopes_to_show.add(self.scope_stack[-1])
-        if 'action' not in edge:
-            line_data.update(self.__get_note(edge.get('note')))
-            line_data.update(self.__get_warn(edge.get('warn')))
+
+        line_data.update(self.__add_assumptions(edge.get('assumption')))
+        if not self.scope.initialised:
+            if 'enter' in edge:
+                self.scope.initialised = True
+            else:
+                if line_data['code'] is not None:
+                    line_data['scope'] = self.scope.current()
+                    self.global_lines.append(line_data)
+                return
+        line_data['scope'] = self.scope.current()
+
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
 
-        if 'action' in edge:
-            if self.curr_action != 'action__%s' % edge['action']:
-                if self.curr_action is None and edge['action'] in self.callback_actions:
-                    self.__show_scope('callback action')
-                if self.curr_action is not None:
-                    self.lines.append(self.__return_from_function({
-                        'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
-                    }, False))
-                    if edge['action'] in self.callback_actions:
-                        self.__show_scope('callback action')
-                enter_action_data = line_data.copy()
-                if 'note' in enter_action_data:
-                    del enter_action_data['note']
-                if 'warn' in enter_action_data:
-                    del enter_action_data['warn']
-                enter_action_data.update(self.__update_line_data())
-                enter_action_data['code'] = '<span class="%s">%s</span>' % (
-                    'ETV_CallbackAction' if edge['action'] in self.callback_actions else 'ETV_Action',
-                    self.actions[edge['action']]
-                )
-                enter_action_data.update(self.__enter_function('action__%s' % edge['action'], None))
-                if edge['action'] in self.callback_actions:
-                    enter_action_data['type'] = 'callback'
-                self.lines.append(enter_action_data)
-                line_data.update(self.__get_note(edge.get('note')))
-                line_data.update(self.__get_warn(edge.get('warn')))
-                line_data.update(self.__update_line_data())
+        curr_action = self.scope.current_action()
+        new_action = edge.get('action')
+        if curr_action != new_action:
+            if curr_action is not None:
+                # Return from action
+                self.lines.append(self.__triangle_line(self.scope.remove()))
+                line_data['offset'] = self.scope.offset()
+                line_data['scope'] = self.scope.current()
+            line_data.update(self.__enter_action(new_action, line_data['line']))
+
+        line_data.update(self.__get_note(edge.get('note')))
+        line_data.update(self.__get_warn(edge.get('warn')))
 
         if 'enter' in edge:
-            if 'action' not in edge and self.curr_action is not None:
-                self.lines.append(self.__return_from_function({
-                    'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
-                }, False))
-                line_data.update(self.__update_line_data())
-            line_data.update(self.__enter_function(self.functions[edge['enter']], line_data['code']))
+            line_data.update(self.__enter_function(edge['enter'], line_data['code']))
             if any(x in edge for x in ['note', 'warn']):
-                self.scopes_to_hide.add(self.scope_stack[-1])
+                self.scope.hide_current_scope()
             if 'return' in edge:
                 if edge['enter'] == edge['return']:
-                    line_data = self.__return_from_function(line_data)
+                    self.__return()
+                    return
                 else:
-                    self.double_return.add(self.scope_stack[-2])
-        elif 'return' in edge:
-            for i in range(len(self.action_stack)):
-                if self.action_stack[-1 - i] is None:
-                    if self.functions[edge['return']] != self.function_stack[-1 - i]:
-                        raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                            self.functions[edge['return']], self.function_stack[-1 - i]
+                    if not self.scope.is_double_return_correct(edge['return']):
+                        raise ValueError('Double return from "%s" is not allowed while entering "%s"' % (
+                            self.functions[edge['return']], self.functions[edge['enter']]
                         ))
-                    break
-            line_data = self.__return_from_function(line_data)
-        elif 'action' not in edge and self.curr_action is not None:
-            self.lines.append(self.__return_from_function({
-                'code': None, 'line': None, 'scope': line_data['scope'], 'offset': line_data['offset']
-            }, False))
-            line_data.update(self.__update_line_data())
+                    self.double_return.add(self.scope.current())
+        elif 'return' in edge:
+            self.lines.append(line_data)
+            self.__return(edge['return'])
+            return
         if line_data['code'] is not None:
             self.lines.append(line_data)
 
     def __update_line_data(self):
-        return {'offset': self.__curr_offset(), 'scope': self.scope_stack[-1]}
+        return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_function(self, func, code):
-        enter_data = {}
-        if code is None:
-            self.action_stack.append(func)
-            self.curr_action = func
-        elif len(self.action_stack) > 0:
-            self.action_stack.append(None)
-            self.curr_action = None
-
-        self.cnt += 1
-        self.scope_stack.append('scope__%s__%s__%s' % (func, str(self.cnt), self.thread_id))
-        enter_data['hide_id'] = self.scope_stack[-1]
-        if code is not None:
-            enter_data['code'] = re.sub(
-                '(^|\W)' + func + '(\W|$)', '\g<1><span class="ETV_Fname">' + func + '</span>\g<2>', code
+    def __enter_action(self, action_id, line):
+        if action_id is None:
+            return {}
+        if action_id in self.callback_actions:
+            self.scope.show_current_scope('callback action')
+        enter_action_data = {
+            'line': line, 'file': self.curr_file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
+            'code': '<span class="%s">%s</span>' % (
+                'ETV_CallbackAction' if action_id in self.callback_actions else 'ETV_Action',
+                self.actions[action_id]
             )
-        enter_data['type'] = 'enter'
+        }
+        enter_action_data.update(self.__enter_function(action_id))
+        if action_id in self.callback_actions:
+            enter_action_data['type'] = 'callback'
+        self.lines.append(enter_action_data)
+        return {'offset': self.scope.offset(), 'scope': self.scope.current()}
+
+    def __enter_function(self, func_id, code=None):
+        self.scope.add(func_id, self.thread_id, (code is None))
+        enter_data = {'type': 'enter', 'hide_id': self.scope.current()}
         if code is not None:
-            enter_data['func'] = func
-        self.function_stack.append(func)
+            enter_data['func'] = self.functions[func_id]
+            enter_data['code'] = re.sub(
+                '(^|\W)' + self.functions[func_id] + '(\W|$)',
+                '\g<1><span class="ETV_Fname">' + self.functions[func_id] + '</span>\g<2>',
+                code
+            )
         return enter_data
 
-    def __return_from_function(self, line_data, return_from_func=True):
-        if line_data['code'] is not None:
-            self.lines.append(line_data)
-        if len(self.action_stack) > 0:
-            last_action = self.action_stack.pop()
-            if last_action is not None and len(self.action_stack) > 1 and return_from_func:
-                self.lines.append(self.__return_from_function({
-                    'code': None, 'line': None, 'hide_id': None,
-                    'offset': self.__curr_offset(), 'scope': line_data['scope']
-                }, False))
-        last_scope = self.scope_stack.pop()
-        self.function_stack.pop()
-        if len(self.scope_stack) == 0:
-            raise ValueError('The error trace is corrupted')
-        line_data = {
-            'code': '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>',
-            'line': None, 'hide_id': None, 'offset': self.__curr_offset(), 'scope': last_scope, 'type': 'return'
-        }
-        if last_scope in self.scopes_to_show:
-            line_data['code'] = '<span><i class="ui mini icon blue caret up"></i></span>'
+    def __triangle_line(self, return_scope):
+        data = {'offset': self.scope.offset(), 'line': None, 'scope': return_scope, 'type': 'return'}
+        if self.scope.is_shown(return_scope):
+            data['code'] = '<span><i class="ui mini icon blue caret up"></i></span>'
             if not self.triangles:
-                line_data['type'] = 'hidden-return'
-        curr_scope = self.scope_stack[-1]
-        if curr_scope in self.double_return:
-            self.double_return.remove(curr_scope)
-            line_data = self.__return_from_function(line_data)
-        self.curr_action = self.action_stack[-1] if len(self.action_stack) > 0 else None
-        return line_data
+                data['type'] = 'hidden-return'
+        else:
+            data['code'] = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
+        return data
 
-    def __show_scope(self, comment_type):
-        if comment_type == 'note':
-            if all(ss not in self.scopes_to_hide for ss in self.scope_stack):
-                for ss in self.scope_stack[1:]:
-                    if ss not in self.scopes_to_show:
-                        self.scopes_to_show.add(ss)
-        elif comment_type in ['warning', 'callback action']:
-            for ss in self.scope_stack[1:]:
-                if ss not in self.scopes_to_show:
-                    self.scopes_to_show.add(ss)
+    def __return(self, func_id=None):
+        if self.scope.current_action():
+            # Return from action first
+            self.lines.append(self.__triangle_line(self.scope.remove()))
+        if not self.scope.is_return_correct(func_id):
+            raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
+                self.functions[func_id], self.scope.current()
+            ))
+        return_scope = self.scope.remove()
+        self.lines.append(self.__triangle_line(return_scope))
+        if return_scope in self.double_return:
+            self.double_return.remove(return_scope)
+            self.__return()
+
+    def __return_all(self):
+        while self.scope.can_return():
+            self.__return()
 
     def __get_note(self, note):
         if note is None:
             return {}
-        self.__show_scope('note')
+        self.scope.show_current_scope('note')
         return {'note': note}
 
     def __get_warn(self, warn):
         if warn is None:
             return {}
-        self.__show_scope('warning')
+        self.scope.show_current_scope('warning')
         return {'warning': warn}
 
-    def __add_assumptions(self, assumption, assumption_scope):
-        assumption_data = {}
-        if assumption is None:
-            return assumption_data
-        if len(self.scope_stack) == 1:
-            self.scope_stack.append('scope__klever_main__0')
-            self.scopes_to_show.add(self.scope_stack[-1])
-        if not self.include_assumptions:
-            return assumption_data
-        if assumption_scope is None:
-            ass_scope = 'global'
+    def __add_assumptions(self, assumption):
+        if self.include_assumptions:
+            if assumption is None:
+                return self.__fill_assumptions([])
         else:
-            ass_scope = self.scope_stack[-1]
+            return {}
 
+        if not self.scope.initialised:
+            self.scope.initialised = True
+
+        ass_scope = self.scope.current()
         if ass_scope not in self.assume_scopes:
             self.assume_scopes[ass_scope] = []
+
         curr_assumes = []
         for assume in assumption.split(';'):
             if len(assume) == 0:
                 continue
             self.assume_scopes[ass_scope].append(assume)
             curr_assumes.append('%s_%s' % (ass_scope, str(len(self.assume_scopes[ass_scope]) - 1)))
-        assumption_data.update(self.__fill_assumptions(curr_assumes))
-        return assumption_data
+        return self.__fill_assumptions(curr_assumes)
 
-    def __fill_assumptions(self, current_assumptions=None):
+    def __fill_assumptions(self, current_assumptions):
         assumptions = []
-        if self.scope_stack[-1] in self.assume_scopes:
-            for j in range(0, len(self.assume_scopes[self.scope_stack[-1]])):
-                assume_id = '%s_%s' % (self.scope_stack[-1], j)
-                if isinstance(current_assumptions, list) and assume_id in current_assumptions:
+        curr_scope = self.scope.current()
+        if curr_scope in self.assume_scopes:
+            for j in range(len(self.assume_scopes[curr_scope])):
+                assume_id = '%s_%s' % (curr_scope, j)
+                if assume_id in current_assumptions:
                     continue
                 assumptions.append(assume_id)
-        return {
-            'assumptions': ';'.join(reversed(assumptions)),
-            'current_assumptions': ';'.join(current_assumptions) if isinstance(current_assumptions, list) else None
-        }
+        return {'assumptions': ';'.join(reversed(assumptions)), 'current_assumptions': ';'.join(current_assumptions)}
 
     def __get_condition_code(self, code):
-        self.ccc = 0
+        self.__is_not_used()
         m = re.match('^\s*\[(.*)\]\s*$', code)
         if m is not None:
             code = m.group(1)
         return '<span class="ETV_CondAss">assume(</span>' + str(code) + '<span class="ETV_CondAss">);</span>'
 
-    def __curr_offset(self):
-        if len(self.scope_stack) < 2:
-            return ' '
-        return ((len(self.scope_stack) - 2) * TAB_LENGTH + 1) * ' '
-
     def finish_error_lines(self, thread, thread_id):
-        while len(self.scope_stack) > 2:
-            poped_scope = self.scope_stack.pop()
-            if self.triangles:
-                if poped_scope in self.scopes_to_show:
-                    ret_code = '<span><i class="ui mini icon blue caret up"></i></span>'
-                else:
-                    ret_code = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
-                end_triangle = {
-                    'code': ret_code, 'line': None, 'hide_id': None,
-                    'offset': self.__curr_offset(), 'scope': poped_scope, 'type': 'return'
-                }
-            else:
-                end_triangle = {
-                    'code': None, 'line': None, 'hide_id': None, 'offset': '',
-                    'scope': poped_scope, 'type': 'hidden-return'
-                }
-            self.lines.append(end_triangle)
+        self.__return_all()
         if len(self.global_lines) > 0:
             self.lines = [{
                 'code': '<span class="ETV_GlobalExpander">Global variable declarations</span>',
@@ -352,40 +374,35 @@ class ParseErrorTrace:
                 self.lines[i]['line_offset'] = ' ' * self.max_line_length
             else:
                 self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
-            # other_line_offset = '\n  ' + self.lines[i]['offset'] + ' ' * self.max_line_length
-            # self.lines[i]['code'] = other_line_offset.join(self.lines[i]['code'].split('\n'))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
 
-            if self.lines[i]['scope'] != 'scope__klever_main__0':
-                if self.lines[i]['type'] == 'normal' and self.lines[i]['scope'] in self.scopes_to_show:
+            if not self.scope.is_main(self.lines[i]['scope']):
+                if self.lines[i]['type'] == 'normal' and self.scope.is_shown(self.lines[i]['scope']):
                     self.lines[i]['type'] = 'eye-control'
-                elif self.lines[i]['type'] == 'enter' and self.lines[i]['hide_id'] not in self.scopes_to_show:
+                elif self.lines[i]['type'] == 'enter' and not self.scope.is_shown(self.lines[i]['hide_id']):
                     self.lines[i]['type'] = 'eye-control'
                     if 'func' in self.lines[i]:
                         del self.lines[i]['func']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
-            c = self.lines[i]['scope'] not in self.scopes_to_show
-            d = 'hide_id' not in self.lines[i] or self.lines[i]['hide_id'] is None
-            e = 'hide_id' in self.lines[i] and self.lines[i]['hide_id'] is not None \
-                and self.lines[i]['hide_id'] not in self.scopes_to_show
+            c = not self.scope.is_shown(self.lines[i]['scope'])
+            d = 'hide_id' not in self.lines[i]
+            e = 'hide_id' in self.lines[i] and not self.scope.is_shown(self.lines[i]['hide_id'])
             f = self.lines[i]['type'] == 'eye-control'
-            if a or b and (d or e or c) or not a and not b and c and (d or e) or f:
+            if a or b and (c or d or e) or not a and not b and c and (d or e) or f:
                 self.lines[i]['hidden'] = True
-                if e:
-                    self.lines[i]['collapsed'] = True
-            elif e:
+            if e:
                 self.lines[i]['collapsed'] = True
             if a or b:
                 self.lines[i]['commented'] = True
                 self.lines[i]['note_line_offset'] = ' ' * self.max_line_length
             if b and c:
                 self.lines[i]['note_hidden'] = True
-        if len(self.global_lines) > 0:
+        if self.thread_id == 0:
             self.lines.append({'scope': 'ETV_End_of_trace', 'thread_id': thread_id})
 
     def __wrap_code(self, code, code_type):
-        self.ccc = 0
+        self.__is_not_used()
         if code_type in SOURCE_CLASSES:
             return '<span class="%s">%s</span>' % (SOURCE_CLASSES[code_type], code)
         return code
@@ -439,6 +456,9 @@ class ParseErrorTrace:
             else:
                 new_words.append(word)
         return ''.join(new_words)
+
+    def __is_not_used(self):
+        pass
 
 
 class GetETV(object):
@@ -951,3 +971,30 @@ class ErrorTraceForests:
             if curr_forest is not None:
                 forests.append(curr_forest)
         return forests
+
+
+def etv_callstack(unsafe_id=None, file_name='test.txt'):
+    if unsafe_id:
+        unsafe = ReportUnsafe.objects.get(id=unsafe_id)
+    else:
+        unsafe = ReportUnsafe.objects.all().first()
+    content = ArchiveFileContent(unsafe, unsafe.error_trace).content.decode('utf8')
+    data = json.loads(content)
+    trace = ''
+    double_returns = set()
+    ind = 0
+    for x in data['edges']:
+        if 'enter' in x:
+            trace += '%s%s {\n' % (' ' * ind, data['funcs'][x['enter']])
+            ind += 2
+            if 'return' in x:
+                double_returns.add(x['enter'])
+        elif 'return' in x:
+            ind -= 2
+            trace += '%s}\n' % (' ' * ind)
+            if x['return'] in double_returns:
+                ind -= 2
+                trace += '%s}\n' % (' ' * ind)
+                double_returns.remove(x['return'])
+    with open(file_name, mode='w', encoding='utf8') as fp:
+        fp.write(trace)

@@ -162,6 +162,19 @@ CHUNKS2 = [
         'safe': 'safe.zip'
     }
 ]
+
+CHUNKS3 = [
+    {
+        'attrs': [
+            {'Verification object': 'drivers/usb/core/usb.ko'},
+            {'Rule specification': 'linux:mutex'}
+        ],
+        'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
+        'tool': 'BLAST 2.7.2',
+        'unsafes': ['unsafe_check.zip']
+    }
+]
+
 ARCHIVE_PATH = os.path.join(BASE_DIR, 'reports', 'test_files')
 
 
