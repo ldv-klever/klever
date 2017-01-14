@@ -317,14 +317,14 @@ class ParseErrorTrace:
         return {'warning': warn}
 
     def __add_assumptions(self, assumption):
-        if self.include_assumptions:
-            if assumption is None:
-                return self.__fill_assumptions([])
-        else:
-            return {}
+        if self.include_assumptions and assumption is None:
+            return self.__fill_assumptions([])
 
-        if not self.scope.initialised:
+        if not self.scope.initialised and assumption is not None:
             self.scope.initialised = True
+
+        if not self.include_assumptions:
+            return {}
 
         ass_scope = self.scope.current()
         if ass_scope not in self.assume_scopes:
