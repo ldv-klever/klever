@@ -213,10 +213,6 @@
 .ETV_THREAD {
     background-color: #fffff1;
 }
-.ETV_TOP_BORDER {
-    border-top: 1px solid #000000;
-    color: #7d909e;
-}
 
 #etv-trace {
     position: absolute;

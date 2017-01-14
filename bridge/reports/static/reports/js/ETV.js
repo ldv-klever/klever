@@ -31,6 +31,7 @@ $(document).ready(function () {
         });
     }
     $('.normal-popup').popup({position: 'bottom left'});
+
     function get_source_code(line, filename) {
 
         var source_code_window = $('#ETV_source_code');
@@ -77,6 +78,59 @@ $(document).ready(function () {
         }
     }
 
+    function open_function(hidelink, shift_pressed, change_state) {
+        if (change_state) {
+            var func_line = hidelink.parent().parent(), collapse_icon = hidelink.find('i').first();
+            collapse_icon.removeClass('right');
+            collapse_icon.addClass('down');
+            func_line.removeClass('func_collapsed');
+            func_line.find('.ETV_FuncName').hide();
+            func_line.find('.ETV_FuncCode').show();
+        }
+        $('.' + hidelink.attr('id')).each(function () {
+            var inner_hidelink = $(this).find('.ETV_HideLink');
+            if (!($(this).hasClass('commented') && ($(this).hasClass('func_collapsed') || inner_hidelink.length == 0))) {
+                $(this).show();
+            }
+            if (inner_hidelink.length == 1) {
+                if ($(this).hasClass('func_collapsed')) {
+                    if (shift_pressed) {
+                        $(this).show();
+                        open_function(inner_hidelink, shift_pressed, shift_pressed);
+                    }
+                    else if (!$(this).hasClass('commented')) {
+                        $(this).show();
+                    }
+                }
+                else {
+                    $(this).show();
+                    open_function(inner_hidelink, shift_pressed, false);
+                }
+            }
+            else if (!$(this).hasClass('commented')) {
+                $(this).show();
+            }
+        });
+    }
+
+    function close_function(hidelink, shift_pressed, change_state) {
+        if (change_state) {
+            var func_line = hidelink.parent().parent(), collapse_icon = hidelink.find('i').first();
+            collapse_icon.removeClass('down');
+            collapse_icon.addClass('right');
+            func_line.addClass('func_collapsed');
+            func_line.find('.ETV_FuncCode').hide();
+            func_line.find('.ETV_FuncName').show();
+        }
+        $('.' + hidelink.attr('id')).each(function () {
+            $(this).hide();
+            var inner_hidelink = $(this).find('.ETV_HideLink');
+            if (inner_hidelink.length == 1) {
+                close_function(inner_hidelink, shift_pressed, shift_pressed);
+            }
+        });
+    }
+
     $('.ETV_GlobalExpanderLink').click(function (event) {
         event.preventDefault();
         var global_icon = $(this).find('i').first();
@@ -92,81 +146,15 @@ $(document).ready(function () {
 
     $('.ETV_HideLink').click(function (event) {
         event.preventDefault();
-        var whole_line = $(this).parent().parent(),
-            curr_thread = whole_line.attr('data-thread'),
-            etv_main_parent = $('#etv-trace'),
-            expanded = 'mini icon violet caret down',
-            collapsed = 'mini icon violet caret right',
-            last_selector = etv_main_parent.find('.' + $(this).attr('id')).last(),
-            next_line = whole_line.next('span');
-        if ($(this).children('i').first().attr('class') == expanded) {
-            whole_line.find('.ETV_FuncCode').hide();
-            whole_line.find('.ETV_FuncName').show();
-            $(this).children('i').first().attr('class', collapsed);
-            whole_line.addClass('func_collapsed');
-            while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
-                if (next_line.attr('data-thread') == curr_thread && next_line.attr('data-type') != 'hidden-return') {
-                    next_line.hide();
-                    if (!next_line.hasClass('func_collapsed') && next_line.find('a[class="ETV_HideLink"]').length > 0) {
-                        if (event.shiftKey) {
-                            next_line.find('.ETV_FuncCode').hide();
-                            next_line.find('.ETV_FuncName').show();
-                            next_line.addClass('func_collapsed');
-                            next_line.find('i[class="' + expanded + '"]').attr('class', collapsed);
-                        }
-                    }
-                }
-
-                next_line = next_line.next('span');
-            }
-            if (last_selector.attr('data-type') != 'hidden-return') {
-                last_selector.hide();
-            }
+        if ($(this).find('i').first().hasClass('right')) {
+            open_function($(this), event.shiftKey, true);
         }
         else {
-            $(this).children('i').first().attr('class', expanded);
-            whole_line.removeClass('func_collapsed');
-            whole_line.find('.ETV_FuncCode').show();
-            whole_line.find('.ETV_FuncName').hide();
-            while (!next_line.is(last_selector) && !next_line.is(etv_main_parent.find('.ETV_End_of_trace').first())) {
-                if (next_line.attr('data-type') == 'hidden-return') {
-                    next_line = next_line.next('span');
-                    continue;
-                }
-                if (!(next_line.hasClass('commented') && (next_line.hasClass('func_collapsed') || next_line.find('a[class="ETV_HideLink"]').length == 0))) {
-                    if (next_line.attr('data-thread') == curr_thread) {
-                        next_line.show();
-                    }
-                }
-                if (next_line.hasClass('func_collapsed')) {
-                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
-                        next_line.find('.ETV_FuncCode').show();
-                        next_line.find('.ETV_FuncName').hide();
-                        next_line.show();
-                        next_line.removeClass('func_collapsed');
-                        next_line.find('i[class="' + collapsed + '"]').attr('class', expanded);
-                        next_line = next_line.next('span');
-                    }
-                    else {
-                        next_line = etv_main_parent.find(
-                            '.' + next_line.find('a[class="ETV_HideLink"]').first().attr('id')
-                        ).last().next('span');
-                    }
-                }
-                else {
-                    if (event.shiftKey && curr_thread == next_line.attr('data-thread')) {
-                        next_line.show();
-                    }
-                    next_line = next_line.next('span');
-                }
-            }
-            if (last_selector.attr('data-type') != 'hidden-return') {
-                last_selector.show();
-            }
+            close_function($(this), event.shiftKey, true);
         }
     });
     $('.ETV_DownHideLink').click(function () {
-        $('#etv-trace').find('.' + $(this).parent().parent().attr('class')).first().prev().find('.ETV_HideLink').click();
+        $('#' + $(this).parent().parent().attr('class')).click();
     });
 
     $('.ETV_La').click(function (event) {
@@ -231,7 +219,7 @@ $(document).ready(function () {
     });
 
     function select_next_line() {
-        var selected_line = $('div[id^="etv-trace"]').find('span.ETVSelectedLine').first();
+        var selected_line = etv_window.find('.ETVSelectedLine').first();
         if (selected_line.length) {
             var next_line = selected_line.next(),
                 next_line_link;
@@ -256,7 +244,7 @@ $(document).ready(function () {
         return false;
     }
     function select_prev_line() {
-        var selected_line = $('div[id^="etv-trace"]').find('span.ETVSelectedLine').first();
+        var selected_line = etv_window.find('.ETVSelectedLine').first();
         if (selected_line.length) {
             var prev_line = selected_line.prev(),
                 prev_line_link;
@@ -285,7 +273,7 @@ $(document).ready(function () {
 
     var interval;
     function play_etv_forward() {
-        var selected_line = $('div[id^="etv-trace"]').find('span.ETVSelectedLine').first();
+        var selected_line = etv_window.find('.ETVSelectedLine').first();
         if (!selected_line.length) {
             err_notify($('#error___no_selected_line').text());
             clearInterval(interval);
@@ -303,7 +291,7 @@ $(document).ready(function () {
         return false;
     }
     function play_etv_backward() {
-        var selected_line = $('div[id^="etv-trace"]').find('span.ETVSelectedLine').first();
+        var selected_line = etv_window.find('.ETVSelectedLine').first();
         if (!selected_line.length) {
             err_notify($('#error___no_selected_line').text());
             clearInterval(interval);
