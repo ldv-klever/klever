@@ -20,6 +20,7 @@ import re
 def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _basic_simplification(logger, trace)
+    _remove_switch_cases(logger, trace)
     _remove_artificial_edges(logger, trace)
     _remove_aux_functions(logger, trace)
 
@@ -341,3 +342,65 @@ def _remove_aux_functions(logger, error_trace):
 
     if removed_aux_funcs_num:
         logger.debug('{0} auxiliary functions were removed'.format(removed_aux_funcs_num))
+
+
+def _remove_switch_cases(logger, error_trace):
+    # Get rid of redundant switch cases. Replace:
+    #   assume(x != A)
+    #   assume(x != B)
+    #   ...
+    #   assume(x == Z)
+    # with:
+    #   assume(x == Z)
+    removed_switch_cases_num = 0
+    for edge in error_trace.trace_iterator():
+        # Begin to match pattern just for edges that represent conditions.
+        if 'condition' not in edge:
+            continue
+
+        # Get all continues conditions.
+        cond_edges = []
+        for cond_edge in error_trace.trace_iterator(begin=edge):
+            if 'condition' not in cond_edge:
+                break
+            cond_edges.append(cond_edge)
+
+        # Do not proceed if there is not continues conditions.
+        if len(cond_edges) == 1:
+            continue
+
+        x = None
+        for idx, cond_edge in enumerate(cond_edges):
+            m = re.search(r'^(.+) ([=!]=)', cond_edge['source'])
+
+            # Do not proceed if meet unexpected format of condition.
+            if not m:
+                x = None
+                break
+
+            if x is None:
+                x = m.group(1)
+            # Do not proceed if first expression condition differs.
+            elif x != m.group(1):
+                x = None
+                break
+
+            if idx < len(cond_edges) - 1 and m.group(2) != '!=':
+                x = None
+                break
+
+            if idx == len(cond_edges) - 1 and m.group(2) != '==':
+                x = None
+                break
+
+        # Do not proceed if something above went wrong.
+        if x is None:
+            continue
+
+        for cond_edge in reversed(cond_edges[:-1]):
+            error_trace.remove_edge_and_target_node(cond_edge)
+            removed_switch_cases_num += 1
+
+    if removed_switch_cases_num:
+        logger.debug('{0} switch cases were removed'.format(removed_switch_cases_num))
+
