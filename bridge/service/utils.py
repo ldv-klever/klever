@@ -47,7 +47,7 @@ class ScheduleTask:
             priority = self.description['priority']
         except Exception:
             raise ServiceError('Wrong description format')
-        if priority not in list(x[0] for x in PRIORITY):
+        if priority not in set(x[0] for x in PRIORITY):
             raise ServiceError('Wrong priority')
         if self.progress.job_status != JOB_STATUS[2][0]:
             raise ServiceError('The job is not processing')
@@ -381,6 +381,8 @@ class GetTasks:
     def __add_description(self, task):
         task_id = str(task.id)
         self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
+        if 'priority' not in self._data['task descriptions'][task_id]['description']:
+            logger.error('Task has wrong description: "%s"' % self._data['task descriptions'][task_id]['description'])
         if self._scheduler.type == SCHEDULER_TYPE[1][0]:
             if task.progress_id in self._operators:
                 self._data['task descriptions'][task_id]['VerifierCloud user name'] = \
@@ -398,13 +400,8 @@ class GetTasks:
                     self._data['task descriptions'][task_id]['VerifierCloud user password'] = sch_user.password
 
     def __change_status(self, task, old, new):
-        status_map = {
-            'pending': TASK_STATUS[0][0],
-            'processing': TASK_STATUS[1][0],
-            'finished': TASK_STATUS[2][0],
-            'error': TASK_STATUS[3][0],
-            'cancelled': TASK_STATUS[4][0]
-        }
+        old = old.upper()
+        new = new.upper()
         fields = {
             TASK_STATUS[0][0]: 'tasks_pending',
             TASK_STATUS[1][0]: 'tasks_processing',
@@ -414,18 +411,18 @@ class GetTasks:
         }
         if task.progress_id not in self._progresses:
             self._progresses[task.progress_id] = SolvingProgress.objects.get(id=task.progress_id)
-        old_num = getattr(self._progresses[task.progress_id], fields[status_map[old]])
+        old_num = getattr(self._progresses[task.progress_id], fields[old])
         if old_num <= 0:
             logger.error('Something wrong with SolvingProgress cache: '
                          'number of %s tasks is 0, but there is at least one such task in the system' % old)
         else:
-            setattr(self._progresses[task.progress_id], fields[status_map[old]], old_num - 1)
-        new_num = getattr(self._progresses[task.progress_id], fields[status_map[new]])
-        setattr(self._progresses[task.progress_id], fields[status_map[new]], new_num + 1)
+            setattr(self._progresses[task.progress_id], fields[old], old_num - 1)
+        new_num = getattr(self._progresses[task.progress_id], fields[new])
+        setattr(self._progresses[task.progress_id], fields[new], new_num + 1)
 
-        if status_map[new] not in self._tasks_statuses:
-            self._tasks_statuses[status_map[new]] = set()
-        self._tasks_statuses[status_map[new]].add(task.id)
+        if new not in self._tasks_statuses:
+            self._tasks_statuses[new] = set()
+        self._tasks_statuses[new].add(task.id)
 
     def __finish_with_tasks(self):
         for status in self._tasks_statuses:
