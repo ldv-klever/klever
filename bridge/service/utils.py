@@ -42,9 +42,9 @@ class ScheduleTask:
                 .get(job_id=job_id)
         except ObjectDoesNotExist:
             raise ServiceError('Solving progress of the job was not found')
+        self.description = description
         try:
-            self.description = json.loads(description)
-            priority = self.description['priority']
+            priority = json.loads(self.description)['priority']
         except Exception:
             raise ServiceError('Wrong description format')
         if priority not in set(x[0] for x in PRIORITY):
@@ -55,24 +55,16 @@ class ScheduleTask:
             raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
             raise ServiceError('Priority of the task is too big')
-        self._task = None
-        try:
-            self.__create_task(archive)
-        except Exception as e:
-            if self._task is not None:
-                self._task.delete()
-            raise e
-        self.task_id = self._task.id
+        self.task_id = self.__create_task(archive)
 
     def __create_task(self, archive):
-        self._task = Task.objects.create(progress=self.progress, archname=archive.name,
-                                         archive=archive, description=b'{}')
-        self.progress.tasks_total += 1
-        self.progress.tasks_pending += 1
-        self.progress.save()
-        self.description['id'] = str(self._task.id)
-        self._task.description = json.dumps(self.description, ensure_ascii=False).encode('utf8')
-        self._task.save()
+        task = Task.objects.create(
+            progress=self.progress, archname=archive.name,
+            archive=archive, description=self.description.encode('utf8')
+        )
+        SolvingProgress.objects.filter(id=self.progress.id)\
+            .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
+        return task.id
 
 
 class GetTaskStatus:
@@ -258,13 +250,6 @@ class GetTasks:
 
     def __get_tasks(self, tasks):
         data = json.loads(tasks)
-        status_map = {
-            'pending': TASK_STATUS[0][0],
-            'processing': TASK_STATUS[1][0],
-            'finished': TASK_STATUS[2][0],
-            'error': TASK_STATUS[3][0],
-            'cancelled': TASK_STATUS[4][0]
-        }
         all_tasks = {
             'pending': [],
             'processing': [],
@@ -274,10 +259,7 @@ class GetTasks:
         }
         for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
                 .annotate(sol=F('solution__id')):
-            for status in status_map:
-                if status_map[status] == task.status:
-                    all_tasks[status].append(task)
-                    break
+            all_tasks[task.status.lower()].append(task)
         for task in all_tasks['pending']:
             if str(task.id) in data['tasks']['pending']:
                 self._data['tasks']['pending'].append(str(task.id))
@@ -329,9 +311,9 @@ class GetTasks:
             else:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
-        for old_status in {'error', 'finished'}:
+        for old_status in ['error', 'finished']:
             for task in all_tasks[old_status]:
-                for new_status in {'pending', 'processing', 'error', 'finished'}:
+                for new_status in ['pending', 'processing', 'error', 'finished']:
                     if str(task.pk) in data['tasks'][new_status]:
                         raise ServiceError("The task '%s' with status '%s' has become '%s'" % (
                             task.id, old_status.upper(), new_status.upper()
@@ -381,8 +363,8 @@ class GetTasks:
     def __add_description(self, task):
         task_id = str(task.id)
         self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
-        if 'priority' not in self._data['task descriptions'][task_id]['description']:
-            logger.error('Task has wrong description: "%s"' % self._data['task descriptions'][task_id]['description'])
+        # TODO: does description have to have 'id'?
+        self._data['task descriptions'][task_id]['description']['id'] = task_id
         if self._scheduler.type == SCHEDULER_TYPE[1][0]:
             if task.progress_id in self._operators:
                 self._data['task descriptions'][task_id]['VerifierCloud user name'] = \
