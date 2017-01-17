@@ -455,8 +455,11 @@ class Process:
             return False
 
     def get_implementation(self, access):
-        if access.interface and self.allowed_implementations[access.expression][access.interface.identifier] != '':
-            return self.allowed_implementations[access.expression][access.interface.identifier]
+        if access.interface:
+            if self.allowed_implementations[access.expression][access.interface.identifier] != '':
+                return self.allowed_implementations[access.expression][access.interface.identifier]
+            else:
+                return False
         else:
             return None
 

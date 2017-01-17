@@ -656,7 +656,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     func_variable = access.access_with_variable(automaton.determine_variable(access.label,
                                                                                         access.list_interface[0].
                                                                                         identifier))
-                elif signature.clean_declaration:
+                elif signature.clean_declaration and not isinstance(implementation, bool):
                     invoke = access.access_with_variable(automaton.determine_variable(access.label,
                                                                                  access.list_interface[0].
                                                                                  identifier))
