@@ -43,8 +43,17 @@ def import_error_trace(logger, witness):
 if __name__ == '__main__':
     import json
     import logging
+    import sys
 
-    et = import_error_trace(logging.getLogger(), 'witness.0.graphml')
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)5s> %(message)s', '%Y-%m-%d %H:%M:%S')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    et = import_error_trace(logger, 'witness.0.graphml')
 
     with open('error trace.json', 'w', encoding='utf8') as fp:
         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
