@@ -22,16 +22,9 @@
 static int __init init(void)
 {
 	dev_t *dev;
-	unsigned int baseminor, count = 0;
+	unsigned int baseminor, count;
 
-	switch (alloc_chrdev_region(dev, baseminor, count, "test__")) {
-	    case 1:
-	        count += 1;
-	    case 2:
-	        count += 2;
-	    case 0:
-	        count = 0;
-	}
+	alloc_chrdev_region(dev, baseminor, count, "test__");
 
 	return 0;
 }
