@@ -407,8 +407,9 @@ class ErrorTrace:
                     warn_edge['warn'] = warn
                     warn_edges.append(warn_edge)
 
-                    # Remove added warning to avoid its addition one more time.
-                    del self._asserts[file_id][start_line]
+                    # Do not try to add any warnings any more. We don't know how several violations are encoded in
+                    # witnesses.
+                    break
 
         # Remove notes from edges marked with warnings. Otherwise error trace visualizer will be confused.
         for warn_edge in warn_edges:
