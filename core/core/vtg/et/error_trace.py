@@ -368,6 +368,8 @@ class ErrorTrace:
                 func_id = edge['enter']
                 if func_id in self._model_funcs:
                     note = self._model_funcs[func_id]
+                    self._logger.debug("Add note {!r} for model function '{}'".format(note,
+                                                                                      self.resolve_function(func_id)))
                     edge['note'] = note
 
             if file_id in self._notes and start_line in self._notes[file_id]:
