@@ -215,132 +215,140 @@ def _split_into_instances(analysis, process, resource_new_insts, simplified_map=
     interface_to_value, value_to_implementation, basevalue_to_value, interface_to_expression, final_options_list = \
         _extract_implementation_dependencies(analysis, access_map, accesses)
 
-    # If maps are predefined try to use them
+    # Generate access maps itself with base values only
     maps = []
+    total_chosen_values = set()
+    if len(final_options_list) > 0:
+        ivector = [0 for i in enumerate(final_options_list)]
+
+        for _ in enumerate(interface_to_value[final_options_list[0]]):
+            new_map = copy.deepcopy(access_map)
+            chosen_values = set()
+
+            # Set chosen implementations
+            for interface_index, identifier in enumerate(final_options_list):
+                expression = interface_to_expression[identifier]
+                options = list(sorted([val for val in interface_to_value[identifier]
+                                       if len(interface_to_value[identifier][val]) == 0]))
+                chosen_value = options[ivector[interface_index]]
+                implementation = value_to_implementation[chosen_value]
+
+                # Assign only values without base values
+                if len(interface_to_value[identifier][chosen_value]) == 0:
+                    new_map[expression][identifier] = implementation
+                    chosen_values.add(chosen_value)
+                    total_chosen_values.add(chosen_value)
+
+                # Iterate over values
+                ivector[interface_index] += 1
+                if ivector[interface_index] == len(options):
+                    ivector[interface_index] = 0
+            maps.append([new_map, chosen_values])
+    else:
+        # Choose atleast one map
+        if len(maps) == 0:
+            maps = [[access_map, set()]]
+
+    # Then set the other values
+    for expression in sorted(access_map.keys()):
+        for interface in sorted(access_map[expression].keys()):
+            intf_additional_maps = []
+            # If container has values which depends on another container add a map with unitialized value for the
+            # container
+            if access_map[expression][interface] and len([val for val in interface_to_value[interface]
+                                                          if len(interface_to_value[interface][val]) != 0]) > 0:
+                new = [copy.deepcopy(maps[0][0]), copy.copy(maps[0][1])]
+                new[1].remove(new[0][expression][interface])
+                new[0][expression][interface] = None
+                maps.append(new)
+
+            for amap, chosen_values in maps:
+                if not amap[expression][interface]:
+                    # Choose those values whose base values are already chosen
+
+                    # Try to avoid repeating values
+                    strict_suits = sorted(
+                                   [value for value in interface_to_value[interface]
+                                    if value not in total_chosen_values and
+                                    (len(interface_to_value[interface][value]) == 0 or
+                                     len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
+                                     len([cv for cv in interface_to_value[interface][value]
+                                          if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
+                    if len(strict_suits) == 0:
+                        # If values are repeated just choose random one
+                        suits = sorted(
+                                [value for value in interface_to_value[interface]
+                                 if len(interface_to_value[interface][value]) == 0 or
+                                 len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
+                                 (len([cv for cv in interface_to_value[interface][value]
+                                       if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
+                        if len(suits) > 0:
+                            suits = [suits.pop()]
+                    else:
+                        suits = strict_suits
+
+                    if len(suits) == 1:
+                        amap[expression][interface] = value_to_implementation[suits[0]]
+                        chosen_values.add(suits[0])
+                        total_chosen_values.add(suits[0])
+                    elif len(suits) > 1:
+                        # There can be many useless resource implementations ...
+                        interface_obj = analysis.get_intf(interface)
+                        if type(interface_obj) is Resource and resource_new_insts > 0:
+                            suits = suits[0:resource_new_insts]
+                        elif type(interface_obj) is Container:
+                            # Ignore additional container values which does not influence the other interfaces
+                            suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
+                        else:
+                            # Try not to repeate values
+                            suits = [v for v in suits if v not in total_chosen_values]
+
+                        value_map = _match_array_maps(expression, interface, suits, maps, interface_to_value,
+                                                      value_to_implementation)
+                        intf_additional_maps.extend(
+                            _fulfil_map(expression, interface, value_map, [[amap, chosen_values]],
+                                        value_to_implementation, total_chosen_values, interface_to_value))
+
+            # Add additional maps
+            maps.extend(intf_additional_maps)
+
     if type(simplified_map) is list:
-        for m, cv in simplified_map:
+        # Forbid pointer implementations
+        complete_maps = maps
+        maps = []
+
+        # Set proper given values
+        for index, value in enumerate(simplified_map):
+            smap = value[0]
             instance_map = dict()
             used_values = set()
 
-            for expression in sorted(m.keys()):
+            for expression in sorted(smap.keys()):
                 instance_map[expression] = dict()
 
-                for interface in sorted(m[expression].keys()):
-                    if m[expression][interface]:
-                        instance_map[expression][interface] = value_to_implementation[m[expression][interface]]
-                        used_values.add(m[expression][interface])
+                for interface in sorted(smap[expression].keys()):
+                    if smap[expression][interface]:
+                        instance_map[expression][interface] = value_to_implementation[smap[expression][interface]]
+                        used_values.add(smap[expression][interface])
+                    elif complete_maps[index][0][expression][interface]:
+                        # To avoid calls by pointer
+                        instance_map[expression][interface] = ''
                     else:
-                        instance_map[expression][interface] = m[expression][interface]
+                        instance_map[expression][interface] = smap[expression][interface]
             maps.append([instance_map, used_values])
     else:
-        # Generate access maps itself with base values only
-        total_chosen_values = set()
-        if len(final_options_list) > 0:
-            ivector = [0 for i in enumerate(final_options_list)]
-
-            for _ in enumerate(interface_to_value[final_options_list[0]]):
-                new_map = copy.deepcopy(access_map)
-                chosen_values = set()
-
-                # Set chosen implementations
-                for interface_index, identifier in enumerate(final_options_list):
-                    expression = interface_to_expression[identifier]
-                    options = list(sorted([val for val in interface_to_value[identifier]
-                                           if len(interface_to_value[identifier][val]) == 0]))
-                    chosen_value = options[ivector[interface_index]]
-                    implementation = value_to_implementation[chosen_value]
-
-                    # Assign only values without base values
-                    if len(interface_to_value[identifier][chosen_value]) == 0:
-                        new_map[expression][identifier] = implementation
-                        chosen_values.add(chosen_value)
-                        total_chosen_values.add(chosen_value)
-
-                    # Iterate over values
-                    ivector[interface_index] += 1
-                    if ivector[interface_index] == len(options):
-                        ivector[interface_index] = 0
-                maps.append([new_map, chosen_values])
-        else:
-            # Choose atleast one map
-            if len(maps) == 0:
-                maps = [[access_map, set()]]
-
-        # Then set the other values
-        for expression in sorted(access_map.keys()):
-            for interface in sorted(access_map[expression].keys()):
-                intf_additional_maps = []
-                # If container has values which depends on another container add a map with unitialized value for the
-                # container
-                if access_map[expression][interface] and len([val for val in interface_to_value[interface]
-                                                              if len(interface_to_value[interface][val]) != 0]) > 0:
-                    new = [copy.deepcopy(maps[0][0]), copy.copy(maps[0][1])]
-                    new[1].remove(new[0][expression][interface])
-                    new[0][expression][interface] = None
-                    maps.append(new)
-
-                for amap, chosen_values in maps:
-                    if not amap[expression][interface]:
-                        # Choose those values whose base values are already chosen
-
-                        # Try to avoid repeating values
-                        strict_suits = sorted(
-                                       [value for value in interface_to_value[interface]
-                                        if value not in total_chosen_values and
-                                        (len(interface_to_value[interface][value]) == 0 or
-                                         len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                                         len([cv for cv in interface_to_value[interface][value]
-                                              if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
-                        if len(strict_suits) == 0:
-                            # If values are repeated just choose random one
-                            suits = sorted(
-                                    [value for value in interface_to_value[interface]
-                                     if len(interface_to_value[interface][value]) == 0 or
-                                     len(chosen_values.intersection(interface_to_value[interface][value])) > 0 or
-                                     (len([cv for cv in interface_to_value[interface][value]
-                                           if cv not in value_to_implementation and cv not in chosen_values]) > 0)])
-                            if len(suits) > 0:
-                                suits = [suits.pop()]
-                        else:
-                            suits = strict_suits
-
-                        if len(suits) == 1:
-                            amap[expression][interface] = value_to_implementation[suits[0]]
-                            chosen_values.add(suits[0])
-                            total_chosen_values.add(suits[0])
-                        elif len(suits) > 1:
-                            # There can be many useless resource implementations ...
-                            interface_obj = analysis.get_intf(interface)
-                            if type(interface_obj) is Resource and resource_new_insts > 0:
-                                suits = suits[0:resource_new_insts]
-                            elif type(interface_obj) is Container:
-                                # Ignore additional container values which does not influence the other interfaces
-                                suits = [v for v in suits if v in basevalue_to_value and len(basevalue_to_value) > 0]
-                            else:
-                                # Try not to repeate values
-                                suits = [v for v in suits if v not in total_chosen_values]
-
-                            value_map = _match_array_maps(expression, interface, suits, maps, interface_to_value,
-                                                          value_to_implementation)
-                            intf_additional_maps.extend(
-                                _fulfil_map(expression, interface, value_map, [[amap, chosen_values]],
-                                            value_to_implementation, total_chosen_values, interface_to_value))
-
-                # Add additional maps
-                maps.extend(intf_additional_maps)
-
         # Prepare simplified map with values instead of Implementation objects
         simplified_map = list()
-        for m, cv in maps:
+        for smap, cv in maps:
             instance_desc = [dict(), list(cv)]
 
-            for expression in sorted(m.keys()):
+            for expression in sorted(smap.keys()):
                 instance_desc[0][expression] = dict()
-                for interface in sorted(m[expression].keys()):
-                    if m[expression][interface]:
-                        instance_desc[0][expression][interface] = m[expression][interface].value
+                for interface in sorted(smap[expression].keys()):
+                    if smap[expression][interface]:
+                        instance_desc[0][expression][interface] = smap[expression][interface].value
                     else:
-                        instance_desc[0][expression][interface] = m[expression][interface]
+                        instance_desc[0][expression][interface] = smap[expression][interface]
             simplified_map.append(instance_desc)
 
     return [m for m, cv in maps], simplified_map

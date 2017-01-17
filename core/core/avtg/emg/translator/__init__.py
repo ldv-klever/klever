@@ -79,7 +79,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
                     }
                 )
 
-    return
+    return instance_maps
 
 
 def __determine_entry(logger, conf, analysis):

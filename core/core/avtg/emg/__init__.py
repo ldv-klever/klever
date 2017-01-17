@@ -99,6 +99,8 @@ class EMG(core.avtg.plugins.Plugin):
         instance_maps = dict()
         vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
         if get_conf_property(self.conf, "EMG instances"):
+            self.logger.info('Looking for a file with an instance map {!r}'.
+                             format(get_necessary_conf_property(self.conf, "EMG instances")))
             with open(core.utils.find_file_or_dir(self.logger,
                                                   get_necessary_conf_property(self.conf, "main working directory"),
                                                   get_necessary_conf_property(self.conf, "EMG instances")),
