@@ -65,6 +65,11 @@ class SA(core.avtg.plugins.Plugin):
         self._process_collection()
         self.logger.info("Collection processing has been successfully finished")
 
+        # Filter object if somthing is wrong
+        self.logger.info("Check forbidden headers usage")
+        self._check_forbidden_headers()
+        self.logger.info("Check has passed")
+
         # Save data to file
         collection_file = "model.json"
         self.logger.info("Save collection to {}".format(collection_file))
@@ -383,6 +388,19 @@ class SA(core.avtg.plugins.Plugin):
         for function in self.modules_functions:
             self.collection["modules functions"][function] = self.collection["functions"][function]
         del self.collection["functions"]
+
+    def _check_forbidden_headers(self):
+        # Collect headers
+        headers = {self.collection["kernel functions"][name]["header"].replace('include/', '') for name in self.collection["kernel functions"]}
+
+        # todo: Add headers for macros
+
+        # Filter
+        if "banned headers" in self.conf:
+            forbidden = set(self.conf["banned headers"])
+            forbidden = forbidden.intersection(headers)
+            if len(forbidden) > 0:
+                raise ValueError("File contains the following forbidden headers: {}".format(', '.join(forbidden)))
 
     main = analyze_sources
 
