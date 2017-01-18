@@ -9,8 +9,6 @@
   "rule specifications DB": "rule specs.json",
   "specifications set": "Linux 3.14 (base)",
   "rule specifications": ["linux:alloc:spinlock", "linux:kernel:locking:mutex", "linux:kernel:module"],
-  "unite rule specifications": false,
-  "RSG strategy": "instrumentation",
   "VTG strategy": {
     "name": "single bug type",
     "verifier": {

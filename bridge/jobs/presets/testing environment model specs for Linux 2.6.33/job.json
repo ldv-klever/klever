@@ -9,8 +9,6 @@
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 2.6.33",
     "rule specifications": ["linux:emg:test"],
-    "unite rule specifications": false,
-    "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {

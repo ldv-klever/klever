@@ -8,8 +8,6 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 3.14 (base)",
-    "unite rule specifications": false,
-    "RSG strategy": "instrumentation",
     "VTG strategy": {
       "name": "single bug type",
       "verifier": {
