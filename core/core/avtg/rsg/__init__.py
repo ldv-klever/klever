@@ -169,7 +169,7 @@ class RSG(core.avtg.plugins.Plugin):
                     for bug_kind in sorted(bug_kinds):
                         fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
-                    fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
+                    fp.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in lines:
                         fp.write(line)
                 model['bug kinds preprocessed C file'] = preprocessed_model_c_file
