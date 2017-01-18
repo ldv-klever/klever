@@ -51,9 +51,6 @@ class RSG(core.avtg.plugins.Plugin):
                     self.logger.debug('Get generated model with C file "{0}'.format(file))
                 elif ext == '.aspect':
                     self.logger.debug('Get generated aspect "{0}'.format(file))
-                elif ext == '.spc':
-                    generated_models[file] = {}
-                    self.logger.debug('Get generated model with automaton file "{0}'.format(file))
                 else:
                     raise ValueError('Files with extension "{0}" are not supported'.format(ext))
 
@@ -68,7 +65,6 @@ class RSG(core.avtg.plugins.Plugin):
         self.logger.info('Add models to abstract verification task description')
 
         models = {}
-        automata = {}
         # Get common and rule specific models.
         if 'common models' in self.conf and 'models' in self.conf:
             for common_model_c_file in self.conf['common models']:
@@ -84,20 +80,6 @@ class RSG(core.avtg.plugins.Plugin):
                         if generated_model_c_file.endswith(model_c_file[1:]):
                             models[generated_model_c_file] = self.conf['models'][model_c_file]
                             is_generated_model_c_file_found = True
-                            # Get all property automata.
-                            if self.conf['RSG strategy'] == 'property automaton':
-                                if 'automaton' in self.conf['models'][model_c_file]:
-                                    automaton = self.conf['models'][model_c_file]['automaton']
-                                    for generated_model_automaton_file in generated_models:
-                                        if generated_model_automaton_file.endswith(automaton[1:]):
-                                            generated_model_automaton_file = \
-                                                os.path.abspath(generated_model_automaton_file)
-                                            automata[generated_model_c_file] = generated_model_automaton_file
-                                            self.logger.debug('Get model with automaton file "{0}"'.
-                                                              format(automaton))
-                                else:
-                                    raise ValueError('Automaton does not exist for "{0}" model'.
-                                                     format(generated_model_c_file))
                     if not is_generated_model_c_file_found:
                         raise KeyError('Model C file "{0}" was not generated'.format(model_c_file[1:]))
             # Like common models processed below.
@@ -108,20 +90,6 @@ class RSG(core.avtg.plugins.Plugin):
                                                                         model_c_file)
                     self.logger.debug('Get model with C file "{0}"'.format(model_c_file_realpath))
                     models[model_c_file_realpath] = self.conf['models'][model_c_file]
-                    # Get all property automata.
-                    if self.conf['RSG strategy'] == 'property automaton':
-                        for elem in self.conf['models'][model_c_file]:
-                            if elem == 'automaton':
-                                automaton = core.utils.find_file_or_dir(self.logger,
-                                                                        self.conf['main working directory'],
-                                                                        self.conf['models'][model_c_file][elem])
-                                automaton = os.path.abspath(automaton)
-                                if not os.path.isfile(automaton):
-                                    raise ValueError('WTH is "{0}"'.format(automaton))
-
-                                automata[model_c_file_realpath] = automaton
-                                self.logger.debug('Get model with automaton file "{0}"'.
-                                                  format(automaton))
 
         if 'common models' in self.conf:
             for common_model_c_file in self.conf['common models']:
@@ -194,24 +162,8 @@ class RSG(core.avtg.plugins.Plugin):
                     'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
                     format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
                 aspects.append(preprocessed_aspect)
-
-                if model_c_file in automata:
-                    automaton = automata[model_c_file]
-                    automaton_short = os.path.splitext(os.path.basename(automaton))[0]
-                    preprocessed_automaton = '{0}.{1}.spc'.format(
-                        automaton_short,
-                        re.sub(r'\W', '_', model['rule specification identifier']))
-                    with open(automaton, encoding='utf8') as fp_in, \
-                            open(preprocessed_automaton, 'w', encoding='utf8') as fp_out:
-                        for line in fp_in:
-                            fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
-                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|'
-                                                       r'is_err|exclusive|zalloc|malloc|pre)',
-                                                       rule_spec_prefix, line)))
-                    automata[model_c_file] = os.path.abspath(preprocessed_automaton)
             else:
-                if (self.conf['RSG strategy'] == 'instrumentation') or \
-                        (model_c_file not in automata):
+                if self.conf['RSG strategy'] == 'instrumentation':
                     model['prefix preprocessed C file'] = model_c_file
                 aspects.append(aspect)
 
@@ -331,9 +283,6 @@ class RSG(core.avtg.plugins.Plugin):
 
                 cc_extra_full_desc_file['cc full desc file'] = os.path.relpath(full_desc_file,
                                                                                self.conf['main working directory'])
-
-            if model_c_file in automata:
-                cc_extra_full_desc_file['automaton'] = automata[model_c_file]
 
             if 'bug kinds' in model:
                 cc_extra_full_desc_file['bug kinds'] = model['bug kinds']
