@@ -237,6 +237,11 @@ def _remove_aux_functions(logger, error_trace):
     # with:
     #   ... = func(...)
     # and:
+    #   assume(aux_func(...) ...)
+    #     return func(...)
+    # with:
+    #   assume(func(...) ...)
+    # and:
     #   aux_func(...)
     #     func(...)
     #     [return]
@@ -260,7 +265,7 @@ def _remove_aux_functions(logger, error_trace):
         func_call_edge = next_edge
 
         # Get lhs and actual arguments of called auxiliary function if so.
-        m = re.search(r'^(.*){0}\s*\((.*)\);$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
+        m = re.search(r'^(.*){0}\s*\((.*)\)(.*)$'.format(error_trace.resolve_function(aux_func_call_edge['enter'])),
                       aux_func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
@@ -269,6 +274,7 @@ def _remove_aux_functions(logger, error_trace):
 
         lhs = m.group(1)
         aux_actual_args = _parse_func_call_actual_args(m.group(2))
+        rel_expr = m.group(3)
 
         # Get name and actual arguments of called function if so.
         m = re.search(r'^(return )?(.+)\s*\((.*)\);$', func_call_edge['source'])
@@ -313,9 +319,9 @@ def _remove_aux_functions(logger, error_trace):
         if not is_all_replaced:
             continue
 
-        # Second pattern. For first pattern it is enough that second edge returns from function since this function can
-        # be just the parent auxiliary one.
-        if 'return' not in func_call_edge:
+        # Third pattern. For first and second patterns it is enough that next edge returns from function since this
+        # function can be just the parent auxiliary one.
+        if 'return' not in func_call_edge and 'condition' not in func_call_edge:
             return_edge = error_trace.get_func_return_edge(func_call_edge)
 
             if return_edge:
@@ -331,7 +337,12 @@ def _remove_aux_functions(logger, error_trace):
                 aux_func_call_edge['original ' + attr] = aux_func_call_edge[attr]
                 aux_func_call_edge[attr] = error_trace.next_edge(next_edge)[attr]
 
-        aux_func_call_edge['source'] = lhs + func_name + '(' + (', '.join(actual_args) if actual_args else '') + ');'
+        func_call = func_name + '(' + (', '.join(actual_args) if actual_args else '') + ')'
+        if 'condition' in aux_func_call_edge:
+            aux_func_call_edge['source'] = func_call + rel_expr
+        else:
+            aux_func_call_edge['source'] = lhs + func_call + ';'
+
         aux_func_call_edge['enter'] = func_call_edge['enter']
 
         if 'note' in func_call_edge:
