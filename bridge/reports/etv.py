@@ -72,9 +72,9 @@ def get_error_trace_nodes(data):
 
 
 class ScopeInfo:
-    def __init__(self):
+    def __init__(self, cnt):
         self.initialised = False
-        self._cnt = 0
+        self._cnt = cnt
         # (index, is_action, thread, counter)
         self._stack = []
         # Klever main
@@ -162,7 +162,7 @@ class ScopeInfo:
 
 
 class ParseErrorTrace:
-    def __init__(self, data, include_assumptions, thread_id, triangles):
+    def __init__(self, data, include_assumptions, thread_id, triangles, cnt=0):
         self.files = list(data['files']) if 'files' in data else []
         self.actions = list(data['actions']) if 'actions' in data else []
         self.callback_actions = list(data['callback actions']) if 'callback actions' in data else []
@@ -170,7 +170,7 @@ class ParseErrorTrace:
         self.include_assumptions = include_assumptions
         self.triangles = triangles
         self.thread_id = thread_id
-        self.scope = ScopeInfo()
+        self.scope = ScopeInfo(cnt)
         self.global_lines = []
         self.lines = []
         self.curr_file = None
@@ -482,22 +482,24 @@ class GetETV(object):
                 raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])
-        return self.__add_thread_lines(0)
+        return self.__add_thread_lines(0, 0)[0:2]
 
-    def __add_thread_lines(self, i):
-        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles)
-        prev_t = i
+    def __add_thread_lines(self, i, start_index):
+        parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
         trace_assumes = []
-        for n in self.err_trace_nodes:
-            edge_data = self.data['edges'][n]
+        j = start_index
+        while j < len(self.err_trace_nodes):
+            edge_data = self.data['edges'][self.err_trace_nodes[j]]
             curr_t = self.threads.index(edge_data['thread'])
-            if prev_t == i and curr_t != i and curr_t > i:
-                (new_lines, new_assumes) = self.__add_thread_lines(curr_t)
+            if curr_t > i:
+                (new_lines, new_assumes, j) = self.__add_thread_lines(curr_t, j)
                 parsed_trace.lines.extend(new_lines)
                 trace_assumes.extend(new_assumes)
-            prev_t = curr_t
-            if edge_data['thread'] == self.threads[i]:
+            elif curr_t < i:
+                break
+            else:
                 parsed_trace.add_line(edge_data)
+                j += 1
         parsed_trace.finish_error_lines(self.__get_thread(i), i)
 
         for sc in parsed_trace.assume_scopes:
@@ -505,7 +507,7 @@ class GetETV(object):
             for a in parsed_trace.assume_scopes[sc]:
                 trace_assumes.append(['%s_%s' % (sc, as_cnt), a])
                 as_cnt += 1
-        return parsed_trace.lines, trace_assumes
+        return parsed_trace.lines, trace_assumes, j
 
     def __get_thread(self, thread):
         return '%s<span style="background-color:%s;"> </span>%s' % (
