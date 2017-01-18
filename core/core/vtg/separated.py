@@ -37,7 +37,6 @@ class SeparatedStrategy(CommonStrategy):
     resources_written = False
 
     def perform_preprocess_actions(self):
-        self.create_mea()
         self.set_verifier_options()
         self.print_strategy_information()
 
