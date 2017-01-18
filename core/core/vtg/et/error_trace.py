@@ -433,3 +433,11 @@ class ErrorTrace:
                 subcalls -= 1
 
         return None
+
+
+def get_original_file(edge):
+    return edge.get('original file', edge['file'])
+
+
+def get_original_start_line(edge):
+    return edge.get('original start line', edge['start line'])

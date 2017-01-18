@@ -328,6 +328,7 @@ def _remove_aux_functions(logger, error_trace):
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
             for attr in ('file', 'start line'):
+                aux_func_call_edge['original ' + attr] = aux_func_call_edge[attr]
                 aux_func_call_edge[attr] = error_trace.next_edge(next_edge)[attr]
 
         aux_func_call_edge['source'] = lhs + func_name + '(' + (', '.join(actual_args) if actual_args else '') + ');'

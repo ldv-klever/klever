@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.vtg.et.error_trace import get_original_file, get_original_start_line
 
 
 def envmodel_simplifications(logger, error_trace):
@@ -162,8 +163,8 @@ def _remove_control_func_aux_code(data, error_trace):
 
         if len(stack) != 0:
             # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
-            if _inside_control_function(stack[-1]['cf'], e['file'], e['start line']):
-                act = _inside_action(stack[-1]['cf'], e['start line'])
+            if _inside_control_function(stack[-1]['cf'], get_original_file(e), get_original_start_line(e)):
+                act = _inside_action(stack[-1]['cf'], get_original_start_line(e))
                 if not act:
                     cf_stack[-1]['action'] = None
                     stack[-1]['in aux code'] = True
@@ -177,9 +178,10 @@ def _remove_control_func_aux_code(data, error_trace):
 
     def if_simple_state(e, stack):
         """Simple e."""
-        if len(stack) > 0 and _inside_control_function(stack[-1]['cf'], e['file'], e['start line']):
+        if len(stack) > 0 and _inside_control_function(stack[-1]['cf'], get_original_file(e),
+                                                       get_original_start_line(e)):
             stack[-1]['in aux code'] = False
-            act = _inside_action(stack[-1]['cf'], e['start line'])
+            act = _inside_action(stack[-1]['cf'], get_original_start_line(e))
             if (act and cf_stack[-1]['action'] and cf_stack[-1]['action'] != act) or \
                     (act and not cf_stack[-1]['action']):
                 # First action or another action
@@ -209,8 +211,8 @@ def _wrap_actions(data, error_trace):
     cf_stack = list()
     for edge in error_trace.trace_iterator():
         if len(cf_stack) > 0:
-            if _inside_control_function(cf_stack[-1]['cf'], edge['file'], edge['start line']):
-                act = _inside_action(cf_stack[-1]['cf'], edge['start line'])
+            if _inside_control_function(cf_stack[-1]['cf'], get_original_file(edge), get_original_start_line(edge)):
+                act = _inside_action(cf_stack[-1]['cf'], get_original_start_line(edge))
                 if act:
                     if 'callback' in act and act['callback']:
                         callback_flag = True
