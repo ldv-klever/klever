@@ -108,78 +108,21 @@ class RSG(core.avtg.plugins.Plugin):
         # CC extra full description files will be put to this directory as well as corresponding intermediate and final
         # output files.
         os.makedirs('models'.encode('utf8'))
+
         self.logger.info('Add aspects to abstract verification task description')
         aspects = []
         for model_c_file in models:
-            model = models[model_c_file]
-
             aspect = '{}.aspect'.format(os.path.splitext(model_c_file)[0])
+
             if not os.path.isfile(aspect):
-                model['prefix preprocessed C file'] = model_c_file
                 continue
+
             self.logger.debug('Get aspect "{0}"'.format(aspect))
 
-            if 'rule specification identifier' in model:
-                rule_spec_prefix = 'ldv_' + re.sub(r'\W', '_', model['rule specification identifier']) + '_'
-                self.logger.info(
-                    'Replace prefix "ldv" with rule specification specific one "{0}" for model with C file "{1}"'
-                    .format(rule_spec_prefix, model_c_file))
-
-                if self.conf['RSG strategy'] == 'instrumentation':
-                    model_c_file_short = os.path.splitext(os.path.basename(model_c_file))[0]
-                    preprocessed_model_c_file = '{0}.{1}.c'.format(
-                        model_c_file_short,
-                        re.sub(r'\W', '_', model['rule specification identifier']))
-                    with open(model_c_file, encoding='utf8') as fp_in, \
-                            open(preprocessed_model_c_file, 'w', encoding='utf8') as fp_out:
-                        # Specify original location to avoid references to generated C files in error traces. Absolute
-                        # file path here and below is required to get absolute path references in error traces.
-                        fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
-                        for line in fp_in:
-                            fp_out.write(re.sub(r'LDV_(?!PTR)', rule_spec_prefix.upper(),
-                                                re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|'
-                                                       r'is_err|exclusive|zalloc|malloc|pre)',
-                                                       rule_spec_prefix, line)))
-                    model['prefix preprocessed C file'] = preprocessed_model_c_file
-                    self.logger.debug(
-                        'Preprocessed C file with rule specification specific prefix was placed to "{0}"'.
-                        format(preprocessed_model_c_file))
-
-                aspect_short = os.path.splitext(os.path.basename(aspect))[0]
-                preprocessed_aspect = '{0}.{1}.aspect'.format(
-                    aspect_short,
-                    re.sub(r'\W', '_', model['rule specification identifier']))
-                with open(aspect, encoding='utf8') as fp_in, \
-                        open(preprocessed_aspect, 'w', encoding='utf8') as fp_out:
-                    # Specify original location to avoid references to generated aspects in error traces.
-                    fp_out.write('# 1 "{0}"\n'.format(os.path.abspath(aspect)))
-                    for line in fp_in:
-                        fp_out.write(re.sub(r'LDV_', rule_spec_prefix.upper(),
-                                            re.sub(r'ldv_(?!assert|assume|undef|set|map|in_interrupt_context|is_err|'
-                                                   r'exclusive|zalloc|malloc|pre)',
-                                                   rule_spec_prefix, line)))
-                self.logger.debug(
-                    'Preprocessed aspect with rule specification specific prefix {0} was placed to "{1}"'.
-                    format('for model with C file "{0}"'.format(model_c_file), preprocessed_aspect))
-                aspects.append(preprocessed_aspect)
-            else:
-                if self.conf['RSG strategy'] == 'instrumentation':
-                    model['prefix preprocessed C file'] = model_c_file
-                aspects.append(aspect)
+            aspects.append(aspect)
 
         # Sort aspects to apply them in the deterministic order.
         aspects.sort()
-
-        # Common aspect should be weaved first since it likely overwrites some parts of rule specific aspects. Common
-        # aspect should be used just if several rule specifications are merged together to resolve possible conflicts.
-        if 'constituent rule specifications' in self.conf:
-            if 'common aspect' not in self.conf:
-                raise KeyError(
-                    'Common aspect is not specified although several rule specifications are merged together')
-            common_aspect = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
-                                                        self.conf['common aspect'])
-            self.logger.debug('Get common aspect "{0}"'.format(common_aspect))
-            aspects.insert(0, common_aspect)
 
         for grp in self.abstract_task_desc['grps']:
             self.logger.info('Add aspects to C files of group "{0}"'.format(grp['id']))
@@ -194,47 +137,46 @@ class RSG(core.avtg.plugins.Plugin):
         for model_c_file in models:
             model = models[model_c_file]
 
-            if self.conf['RSG strategy'] == 'instrumentation':
-                if 'bug kinds' in model:
-                    self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
-                    # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
-                    # specification model description.
-                    bug_kinds = set()
-                    lines = []
-                    with open(model['prefix preprocessed C file'], encoding='utf8') as fp:
-                        for line in fp:
-                            # Bug kinds are specified in form of strings like in rule specifications DB as first actual
-                            # parameters of ldv_assert().
-                            match = re.search(r'ldv_assert\("([^"]+)"', line)
-                            if match:
-                                bug_kind, = match.groups()
-                                bug_kinds.add(bug_kind)
-                                # Include bug kinds in names of ldv_assert().
-                                lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
-                                                    r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
-                            else:
-                                lines.append(line)
-                    for bug_kind in model['bug kinds']:
-                        if bug_kind not in bug_kinds:
-                            raise KeyError(
-                                'Invalid bug kind "{0}" is specified in rule specification model description'.format(
-                                    bug_kind))
-                    preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
-                        os.path.splitext(os.path.basename(model['prefix preprocessed C file']))[0]))
-                    with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
-                        # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
-                        # be defined later somehow by VTG.
-                        for bug_kind in sorted(bug_kinds):
-                            fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
-                        # Specify original location to avoid references to *.bk.c files in error traces.
-                        fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
-                        for line in lines:
-                            fp.write(line)
-                    model['bug kinds preprocessed C file'] = preprocessed_model_c_file
-                    self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
-                                      format(model_c_file, preprocessed_model_c_file))
-                else:
-                    model['bug kinds preprocessed C file'] = model['prefix preprocessed C file']
+            if 'bug kinds' in model:
+                self.logger.info('Preprocess bug kinds for model with C file "{0}"'.format(model_c_file))
+                # Collect all bug kinds specified in model to check that valid bug kinds are specified in rule
+                # specification model description.
+                bug_kinds = set()
+                lines = []
+                with open(model_c_file, encoding='utf8') as fp:
+                    for line in fp:
+                        # Bug kinds are specified in form of strings like in rule specifications DB as first actual
+                        # parameters of ldv_assert().
+                        match = re.search(r'ldv_assert\("([^"]+)"', line)
+                        if match:
+                            bug_kind, = match.groups()
+                            bug_kinds.add(bug_kind)
+                            # Include bug kinds in names of ldv_assert().
+                            lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
+                                                r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
+                        else:
+                            lines.append(line)
+                for bug_kind in model['bug kinds']:
+                    if bug_kind not in bug_kinds:
+                        raise KeyError(
+                            'Invalid bug kind "{0}" is specified in rule specification model description'.format(
+                                bug_kind))
+                preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
+                    os.path.splitext(os.path.basename(model_c_file))[0]))
+                with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
+                    # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
+                    # be defined later somehow by VTG.
+                    for bug_kind in sorted(bug_kinds):
+                        fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
+                    # Specify original location to avoid references to *.bk.c files in error traces.
+                    fp.write('# 1 "{0}"\n'.format(os.path.abspath(model['prefix preprocessed C file'])))
+                    for line in lines:
+                        fp.write(line)
+                model['bug kinds preprocessed C file'] = preprocessed_model_c_file
+                self.logger.debug('Preprocessed bug kinds for model with C file "{0}" was placed to "{1}"'.
+                                  format(model_c_file, preprocessed_model_c_file))
+            else:
+                model['bug kinds preprocessed C file'] = model_c_file
 
         # Generate CC extra full description file per each model and add it to abstract task description.
         model_grp = {'id': 'models', 'cc extra full desc files': []}
