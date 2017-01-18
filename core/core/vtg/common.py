@@ -20,7 +20,6 @@ import json
 import os
 import re
 from abc import abstractclassmethod, ABCMeta
-import sys
 
 import core.components
 import core.session
@@ -31,11 +30,8 @@ from core.vtg.et import import_error_trace
 # This is an abstract class for VTG strategy.
 # It includes basic abstrcat operations and common actions.
 class CommonStrategy(core.components.Component):
-
     __metaclass__ = ABCMeta
 
-    mpv = False  # Property automata specifications.
-    mea = None  # Processes MEA action.
     path_to_error_traces = 'output/witness.*.graphml'  # Common path to all error traces.
 
     # This function performs all sanity checks corresponding VTG strategy.
@@ -64,7 +60,6 @@ class CommonStrategy(core.components.Component):
     # This function executes VTG strategy.
     def execute(self):
         self.set_common_options()
-        self.check_for_mpv()
         self.perform_sanity_checks()
         self.perform_preprocess_actions()
         self.main_cycle()
@@ -188,13 +183,6 @@ class CommonStrategy(core.components.Component):
         else:
             return log_files[0]
 
-    def parse_bug_kind(self, bug_kind):
-        match = re.search(r'(.+)::(.*)', bug_kind)
-        if match:
-            return match.groups()[0]
-        else:
-            return ''
-
     def process_single_verdict(self, decision_results, verification_report_id,
                                assertion=None, specified_error_trace=None):
         if not assertion:
@@ -211,22 +199,6 @@ class CommonStrategy(core.components.Component):
             # Default place for witness, if we consider only 1 possible witness for verification task.
             else:
                 path_to_witness = glob.glob(os.path.join('output', 'witness.*.graphml'))[0]
-
-            if self.mea:
-                if self.mea.error_trace_filter(path_to_witness, assertion):
-                    self.logger.debug('Processing error trace "{0}"'.format(path_to_witness, assertion))
-                    new_error_trace_number = self.mea.get_current_error_trace_number(assertion)
-                    verification_report_id_unsafe = "{0}/{1}".\
-                        format(verification_report_id_unsafe, new_error_trace_number)
-                    if not assertion:
-                        assertion = ''
-                    assertion += "{0}".format(new_error_trace_number)
-                    self.logger.info(assertion)
-                    added_attrs.append({"Error trace number": "{0}".format(new_error_trace_number)})
-                else:
-                    self.logger.info('Error trace "{0}" is equivalent to one of the already processed'.
-                                     format(path_to_witness))
-                    return
 
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
@@ -288,38 +260,6 @@ class CommonStrategy(core.components.Component):
         self.rule_specification = assertion or self.rule_specification
         self.verification_status = decision_results['status']
 
-    def print_mea_stats(self):
-        if self.mea:
-            # We treat MEA as a pseudo-component: it does not have a "main" function,
-            # but it consumes resources and has some attributes.
-            wall_time = self.mea.get_consuimed_wall_time()
-            internal_filter = self.mea.get_number_of_error_traces_before_external_filter()
-            external_filter = self.mea.get_number_of_error_traces_after_external_filter()
-            self.logger.info('MEA external filtering was taken "{0}s"'.
-                             format(wall_time))
-            self.logger.info('The number of error traces before external filtering is "{0}"'.
-                             format(internal_filter))
-            self.logger.info('The number of error traces after external filtering is "{0}"'.
-                             format(external_filter))
-            resources = {
-                "CPU time": round(1000 * wall_time),
-                "memory size": 0,
-                "wall time": round(1000 * wall_time)}
-            core.utils.report(self.logger,
-                              'verification',
-                              {
-                                  'id': self.id + "MEA",
-                                  'parent id': self.id,
-                                  'attrs': [{"Internal filter": "{0}".format(internal_filter)},
-                                            {"External filter": "{0}".format(external_filter)}],
-                                  'name': "MEA",
-                                  'resources': resources,
-                                  'log': None
-                              },
-                              self.mqs['report files'],
-                              self.conf['main working directory'],
-                              "MEA")
-
     def get_all_bug_kinds(self):
         bug_kinds = []
         for extra_c_file in self.conf['abstract task desc']['extra C files']:
@@ -329,11 +269,6 @@ class CommonStrategy(core.components.Component):
                         bug_kinds.append(bug_kind)
         bug_kinds.sort()
         return bug_kinds
-
-    def check_for_mpv(self):
-        if 'RSG strategy' in self.conf and self.conf['RSG strategy'] == 'property automaton':
-            self.mpv = True
-            self.logger.info('Using property automata as specifications')
 
     def set_common_options(self):
         if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':

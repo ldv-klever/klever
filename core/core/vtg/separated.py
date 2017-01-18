@@ -75,40 +75,9 @@ class SeparatedStrategy(CommonStrategy):
                           self.mqs['report files'],
                           self.conf['main working directory'],
                           bug_kind)
-        if decision_results['status'] == 'unsafe' and self.mea:
-            # Unsafe-incomplete.
-            # TODO: fix this.
-            is_incomplete = True
-            log_file = self.get_verifier_log_file()
-            with open(log_file, encoding='utf8') as fp:
-                for line in fp:
-                    match = re.search(r'Verification result: FALSE', line)
-                    if match:
-                        is_incomplete = False
-            if is_incomplete:
-                with open('unsafe-incomplete.txt', 'w', encoding='utf8') as fp:
-                    fp.write('Unsafe-incomplete')
-                core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'id': verification_report_id + '/unsafe-incomplete',
-                                      'parent id': verification_report_id,
-                                      'attrs': [],
-                                      'problem desc': 'unsafe-incomplete.txt',
-                                      'files': ['unsafe-incomplete.txt']
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'])
-
-    @abstractclassmethod
-    def prepare_property_automaton(self, bug_kind=None):
-        pass
 
     def set_specific_options(self, bug_kind=None):
-        if self.mpv:
-            self.prepare_property_automaton(bug_kind)
-        else:
-            self.prepare_property_file()
+        self.prepare_property_file()
 
     def prepare_property_file(self):
         self.logger.info('Prepare verifier property file')
@@ -139,27 +108,18 @@ class SeparatedStrategy(CommonStrategy):
             self.logger.warning('Verifier property file was not prepared since entry points were not specified')
 
     def set_verifier_options(self):
-        if self.mea:
+        if 'verifier configuration' in self.conf['abstract task desc']:
             self.conf['VTG strategy']['verifier']['options'].append(
-                {'-setprop': 'analysis.stopAfterError=false'})
-            if self.mpv:
-                self.conf['VTG strategy']['verifier']['options'].append(
-                    {'-setprop': 'cpa.automaton.prec.limit.violations=-1'})
-        if self.mpv:
-            self.add_option_for_entry_point()
+                {self.conf['abstract task desc']['verifier configuration']: ''}
+            )
+        # Specify default CPAchecker configuration.
         else:
-            if 'verifier configuration' in self.conf['abstract task desc']:
-                self.conf['VTG strategy']['verifier']['options'].append(
-                    {self.conf['abstract task desc']['verifier configuration']: ''}
-                )
-            # Specify default CPAchecker configuration.
-            else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+            self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
-            if 'verifier options' in self.conf['abstract task desc']:
-                self.conf['VTG strategy']['verifier']['options'].extend(
-                    self.conf['abstract task desc']['verifier options']
-                )
+        if 'verifier options' in self.conf['abstract task desc']:
+            self.conf['VTG strategy']['verifier']['options'].extend(
+                self.conf['abstract task desc']['verifier options']
+            )
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
@@ -253,21 +213,8 @@ class SeparatedStrategy(CommonStrategy):
                 verification_report_id = '{0}/verification{1}'.format(self.id, bug_kind if bug_kind else '')
                 self.create_verification_report(verification_report_id, decision_results, bug_kind)
 
-                if self.mea:
-                    all_found_error_traces = glob.glob(self.path_to_error_traces)
-                    if all_found_error_traces:
-                        decision_results['status'] = 'unsafe'
-                    if decision_results['status'] == 'unsafe':
-                        for error_trace in all_found_error_traces:
-                            self.process_single_verdict(decision_results, verification_report_id,
-                                                        assertion=bug_kind,
-                                                        specified_error_trace=error_trace)
-                    else:
-                        self.process_single_verdict(decision_results, verification_report_id,
-                                                    assertion=bug_kind)
-                else:
-                    self.process_single_verdict(decision_results, verification_report_id,
-                                                assertion=bug_kind)
+
+                self.process_single_verdict(decision_results, verification_report_id, assertion=bug_kind)
 
                 self.create_verification_finish_report(verification_report_id, bug_kind)
                 break
