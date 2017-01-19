@@ -10,7 +10,7 @@
     "specifications set": "Linux 4.6.7",
     "rule specifications": ["linux:emg:test"],
     "VTG strategy": {
-      "name": "single bug type",
+      "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
         "version": "trunk:24102"

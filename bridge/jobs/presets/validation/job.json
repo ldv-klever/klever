@@ -9,7 +9,7 @@
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 3.14 (base)",
     "VTG strategy": {
-      "name": "single bug type",
+      "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
         "version": "trunk:24102"
