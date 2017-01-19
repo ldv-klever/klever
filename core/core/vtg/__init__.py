@@ -84,7 +84,7 @@ class VTG(core.components.Component):
         self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
         try:
-            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
+            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name.lower()), 'core.vtg'),
                                     self.strategy_name.upper())
         except ImportError:
             raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
