@@ -133,8 +133,7 @@
               "verifier/nondet.c": {},
               "verifier/memory.c": {},
               "verifier/thread.c": {}
-            },
-            "common aspect": "linux/common.aspect"
+            }
           }
         },
         "Weaver"
@@ -199,22 +198,6 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
-        "VTG strategy": {
-          "name": "single bug type",
-            "verifier": {
-            "name": "CPAchecker",
-            "version": "ldv-merge:22995"
-          },
-          "resource limits": {
-            "wall time": 1000000,
-            "CPU time": 900000,
-            "memory size": 10000000000,
-            "CPU model": null,
-            "number of CPU cores": 1,
-            "result size": 1000000
-          },
-          "merge source files": true
-        },
         "verifier configuration": "-smg-ldv",
         "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
@@ -226,7 +209,6 @@
     "linux:alloc:irq": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {
         "linux/ldv/irq.c": {},
         "linux/alloc/irq.c": {"bug kinds": [
@@ -254,7 +236,6 @@
     "linux:alloc:usb lock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/alloc/usb lock.c": {"bug kinds": [
         "linux:alloc:usb lock::wrong flags",
         "linux:alloc:usb lock::nonatomic"
@@ -271,7 +252,6 @@
     "linux:arch:io": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/arch/io.c": {"bug kinds": [
         "linux:arch:io::less initial decrement",
         "linux:arch:io::more initial at exit"
@@ -280,7 +260,6 @@
     "linux:block:genhd": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/block/genhd.c": {"bug kinds": [
         "linux:block:genhd::double allocation",
         "linux:block:genhd::use before allocation",
@@ -292,7 +271,6 @@
     "linux:block:queue": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/block/queue.c": {"bug kinds": [
         "linux:block:queue::double allocation",
         "linux:block:queue::use before allocation",
@@ -302,7 +280,6 @@
     "linux:block:request": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/block/request.c": {"bug kinds": [
         "linux:block:request::double get",
         "linux:block:request::double put",
@@ -312,7 +289,6 @@
     "linux:drivers:base:class": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/drivers/base/class.c": {"bug kinds": [
         "linux:drivers:base:class::double registration",
         "linux:drivers:base:class::double deregistration",
@@ -322,7 +298,6 @@
     "linux:drivers:base:dma-mapping": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/drivers/base/dma-mapping.c": { "bug kinds": [
         "linux:drivers:base:dma-mapping::more initial at exit",
         "linux:drivers:base:dma-mapping::double map",
@@ -352,7 +327,6 @@
     "linux:fs:char_dev": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/fs/char_dev.c": {"bug kinds": [
         "linux:fs:char_dev::double registration",
         "linux:fs:char_dev::double deregistration",
@@ -362,7 +336,6 @@
     "linux:fs:sysfs": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/fs/sysfs.c": {"bug kinds": [
         "linux:fs:sysfs::less initial decrement",
         "linux:fs:sysfs::more initial at exit"
@@ -389,7 +362,6 @@
     "linux:kernel:locking:rwlock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/kernel/locking/rwlock.c": {"bug kinds": [
         "linux:kernel:locking:rwlock::read lock on write lock",
         "linux:kernel:locking:rwlock::more read unlocks",
@@ -420,7 +392,6 @@
     "linux:kernel:rcu:update:lock bh": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/kernel/rcu/update/lock bh.c": {"bug kinds": [
         "linux:kernel:rcu:update:lock bh::more unlocks",
         "linux:kernel:rcu:update:lock bh::locked at read section",
@@ -430,7 +401,6 @@
     "linux:kernel:rcu:update:lock sched": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/kernel/rcu/update/lock sched.c": {"bug kinds": [
         "linux:kernel:rcu:update:lock sched::more unlocks",
         "linux:kernel:rcu:update:lock sched::locked at read section",
@@ -440,7 +410,6 @@
     "linux:kernel:rcu:update:lock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {"bug kinds": [
         "linux:kernel:rcu:update:lock::more unlocks",
         "linux:kernel:rcu:update:lock::locked at read section",
@@ -450,7 +419,6 @@
     "linux:kernel:rcu:srcu": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/kernel/rcu/srcu.c": {"bug kinds": [
         "linux:kernel:rcu:srcu::more unlocks",
         "linux:kernel:rcu:srcu::locked at read section",
@@ -460,7 +428,6 @@
     "linux:kernel:sched:completion": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "β",
       "ASE": {"request aspects": {"linux/kernel/sched/completion.request.aspect": {}}},
       "TR": {"templates": {
         "linux/kernel/sched/completion.c.tmpl": {},
@@ -476,7 +443,6 @@
     "linux:kernel:module": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/kernel/module.c": {"bug kinds": [
           "linux:kernel:module::less initial decrement",
           "linux:kernel:module::more initial at exit"
@@ -485,13 +451,11 @@
     "linux:lib:find_bit": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/lib/find_bit.c": {"bug kinds": ["linux:lib:find_bit::offset out of range"]}}}
     },
     "linux:lib:idr": {
       "description": "...",
       "template": "Argument signatures for Linux kernel modules",
-      "multi-aspect group": "β",
       "ASE": {"request aspects": {"linux/lib/idr.request.aspect": {}}},
       "TR": {"templates": {
         "linux/lib/idr.c.tmpl": {},
@@ -509,7 +473,6 @@
     "linux:mmc:sdio_func": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/mmc/sdio_func.c": {
         "bug kinds": [
           "linux:mmc:sdio_func::wrong params",
@@ -527,13 +490,11 @@
     "linux:net:register": {
       "description": "Error handling for netdev in probe()",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/net/register.c": {"bug kinds": ["linux:net:register::wrong return value"]}}}
     },
     "linux:net:rtnetlink": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/net/rtnetlink.c": { "bug kinds": [
         "linux:net:rtnetlink::double lock",
         "linux:net:rtnetlink::lock on exit",
@@ -543,7 +504,6 @@
     "linux:net:sock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/net/sock.c": { "bug kinds": [
         "linux:net:sock::all locked sockets must be released",
         "linux:net:sock::double release"
@@ -552,7 +512,6 @@
     "linux:usb:coherent": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/usb/coherent.c": {"bug kinds":[
         "linux:usb:coherent::less initial decrement",
         "linux:usb:coherent::more initial at exit"
@@ -575,7 +534,6 @@
     "linux:usb:gadget": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/usb/gadget.c": {"bug kinds": [
         "linux:usb:gadget::class registration with usb gadget",
         "linux:usb:gadget::class deregistration with usb gadget",
@@ -589,13 +547,11 @@
     "linux:usb:register": {
       "description": "Error handling for usb register in probe()",
       "template": "Linux kernel modules",
-      "multi-aspect group": "α",
       "RSG": {"models": {"linux/usb/register.c": {"bug kinds": ["linux:usb:register::wrong return value"]}}}
     },
     "linux:usb:urb": {
       "description": "...",
       "template": "Linux kernel modules",
-      "multi-aspect group": "β",
       "RSG": {"models": {"linux/usb/urb.c": {"bug kinds": [
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"

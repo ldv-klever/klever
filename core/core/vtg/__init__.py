@@ -78,18 +78,16 @@ class VTG(core.components.Component):
 
     main = generate_verification_tasks
 
-    def get_strategy(self, specific_strategy_desc=None):
+    def get_strategy(self):
         self.logger.info('Get strategy')
 
-        strategy_desc = specific_strategy_desc if specific_strategy_desc else self.conf['VTG strategy']
-
-        self.strategy_name = ''.join([word[0] for word in strategy_desc['name'].split(' ')])
+        self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
         try:
-            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
+            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name.lower()), 'core.vtg'),
                                     self.strategy_name.upper())
         except ImportError:
-            raise NotImplementedError('Strategy "{0}" is not supported'.format(strategy_desc['name']))
+            raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
 
 
     def get_common_prj_attrs(self):
@@ -182,9 +180,6 @@ class VTG(core.components.Component):
             self.logger.debug('Working directory is "{0}"'.format(work_dir))
 
             self.conf['abstract task desc'] = abstract_task_desc
-
-            if 'VTG strategy' in abstract_task_desc:
-                self.get_strategy(abstract_task_desc['VTG strategy'])
 
             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
