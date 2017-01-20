@@ -82,7 +82,7 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
 		/* WARN Mutex{{ arg_sign.text }} must be unlocked */
-		ldv_warn("linux:kernel:locking:mutex::one thread:double lock try");
+		ldv_warn("linux:kernel:locking:mutex::one thread:double trylock");
 
 	/* NOTE Whether mutex{{ arg_sign.text }} was locked */
 	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {

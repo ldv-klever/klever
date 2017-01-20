@@ -352,7 +352,7 @@
       "RSG": {"models": {"$linux/kernel/locking/mutex.c": {
           "bug kinds": [
             "linux:kernel:locking:mutex::one thread:double lock",
-            "linux:kernel:locking:mutex::one thread:double lock try",
+            "linux:kernel:locking:mutex::one thread:double trylock",
             "linux:kernel:locking:mutex::one thread:double unlock",
             "linux:kernel:locking:mutex::one thread:locked at exit"
           ],
