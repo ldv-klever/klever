@@ -100,10 +100,11 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 	cnt->counter--;
 
 	if (cnt->counter) {
-		/* NOTE Do not lock mutex{{ arg_sign.text }} since counter is greater than zero. */
+		/* NOTE Do not lock mutex{{ arg_sign.text }} since after decrease counter is still greater than zero. */
 		return 0;
 	}
 	else {
+		/* NOTE Lock mutex{{ arg_sign.text }} since after decrease counter becomes zero. */
 		ldv_mutex_lock{{ arg_sign.id }}(lock);
 		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 1;
