@@ -41,12 +41,16 @@ static int __init init(void)
 	
 	if (!mutex_lock_interruptible(&mutex_1))
 		mutex_unlock(&mutex_1);
+
 	if (!mutex_lock_killable(&mutex_1))
 		mutex_unlock(&mutex_1);
+
 	if (mutex_trylock(&mutex_1))
 		mutex_unlock(&mutex_1);
+
 	if (atomic_dec_and_mutex_lock(counter, &mutex_1))
 		mutex_unlock(&mutex_1);
+
 	mutex_lock(&mutex_1);
 	if (mutex_is_locked(&mutex_1))
 		mutex_unlock(&mutex_1);
