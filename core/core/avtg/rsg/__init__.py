@@ -146,14 +146,14 @@ class RSG(core.avtg.plugins.Plugin):
                 with open(model_c_file, encoding='utf8') as fp:
                     for line in fp:
                         # Bug kinds are specified in form of strings like in rule specifications DB as first actual
-                        # parameters of ldv_assert().
-                        match = re.search(r'ldv_assert\("([^"]+)"', line)
+                        # parameters of ldv_warn().
+                        match = re.search(r'ldv_warn\("([^"]+)"\)', line)
                         if match:
                             bug_kind, = match.groups()
                             bug_kinds.add(bug_kind)
-                            # Include bug kinds in names of ldv_assert().
-                            lines.append(re.sub(r'ldv_assert\("([^"]+)", ?',
-                                                r'ldv_assert_{0}('.format(re.sub(r'\W', '_', bug_kind)), line))
+                            # Include bug kinds in names of ldv_warn().
+                            lines.append(re.sub(r'ldv_warn\("([^"]+)"\)',
+                                                r'ldv_warn_{0}()'.format(re.sub(r'\W', '_', bug_kind)), line))
                         else:
                             lines.append(line)
                 for bug_kind in model['bug kinds']:
@@ -164,10 +164,10 @@ class RSG(core.avtg.plugins.Plugin):
                 preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
                     os.path.splitext(os.path.basename(model_c_file))[0]))
                 with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
-                    # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
+                    # Create ldv_warn*() function declarations to avoid compilation warnings. These functions will
                     # be defined later somehow by VTG.
                     for bug_kind in sorted(bug_kinds):
-                        fp.write('extern void ldv_assert_{0}(int);\n'.format(re.sub(r'\W', '_', bug_kind)))
+                        fp.write('extern void ldv_warn_{0}(void);\n'.format(re.sub(r'\W', '_', bug_kind)))
                     # Specify original location to avoid references to *.bk.c files in error traces.
                     fp.write('# 1 "{0}"\n'.format(os.path.abspath(model_c_file)))
                     for line in lines:

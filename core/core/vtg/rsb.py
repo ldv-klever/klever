@@ -153,7 +153,7 @@ class RSB(core.components.Component):
         with open('bug kind funcs.c', 'w', encoding='utf8') as fp:
             fp.write('/* http://sv-comp.sosy-lab.org/2015/rules.php */\nvoid __VERIFIER_error(void);\n')
             for bug_kind in bug_kinds:
-                fp.write('void ldv_assert_{0}(int expr) {{\n\tif (!expr)\n\t\t__VERIFIER_error();\n}}\n'.format(
+                fp.write('void ldv_warn_{0}(void) {{\n\t__VERIFIER_error();\n}}\n'.format(
                     re.sub(r'\W', '_', bug_kind)))
 
         # Add bug kind functions file to other abstract verification task files. Absolute file path is required to get

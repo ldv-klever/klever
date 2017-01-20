@@ -18,10 +18,10 @@
 #ifndef __VERIFIER_COMMON_H
 #define __VERIFIER_COMMON_H
 
-/* If expr evaluates to zero, ldv_assert() causes a program to reach the error
- * function call like the standard assert().
+/* Causes program to uncoditionally reach call to __VERIFIER_error().
+ * Actual first parameter represents corresponding bug kind.
  */
-extern void ldv_assert(const char *, int expression);
+extern void ldv_warn(const char *bug_kind);
 
 /* Internal aliases */
 /* Proceed ony if a condition is true */

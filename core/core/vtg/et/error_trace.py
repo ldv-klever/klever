@@ -20,7 +20,7 @@ import json
 
 
 class ErrorTrace:
-    MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|ASSERT'
+    MODEL_COMMENT_TYPES = 'AUX_FUNC|AUX_FUNC_CALLBACK|MODEL_FUNC|NOTE|WARN'
 
     def __init__(self, logger):
         self._nodes = dict()
@@ -32,7 +32,7 @@ class ErrorTrace:
         self._violation_edges = list()
         self._model_funcs = dict()
         self._notes = dict()
-        self._asserts = dict()
+        self._warns = dict()
         self._actions = list()
         self._callback_actions = list()
         self.aux_funcs = dict()
@@ -345,12 +345,12 @@ class ErrorTrace:
                             self._notes[file_id][line + 1] = comment
                             self._logger.debug(
                                 "Get note '{0}' for statement from '{1}:{2}'".format(comment, file, line + 1))
-                            # Some assertions will become warnings.
-                            if kind == 'ASSERT':
-                                if file_id not in self._asserts:
-                                    self._asserts[file_id] = dict()
-                                self._asserts[file_id][line + 1] = comment
-                                self._logger.debug("Get assertiom '{0}' for statement from '{1}:{2}'".
+
+                            if kind == 'WARN':
+                                if file_id not in self._warns:
+                                    self._warns[file_id] = dict()
+                                self._warns[file_id][line + 1] = comment
+                                self._logger.debug("Get warning '{0}' for statement from '{1}:{2}'".
                                                    format(comment, file, line + 1))
 
     def _mark_witness(self):
@@ -382,7 +382,7 @@ class ErrorTrace:
             file = self.resolve_file(file_id)
             start_line = edge['start line']
 
-            if file_id in self._asserts and start_line in self._asserts[file_id]:
+            if file_id in self._warns and start_line in self._warns[file_id]:
                 # Add warning just if there are no more edges with notes at violation path below.
                 track_notes = False
                 note_found = False
@@ -395,7 +395,7 @@ class ErrorTrace:
                         track_notes = True
 
                 if not note_found:
-                    warn = self._asserts[file_id][start_line]
+                    warn = self._warns[file_id][start_line]
                     self._logger.debug(
                         "Add warning {!r} for statement from '{}:{}'".format(warn, file, start_line))
                     # Add warning either to edge itself or to first edge that enters function and has note at
@@ -416,7 +416,7 @@ class ErrorTrace:
             if 'note' in warn_edge:
                 del warn_edge['note']
 
-        del self._violation_edges, self._model_funcs, self._notes, self._asserts
+        del self._violation_edges, self._model_funcs, self._notes, self._warns
 
     def get_func_return_edge(self, func_enter_edge):
         # Keep in mind that each pair enter-return has identifier (function name), but such identifier is not unique
