@@ -206,6 +206,14 @@
           "LTL(G valid-memtrack)"
       ]}
     },
+    "linux:alloc": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
+        "linux:alloc::more at exit",
+        "linux:alloc::less at exit"
+      ]}}}
+    },
     "linux:alloc:irq": {
       "description": "...",
       "template": "Linux kernel modules",
@@ -239,14 +247,6 @@
       "RSG": {"models": {"linux/alloc/usb lock.c": {"bug kinds": [
         "linux:alloc:usb lock::wrong flags",
         "linux:alloc:usb lock::nonatomic"
-      ]}}}
-    },
-    "linux:alloc": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/alloc/memory.c": {"bug kinds": [
-        "linux:alloc::more at exit",
-        "linux:alloc::less at exit"
       ]}}}
     },
     "linux:arch:io": {
@@ -389,6 +389,23 @@
         "sets model": "flag"
       }}}
     },
+    "linux:kernel:module": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/module.c": {"bug kinds": [
+          "linux:kernel:module::less initial decrement",
+          "linux:kernel:module::more initial at exit"
+      ]}}}
+    },
+    "linux:kernel:rcu:update:lock": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {"bug kinds": [
+        "linux:kernel:rcu:update:lock::more unlocks",
+        "linux:kernel:rcu:update:lock::locked at read section",
+        "linux:kernel:rcu:update:lock::locked at exit"
+      ]}}}
+    },
     "linux:kernel:rcu:update:lock bh": {
       "description": "...",
       "template": "Linux kernel modules",
@@ -405,15 +422,6 @@
         "linux:kernel:rcu:update:lock sched::more unlocks",
         "linux:kernel:rcu:update:lock sched::locked at read section",
         "linux:kernel:rcu:update:lock sched::locked at exit"
-      ]}}}
-    },
-    "linux:kernel:rcu:update:lock": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/kernel/rcu/update/lock.c": {"bug kinds": [
-        "linux:kernel:rcu:update:lock::more unlocks",
-        "linux:kernel:rcu:update:lock::locked at read section",
-        "linux:kernel:rcu:update:lock::locked at exit"
       ]}}}
     },
     "linux:kernel:rcu:srcu": {
@@ -439,14 +447,6 @@
             "linux:kernel:sched:completion::wait without init"
           ]
       }}}
-    },
-    "linux:kernel:module": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/kernel/module.c": {"bug kinds": [
-          "linux:kernel:module::less initial decrement",
-          "linux:kernel:module::more initial at exit"
-      ]}}}
     },
     "linux:lib:find_bit": {
       "description": "...",
