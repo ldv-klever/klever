@@ -27,8 +27,10 @@ int ldv_wlock = 1;
 /* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
 void ldv_read_lock(void)
 {
-	/* ASSERT Write lock should not be aquired. */
-	ldv_assert("linux:kernel:locking:rwlock::read lock on write lock", ldv_wlock == 1);
+	if (ldv_wlock != 1)
+		/* ASSERT Write lock should not be aquired. */
+		ldv_warn("linux:kernel:locking:rwlock::read lock on write lock");
+
 	/* NOTE Acquire read lock. */
 	ldv_rlock += 1;
 }
@@ -36,8 +38,10 @@ void ldv_read_lock(void)
 /* MODEL_FUNC Check that read lock is acquired and release it. */
 void ldv_read_unlock(void)
 {
-	/* ASSERT Read lock should be acquired. */
-	ldv_assert("linux:kernel:locking:rwlock::more read unlocks", ldv_rlock > 1);
+	if (ldv_rlock <= 1)
+		/* ASSERT Read lock should be acquired. */
+		ldv_warn("linux:kernel:locking:rwlock::more read unlocks");
+
 	/* NOTE Release read lock. */
 	ldv_rlock -= 1;
 }
@@ -45,8 +49,10 @@ void ldv_read_unlock(void)
 /* MODEL_FUNC Check that write lock is not aquired and acquire it. */
 void ldv_write_lock(void)
 {
-	/* ASSERT Write lock should not be aquired. */
-	ldv_assert("linux:kernel:locking:rwlock::double write lock", ldv_wlock == 1);
+	if (ldv_wlock != 1)
+		/* ASSERT Write lock should not be aquired. */
+		ldv_warn("linux:kernel:locking:rwlock::double write lock");
+
 	/* NOTE Acquire write lock. */
 	ldv_wlock = 2;
 }
@@ -54,8 +60,10 @@ void ldv_write_lock(void)
 /* MODEL_FUNC Check that write lock is aquired and release it. */
 void ldv_write_unlock(void)
 {
-	/* ASSERT Write lock should be aquired. */
-	ldv_assert("linux:kernel:locking:rwlock::double write unlock", ldv_wlock != 1);
+	if (ldv_wlock == 1)
+		/* ASSERT Write lock should be aquired. */
+		ldv_warn("linux:kernel:locking:rwlock::double write unlock");
+
 	/* NOTE Release write lock. */
 	ldv_wlock = 1;
 }
@@ -95,8 +103,11 @@ int ldv_write_trylock(void)
 /* MODEL_FUNC Check that all read/write locks are unacquired at the end. */
 void ldv_check_final_state(void)
 {
-	/* ASSERT All acquired read locks should be released before finishing operation. */
-	ldv_assert("linux:kernel:locking:rwlock::read lock at exit", ldv_rlock == 1);
-	/* ASSERT All acquired write locks should be released before finishing operation. */
-	ldv_assert("linux:kernel:locking:rwlock::write lock at exit", ldv_wlock == 1);
+	if (ldv_rlock != 1)
+		/* ASSERT All acquired read locks should be released before finishing operation. */
+		ldv_warn("linux:kernel:locking:rwlock::read lock at exit");
+
+	if (ldv_wlock != 1)
+		/* ASSERT All acquired write locks should be released before finishing operation. */
+		ldv_warn("linux:kernel:locking:rwlock::write lock at exit");
 }
