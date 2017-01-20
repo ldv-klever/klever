@@ -86,7 +86,7 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 
 	/* NOTE Whether mutex{{ arg_sign.text }} was locked */
 	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {
-		/* NOTE Mutex{{ arg_sign.text }} was locked */
+		/* NOTE Mutex{{ arg_sign.text }} was locked before */
 		return 0;
 	}
 	else {
