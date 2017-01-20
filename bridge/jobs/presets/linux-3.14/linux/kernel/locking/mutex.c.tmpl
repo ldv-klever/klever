@@ -51,27 +51,23 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 0;
 	}
-	else {
+	else
 		/* NOTE Could not lock mutex{{ arg_sign.text }} because of locking was interrupted by signal. */
 		return -EINTR;
-	}
 }
 
 /* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread. */
 int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
-	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock)) {
+	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
 		/* NOTE Mutex{{ arg_sign.text }} was locked in this thread. */
 		return 1;
-	}
-	else if (ldv_undef_int()) {
+	else if (ldv_undef_int())
 		/* NOTE Mutex{{ arg_sign.text }} was locked in another thread. */
 		return 1;
-	}
-	else {
+	else
 		/* NOTE Mutex{{ arg_sign.text }} was not locked in this or another thread. */
 		return 0;
-	}
 }
 
 /* MODEL_FUNC Lock mutex{{ arg_sign.text }} if it was not locked before. */
@@ -81,10 +77,9 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 		/* WARN Mutex{{ arg_sign.text }} must be unlocked. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:double trylock");
 
-	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {
+	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock))
 		/* NOTE Mutex{{ arg_sign.text }} was locked before. */
 		return 0;
-	}
 	else {
 		/* NOTE Lock mutex{{ arg_sign.text }} since it was not locked before. */
 		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
@@ -99,10 +94,9 @@ int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *
 	/* NOTE Decrease counter by one. */
 	cnt->counter--;
 
-	if (cnt->counter) {
+	if (cnt->counter)
 		/* NOTE Do not lock mutex{{ arg_sign.text }} since after decrease counter is still greater than zero. */
 		return 0;
-	}
 	else {
 		/* NOTE Lock mutex{{ arg_sign.text }} since after decrease counter becomes zero. */
 		ldv_mutex_lock{{ arg_sign.id }}(lock);
