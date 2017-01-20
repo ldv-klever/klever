@@ -38,7 +38,7 @@ void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 	ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and nondeterministically lock it. */
+/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and lock it unless locking is interrupted by signal. */
 int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
@@ -47,13 +47,13 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 
 	/* NOTE Nondeterministically lock mutex{{ arg_sign.text }}. */
 	if (ldv_undef_int()) {
-		/* NOTE Lock mutex{{ arg_sign.text }}. */
+		/* NOTE Lock mutex{{ arg_sign.text }} because of locking was not interrupted by signal. */
 		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 0;
 	}
 	else {
-		/* NOTE Could not lock mutex{{ arg_sign.text }}. */
+		/* NOTE Could not lock mutex{{ arg_sign.text }} because of locking was interrupted by signal. */
 		return -EINTR;
 	}
 }
