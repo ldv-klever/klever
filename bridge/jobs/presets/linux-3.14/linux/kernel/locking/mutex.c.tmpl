@@ -27,121 +27,121 @@ struct mutex;
 // for arg_sign in mutex_arg_signs
 ldv_set LDV_MUTEXES{{ arg_sign.id }};
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and lock it */
+/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and lock it. */
 void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
-		/* WARN Mutex{{ arg_sign.text }} must be unlocked */
+		/* WARN Mutex{{ arg_sign.text }} must be unlocked. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:double lock");
 
-	/* NOTE Lock mutex{{ arg_sign.text }} */
+	/* NOTE Lock mutex{{ arg_sign.text }}. */
 	ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and nondeterministically lock it */
+/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and nondeterministically lock it. */
 int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
-		/* WARN Mutex{{ arg_sign.text }} must be unlocked */
+		/* WARN Mutex{{ arg_sign.text }} must be unlocked. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:double lock");
 
-	/* NOTE Nondeterministically lock mutex{{ arg_sign.text }} */
+	/* NOTE Nondeterministically lock mutex{{ arg_sign.text }}. */
 	if (ldv_undef_int()) {
-		/* NOTE Lock mutex{{ arg_sign.text }} */
+		/* NOTE Lock mutex{{ arg_sign.text }}. */
 		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
-		/* NOTE Successfully locked mutex{{ arg_sign.text }} */
+		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 0;
 	}
 	else {
-		/* NOTE Could not lock mutex{{ arg_sign.text }} */
+		/* NOTE Could not lock mutex{{ arg_sign.text }}. */
 		return -EINTR;
 	}
 }
 
-/* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread  */
+/* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread . */
 int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
-	/* NOTE Whether mutex{{ arg_sign.text }} was locked in this thread */
+	/* NOTE Whether mutex{{ arg_sign.text }} was locked in this thread. */
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock)) {
-		/* NOTE Mutex{{ arg_sign.text }} was locked in this thread */
+		/* NOTE Mutex{{ arg_sign.text }} was locked in this thread. */
 		return 1;
 	}
-	/* NOTE Nondeterministically decide whether mutex{{ arg_sign.text }} was locked in another thread */
+	/* NOTE Nondeterministically decide whether mutex{{ arg_sign.text }} was locked in another thread. */
 	else if (ldv_undef_int()) {
-		/* NOTE Mutex{{ arg_sign.text }} was locked in another thread */
+		/* NOTE Mutex{{ arg_sign.text }} was locked in another thread. */
 		return 1;
 	}
 	else {
-		/* NOTE Mutex{{ arg_sign.text }} was not acquired in this or another thread */
+		/* NOTE Mutex{{ arg_sign.text }} was not acquired in this or another thread. */
 		return 0;
 	}
 }
 
-/* MODEL_FUNC Lock mutex{{ arg_sign.text }} if it was not locked before */
+/* MODEL_FUNC Lock mutex{{ arg_sign.text }} if it was not locked before. */
 int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
-		/* WARN Mutex{{ arg_sign.text }} must be unlocked */
+		/* WARN Mutex{{ arg_sign.text }} must be unlocked. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:double trylock");
 
-	/* NOTE Whether mutex{{ arg_sign.text }} was locked */
+	/* NOTE Whether mutex{{ arg_sign.text }} was locked. */
 	if (ldv_mutex_is_locked{{ arg_sign.id }}(lock)) {
-		/* NOTE Mutex{{ arg_sign.text }} was locked before */
+		/* NOTE Mutex{{ arg_sign.text }} was locked before. */
 		return 0;
 	}
 	else {
-		/* NOTE Lock mutex{{ arg_sign.text }} */
+		/* NOTE Lock mutex{{ arg_sign.text }}. */
 		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
-		/* NOTE Successfully locked mutex{{ arg_sign.text }} */
+		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 1;
 	}
 }
 
-/* MODEL_FUNC Decrease counter by one and if it becomes zero check that mutex{{ arg_sign.text }} was not locked and lock it */
+/* MODEL_FUNC Decrease counter by one and if it becomes zero check that mutex{{ arg_sign.text }} was not locked and lock it. */
 int ldv_atomic_dec_and_mutex_lock{{ arg_sign.id }}(atomic_t *cnt, struct mutex *lock)
 {
-	/* NOTE Decrease counter by one */
+	/* NOTE Decrease counter by one. */
 	cnt->counter--;
 
-	/* NOTE Whether counter becomes zero */
+	/* NOTE Whether counter becomes zero. */
 	if (cnt->counter) {
-		/* NOTE Do not lock mutex{{ arg_sign.text }} since counter is greater than zero */
+		/* NOTE Do not lock mutex{{ arg_sign.text }} since counter is greater than zero. */
 		return 0;
 	}
 	else {
 		ldv_mutex_lock{{ arg_sign.id }}(lock);
-		/* NOTE Successfully locked mutex{{ arg_sign.text }} */
+		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 1;
 	}
 }
 
-/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was locked and unlock it */
+/* MODEL_FUNC Check that mutex{{ arg_sign.text }} was locked and unlock it. */
 void ldv_mutex_unlock{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (!ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock))
-		/* WARN Mutex{{ arg_sign.text }} must be locked */
+		/* WARN Mutex{{ arg_sign.text }} must be locked. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:double unlock");
 
-	/* NOTE Unlock mutex{{ arg_sign.text }} */
+	/* NOTE Unlock mutex{{ arg_sign.text }}. */
 	ldv_set_remove(LDV_MUTEXES{{ arg_sign.id }}, lock);
 }
 // endfor
 
-/* MODEL_FUNC Make all mutexes unlocked at the beginning */
+/* MODEL_FUNC Make all mutexes unlocked at the beginning. */
 void ldv_initialize(void)
 {
 	// for arg_sign in mutex_arg_signs
-	/* NOTE Mutex{{ arg_sign.text }} is unlocked at the beginning */
+	/* NOTE Mutex{{ arg_sign.text }} is unlocked at the beginning. */
 	ldv_set_init(LDV_MUTEXES{{ arg_sign.id }});
 	// endfor
 }
 
-/* MODEL_FUNC Check that all mutexes are unlocked at the end */
+/* MODEL_FUNC Check that all mutexes are unlocked at the end. */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in mutex_arg_signs
 	if (!ldv_set_is_empty(LDV_MUTEXES{{ arg_sign.id }}))
-		/* WARN Mutex{{ arg_sign.text }} must be unlocked at the end */
+		/* WARN Mutex{{ arg_sign.text }} must be unlocked at the end. */
 		ldv_warn("linux:kernel:locking:mutex::one thread:locked at exit");
 	// endfor
 }
