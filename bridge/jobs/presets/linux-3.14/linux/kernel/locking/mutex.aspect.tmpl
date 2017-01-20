@@ -87,7 +87,7 @@ around: call(void mutex_unlock(struct mutex *))
 	ldv_mutex_unlock{{ mutex_arg_sign_patterns[1] }}($arg1);
 }
 
-around: call(static inline int kref_put_mutex(..))
+around: call(static inline int kref_put_mutex(struct kref *, void (*release)(struct kref *), struct mutex *))
 {
 	if ($arg_value2) {
 		ldv_mutex_lock{{ mutex_arg_sign_patterns[3] }}($arg3);
