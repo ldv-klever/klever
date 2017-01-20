@@ -57,7 +57,7 @@ int ldv_mutex_lock_interruptible_or_killable{{ arg_sign.id }}(struct mutex *lock
 	}
 }
 
-/* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread . */
+/* MODEL_FUNC Say whether mutex{{ arg_sign.text }} was locked in this or another thread. */
 int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 {
 	if (ldv_set_contains(LDV_MUTEXES{{ arg_sign.id }}, lock)) {
@@ -69,7 +69,7 @@ int ldv_mutex_is_locked{{ arg_sign.id }}(struct mutex *lock)
 		return 1;
 	}
 	else {
-		/* NOTE Mutex{{ arg_sign.text }} was not acquired in this or another thread. */
+		/* NOTE Mutex{{ arg_sign.text }} was not locked in this or another thread. */
 		return 0;
 	}
 }
