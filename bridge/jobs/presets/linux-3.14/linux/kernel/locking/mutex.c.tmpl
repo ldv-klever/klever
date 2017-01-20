@@ -86,7 +86,7 @@ int ldv_mutex_trylock{{ arg_sign.id }}(struct mutex *lock)
 		return 0;
 	}
 	else {
-		/* NOTE Lock mutex{{ arg_sign.text }}. */
+		/* NOTE Lock mutex{{ arg_sign.text }} since it was not locked before. */
 		ldv_set_add(LDV_MUTEXES{{ arg_sign.id }}, lock);
 		/* NOTE Successfully locked mutex{{ arg_sign.text }}. */
 		return 1;
