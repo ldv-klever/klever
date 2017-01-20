@@ -38,7 +38,7 @@ To run Klever Bridge you need:
     libraries) or `psycopg2 <https://pypi.python.org/pypi/psycopg2>`_ (requires
     `libpq <https://www.postgresql.org/docs/current/static/libpq.html>`_).
 
-* `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ or 'PostgreSQL <https://www.postgresql.org/>`_
+* `MySQL <https://www.mysql.com/>`_/`MariaDB <https://mariadb.org/>`_ or `PostgreSQL <https://www.postgresql.org/>`_
   (server).
 
 To run a production server you additionally need `apache2 <http://httpd.apache.org/>`_ and its module

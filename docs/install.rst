@@ -32,7 +32,7 @@ Klever Bridge installation
 PostgreSQL setup
 ^^^^^^^^^^^^^^^^
 
-#. Trust all local connections by editing :file:`hb_pga.conf` and by restarting the PostgreSQL server::
+#. Trust all local connections by editing :file:`pg_hba.conf` and by restarting the PostgreSQL server::
 
     $ sudo sed -i '/^local/c\local all all trust' /path/to/pg_hba.conf"
 
