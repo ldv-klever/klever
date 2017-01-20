@@ -89,7 +89,7 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/linux/alloc/memory",
+        "external modules": "tests/linux/alloc",
         "modules": [
           "alloc-without-free.ko",
           "free-without-alloc.ko",
