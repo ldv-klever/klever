@@ -74,7 +74,6 @@ void ldv_write_unlock(rwlock_t *lock)
 /* MODEL_FUNC Try to acquire read lock. */
 int ldv_read_trylock(rwlock_t *lock)
 {
-	/* NOTE Nondeterministically acquire read lock if write lock is not acquired. */
 	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
 		/* NOTE Acquire read lock. */
 		ldv_set_add(LDV_RLOCKS, lock);
@@ -90,7 +89,6 @@ int ldv_read_trylock(rwlock_t *lock)
 /* MODEL_FUNC Try to acquire write lock. */
 int ldv_write_trylock(rwlock_t *lock)
 {
-	/* NOTE Nondeterministically acquire write lock if it is not acquired. */
 	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
 		/* NOTE Acquire write lock. */
 		ldv_set_add(LDV_WLOCKS, lock);
