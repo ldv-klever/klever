@@ -22,9 +22,7 @@
 #include <verifier/nondet.h>
 #include <verifier/set.h>
 
-/* NOTE Read lock is not aquired at the beginning. */
 ldv_set LDV_RLOCKS;
-/* NOTE Write lock is not aquired at the beginning. */
 ldv_set LDV_WLOCKS;
 
 /* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
