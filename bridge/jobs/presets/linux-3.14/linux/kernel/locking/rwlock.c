@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+#include <linux/spinlock_types.h>
 #include <linux/ldv/common.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
@@ -26,56 +27,56 @@ ldv_set LDV_RLOCKS = 0;
 ldv_set LDV_WLOCKS = 0;
 
 /* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
-void ldv_read_lock(void)
+void ldv_read_lock(rwlock_t *lock)
 {
-	if (ldv_set_contains(LDV_WLOCKS, 0))
+	if (ldv_set_contains(LDV_WLOCKS, lock))
 		/* ASSERT Write lock should not be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::read lock on write lock");
 
 	/* NOTE Acquire read lock. */
-	ldv_set_add(LDV_RLOCKS, 0);
+	ldv_set_add(LDV_RLOCKS, lock);
 }
 
 /* MODEL_FUNC Check that read lock is acquired and release it. */
-void ldv_read_unlock(void)
+void ldv_read_unlock(rwlock_t *lock)
 {
-	if (!ldv_set_contains(LDV_RLOCKS, 0))
+	if (!ldv_set_contains(LDV_RLOCKS, lock))
 		/* ASSERT Read lock should be acquired. */
 		ldv_warn("linux:kernel:locking:rwlock::more read unlocks");
 
 	/* NOTE Release read lock. */
-	ldv_set_remove(LDV_RLOCKS, 0);
+	ldv_set_remove(LDV_RLOCKS, lock);
 }
 
 /* MODEL_FUNC Check that write lock is not aquired and acquire it. */
-void ldv_write_lock(void)
+void ldv_write_lock(rwlock_t *lock)
 {
-	if (ldv_set_contains(LDV_WLOCKS, 0))
+	if (ldv_set_contains(LDV_WLOCKS, lock))
 		/* ASSERT Write lock should not be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::double write lock");
 
 	/* NOTE Acquire write lock. */
-	ldv_set_add(LDV_WLOCKS, 0);
+	ldv_set_add(LDV_WLOCKS, lock);
 }
 
 /* MODEL_FUNC Check that write lock is aquired and release it. */
-void ldv_write_unlock(void)
+void ldv_write_unlock(rwlock_t *lock)
 {
-	if (!ldv_set_contains(LDV_WLOCKS, 0))
+	if (!ldv_set_contains(LDV_WLOCKS, lock))
 		/* ASSERT Write lock should be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::double write unlock");
 
 	/* NOTE Release write lock. */
-	ldv_set_remove(LDV_WLOCKS, 0);
+	ldv_set_remove(LDV_WLOCKS, lock);
 }
 
 /* MODEL_FUNC Try to acquire read lock. */
-int ldv_read_trylock(void)
+int ldv_read_trylock(rwlock_t *lock)
 {
 	/* NOTE Nondeterministically acquire read lock if write lock is not acquired. */
-	if (!ldv_set_contains(LDV_WLOCKS, 0) && ldv_undef_int()) {
+	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
 		/* NOTE Acquire read lock. */
-		ldv_set_add(LDV_RLOCKS, 0);
+		ldv_set_add(LDV_RLOCKS, lock);
 		/* NOTE Read lock was acquired. */
 		return 1;
 	}
@@ -86,12 +87,12 @@ int ldv_read_trylock(void)
 }
 
 /* MODEL_FUNC Try to acquire write lock. */
-int ldv_write_trylock(void)
+int ldv_write_trylock(rwlock_t *lock)
 {
 	/* NOTE Nondeterministically acquire write lock if it is not acquired. */
-	if (!ldv_set_contains(LDV_WLOCKS, 0) && ldv_undef_int()) {
+	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
 		/* NOTE Acquire write lock. */
-		ldv_set_add(LDV_WLOCKS, 0);
+		ldv_set_add(LDV_WLOCKS, lock);
 		/* NOTE Write lock was not acquired. */
 		return 1;
 	}

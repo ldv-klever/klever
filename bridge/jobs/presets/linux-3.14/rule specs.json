@@ -362,14 +362,17 @@
     "linux:kernel:locking:rwlock": {
       "description": "...",
       "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/kernel/locking/rwlock.c": {"bug kinds": [
-        "linux:kernel:locking:rwlock::read lock on write lock",
-        "linux:kernel:locking:rwlock::more read unlocks",
-        "linux:kernel:locking:rwlock::read lock at exit",
-        "linux:kernel:locking:rwlock::double write lock",
-        "linux:kernel:locking:rwlock::double write unlock",
-        "linux:kernel:locking:rwlock::write lock at exit"
-      ]}}}
+      "RSG": {"models": {"linux/kernel/locking/rwlock.c": {
+        "bug kinds": [
+          "linux:kernel:locking:rwlock::read lock on write lock",
+          "linux:kernel:locking:rwlock::more read unlocks",
+          "linux:kernel:locking:rwlock::read lock at exit",
+          "linux:kernel:locking:rwlock::double write lock",
+          "linux:kernel:locking:rwlock::double write unlock",
+          "linux:kernel:locking:rwlock::write lock at exit"
+        ],
+        "headers": ["linux/spinlock_types.h"]
+      }}}
     },
     "linux:kernel:locking:spinlock": {
       "description": "...",
