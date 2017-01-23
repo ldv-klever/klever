@@ -25,7 +25,7 @@
 struct mutex;
 
 // for arg_sign in mutex_arg_signs
-ldv_set LDV_MUTEXES{{ arg_sign.id }};
+static ldv_set LDV_MUTEXES{{ arg_sign.id }};
 
 /* MODEL_FUNC Check that mutex{{ arg_sign.text }} was not locked and lock it. */
 void ldv_mutex_lock{{ arg_sign.id }}(struct mutex *lock)

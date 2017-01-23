@@ -22,8 +22,8 @@
 #include <verifier/nondet.h>
 #include <verifier/set.h>
 
-ldv_set LDV_RLOCKS;
-ldv_set LDV_WLOCKS;
+static ldv_set LDV_RLOCKS;
+static ldv_set LDV_WLOCKS;
 
 /* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
 void ldv_read_lock(rwlock_t *lock)
