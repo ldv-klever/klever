@@ -25,6 +25,7 @@ static int __init init(void)
 	mutex_lock(&mutex);
 	mutex_unlock(&mutex);
 	mutex_unlock(&mutex);
+
 	return 0;
 }
 

@@ -24,6 +24,7 @@ static int __init init(void)
 {
 	mutex_lock(&mutex);
 	mutex_trylock(&mutex);
+
 	return 0;
 }
 
