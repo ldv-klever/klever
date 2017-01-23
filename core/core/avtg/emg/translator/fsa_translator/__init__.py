@@ -299,7 +299,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
             body = []
             file = choose_file(self._cmodel, self._analysis, automaton)
 
-            if not get_conf_property(self._conf, 'direct control functions call'):
+            if not get_conf_property(self._conf, 'direct control functions calls'):
                 body = ['int ret;']
 
             # Check dispatch type

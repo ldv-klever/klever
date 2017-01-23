@@ -27,7 +27,7 @@ def translate_intermediate_model(logger, conf, avt, analysis, model, instance_ma
     logger.info("Check necessary configuration properties to be set")
     check_or_set_conf_property(conf, 'entry point', default_value='main', expected_type=str)
     check_or_set_conf_property(conf["translation options"], "nested automata", default_value=True, expected_type=bool)
-    check_or_set_conf_property(conf["translation options"], "direct control function calls", default_value=True, expected_type=bool)
+    check_or_set_conf_property(conf["translation options"], "direct control functions calls", default_value=True, expected_type=bool)
 
     # Generate instances
     logger.info("Generate finite state machines on each process from an intermediate model")
