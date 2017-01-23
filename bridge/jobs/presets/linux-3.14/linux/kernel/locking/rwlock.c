@@ -23,9 +23,9 @@
 #include <verifier/set.h>
 
 /* NOTE Read lock is not aquired at the beginning. */
-ldv_set LDV_RLOCKS = 0;
+ldv_set LDV_RLOCKS;
 /* NOTE Write lock is not aquired at the beginning. */
-ldv_set LDV_WLOCKS = 0;
+ldv_set LDV_WLOCKS;
 
 /* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
 void ldv_read_lock(rwlock_t *lock)
@@ -103,14 +103,23 @@ int ldv_write_trylock(rwlock_t *lock)
 	}
 }
 
-/* MODEL_FUNC Check that all read/write locks are unacquired at the end. */
+/* MODEL_FUNC Make all read/write locks unlocked at the beginning. */
+void ldv_initialize(void)
+{
+	/* NOTE Read locks are unlocked at the beginning. */
+	ldv_set_init(LDV_RLOCKS);
+	/* NOTE Write locks are unlocked at the beginning. */
+	ldv_set_init(LDV_WLOCKS);
+}
+
+/* MODEL_FUNC Check that all read/write locks are unlocked at the end. */
 void ldv_check_final_state(void)
 {
 	if (!ldv_set_is_empty(LDV_RLOCKS))
-		/* ASSERT All acquired read locks should be released before finishing operation. */
+		/* WARN Read locks must be unlocked at the end. */
 		ldv_warn("linux:kernel:locking:rwlock::read lock at exit");
 
 	if (!ldv_set_is_empty(LDV_WLOCKS))
-		/* ASSERT All acquired write locks should be released before finishing operation. */
+		/* WARN Write locks must be unlocked at the end. */
 		ldv_warn("linux:kernel:locking:rwlock::write lock at exit");
 }
