@@ -30,7 +30,7 @@ void ldv_read_lock(rwlock_t *lock)
 {
 	if (ldv_set_contains(LDV_WLOCKS, lock))
 		/* WARN Write lock must be unlocked. */
-		ldv_warn("linux:kernel:locking:rwlock::one thread:read lock on write lock");
+		ldv_warn("linux:kernel:locking:rwlock::one thread:read write lock");
 
 	/* NOTE Lock read lock. */
 	ldv_set_add(LDV_RLOCKS, lock);
@@ -41,7 +41,7 @@ void ldv_read_unlock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_RLOCKS, lock))
 		/* WARN Read lock must be locked. */
-		ldv_warn("linux:kernel:locking:rwlock::one thread:more read unlocks");
+		ldv_warn("linux:kernel:locking:rwlock::one thread:double read unlock");
 
 	/* NOTE Unlock read lock. */
 	ldv_set_remove(LDV_RLOCKS, lock);

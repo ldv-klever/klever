@@ -364,8 +364,8 @@
       "template": "Linux kernel modules",
       "RSG": {"models": {"linux/kernel/locking/rwlock.c": {
         "bug kinds": [
-          "linux:kernel:locking:rwlock::one thread:read lock on write lock",
-          "linux:kernel:locking:rwlock::one thread:more read unlocks",
+          "linux:kernel:locking:rwlock::one thread:read write lock",
+          "linux:kernel:locking:rwlock::one thread:double read unlock",
           "linux:kernel:locking:rwlock::one thread:double write lock",
           "linux:kernel:locking:rwlock::one thread:double write unlock",
           "linux:kernel:locking:rwlock::one thread:read lock at exit",
