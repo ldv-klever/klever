@@ -31,7 +31,7 @@ ldv_set LDV_WLOCKS;
 void ldv_read_lock(rwlock_t *lock)
 {
 	if (ldv_set_contains(LDV_WLOCKS, lock))
-		/* ASSERT Write lock should not be aquired. */
+		/* WARN Write lock should not be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::read lock on write lock");
 
 	/* NOTE Acquire read lock. */
@@ -42,7 +42,7 @@ void ldv_read_lock(rwlock_t *lock)
 void ldv_read_unlock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_RLOCKS, lock))
-		/* ASSERT Read lock should be acquired. */
+		/* WARN Read lock should be acquired. */
 		ldv_warn("linux:kernel:locking:rwlock::more read unlocks");
 
 	/* NOTE Release read lock. */
@@ -53,7 +53,7 @@ void ldv_read_unlock(rwlock_t *lock)
 void ldv_write_lock(rwlock_t *lock)
 {
 	if (ldv_set_contains(LDV_WLOCKS, lock))
-		/* ASSERT Write lock should not be aquired. */
+		/* WARN Write lock should not be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::double write lock");
 
 	/* NOTE Acquire write lock. */
@@ -64,7 +64,7 @@ void ldv_write_lock(rwlock_t *lock)
 void ldv_write_unlock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_WLOCKS, lock))
-		/* ASSERT Write lock should be aquired. */
+		/* WARN Write lock should be aquired. */
 		ldv_warn("linux:kernel:locking:rwlock::double write unlock");
 
 	/* NOTE Release write lock. */
