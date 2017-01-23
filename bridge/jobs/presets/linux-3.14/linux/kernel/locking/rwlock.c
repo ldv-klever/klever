@@ -78,10 +78,9 @@ int ldv_read_trylock(rwlock_t *lock)
 		/* NOTE Successfully locked read lock. */
 		return 1;
 	}
-	else {
+	else
 		/* NOTE Read lock was locked before. */
 		return 0;
-	}
 }
 
 /* MODEL_FUNC Lock write lock if it was not locked before. */
@@ -93,10 +92,9 @@ int ldv_write_trylock(rwlock_t *lock)
 		/* NOTE Successfully locked write lock. */
 		return 1;
 	}
-	else {
+	else
 		/* NOTE Write lock was locked before. */
 		return 0;
-	}
 }
 
 /* MODEL_FUNC Make all read/write locks unlocked at the beginning. */
