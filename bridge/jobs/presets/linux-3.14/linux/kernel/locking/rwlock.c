@@ -17,6 +17,7 @@
 
 #include <linux/spinlock_types.h>
 #include <linux/ldv/common.h>
+#include <linux/ldv/kernel/locking/rwlock.h>
 #include <verifier/common.h>
 #include <verifier/nondet.h>
 #include <verifier/set.h>
