@@ -23,8 +23,8 @@ static int __init init(void)
 	rwlock_t rwlock;
 
     rwlock_init(&rwlock);
-
-	write_trylock(&rwlock);
+    write_lock(&rwlock);
+	write_unlock(&rwlock);
 	write_unlock(&rwlock);
 
 	return 0;

@@ -219,11 +219,15 @@
       "Linux kernel": {
         "external modules": "tests/linux/kernel/locking/rwlock",
         "modules": [
-          "rlock.ko",
-          "wlock.ko",
-          "runlock.ko",
-          "wunlock.ko",
-          "rlock-after-wlock.ko",
+          "rwlock.ko",
+          "double-runlock.ko",
+          "double-runlock-2.ko",
+          "double-wlock.ko",
+          "double-wunlock.ko",
+          "double-wunlock-2.ko",
+          "rlock-at-exit.ko",
+          "rlock-at-exit-2.ko",
+          "wlock-at-exit.ko",
           "tryrlock.ko",
           "trywlock.ko",
           "safe.ko"

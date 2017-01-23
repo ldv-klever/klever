@@ -16,13 +16,14 @@
  */
 
 #include <linux/module.h>
-#include <linux/spinlock.h>
+#include <linux/rwlock.h>
 
 static int __init init(void)
 {
-	rwlock_t *rwlock_1;
+	rwlock_t rwlock;
 
-	write_lock(rwlock_1);
+    rwlock_init(&rwlock);
+	write_unlock(&rwlock);
 
 	return 0;
 }
