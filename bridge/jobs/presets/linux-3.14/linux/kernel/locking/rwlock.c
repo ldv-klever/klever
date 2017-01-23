@@ -25,76 +25,76 @@
 static ldv_set LDV_RLOCKS;
 static ldv_set LDV_WLOCKS;
 
-/* MODEL_FUNC Check that write lock is not acquired and acquire read lock. */
+/* MODEL_FUNC Check that write lock was not locked and lock read lock. */
 void ldv_read_lock(rwlock_t *lock)
 {
 	if (ldv_set_contains(LDV_WLOCKS, lock))
-		/* WARN Write lock should not be aquired. */
-		ldv_warn("linux:kernel:locking:rwlock::read lock on write lock");
+		/* WARN Write lock must be unlocked. */
+		ldv_warn("linux:kernel:locking:rwlock::one thread:read lock on write lock");
 
-	/* NOTE Acquire read lock. */
+	/* NOTE Lock read lock. */
 	ldv_set_add(LDV_RLOCKS, lock);
 }
 
-/* MODEL_FUNC Check that read lock is acquired and release it. */
+/* MODEL_FUNC Check that read lock was locked and unlock it. */
 void ldv_read_unlock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_RLOCKS, lock))
-		/* WARN Read lock should be acquired. */
-		ldv_warn("linux:kernel:locking:rwlock::more read unlocks");
+		/* WARN Read lock must be locked. */
+		ldv_warn("linux:kernel:locking:rwlock::one thread:more read unlocks");
 
-	/* NOTE Release read lock. */
+	/* NOTE Unlock read lock. */
 	ldv_set_remove(LDV_RLOCKS, lock);
 }
 
-/* MODEL_FUNC Check that write lock is not aquired and acquire it. */
+/* MODEL_FUNC Check that write lock was not locked and lock it. */
 void ldv_write_lock(rwlock_t *lock)
 {
 	if (ldv_set_contains(LDV_WLOCKS, lock))
-		/* WARN Write lock should not be aquired. */
-		ldv_warn("linux:kernel:locking:rwlock::double write lock");
+		/* WARN Write lock must be unlocked. */
+		ldv_warn("linux:kernel:locking:rwlock::one thread:double write lock");
 
-	/* NOTE Acquire write lock. */
+	/* NOTE Lock write lock. */
 	ldv_set_add(LDV_WLOCKS, lock);
 }
 
-/* MODEL_FUNC Check that write lock is aquired and release it. */
+/* MODEL_FUNC Check that write lock was locked and unlock it. */
 void ldv_write_unlock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_WLOCKS, lock))
-		/* WARN Write lock should be aquired. */
-		ldv_warn("linux:kernel:locking:rwlock::double write unlock");
+		/* WARN Write lock must be locked. */
+		ldv_warn("linux:kernel:locking:rwlock::one thread:double write unlock");
 
-	/* NOTE Release write lock. */
+	/* NOTE Unlock write lock. */
 	ldv_set_remove(LDV_WLOCKS, lock);
 }
 
-/* MODEL_FUNC Try to acquire read lock. */
+/* MODEL_FUNC Lock read lock if it was not locked before. */
 int ldv_read_trylock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
-		/* NOTE Acquire read lock. */
+		/* NOTE Lock read lock since it was not locked before. */
 		ldv_set_add(LDV_RLOCKS, lock);
-		/* NOTE Read lock was acquired. */
+		/* NOTE Successfully locked read lock. */
 		return 1;
 	}
 	else {
-		/* NOTE Read lock was not acquired. */
+		/* NOTE Read lock was locked before. */
 		return 0;
 	}
 }
 
-/* MODEL_FUNC Try to acquire write lock. */
+/* MODEL_FUNC Lock write lock if it was not locked before. */
 int ldv_write_trylock(rwlock_t *lock)
 {
 	if (!ldv_set_contains(LDV_WLOCKS, lock) && ldv_undef_int()) {
-		/* NOTE Acquire write lock. */
+		/* NOTE Lock write lock since it was not locked before. */
 		ldv_set_add(LDV_WLOCKS, lock);
-		/* NOTE Write lock was not acquired. */
+		/* NOTE Successfully locked write lock. */
 		return 1;
 	}
 	else {
-		/* NOTE Write lock was not acquired. */
+		/* NOTE Write lock was locked before. */
 		return 0;
 	}
 }
@@ -113,9 +113,9 @@ void ldv_check_final_state(void)
 {
 	if (!ldv_set_is_empty(LDV_RLOCKS))
 		/* WARN Read locks must be unlocked at the end. */
-		ldv_warn("linux:kernel:locking:rwlock::read lock at exit");
+		ldv_warn("linux:kernel:locking:rwlock::one thread:read lock at exit");
 
 	if (!ldv_set_is_empty(LDV_WLOCKS))
 		/* WARN Write locks must be unlocked at the end. */
-		ldv_warn("linux:kernel:locking:rwlock::write lock at exit");
+		ldv_warn("linux:kernel:locking:rwlock::one thread:write lock at exit");
 }
