@@ -209,7 +209,7 @@
           "double-lock.ko",
           "double-unlock.ko",
           "double-unlock-2.ko",
-          "locked-at-exit.ko",
+          "lock-at-exit.ko",
           "safe.ko"
         ]
       },
