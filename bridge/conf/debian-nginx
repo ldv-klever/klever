@@ -21,5 +21,6 @@ server {
     proxy_set_header Host $http_host;
     proxy_redirect off;
     proxy_pass http://bridge_server;
+    proxy_read_timeout 900s;
   }
 }
