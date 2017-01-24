@@ -170,7 +170,7 @@ class ProfileData:
             raise ValueError('Wrong date format')
         return self.get_log(date - delta_seconds, date + delta_seconds)
 
-    def get_log(self, date1=None, date2=None):
+    def get_log(self, date1=None, date2=None, func_name=None):
         logdata = []
         date1 = self.__date_stamp(date1)
         date2 = self.__date_stamp(date2)
@@ -182,6 +182,8 @@ class ProfileData:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
                     row = self.__get_data(row)
+                    if func_name is not None and func_name != row['func_name']:
+                        continue
                     if bname == first_file and row['enter'] < date1:
                         continue
                     if bname == last_file and row['return'] > date2:
@@ -191,9 +193,9 @@ class ProfileData:
                         'wait1': (row['wait1'], row['wait1'] > MAX_WAITING),
                         'wait2': (row['wait2'], row['wait2'] > MAX_WAITING),
                         'wait_total': row['wait1'] + row['wait2'],
-                        'enter': (str(row['enter']), datetime.fromtimestamp(row['enter'])),
-                        'exec': (str(row['exec']), datetime.fromtimestamp(row['exec'])),
-                        'return': (str(row['return']), datetime.fromtimestamp(row['return'])),
+                        'enter': datetime.fromtimestamp(row['enter']),
+                        'exec': datetime.fromtimestamp(row['exec']),
+                        'return': datetime.fromtimestamp(row['return']),
                         'exec_time': '%0.3f' % row['exec_time'],
                         'failed': bool(int(row['is_failed']))
                     })
@@ -209,11 +211,11 @@ class ProfileData:
                 reader = csv.DictReader(csvfile)
                 for row in reader:
                     row = self.__get_data(row)
+                    if func_name is not None and row['func_name'] != func_name:
+                        continue
                     if bname == first_file and row['enter'] < date1:
                         continue
                     if bname == last_file and row['return'] > date2:
-                        continue
-                    if func_name is not None and row['func_name'] != func_name:
                         continue
                     func = row['func_name']
                     if func not in data:

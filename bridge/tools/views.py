@@ -133,7 +133,7 @@ def call_list(request):
         date2 = None
         if 'date2' in request.POST:
             date2 = float(request.POST['date2'])
-        data = ProfileData().get_log(date1, date2)
+        data = ProfileData().get_log(date1, date2, request.POST.get('name'))
     elif action == 'around' and 'date' in request.POST:
         if 'interval' in request.POST:
             data = ProfileData().get_log_around(float(request.POST['date']), int(request.POST['interval']))

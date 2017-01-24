@@ -44,9 +44,11 @@
                 </div>
             </div>
             <div id="interval_field" class="field" style="display: none">
-                <div class="ui input">
-                    <input id="time_interval" type="number" placeholder="{% trans 'Seconds' %}">
-                </div>
+                <input id="time_interval" type="number" placeholder="{% trans 'Seconds' %}">
+            </div>
+            <div id="fname_field" class="field">
+                <label for="func_name">{% trans 'for' %}</label>
+                <input id="func_name" type="text" placeholder="{% trans 'function name' %}">
             </div>
             <div class="field">
                 <button id="get_table" class="ui green button">{% trans 'Get' %}</button>

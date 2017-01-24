@@ -26,9 +26,11 @@ $(document).ready(function () {
         if ($(this).val() == '0') {
             $('#interval_field').hide();
             $('#date2_field').show();
+            $('#fname_field').show();
         }
         else {
             $('#date2_field').hide();
+            $('#fname_field').hide();
             $('#interval_field').show();
         }
     });
@@ -36,7 +38,7 @@ $(document).ready(function () {
         var list_type = $('#list_type').val(),
             borders_type = $('#borders_type').val(),
             date1 = $('#date1').calendar('get date'),
-            args = {}, url;
+            args = {}, url, func_name = $('#func_name').val();
 
         if (list_type == '0') {
             url = '/tools/ajax/call_list/';
@@ -52,6 +54,9 @@ $(document).ready(function () {
             var date2 = $('#date2').calendar('get date');
             if (date2) {
                 args['date2'] = date2.getTime() / 1000;
+            }
+            if (func_name.length) {
+                args['name'] = func_name;
             }
         }
         else {

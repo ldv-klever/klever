@@ -1,7 +1,7 @@
 {% load i18n %}
 
 {% if data %}
-    <table class="ui compact selectable table">
+    <table class="ui yellow compact selectable table">
         <thead>
             <tr>
                 <th>{% trans 'Function name' %}</th>
@@ -17,7 +17,7 @@
         <tbody>
             {% for d in data %}
                 <tr>
-                    <td><a class="func_name" href="#" data-time="{{ d.enter.0 }}">{{ d.name }}</a></td>
+                    <td><a class="func_name" href="#">{{ d.name }}</a></td>
                     <td>
                         {% if d.failed %}
                             <i class="ui red remove icon"></i>
@@ -25,12 +25,12 @@
                             <i class="ui green checkmark icon"></i>
                         {% endif %}
                     </td>
-                    <td>{{ d.enter.1|date:'d.m.y H:i:s.u' }}</td>
+                    <td>{{ d.enter|date:'d.m.y H:i:s.u' }}</td>
                     <td>{{ d.wait1.0 }} {% trans 's' %}</td>
                     <td>{{ d.wait2.0 }} {% trans 's' %}</td>
-                    <td>{{ d.exec.1|date:'H:i:s.u' }}</td>
+                    <td>{{ d.exec|date:'H:i:s.u' }}</td>
                     <td>{{ d.exec_time }} {% trans 's' %}</td>
-                    <td>{{ d.return.1|date:'H:i:s.u' }}</td>
+                    <td>{{ d.return|date:'H:i:s.u' }}</td>
                 </tr>
             {% endfor %}
         </tbody>
