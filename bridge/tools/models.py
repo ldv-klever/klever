@@ -15,18 +15,12 @@
 # limitations under the License.
 #
 
-from django.conf.urls import url
-from tools import views
+from django.db import models
 
 
-urlpatterns = [
-    url(r'^manager/$', views.manager_tools, name='manager'),
-    url(r'^view_call_logs/$', views.view_call_logs, name='view_call_logs'),
-    url(r'^ajax/rename_component/$', views.rename_component),
-    url(r'^ajax/clear_components/$', views.clear_components),
-    url(r'^ajax/clear_problems/$', views.clear_problems),
-    url(r'^ajax/clear_system/$', views.clear_system),
-    url(r'^ajax/recalculation/$', views.recalculation),
-    url(r'^ajax/call_list/$', views.call_list),
-    url(r'^ajax/call_stat/$', views.call_statistic),
-]
+class LockTable(models.Model):
+    name = models.CharField(max_length=64, unique=True, db_index=True)
+    locked = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'lock_table'

@@ -29,8 +29,9 @@ from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended, User
 from bridge.populate import extend_user
 from bridge.settings import DEF_USER
-from bridge.utils import logger, unparallel_group
 from bridge.vars import LANGUAGES, SCHEDULER_TYPE
+from bridge.utils import logger
+from tools.profiling import unparallel_group
 from jobs.models import Job
 
 

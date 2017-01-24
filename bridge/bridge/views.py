@@ -24,7 +24,8 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.populate import Population
 from bridge.vars import ERRORS, USER_ROLES
-from bridge.utils import unparallel_group, logger
+from bridge.utils import logger
+from tools.profiling import unparallel_group
 from users.models import Extended
 
 

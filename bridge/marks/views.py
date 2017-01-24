@@ -32,7 +32,8 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import USER_ROLES
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent
+from bridge.utils import logger, extract_archive, ArchiveFileContent
+from tools.profiling import unparallel_group
 from users.models import View
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark

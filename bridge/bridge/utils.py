@@ -16,7 +16,6 @@
 #
 
 import os
-import time
 import shutil
 import logging
 import hashlib
@@ -24,7 +23,6 @@ import tempfile
 import zipfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-from django.db.models.base import ModelBase
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
@@ -50,80 +48,6 @@ class InfoFilter(object):
 for h in logger.handlers:
     if h.name == 'other':
         h.addFilter(InfoFilter(logging.INFO))
-
-
-def print_exec_time(f):
-    def wrapper(*args, **kwargs):
-        start = now()
-        res = f(*args, **kwargs)
-        logger.info('%s: %s' % (f.__name__, now() - start))
-        return res
-    return wrapper
-
-
-def affected_models(model):
-    curr_name = getattr(model, '_meta').object_name
-    related_models = {curr_name}
-    for rel in [f for f in getattr(model, '_meta').get_fields()
-                if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
-        rel_model_name = getattr(rel.field.model, '_meta').object_name
-        if rel_model_name not in related_models and rel_model_name != curr_name:
-            related_models.add(rel_model_name)
-            related_models |= affected_models(rel.field.model)
-    return related_models
-
-
-def dump_statistic():
-    logger.info('=========FUNCTION CALL STATISTIC========')
-    for f_name in CALL_STATISTIC:
-        if CALL_STATISTIC[f_name][0] > 0 or CALL_STATISTIC[f_name][1] > 0:
-            logger.info(
-                '%s called %d times and waited for other functions for %0.1f seconds' % (
-                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0] / 10
-                )
-            )
-            CALL_STATISTIC[f_name][0] = 0
-            CALL_STATISTIC[f_name][1] = 0
-
-
-def unparallel_group(groups):
-    def unparallel_inner(f):
-        block = set()
-        for group in groups:
-            if isinstance(group, ModelBase):
-                block |= affected_models(group)
-            else:
-                block.add(str(group))
-
-        def block_access():
-            for g in block:
-                if g not in GROUP_BLOCKER:
-                    GROUP_BLOCKER[g] = 0
-                if GROUP_BLOCKER[g] == 1:
-                    return False
-            return True
-
-        def change_block(status):
-            for g in block:
-                GROUP_BLOCKER[g] = status
-
-        def wait(*args, **kwargs):
-            if f.__name__ not in CALL_STATISTIC:
-                CALL_STATISTIC[f.__name__] = [0, 0]
-            while not block_access():
-                time.sleep(0.1)
-                CALL_STATISTIC[f.__name__][0] += 1
-            change_block(1)
-            CALL_STATISTIC[f.__name__][1] += 1
-            res = f(*args, **kwargs)
-            if CALL_STATISTIC[f.__name__][0] > 36000:
-                dump_statistic()
-            change_block(0)
-            return res
-
-        return wait
-
-    return unparallel_inner
 
 
 def file_checksum(f):

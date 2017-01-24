@@ -17,15 +17,15 @@
 
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
 from bridge.vars import USER_ROLES
-from bridge.utils import unparallel_group
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
+from tools.profiling import unparallel_group, ProfileData
 
 
 @login_required
@@ -113,3 +113,54 @@ def recalculation(request):
     if res.error is not None:
         return JsonResponse({'error': res.error + ''})
     return JsonResponse({'message': _("Caches were successfully recalculated")})
+
+
+@login_required
+def view_call_logs(request):
+    activate(request.user.extended.language)
+    return render(request, "tools/CallLogs.html", {})
+
+
+def call_list(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    action = request.POST.get('action')
+    if action == 'between':
+        date1 = None
+        if 'date1' in request.POST:
+            date1 = float(request.POST['date1'])
+        date2 = None
+        if 'date2' in request.POST:
+            date2 = float(request.POST['date2'])
+        data = ProfileData().get_log(date1, date2)
+    elif action == 'around' and 'date' in request.POST:
+        if 'interval' in request.POST:
+            data = ProfileData().get_log_around(float(request.POST['date']), int(request.POST['interval']))
+        else:
+            data = ProfileData().get_log_around(float(request.POST['date']))
+    else:
+        return HttpResponse('<h1>Unknown error</h1>')
+    return render(request, "tools/LogList.html", {'data': data})
+
+
+def call_statistic(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    action = request.POST.get('action')
+    data = None
+    if action == 'between':
+        date1 = None
+        if 'date1' in request.POST:
+            date1 = float(request.POST['date1'])
+        date2 = None
+        if 'date2' in request.POST:
+            date2 = float(request.POST['date2'])
+        data = ProfileData().get_statistic(date1, date2, request.POST.get('name'))
+    elif action == 'around' and 'date' in request.POST:
+        if 'interval' in request.POST:
+            data = ProfileData().get_statistic_around(float(request.POST['date']), int(request.POST['interval']))
+        else:
+            data = ProfileData().get_statistic_around(float(request.POST['date']))
+    return render(request, "tools/CallStatistic.html", {'data': data})

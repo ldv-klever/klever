@@ -1,0 +1,26 @@
+{% load i18n %}
+
+{% if data %}
+    <table class="ui compact selectable table">
+        <thead>
+            <tr>
+                <th>{% trans 'Function name' %}</th>
+                <th>{% trans 'Average execution time' %}</th>
+                <th>{% trans 'Total waiting time' %}</th>
+                <th>{% trans 'Number of calls' %}</th>
+                <th>{% trans 'Number of fails' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in data %}
+                <tr>
+                    <td>{{ d.name }}</td>
+                    <td>{{ d.exec|floatformat:4 }} {% trans 's' %}</td>
+                    <td>{{ d.waiting }} {% trans 's' %}</td>
+                    <td>{{ d.calls }}</td>
+                    <td>{{ d.failed }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}

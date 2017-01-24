@@ -25,7 +25,8 @@ from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, ArchiveFileContent
+from bridge.utils import ArchiveFileContent
+from tools.profiling import unparallel_group
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.tables import ReportMarkTable

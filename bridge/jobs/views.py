@@ -27,7 +27,8 @@ from django.template import loader
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive
+from bridge.utils import file_get_or_create, extract_archive
+from tools.profiling import unparallel_group
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
@@ -611,7 +612,6 @@ def check_access(request):
 
 @login_required
 @unparallel_group([Job])
-@print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
