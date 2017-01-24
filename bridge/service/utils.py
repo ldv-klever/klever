@@ -19,7 +19,7 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
-from django.db.models import Q, F
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
@@ -327,27 +327,29 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
-                    if progress.job.identifier in data['job errors']:
-                        progress.error = data['job errors'][progress.job.identifier]
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[5][0])
+                        progress.error = 'There are unfinished reports while scheduler set the job failed'
                     else:
-                        progress.error = "The scheduler hasn't given an error description"
+                        change_job_status(progress.job, JOB_STATUS[4][0])
+                        if progress.job.identifier in data['job errors']:
+                            progress.error = data['job errors'][progress.job.identifier]
+                        else:
+                            progress.error = "The scheduler hasn't given an error description"
                     progress.save()
                 else:
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
-                    try:
-                        root_report = ReportComponent.objects.get(
-                            Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                        )
-                    except ObjectDoesNotExist:
+                    root_report = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
+                    if root_report.finish_date is None:
                         change_job_status(progress.job, JOB_STATUS[5][0])
+                        progress.error = 'The Core report is not finished'
+                        progress.save()
+                    elif not progress.job.light and len(ReportUnknown.objects.filter(parent=root_report)) > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
-                        if not progress.job.light and len(ReportUnknown.objects.filter(parent=root_report)) > 0:
-                            change_job_status(progress.job, JOB_STATUS[4][0])
-                        else:
-                            change_job_status(progress.job, JOB_STATUS[3][0])
+                        change_job_status(progress.job, JOB_STATUS[3][0])
                 elif progress.job.identifier in data['jobs']['error']:
                     change_job_status(progress.job, JOB_STATUS[4][0])
                     if progress.job.identifier in data['job errors']:
