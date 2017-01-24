@@ -92,14 +92,7 @@ def _remove_artificial_edges(logger, error_trace):
     # with (removing first and last statements if so):
     #   ...
     #   ... func(...) ...;
-    # Skip global initialization that doesn't introduce any temporary variable or at least they don't fit pattern above.
-    first_entry_point_edge = None
-    for edge in error_trace.trace_iterator():
-        if 'assumption' in edge:
-            first_entry_point_edge = edge
-            break
-
-    removed_tmp_vars_num = _remove_tmp_vars(error_trace, first_entry_point_edge)[0]
+    removed_tmp_vars_num = _remove_tmp_vars(error_trace, next(error_trace.trace_iterator()))[0]
 
     if removed_tmp_vars_num:
         logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
