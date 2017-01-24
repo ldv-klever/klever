@@ -26,8 +26,20 @@
                         {% endif %}
                     </td>
                     <td>{{ d.enter|date:'d.m.y H:i:s.u' }}</td>
-                    <td>{{ d.wait1.0 }} {% trans 's' %}</td>
-                    <td>{{ d.wait2.0 }} {% trans 's' %}</td>
+                    <td>
+                        {% if d.wait1.0 == 0 %}
+                            <span>-</span>
+                        {% else %}
+                            <span{% if d.wait1.1 %} style="color: red"{% endif %}>{{ d.wait1.0|floatformat:1 }} {% trans 's' %}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.wait2.0 == 0 %}
+                            <span>-</span>
+                        {% else %}
+                            <span{% if d.wait2.1 %} style="color: red"{% endif %}>{{ d.wait2.0|floatformat:1 }} {% trans 's' %}</span>
+                        {% endif %}
+                    </td>
                     <td>{{ d.exec|date:'H:i:s.u' }}</td>
                     <td>{{ d.exec_time }} {% trans 's' %}</td>
                     <td>{{ d.return|date:'H:i:s.u' }}</td>

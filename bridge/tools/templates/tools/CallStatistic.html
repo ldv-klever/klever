@@ -16,7 +16,7 @@
                 <tr>
                     <td>{{ d.name }}</td>
                     <td>{{ d.exec|floatformat:4 }} {% trans 's' %}</td>
-                    <td>{{ d.waiting }} {% trans 's' %}</td>
+                    <td>{{ d.waiting|floatformat:1 }} {% trans 's' %}</td>
                     <td>{{ d.calls }}</td>
                     <td>{{ d.failed }}</td>
                 </tr>

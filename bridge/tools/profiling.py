@@ -35,7 +35,7 @@ class ExecLocker:
         self.names = self.__get_affected_models(groups)
         self.lock_ids = set()
         # wait1 and wait2
-        self.waiting_time = [0.0, 0.0]
+        self.waiting_time = [0, 0]
 
     def lock(self):
         # Lock with file while we locking with DB table
