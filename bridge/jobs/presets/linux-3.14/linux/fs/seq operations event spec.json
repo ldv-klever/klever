@@ -101,7 +101,7 @@
         "actions": {
           "start_step": {
             "comment": "Start sequence or do nothing.",
-            "process": "[start].(<start_success>.{next_step} | <start_failed>.(deregister))"
+            "process": "[start].(<start_success>.{next_step} | <start_failed>.[stop].(deregister))"
           },
           "next_step": {
             "comment": "Continue iteration over kernel items.",

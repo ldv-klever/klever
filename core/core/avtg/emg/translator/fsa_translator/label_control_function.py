@@ -465,7 +465,11 @@ def __label_sequence(automaton, initial_state, ret_expression):
         state = state_stack.pop()
         processed_states.add(state.identifier)
 
-        new_v_code, new_f_code = state.code
+        # Get statements
+        v, f = state.code
+        new_v_code = list(v)
+        new_f_code = list(f)
+
         v_code.extend(new_v_code)
         if type(state.action) is Subprocess:
             new_f_code.extend([
