@@ -662,6 +662,7 @@ def decide_job(request):
     try:
         job = Job.objects.get(pk=int(request.session['job id']), format=int(request.POST['job format']))
     except ObjectDoesNotExist:
+        print(request.session['job id'])
         return JsonResponse({'error': 'The job was not found'})
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})

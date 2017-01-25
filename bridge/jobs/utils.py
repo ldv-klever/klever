@@ -663,10 +663,8 @@ class GetFilesComparison(object):
 
 
 def change_job_status(job, status):
-    if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
+    if not isinstance(job, Job) or status not in set(x[0] for x in JOB_STATUS):
         return
-    if status in [JOB_STATUS[3], JOB_STATUS[4]]:
-        ReportComponent.objects.filter(root__job=job, finish_date=None).update(finish_date=now())
     job.status = status
     job.save()
     try:
