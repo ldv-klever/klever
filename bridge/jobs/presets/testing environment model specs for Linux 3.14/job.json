@@ -307,6 +307,37 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/proto",
+        "modules": [
+          "family_and_proto_callbacks.ko",
+          "pppox_and_proto_callbacks.ko",
+          "pppox_proto_invoke.ko",
+          "proto_family_invoke.ko",
+          "proto_invoke.ko",
+          "register_pppox_proto.ko",
+          "sock_register.ko",
+          "sock_unregister.ko",
+          "unregister_pppox_proto.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/proto_family_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/pppox_proto_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/proto_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/rtc_class_ops",
         "modules": [
           "rtc_device_register.ko",

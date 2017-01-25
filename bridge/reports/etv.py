@@ -408,6 +408,8 @@ class ParseErrorTrace:
         return code
 
     def __parse_code(self, code):
+        if len(code) > 512:
+            return '<span style="color: red;">The line is too long to visualize</span>'
         m = re.match('^(.*?)(<span.*?</span>)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (

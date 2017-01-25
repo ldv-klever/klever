@@ -650,32 +650,37 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 implementation = automaton.process.get_implementation(access)
 
                 if implementation and self._analysis.callback_name(implementation.value):
+                    # Eplicit callback call by found function name
                     invoke = '(' + implementation.value + ')'
                     file = implementation.file
                     check = False
                     func_variable = access.access_with_variable(automaton.determine_variable(access.label,
                                                                                         access.list_interface[0].
                                                                                         identifier))
-                elif signature.clean_declaration and not isinstance(implementation, bool):
-                    invoke = access.access_with_variable(automaton.determine_variable(access.label,
-                                                                                 access.list_interface[0].
-                                                                                 identifier))
+                elif signature.clean_declaration and not isinstance(implementation, bool) and\
+                        get_necessary_conf_property(self._conf, 'implicit callback calls'):
+                    # Call by pointer
+                    invoke = access.access_with_variable(
+                        automaton.determine_variable(access.label, access.list_interface[0].identifier))
                     check = True
                     file = self._cmodel.entry_file
                     func_variable = invoke
                 else:
+                    # Avoid call if neither implementation and pointer call are known
                     invoke = None
             else:
                 signature = access.label.prior_signature
 
                 func_variable = automaton.determine_variable(access.label)
                 if access.label.value and self._analysis.callback_name(access.label.value):
+                    # Call function provided by an explicit name but with no interface
                     invoke = self._analysis.callback_name(access.label.value)
                     func_variable = func_variable.name
                     file = self._analysis.determine_original_file(access.label.value)
                     check = False
                 else:
-                    if func_variable:
+                    if func_variable and get_necessary_conf_property(self._conf, 'implicit callback calls'):
+                        # Call if label(variable) is provided but with no explicit value
                         invoke = access.access_with_variable(func_variable)
                         func_variable = func_variable.name
                         file = self._cmodel.entry_file

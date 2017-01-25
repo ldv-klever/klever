@@ -45,6 +45,7 @@
             },
             "translation options": {
               "dump automata graphs": false,
+              "implicit callback calls": true,
               "direct control functions calls": true,
               "nested automata": true,
               "no actions composition": ["Condition"],
