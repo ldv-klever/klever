@@ -797,10 +797,7 @@ class TableTree(object):
             )
 
     def __collect_verdicts(self):
-        for root in ReportRoot.objects.filter(job_id__in=self._job_ids, job__light=True).values('job', 'safes'):
-            self._values_data[root['job']]['safe:total'] = root['safes']
-        for verdict in Verdict.objects\
-                .filter(report__root__job_id__in=self._job_ids, report__parent=None, report__root__job__light=False)\
+        for verdict in Verdict.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             self._values_data[verdict.job_id].update({
                 'unsafe:total': (
@@ -860,6 +857,8 @@ class TableTree(object):
                     reverse('reports:list', args=[verdict.report_id, 'unknowns'])
                 )
             })
+        for root in ReportRoot.objects.filter(job_id__in=self._job_ids, job__light=True).values('job', 'safes'):
+            self._values_data[root['job']]['safe:total'] = root['safes']
 
     def __collect_roles(self):
         user_role = self._user.extended.role
