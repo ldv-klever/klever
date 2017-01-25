@@ -32,6 +32,9 @@ int __init my_init(void)
 
 	wait_for_completion(x2);
 
+	DECLARE_COMPLETION_ONSTACK(useless);
+	wait_for_completion(&useless);
+
 	return 0;
 }
 
