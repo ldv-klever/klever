@@ -15,6 +15,12 @@
  * limitations under the License.
  */
 
+around: define(DEFINE_IDR(x))
+{
+struct idr x;
+idr_init(&x)
+}
+
 info: call(void idr_init(struct idr *))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
