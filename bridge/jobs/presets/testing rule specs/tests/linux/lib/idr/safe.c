@@ -43,6 +43,9 @@ int __init my_init(void)
 	idr_remove(idp2, end);
 	idr_destroy(idp2);
 
+	DEFINE_IDR(useless);
+	idr_destroy(&useless);
+
 	return 0;
 }
 
