@@ -93,7 +93,7 @@ def get_view(user, view=None, view_id=None):
     elif view_id == 'default':
         return JOB_DEF_VIEW, 'default'
     else:
-        user_view = user.view_set.filter(pk=int(view_id), type='1').select_related('view').first()
+        user_view = user.view_set.filter(pk=int(view_id), type='1').first()
         if user_view:
             return json.loads(user_view.view), user_view.pk
     return JOB_DEF_VIEW, 'default'
