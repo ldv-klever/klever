@@ -28,7 +28,17 @@ around: call(void usb_free_urb(struct urb *urb))
 	ldv_usb_free_urb(urb);
 }
 
+around: define(usb_put_urb(urb))
+{
+	ldv_usb_free_urb(urb);
+}
+
 around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
+{
+	return ldv_usb_alloc_urb();
+}
+
+around: call(struct urb *usb_get_urb(struct urb *urb))
 {
 	return ldv_usb_alloc_urb();
 }
