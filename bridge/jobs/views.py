@@ -610,7 +610,6 @@ def check_access(request):
 
 
 @login_required
-@unparallel_group([Job])
 @print_exec_time
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
