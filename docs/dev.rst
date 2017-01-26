@@ -135,8 +135,8 @@ Configuring the Python interpreter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. :menuselection:`File --> Settings --> Project: Bridge --> Project Interpreter --> Settings --> More..`.
-#. Select Python 3.4.x from the list and press :kbd:`Enter`.
-#. Input *Python 3.4* in field :guilabel:`name`.
+#. Select Python 3.4 or higher from the list and press :kbd:`Enter`.
+#. Input *Python 3* in field :guilabel:`name`.
 #. :menuselection:`OK`.
 #. Ditto for *core*, *docs* and *scheduler*.
 
