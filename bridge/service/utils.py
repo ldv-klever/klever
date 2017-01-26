@@ -338,7 +338,7 @@ class GetTasks:
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
-                        change_job_status(progress.job, JOB_STATUS[7][0])
+                        change_job_status(progress.job, JOB_STATUS[5][0])
                     elif progress.job.weight == JOB_WEIGHT[0][0] and ReportUnknown.objects\
                             .filter(parent__parent=None, root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
