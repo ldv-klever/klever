@@ -935,10 +935,13 @@ $(document).ready(function () {
         );
     });
     $('#collapse_reports_btn').click(function () {
+        $('#collapse_reports_modal').modal('hide');
+        $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'collapse_reports/',
             {job_id: $('#job_pk').val()},
             function (data) {
+                $('#dimmer_of_page').removeClass('active');
                 data.error ? err_notify(data.error) : window.location.replace('');
             }
         );

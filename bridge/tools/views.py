@@ -20,7 +20,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
-from bridge.vars import USER_ROLES
+from bridge.vars import USER_ROLES, JOB_WEIGHT
 from bridge.utils import unparallel_group
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
@@ -34,7 +34,7 @@ def manager_tools(request):
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all(),
-        'jobs': Job.objects.filter(light=False)
+        'jobs': Job.objects.filter(weight=JOB_WEIGHT[0][0]).exclude(reportroot=None)
     })
 
 

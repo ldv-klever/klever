@@ -95,6 +95,12 @@ JOB_STATUS = (
     ('6', _('Cancelled'))
 )
 
+JOB_WEIGHT = (
+    ('0', _('Full-weight')),
+    ('1', _('Medium-weight')),
+    ('2', _('Lightweight')),
+)
+
 # Default view of the table
 JOB_DEF_VIEW = {
     'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],

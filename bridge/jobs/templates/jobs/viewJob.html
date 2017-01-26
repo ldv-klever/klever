@@ -64,7 +64,7 @@
                 <thead>
                     <tr>
                         <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ job.name }}{% if job.light %} ({% trans 'light' %}){% endif %}</span>
+                            <span class="ui olive header">{{ job.name }}{% if job.weight != '0' %} ({{ job.get_weight_display|lower }}){% endif %}</span>
                         </th>
                     </tr>
                 </thead>

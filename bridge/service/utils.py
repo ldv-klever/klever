@@ -22,7 +22,7 @@ from django.core.files import File as NewFile
 from django.db.models import Q, F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
+from bridge.vars import JOB_STATUS, JOB_WEIGHT
 from bridge.utils import file_checksum
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
@@ -344,7 +344,8 @@ class GetTasks:
                     except ObjectDoesNotExist:
                         change_job_status(progress.job, JOB_STATUS[5][0])
                     else:
-                        if not progress.job.light and len(ReportUnknown.objects.filter(parent=root_report)) > 0:
+                        if progress.job.weight == JOB_WEIGHT[0][0] \
+                                and len(ReportUnknown.objects.filter(parent=root_report)) > 0:
                             change_job_status(progress.job, JOB_STATUS[4][0])
                         else:
                             change_job_status(progress.job, JOB_STATUS[3][0])
@@ -691,7 +692,7 @@ class StartJobDecision:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.light = self.data[4][6]
+        self.job.weight = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -719,7 +720,7 @@ class StartJobDecision:
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
-            'lightweightness': self.data[4][6],
+            'weight': self.data[4][6],
             'logging': {
                 'formatters': [
                     {

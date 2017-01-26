@@ -20,7 +20,7 @@ from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.vars import ATTR_STATISTIC
+from bridge.vars import ATTR_STATISTIC, JOB_WEIGHT
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from reports.models import *
@@ -248,7 +248,7 @@ class Recalculation(object):
 
     def __get_jobs(self, job_ids):
         if job_ids is None:
-            return Job.objects.filter(light=False)
+            return Job.objects.filter(weight=JOB_WEIGHT[0][0])
         jobs = []
         try:
             job_ids = json.loads(job_ids)
@@ -258,8 +258,7 @@ class Recalculation(object):
         for j_id in job_ids:
             try:
                 job = Job.objects.get(pk=int(j_id))
-                if not job.light:
-                    jobs.append(job)
+                jobs.append(job)
             except ObjectDoesNotExist:
                 self.error = _('One of the selected jobs was not found')
                 return None

@@ -19,7 +19,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS
+from bridge.vars import FORMAT, JOB_CLASSES, JOB_ROLES, JOB_STATUS, JOB_WEIGHT
 
 JOBFILE_DIR = 'Job'
 
@@ -61,7 +61,7 @@ class Job(JobBase):
     identifier = models.CharField(max_length=255, unique=True, db_index=True)
     parent = models.ForeignKey('self', null=True, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
-    light = models.BooleanField(default=False)
+    weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
 
     def __str__(self):
         return self.name

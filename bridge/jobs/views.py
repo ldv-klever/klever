@@ -615,6 +615,9 @@ def check_access(request):
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
+    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
+        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
+                                        "Please wait until it will be finished.")})
     if len(parent_id) == 0:
         return JsonResponse({'error': str(_("The parent identifier was not got"))})
     parents = Job.objects.filter(identifier__startswith=parent_id)
@@ -632,14 +635,24 @@ def upload_job(request, parent_id=None):
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
         # TODO: ensure that tempdir is deleted after job is uploaded (on Linux)
-        zipdata = UploadJob(parent, request.user, job_dir.name)
-        if zipdata.err_message is not None:
+        try:
+            zipdata = UploadJob(parent, request.user, job_dir.name)
+        except Exception as e:
+            logger.exception(e)
             errors.append(
                 _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': f.name,
-                    'message': str(zipdata.err_message)
+                    'message': _('The job archive is corrupted')
                 }
             )
+        else:
+            if zipdata.err_message is not None:
+                errors.append(
+                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                        'arcname': f.name,
+                        'message': str(zipdata.err_message)
+                    }
+                )
     if len(errors) > 0:
         return JsonResponse({'errors': list(str(x) for x in errors)})
     return JsonResponse({})
