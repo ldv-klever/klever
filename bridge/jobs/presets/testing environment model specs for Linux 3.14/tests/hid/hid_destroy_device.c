@@ -16,26 +16,49 @@
  */
 
 #include <linux/module.h>
-#include <linux/completion.h>
+#include <linux/hid.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-int __init my_init(void)
+int ldv_start(struct hid_device *hdev)
 {
-	struct completion *x;
-	struct completion *x2;
-	DECLARE_COMPLETION_ONSTACK(useless);
-
-	init_completion(x);
-	init_completion(x2);
-	wait_for_completion(x);
-
-	init_completion(x);
-	wait_for_completion(x);
-
-	wait_for_completion(x2);
-
-	wait_for_completion(&useless);
-
+	ldv_invoke_callback();
 	return 0;
 }
 
-module_init(my_init);
+void ldv_hid_stop(struct hid_device *hdev)
+{
+	ldv_invoke_callback();
+}
+
+struct hid_ll_driver ldv_driver = {
+	.start = ldv_start,
+	.stop = ldv_hid_stop
+};
+
+struct hid_device ldvdev = {
+    .ll_driver = & ldv_driver
+};
+
+static int __init ldv_init(void)
+{
+	int flip_a_coin;
+
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		if (!hid_add_device(&ldvdev)) {
+			hid_destroy_device(&ldvdev);
+			ldv_deregister();
+		}
+	}
+	return 0;
+}
+
+static void __exit ldv_exit(void)
+{
+	/* pass */
+}
+
+module_init(ldv_init);
+module_exit(ldv_exit);

@@ -29,6 +29,10 @@
         "ideal verdict": "safe",
         "verification object": "ext-modules/safe.ko"
       },
+      {
+        "ideal verdict": "safe",
+        "verification object": "ext-modules/safe-2.ko"
+      },
       {"ideal verdict": "unsafe"}
     ]
   },
@@ -301,6 +305,14 @@
           "safe.ko",
           "wait-without-init.ko"
         ]
+      },
+      "rule specifications": ["linux:kernel:sched:completion"]
+    },
+    {
+      "Linux kernel": {
+        "config file": "configs/no-lockdep",
+        "external modules": "tests/linux/kernel/sched/completion",
+        "modules": ["safe-2.ko"]
       },
       "rule specifications": ["linux:kernel:sched:completion"]
     },
