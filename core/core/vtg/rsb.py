@@ -331,7 +331,7 @@ class RSB(core.components.Component):
                 'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
                     log_files))
 
-        self.log_file = None if self.logger.disabled else log_files[0]
+        self.log_file = log_files[0]
 
         core.utils.report(self.logger,
                           'verification',
@@ -343,8 +343,8 @@ class RSB(core.components.Component):
                               'attrs': [],
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
-                              'log': self.log_file,
-                              'files': ([self.log_file] if self.log_file else []) + (
+                              'log': None if self.logger.disabled else self.log_file,
+                              'files': ([] if self.logger.disabled else [self.log_file]) + (
                                   (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
                                   [self.task_desc['property file']] + self.task_desc['files']
                                   if self.conf['upload input files of static verifiers']

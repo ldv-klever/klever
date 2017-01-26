@@ -15,30 +15,40 @@
  * limitations under the License.
  */
 
-before: file ("$this")
-{
-struct urb;
+#include <linux/module.h>
+#include <linux/hid.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-extern struct urb *ldv_usb_alloc_urb(void);
-extern void ldv_usb_free_urb(struct urb *urb);
+int ldv_start(struct hid_device *hdev)
+{
+	ldv_invoke_reached();
+	return 0;
 }
 
-around: call(void usb_free_urb(struct urb *urb))
+void ldv_hid_stop(struct hid_device *hdev)
 {
-	ldv_usb_free_urb(urb);
+	ldv_invoke_reached();
 }
 
-around: define(usb_put_urb(urb))
+struct hid_ll_driver ldv_driver = {
+	.start = ldv_start,
+	.stop = ldv_hid_stop
+};
+
+struct hid_device ldvdev = {
+    .ll_driver = & ldv_driver
+};
+
+static int __init ldv_init(void)
 {
-	ldv_usb_free_urb(urb);
+	return hid_add_device(&ldvdev);
 }
 
-around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
+static void __exit ldv_exit(void)
 {
-	return ldv_usb_alloc_urb();
+	hid_destroy_device(&ldvdev);
 }
 
-around: call(struct urb *usb_get_urb(struct urb *urb))
-{
-	return ldv_usb_alloc_urb();
-}
+module_init(ldv_init);
+module_exit(ldv_exit);

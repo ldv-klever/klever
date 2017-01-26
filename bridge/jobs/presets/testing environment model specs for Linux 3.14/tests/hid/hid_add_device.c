@@ -15,29 +15,50 @@
  * limitations under the License.
  */
 
-#include <linux/kernel.h>
 #include <linux/module.h>
-#include <linux/usb.h>
-#include <linux/types.h>
+#include <linux/hid.h>
+#include <linux/emg/test_model.h>
+#include <verifier/nondet.h>
 
-static int __init init(void)
+int flip_a_coin;
+
+int ldv_start(struct hid_device *hdev)
 {
-	struct urb *tmp_1;
-	struct urb *tmp_2;
-	struct urb *tmp_3;
-	int iso_packets;
-	gfp_t mem_flags;
-
-	tmp_1 = usb_alloc_urb(iso_packets, mem_flags);
-	tmp_2 = usb_alloc_urb(iso_packets, mem_flags);
-
-	usb_free_urb(tmp_1);
-	usb_free_urb(tmp_2);
-
-	tmp_3 = usb_get_urb(tmp_3);
-	usb_put_urb(tmp_3);
-
+	ldv_invoke_callback();
 	return 0;
 }
 
-module_init(init);
+void ldv_hid_stop(struct hid_device *hdev)
+{
+	ldv_invoke_callback();
+}
+
+struct hid_ll_driver ldv_driver = {
+	.start = ldv_start,
+	.stop = ldv_hid_stop
+};
+
+struct hid_device ldvdev = {
+    .ll_driver = & ldv_driver
+};
+
+static int __init ldv_init(void)
+{
+	flip_a_coin = ldv_undef_int();
+	if (flip_a_coin) {
+		ldv_register();
+		return hid_add_device(&ldvdev);
+	}
+	return 0;
+}
+
+static void __exit ldv_exit(void)
+{
+	if (flip_a_coin) {
+		hid_destroy_device(&ldvdev);
+		ldv_deregister();
+	}
+}
+
+module_init(ldv_init);
+module_exit(ldv_exit);

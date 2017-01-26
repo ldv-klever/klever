@@ -142,8 +142,9 @@ def _remove_tmp_vars(error_trace, edge):
         # since functions can be without bodies and thus without enter-return edges.
         func_call_edge = edge
 
-        # Recursively get rid of temporary variables inside called function.
-        if 'enter' in edge:
+        # Recursively get rid of temporary variables inside called function if there are some edges belonging to that
+        # function.
+        if 'enter' in edge and error_trace.next_edge(func_call_edge):
             removed_tmp_vars_num_tmp, next_edge = _remove_tmp_vars(error_trace, func_call_edge)
             removed_tmp_vars_num += removed_tmp_vars_num_tmp
 
