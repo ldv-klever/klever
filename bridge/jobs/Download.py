@@ -263,8 +263,10 @@ class ReportsData(object):
         }
         if isinstance(report, ReportSafe):
             data['proof'] = report.proof
+            data['verifier_time'] = report.verifier_time
         elif isinstance(report, ReportUnsafe):
             data['error_trace'] = report.error_trace
+            data['verifier_time'] = report.verifier_time
         elif isinstance(report, ReportUnknown):
             data['problem_description'] = report.problem_description
             data['component'] = report.component.name
@@ -596,7 +598,7 @@ class UploadReports:
         for i in self._safes:
             report = ReportSafe(
                 root=self.job.reportroot, identifier=self.data[i]['identifier'],
-                parent_id=self._parents[self.data[i]['parent']]
+                parent_id=self._parents[self.data[i]['parent']], verifier_time=self.data[i]['verifier_time']
             )
             if (ReportSafe.__name__, self.data[i]['pk']) in self.files:
                 with open(self.files[(ReportSafe.__name__, self.data[i]['pk'])], mode='rb') as fp:
@@ -609,7 +611,8 @@ class UploadReports:
         for i in self._unsafes:
             report = ReportUnsafe(
                 root=self.job.reportroot, identifier=self.data[i]['identifier'],
-                parent_id=self._parents[self.data[i]['parent']], error_trace=self.data[i]['error_trace']
+                parent_id=self._parents[self.data[i]['parent']], error_trace=self.data[i]['error_trace'],
+                verifier_time=self.data[i]['verifier_time']
             )
             with open(self.files[(ReportUnsafe.__name__, self.data[i]['pk'])], mode='rb') as fp:
                 report.new_archive(REPORT_FILES_ARCHIVE, fp)
@@ -651,3 +654,16 @@ class UploadReports:
             self._tree.append(set())
         self._tree[lvl].add(self.data[i]['identifier'])
         self._indexes[self.data[i]['identifier']] = i
+
+
+def update_identifier(job_id):
+    from bridge.utils import unique_id
+    job = Job.objects.get(id=job_id)
+    new_id = unique_id()
+    len_old = len(job.identifier)
+    job.identifier = new_id
+    job.save()
+    with transaction.atomic():
+        for r in Report.objects.filter(root__job=job):
+            r.identifier = job.identifier + r.identifier[len_old:]
+            r.save()
