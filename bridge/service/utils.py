@@ -26,7 +26,7 @@ from bridge.vars import JOB_STATUS, JOB_WEIGHT
 from bridge.utils import file_checksum
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
-from reports.models import ReportRoot, ReportUnknown, TaskStatistic
+from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
 from service.models import *
 
 
@@ -337,7 +337,9 @@ class GetTasks:
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
-                    if progress.job.weight == JOB_WEIGHT[0][0] and ReportUnknown.objects\
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[5][0])
+                    elif progress.job.weight == JOB_WEIGHT[0][0] and ReportUnknown.objects\
                             .filter(parent__parent=None, root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
