@@ -327,7 +327,7 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
+                    change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
@@ -338,14 +338,14 @@ class GetTasks:
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
-                        change_job_status(progress.job, JOB_STATUS[5][0])
+                        change_job_status(progress.job, JOB_STATUS[7][0])
                     elif progress.job.weight == JOB_WEIGHT[0][0] and ReportUnknown.objects\
                             .filter(parent__parent=None, root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
                         change_job_status(progress.job, JOB_STATUS[3][0])
                 elif progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
+                    change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
@@ -556,7 +556,7 @@ class SetSchedulersStatus:
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = 'Klever scheduler was disconnected'
-                change_job_status(progress.job, JOB_STATUS[5][0])
+                change_job_status(progress.job, JOB_STATUS[7][0])
             progress.save()
 
     def __is_not_used(self):

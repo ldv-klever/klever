@@ -170,7 +170,7 @@ class JobAccess(object):
                 return False
         if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
         return self.__is_author or self.__is_manager
 

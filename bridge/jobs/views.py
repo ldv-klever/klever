@@ -987,11 +987,8 @@ def download_files_for_compet(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_download():
+    if not JobAccess(request.user, job).can_dfc():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    if job.status in {x[0] for x in JOB_STATUS[:3]}:
-        logger.error("Files for competition can't be downloaded for undecided jobs")
-        return HttpResponseRedirect(reverse('error', args=[500]))
 
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]

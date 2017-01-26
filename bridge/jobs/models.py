@@ -60,7 +60,7 @@ class Job(JobBase):
     change_date = models.DateTimeField(auto_now=True)
     identifier = models.CharField(max_length=255, unique=True, db_index=True)
     parent = models.ForeignKey('self', null=True, related_name='children')
-    status = models.CharField(max_length=1, choices=JOB_STATUS, default='0')
+    status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
 
     def __str__(self):
