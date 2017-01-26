@@ -485,7 +485,7 @@ class CategoriesSpecification:
             interface = constructor(category_name, identifier, manually_specified=True)
             self._set_intf(interface)
         else:
-            raise ValueError('Interface {} is described twice'.format(identifier.identifier))
+            raise ValueError('Interface {} is described twice'.format(identifier))
 
         if "implemented in kernel" in desc:
             interface.implemented_in_kernel = desc["implemented in kernel"]
