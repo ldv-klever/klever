@@ -143,13 +143,7 @@ class JobArchiveGenerator:
                 os.path.join(settings.MEDIA_ROOT, rh.configuration.file.name),
                 os.path.join('Configurations', "%s.json" % rh.pk)
             ))
-            data.append({
-                'id': rh.pk, 'status': rh.status,
-                'date': [
-                    rh.date.year, rh.date.month, rh.date.day, rh.date.hour,
-                    rh.date.minute, rh.date.second, rh.date.microsecond
-                ]
-            })
+            data.append({'id': rh.pk, 'status': rh.status, 'date': rh.date.timestamp()})
         return data
 
     def __add_reports_files(self):
@@ -225,10 +219,6 @@ class ReportsData(object):
             self.reports = self.__reports_data()
 
     def __report_component_data(self, report):
-
-        def get_date(d):
-            return [d.year, d.month, d.day, d.hour, d.minute, d.second, d.microsecond] if d is not None else None
-
         data = None
         if report.data:
             with report.data as fp:
@@ -247,8 +237,8 @@ class ReportsData(object):
                 'wall_time': report.wall_time,
                 'memory': report.memory,
             } if all(x is not None for x in [report.cpu_time, report.wall_time, report.memory]) else None,
-            'start_date': get_date(report.start_date),
-            'finish_date': get_date(report.finish_date),
+            'start_date': report.start_date.timestamp(),
+            'finish_date': report.finish_date.timestamp() if report.finish_date is not None else None,
             'data': data,
             'attrs': [],
             'log': report.log
@@ -442,7 +432,7 @@ class UploadJob(object):
                 with open(run_history_files[rh['id']], mode='rb') as fp:
                     RunHistory.objects.create(
                         job=job, status=rh['status'],
-                        date=datetime(*rh['date'], tzinfo=pytz.timezone('UTC')),
+                        date=datetime.fromtimestamp(rh['date'], pytz.timezone('UTC')),
                         configuration=file_get_or_create(fp, 'config.json', JobFile)[0]
                     )
         except Exception as e:
@@ -578,8 +568,9 @@ class UploadReports:
                 parent_id=self._parents[self.data[i].get('parent')],
                 computer_id=self._computers[self.data[i]['computer']],
                 component_id=self.__get_component(self.data[i]['component']),
-                start_date=datetime(*self.data[i]['start_date'], tzinfo=pytz.timezone('UTC')),
-                finish_date=datetime(*self.data[i]['finish_date'], tzinfo=pytz.timezone('UTC')),
+                start_date=datetime.fromtimestamp(self.data[i]['start_date'], pytz.timezone('UTC')),
+                finish_date=datetime.fromtimestamp(self.data[i]['finish_date'], pytz.timezone('UTC'))
+                if self.data[i]['finish_date'] is not None else None,
                 log=self.data[i].get('log')
             )
             if self.data[i]['resource'] is not None:

@@ -23,7 +23,7 @@ from django.db.models import Q
 from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES, FORMAT
 from bridge.utils import KleverTestCase
 from reports.models import *
 
@@ -528,7 +528,7 @@ class TestReports(KleverTestCase):
 
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
-        }), 'job format': 1})
+        }), 'job format': FORMAT})
         self.assertEqual(response['Content-Type'], 'application/zip')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
@@ -760,7 +760,7 @@ class DecideJobs(object):
     def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'version-1'}], 'comp': COMPUTER
-        }), 'job format': 1})
+        }), 'job format': FORMAT})
 
         core_data = None
         job = Job.objects.get(identifier=job_identifier)

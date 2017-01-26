@@ -371,8 +371,6 @@ class UploadReport(object):
             self.__update_parent_resources(report)
 
         if self.data['id'] == '/':
-            if ReportComponent.objects.filter(finish_date=None, root=self.root).count() > 0:
-                raise ValueError('there are unfinished reports')
             KleverCoreFinishDecision(self.job)
             if self.job.weight != JOB_WEIGHT[0][0]:
                 self.__collapse_reports()

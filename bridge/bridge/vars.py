@@ -17,7 +17,7 @@
 
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
-FORMAT = 1
+FORMAT = 2
 
 DATAFORMAT = (
     ('raw', _('Raw')),
