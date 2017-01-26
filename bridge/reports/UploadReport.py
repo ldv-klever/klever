@@ -531,7 +531,11 @@ class UploadReport(object):
             ReportSafe.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
-            report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root)
+            if self.parent.cpu_time is None:
+                raise ValueError('safe parent need to be verification report and must have cpu_time')
+            report = ReportSafe.objects.create(
+                identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
+            )
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
