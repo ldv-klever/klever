@@ -489,7 +489,11 @@ class UploadReport(object):
             ReportSafe.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
-            report = ReportSafe(identifier=identifier, parent=self.parent, root=self.root)
+            if self.parent.cpu_time is None:
+                raise ValueError('safe parent need to be verification report and must have cpu_time')
+            report = ReportSafe(
+                identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
+            )
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
@@ -573,7 +577,7 @@ class UploadReport(object):
         ConnectReportWithMarks(report)
 
     def __create_light_safe_report(self, identifier):
-        report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root)
+        report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root, verifier_time=0)
         self.root.safes += 1
         self.root.save()
         self.__collect_attrs(report)
@@ -604,11 +608,13 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             if self.archive is None:
                 raise ValueError('unsafe report must contain archive with error trace and source code files')
+        if self.parent.cpu_time is None:
+            raise ValueError('unsafe parent need to be verification report and must have cpu_time')
         report = ReportUnsafe(
-            identifier=identifier, parent=self.parent, root=self.root, error_trace=self.data['error trace']
+            identifier=identifier, parent=self.parent, root=self.root,
+            error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
-        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-        report.save()
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
 
         self.__collect_attrs(report)
         self.ordered_attrs += save_attrs(report, self.data['attrs'])
@@ -640,11 +646,13 @@ class UploadReport(object):
         except ObjectDoesNotExist:
             if self.archive is None:
                 raise ValueError('unsafe report must contain archive with error trace and source code files')
+        if self.parent.cpu_time is None:
+            raise ValueError('unsafe parent need to be verification report and must have cpu_time')
         report = ReportUnsafe.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root, error_trace=self.data['error trace']
+            identifier=identifier, parent=self.parent, root=self.root,
+            error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
-        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-        report.save()
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
 
         # Each verification report must have only one unsafe child
         # In other cases unsafe reports will be without attributes

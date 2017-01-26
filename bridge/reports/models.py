@@ -137,6 +137,7 @@ class ReportUnsafe(Report):
     archive = models.FileField(upload_to='Unsafes/%Y/%m')
     error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
+    verifier_time = models.BigIntegerField()
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
@@ -155,6 +156,7 @@ class ReportSafe(Report):
     archive = models.FileField(upload_to='Safes/%Y/%m', null=True)
     proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
+    verifier_time = models.BigIntegerField()
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)

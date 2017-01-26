@@ -273,6 +273,7 @@ class ReportTable(object):
                 'marks_number': leaf.marks_number,
                 'verdict': leaf.safe.verdict,
                 'parent_id': leaf.safe.parent_id,
+                'parent_cpu': leaf.safe.verifier_time,
                 'tags': []
             }
         for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).order_by('tag__tag').select_related('tag'):
@@ -300,10 +301,6 @@ class ReportTable(object):
             reports_ordered = sorted(reports_ordered)
         if 'order' in self.view and self.view['order'][1] == 'up':
             reports_ordered = list(reversed(reports_ordered))
-
-        parent_cpus = {}
-        for rc in ReportComponent.objects.filter(id__in=list(reports[r_id]['parent_id'] for r_id in reports_ordered)):
-            parent_cpus[rc.id] = rc.cpu_time
 
         cnt = 1
         values_data = []
@@ -333,7 +330,7 @@ class ReportTable(object):
                     if len(reports[rep_id]['tags']) > 0:
                         val = '; '.join(reports[rep_id]['tags'])
                 elif col == 'parent_cpu':
-                    val = get_user_time(self.user, parent_cpus[reports[rep_id]['parent_id']])
+                    val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
                 values_row.append({
                     'value': val,
                     'color': color,
@@ -372,6 +369,7 @@ class ReportTable(object):
                 'marks_number': leaf.marks_number,
                 'verdict': leaf.unsafe.verdict,
                 'parent_id': leaf.unsafe.parent_id,
+                'parent_cpu': leaf.unsafe.verifier_time,
                 'tags': []
             }
         for srt in UnsafeReportTag.objects.filter(report_id__in=list(reports))\
@@ -401,10 +399,6 @@ class ReportTable(object):
         if 'order' in self.view and self.view['order'][1] == 'up':
             reports_ordered = list(reversed(reports_ordered))
 
-        parent_cpus = {}
-        for rc in ReportComponent.objects.filter(id__in=list(reports[r_id]['parent_id'] for r_id in reports_ordered)):
-            parent_cpus[rc.id] = rc.cpu_time
-
         cnt = 1
         values_data = []
         for rep_id in reports_ordered:
@@ -433,11 +427,7 @@ class ReportTable(object):
                     if len(reports[rep_id]['tags']) > 0:
                         val = '; '.join(reports[rep_id]['tags'])
                 elif col == 'parent_cpu':
-                    parent_cpu = parent_cpus[reports[rep_id]['parent_id']]
-                    if parent_cpu is None:
-                        val = '-'
-                    else:
-                        val = get_user_time(self.user, parent_cpu)
+                    val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
                 values_row.append({
                     'value': val,
                     'color': color,
