@@ -464,7 +464,6 @@
       }},
       "RSG": {"models": {"$linux/lib/idr.c": {
           "bug kinds": [
-            "linux:lib:idr::double init",
             "linux:lib:idr::not initialized",
             "linux:lib:idr::destroyed before usage",
             "linux:lib:idr::more at exit"

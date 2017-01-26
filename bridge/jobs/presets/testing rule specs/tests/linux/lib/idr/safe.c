@@ -26,6 +26,7 @@ int __init my_init(void)
 	gfp_t gfp_mask;
 
 	idr_init(idp);
+	idr_init(idp);
 	idr_init(idp2);
 	idr_alloc(idp, ptr, start, end, gfp_mask);
 	found = idr_find(idp, end);

@@ -20,7 +20,7 @@
 
 enum
 {
-	LDV_NOT_INITIALIZED,
+	LDV_NOT_INITIALIZED, // TODO: add static inits
 	LDV_INITIALIZED,
 	LDV_CHANGED,
 	LDV_DESTROYED
@@ -33,8 +33,6 @@ static int ldv_idr{{ arg_sign.id }} = LDV_NOT_INITIALIZED;
 /* MODEL_FUNC Init IDR. */
 void ldv_idr_init{{ arg_sign.id }}(void)
 {
-	/* ASSERT If IDR not initialized it can be initialized */
-	ldv_assert("linux:lib:idr::double init", ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED);
 	/* NOTE Initialize state{{ arg_sign.id }} */
 	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
 }
@@ -85,11 +83,20 @@ void ldv_idr_destroy{{ arg_sign.id }}(void)
 
 // endfor
 
+/* MODEL_FUNC Static init. */
+void ldv_initialize(void)
+{
+	// for arg_sign in idr_arg_signs
+	/* NOTE Make IDR declared at the beginning*/
+	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
+	// endfor
+}
+
 /* MODEL_FUNC Check that all module reference counters have their end values at the end */
 void ldv_check_final_state(void)
 {
 	// for arg_sign in idr_arg_signs
 	/* ASSERT Check if {{ arg_sign.text }} is destroyed or not changed */
-	ldv_assert("linux:lib:idr::more at exit", ldv_idr{{ arg_sign.id }} == LDV_NOT_INITIALIZED || ldv_idr{{ arg_sign.id }} == LDV_DESTROYED);
+	ldv_assert("linux:lib:idr::more at exit", ldv_idr{{ arg_sign.id }} != LDV_CHANGED);
 	// endfor
 }

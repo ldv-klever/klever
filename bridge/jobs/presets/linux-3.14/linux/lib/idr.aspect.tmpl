@@ -28,12 +28,6 @@ extern void ldv_idr_destroy{{ arg_sign.id }}(void);
 // endfor
 }
 
-around: define(DEFINE_IDR(x))
-{
-struct idr x;
-idr_init(&x)
-}
-
 around: call(void idr_init(struct idr *))
 {
 	ldv_idr_init{{ idr_arg_sign_patterns[1] }}();

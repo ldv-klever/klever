@@ -346,7 +346,6 @@
         "modules": [
           "safe.ko",
           "destroy-before-usage.ko",
-          "double-init.ko",
           "more-at-exit.ko",
           "not-initialized.ko"
         ]

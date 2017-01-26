@@ -21,8 +21,12 @@
 int __init my_init(void)
 {
 	struct idr *idp;
+	void *ptr;
+	int start, end;
+	gfp_t gfp_mask;
 
 	idr_init(idp);
+	idr_alloc(idp, ptr, start, end, gfp_mask);
 
 	return 0;
 }
