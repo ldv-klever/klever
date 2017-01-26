@@ -22,7 +22,7 @@ from django.db.models import Q
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT
 from marks.utils import ConnectReportWithMarks
 from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
-from reports.utils import save_attrs
+from reports.utils import AttrData
 from reports.models import *
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
@@ -273,7 +273,7 @@ class UploadReport(object):
         report.save()
 
         if 'attrs' in self.data:
-            self.ordered_attrs = save_attrs(report, self.data['attrs'])
+            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
 
         if 'resources' in self.data:
             if self.job.weight == JOB_WEIGHT[0][0]:
@@ -284,7 +284,7 @@ class UploadReport(object):
     def __update_attrs(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
-            self.ordered_attrs = save_attrs(report, self.data['attrs'])
+            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
 
@@ -364,7 +364,7 @@ class UploadReport(object):
             report.save()
 
         if 'attrs' in self.data:
-            self.ordered_attrs = save_attrs(report, self.data['attrs'])
+            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
         if self.job.weight != JOB_WEIGHT[0][0]:
             self.__update_light_resources(report)
         else:
@@ -407,22 +407,16 @@ class UploadReport(object):
 
         self.__collect_attrs(report)
         if 'attrs' in self.data:
-            self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+            self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         for p in self._parents_branch:
             verdict = Verdict.objects.get_or_create(report=p)[0]
             verdict.unknown += 1
             verdict.save()
 
-            for a in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(
-                    report=p, name=attr_names[a], attr_id=report_attrs[a]
-                )[0]
+            for ra in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
                 attr_stat.unknowns += 1
                 attr_stat.save()
 
@@ -449,12 +443,8 @@ class UploadReport(object):
 
         self.__collect_attrs(report)
         if 'attrs' in self.data:
-            self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+            self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         report.parent = ReportComponent.objects.get(parent=None, root=self.root)
         report.save()
@@ -463,10 +453,8 @@ class UploadReport(object):
         verdict.unknown += 1
         verdict.save()
 
-        for a in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(
-                report=report.parent, name=attr_names[a], attr_id=report_attrs[a]
-            )[0]
+        for ra in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(report=report.parent, name_id=ra[0], attr_id=ra[1])[0]
             attr_stat.unknowns += 1
             attr_stat.save()
 
@@ -501,12 +489,8 @@ class UploadReport(object):
         self.root.save()
 
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         for p in self._parents_branch:
             verdict = Verdict.objects.get_or_create(report=p)[0]
@@ -514,10 +498,8 @@ class UploadReport(object):
             verdict.safe_unassociated += 1
             verdict.save()
 
-            for a in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(
-                    report=p, name=attr_names[a], attr_id=report_attrs[a]
-                )[0]
+            for ra in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
                 attr_stat.safes += 1
                 attr_stat.save()
 
@@ -543,12 +525,8 @@ class UploadReport(object):
         self.root.save()
 
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         if not self.parent.archive:
@@ -568,10 +546,8 @@ class UploadReport(object):
         verdict.safe_unassociated += 1
         verdict.save()
 
-        for a in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(
-                report=root_report, name=attr_names[a], attr_id=report_attrs[a]
-            )[0]
+        for ra in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
             attr_stat.safes += 1
             attr_stat.save()
 
@@ -583,18 +559,11 @@ class UploadReport(object):
         self.root.safes += 1
         self.root.save()
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
-
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        for a in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(
-                report=root_report, name=attr_names[a], attr_id=report_attrs[a]
-            )[0]
+        for ra in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
             attr_stat.safes += 1
             attr_stat.save()
 
@@ -619,11 +588,8 @@ class UploadReport(object):
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
 
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
+        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         for p in self._parents_branch:
             verdict = Verdict.objects.get_or_create(report=p)[0]
@@ -631,10 +597,8 @@ class UploadReport(object):
             verdict.unsafe_unassociated += 1
             verdict.save()
 
-            for a in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(
-                    report=p, name=attr_names[a], attr_id=report_attrs[a]
-                )[0]
+            for ra in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
                 attr_stat.unsafes += 1
                 attr_stat.save()
 
@@ -659,12 +623,8 @@ class UploadReport(object):
         # Each verification report must have only one unsafe child
         # In other cases unsafe reports will be without attributes
         self.__collect_attrs(report)
-        self.ordered_attrs += save_attrs(report, self.data['attrs'])
-
+        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
         report_attrs = self.__get_attrs(report)
-        names_in_db = set(a.name for a in AttrName.objects.filter(name__in=list(report_attrs)))
-        AttrName.objects.bulk_create(list(AttrName(name=a) for a in set(report_attrs) - names_in_db))
-        attr_names = dict((a.name, a) for a in AttrName.objects.filter(name__in=list(report_attrs)))
 
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         if not self.parent.archive:
@@ -684,10 +644,8 @@ class UploadReport(object):
         verdict.unsafe_unassociated += 1
         verdict.save()
 
-        for a in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(
-                report=root_report, name=attr_names[a], attr_id=report_attrs[a]
-            )[0]
+        for ra in report_attrs:
+            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
             attr_stat.unsafes += 1
             attr_stat.save()
 
@@ -758,13 +716,11 @@ class UploadReport(object):
         ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
 
     def __get_attrs(self, report):
-        report_attrs = {}
+        report_attrs = []
         if self.job.type in ATTR_STATISTIC:
-            report_attr_names = {}
-            for a in ReportAttr.objects.filter(report=report).values('attr__name__name', 'attr_id'):
-                report_attr_names[a['attr__name__name']] = a['attr_id']
-            for a_name in ATTR_STATISTIC[self.job.type]:
-                report_attrs[a_name] = report_attr_names.get(a_name)
+            for a in ReportAttr.objects.filter(report=report).values('attr__name__name', 'attr__name_id', 'attr_id'):
+                if a['attr__name__name'] in ATTR_STATISTIC[self.job.type]:
+                    report_attrs.append((a['attr__name_id'], a['attr_id']))
         return report_attrs
 
     def __save_total_tasks_number(self, tnums):
@@ -776,6 +732,33 @@ class UploadReport(object):
             tasks_total = 0
         self.root.tasks_total = tasks_total
         self.root.save()
+
+    def __attr_children(self, name, val):
+        attr_data = []
+        if isinstance(val, list):
+            for v in val:
+                if isinstance(v, dict):
+                    nextname = next(iter(v))
+                    for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
+                        if len(name) == 0:
+                            new_id = n[0]
+                        else:
+                            new_id = "%s:%s" % (name, n[0])
+                        attr_data.append((new_id, n[1]))
+        elif isinstance(val, str):
+            attr_data = [(name, val)]
+        return attr_data
+
+    def __save_attrs(self, report_id, attrs):
+        if not isinstance(attrs, list):
+            return []
+        attrdata = AttrData()
+        attrorder = []
+        for attr, value in self.__attr_children('', attrs):
+            attrorder.append(attr)
+            attrdata.add(report_id, attr, value)
+        attrdata.upload()
+        return attrorder
 
     def __is_not_used(self):
         pass

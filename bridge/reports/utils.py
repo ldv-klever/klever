@@ -524,34 +524,6 @@ class ReportTable(object):
         return True
 
 
-def save_attrs(report, attrs):
-    def children(name, val):
-        attr_data = []
-        if isinstance(val, list):
-            for v in val:
-                if isinstance(v, dict):
-                    nextname = next(iter(v))
-                    for n in children(nextname.replace(':', '_'), v[nextname]):
-                        if len(name) == 0:
-                            new_id = n[0]
-                        else:
-                            new_id = "%s:%s" % (name, n[0])
-                        attr_data.append((new_id, n[1]))
-        elif isinstance(val, str):
-            attr_data = [(name, val)]
-        return attr_data
-
-    if not isinstance(attrs, list):
-        return []
-    attrdata = AttrData()
-    attrorder = []
-    for attr, value in children('', attrs):
-        attrorder.append(attr)
-        attrdata.add(report.id, attr, value)
-    attrdata.upload()
-    return attrorder
-
-
 class AttrData(object):
     def __init__(self):
         self._data = []

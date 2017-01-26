@@ -48,7 +48,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe2.zip', 'unsafe3.zip'],
+        'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
     },
     {
@@ -58,7 +58,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe3.zip']
     },
     {
         'attrs': [
@@ -76,7 +76,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['multi_unsafe.zip']
+        'unsafes': ['unsafe4.zip']
     },
     {
         'attrs': [
@@ -93,7 +93,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['actions_unsafe.zip', 'good_unsafe.zip'],
+        'unsafes': ['unsafe5.zip', 'unsafe6.zip'],
         'unknown': 'unknown1.zip'
     },
     {
@@ -131,7 +131,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe7.zip']
     },
     {
         'attrs': [
@@ -140,7 +140,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe8.zip']
     },
     {
         'attrs': [
@@ -149,7 +149,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.zip', 'new_unsafe.zip'],
+        'unsafes': ['unsafe9.zip', 'unsafe10.zip'],
         'unknown': 'unknown1.zip'
     },
     {
@@ -171,7 +171,7 @@ CHUNKS3 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe_check.zip']
+        'unsafes': ['unsafe11.zip']
     }
 ]
 

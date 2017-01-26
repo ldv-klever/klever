@@ -31,6 +31,7 @@ from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, 
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
+from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive

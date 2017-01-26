@@ -33,7 +33,7 @@ from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEV
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, ReportComponent, TaskStatistic
+from reports.models import CompareJobsInfo, TaskStatistic
 from service.models import SchedulerUser, Scheduler
 
 
@@ -175,7 +175,7 @@ class JobAccess(object):
         return self.__is_author or self.__is_manager
 
     def can_download(self):
-        return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
+        return self.job is not None and self.job.status != JOB_STATUS[2][0]
 
     def can_collapse(self):
         if self.job is None:
@@ -184,8 +184,7 @@ class JobAccess(object):
             and self.job.weight != JOB_WEIGHT[2][0]
 
     def can_dfc(self):
-        # TODO: light- and medium- weight jobs can have reports' files too (only non-light jobs was here)
-        return self.job is not None and self.job.status in [JOB_STATUS[3][0], JOB_STATUS[4][0]]
+        return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
 
     def __get_prop(self, user):
         if self.job is not None:
