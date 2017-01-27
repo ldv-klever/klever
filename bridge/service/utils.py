@@ -352,7 +352,13 @@ class GetTasks:
                     else:
                         change_job_status(progress.job, JOB_STATUS[3][0])
                 elif progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[7][0])
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
+                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                             root=progress.job.reportroot).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
+                    else:
+                        change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
