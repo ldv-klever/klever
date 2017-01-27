@@ -7,14 +7,18 @@ from django.db import migrations, models
 
 def update_verifiers_time(apps, schema_editor):
     ReportComponent = apps.get_model("reports", "ReportComponent")
-    for unsafe in apps.get_model("reports", "ReportUnsafe").objects\
-            .exclude(parent__parent=None).exclude(parent__cpu_time=None):
-        unsafe.verifier_time = ReportComponent.objects.get(id=unsafe.parent_id).cpu_time
-        unsafe.save()
-    for safe in apps.get_model("reports", "ReportSafe").objects\
-            .exclude(parent__parent=None).exclude(parent__cpu_time=None):
-        safe.verifier_time = ReportComponent.objects.get(id=safe.parent_id).cpu_time
-        safe.save()
+    for report in apps.get_model("reports", "ReportUnsafe").objects.select_related('parent'):
+        if report.parent.parent is not None:
+            cpu_time = ReportComponent.objects.get(id=report.parent_id).cpu_time
+            if cpu_time is not None:
+                report.verifier_time = ReportComponent.objects.get(id=report.parent_id).cpu_time
+                report.save()
+    for report in apps.get_model("reports", "ReportSafe").objects.select_related('parent'):
+        if report.parent.parent is not None:
+            cpu_time = ReportComponent.objects.get(id=report.parent_id).cpu_time
+            if cpu_time is not None:
+                report.verifier_time = ReportComponent.objects.get(id=report.parent_id).cpu_time
+                report.save()
 
 
 class Migration(migrations.Migration):
