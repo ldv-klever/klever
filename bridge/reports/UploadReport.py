@@ -328,6 +328,7 @@ class UploadReport(object):
 
     def __update_dict_data(self, report, new_data):
         if self.job.weight != JOB_WEIGHT[0][0] and self.data['id'] != '/':
+            report.save()
             return
         if not isinstance(new_data, dict):
             raise ValueError("report's data must be dictionary")

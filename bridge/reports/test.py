@@ -208,7 +208,15 @@ class TestReports(KleverTestCase):
             self.fail('Jobs are not populated')
 
         # Run decision
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True, False, '0']
+        ])
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
 
         # Service sign in and check session parameters
         response = self.service_client.post('/users/service_signin/', {
@@ -313,7 +321,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 1)
         self.assertEqual(
             len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
         )
@@ -324,11 +332,11 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True]
+            [False, True, True, False, True, False, '1']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', CHUNKS1)
-        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 1)
         self.assertEqual(
             len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
         )
@@ -416,9 +424,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(ReportComponent.objects.filter(
-            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
-        )), 1)
+        self.assertIsNotNone(ReportComponent.objects.get(identifier=self.job.identifier + r_id).finish_date)
 
     def __upload_attrs_report(self, r_id, attrs):
         response = self.service_client.post('/reports/upload/', {
