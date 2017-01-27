@@ -49,6 +49,16 @@ class ASE(core.avtg.plugins.Plugin):
                     arg_signs = set(fp.read().splitlines())
                 self.logger.debug('Obtain following argument signatures "{0}"'.format(arg_signs))
 
+            global_arg_signs = None
+
+            if os.path.isfile('global ' + arg_signs_file):
+                self.logger.info('Process obtained global argument signatures from file "{0}"'.
+                                 format('global ' + arg_signs_file))
+                # We could obtain the same argument signatures, so remove duplicates.
+                with open('global ' + arg_signs_file, encoding='utf8') as fp:
+                    global_arg_signs = set(fp.read().splitlines())
+                self.logger.debug('Obtain following global argument signatures "{0}"'.format(global_arg_signs))
+
             # Convert each argument signature (that is represented as C identifier) into:
             # * the same identifier but with leading "_" for concatenation with other identifiers ("_" allows to
             #   separate these idetifiers visually more better in rendered templates, while in original templates they
@@ -62,7 +72,12 @@ class ASE(core.avtg.plugins.Plugin):
                         for arg_sign in sorted(arg_signs)
                     ] if arg_signs else [{'id': '', 'text': ''}],
                 arg_signs_file + '_arg_sign_patterns':
-                    ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)]
+                    ['_$arg_sign{0}'.format(i) if arg_signs else '' for i in range(10)],
+                arg_signs_file + '_global_arg_signs':
+                    [
+                        {'id': '_{0}'.format(global_arg_sign), 'text': ' "{0}"'.format(global_arg_sign)}
+                        for global_arg_sign in sorted(global_arg_signs)
+                        ] if global_arg_signs else [{'id': '', 'text': ''}]
             }
 
     def request_arg_signs(self):
@@ -91,6 +106,9 @@ class ASE(core.avtg.plugins.Plugin):
                     env = dict(os.environ)
                     env['LDV_ARG_SIGNS_FILE'] = os.path.relpath(
                         os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0],
+                        os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))
+                    env['LDV_GLOBAL_ARG_SIGNS_FILE'] = os.path.relpath(
+                        'global ' + os.path.splitext(os.path.splitext(os.path.basename(request_aspect))[0])[0],
                         os.path.join(self.conf['main working directory'], cc_full_desc['cwd']))
 
                     # Add plugin aspects produced thus far (by EMG) since they can include additional headers for which
