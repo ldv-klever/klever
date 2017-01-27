@@ -85,6 +85,15 @@ void ldv_idr_destroy{{ arg_sign.id }}(void)
 
 // endfor
 
+/* MODEL_FUNC Initialize all IDRs at the beginning */
+void ldv_initialize(void)
+{
+	// for arg_sign in idr_global_arg_signs
+	/* NOTE IDR{{ arg_sign.text }} is initialized at the beginning since it is declared in the global scope */
+	ldv_idr{{ arg_sign.id }} = LDV_INITIALIZED;
+	// endfor
+}
+
 /* MODEL_FUNC Check that all module reference counters have their end values at the end */
 void ldv_check_final_state(void)
 {

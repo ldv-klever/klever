@@ -15,6 +15,11 @@
  * limitations under the License.
  */
 
+info: expand(DEFINE_IDR(name)){
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_val1>
+	$fprintf<$env<LDV_GLOBAL_ARG_SIGNS_FILE>,"%s\n",$arg_val1>
+}
+
 info: call(void idr_init(struct idr *))
 {
 	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
