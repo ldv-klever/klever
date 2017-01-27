@@ -166,7 +166,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, '1'
+            True, True, False, True, True, True, '0'
         ]
     },
     {
