@@ -77,7 +77,7 @@ class ASE(core.avtg.plugins.Plugin):
                     [
                         {'id': '_{0}'.format(global_arg_sign), 'text': ' "{0}"'.format(global_arg_sign)}
                         for global_arg_sign in sorted(global_arg_signs)
-                        ] if global_arg_signs else [{'id': '', 'text': ''}]
+                    ] if global_arg_signs else []
             }
 
     def request_arg_signs(self):
