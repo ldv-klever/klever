@@ -45,5 +45,5 @@ unsigned long ldv_find_first_bit(unsigned long size)
 /* MODEL_FUNC Cut impossible pathes */
 void ldv_initialize(void)
 {
-	ldv_assume(nr_cpu_ids > 0);
+	ldv_assume(nr_cpu_ids > 0 && nr_cpu_ids <= NR_CPUS);
 }
