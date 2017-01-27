@@ -22,7 +22,7 @@ from django.core.files import File as NewFile
 from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS, JOB_WEIGHT
+from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
@@ -327,7 +327,12 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[7][0])
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
+                            and ReportUnknown.objects.filter(
+                                parent__component=F('component'), root=progress.job.reportroot).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
+                    else:
+                        change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
@@ -339,8 +344,8 @@ class GetTasks:
                 if progress.job.identifier in data['jobs']['finished']:
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[5][0])
-                    elif progress.job.weight == JOB_WEIGHT[0][0] and ReportUnknown.objects\
-                            .filter(parent__parent=None, root=progress.job.reportroot).count() > 0:
+                    elif ReportUnknown.objects.filter(parent__component=F('component'),
+                                                      root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
                         change_job_status(progress.job, JOB_STATUS[3][0])
