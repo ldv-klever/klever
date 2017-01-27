@@ -18,6 +18,8 @@
 #include <linux/module.h>
 #include <linux/idr.h>
 
+DEFINE_IDR(idp3);
+
 int __init my_init(void)
 {
 	struct idr *idp, *idp2;
@@ -42,6 +44,8 @@ int __init my_init(void)
 	found = idr_find(idp2, end);
 	idr_remove(idp2, end);
 	idr_destroy(idp2);
+
+	idr_destroy(&idp3);
 
 	return 0;
 }
