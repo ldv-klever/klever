@@ -92,7 +92,14 @@ JOB_STATUS = (
     ('3', _('Solved')),
     ('4', _('Failed')),
     ('5', _('Corrupted')),
-    ('6', _('Cancelled'))
+    ('6', _('Cancelled')),
+    ('7', _('Terminated'))
+)
+
+JOB_WEIGHT = (
+    ('0', _('Full-weight')),
+    ('1', _('Medium-weight')),
+    ('2', _('Lightweight')),
 )
 
 # Default view of the table

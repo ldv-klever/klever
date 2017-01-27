@@ -74,17 +74,15 @@
                     </thead>
                     <tbody>
                         {% for job in jobs %}
-                            {% if not job.light and job.reportroot %}
-                                <tr class="one wide column">
-                                    <td>
-                                        <div class="ui checkbox">
-                                            <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
-                                            <label for="job__{{ job.pk }}">{{ job.name }}</label>
-                                        </div>
-                                    </td>
-                                    <td>{{ job.identifier }}</td>
-                                </tr>
-                            {% endif %}
+                            <tr class="one wide column">
+                                <td>
+                                    <div class="ui checkbox">
+                                        <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
+                                        <label for="job__{{ job.pk }}">{{ job.name }}</label>
+                                    </div>
+                                </td>
+                                <td>{{ job.identifier }}</td>
+                            </tr>
                         {% endfor %}
                     </tbody>
                 </table>

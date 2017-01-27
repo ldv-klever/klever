@@ -64,7 +64,7 @@
                 <thead>
                     <tr>
                         <th class="center aligned" colspan="2">
-                            <span class="ui olive header">{{ job.name }}{% if job.light %} ({% trans 'light' %}){% endif %}</span>
+                            <span class="ui olive header">{{ job.name }}{% if job.weight != '0' %} ({{ job.get_weight_display|lower }}){% endif %}</span>
                         </th>
                     </tr>
                 </thead>
@@ -193,7 +193,7 @@
                             {% if reportdata.report %}
                                 <a class="status-link status{{ job.status }}-link" href="{% url 'reports:component' job.pk reportdata.report.pk %}">{{ job.get_status_display }}</a>
                             {% else %}
-                                <p style="color: #f1ffff">{{ job.get_status_display }}</p>
+                                <span style="color: #f1ffff">{{ job.get_status_display }}</span>
                             {% endif %}
                             <input id="job_status_value" type="hidden" value="{{ job.status }}">
                         </td>

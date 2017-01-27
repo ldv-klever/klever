@@ -148,7 +148,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   allow local source directories use - True or False,
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
-#   lightweight decision - True of False.
+#   weight of decision - '0' for full-weight, '1' for medium-weight and '2' for lightweight jobs.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
@@ -157,7 +157,7 @@ DEF_KLEVER_CORE_MODES = [
             'slow',
             [1.0, 2, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False, True
+            False, False, False, False, False, False, '1'
         ]
     },
     {
@@ -166,7 +166,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, False
+            True, True, False, True, True, True, '0'
         ]
     },
     {
@@ -175,7 +175,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True, False
+            True, True, True, True, True, True, '0'
         ]
     },
 ]

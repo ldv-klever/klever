@@ -102,7 +102,6 @@ function set_actions_for_scheduler_user() {
 
 $(document).ready(function () {
     $('.note-popup').popup();
-    $('#job_light_popup').popup();
 
     function collect_data() {
         return {
@@ -138,7 +137,7 @@ $(document).ready(function () {
                     $('#allow_localdir_checkbox').is(':checked'),
                     $('#ignore_core_checkbox').is(':checked'),
                     $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
-                    $('#is_job_light').is(':checked')
+                    $('input[name=job_weight]:checked').val()
                 ]
             ]),
             job_id: $('#job_pk').val()

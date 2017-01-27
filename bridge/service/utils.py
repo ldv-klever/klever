@@ -19,14 +19,14 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
-from django.db.models import Q, F
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
-from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
+from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
 from service.models import *
 
 
@@ -327,7 +327,13 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
+                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                             root=progress.job.reportroot).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
+                    else:
+                        change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
@@ -337,19 +343,22 @@ class GetTasks:
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
-                    try:
-                        root_report = ReportComponent.objects.get(
-                            Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                        )
-                    except ObjectDoesNotExist:
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[5][0])
+                    elif ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                      root=progress.job.reportroot).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
-                        if not progress.job.light and len(ReportUnknown.objects.filter(parent=root_report)) > 0:
-                            change_job_status(progress.job, JOB_STATUS[4][0])
-                        else:
-                            change_job_status(progress.job, JOB_STATUS[3][0])
+                        change_job_status(progress.job, JOB_STATUS[3][0])
                 elif progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
+                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
+                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                             root=progress.job.reportroot).count() > 0:
+                        change_job_status(progress.job, JOB_STATUS[4][0])
+                    else:
+                        change_job_status(progress.job, JOB_STATUS[7][0])
                     if progress.job.identifier in data['job errors']:
                         progress.error = data['job errors'][progress.job.identifier]
                     else:
@@ -560,7 +569,7 @@ class SetSchedulersStatus:
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
                 progress.error = 'Klever scheduler was disconnected'
-                change_job_status(progress.job, JOB_STATUS[5][0])
+                change_job_status(progress.job, JOB_STATUS[7][0])
             progress.save()
 
     def __is_not_used(self):
@@ -691,7 +700,7 @@ class StartJobDecision:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.light = self.data[4][6]
+        self.job.weight = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -719,7 +728,7 @@ class StartJobDecision:
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
-            'lightweightness': self.data[4][6],
+            'weight': self.data[4][6],
             'logging': {
                 'formatters': [
                     {

@@ -21,7 +21,7 @@ from django.db.models import Q, F
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS
+from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT
 from jobs.models import Job, JobHistory, UserRole, RunHistory
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
@@ -354,7 +354,7 @@ class TableTree(object):
 
         for job in Job.objects.filter(**self.__view_filters()).order_by(*orders):
             if JobAccess(self._user, job).can_view():
-                if job.light:
+                if job.weight != JOB_WEIGHT[0][0]:
                     self._light_jobs.append(job.id)
                 else:
                     self._full_jobs.append(job.id)
@@ -365,7 +365,7 @@ class TableTree(object):
                     'parent': job.parent_id,
                     'parent_identifier': tree_struct[job.parent_id][2] if job.parent_id is not None else None,
                     'black': False,
-                    'light': job.light,
+                    'weight': job.weight,
                     'identifier': job.identifier
                 })
 
@@ -857,7 +857,8 @@ class TableTree(object):
                     reverse('reports:list', args=[verdict.report_id, 'unknowns'])
                 )
             })
-        for root in ReportRoot.objects.filter(job_id__in=self._job_ids, job__light=True).values('job', 'safes'):
+        for root in ReportRoot.objects.filter(job_id__in=self._job_ids, job__weight=JOB_WEIGHT[2][0])\
+                .values('job', 'safes'):
             self._values_data[root['job']]['safe:total'] = root['safes']
 
     def __collect_roles(self):

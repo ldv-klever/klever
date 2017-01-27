@@ -7,6 +7,7 @@
 {% block jobs_head_block %}
     <script src="{% static 'jobs/js/startjob.js' %}"></script>
     <link href="{% static 'jobs/css/start-job.css' %}" rel="stylesheet">
+    <link href="{% static 'jobs/css/multi-state-slider.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -246,9 +247,12 @@
                     <label for="ignore_failed_sub_jobs_checkbox">{% trans 'Ignore failed sub-jobs' %}</label>
                 </div>
                 <br><br>
-                <div class="ui toggle checkbox">
-                    <label for="is_job_light">{% trans 'Lightweight results' %}<i id="job_light_popup" class="ui help blue icon" data-content="{% trans 'Without safes and most of components' %}" data-variation="very wide"></i></label>
-                    <input id="is_job_light" type="checkbox"{% if data.default.4.6 %} checked{% endif %}>
+                <div class="switch-toggle switch-3 switch-candy switch-candy-blue">
+                    {% for w in data.job_weight %}
+                        <input id="weight_{{ w.0 }}" name="job_weight" type="radio" value="{{ w.0 }}" {% if data.default.4.6 == w.0 %} checked="checked"{% endif %}>
+                        <label for="weight_{{ w.0 }}">{{ w.1 }}</label>
+                    {% endfor %}
+                    <a></a>
                 </div>
             </div>
         </div>
