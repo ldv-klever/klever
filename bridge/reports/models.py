@@ -16,6 +16,7 @@
 #
 
 import os
+import time
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
@@ -63,9 +64,9 @@ class ReportRoot(models.Model):
 
 @receiver(pre_delete, sender=ReportRoot)
 def reportroot_delete_signal(**kwargs):
-    logger.info('Deleting ReportRoot files...')
+    t1 = time.time()
     RemoveFilesBeforeDelete(kwargs['instance'])
-    logger.info('Deleting ReportRoot object...')
+    logger.info('Deleting ReportRoot files took %s seconds.' % (time.time() - t1))
 
 
 class Report(models.Model):
