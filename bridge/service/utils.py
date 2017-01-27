@@ -327,9 +327,10 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
-                            and ReportUnknown.objects.filter(
-                                parent__component=F('component'), root=progress.job.reportroot).count() > 0:
+                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                             root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
                         change_job_status(progress.job, JOB_STATUS[7][0])
@@ -342,9 +343,10 @@ class GetTasks:
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
+                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[5][0])
-                    elif ReportUnknown.objects.filter(parent__component=F('component'),
+                    elif ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
                                                       root=progress.job.reportroot).count() > 0:
                         change_job_status(progress.job, JOB_STATUS[4][0])
                     else:
