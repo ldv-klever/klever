@@ -152,6 +152,24 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/hid",
+        "modules": [
+          "hid_add_device.ko",
+          "hid_callbacks.ko",
+          "hid_destroy_device.ko",
+          "hid_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/hid_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/ieee80211_ops",
         "modules": [
           "ieee80211_alloc_hw.ko",

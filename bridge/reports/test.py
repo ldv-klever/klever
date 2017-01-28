@@ -23,7 +23,7 @@ from django.db.models import Q
 from django.test import Client
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES, FORMAT
 from bridge.utils import KleverTestCase
 from reports.models import *
 
@@ -48,7 +48,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe2.zip', 'unsafe3.zip'],
+        'unsafes': ['unsafe1.zip', 'unsafe2.zip'],
         'unknown': 'unknown2.zip'
     },
     {
@@ -58,7 +58,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe3.zip']
     },
     {
         'attrs': [
@@ -76,7 +76,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['multi_unsafe.zip']
+        'unsafes': ['unsafe4.zip']
     },
     {
         'attrs': [
@@ -93,7 +93,7 @@ CHUNKS1 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['actions_unsafe.zip', 'good_unsafe.zip'],
+        'unsafes': ['unsafe5.zip', 'unsafe6.zip'],
         'unknown': 'unknown1.zip'
     },
     {
@@ -131,7 +131,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe7.zip']
     },
     {
         'attrs': [
@@ -140,7 +140,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'CPAchecker',
-        'unsafes': ['new_unsafe.zip']
+        'unsafes': ['unsafe8.zip']
     },
     {
         'attrs': [
@@ -149,7 +149,7 @@ CHUNKS2 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['new_unsafe.zip', 'new_unsafe.zip'],
+        'unsafes': ['unsafe9.zip', 'unsafe10.zip'],
         'unknown': 'unknown1.zip'
     },
     {
@@ -171,7 +171,7 @@ CHUNKS3 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe_check.zip']
+        'unsafes': ['unsafe11.zip']
     }
 ]
 
@@ -208,7 +208,15 @@ class TestReports(KleverTestCase):
             self.fail('Jobs are not populated')
 
         # Run decision
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True, False, '0']
+        ])
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
 
         # Service sign in and check session parameters
         response = self.service_client.post('/users/service_signin/', {
@@ -313,7 +321,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
-        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 1)
         self.assertEqual(
             len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
         )
@@ -324,11 +332,11 @@ class TestReports(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, True]
+            [False, True, True, False, True, False, '1']
         ])
         self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', CHUNKS1)
-        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 0)
+        self.assertEqual(len(ReportSafe.objects.filter(root__job=self.job)), 1)
         self.assertEqual(
             len(ReportComponent.objects.filter(Q(root__job=self.job) & ~Q(parent__parent=None) & ~Q(parent=None))), 0
         )
@@ -416,9 +424,7 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(ReportComponent.objects.filter(
-            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
-        )), 1)
+        self.assertIsNotNone(ReportComponent.objects.get(identifier=self.job.identifier + r_id).finish_date)
 
     def __upload_attrs_report(self, r_id, attrs):
         response = self.service_client.post('/reports/upload/', {
@@ -528,7 +534,7 @@ class TestReports(KleverTestCase):
 
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
-        }), 'job format': 1})
+        }), 'job format': FORMAT})
         self.assertEqual(response['Content-Type'], 'application/zip')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
@@ -760,7 +766,7 @@ class DecideJobs(object):
     def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'version-1'}], 'comp': COMPUTER
-        }), 'job format': 1})
+        }), 'job format': FORMAT})
 
         core_data = None
         job = Job.objects.get(identifier=job_identifier)

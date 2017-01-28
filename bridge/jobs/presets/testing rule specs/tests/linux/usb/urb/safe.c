@@ -24,6 +24,7 @@ static int __init init(void)
 {
 	struct urb *tmp_1;
 	struct urb *tmp_2;
+	struct urb *tmp_3;
 	int iso_packets;
 	gfp_t mem_flags;
 
@@ -32,6 +33,9 @@ static int __init init(void)
 
 	usb_free_urb(tmp_1);
 	usb_free_urb(tmp_2);
+
+	tmp_3 = usb_get_urb(tmp_3);
+	usb_put_urb(tmp_3);
 
 	return 0;
 }

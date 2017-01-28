@@ -32,6 +32,7 @@ from tools.profiling import unparallel_group
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
 from users.models import View, PreferableView
+from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
@@ -615,6 +616,9 @@ def check_access(request):
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
+    if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
+        return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
+                                        "Please wait until it will be finished.")})
     if len(parent_id) == 0:
         return JsonResponse({'error': str(_("The parent identifier was not got"))})
     parents = Job.objects.filter(identifier__startswith=parent_id)
@@ -632,14 +636,24 @@ def upload_job(request, parent_id=None):
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
         # TODO: ensure that tempdir is deleted after job is uploaded (on Linux)
-        zipdata = UploadJob(parent, request.user, job_dir.name)
-        if zipdata.err_message is not None:
+        try:
+            zipdata = UploadJob(parent, request.user, job_dir.name)
+        except Exception as e:
+            logger.exception(e)
             errors.append(
                 _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
                     'arcname': f.name,
-                    'message': str(zipdata.err_message)
+                    'message': _('The job archive is corrupted')
                 }
             )
+        else:
+            if zipdata.err_message is not None:
+                errors.append(
+                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                        'arcname': f.name,
+                        'message': str(zipdata.err_message)
+                    }
+                )
     if len(errors) > 0:
         return JsonResponse({'errors': list(str(x) for x in errors)})
     return JsonResponse({})
@@ -973,11 +987,8 @@ def download_files_for_compet(request, job_id):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_download():
+    if not JobAccess(request.user, job).can_dfc():
         return HttpResponseRedirect(reverse('error', args=[400]))
-    if job.status in {x[0] for x in JOB_STATUS[:3]}:
-        logger.error("Files for competition can't be downloaded for undecided jobs")
-        return HttpResponseRedirect(reverse('error', args=[500]))
 
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]

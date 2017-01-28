@@ -25,7 +25,7 @@ from tools.models import LockTable
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
 # So maximum waiting time is (MAX_WAITING * 2) in seconds.
-MAX_WAITING = 30
+MAX_WAITING = 300
 
 
 class ExecLocker:

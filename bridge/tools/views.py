@@ -20,7 +20,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
-from bridge.vars import USER_ROLES
+from bridge.vars import USER_ROLES, JOB_STATUS
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
@@ -34,7 +34,8 @@ def manager_tools(request):
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all(),
-        'jobs': Job.objects.filter(light=False)
+        'jobs': Job.objects.exclude(reportroot=None).exclude(
+            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]])
     })
 
 

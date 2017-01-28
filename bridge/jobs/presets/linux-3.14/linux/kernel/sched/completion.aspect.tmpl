@@ -20,6 +20,7 @@ before: file ("$this")
 struct completion;
 
 extern void __ldv_init_completion_macro(struct completion *x);
+extern void __ldv_init_completion(struct completion *x);
 // for arg_sign in completion_arg_signs
 extern void ldv_init_completion{{ arg_sign.id }}(void);
 extern void ldv_wait_for_completion{{ arg_sign.id }}(void);
@@ -32,9 +33,20 @@ around: define(INIT_COMPLETION(x))
 __ldv_init_completion_macro(&x)
 }
 
+around: define(DECLARE_COMPLETION_ONSTACK(x))
+{
+struct completion x;
+__ldv_init_completion(&x)
+}
+
 around: call(void __ldv_init_completion_macro(..))
 {
 	ldv_init_completion_macro{{ completion_arg_sign_patterns[1] }}();
+}
+
+around: call(void __ldv_init_completion(..))
+{
+	ldv_init_completion{{ completion_arg_sign_patterns[1] }}();
 }
 
 before: call(void wait_for_completion(..)) ||

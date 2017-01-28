@@ -50,7 +50,15 @@ class TestMarks(KleverTestCase):
             self.job = Job.objects.filter(~Q(parent=None))[0]
         except IndexError:
             self.job = Job.objects.all()[0]
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True, False, '0']
+        ])
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', CHUNKS1)
         self.safe_archive = 'test_safemark.zip'
         self.unsafe_archive = 'test_unsafemark.zip'
@@ -759,9 +767,10 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnsafeReport.objects.filter(report=unsafe)), 1)
         self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[0])), 1)
         self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[1])), 1)
+        # The tag has parent which is also added to mark
         self.assertEqual(
             len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)),
-            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0]))
+            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0])) * 2
         )
         self.assertEqual(len(ReportUnsafeTag.objects.filter(
             report__root__job=self.job, report__id=unsafe.parent_id
@@ -787,6 +796,10 @@ class TestMarks(KleverTestCase):
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
             self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(
+            len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)),
+            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0]))
+        )
 
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 5)
 
@@ -876,7 +889,6 @@ class TestMarks(KleverTestCase):
 
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
             afc = ArchiveFileContent(u, u.problem_description)
-            print(afc.content)
             if afc.content == b'ValueError: got wrong attribute: \'rule\'.':
                 unknown = u
                 break

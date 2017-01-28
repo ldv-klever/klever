@@ -20,10 +20,12 @@ import mimetypes
 from wsgiref.util import FileWrapper
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
+from bridge.utils import logger
 from tools.profiling import unparallel_group
 from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
@@ -54,7 +56,6 @@ def schedule_task(request):
     return JsonResponse({'task id': res.task_id})
 
 
-@unparallel_group(['Task'])
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
