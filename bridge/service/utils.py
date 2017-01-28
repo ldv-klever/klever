@@ -23,7 +23,7 @@ from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum
+from bridge.utils import file_checksum, logger
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
 from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
