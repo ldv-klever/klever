@@ -21,7 +21,7 @@ from wsgiref.util import FileWrapper
 from urllib.parse import quote
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponse, StreamingHttpResponse
+from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 from bridge.vars import USER_ROLES
@@ -170,9 +170,9 @@ def download_task(request):
         return JsonResponse({'error': str(e)})
 
     mimetype = mimetypes.guess_type(os.path.basename(res.task.archname))[0]
-    with res.task.archive as fp:
-        response = HttpResponse(fp.read(), content_type=mimetype)
-    response['Content-Disposition'] = 'attachment; filename="%s"' % quote(res.task.archname)
+    response = StreamingHttpResponse(FileWrapper(res.task.archive, 8192), content_type=mimetype)
+    response['Content-Length'] = len(res.task.archive)
+    response['Content-Disposition'] = "attachment; filename=%s" % quote(res.task.archname)
     return response
 
 

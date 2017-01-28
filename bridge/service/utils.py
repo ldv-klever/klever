@@ -250,13 +250,7 @@ class GetTasks:
 
     def __get_tasks(self, tasks):
         data = json.loads(tasks)
-        all_tasks = {
-            'pending': [],
-            'processing': [],
-            'error': [],
-            'finished': [],
-            'cancelled': []
-        }
+        all_tasks = dict((x[0].lower(), []) for x in TASK_STATUS)
         for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
                 .annotate(sol=F('solution__id')):
             all_tasks[task.status.lower()].append(task)
@@ -324,8 +318,6 @@ class GetTasks:
         self.__finish_with_tasks()
         if self._scheduler.type == SCHEDULER_TYPE[0][0]:
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
-                self._data['job configurations'][progress.job.identifier] = \
-                    json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
                     core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
@@ -341,6 +333,8 @@ class GetTasks:
                     progress.save()
                 else:
                     self._data['jobs']['pending'].append(progress.job.identifier)
+                    self._data['job configurations'][progress.job.identifier] = \
+                        json.loads(progress.configuration.decode('utf8'))
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
@@ -373,7 +367,7 @@ class GetTasks:
         task_id = str(task.id)
         self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
         # TODO: does description have to have 'id'?
-        self._data['task descriptions'][task_id]['description']['id'] = task_id
+        # self._data['task descriptions'][task_id]['description']['id'] = task_id
         if self._scheduler.type == SCHEDULER_TYPE[1][0]:
             if task.progress_id in self._operators:
                 self._data['task descriptions'][task_id]['VerifierCloud user name'] = \

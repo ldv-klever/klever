@@ -203,7 +203,7 @@ class UploadReport(object):
                 curr_report = ReportComponent.objects.get(identifier=self.job.identifier + self.data['id'])
                 return ReportComponent.objects.get(id=curr_report.parent_id)
             except ObjectDoesNotExist:
-                raise ValueError('report parent was not found')
+                raise ValueError('report or its parent was not found')
 
     def __get_parents_branch(self):
         branch = []
@@ -284,9 +284,9 @@ class UploadReport(object):
     def __update_attrs(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
-            self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
         except ObjectDoesNotExist:
             raise ValueError('updated report does not exist')
+        self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
 
     def __update_report_data(self, identifier):
         try:
