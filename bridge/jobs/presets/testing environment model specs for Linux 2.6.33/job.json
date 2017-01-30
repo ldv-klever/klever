@@ -29,7 +29,7 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "external modules": "tests/auto_fs_type",
+        "external modules": "tests/file_system_type",
         "modules": [
           "fs_callbacks.ko",
           "fs_invoke.ko",

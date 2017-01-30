@@ -47,24 +47,6 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/auto_fs_type",
-        "modules": [
-          "fs_callbacks.ko",
-          "fs_invoke.ko",
-          "register_filesystem.ko",
-          "unregister_filesystem.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/fs_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/block_device_operations",
         "modules": [
           "disk_invoke.ko",
