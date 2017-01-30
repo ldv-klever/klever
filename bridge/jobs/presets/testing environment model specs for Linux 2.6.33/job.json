@@ -29,6 +29,23 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/block_device_operations",
+        "modules": [
+          "disk_invoke.ko",
+          "add_disk.ko",
+          "del_gendisk.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/disk_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
         "modules": [
           "devm_request_threaded_irq.ko",

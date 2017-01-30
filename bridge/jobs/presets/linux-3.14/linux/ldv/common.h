@@ -97,7 +97,7 @@ int ldv_failed_register_netdev(void);
 
 /**
  * ldv_check_final_state() - perform some checks of final state specific for
- *                           rule specification models
+ *                           rule specification models.
  *
  * ldv_check_final_state() can be defined by rule specification models if they
  * use model states and need to check it at the end.
@@ -108,5 +108,15 @@ int ldv_failed_register_netdev(void);
  * unexpected false alarms.
  */
 extern void ldv_check_final_state(void);
+
+/**
+ * ldv_add_disk() - add partitioning information to kernel list.
+ */
+extern void ldv_add_disk(void);
+
+/**
+ * ldv_add_disk() - remove partitioning information from kernel list.
+ */
+extern void ldv_del_gendisk(void);
 
 #endif /* __LINUX_LDV_H */
