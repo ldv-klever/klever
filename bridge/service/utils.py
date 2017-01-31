@@ -382,7 +382,8 @@ class GetTasks:
                     self._operators[task.progress_id][1]
             else:
                 try:
-                    sch_user = SchedulerUser.objects.get(user__reportroot__job__solvingprogress=task.progress_id)
+                    root = ReportRoot.objects.get(job__solvingprogress=task.progress)
+                    sch_user = SchedulerUser.objects.get(user=root.user)
                 except ObjectDoesNotExist:
                     return
                 else:
