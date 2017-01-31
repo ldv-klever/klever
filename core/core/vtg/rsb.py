@@ -60,12 +60,19 @@ class RSB(core.components.Component):
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
                 round(self.conf['VTG strategy']['resource limits']['CPU time'] / 1000))})
 
-            if 'value analysis' in self.conf['VTG strategy']:
+            if 'verifier configuration' in self.conf['abstract task desc']:
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {self.conf['abstract task desc']['verifier configuration']: ''}
+                )
+            elif 'value analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
             elif 'caching' in self.conf['VTG strategy']:
-                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam': ''}]
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam-svcomp': ''}]
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
+            # Specify default CPAchecker configuration.
+            else:
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
@@ -97,14 +104,6 @@ class RSB(core.components.Component):
                     {'-setprop': 'analysis.traversal.order={0}'.format(
                         algo_map[self.conf['VTG strategy']['graph traversal algorithm']])}
                 )
-
-            if 'verifier configuration' in self.conf['abstract task desc']:
-                self.conf['VTG strategy']['verifier']['options'].append(
-                    {self.conf['abstract task desc']['verifier configuration']: ''}
-                )
-            # Specify default CPAchecker configuration.
-            else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
             if 'verifier options' in self.conf['abstract task desc']:
                 self.conf['VTG strategy']['verifier']['options'].extend(

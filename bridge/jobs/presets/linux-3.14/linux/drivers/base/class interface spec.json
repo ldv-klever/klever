@@ -1,0 +1,42 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "class_interface_register": {
+        "signature": "int class_interface_register(*%class.class%)",
+        "header": "linux/device.h"
+      },
+      "class_interface_unregister": {
+        "signature": "void class_interface_unregister(*%class.class%)",
+        "header": "linux/device.h"
+      }
+    },
+    "categories": {
+      "class": {
+        "containers": {
+          "class": {
+            "signature": "struct class_interface a",
+            "header": "linux/device.h",
+            "fields": {
+              "add_dev": "%class.probe%",
+              "remove_dev": "%class.release%"
+            }
+          }
+        },
+        "resources": {
+          "device": {
+            "signature": "struct device *a",
+            "header": "linux/platform_device.h"
+          }
+        },
+        "callbacks": {
+          "probe": {
+            "signature": "int (*add_dev) (%class.device%, *%class.class%)"
+          },
+          "release": {
+            "signature": "void (*remove_dev) (%class.device%, *%class.class%)"
+          }
+        }
+      }
+    }
+  }
+}
