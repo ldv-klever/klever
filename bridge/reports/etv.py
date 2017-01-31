@@ -746,7 +746,7 @@ class Forest:
         self._level = 0
         self.call_stack = []
         self._forest = []
-        self._model_functions = []
+        self._model_functions = set()
 
     def scope(self):
         return self.call_stack[-1] if len(self.call_stack) > 0 else None
@@ -760,10 +760,13 @@ class Forest:
             'parent': self.scope()
         })
         if is_model:
-            self._model_functions.append(new_scope)
+            self._model_functions.add(new_scope)
         self.call_stack.append(new_scope)
         self._level += 1
         self._cnt += 1
+
+    def mark_current_scope(self):
+        self._model_functions.add(self.call_stack[-1])
 
     def return_from_func(self):
         self._level -= 1
@@ -896,7 +899,7 @@ class ErrorTraceForests:
                 curr_action = edge_data['action']
             if collect_names:
                 if 'enter' in edge_data:
-                    is_model = 'note' in edge_data
+                    is_model = 'note' in edge_data or 'warn' in edge_data
                     if self.with_callbcaks and 'action' in edge_data \
                             and edge_data['action'] in self.data['callback actions']:
                         is_model = True
@@ -913,6 +916,9 @@ class ErrorTraceForests:
                         double_return.remove(old_scope)
                         old_scope = forest.scope()
                         forest.return_from_func()
+                elif 'warn' in edge_data:
+                    forest.mark_current_scope()
+
         if collect_names:
             curr_forest = forest.get_forest()
             if curr_forest is not None:
