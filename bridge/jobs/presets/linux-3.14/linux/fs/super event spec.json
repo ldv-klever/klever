@@ -1,0 +1,22 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "get_sb_nodev": {
+        "comment": "Call super fill implementation.",
+        "labels": {},
+        "process": "<call>",
+        "actions": {
+          "call": {
+            "comment": "Call implementation of super fill.",
+            "statements": [
+              "int ret;",
+              "ret = $ARG4(sget($ARG1, NULL, set_anon_super, NULL), $ARG3, $ARG2 & MS_SILENT ? 1 : 0);",
+              "return ret;"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {}
+  }
+}

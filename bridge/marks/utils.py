@@ -421,8 +421,7 @@ class ConnectReportWithMarks:
                         mark=mark, report=self.report, result=compare.result,
                         broken=compare_failed, error=compare.error
                     ))
-        if len(new_markreports) > 0:
-            MarkUnsafeReport.objects.bulk_create(new_markreports)
+        MarkUnsafeReport.objects.bulk_create(new_markreports)
 
     def __connect_safe(self):
         self.report.markreport_set.all().delete()

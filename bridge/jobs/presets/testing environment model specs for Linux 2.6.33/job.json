@@ -29,6 +29,59 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/file_system_type",
+        "modules": [
+          "fs_callbacks.ko",
+          "fs_invoke.ko",
+          "register_filesystem.ko",
+          "unregister_filesystem.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/fs_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/block_device_operations",
+        "modules": [
+          "disk_invoke.ko",
+          "add_disk.ko",
+          "del_gendisk.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/disk_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/class",
+        "modules": [
+          "class_callbacks.ko",
+          "class_interface_register.ko",
+          "class_interface_unregister.ko",
+          "class_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/class_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
         "modules": [
           "devm_request_threaded_irq.ko",
@@ -332,6 +385,21 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/rtc_class_ops_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/sb_nodev",
+        "modules": [
+          "get_sb_nodev_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/get_sb_nodev_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

@@ -20,7 +20,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import VIEWJOB_DEF_VIEW
+from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 from reports.models import AttrStatistic
 
@@ -159,7 +159,7 @@ class ViewJobData(object):
         res_data = {}
         resource_filters = {}
         resource_table = self.report.resources_cache
-        if self.report.parent is None and self.report.root.job.light:
+        if self.report.parent is None and self.report.root.job.weight != JOB_WEIGHT[0][0]:
             resource_table = self.report.root.lightresource_set
 
         if 'resource_component' in self.view['filters']:
@@ -176,7 +176,7 @@ class ViewJobData(object):
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
         if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
-            if self.report.root.job.light and self.report.parent is None:
+            if self.report.root.job.weight != JOB_WEIGHT[0][0] and self.report.parent is None:
                 res_total = resource_table.filter(component=None, report=self.report.root).first()
             else:
                 res_total = resource_table.filter(component=None).first()
@@ -324,7 +324,7 @@ class ViewJobData(object):
                 if a_s.name.name not in attr_stat_data:
                     attr_stat_data[a_s.name.name] = []
                 href = None
-                if not self.report.root.job.light:
+                if self.report.root.job.weight != JOB_WEIGHT[2][0]:
                     href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
                 attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.safes, href))
         attrs_statistic = []

@@ -20,7 +20,7 @@ from django.db.models import ProtectedError
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
-from bridge.vars import ATTR_STATISTIC
+from bridge.vars import ATTR_STATISTIC, JOB_WEIGHT
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from reports.models import *
@@ -161,22 +161,22 @@ class RecalculateUnknownMarkConnections(object):
 
 class RecalculateAttrStatistic(object):
     def __init__(self, jobs):
-        self.jobs = jobs
+        self.jobs = list(j for j in jobs if j.weight != JOB_WEIGHT[2][0])
         self.__recalc()
 
     def __recalc(self):
         AttrStatistic.objects.filter(report__root__job__in=self.jobs).delete()
         attrs_data = []
         for j_type in ATTR_STATISTIC:
+            job_ids = [j.id for j in self.jobs if j.type == j_type]
+            if len(job_ids) == 0:
+                continue
             attr_names = set(a['id'] for a in AttrName.objects.filter(name__in=ATTR_STATISTIC[j_type]).values('id'))
-            reports = set()
-            for report in ReportComponent.objects.filter(root__job__in=[j.id for j in self.jobs if j.type == j_type]):
-                reports.add(report.id)
 
             safes = {}
             unsafes = {}
             unknowns = {}
-            for leaf in ReportComponentLeaf.objects.filter(report_id__in=reports):
+            for leaf in ReportComponentLeaf.objects.filter(report__root__job_id__in=job_ids):
                 if leaf.safe_id is not None:
                     if leaf.safe_id not in safes:
                         safes[leaf.safe_id] = set()
@@ -191,17 +191,17 @@ class RecalculateAttrStatistic(object):
                     unknowns[leaf.unknown_id].add(leaf.report_id)
 
             report_attrs = {}
-            for ra in ReportAttr.objects.filter(report_id__in=safes, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+            for ra in ReportAttr.objects.filter(report_id__in=safes, attr__name_id__in=attr_names) \
                     .values_list('report_id', 'attr__name_id', 'attr_id'):
                 report_attrs[('s', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unsafes, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+            for ra in ReportAttr.objects.filter(report_id__in=unsafes, attr__name_id__in=attr_names) \
                     .values_list('report_id', 'attr__name_id', 'attr_id'):
                 report_attrs[('u', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unknowns, attr__name__name__in=ATTR_STATISTIC[j_type]) \
+            for ra in ReportAttr.objects.filter(report_id__in=unknowns, attr__name_id__in=attr_names) \
                     .values_list('report_id', 'attr__name_id', 'attr_id'):
                 report_attrs[('f', ra[0], ra[1])] = ra[2]
 
-            for r_id in reports:
+            for r_id in list(r[0] for r in ReportComponent.objects.filter(root__job_id__in=job_ids).values_list('id')):
                 for n_id in attr_names:
                     safes_num = {}
                     unsafes_num = {}
@@ -248,7 +248,7 @@ class Recalculation(object):
 
     def __get_jobs(self, job_ids):
         if job_ids is None:
-            return Job.objects.filter(light=False)
+            return Job.objects.filter(weight=JOB_WEIGHT[0][0])
         jobs = []
         try:
             job_ids = json.loads(job_ids)
@@ -258,8 +258,7 @@ class Recalculation(object):
         for j_id in job_ids:
             try:
                 job = Job.objects.get(pk=int(j_id))
-                if not job.light:
-                    jobs.append(job)
+                jobs.append(job)
             except ObjectDoesNotExist:
                 self.error = _('One of the selected jobs was not found')
                 return None
