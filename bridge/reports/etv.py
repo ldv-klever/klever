@@ -686,69 +686,7 @@ def error_trace_callstack(error_trace):
     return call_stack
 
 
-# Some constants for internal representation of error traces.
-_CALL = 'CALL'
-_RET = 'RET'
-
-
-# Extracts model functions in specific format with some heuristics.
-def error_trace_model_functions(error_trace):
-    data = json.loads(error_trace)
-
-    # TODO: Very bad method.
-    err_trace_nodes = get_error_trace_nodes(data)
-    model_funcs = set()
-    for edge_id in err_trace_nodes:
-        edge_data = data['edges'][edge_id]
-        if 'enter' in edge_data:
-            res = re.search(r'ldv_linux_(.*)', data['funcs'][edge_data['enter']])
-            if res:
-                model_funcs.add(res.group(1))
-    call_tree = [{'entry_point': _CALL}]
-    for edge_id in err_trace_nodes:
-        edge_data = data['edges'][edge_id]
-        if 'enter' in edge_data:
-            call_tree.append({data['funcs'][edge_data['enter']]: _CALL})
-        if 'return' in edge_data:
-            is_done = False
-            for mf in model_funcs:
-                if data['funcs'][edge_data['return']].__contains__(mf):
-                    call_tree.append({data['funcs'][edge_data['return']]: _CALL})
-                    is_done = True
-            if not is_done:
-                is_save = False
-                sublist = []
-                for elem in reversed(call_tree):
-                    sublist.append(elem)
-                    func_name = list(elem.keys()).__getitem__(0)
-                    for mf in model_funcs:
-                        if func_name.__contains__(mf):
-                            is_save = True
-                    if elem == {data['funcs'][edge_data['return']]: _CALL}:
-                        sublist.reverse()
-                        break
-                if is_save:
-                    call_tree.append({data['funcs'][edge_data['return']]: _RET})
-                else:
-                    call_tree = call_tree[:-sublist.__len__()]
-
-    # Maybe for debug print?
-    level = 0
-    for elem in call_tree:
-        func_name, op = list(elem.items())[0]
-        spaces = ""
-        for i in range(0, level):
-            spaces += " "
-        if op == _CALL:
-            level += 1
-            print(spaces + func_name)
-        else:
-            level -= 1
-
-    return call_tree
-
-
-class ErrorTraceCallstackTree(object):
+class ErrorTraceCallstackTree:
     def __init__(self, error_trace):
         self.data = json.loads(error_trace)
         self.trace = self.__get_tree(get_error_trace_nodes(self.data))
@@ -808,7 +746,7 @@ class Forest:
         self._level = 0
         self.call_stack = []
         self._forest = []
-        self._model_functions = []
+        self._model_functions = set()
 
     def scope(self):
         return self.call_stack[-1] if len(self.call_stack) > 0 else None
@@ -822,10 +760,13 @@ class Forest:
             'parent': self.scope()
         })
         if is_model:
-            self._model_functions.append(new_scope)
+            self._model_functions.add(new_scope)
         self.call_stack.append(new_scope)
         self._level += 1
         self._cnt += 1
+
+    def mark_current_scope(self):
+        self._model_functions.add(self.call_stack[-1])
 
     def return_from_func(self):
         self._level -= 1
@@ -919,8 +860,9 @@ class Forest:
 
 
 class ErrorTraceForests:
-    def __init__(self, error_trace):
+    def __init__(self, error_trace, with_callbacks=False):
         self.data = json.loads(error_trace)
+        self.with_callbcaks = with_callbacks
         self.trace = self.__get_forests(get_error_trace_nodes(self.data))
 
     def __get_forests(self, edge_trace):
@@ -957,7 +899,11 @@ class ErrorTraceForests:
                 curr_action = edge_data['action']
             if collect_names:
                 if 'enter' in edge_data:
-                    forest.enter_func(self.data['funcs'][edge_data['enter']], 'note' in edge_data)
+                    is_model = 'note' in edge_data or 'warn' in edge_data
+                    if self.with_callbcaks and 'action' in edge_data \
+                            and edge_data['action'] in self.data['callback actions']:
+                        is_model = True
+                    forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
                     if 'return' in edge_data:
                         if edge_data['enter'] == edge_data['return']:
                             forest.return_from_func()
@@ -970,6 +916,9 @@ class ErrorTraceForests:
                         double_return.remove(old_scope)
                         old_scope = forest.scope()
                         forest.return_from_func()
+                elif 'warn' in edge_data:
+                    forest.mark_current_scope()
+
         if collect_names:
             curr_forest = forest.get_forest()
             if curr_forest is not None:

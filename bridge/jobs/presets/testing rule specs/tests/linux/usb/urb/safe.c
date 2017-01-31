@@ -34,7 +34,9 @@ static int __init init(void)
 	usb_free_urb(tmp_1);
 	usb_free_urb(tmp_2);
 
+	tmp_3 = usb_alloc_urb(iso_packets, mem_flags);
 	tmp_3 = usb_get_urb(tmp_3);
+	usb_put_urb(tmp_3);
 	usb_put_urb(tmp_3);
 
 	return 0;

@@ -91,15 +91,6 @@ If call stacks are identical returns 1 else returns 0.
         pattern = self.pattern_error_trace
         return int(err_trace_converted == pattern)
 
-    def model_functions_compare(self):
-        """
-If model functions are identical returns 1 else returns 0.
-        """
-
-        err_trace_converted = self.__get_converted_trace('model_functions')
-        pattern = self.pattern_error_trace
-        return int(err_trace_converted == pattern)
-
     def callstack_tree_compare(self):
         """
 If call stacks trees are identical returns 1 else returns 0.
@@ -114,6 +105,23 @@ If call stacks trees are identical returns 1 else returns 0.
 Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
         """
         converted_et = self.__get_converted_trace('call_forests')
+        pattern = self.pattern_error_trace
+        if any(not isinstance(x, str) for x in converted_et):
+            converted_et = list(json.dumps(x) for x in converted_et)
+        if any(not isinstance(x, str) for x in pattern):
+            pattern = list(json.dumps(x) for x in pattern)
+        err_trace_converted = set(converted_et)
+        pattern = set(pattern)
+        max_len = max(len(err_trace_converted), len(pattern))
+        if max_len == 0:
+            return 1
+        return len(err_trace_converted & pattern) / max_len
+
+    def forests_callbacks_compare(self):
+        """
+Returns the number of similar forests with callbacks calls divided by the maximum number of forests in 2 error traces.
+        """
+        converted_et = self.__get_converted_trace('forests_callbacks')
         pattern = self.pattern_error_trace
         if any(not isinstance(x, str) for x in converted_et):
             converted_et = list(json.dumps(x) for x in converted_et)

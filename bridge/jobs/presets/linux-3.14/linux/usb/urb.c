@@ -41,6 +41,18 @@ struct urb *ldv_usb_alloc_urb(void)
 	return arbitrary_memory;
 }
 
+/* MODEL_FUNC Allocates memory for urb request. */
+struct urb *ldv_usb_get_urb(struct urb *urb)
+{
+	if (urb) {
+		/* ASSERT The memory must be allocated before. */
+		ldv_assert("linux:usb:urb::less initial decrement", ldv_urb_state>=1);
+		/* NOTE Increase allocated counter. */
+		ldv_urb_state += 1;
+		return urb;
+	}
+}
+
 /* MODEL_FUNC Releases memory of urb request. */
 void ldv_usb_free_urb(struct urb *urb) {
 	if (urb) {
