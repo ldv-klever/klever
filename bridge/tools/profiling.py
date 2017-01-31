@@ -39,14 +39,15 @@ class ExecLocker:
 
     def lock(self):
         # Lock with file while we locking with DB table
-        while os.path.exists(self.lockfile):
-            time.sleep(0.1)
-            self.waiting_time[0] += 0.1
-            if self.waiting_time[0] > MAX_WAITING:
-                raise RuntimeError('Not enough time to lock execution of view')
-                # break
-        with open(self.lockfile, mode='x'):
-            pass
+        while True:
+            try:
+                with open(self.lockfile, mode='x'):
+                    break
+            except FileExistsError:
+                time.sleep(0.1)
+                self.waiting_time[0] += 0.1
+                if self.waiting_time[0] > MAX_WAITING:
+                    raise RuntimeError('Not enough time to lock execution of view')
 
         try:
             self.__lock_names()
