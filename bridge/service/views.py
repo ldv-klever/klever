@@ -55,6 +55,7 @@ def schedule_task(request):
     return JsonResponse({'task id': res.task_id})
 
 
+@unparallel_group([])
 def get_task_status(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})

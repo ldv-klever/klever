@@ -38,6 +38,8 @@ class ExecLocker:
         self.waiting_time = [0, 0]
 
     def lock(self):
+        if len(self.names) == 0:
+            return
         # Lock with file while we locking with DB table
         while True:
             try:
@@ -55,7 +57,8 @@ class ExecLocker:
             os.remove(self.lockfile)
 
     def unlock(self):
-        LockTable.objects.filter(id__in=self.lock_ids).update(locked=False)
+        if len(self.lock_ids) > 0:
+            LockTable.objects.filter(id__in=self.lock_ids).update(locked=False)
 
     def __lock_names(self):
         can_lock = True
@@ -115,10 +118,9 @@ def profiling(row):
         # return - time when response processing ended by Django
         # wait1 - waiting time while other function tries to lock with DB table
         # wait2 - waiting time while trying to lock with DB table
-        fieldnames = ['func_name', 'enter', 'exec', 'is_failed', 'exec_time', 'return', 'wait1', 'wait2']
         writer = csv.writer(csvfile, delimiter=',')
         if csvfile.tell() == 0:
-            writer.writerow(fieldnames)
+            writer.writerow(['func_name', 'enter', 'exec', 'is_failed', 'exec_time', 'return', 'wait1', 'wait2'])
         writer.writerow(row)
 
 
