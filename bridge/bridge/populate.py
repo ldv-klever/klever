@@ -32,7 +32,8 @@ from jobs.models import Job, JobFile
 from reports.models import TaskStatistic
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
-from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert
+from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert,\
+    ErrorTraceConvertionCache
 from marks.utils import ConnectMarkWithReports
 from marks.tags import CreateTagsFromFile
 from service.models import Scheduler
@@ -104,6 +105,7 @@ class Population(object):
                 func.description = description
                 func.save()
         MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
+        ErrorTraceConvertionCache.objects.all().delete()
 
     def __correct_description(self, descr):
         self.__is_not_used()
