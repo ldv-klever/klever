@@ -279,7 +279,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
         logging.debug("Make archive {} with a solution of the task {}.zip".format(solution_archive, identifier))
-        shutil.make_archive(solution_archive, 'gztar', task_solution_dir)
+        shutil.make_archive(solution_archive, 'zip', task_solution_dir)
         solution_archive += ".zip"
 
         # Push result
