@@ -105,7 +105,7 @@
           },
           "call": {
             "comment": "Initializations are done, proceed to the other callbacks.",
-            "process": "[callback].{call} | [release].{main}"
+            "process": "[callback].{call} | [release].<free>.(deregister)"
           },
           "register": {
             "parameters": [
