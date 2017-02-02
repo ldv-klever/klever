@@ -295,34 +295,25 @@ class UploadReport(object):
             raise ValueError('updated report does not exist')
 
         report_data = self.data['data']
-        if report.component.name == 'AVTG':
-            if AVTG_FAIL_NAME not in report_data and AVTG_TOTAL_NAME not in report_data:
-                self.__update_dict_data(report, report_data)
-            else:
-                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-                if AVTG_TOTAL_NAME in report_data:
-                    tasks_nums.avtg_total = int(report_data[AVTG_TOTAL_NAME])
-                if AVTG_FAIL_NAME in report_data:
-                    tasks_nums.avtg_fail = int(report_data[AVTG_FAIL_NAME])
-                tasks_nums.save()
-                self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name == 'VTG':
-            if VTG_FAIL_NAME in report_data:
-                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-                tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
-                tasks_nums.save()
-                self.__save_total_tasks_number(tasks_nums)
-            else:
-                self.__update_dict_data(report, report_data)
-        elif report.component.name in {'SBT', 'MBT'}:
-            if BT_TOTAL_NAME in report_data:
-                tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
-                tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
-                tasks_nums.bt_num += 1
-                tasks_nums.save()
-                self.__save_total_tasks_number(tasks_nums)
-            else:
-                self.__update_dict_data(report, report_data)
+        if report.component.name == 'AVTG' and (AVTG_FAIL_NAME in report_data or AVTG_TOTAL_NAME in report_data):
+            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+            if AVTG_TOTAL_NAME in report_data:
+                tasks_nums.avtg_total = int(report_data[AVTG_TOTAL_NAME])
+            if AVTG_FAIL_NAME in report_data:
+                tasks_nums.avtg_fail = int(report_data[AVTG_FAIL_NAME])
+            tasks_nums.save()
+            self.__save_total_tasks_number(tasks_nums)
+        elif report.component.name == 'VTG' and VTG_FAIL_NAME in report_data:
+            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+            tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
+            tasks_nums.save()
+            self.__save_total_tasks_number(tasks_nums)
+        elif report.component.name in {'SBT', 'MBT', 'RSB'} and BT_TOTAL_NAME in report_data:
+            tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
+            tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
+            tasks_nums.bt_num += 1
+            tasks_nums.save()
+            self.__save_total_tasks_number(tasks_nums)
         else:
             self.__update_dict_data(report, report_data)
 
