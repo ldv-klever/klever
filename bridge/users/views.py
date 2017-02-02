@@ -35,6 +35,7 @@ from tools.profiling import unparallel_group
 from jobs.models import Job
 
 
+@unparallel_group(['User'])
 def user_signin(request):
     activate(request.LANGUAGE_CODE)
     if not isinstance(request.user, models.AnonymousUser):
@@ -99,7 +100,7 @@ def register(request):
 
 
 @login_required
-@unparallel_group([User, Extended])
+@unparallel_group([User])
 def edit_profile(request):
     activate(request.user.extended.language)
 
@@ -261,6 +262,7 @@ def show_profile(request, user_id):
     })
 
 
+@unparallel_group(['User'])
 def service_signin(request):
     if request.method != 'POST':
         get_token(request)
@@ -300,6 +302,7 @@ def service_signin(request):
     return HttpResponse('')
 
 
+@unparallel_group([])
 def service_signout(request):
     logout(request)
     return HttpResponse('')
