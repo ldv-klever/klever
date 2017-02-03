@@ -386,34 +386,37 @@ def _remove_switch_cases(logger, error_trace):
             continue
 
         x = None
+        start_idx = 0
+        cond_edges_to_remove = []
         for idx, cond_edge in enumerate(cond_edges):
             m = re.search(r'^(.+) ([=!]=)', cond_edge['source'])
 
-            # Do not proceed if meet unexpected format of condition.
+            # Start from scratch if meet unexpected format of condition.
             if not m:
                 x = None
-                break
+                continue
 
+            # Do not proceed until first condition matches pattern.
+            if x is None and m.group(2) != '!=':
+                continue
+
+            # Begin to collect conditions.
             if x is None:
+                start_idx = idx
                 x = m.group(1)
-            # Do not proceed if first expression condition differs.
+                continue
+            # Start from scratch if first expression condition differs.
             elif x != m.group(1):
                 x = None
-                break
+                continue
 
-            if idx < len(cond_edges) - 1 and m.group(2) != '!=':
+            # Finish to collect conditions. Pattern matches.
+            if x is not None and m.group(2) == '==':
+                cond_edges_to_remove.extend(cond_edges[start_idx:idx])
                 x = None
-                break
+                continue
 
-            if idx == len(cond_edges) - 1 and m.group(2) != '==':
-                x = None
-                break
-
-        # Do not proceed if something above went wrong.
-        if x is None:
-            continue
-
-        for cond_edge in reversed(cond_edges[:-1]):
+        for cond_edge in reversed(cond_edges_to_remove):
             error_trace.remove_edge_and_target_node(cond_edge)
             removed_switch_cases_num += 1
 
