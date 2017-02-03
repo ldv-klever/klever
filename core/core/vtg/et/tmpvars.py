@@ -312,17 +312,29 @@ def _remove_aux_functions(logger, error_trace):
 
         # Third pattern. For first and second patterns it is enough that next edge returns from function since this
         # function can be just the parent auxiliary one.
-        if 'return' not in func_call_edge and 'condition' not in func_call_edge:
+        if 'return' not in func_call_edge:
             return_edge = error_trace.get_func_return_edge(func_call_edge)
 
             if return_edge:
-                aux_func_return_edge = error_trace.next_edge(return_edge)
+                # Skip body of next function entered when returning from the given one. Corresponding pattern is:
+                #   enter auxiliary function
+                #     enter function 1
+                #       ...
+                #       enter function 2 and return from function 1
+                #         ...
+                #         return from function 2
+                #   return from auxiliary function
+                if 'enter' in return_edge:
+                    return_edge = error_trace.get_func_return_edge(return_edge)
 
-                if aux_func_return_edge is None or 'return' not in aux_func_return_edge or \
-                                aux_func_return_edge['source'] != 'return;':
-                    continue
+                if return_edge:
+                    aux_func_return_edge = error_trace.next_edge(return_edge)
 
-                error_trace.remove_edge_and_target_node(aux_func_return_edge)
+                    if aux_func_return_edge is None or 'return' not in aux_func_return_edge \
+                            or aux_func_return_edge['source'] != 'return;':
+                        continue
+
+                    error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
             for attr in ('file', 'start line'):
