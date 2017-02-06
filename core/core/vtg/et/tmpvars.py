@@ -281,34 +281,21 @@ def _remove_aux_functions(logger, error_trace):
         actual_args = _parse_func_call_actual_args(m.group(3))
 
         # Do not proceed if names of actual arguments of called function don't correspond to ones obtained during model
-        # comments parsing or/and hold their positions. Without this we won't be able to replace them with corresponding
-        # actual arguments of called auxiliary function.
+        # comments parsing. Without this we won't be able to replace them with corresponding actual arguments of called
+        # auxiliary function.
         is_all_replaced = True
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
-
             for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
                 if formal_arg_name == actual_arg:
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
                     break
-
             if is_replaced:
                 continue
 
-            m = re.search(r'arg(\d+)', actual_arg)
-
-            if not m:
-                is_all_replaced = False
-                break
-
-            actual_arg_position = int(m.group(1)) - 1
-
-            if actual_arg_position >= len(aux_actual_args):
-                is_all_replaced = False
-                break
-
-            actual_args[i] = aux_actual_args[actual_arg_position]
+            is_all_replaced = False
+            break
 
         if not is_all_replaced:
             continue
