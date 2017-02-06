@@ -305,12 +305,19 @@ class ErrorTrace:
                                             'Auxiliary/model function definition is not specified in {!r}'.format(
                                                 func_decl))
 
-                                # Try to get names for simple formal arguments (in form "type name") that is required
-                                # for removing auxiliary function calls.
+                                # Try to get names for formal arguments (in form "type name") that is required for
+                                # removing auxiliary function calls.
                                 formal_arg_names = []
                                 match = re.search(r'{0}\s*\((.*)\)'.format(func_name), func_decl)
                                 if match:
-                                    for formal_arg in match.group(1).split(','):
+                                    formal_args_str = match.group(1)
+
+                                    # Remove arguments of function pointers and braces around corresponding argument
+                                    # names.
+                                    formal_args_str = re.sub(r'\(([^,]+)\)', '\g<1>', formal_args_str)
+                                    formal_args_str = re.sub(r'\(.*,.*\)', '', formal_args_str)
+
+                                    for formal_arg in formal_args_str.split(','):
                                         match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
 
                                         # Give up if meet complicated formal argument.
