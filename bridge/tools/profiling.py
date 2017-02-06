@@ -137,11 +137,13 @@ def unparallel_group(groups):
                 res = f(*args, **kwargs)
             except Exception:
                 profiling_row.append(1)
+                profiling_row.append(time.time() - t1)
                 raise
-            finally:
+            else:
                 profiling_row.append(0)
                 profiling_row.append(time.time() - t1)
                 locker.unlock()
+            finally:
                 profiling_row.append(time.time())
                 profiling_row.extend(locker.waiting_time)
                 profiling(profiling_row)
