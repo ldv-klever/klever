@@ -52,11 +52,14 @@ def _basic_simplification(logger, error_trace):
         # Remove space before "," and ")".
         edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
 
-        # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
-        edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
+        # Replace "!(... ==/!=/<=/>=/</> ...)" with "... !=/==/>/</>=/<= ...".
+        cond_replacements = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
+        for orig_cond, replacement_cond in cond_replacements.items():
+            m = re.match(r'^!\((.+) {0} (.+)\)$'.format(orig_cond), edge['source'])
+            if m:
+                edge['source'] = '{0} {1} {2}'.format(m.group(1), replacement_cond, m.group(2))
+                # Do not proceed after some replacement is applied - others won't be done.
+                break
 
         # Remove unnessary "(...)" around returned values/expressions.
         edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
