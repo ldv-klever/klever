@@ -17,6 +17,9 @@
             "interface": [
               "scsi_host_template.host"
             ]
+          },
+          "mask": {
+            "signature": "gfp_t gfp_mask"
           }
         },
         "process": "<alloc>.<success> | <fail>",
@@ -24,8 +27,12 @@
           "alloc": {
             "comment": "Allocate memory for a new Scsi_Host structure and initialize it.",
             "statements": [
-              "%host% = $ALLOC(%host%);",
               "%scsi_host_template% = $ARG1;",
+              "%mask% = GFP_KERNEL;",
+              "if (%scsi_host_template%->unchecked_isa_dma && $ARG2)",
+              "  %mask% |= __GFP_DMA;",
+              "%host% = kzalloc(sizeof(struct Scsi_Host) + $ARG2, %mask%);",
+              "ldv_assume(%host%);",
               "%host%->hostt= %scsi_host_template%;"
             ]
           },

@@ -23,7 +23,6 @@ def envmodel_simplifications(logger, error_trace):
     _set_thread(data, error_trace)
     _remove_control_func_aux_code(data, error_trace)
     _wrap_actions(data, error_trace)
-    _remove_callback_wrappers(error_trace)
 
 
 def _collect_action_diaposons(error_trace):
@@ -223,67 +222,3 @@ def _wrap_actions(data, error_trace):
             _match_control_function(error_trace, edge, cf_stack, data)
         elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
             cf_stack.pop()
-
-
-# TODO is it really necessary? See tmpvars._remove_aux_functions().
-def _remove_callback_wrappers(error_trace):
-    def is_aux_callback_call(edge, error_trace):
-        if 'enter' in edge and edge['enter'] in error_trace.aux_funcs and \
-                edge['file'] in error_trace.emg_comments and \
-                int(edge['start line'] - 1) in error_trace.emg_comments[edge['file']] and \
-                error_trace.emg_comments[edge['file']][int(edge['start line'] - 1)]['type'] == 'CALLBACK':
-            return True
-        else:
-            return False
-
-    def replace_callback_call(edge, true_call):
-        expected_ret = edge['enter']
-        callback_ret = None
-        in_callback = 0
-        error_trace.remove_edge_and_target_node(edge)
-        while True:
-            edge = error_trace.next_edge(edge)
-            if not edge:
-                break
-            elif not callback_ret:
-                if 'return' in edge and edge['return'] == expected_ret:
-                    edge['source'] = true_call
-                    del edge['return']
-                    break
-                elif 'enter' not in edge:
-                    error_trace.remove_edge_and_target_node(edge)
-                else:
-                    edge['source'] = true_call
-                    callback_ret = edge['enter']
-                    in_callback += 1
-            elif in_callback:
-                if 'enter' in edge and edge['enter'] == callback_ret:
-                    in_callback += 1
-                elif 'return' in edge and edge['return'] == callback_ret:
-                    in_callback -= 1
-                elif is_aux_callback_call(edge, error_trace):
-                    ntc = error_trace.emg_comments[edge['file']][edge['start line'] - 1]['comment']
-                    edge = replace_callback_call(edge, ntc)
-                    if not edge:
-                        break
-            elif in_callback == 0:
-                error_trace.remove_edge_and_target_node(edge)
-                if 'return' in edge and edge['return'] == expected_ret:
-                    break
-
-        return edge
-
-    # Go through trace
-    edge = error_trace.entry_node['out'][0]
-    while True:
-        if is_aux_callback_call(edge, error_trace):
-            true_call = error_trace.emg_comments[edge['file']][edge['start line'] - 1]['comment']
-            edge = replace_callback_call(edge, true_call)
-            if not edge:
-                break
-
-        edge = error_trace.next_edge(edge)
-        if not edge:
-            break
-
-    return

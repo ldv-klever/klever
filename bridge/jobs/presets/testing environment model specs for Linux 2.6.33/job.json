@@ -29,24 +29,6 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
-        "external modules": "tests/file_system_type",
-        "modules": [
-          "fs_callbacks.ko",
-          "fs_invoke.ko",
-          "register_filesystem.ko",
-          "unregister_filesystem.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/fs_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/block_device_operations",
         "modules": [
           "disk_invoke.ko",
@@ -482,6 +464,25 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/serial_core_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/super_block",
+        "modules": [
+          "fs_callbacks.ko",
+          "fs_invoke.ko",
+          "register_filesystem.ko",
+          "unregister_filesystem.ko",
+          "super_callbacks.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/fs_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

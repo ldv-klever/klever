@@ -898,8 +898,8 @@ class ErrorTraceForests:
                 collect_names = True
                 curr_action = edge_data['action']
             if collect_names:
+                is_model = 'note' in edge_data or 'warn' in edge_data
                 if 'enter' in edge_data:
-                    is_model = 'note' in edge_data or 'warn' in edge_data
                     if self.with_callbcaks and 'action' in edge_data \
                             and edge_data['action'] in self.data['callback actions']:
                         is_model = True
@@ -916,7 +916,7 @@ class ErrorTraceForests:
                         double_return.remove(old_scope)
                         old_scope = forest.scope()
                         forest.return_from_func()
-                elif 'warn' in edge_data:
+                elif is_model:
                     forest.mark_current_scope()
 
         if collect_names:
