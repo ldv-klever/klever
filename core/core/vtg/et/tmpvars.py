@@ -21,7 +21,7 @@ def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _basic_simplification(logger, trace)
     _remove_switch_cases(logger, trace)
-    _remove_artificial_edges(logger, trace)
+    _remove_tmp_vars(logger, trace)
     _remove_aux_functions(logger, trace)
 
 
@@ -74,19 +74,7 @@ def _basic_simplification(logger, error_trace):
                 edge[source_kind] = re.sub(r'& ', '&', edge[source_kind])
 
 
-def _remove_artificial_edges(logger, error_trace):
-    # More advanced transformations.
-    # Get rid of artificial edges added after returning from functions.
-    removed_edges_num = 0
-    for edge in error_trace.trace_iterator():
-        if 'return' in edge:
-            next_edge = error_trace.next_edge(edge)
-            if next_edge is not None and 'return' in next_edge and next_edge['return'] == edge['return']:
-                error_trace.remove_edge_and_target_node(next_edge)
-                removed_edges_num += 1
-    if removed_edges_num:
-        logger.debug('{0} useless edges were removed'.format(removed_edges_num))
-
+def _remove_tmp_vars(logger, error_trace):
     # Get rid of temporary variables. Replace:
     #   ... tmp...;
     #   ...
@@ -95,13 +83,13 @@ def _remove_artificial_edges(logger, error_trace):
     # with (removing first and last statements if so):
     #   ...
     #   ... func(...) ...;
-    removed_tmp_vars_num = _remove_tmp_vars(error_trace, next(error_trace.trace_iterator()))[0]
+    removed_tmp_vars_num = __remove_tmp_vars(error_trace, next(error_trace.trace_iterator()))[0]
 
     if removed_tmp_vars_num:
         logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
 
 
-def _remove_tmp_vars(error_trace, edge):
+def __remove_tmp_vars(error_trace, edge):
     removed_tmp_vars_num = 0
 
     # Remember current function. All temporary variables defined in a given function can be used just in it.
@@ -148,7 +136,7 @@ def _remove_tmp_vars(error_trace, edge):
         # Recursively get rid of temporary variables inside called function if there are some edges belonging to that
         # function.
         if 'enter' in edge and error_trace.next_edge(func_call_edge):
-            removed_tmp_vars_num_tmp, next_edge = _remove_tmp_vars(error_trace, func_call_edge)
+            removed_tmp_vars_num_tmp, next_edge = __remove_tmp_vars(error_trace, func_call_edge)
             removed_tmp_vars_num += removed_tmp_vars_num_tmp
 
             # Skip all edges belonging to called function.
