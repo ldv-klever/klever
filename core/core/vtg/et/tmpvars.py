@@ -240,8 +240,8 @@ def _remove_aux_functions(logger, error_trace):
 
         next_edge = error_trace.next_edge(edge)
 
-        # Do not proceed if next edge doesn't represent function call.
-        if 'enter' not in next_edge:
+        # Do not proceed if there isn't next edge or it doesn't represent function call.
+        if not next_edge or 'enter' not in next_edge:
             continue
 
         func_call_edge = next_edge
