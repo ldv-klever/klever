@@ -131,7 +131,7 @@
             "comment": "Release block device.",
             "callback": "%ops.release%",
             "parameters": [
-              "%block%"
+              "%disk%"
             ]
           },
           "open": {
