@@ -274,10 +274,12 @@ class ReportTable(object):
                 'verdict': leaf.safe.verdict,
                 'parent_id': leaf.safe.parent_id,
                 'parent_cpu': leaf.safe.verifier_time,
-                'tags': []
+                'tags': set()
             }
-        for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).order_by('tag__tag').select_related('tag'):
-            reports[srt.report_id]['tags'].append(srt.tag.tag)
+        for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).select_related('tag'):
+            reports[srt.report_id]['tags'].add(srt.tag.tag)
+        for r_id in reports:
+            reports[r_id]['tags'] = list(sorted(reports[r_id]['tags']))
         for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
@@ -370,11 +372,12 @@ class ReportTable(object):
                 'verdict': leaf.unsafe.verdict,
                 'parent_id': leaf.unsafe.parent_id,
                 'parent_cpu': leaf.unsafe.verifier_time,
-                'tags': []
+                'tags': set()
             }
-        for srt in UnsafeReportTag.objects.filter(report_id__in=list(reports))\
-                .order_by('tag__tag').select_related('tag'):
-            reports[srt.report_id]['tags'].append(srt.tag.tag)
+        for srt in UnsafeReportTag.objects.filter(report_id__in=list(reports)).select_related('tag'):
+            reports[srt.report_id]['tags'].add(srt.tag.tag)
+        for r_id in reports:
+            reports[r_id]['tags'] = list(sorted(reports[r_id]['tags']))
         for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
