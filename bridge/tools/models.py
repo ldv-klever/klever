@@ -24,3 +24,17 @@ class LockTable(models.Model):
 
     class Meta:
         db_table = 'lock_table'
+
+
+class CallLogs(models.Model):
+    name = models.CharField(max_length=64, db_index=True)
+    enter_time = models.DecimalField(max_digits=14, decimal_places=4)
+    execution_time = models.DecimalField(max_digits=14, decimal_places=4)
+    return_time = models.DecimalField(max_digits=14, decimal_places=4)
+    execution_delta = models.FloatField()
+    wait1 = models.FloatField()
+    wait2 = models.FloatField()
+    is_failed = models.BooleanField()
+
+    class Meta:
+        db_table = 'tools_call_logs'

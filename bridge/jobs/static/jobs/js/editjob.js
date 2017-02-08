@@ -1058,6 +1058,7 @@ $(document).ready(function () {
     });
 
     if ($('#job_data_div').length) {
+        var num_of_updates = 0;
         var interval = setInterval(function () {
             if ($.active > 0) {
                 return false;
@@ -1111,6 +1112,11 @@ $(document).ready(function () {
                         $('#average_time').text(progress_data[1]);
                         $('#local_average_time').text(progress_data[2]);
                         $('#max_time').text(progress_data[3]);
+                    }
+                    num_of_updates++;
+                    if (num_of_updates > 200) {
+                        err_notify($('#error__autoupdate_off').text());
+                        clearInterval(interval);
                     }
                 }
             ).fail(function () {

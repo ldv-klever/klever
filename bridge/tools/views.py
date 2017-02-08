@@ -25,7 +25,7 @@ from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
-from tools.profiling import unparallel_group, ProfileData
+from tools.profiling import unparallel_group, ProfileData, clear_old_logs
 
 
 @login_required
@@ -165,3 +165,11 @@ def call_statistic(request):
         else:
             data = ProfileData().get_statistic_around(float(request.POST['date']))
     return render(request, "tools/CallStatistic.html", {'data': data})
+
+
+def clear_call_logs(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': 'Unknown error'})
+    clear_old_logs()
+    return JsonResponse({'message': _('Logs were successfully cleared')})

@@ -16,12 +16,10 @@
 #
 
 import os
-import csv
-import glob
 import time
 from datetime import datetime
 from django.db.models.base import ModelBase
-from tools.models import LockTable
+from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
 # So maximum waiting time is (MAX_WAITING * 2) in seconds.
@@ -107,46 +105,29 @@ class ExecLocker:
         return related_models
 
 
-def profiling(row):
-    csv_file = os.path.join('media', 'CSV', time.strftime('%Y-%m-%d.csv'))
-    os.makedirs(os.path.dirname(csv_file), exist_ok=True)
-    with open(csv_file, mode='a', newline='') as csvfile:
-        # func_name - The name of view function
-        # enter - time when response processing started
-        # exec - time when view function was called
-        # exec_time - view function execution time
-        # return - time when response processing ended by Django
-        # wait1 - waiting time while other function tries to lock with DB table
-        # wait2 - waiting time while trying to lock with DB table
-        writer = csv.writer(csvfile, delimiter=',')
-        if csvfile.tell() == 0:
-            writer.writerow(['func_name', 'enter', 'exec', 'is_failed', 'exec_time', 'return', 'wait1', 'wait2'])
-        writer.writerow(row)
-
-
 def unparallel_group(groups):
     def __inner(f):
 
         def wait(*args, **kwargs):
-            profiling_row = [f.__name__, time.time()]
+            call_data = CallLogs(name=f.__name__, enter_time=time.time())
             locker = ExecLocker(groups)
             locker.lock()
-            profiling_row.append(time.time())
-            t1 = time.time()
+            call_data.execution_time = time.time()
             try:
                 res = f(*args, **kwargs)
             except Exception:
-                profiling_row.append(1)
-                profiling_row.append(time.time() - t1)
+                call_data.execution_delta = time.time() - call_data.execution_time
+                call_data.is_failed = True
                 raise
             else:
-                profiling_row.append(0)
-                profiling_row.append(time.time() - t1)
+                call_data.execution_delta = time.time() - call_data.execution_time
+                call_data.is_failed = False
                 locker.unlock()
             finally:
-                profiling_row.append(time.time())
-                profiling_row.extend(locker.waiting_time)
-                profiling(profiling_row)
+                call_data.return_time = time.time()
+                call_data.wait1 = locker.waiting_time[0]
+                call_data.wait2 = locker.waiting_time[1]
+                call_data.save()
             return res
 
         return wait
@@ -173,82 +154,65 @@ class ProfileData:
         return self.get_log(date - delta_seconds, date + delta_seconds)
 
     def get_log(self, date1=None, date2=None, func_name=None):
-        logdata = []
+        filters = {}
         date1 = self.__date_stamp(date1)
+        if isinstance(date1, float):
+            filters['enter_time__gt'] = date1
         date2 = self.__date_stamp(date2)
-        first_file = self.__get_file(date1)
-        last_file = self.__get_file(date2)
-        for fname in self.__get_files(date1, date2):
-            bname = os.path.basename(fname)
-            with open(fname, mode='r') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    row = self.__get_data(row)
-                    if func_name is not None and func_name != row['func_name']:
-                        continue
-                    if bname == first_file and row['enter'] < date1:
-                        continue
-                    if bname == last_file and row['return'] > date2:
-                        continue
-                    logdata.append({
-                        'name': row['func_name'],
-                        'wait1': (row['wait1'], row['wait1'] > MAX_WAITING),
-                        'wait2': (row['wait2'], row['wait2'] > MAX_WAITING),
-                        'wait_total': row['wait1'] + row['wait2'],
-                        'enter': datetime.fromtimestamp(row['enter']),
-                        'exec': datetime.fromtimestamp(row['exec']),
-                        'return': datetime.fromtimestamp(row['return']),
-                        'exec_time': '%0.3f' % row['exec_time'],
-                        'failed': bool(int(row['is_failed']))
-                    })
+        if isinstance(date2, float):
+            filters['enter_time__lt'] = date2
+        if isinstance(func_name, str):
+            filters['name'] = func_name
+        logdata = []
+        for call_data in CallLogs.objects.filter(**filters).order_by('id'):
+            logdata.append({
+                'name': call_data.name,
+                'wait1': (call_data.wait1, call_data.wait1 > MAX_WAITING),
+                'wait2': (call_data.wait2, call_data.wait2 > MAX_WAITING),
+                'wait_total': call_data.wait1 + call_data.wait2,
+                'enter': datetime.fromtimestamp(call_data.enter_time),
+                'exec': datetime.fromtimestamp(call_data.execution_time),
+                'return': datetime.fromtimestamp(call_data.return_time),
+                'exec_time': '%0.3f' % call_data.execution_delta,
+                'failed': call_data.is_failed
+            })
         return logdata
 
     def __collect_statistic(self, date1, date2, func_name):
+        self.__is_not_used()
         data = {}
-        first_file = self.__get_file(date1)
-        last_file = self.__get_file(date2)
-        for fname in self.__get_files(date1, date2):
-            bname = os.path.basename(fname)
-            with open(fname, mode='r') as csvfile:
-                reader = csv.DictReader(csvfile)
-                for row in reader:
-                    row = self.__get_data(row)
-                    if func_name is not None and row['func_name'] != func_name:
-                        continue
-                    if bname == first_file and row['enter'] < date1:
-                        continue
-                    if bname == last_file and row['return'] > date2:
-                        continue
-                    func = row['func_name']
-                    if func not in data:
-                        data[func] = {
-                            'name': func,
-                            'exec': row['exec_time'],
-                            'waiting': row['wait1'] + row['wait2'],
-                            'calls': 1,
-                            'failed': 1 if row['is_failed'] else 0
-                        }
-                    else:
-                        data[func]['exec'] = (data[func]['exec'] * data[func]['calls'] + row['exec_time']) / \
-                                             (data[func]['calls'] + 1)
-                        data[func]['waiting'] += row['wait1'] + row['wait2']
-                        data[func]['calls'] += 1
-                        if row['is_failed']:
-                            data[func]['failed'] += 1
-        return list(data[fname] for fname in sorted(data))
+        filters = {}
+        if isinstance(date1, float):
+            filters['enter_time__gt'] = date1
+        if isinstance(date2, float):
+            filters['enter_time__lt'] = date2
+        if isinstance(func_name, str):
+            filters['name'] = func_name
 
-    def __get_files(self, date1, date2):
-        files = set()
-        first_file = self.__get_file(date1)
-        for fname in glob.glob(os.path.join('media', 'CSV', '*.csv')):
-            bname = os.path.basename(fname)
-            file_time = time.mktime(time.strptime(bname, '%Y-%m-%d.csv'))
-            if date1 is not None and date1 > file_time and bname != first_file:
-                continue
-            if date2 is not None and date2 < file_time:
-                continue
-            files.add(fname)
-        return sorted(files)
+        for call_data in CallLogs.objects.filter(**filters).order_by('id'):
+            if call_data.name not in data:
+                data[call_data.name] = {
+                    'name': call_data.name,
+                    'total_exec': call_data.execution_delta,
+                    'max_exec': call_data.execution_delta,
+                    'waiting': call_data.wait1 + call_data.wait2,
+                    'max_wait1': call_data.wait1,
+                    'max_wait2': call_data.wait2,
+                    'calls': 1,
+                    'failed': 1 if call_data.is_failed else 0
+                }
+            else:
+                data[call_data.name]['total_exec'] += call_data.execution_delta
+                data[call_data.name]['waiting'] += call_data.wait1 + call_data.wait2
+                data[call_data.name]['max_exec'] = max(data[call_data.name]['max_exec'], call_data.execution_delta)
+                data[call_data.name]['max_wait1'] = max(data[call_data.name]['max_wait1'], call_data.wait1)
+                data[call_data.name]['max_wait2'] = max(data[call_data.name]['max_wait2'], call_data.wait2)
+                data[call_data.name]['calls'] += 1
+                if call_data.is_failed:
+                    data[call_data.name]['failed'] += 1
+        for func in data:
+            data[func]['average_exec'] = data[func]['total_exec'] / data[func]['calls']
+        return list(data[fname] for fname in sorted(data))
 
     def __date_stamp(self, date):
         self.__is_not_used()
@@ -260,23 +224,11 @@ class ProfileData:
             date = None
         return date
 
-    def __get_file(self, date):
-        self.__is_not_used()
-        fname = None
-        if isinstance(date, float):
-            fname = time.strftime('%Y-%m-%d.csv', time.localtime(date))
-        return fname
-
-    def __get_data(self, row):
-        self.__is_not_used()
-        row['enter'] = float(row['enter'])
-        row['exec'] = float(row['exec'])
-        row['exec_time'] = float(row['exec_time'])
-        row['is_failed'] = bool(int(row['is_failed']))
-        row['return'] = float(row['return'])
-        row['wait1'] = float(row['wait1'])
-        row['wait2'] = float(row['wait2'])
-        return row
-
     def __is_not_used(self):
         pass
+
+
+def clear_old_logs():
+    # 30 days exactly
+    border_time = time.time() - 2592000
+    CallLogs.objects.filter(enter_time__lt=border_time).delete()

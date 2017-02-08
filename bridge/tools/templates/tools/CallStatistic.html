@@ -6,7 +6,11 @@
             <tr>
                 <th>{% trans 'Function name' %}</th>
                 <th>{% trans 'Average execution time' %}</th>
+                <th>{% trans 'Max execution time' %}</th>
+                <th>{% trans 'Total execution time' %}</th>
                 <th>{% trans 'Total waiting time' %}</th>
+                <th>{% trans 'Max waiting lock' %}</th>
+                <th>{% trans 'Max try lock' %}</th>
                 <th>{% trans 'Number of calls' %}</th>
                 <th>{% trans 'Number of fails' %}</th>
             </tr>
@@ -15,8 +19,12 @@
             {% for d in data %}
                 <tr>
                     <td>{{ d.name }}</td>
-                    <td>{{ d.exec|floatformat:4 }} {% trans 's' %}</td>
+                    <td>{{ d.average_exec|floatformat:4 }} {% trans 's' %}</td>
+                    <td>{{ d.max_exec|floatformat:4 }} {% trans 's' %}</td>
+                    <td>{{ d.total_exec|floatformat:4 }} {% trans 's' %}</td>
                     <td>{{ d.waiting|floatformat:1 }} {% trans 's' %}</td>
+                    <td>{{ d.max_wait1|floatformat:1 }} {% trans 's' %}</td>
+                    <td>{{ d.max_wait2|floatformat:1 }} {% trans 's' %}</td>
                     <td>{{ d.calls }}</td>
                     <td>{{ d.failed }}</td>
                 </tr>

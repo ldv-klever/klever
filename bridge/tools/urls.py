@@ -29,4 +29,5 @@ urlpatterns = [
     url(r'^ajax/recalculation/$', views.recalculation),
     url(r'^ajax/call_list/$', views.call_list),
     url(r'^ajax/call_stat/$', views.call_statistic),
+    url(r'^ajax/clear_call_logs/$', views.clear_call_logs),
 ]

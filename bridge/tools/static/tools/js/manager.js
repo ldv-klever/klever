@@ -79,6 +79,22 @@ $(document).ready(function () {
             }
         );
     });
+    $('#clear_call_logs').click(function () {
+        $('#dimmer_of_page').addClass('active');
+        $.post(
+            '/tools/ajax/clear_call_logs/',
+            {},
+            function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    success_notify(data.message);
+                }
+            }
+        );
+    });
     $('#recalc_for_all_jobs_checkbox').checkbox({
         onChecked: function () {
             $('input[id^="job__"]').each(function () {
