@@ -56,12 +56,14 @@ class ConvertTrace(object):
                 self.error = 'Wrong function name'
                 return
         except AttributeError:
+            logger.exception('Function "%s" was not found' % function_name)
             self.error = 'Function was not found'
             return
         try:
             self.pattern_error_trace = function()
         except Exception as e:
-            self.error = e
+            logger.exception(e)
+            self.error = str(e)
             return
 
     def call_stack(self):
