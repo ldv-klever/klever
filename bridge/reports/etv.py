@@ -766,7 +766,8 @@ class Forest:
         self._cnt += 1
 
     def mark_current_scope(self):
-        self._model_functions.add(self.call_stack[-1])
+        if len(self.call_stack) > 0:
+            self._model_functions.add(self.call_stack[-1])
 
     def return_from_func(self):
         self._level -= 1
