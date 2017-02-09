@@ -327,7 +327,7 @@ class ErrorTrace:
                                 # Try to get names for formal arguments (in form "type name") that is required for
                                 # removing auxiliary function calls.
                                 formal_arg_names = []
-                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), func_decl)
+                                match = re.search(r'{0}\s*\((.+)\)'.format(func_name), func_decl)
                                 if match:
                                     formal_args_str = match.group(1)
 
