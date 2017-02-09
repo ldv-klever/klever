@@ -532,6 +532,13 @@
         }
       }
     },
+    "linux:races": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "RSG": {
+        "models": {"linux/races.c": {"bug kinds": []}}
+      }
+    },
     "linux:usb:gadget": {
       "description": "...",
       "template": "Linux kernel modules",

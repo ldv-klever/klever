@@ -71,8 +71,8 @@ class RSB(core.components.Component):
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
-            else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+            #else:
+            #    self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
@@ -368,50 +368,59 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
-        elif decision_results['status'] == 'unsafe':
+        #elif decision_results['status'] == 'unsafe':
+        else:
             self.logger.info('Process witness')
 
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
-            if len(witnesses) != 1:
-                NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+            if len(witnesses) != 0:
+            #    NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
 
-            et = import_error_trace(self.logger, witnesses[0])
+                for i in range(0, len(witnesses)):
+                    et = import_error_trace(self.logger, witnesses[0])
 
-            self.logger.info('Write processed witness to "error trace.json"')
-            with open('error trace.json', 'w', encoding='utf8') as fp:
-                json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                    result = re.search(r'witness\.(.*)\.graphml', witnesses[i])
+                    trace_id = result.groups()[0]
+                    error_trace_name = 'error trace_' + trace_id + '.json'
 
-            core.utils.report(self.logger,
-                              'unsafe',
-                              {
-                                  'id': verification_report_id + '/unsafe',
-                                  'parent id': verification_report_id,
-                                  'attrs': [{"Rule specification": self.rule_specification}],
-                                  'error trace': 'error trace.json',
-                                  'files': ['error trace.json'] + et['files']
-                              },
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
-        else:
-            # Prepare file to send it with unknown report.
-            # TODO: otherwise just the same file as parent log is reported, looks strange.
-            if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                self.log_file = 'error.txt'
-                with open(self.log_file, 'w', encoding='utf8') as fp:
-                    fp.write(decision_results['status'])
+                    self.logger.info('Write processed witness to "' + error_trace_name + '"')
+                    with open(error_trace_name, 'w', encoding='utf8') as fp:
+                        json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-            core.utils.report(self.logger,
-                              'unknown',
-                              {
-                                  'id': verification_report_id + '/unknown',
-                                  'parent id': verification_report_id,
-                                  'attrs': [{"Rule specification": self.rule_specification}],
-                                  'problem desc': self.log_file,
-                                  'files': [self.log_file]
-                              },
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
+                    core.utils.report(self.logger,
+                                      'unsafe',
+                                      {
+                                          'id': verification_report_id + '/unsafe' + '_' + trace_id,
+                                          'parent id': verification_report_id,
+                                          'attrs': [
+                                              {"Rule specification": self.rule_specification},
+                                              {"Error trace identifier": trace_id}],
+                                          'error trace': error_trace_name,
+                                          'files': [error_trace_name] + et['files']
+                                      },
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'],
+                                      trace_id)
+            else:
+                # Prepare file to send it with unknown report.
+                # TODO: otherwise just the same file as parent log is reported, looks strange.
+                if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
+                    self.log_file = 'error.txt'
+                    with open(self.log_file, 'w', encoding='utf8') as fp:
+                        fp.write(decision_results['status'])
+
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': verification_report_id + '/unknown',
+                                      'parent id': verification_report_id,
+                                      'attrs': [{"Rule specification": self.rule_specification}],
+                                      'problem desc': self.log_file,
+                                      'files': [self.log_file]
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
 
         self.verification_status = decision_results['status']
 
