@@ -374,8 +374,7 @@ class RSB(core.components.Component):
 
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
-            if len(witnesses) != 0:
-            #    NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+            if self.rule_specification == 'linux:races' and len(witnesses) != 0:
 
                 for i in range(0, len(witnesses)):
                     et = import_error_trace(self.logger, witnesses[0])
@@ -402,13 +401,36 @@ class RSB(core.components.Component):
                                       self.mqs['report files'],
                                       self.conf['main working directory'],
                                       trace_id)
+
+            elif decision_results['status'] == 'unsafe':
+                if len(witnesses) != 1:
+                    NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+
+                et = import_error_trace(self.logger, witnesses[0])
+                self.logger.info('Write processed witness to "error trace.json"')
+                with open('error trace.json', 'w', encoding='utf8') as fp:
+                    json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+                core.utils.report(self.logger,
+                                  'unsafe',
+                                  {
+                                      'id': verification_report_id + '/unsafe',
+                                      'parent id': verification_report_id,
+                                      'attrs': [{"Rule specification": self.rule_specification}],
+                                      'error trace': 'error trace.json',
+                                      'files': ['error trace.json'] + et['files']
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
             else:
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
+
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     self.log_file = 'error.txt'
-                    with open(self.log_file, 'w', encoding='utf8') as fp:
-                        fp.write(decision_results['status'])
+
+                with open(self.log_file, 'w', encoding='utf8') as fp:
+                    fp.write(decision_results['status'])
 
                 core.utils.report(self.logger,
                                   'unknown',
@@ -421,6 +443,8 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
+
+
 
         self.verification_status = decision_results['status']
 
