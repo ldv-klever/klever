@@ -209,6 +209,14 @@ def __remove_tmp_vars(error_trace, edge):
 
 
 def _parse_func_call_actual_args(actual_args_str):
+    # Get rid of all casts. Although they can be useful, but they considerably complicate actual arguments parsing.
+    while True:
+        new_actual_args_str = re.sub(r'(\([^\(\)]*\))', '', actual_args_str)
+        if new_actual_args_str == actual_args_str:
+            break
+        else:
+            actual_args_str = new_actual_args_str
+
     return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
 
 
@@ -259,7 +267,7 @@ def _remove_aux_functions(logger, error_trace):
         rel_expr = m.group(3)
 
         # Get name and actual arguments of called function if so.
-        m = re.search(r'^(return )?(.+)\s*\((.*)\);$', func_call_edge['source'])
+        m = re.search(r'^(return )?(\w+)\s*\((.*)\);$', func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
         if not m:
