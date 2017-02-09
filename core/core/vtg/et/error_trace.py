@@ -333,8 +333,7 @@ class ErrorTrace:
 
                                     # Remove arguments of function pointers and braces around corresponding argument
                                     # names.
-                                    formal_args_str = re.sub(r'\(([^,]+)\)', '\g<1>', formal_args_str)
-                                    formal_args_str = re.sub(r'\(.*,.*\)', '', formal_args_str)
+                                    formal_args_str = re.sub(r'\((.+)\)\(.+\)', '\g<1>', formal_args_str)
 
                                     for formal_arg in formal_args_str.split(','):
                                         match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
