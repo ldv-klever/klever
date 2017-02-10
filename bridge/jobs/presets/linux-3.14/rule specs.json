@@ -535,6 +535,12 @@
     "sync:race": {
       "description": "...",
       "template": "Linux kernel modules",
+      "EMG": {
+         "translation options": {
+           "direct control functions calls": false,
+           "implicit callback calls": false
+         }
+      },
       "RSG": {
         "models": {"linux/races.c": {"bug kinds": []}}
       }

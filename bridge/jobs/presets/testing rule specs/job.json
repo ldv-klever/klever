@@ -458,6 +458,23 @@
         ]
       },
       "rule specifications": ["linux:usb:urb"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/sync/races",
+        "modules": [
+          "Race.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["sync:race"],
+      "VTG strategy": {
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "20376",
+          "options": [{"-config": "/home/alpha/git/cpachecker/test/config/lockstat/local-lock-combination_linux.properties"}]
+        }
+      }
     }
   ]
 }
