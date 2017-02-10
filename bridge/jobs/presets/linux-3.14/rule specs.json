@@ -567,7 +567,11 @@
            "implicit callback calls": false
          }
       },
-      "RSG": {"models": {"sync/races.c": {"bug kinds": []}}}
+      "RSG": {
+        "models": {"sync/races.c": {"bug kinds": []}},
+        "verifier version": "ThreadAnalysis:59fbf7c",
+        "verifier configuration": "-local-lock-combination-linux"
+      }
     }
   }
 }
