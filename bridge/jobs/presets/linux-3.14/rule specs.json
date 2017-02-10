@@ -567,7 +567,7 @@
            "implicit callback calls": false
          }
       },
-      "RSG": {"models": {"linux/races.c": {"bug kinds": []}}}
+      "RSG": {"models": {"sync/races.c": {"bug kinds": []}}}
     }
   }
 }

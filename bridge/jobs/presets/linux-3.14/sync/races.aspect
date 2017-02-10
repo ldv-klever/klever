@@ -56,13 +56,13 @@ around: call(int mutex_lock_interruptible(struct mutex *)) || call(int mutex_loc
 {
 	int nondetermined = ldv_undef_int();
 
-  	if(nondetermined)
-  	{
+	if(nondetermined)
+	{
 		/* NOTE Finish with success */
 		ldv_mutex_model_lock($arg1, "$arg_sign1");
 		return 0;
-  	}
-  	else
+	}
+	else
 	{
 		/* NOTE Finish with fail. Mutex is keeped unlocked */
 		return -4;
@@ -78,13 +78,13 @@ around: call(int mutex_trylock(struct mutex *))
 {
 	int is_mutex_held_by_another_thread = ldv_undef_int();
 
-  	if (is_mutex_held_by_another_thread)
-  	{
+	if (is_mutex_held_by_another_thread)
+	{
 		/* NOTE Finish with fail */
 		return 0;
-  	}
+	}
 	else
-  	{
+	{
 		/* NOTE Finish with success */
 		ldv_mutex_model_lock($arg1, "$arg_sign1");
 		return 1;
@@ -214,16 +214,16 @@ after: call(static inline int spin_trylock(..)) ||
 {
 	int is_spin_held_by_another_thread = ldv_undef_int();
 
-  	if (is_spin_held_by_another_thread)
-  	{
+	if (is_spin_held_by_another_thread)
+	{
 		/* NOTE Spin was not locked. Finish with fail */
 		return 0;
-  	} else {
+	} else {
 		/* NOTE Lock spin */
 		ldv_spin_model_lock("$arg_sign1");
 		/* NOTE Finish with success */
 		return 1;
-  	}
+	}
 }
 
 around: define(spin_unlock_wait(lock))
@@ -275,7 +275,7 @@ __ldv_atomic_dec_and_lock(lock)
 }
 
 after: call(int __ldv_atomic_dec_and_lock(..))
-{ 
+{
 	int atomic_value_after_dec;
 
 	atomic_value_after_dec = ldv_undef_int();
