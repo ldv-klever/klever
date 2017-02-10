@@ -373,6 +373,8 @@ class RSB(core.components.Component):
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
+            # Create unsafe reports independently on status. Later we will create unknown report in addition if status
+            # is not "unsafe".
             if self.rule_specification == 'sync:race' and len(witnesses) != 0:
                 for witness in witnesses:
                     et = import_error_trace(self.logger, witness)
@@ -420,7 +422,7 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
-            else:
+            elif decision_results['status'] != 'unsafe':
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
