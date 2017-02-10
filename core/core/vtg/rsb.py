@@ -374,7 +374,7 @@ class RSB(core.components.Component):
 
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
-            if self.rule_specification == 'linux:races' and len(witnesses) != 0:
+            if self.rule_specification == 'sync:race' and len(witnesses) != 0:
 
                 for i in range(0, len(witnesses)):
                     et = import_error_trace(self.logger, witnesses[0])
@@ -402,7 +402,7 @@ class RSB(core.components.Component):
                                       self.conf['main working directory'],
                                       trace_id)
 
-            elif decision_results['status'] == 'unsafe':
+            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
                 if len(witnesses) != 1:
                     NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
 
@@ -422,7 +422,7 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
-            else:
+            elif decision_results['status'] == 'unlnown':
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
 
@@ -443,6 +443,7 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
+            #else branch is devoted to case 'unsafe' and 'races', which should be handled a bit higher
 
 
 

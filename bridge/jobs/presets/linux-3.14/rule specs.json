@@ -532,7 +532,7 @@
         }
       }
     },
-    "linux:races": {
+    "sync:race": {
       "description": "...",
       "template": "Linux kernel modules",
       "RSG": {
