@@ -17,12 +17,6 @@
 
 #include <verifier/thread.h>
 
-/* Thread type */
-struct ldv_thread {
-    int identifier;
-    void (*function)(void *);
-};
-
 /* Create thread */
 int ldv_thread_create(struct ldv_thread *ldv_thread, void (*function)(void *), void *data)
 {

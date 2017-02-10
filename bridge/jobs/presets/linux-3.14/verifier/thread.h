@@ -19,7 +19,10 @@
 #define __VERIFIER_THREAD_H
 
 /* Thread type */
-struct ldv_thread;
+struct ldv_thread {
+    int identifier;
+    void (*function)(void *);
+};
 
 /* Set of threads */
 struct ldv_thread_set
