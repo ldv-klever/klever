@@ -73,8 +73,8 @@ class RSB(core.components.Component):
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
-            #else:
-            #    self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+            else:
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
