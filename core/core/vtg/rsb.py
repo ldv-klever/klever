@@ -29,6 +29,8 @@ from core.vtg.et import import_error_trace
 
 class RSB(core.components.Component):
     def generate_verification_tasks(self):
+        if 'verifier version' in self.conf['abstract task desc']:
+            self.conf['VTG strategy']['verifier']['version'] = self.conf['abstract task desc']['verifier version']
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
