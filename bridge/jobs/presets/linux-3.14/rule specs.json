@@ -532,19 +532,6 @@
         }
       }
     },
-    "sync:race": {
-      "description": "...",
-      "template": "Linux kernel modules",
-      "EMG": {
-         "translation options": {
-           "direct control functions calls": false,
-           "implicit callback calls": false
-         }
-      },
-      "RSG": {
-        "models": {"linux/races.c": {"bug kinds": []}}
-      }
-    },
     "linux:usb:gadget": {
       "description": "...",
       "template": "Linux kernel modules",
@@ -570,6 +557,17 @@
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"
       ]}}}
+    },
+    "sync:race": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "EMG": {
+         "translation options": {
+           "direct control functions calls": false,
+           "implicit callback calls": false
+         }
+      },
+      "RSG": {"models": {"linux/races.c": {"bug kinds": []}}}
     }
   }
 }

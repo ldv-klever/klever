@@ -19,19 +19,20 @@ int global9 = 0;
 
 void f(void* arg) {
 	gvar = 1;
-    global1 = 1;
-    global2 = 1;
-    global3 = 1;
-    global4 = 1;
-    global5 = 1;
-    global6 = 1;
-    global7 = 1;
-    global8 = 1;
-    global9 = 1;
+	global1 = 1;
+	global2 = 1;
+	global3 = 1;
+	global4 = 1;
+	global5 = 1;
+	global6 = 1;
+	global7 = 1;
+	global8 = 1;
+	global9 = 1;
 }
 
 void g(void* arg) {
 	int b;
+
 	mutex_lock(&my_mutex);
 	b = gvar;
 	b = global1;
@@ -48,12 +49,12 @@ void g(void* arg) {
 
 static int __init init(void)
 {
-    struct ldv_thread thread1, thread2;
+	struct ldv_thread thread1, thread2;
 
-    ldv_thread_create(&thread1, &f, 0);
-    ldv_thread_create(&thread2, &g, 0);
-    return 0;
+	ldv_thread_create(&thread1, &f, 0);
+	ldv_thread_create(&thread2, &g, 0);
+
+	return 0;
 }
 
 module_init(init);
-

@@ -463,20 +463,13 @@
       "Linux kernel": {
         "external modules": "tests/sync/races",
         "modules": [
-          "Race.ko",
-          "Race2.ko",
-          "Race_10.ko",
+          "race.ko",
+          "race2.ko",
+          "race_10.ko",
           "safe.ko"
         ]
       },
-      "rule specifications": ["sync:race"],
-      "VTG strategy": {
-        "verifier": {
-          "name": "CPAchecker",
-          "version": "20376",
-          "options": [{"-config": "/home/alpha/git/cpachecker/test/config/lockstat/local-lock-combination_linux.properties"}]
-        }
-      }
+      "rule specifications": ["sync:race"]
     }
   ]
 }

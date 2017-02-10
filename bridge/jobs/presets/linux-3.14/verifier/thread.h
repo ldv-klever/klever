@@ -18,7 +18,6 @@
 #ifndef __VERIFIER_THREAD_H
 #define __VERIFIER_THREAD_H
 
-/* Thread type */
 struct ldv_thread {
     int identifier;
     void (*function)(void *);
