@@ -370,18 +370,14 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
-        #elif decision_results['status'] == 'unsafe':
         else:
-            self.logger.info('Process witness')
-
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
             if self.rule_specification == 'sync:race' and len(witnesses) != 0:
+                for witness in witnesses:
+                    et = import_error_trace(self.logger, witness)
 
-                for i in range(0, len(witnesses)):
-                    et = import_error_trace(self.logger, witnesses[0])
-
-                    result = re.search(r'witness\.(.*)\.graphml', witnesses[i])
+                    result = re.search(r'witness\.(.*)\.graphml', witness)
                     trace_id = result.groups()[0]
                     error_trace_name = 'error trace_' + trace_id + '.json'
 
@@ -424,10 +420,9 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
-            elif decision_results['status'] == 'unlnown':
+            else:
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
-
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     self.log_file = 'error.txt'
 
@@ -445,9 +440,6 @@ class RSB(core.components.Component):
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
-            #else branch is devoted to case 'unsafe' and 'races', which should be handled a bit higher
-
-
 
         self.verification_status = decision_results['status']
 
