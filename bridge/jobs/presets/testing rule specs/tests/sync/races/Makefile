@@ -1,1 +1,1 @@
-obj-m += safe.o Race.o
+obj-m += safe.o Race2.o Race_10.o Race.o

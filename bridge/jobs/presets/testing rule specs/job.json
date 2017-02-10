@@ -464,6 +464,8 @@
         "external modules": "tests/sync/races",
         "modules": [
           "Race.ko",
+          "Race2.ko",
+          "Race_10.ko",
           "safe.ko"
         ]
       },
