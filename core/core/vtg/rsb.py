@@ -425,9 +425,8 @@ class RSB(core.components.Component):
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     self.log_file = 'error.txt'
-
-                with open(self.log_file, 'w', encoding='utf8') as fp:
-                    fp.write(decision_results['status'])
+                    with open(self.log_file, 'w', encoding='utf8') as fp:
+                        fp.write(decision_results['status'])
 
                 core.utils.report(self.logger,
                                   'unknown',
