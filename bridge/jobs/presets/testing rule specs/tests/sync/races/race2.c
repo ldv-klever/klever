@@ -15,37 +15,36 @@
  * limitations under the License.
  */
 
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/device.h>
+#include <linux/mutex.h>
 #include <verifier/thread.h>
 
-/* Create thread */
-int ldv_thread_create(struct ldv_thread *ldv_thread, void (*function)(void *), void *data)
-{
-    if (function)
-        (*function)(data);
-    return 0;
+static DEFINE_MUTEX(my_mutex);
+
+int gvar = 0;
+
+void f(void* arg) {
+	gvar = 1;
 }
 
-/* Create n threads */
-int ldv_thread_create_N(struct ldv_thread_set *ldv_thread_set, void (*function)(void *), void *data)
-{
-    int i;
+void g(void* arg) {
+	int b;
 
-    if (function) {
-        for (i = 0; i < ldv_thread_set->number; i++) {
-           (*function)(data);
-        }
-    }
-    return 0;
+	mutex_lock(&my_mutex);
+	b = gvar;
+	mutex_unlock(&my_mutex);
 }
 
-/* Join thread */
-int ldv_thread_join(struct ldv_thread *ldv_thread, void (*function)(void *))
+static int __init init(void)
 {
-    return 0;
+	struct ldv_thread thread1, thread2;
+
+	ldv_thread_create(&thread1, &f, 0);
+	ldv_thread_create(&thread2, &g, 0);
+
+	return 0;
 }
 
-/* Join n threads */
-int ldv_thread_join_N(struct ldv_thread_set *ldv_thread_set, void (*function)(void *))
-{
-    return 0;
-}
+module_init(init);

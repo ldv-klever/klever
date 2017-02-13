@@ -29,6 +29,8 @@ from core.vtg.et import import_error_trace
 
 class RSB(core.components.Component):
     def generate_verification_tasks(self):
+        if 'verifier version' in self.conf['abstract task desc']:
+            self.conf['VTG strategy']['verifier']['version'] = self.conf['abstract task desc']['verifier version']
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
@@ -368,50 +370,77 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
-        elif decision_results['status'] == 'unsafe':
-            self.logger.info('Process witness')
-
+        else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
-            if len(witnesses) != 1:
-                NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+            # Create unsafe reports independently on status. Later we will create unknown report in addition if status
+            # is not "unsafe".
+            if self.rule_specification == 'sync:race' and len(witnesses) != 0:
+                for witness in witnesses:
+                    et = import_error_trace(self.logger, witness)
 
-            et = import_error_trace(self.logger, witnesses[0])
+                    result = re.search(r'witness\.(.*)\.graphml', witness)
+                    trace_id = result.groups()[0]
+                    error_trace_name = 'error trace_' + trace_id + '.json'
 
-            self.logger.info('Write processed witness to "error trace.json"')
-            with open('error trace.json', 'w', encoding='utf8') as fp:
-                json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                    self.logger.info('Write processed witness to "' + error_trace_name + '"')
+                    with open(error_trace_name, 'w', encoding='utf8') as fp:
+                        json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-            core.utils.report(self.logger,
-                              'unsafe',
-                              {
-                                  'id': verification_report_id + '/unsafe',
-                                  'parent id': verification_report_id,
-                                  'attrs': [{"Rule specification": self.rule_specification}],
-                                  'error trace': 'error trace.json',
-                                  'files': ['error trace.json'] + et['files']
-                              },
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
-        else:
-            # Prepare file to send it with unknown report.
-            # TODO: otherwise just the same file as parent log is reported, looks strange.
-            if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
-                self.log_file = 'error.txt'
-                with open(self.log_file, 'w', encoding='utf8') as fp:
-                    fp.write(decision_results['status'])
+                    core.utils.report(self.logger,
+                                      'unsafe',
+                                      {
+                                          'id': verification_report_id + '/unsafe' + '_' + trace_id,
+                                          'parent id': verification_report_id,
+                                          'attrs': [
+                                              {"Rule specification": self.rule_specification},
+                                              {"Error trace identifier": trace_id}],
+                                          'error trace': error_trace_name,
+                                          'files': [error_trace_name] + et['files']
+                                      },
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'],
+                                      trace_id)
 
-            core.utils.report(self.logger,
-                              'unknown',
-                              {
-                                  'id': verification_report_id + '/unknown',
-                                  'parent id': verification_report_id,
-                                  'attrs': [{"Rule specification": self.rule_specification}],
-                                  'problem desc': self.log_file,
-                                  'files': [self.log_file]
-                              },
-                              self.mqs['report files'],
-                              self.conf['main working directory'])
+            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
+                if len(witnesses) != 1:
+                    NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+
+                et = import_error_trace(self.logger, witnesses[0])
+                self.logger.info('Write processed witness to "error trace.json"')
+                with open('error trace.json', 'w', encoding='utf8') as fp:
+                    json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+                core.utils.report(self.logger,
+                                  'unsafe',
+                                  {
+                                      'id': verification_report_id + '/unsafe',
+                                      'parent id': verification_report_id,
+                                      'attrs': [{"Rule specification": self.rule_specification}],
+                                      'error trace': 'error trace.json',
+                                      'files': ['error trace.json'] + et['files']
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
+            elif decision_results['status'] != 'unsafe':
+                # Prepare file to send it with unknown report.
+                # TODO: otherwise just the same file as parent log is reported, looks strange.
+                if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
+                    self.log_file = 'error.txt'
+                    with open(self.log_file, 'w', encoding='utf8') as fp:
+                        fp.write(decision_results['status'])
+
+                core.utils.report(self.logger,
+                                  'unknown',
+                                  {
+                                      'id': verification_report_id + '/unknown',
+                                      'parent id': verification_report_id,
+                                      'attrs': [{"Rule specification": self.rule_specification}],
+                                      'problem desc': self.log_file,
+                                      'files': [self.log_file]
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
 
         self.verification_status = decision_results['status']
 
