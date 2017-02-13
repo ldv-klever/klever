@@ -17,7 +17,6 @@
 
 import os
 import json
-import hashlib
 import zipfile
 from io import BytesIO
 from django.db.models import Q
@@ -25,7 +24,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.utils import file_get_or_create, logger
+from bridge.utils import file_get_or_create, logger, unique_id
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from marks.utils import NewMark, RecalculateTags, ConnectMarkWithReports, DeleteMark
 from marks.ConvertTrace import ET_FILE_NAME
@@ -134,36 +133,22 @@ class ReadMarkArchive:
                 self.error = self.__create_mark(args)
 
         def __create_mark(self, args):
-            if self.type == 'unsafe':
-                mark = MarkUnsafe()
-            elif self.type == 'safe':
-                mark = MarkSafe()
-            else:
-                mark = MarkUnknown()
-            mark.author = self.user
-
-            if self.type == 'unsafe':
-                try:
-                    mark.function = MarkUnsafeCompare.objects.get(pk=args['compare_id'])
-                except ObjectDoesNotExist:
-                    return _("The error traces comparison function was not found")
-            mark.format = int(args['format'])
+            mark_model = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
+            mark = mark_model[self.type](
+                author=self.user, format=int(args['format']),
+                identifier=args['identifier'] if 'identifier' in args else unique_id(),
+                is_modifiable=bool(args['is_modifiable']),
+                status=MARK_STATUS[int(args['status'])][0],
+                description=args.get('description', ''), type=MARK_TYPE[2][0]
+            )
             if mark.format != FORMAT:
                 return _('The mark format is not supported')
 
-            if 'identifier' in args:
-                mark.identifier = args['identifier']
-            else:
-                time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')
-                mark.identifier = hashlib.md5(time_encoded).hexdigest()
-
-            if isinstance(args['is_modifiable'], bool):
-                mark.is_modifiable = args['is_modifiable']
-
-            if self.type == 'unsafe' and args['verdict'] in list(x[0] for x in MARK_UNSAFE):
-                mark.verdict = args['verdict']
-            elif self.type == 'safe' and args['verdict'] in list(x[0] for x in MARK_SAFE):
-                mark.verdict = args['verdict']
+            if self.type == 'unsafe':
+                mark.verdict = MARK_UNSAFE[int(args['verdict'])][0]
+                mark.function_id = args['compare_id']
+            elif self.type == 'safe':
+                mark.verdict = MARK_SAFE[int(args['verdict'])][0]
             elif self.type == 'unknown':
                 if len(MarkUnknown.objects.filter(component__name=args['component'],
                                                   problem_pattern=args['problem'])) > 0:
@@ -172,17 +157,7 @@ class ReadMarkArchive:
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
                 if 'link' in args and len(args['link']) > 0:
-                    mark.function = args['link']
-
-            if args['status'] in list(x[0] for x in MARK_STATUS):
-                mark.status = args['status']
-
-            tags = []
-            if 'tags' in args and self.type != 'unknown':
-                tags = args['tags']
-            if 'description' in args:
-                mark.description = args['description']
-            mark.type = MARK_TYPE[2][0]
+                    mark.link = args['link']
 
             try:
                 mark.save()
@@ -190,10 +165,7 @@ class ReadMarkArchive:
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
                 return 'Unknown error'
 
-            error_trace = None
-            if 'error_trace' in args:
-                error_trace = args['error_trace']
-            res = self.__update_mark(mark, error_trace=error_trace, tags=tags)
+            res = self.__update_mark(mark, args.get('error_trace'), args.get('tags'))
             if res is not None:
                 return res
             if self.type != 'unknown':
@@ -204,36 +176,24 @@ class ReadMarkArchive:
             self.mark = mark
             return None
 
-        def __update_mark(self, mark, error_trace=None, tags=None):
+        def __update_mark(self, mark, error_trace, tags):
+            version_model = {'unsafe': MarkUnsafeHistory, 'safe': MarkSafeHistory, 'unknown': MarkUnknownHistory}
+            self.mark_version = version_model[self.type](
+                mark=mark, author=mark.author, comment='', change_date=mark.change_date, status=mark.status,
+                version=mark.version, description=mark.description
+            )
             if self.type == 'unsafe':
-                new_version = MarkUnsafeHistory()
-            elif self.type == 'safe':
-                new_version = MarkSafeHistory()
-            else:
-                new_version = MarkUnknownHistory()
-
-            new_version.mark = mark
-            if error_trace is not None:
-                new_version.error_trace = file_get_or_create(
-                    BytesIO(
-                        json.dumps(json.loads(error_trace), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-                    ), ET_FILE_NAME, ConvertedTraces
-                )[0]
-            if self.type == 'unsafe':
-                new_version.function = mark.function
+                self.mark_version.function = mark.function
+                self.mark_version.error_trace = file_get_or_create(BytesIO(
+                    json.dumps(json.loads(error_trace), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+                ), ET_FILE_NAME, ConvertedTraces)[0]
             if self.type == 'unknown':
-                new_version.function = mark.function
-                new_version.problem_pattern = mark.problem_pattern
-                new_version.link = mark.link
+                self.mark_version.function = mark.function
+                self.mark_version.problem_pattern = mark.problem_pattern
+                self.mark_version.link = mark.link
             else:
-                new_version.verdict = mark.verdict
-            new_version.version = mark.version
-            new_version.status = mark.status
-            new_version.change_date = mark.change_date
-            new_version.comment = ''
-            new_version.author = mark.author
-            new_version.description = mark.description
-            new_version.save()
+                self.mark_version.verdict = mark.verdict
+            self.mark_version.save()
             if isinstance(tags, list):
                 for tag in tags:
                     if self.type == 'safe':
@@ -241,22 +201,21 @@ class ReadMarkArchive:
                             safetag = SafeTag.objects.get(tag=tag)
                         except ObjectDoesNotExist:
                             return _('One of tags was not found')
-                        MarkSafeTag.objects.get_or_create(tag=safetag, mark_version=new_version)
+                        MarkSafeTag.objects.get_or_create(tag=safetag, mark_version=self.mark_version)
                         newtag = safetag.parent
                         while newtag is not None:
-                            MarkSafeTag.objects.get_or_create(tag=newtag, mark_version=new_version)
+                            MarkSafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
                             newtag = newtag.parent
                     elif self.type == 'unsafe':
                         try:
                             unsafetag = UnsafeTag.objects.get(tag=tag)
                         except ObjectDoesNotExist:
                             return _('One of tags was not found')
-                        MarkUnsafeTag.objects.get_or_create(tag=unsafetag, mark_version=new_version)
+                        MarkUnsafeTag.objects.get_or_create(tag=unsafetag, mark_version=self.mark_version)
                         newtag = unsafetag.parent
                         while newtag is not None:
-                            MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=new_version)
+                            MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
                             newtag = newtag.parent
-            self.mark_version = new_version
             return None
 
         def __create_attributes(self, attrs):
@@ -294,22 +253,22 @@ class ReadMarkArchive:
             for file_name in zfp.namelist():
                 if file_name == 'markdata':
                     try:
-                        mark_data = json.loads(zfp.read(file_name).decode('utf-8'))
+                        mark_data = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
                         return _("The mark archive is corrupted")
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
                     try:
-                        versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf-8'))
+                        versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
                         return _("The mark archive is corrupted")
                 elif file_name.startswith('error_trace_'):
-                    err_traces[int(file_name.replace('error_trace_', ''))] = zfp.open(file_name)
+                    err_traces[int(file_name.replace('error_trace_', ''))] = zfp.read(file_name).decode('utf8')
 
         if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
             return _("The mark archive is corrupted")
         self.type = mark_data['mark_type']
-        if self.type not in ['safe', 'unsafe', 'unknown']:
+        if self.type not in {'safe', 'unsafe', 'unknown'}:
             return _("The mark archive is corrupted")
         if self.type == 'unknown' and 'component' not in mark_data:
             return _("The mark archive is corrupted")
@@ -317,7 +276,7 @@ class ReadMarkArchive:
         mark_table = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
         if 'identifier' in mark_data:
             if isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
-                if len(mark_table[self.type].objects.filter(identifier=mark_data['identifier'])) > 0:
+                if mark_table[self.type].objects.filter(identifier=mark_data['identifier']).count() > 0:
                     return _("The mark with identifier specified in the archive already exists")
             else:
                 del mark_data['identifier']
@@ -326,7 +285,7 @@ class ReadMarkArchive:
             for v_id in versions_data:
                 if v_id not in err_traces:
                     return _("The mark archive is corrupted")
-                versions_data[v_id]['error_trace'] = err_traces[v_id].read().decode('utf8')
+                versions_data[v_id]['error_trace'] = err_traces[v_id]
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
@@ -339,13 +298,12 @@ class ReadMarkArchive:
             if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
                 return _("The mark archive is corrupted")
 
-        new_m_args = mark_data.copy()
-        new_m_args.update(version_list[0])
+        mark_data.update(version_list[0])
         if self.type == 'unsafe':
-            new_m_args['compare_id'] = get_func_id(version_list[0]['function'])
-            del new_m_args['function'], new_m_args['mark_type']
+            mark_data['compare_id'] = get_func_id(version_list[0]['function'])
+            del mark_data['function'], mark_data['mark_type']
 
-        umark = self.UploadMark(self._user, self.type, new_m_args)
+        umark = self.UploadMark(self._user, self.type, mark_data)
         if umark.error is not None:
             return umark.error
         mark = umark.mark
