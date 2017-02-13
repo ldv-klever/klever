@@ -563,8 +563,28 @@
       "template": "Linux kernel modules",
       "EMG": {
          "translation options": {
+           "dump automata graphs": false,
+           "implicit callback calls": false,
            "direct control functions calls": false,
-           "implicit callback calls": false
+           "nested automata": true,
+           "no actions composition": ["Condition"],
+           "instance modifier": 1,
+           "pointer initialization": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "pointer free": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "allocate with sizeof": true,
+           "allocate external": false
          }
       },
       "RSG": {
