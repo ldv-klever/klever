@@ -274,11 +274,13 @@ class ReportTable(object):
                 'verdict': leaf.safe.verdict,
                 'parent_id': leaf.safe.parent_id,
                 'parent_cpu': leaf.safe.verifier_time,
-                'tags': []
+                'tags': {}
             }
-        for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).order_by('tag__tag').select_related('tag'):
-            reports[srt.report_id]['tags'].append(srt.tag.tag)
-        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+        for srt in SafeReportTag.objects.filter(report_id__in=list(reports)).select_related('tag'):
+            if srt.tag.tag not in reports[srt.report_id]['tags']:
+                reports[srt.report_id]['tags'][srt.tag.tag] = 0
+            reports[srt.report_id]['tags'][srt.tag.tag] += 1
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports)).order_by('id')\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
                 columns.append(rep_attr[1])
@@ -301,6 +303,15 @@ class ReportTable(object):
             reports_ordered = sorted(reports_ordered)
         if 'order' in self.view and self.view['order'][1] == 'up':
             reports_ordered = list(reversed(reports_ordered))
+
+        for r_id in reports:
+            tags_str = []
+            for t_name in sorted(reports[r_id]['tags']):
+                if reports[r_id]['tags'][t_name] == 1:
+                    tags_str.append(t_name)
+                else:
+                    tags_str.append("%s (%s)" % (t_name, reports[r_id]['tags'][t_name]))
+            reports[r_id]['tags'] = '; '.join(tags_str)
 
         cnt = 1
         values_data = []
@@ -328,7 +339,7 @@ class ReportTable(object):
                     color = SAFE_COLOR[reports[rep_id]['verdict']]
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
-                        val = '; '.join(reports[rep_id]['tags'])
+                        val = reports[rep_id]['tags']
                 elif col == 'parent_cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
                 values_row.append({
@@ -370,12 +381,13 @@ class ReportTable(object):
                 'verdict': leaf.unsafe.verdict,
                 'parent_id': leaf.unsafe.parent_id,
                 'parent_cpu': leaf.unsafe.verifier_time,
-                'tags': []
+                'tags': {}
             }
-        for srt in UnsafeReportTag.objects.filter(report_id__in=list(reports))\
-                .order_by('tag__tag').select_related('tag'):
-            reports[srt.report_id]['tags'].append(srt.tag.tag)
-        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+        for urt in UnsafeReportTag.objects.filter(report_id__in=list(reports)).select_related('tag'):
+            if urt.tag.tag not in reports[urt.report_id]['tags']:
+                reports[urt.report_id]['tags'][urt.tag.tag] = 0
+            reports[urt.report_id]['tags'][urt.tag.tag] += 1
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports)).order_by('id')\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
                 columns.append(rep_attr[1])
@@ -398,6 +410,15 @@ class ReportTable(object):
             reports_ordered = sorted(reports_ordered)
         if 'order' in self.view and self.view['order'][1] == 'up':
             reports_ordered = list(reversed(reports_ordered))
+
+        for r_id in reports:
+            tags_str = []
+            for t_name in sorted(reports[r_id]['tags']):
+                if reports[r_id]['tags'][t_name] == 1:
+                    tags_str.append(t_name)
+                else:
+                    tags_str.append("%s (%s)" % (t_name, reports[r_id]['tags'][t_name]))
+            reports[r_id]['tags'] = '; '.join(tags_str)
 
         cnt = 1
         values_data = []
@@ -425,7 +446,7 @@ class ReportTable(object):
                     color = UNSAFE_COLOR[reports[rep_id]['verdict']]
                 elif col == 'tags':
                     if len(reports[rep_id]['tags']) > 0:
-                        val = '; '.join(reports[rep_id]['tags'])
+                        val = reports[rep_id]['tags']
                 elif col == 'parent_cpu':
                     val = get_user_time(self.user, reports[rep_id]['parent_cpu'])
                 values_row.append({

@@ -418,13 +418,18 @@ def upload_marks(request):
     mark_type = None
     num_of_new_marks = 0
     for f in request.FILES.getlist('file'):
-        res = ReadMarkArchive(request.user, f)
-        if res.error is not None:
-            failed_marks.append([res.error + '', f.name])
+        try:
+            res = ReadMarkArchive(request.user, f)
+        except Exception as e:
+            logger.exception(e)
+            failed_marks.append(['Unknown error', f.name])
         else:
-            num_of_new_marks += 1
-            mark_id = res.mark.id
-            mark_type = res.type
+            if res.error is not None:
+                failed_marks.append([str(res.error), f.name])
+            else:
+                num_of_new_marks += 1
+                mark_id = res.mark.id
+                mark_type = res.type
     if len(failed_marks) > 0:
         return JsonResponse({'status': False, 'messages': failed_marks})
     if num_of_new_marks == 1:
@@ -770,7 +775,11 @@ def upload_all(request):
         logger.exception("Archive extraction failed" % e, stack_info=True)
         return JsonResponse({'error': 'Archive extraction failed'})
 
-    res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
+    try:
+        res = UploadAllMarks(request.user, marks_dir.name, delete_all_marks)
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
     if res.error is not None:
         return JsonResponse({'error': res.error})
     return JsonResponse(res.numbers)

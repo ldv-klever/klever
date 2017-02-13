@@ -28,6 +28,10 @@ class RSG(core.avtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
+        if 'verifier version' in self.conf:
+            self.logger.info('Verifier version is "{0}"'.format(self.conf['verifier version']))
+            self.abstract_task_desc['verifier version'] = self.conf['verifier version']
+
         if 'verifier configuration' in self.conf:
             self.logger.info('Verifier configuration is "{0}"'.format(self.conf['verifier configuration']))
             self.abstract_task_desc['verifier configuration'] = self.conf['verifier configuration']
