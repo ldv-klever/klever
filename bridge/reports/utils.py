@@ -280,7 +280,7 @@ class ReportTable(object):
             if srt.tag.tag not in reports[srt.report_id]['tags']:
                 reports[srt.report_id]['tags'][srt.tag.tag] = 0
             reports[srt.report_id]['tags'][srt.tag.tag] += 1
-        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports)).order_by('id')\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
                 columns.append(rep_attr[1])
@@ -387,7 +387,7 @@ class ReportTable(object):
             if urt.tag.tag not in reports[urt.report_id]['tags']:
                 reports[urt.report_id]['tags'][urt.tag.tag] = 0
             reports[urt.report_id]['tags'][urt.tag.tag] += 1
-        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports))\
+        for rep_attr in ReportAttr.objects.filter(report_id__in=list(reports)).order_by('id')\
                 .values_list('report_id', 'attr__name__name', 'attr__value'):
             if rep_attr[1] not in data:
                 columns.append(rep_attr[1])
