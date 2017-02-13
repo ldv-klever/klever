@@ -72,19 +72,22 @@ def get_error_trace_nodes(data):
 
 
 class ScopeInfo:
-    def __init__(self, cnt):
+    def __init__(self, cnt, thread_id):
         self.initialised = False
         self._cnt = cnt
         # (index, is_action, thread, counter)
         self._stack = []
         # Klever main
-        self._main_scope = (0, 0, 0, 0)
+        self._main_scope = (0, 0, thread_id, 0)
         self._shown = {self._main_scope}
         self._hidden = set()
 
     def current(self):
         if len(self._stack) == 0:
-            return '_'.join(str(x) for x in self._main_scope)
+            if self.initialised:
+                return '_'.join(str(x) for x in self._main_scope)
+            else:
+                return 'global'
         return '_'.join(str(x) for x in self._stack[-1])
 
     def add(self, index, thread_id, is_action=False):
@@ -170,7 +173,7 @@ class ParseErrorTrace:
         self.include_assumptions = include_assumptions
         self.triangles = triangles
         self.thread_id = thread_id
-        self.scope = ScopeInfo(cnt)
+        self.scope = ScopeInfo(cnt, thread_id)
         self.global_lines = []
         self.lines = []
         self.curr_file = None
@@ -196,15 +199,13 @@ class ParseErrorTrace:
         }
 
         line_data.update(self.__add_assumptions(edge.get('assumption')))
+        line_data['scope'] = self.scope.current()
         if not self.scope.initialised:
             if 'enter' in edge:
-                self.scope.initialised = True
-            else:
-                if line_data['code'] is not None:
-                    line_data['scope'] = 'global'
-                    self.global_lines.append(line_data)
-                return
-        line_data['scope'] = self.scope.current()
+                raise ValueError("Global initialization edge can't contain enter")
+            if line_data['code'] is not None:
+                self.global_lines.append(line_data)
+            return
 
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
@@ -319,9 +320,6 @@ class ParseErrorTrace:
     def __add_assumptions(self, assumption):
         if self.include_assumptions and assumption is None:
             return self.__fill_assumptions([])
-
-        if not self.scope.initialised and assumption is not None:
-            self.scope.initialised = True
 
         if not self.include_assumptions:
             return {}
@@ -488,6 +486,8 @@ class GetETV(object):
 
     def __add_thread_lines(self, i, start_index):
         parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
+        if i > 0:
+            parsed_trace.scope.initialised = True
         trace_assumes = []
         j = start_index
         while j < len(self.err_trace_nodes):
