@@ -25,13 +25,11 @@ static DEFINE_MUTEX(my_mutex);
 int gvar;
 
 struct my_struct {
-	int (*func)(void);
+	void (*func)(void);
 };
 
-int f(void) {
+void f(void) {
 	gvar = 1;
-
-	return 0;
 }
 
 void g(void) {
