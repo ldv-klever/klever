@@ -17,7 +17,7 @@
                 <div class="ui violet segment">
                     <h3 class="header">{% trans 'Components' %}</h3>
                     {% if components|length > 0 %}
-                        <div style="height: 340px; overflow-y: auto">
+                        <div style="max-height: 35vh; overflow-y: auto">
                             {% for component in components %}
                                 <div id="component__{{ component.pk }}">
                                     <div class="ui action input fluid">
@@ -39,7 +39,7 @@
                 <div class="ui violet segment">
                     <h3 class="header">{% trans 'Problems' %}</h3>
                     {% if problems|length > 0 %}
-                        <div style="height: 340px; overflow-y: auto">
+                        <div style="max-height: 35vh; overflow-y: auto">
                             <ul>
                                 {% for problem in problems %}
                                     <li>{{ problem.name }}</li>
@@ -64,28 +64,30 @@
         </div>
         <div class="ui grid">
             <div class="ten wide column">
-                <h3>{% trans 'Jobs' %}<i class="ui help blue icon simple-popup" data-content="{% trans "Non-light jobs are shown as light jobs' cache can't be recalculated" %}"></i></h3>
-                <table class="ui compact violet table celled">
-                    <thead>
-                        <tr>
-                            <th>{% trans 'Name' %}</th>
-                            <th>{% trans 'Identifier' %}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for job in jobs %}
-                            <tr class="one wide column">
-                                <td>
-                                    <div class="ui checkbox">
-                                        <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
-                                        <label for="job__{{ job.pk }}">{{ job.name }}</label>
-                                    </div>
-                                </td>
-                                <td>{{ job.identifier }}</td>
+                <h3>{% trans 'Jobs' %}<i class="ui help blue icon"></i></h3>
+                <div style="max-height: 25vh;overflow: auto;">
+                    <table class="ui compact violet table celled">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'Name' %}</th>
+                                <th>{% trans 'Identifier' %}</th>
                             </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {% for job in jobs %}
+                                <tr class="one wide column">
+                                    <td>
+                                        <div class="ui checkbox">
+                                            <input id="job__{{ job.pk }}" type="checkbox" value="{{ job.pk }}">
+                                            <label for="job__{{ job.pk }}">{{ job.name }}</label>
+                                        </div>
+                                    </td>
+                                    <td>{{ job.identifier }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
             <div class="six wide column">
                 <h3>{% trans 'Recalculate' %}:</h3>

@@ -22,7 +22,7 @@
         {% if data.same|length > 0 %}
             <div class="five wide column">
                 <h4>{% trans 'Files without differences' %}</h4>
-                <div style="max-height: 600px;overflow: auto">
+                <div style="max-height: 80vh;overflow: auto">
                     <ul>
                         {% for f in data.same %}
                             <li>
@@ -41,7 +41,7 @@
         {% if data.diff|length > 0 %}
             <div class="five wide column">
                 <h4>{% trans 'Files with differences' %}</h4>
-                <div style="max-height: 600px;overflow: auto">
+                <div style="max-height: 80vh;overflow: auto">
                     <ul>
                         {% for f in data.diff %}
                             <li>
@@ -61,7 +61,7 @@
         {% if data.unmatched1|length > 0 or data.unmatched2|length > 0 %}
             <div class="six wide column">
                 <h4>{% trans 'Unmatched files' %}</h4>
-                <div style="max-height: 700px;overflow: auto">
+                <div style="max-height: 80vh;overflow: auto">
                     <ul>
                         {% for f in data.unmatched1 %}
                             <li>

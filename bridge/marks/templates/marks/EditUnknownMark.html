@@ -15,18 +15,9 @@
         <div class="ui grid">
             <div class="seven wide column">
                 <div class="ui small icon buttons top attached">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button normal-popup"><i class="download icon"></i></a>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
-                    </div>
-                    <button id="edit_mark_versions" type="button" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
-                    </div>
-                    <button id="show_remove_mark_popup" type="button" class="ui red button normal-popup"><i class="remove icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
-                    </div>
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
+                    <button id="edit_mark_versions" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
+                    <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
                 </div>
                 <table class="ui selectable compact inverted violet table attached">
                     <thead>
@@ -134,6 +125,7 @@
                 <div class="ui action input fluid">
                     <input id="edit_mark_comment" style="width: 150%" type="text" placeholder="{% trans 'Comment' %}">
                     <button id="save_mark_btn" style="float: right" class="ui green button">{% trans 'Save' %}</button>
+                    <a href="{% url 'marks:view_mark' type mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
                 </div>
             </div>
         </div>

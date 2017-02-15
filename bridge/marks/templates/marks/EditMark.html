@@ -13,18 +13,9 @@
         <div class="ui grid">
             <div class="seven wide column">
                 <div class="ui small icon buttons top attached">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button normal-popup"><i class="download icon"></i></a>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
-                    </div>
-                    <button id="edit_mark_versions" type="button" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
-                    </div>
-                    <button id="show_remove_mark_popup" type="button" class="ui red button normal-popup"><i class="remove icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
-                    </div>
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
+                    <button id="edit_mark_versions" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
+                    <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
                 </div>
                 <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
                 <input id="mark_type" type="hidden" value="{{ type }}">
@@ -100,7 +91,7 @@
                                             {% if v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="note-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
                                             {% endif %}
                                         </td>
                                     {% endfor %}

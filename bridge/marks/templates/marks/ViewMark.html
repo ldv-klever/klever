@@ -65,35 +65,37 @@
                     </tr>
                 </tbody>
             </table>
-            <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
-            <div style="direction:rtl;overflow-x: auto; max-height: 400px;">
-                <table class="ui compact teal celled table" style="width:auto;direction:ltr;float:left; margin-left: 25px;">
-                    <thead>
-                        {% for column_row in reports.header %}
-                            <tr>
-                            {% for coldata in column_row %}
-                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </thead>
-                    <tbody>
-                        {% for row_data in reports.values %}
-                            <tr>
-                                {% for v in row_data %}
-                                    <td class="collapsing">
-                                        {% if v.href %}
-                                            <a href="{{ v.href }}">{{ v.value }}</a>
-                                        {% else %}
-                                            <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
-                                        {% endif %}
-                                    </td>
+            {% if reports.values|length %}
+                <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
+                <div style="overflow-x: auto;">
+                    <table class="ui compact teal celled table" style="width:auto;">
+                        <thead>
+                            {% for column_row in reports.header %}
+                                <tr>
+                                {% for coldata in column_row %}
+                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                                 {% endfor %}
-                            </tr>
-                        {%  endfor %}
-                    </tbody>
-                </table>
-            </div>
+                                </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for row_data in reports.values %}
+                                <tr>
+                                    {% for v in row_data %}
+                                        <td class="collapsing">
+                                            {% if v.href %}
+                                                <a href="{{ v.href }}">{{ v.value }}</a>
+                                            {% else %}
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="note-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
+                                            {% endif %}
+                                        </td>
+                                    {% endfor %}
+                                </tr>
+                            {%  endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
         </div>
         <div class="nine wide column">
             {% if markdata.type == 'unsafe' %}
@@ -109,7 +111,10 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    <div class="ui pink segment">
+                        <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                        {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    </div>
                 </div>
                 <div class="ui teal segment">
                     <h4 class="header ui teal">{% trans 'Error traces comparison function and converted error trace' %}</h4>
@@ -126,7 +131,7 @@
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
                     </div>
                     <div class="content">
-                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                        <div style="overflow-x:auto;">
                             <table class="ui celled compact purple table">
                                 <tbody>
                                     {% for v in markdata.attributes %}
@@ -160,14 +165,17 @@
                             {% if s.checked %}<strong style="color: {{ s.color }}">{{ s.title }}</strong>{% endif %}
                         {% endfor %}
                     </div>
-                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    <div class="ui pink segment">
+                        <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                        {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                    </div>
                 </div>
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
                     </div>
                     <div class="content">
-                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                        <div style="overflow-x:auto;">
                             <table class="ui celled compact purple table">
                                 <tbody>
                                     {% for v in markdata.attributes %}

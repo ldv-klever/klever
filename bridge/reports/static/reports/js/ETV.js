@@ -30,7 +30,6 @@ $(document).ready(function () {
             }
         });
     }
-    $('.normal-popup').popup({position: 'bottom left'});
 
     function get_source_code(line, filename) {
 

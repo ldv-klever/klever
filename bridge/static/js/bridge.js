@@ -230,6 +230,15 @@ $(document).ready(function () {
     });
     $('.ui.checkbox').checkbox();
     $('.ui.accordion').accordion();
+    $('.note-popup').each(function () {
+        var position = $(this).data('position');
+        if (position) {
+            $(this).popup({position: position});
+        }
+        else {
+            $(this).popup();
+        }
+    });
 
     if ($('#show_upload_marks_popup').length) {
         $('#upload_marks_popup').modal('setting', 'transition', 'vertical flip').modal('attach events', '#show_upload_marks_popup', 'show');
@@ -371,11 +380,6 @@ $(document).ready(function () {
         $(this).popup({
             html: $(this).attr('data-content'),
             hoverable: true
-        });
-    });
-    $('.simple-popup').each(function () {
-        $(this).popup({
-            text: $(this).attr('data-content')
         });
     });
 });

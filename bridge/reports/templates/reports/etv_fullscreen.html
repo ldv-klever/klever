@@ -1,10 +1,25 @@
 {% extends 'reports/base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans 'Error Trace Fullscreen' %}{% endblock %}
 
+{% block reports_head_block %}
+    <script type="text/javascript" src="{% static 'reports/js/ETV.js' %}"></script>
+    <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
+    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block body_block %}
+    <div class="ui grid">
+        <div class="fifteen wide column">
+            {% include 'reports/ETVButtons.html' %}
+        </div>
+        <div class="one wide column right aligned">
+            <a class="ui icon basic tiny button" href="{% url 'reports:unsafe' report.pk %}"><i class="remove icon"></i></a>
+        </div>
+    </div>
     {% include 'reports/ETV.html' with fullscreen=True %}
     <input type="hidden" id="report_pk" value="{{ report.pk }}">
 {% endblock %}

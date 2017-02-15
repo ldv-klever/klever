@@ -328,7 +328,7 @@ class ReportTable(object):
                             break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf', args=['safe', rep_id])
+                    href = reverse('reports:safe', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':
@@ -435,7 +435,7 @@ class ReportTable(object):
                             break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf', args=['unsafe', rep_id])
+                    href = reverse('reports:unsafe', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':
@@ -523,7 +523,7 @@ class ReportTable(object):
                         break
                 elif col == 'component':
                     val = components[rep_id]
-                    href = reverse('reports:leaf', args=['unknown', rep_id])
+                    href = reverse('reports:unknown', args=[rep_id])
                 values_row.append({
                     'value': val,
                     'href': href
@@ -711,3 +711,7 @@ class FilesForCompetitionArchive(object):
             if self.xml_root is None:
                 self.xml_root = xml_root
                 self.xml_root.find('tasks').clear()
+
+
+def report_attibutes(report):
+    return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')

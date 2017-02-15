@@ -55,7 +55,7 @@
 }
 
 #etv {
-    height: 550px;
+    height: 70vh;
     position: relative;
 }
 
@@ -115,7 +115,7 @@
 
 /* Error trace: Line number object */
 .ETV_LN {
-    z-index: 999;
+    z-index: 100;
     position: relative;
     white-space: pre;
     background-color: #ffe6d7;

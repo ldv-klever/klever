@@ -77,13 +77,16 @@
                         </div>
                     </div>
                 </div>
-                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                <div class="ui pink segment">
+                    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                </div>
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
                     </div>
                     <div class="content">
-                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                        <div style="overflow-x:auto;">
                             <table class="ui celled compact purple table">
                                 <tbody>
                                     {% for v in markdata.attributes %}
@@ -110,7 +113,7 @@
                     </div>
                     <br><br>
                 {% endif %}
-                <a href="{% url 'reports:leaf' type report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+                <a href="{% url 'reports:unsafe' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
                 <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
             </div>
         </div>
@@ -141,14 +144,17 @@
                 </div>
             </div>
             <div class="seven wide column">
-                {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                <div class="ui pink segment">
+                    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+                    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+                </div>
                 <br>
                 <div class="ui styled accordion fluid">
                     <div class="title">
                         <i class="grid layout icon"></i>{% trans 'Attributes' %}
                     </div>
                     <div class="content">
-                        <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+                        <div style="overflow-x:auto;">
                             <table class="ui celled compact purple table">
                                 <tbody>
                                     {% for v in markdata.attributes %}
@@ -186,7 +192,7 @@
             </div>
             <br><br>
         {% endif %}
-        <a href="{% url 'reports:leaf' type report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+        <a href="{% url 'reports:safe' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
         <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
     </form>
 {% elif type == 'unknown' %}
@@ -246,7 +252,7 @@
             </div>
             <br><br>
         {% endif %}
-        <a href="{% url 'reports:leaf' type report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+        <a href="{% url 'reports:unknown' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
         <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
     </form>
     <span id="error__function_required" hidden>{% trans 'The pattern is required' %}</span>

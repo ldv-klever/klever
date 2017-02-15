@@ -1,0 +1,131 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{% trans 'Safe' %}{% endblock %}
+
+{% block reports_head_block %}
+    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block body_block %}
+<div class="ui grid">
+    <div class="eight wide column">
+        <div class="ui grid">
+            <div class="nine wide column">
+                <span class="purple-title">{% trans 'Job' %}: </span>
+                <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+            </div>
+            <div class="seven wide column">
+                {% if report.root.user %}
+                    <span class="purple-title">{% trans 'Author' %}: </span>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="ui divider"></div>
+        <div class="ui accordion styled fluid" id="report_accordion">
+            <div class="title">
+                <i class="grid layout icon"></i>{% trans 'Attributes' %}
+            </div>
+            <div class="content">
+                <div style="overflow-x:auto;">
+                    <table class="ui celled compact purple table">
+                        <tbody>
+                            {% for v in SelfAttrsData %}
+                                <tr>
+                                    <th class="collapsing">{{ v.0 }}</th>
+                                    <td class="collapsing">{{ v.1 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <br>
+        {% if can_mark %}
+            <div id="inline_mark_form" style="display: none"></div>
+        {% endif %}
+        {% if MarkTable.values|length %}
+            <div id="report_marks_table">
+                <h4 class="header">{% trans 'Associated marks' %}</h4>
+                <div style="overflow-x:auto;">
+                    <table class="ui celled compact pink table">
+                        <thead>
+                            <tr>
+                                <th>№</th>
+                                <th>{% trans 'Verdict' %}</th>
+                                <th>{% trans 'Status' %}</th>
+                                <th>{% trans 'Last change author' %}</th>
+                                <th>{% trans 'Automatic association' %}</th>
+                                {% if can_mark %}
+                                    <th>&nbsp;</th>
+                                {% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for v in MarkTable.values %}
+                            <tr>
+                                <td><a href="{{ v.href }}">{{ v.number }}</a></td>
+                                <td><span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}{% if v.description %}*{% endif %}</span></td>
+                                <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                                <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
+                                <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                                {% if can_mark %}
+                                    <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        {% endif %}
+        <br>
+        {% if can_mark %}
+            <div class="ui tiny buttons" style="float: right;">
+                <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom right" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
+                <a class="ui pink icon button note-popup" data-position="bottom right" href="{% url 'marks:create_mark' 'safe' report.pk %}" target="_blank" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
+            </div>
+        {% endif %}
+    </div>
+    <div class="eight wide column">
+        <div class="ui breadcrumb">
+            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+            <div class="ui special popup">
+                <div class="header">{{ parents.0.title }}</div>
+                <div class="content">
+                    {% for attr in parents.0.attrs %}
+                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% for parent in parents|slice:"1:" %}
+                <i class="right arrow icon divider"></i>
+                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ parent.title }}</div>
+                    <div class="content">
+                        {% for attr in parent.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui divider"></div>
+        {% if main_content %}
+            <div class="ui green segment filecontent" style="height:400px;">{{ main_content }}</div>
+        {% else %}
+            <h3 class="ui red header">{% trans 'There is no proof description for this safe' %}</h3>
+        {% endif %}
+    </div>
+    <input type="hidden" id="report_pk" value="{{ report.pk }}">
+    <input id="report_type" type="hidden" value="safe">
+</div>
+
+{% endblock %}

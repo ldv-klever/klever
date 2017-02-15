@@ -23,7 +23,7 @@ from urllib.parse import unquote
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
@@ -207,7 +207,7 @@ def save_mark(request):
     except Exception as e:
         logger.exception(e, stack_info=True)
         return JsonResponse({'error': 'Unknown error'})
-    if savedata.get('data_type') not in ['safe', 'unsafe', 'unknown']:
+    if savedata.get('data_type') not in {'safe', 'unsafe', 'unknown'}:
         return JsonResponse({'error': 'Unknown error'})
 
     if 'report_id' in savedata:
@@ -782,3 +782,41 @@ def upload_all(request):
     if res.error is not None:
         return JsonResponse({'error': res.error})
     return JsonResponse(res.numbers)
+
+
+@unparallel_group(['MarkSafe', 'MarkUnsafe'])
+def get_inline_mark_form(request):
+    obj_model = {
+        'safe': (MarkSafeHistory, ReportSafe),
+        'unsafe': (MarkUnsafeHistory, ReportUnsafe)
+    }
+    if request.method != 'POST' or 'type' not in request.POST \
+            or ('mark_id' not in request.POST and 'report_id' not in request.POST) \
+            or request.POST['type'] not in obj_model:
+        return JsonResponse({'error': 'Unknown error'})
+
+    if 'mark_id' in request.POST:
+        try:
+            last_version = obj_model[request.POST['type']][0].objects.get(
+                mark_id=request.POST['mark_id'], version=F('mark__version')
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The mark was not found')})
+        markdata = MarkData(request.POST['type'], mark_version=last_version)
+        tags = TagsInfo(request.POST['type'], list(tag.tag.pk for tag in last_version.tags.all()))
+    else:
+        try:
+            report = obj_model[request.POST['type']][1].objects.get(id=request.POST['report_id'])
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': _('The report was not found')})
+        markdata = MarkData(request.POST['type'], report=report)
+        tags = TagsInfo(request.POST['type'], [])
+    if tags.error is not None:
+        logger.error(tags.error, stack_info=True)
+        return JsonResponse({'error': 'Unknown error'})
+
+    return JsonResponse({
+        'data': get_template('marks/InlineMarkForm.html').render({
+            'type': request.POST['type'], 'markdata': markdata, 'tags': tags
+        })
+    })

@@ -28,9 +28,10 @@ from bridge.vars import JOB_STATUS
 from bridge.utils import unparallel_group, ArchiveFileContent
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
-from marks.tables import ReportMarkTable
-from marks.utils import MarkAccess
 from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
+from marks.utils import MarkAccess
+from marks.tables import ReportMarkTable, MarkData
+from marks.tags import TagsInfo
 from reports.UploadReport import UploadReport
 from reports.models import *
 from reports.utils import *
@@ -90,8 +91,8 @@ def report_component(request, job_id, report_id):
 
     unknown_href = None
     try:
-        unknown_href = reverse('reports:leaf', args=[
-            'unknown', ReportUnknown.objects.get(parent=report, component=report.component).pk
+        unknown_href = reverse('reports:unknown', args=[
+            ReportUnknown.objects.get(parent=report, component=report.component).pk
         ])
         status = 3
     except ObjectDoesNotExist:
@@ -274,63 +275,122 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe', 'ReportSafe', 'ReportUnknown'])
-def report_leaf(request, leaf_type, report_id):
+@unparallel_group(['ReportUnsafe'])
+def report_unsafe(request, report_id):
     activate(request.user.extended.language)
 
-    tables = {
-        'unknown': ReportUnknown,
-        'safe': ReportSafe,
-        'unsafe': ReportUnsafe
-    }
-    if leaf_type not in tables:
-        return HttpResponseRedirect(reverse('error', args=[500]))
-
     try:
-        report = tables[leaf_type].objects.get(pk=int(report_id))
+        report = ReportUnsafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[504]))
 
     if not JobAccess(request.user, report.root.job).can_view():
         return HttpResponseRedirect(reverse('error', args=[400]))
 
-    template = 'reports/report_leaf.html'
-    etv = None
     main_file_content = None
-    if leaf_type == 'unsafe':
-        template = 'reports/report_unsafe.html'
-        try:
-            etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            return HttpResponseRedirect(reverse('error', args=[505]))
-    elif leaf_type == 'safe':
-        main_file_content = None
-        if report.archive and report.proof:
-            try:
-                main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
-            except Exception as e:
-                logger.exception("Couldn't extract proof from archive: %s" % e)
-                return HttpResponseRedirect(reverse('error', args=[500]))
-    elif leaf_type == 'unknown':
-        try:
-            main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
-        except Exception as e:
-            logger.exception("Couldn't extract problem description from archive: %s" % e)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
+    except Exception as e:
+        logger.exception(e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[505]))
+    tags = TagsInfo('unsafe', [])
+    if tags.error is not None:
+        logger.error(tags.error, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
     try:
         return render(
-            request, template,
+            request, 'reports/report_unsafe.html',
             {
-                'type': leaf_type,
                 'report': report,
                 'parents': get_parents(report),
-                'SelfAttrsData': ReportTable(request.user, report).table_data,
+                'SelfAttrsData': report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report),
                 'etv': etv,
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'include_assumptions': request.user.extended.assumptions
+                'include_assumptions': request.user.extended.assumptions,
+                'markdata': MarkData('unsafe', report=report),
+                'tags': tags
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+
+@login_required
+@unparallel_group(['ReportSafe'])
+def report_safe(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = ReportSafe.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+
+    main_file_content = None
+    if report.archive and report.proof:
+        try:
+            main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
+        except Exception as e:
+            logger.exception("Couldn't extract proof from archive: %s" % e)
+            return HttpResponseRedirect(reverse('error', args=[500]))
+    tags = TagsInfo('safe', [])
+    if tags.error is not None:
+        logger.error(tags.error, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+    try:
+        return render(
+            request, 'reports/report_safe.html',
+            {
+                'report': report,
+                'parents': get_parents(report),
+                'SelfAttrsData': report_attibutes(report),
+                'MarkTable': ReportMarkTable(request.user, report),
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'markdata': MarkData('safe', report=report),
+                'tags': tags
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+
+@login_required
+@unparallel_group(['ReportUnknown'])
+def report_unknown(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = ReportUnknown.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return HttpResponseRedirect(reverse('error', args=[504]))
+    if not JobAccess(request.user, report.root.job).can_view():
+        return HttpResponseRedirect(reverse('error', args=[400]))
+    try:
+        main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+    except Exception as e:
+        logger.exception("Couldn't extract problem description from archive: %s" % e)
+        return HttpResponseRedirect(reverse('error', args=[500]))
+
+    try:
+        return render(
+            request, 'reports/report_unknown.html',
+            {
+                'report': report,
+                'parents': get_parents(report),
+                'SelfAttrsData': report_attibutes(report),
+                'MarkTable': ReportMarkTable(request.user, report),
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'markdata': MarkData('unknown', report=report)
             }
         )
     except Exception as e:

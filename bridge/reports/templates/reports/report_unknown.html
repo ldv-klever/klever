@@ -1,0 +1,113 @@
+{% extends 'reports/base.html' %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{% trans 'Unknown' %}{% endblock %}
+
+{% block body_block %}
+<div class="ui grid">
+    <div class="seven wide column">
+        <div class="ui grid">
+            <div class="nine wide column">
+                <span class="purple-title">{% trans 'Job' %}: </span>
+                <a href="{% url 'jobs:job' report.root.job.pk %}">{{ report.root.job.name }}</a>
+            </div>
+            <div class="seven wide column">
+                {% if report.root.user %}
+                    <span class="purple-title">{% trans 'Author' %}: </span>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="ui divider"></div>
+        <div class="ui accordion styled fluid" id="report_accordion">
+            <div class="title">
+                <i class="grid layout icon"></i>{% trans 'Attributes' %}
+            </div>
+            <div class="content">
+                <div style="overflow-x:auto;">
+                    <table class="ui celled compact purple table">
+                        <tbody>
+                            {% for v in SelfAttrsData %}
+                                <tr>
+                                    <th class="collapsing">{{ v.0 }}</th>
+                                    <td class="collapsing">{{ v.1 }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <br>
+        {% if MarkTable.values|length %}
+            <h4 class="header">{% trans 'Associated marks' %}</h4>
+            <div style="overflow-x:auto;">
+                <table class="ui celled compact pink table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>{% trans 'Problem' %}</th>
+                            <th>{% trans 'Status' %}</th>
+                            <th>{% trans 'Last change author' %}</th>
+                            <th>{% trans 'Automatic association' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for v in MarkTable.values %}
+                        <tr>
+                            <td><a href="{{ v.href }}">{{ v.number }}</a></td>
+                            <td>
+                                {% if v.problem.1 %}
+                                    <a{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} href="{{ v.problem.1 }}">{{ v.problem.0 }}{% if v.description %}*{% endif %}</a>
+                                {% else %}
+                                    <span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %}>{{ v.problem.0 }}{% if v.description %}*{% endif %}</span>
+                                {% endif %}
+                            </td>
+                            <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                            <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
+                            <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <br>
+        {% if can_mark %}
+            <a class="ui pink button" style="float: right;" href="{% url 'marks:create_mark' 'unknown' report.pk %}">{% trans 'Create mark' %}</a>
+        {% endif %}
+    </div>
+    <div class="nine wide column">
+        <div class="ui breadcrumb">
+            <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
+            <div class="ui special popup">
+                <div class="header">{{ parents.0.title }}</div>
+                <div class="content">
+                    {% for attr in parents.0.attrs %}
+                        <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% for parent in parents|slice:"1:" %}
+                <i class="right arrow icon divider"></i>
+                <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ parent.title }}</div>
+                    <div class="content">
+                        {% for attr in parent.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui divider"></div>
+        <div class="ui red segment filecontent" style="height:400px;">{{ main_content }}</div>
+        <input type="hidden" id="report_pk" value="{{ report.pk }}">
+        <input id="report_type" type="hidden" value="unknown">
+    </div>
+</div>
+
+{% endblock %}
