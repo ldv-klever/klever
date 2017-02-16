@@ -281,10 +281,13 @@ class NewMark:
                 for r in self.changes:
                     RecalculateTags(r)
             elif self.type != 'unknown':
-                if recalc_verdicts:
-                    UpdateVerdict(mark)
+                self.changes = {}
                 for mr in self.mark.markreport_set.all():
-                    RecalculateTags(mr.report)
+                    self.changes[mr.report] = {'kind': '=', 'verdict1': mr.report.verdict}
+                if recalc_verdicts:
+                    self.changes = UpdateVerdict(mark, self.changes).changes
+                for report in self.changes:
+                    RecalculateTags(report)
         return None
 
     def __update_mark(self, mark, tags, error_trace=None, comment=''):
