@@ -164,6 +164,7 @@
 .ETV_LN_Note {
     background-color: #4aafdd;
     border-radius: 2px;
+    color: #f7ff3a;
 }
 .ETV_LN_Note:hover {
     background-color: #4aafdd;
@@ -178,6 +179,7 @@
 .ETV_LN_Warning {
     background-color: #dd2222;
     border-radius: 2px;
+    color: #f7ff3a;
 }
 .ETV_LN_Warning:hover {
     background-color: #dd2222;
