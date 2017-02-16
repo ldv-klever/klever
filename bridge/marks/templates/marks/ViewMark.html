@@ -16,7 +16,7 @@
             <div class="ui buttons top attached">
                 <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button">{% trans 'Download' %}</a>
                 {% if can_edit %}
-                    <a href="{% url 'marks:edit_mark' type mark.pk %}" class="ui blue button">{% trans 'Edit' %}</a>
+                    <a href="{% url 'marks:edit_mark' type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui blue button">{% trans 'Edit' %}</a>
                 {% endif %}
             </div>
             <table class="ui selectable compact inverted violet table attached">

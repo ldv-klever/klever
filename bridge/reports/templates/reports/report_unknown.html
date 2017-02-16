@@ -57,7 +57,7 @@
                     <tbody>
                     {% for v in MarkTable.values %}
                         <tr>
-                            <td><a href="{{ v.href }}">{{ v.number }}</a></td>
+                            <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
                             <td>
                                 {% if v.problem.1 %}
                                     <a{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} href="{{ v.problem.1 }}">{{ v.problem.0 }}{% if v.description %}*{% endif %}</a>

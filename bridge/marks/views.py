@@ -127,7 +127,8 @@ def view_mark(request, mark_type, mark_id):
         'tags': tags,
         'can_edit': MarkAccess(request.user, mark=mark).can_edit(),
         'view_tags': True,
-        'error_trace': error_trace
+        'error_trace': error_trace,
+        'report_id': request.GET.get('report_to_redirect')
     })
 
 
@@ -191,7 +192,8 @@ def edit_mark(request, mark_type, mark_id):
         'versions': mark_versions,
         'can_freeze': (request.user.extended.role == USER_ROLES[2][0]),
         'tags': tags,
-        'error_trace': error_trace
+        'error_trace': error_trace,
+        'report_id': request.GET.get('report_to_redirect')
     })
 
 
@@ -441,18 +443,20 @@ def upload_marks(request):
 @login_required
 @unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def delete_mark(request, mark_type, mark_id):
+    obj_model = {
+        'unsafe': (MarkUnsafe, ReportUnsafe),
+        'safe': (MarkSafe, ReportSafe),
+        'unknown': (MarkUnknown, ReportUnknown)
+    }
     try:
-        if mark_type == 'unsafe':
-            mark = MarkUnsafe.objects.get(pk=int(mark_id))
-        elif mark_type == 'safe':
-            mark = MarkSafe.objects.get(pk=int(mark_id))
-        else:
-            mark = MarkUnknown.objects.get(pk=int(mark_id))
+        mark = obj_model[mark_type][0].objects.get(pk=mark_id)
     except ObjectDoesNotExist:
         return HttpResponseRedirect(reverse('error', args=[604]))
     if not MarkAccess(request.user, mark=mark).can_delete():
         return HttpResponseRedirect(reverse('error', args=[602]))
     DeleteMark(mark)
+    if request.method == 'GET' and 'report_to_redirect' in request.GET:
+        return HttpResponseRedirect(reverse('reports:%s' % mark_type, args=[request.GET['report_to_redirect']]))
     return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
 
 

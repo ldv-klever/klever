@@ -111,7 +111,7 @@
                             <tbody>
                             {% for v in MarkTable.values %}
                                 <tr>
-                                    <td><a href="{{ v.href }}">{{ v.number }}</a></td>
+                                    <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
                                     <td><span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}{% if v.description %}*{% endif %}</span></td>
                                     <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
                                     <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
