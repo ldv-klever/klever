@@ -759,6 +759,10 @@ class UploadReport(object):
             attrorder.append(attr)
             attrdata.add(report_id, attr, value)
         attrdata.upload()
+        if isinstance(self.parent, ReportComponent) and self.data['type'] in {'start', 'attrs', 'verification'}:
+            names = set(x[0] for x in ReportAttr.objects.filter(report_id=report_id).values_list('attr__name_id'))
+            if self.parent.attrs.filter(attr__name_id__in=names).count() > 0:
+                raise ValueError("The report has redefined parent's attributes")
         return attrorder
 
     def __is_not_used(self):
