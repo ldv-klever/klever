@@ -204,6 +204,10 @@ class ParseErrorTrace:
             if 'enter' in edge:
                 raise ValueError("Global initialization edge can't contain enter")
             if line_data['code'] is not None:
+                if 'note' in edge and len(edge['note']) > 0:
+                    line_data['note'] = edge['note']
+                if 'warn' in edge and len(edge['warn']) > 0:
+                    line_data['warning'] = edge['warn']
                 self.global_lines.append(line_data)
             return
 
