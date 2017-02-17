@@ -48,7 +48,10 @@ class ExecLocker:
                 time.sleep(0.1)
                 self.waiting_time[0] += 0.1
                 if self.waiting_time[0] > MAX_WAITING:
-                    raise RuntimeError('Not enough time to lock execution of view')
+                    if settings.UNLOCK_FAILED_REQUESTS:
+                        os.remove(self.lockfile)
+                    else:
+                        raise RuntimeError('Not enough time to lock execution of view')
 
         try:
             self.__lock_names()
@@ -80,8 +83,9 @@ class ExecLocker:
                 time.sleep(0.2)
                 self.waiting_time[1] += 0.2
                 if self.waiting_time[1] > MAX_WAITING:
+                    if settings.UNLOCK_FAILED_REQUESTS:
+                        break
                     raise RuntimeError('Not enough time to lock execution of view')
-                    # break
         # Lock
         LockTable.objects.filter(id__in=self.lock_ids).update(locked=True)
 
