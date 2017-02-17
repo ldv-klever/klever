@@ -18,6 +18,7 @@
 import os
 import time
 from datetime import datetime
+from django.conf import settings
 from django.db.models.base import ModelBase
 from tools.models import LockTable, CallLogs
 
@@ -118,6 +119,8 @@ def unparallel_group(groups):
             except Exception:
                 call_data.execution_delta = time.time() - call_data.execution_time
                 call_data.is_failed = True
+                if settings.UNLOCK_FAILED_REQUESTS:
+                    locker.unlock()
                 raise
             else:
                 call_data.execution_delta = time.time() - call_data.execution_time
