@@ -171,7 +171,7 @@ CHUNKS3 = [
         ],
         'tool_attrs': [{'Bug kind': 'unsafe bug:kind1'}],
         'tool': 'BLAST 2.7.2',
-        'unsafes': ['unsafe11.zip']
+        'unsafes': ['unsafe_check.zip']
     }
 ]
 
