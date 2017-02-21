@@ -261,13 +261,15 @@ class EntryProcessGenerator:
 
             # process deactivation signals
             for deactivation in self.__default_signals[receiver.identifier]['deactivation']:
-                # Free memory after default deregistraton
-                free_name = 'default_free_{}'.format(receiver.identifier)
-                receiver.add_condition(free_name, [],
-                                       ['$FREE({0});'.format(name) for name in deactivation.parameters],
-                                       "Free memory before default deregistration.")
-                receiver.insert_action(deactivation.name, before='<{}>'.format(free_name))
+                # Free memory after default deregistraton if the memory was actually allocated by EMG
+                if len(self.__default_signals[receiver.identifier]['activation']) > 0:
+                    free_name = 'default_free_{}'.format(receiver.identifier)
+                    receiver.add_condition(free_name, [],
+                                           ['$FREE({0});'.format(name) for name in deactivation.parameters],
+                                           "Free memory before default deregistration.")
+                    receiver.insert_action(deactivation.name, before='<{}>'.format(free_name))
 
+                # Rename and make dispatch
                 nd = make_signal(process, receiver, deactivation)
                 nd.comment = "Deregister {0!r} callbacks with unknown deregistration function."
                 deactivations.append(nd)
