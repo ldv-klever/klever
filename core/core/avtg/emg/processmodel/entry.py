@@ -108,7 +108,6 @@ class EntryProcessGenerator:
     def __generate_insmod_process(self, analysis, default_dispatches=False):
         self.__logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
         ep = Process("insmod")
-        ep.category = "entry"
         ep.identifier = 0
 
         # Add register
@@ -270,7 +269,7 @@ class EntryProcessGenerator:
                     receiver.insert_action(deactivation.name, before='<{}>'.format(free_name))
 
                 # Rename and make dispatch
-                nd = make_signal(process, receiver, deactivation)
+                nd = make_signal(process, receiver, deactivation, self.__default_signals[receiver.identifier]['guard'])
                 nd.comment = "Deregister {0!r} callbacks with unknown deregistration function."
                 deactivations.append(nd)
 

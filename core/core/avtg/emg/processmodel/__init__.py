@@ -56,7 +56,7 @@ class ProcessModel:
         # Del unnecessary reference
         self.entry = None
         for process in additional_processes:
-            self.__add_process(analysis, process, 'artificial')
+            self.__add_process(analysis, process, 'insmod')
 
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
