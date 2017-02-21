@@ -124,9 +124,7 @@ class EntryProcessGenerator:
 
         # Generate init subprocess
         for filename, init_name in analysis.inits:
-            init_label = Label(init_name)
-            init_label.value = "& {}".format(init_name)
-            init_label.prior_signature = import_declaration("int (*f)(void)")
+            init_label = ep.add_label(init_name, import_declaration("int (*f)(void)"), "& {}".format(init_name))
             init_label.file = filename
             init_subprocess = Call(init_label.name)
             init_subprocess.comment = 'Initialize the module after insmod with {!r} function.'.format(init_name)
@@ -139,9 +137,8 @@ class EntryProcessGenerator:
             ep.labels[init_label.name] = init_label
             ep.actions[init_label.name] = init_subprocess
 
-        ret_label = Label('ret')
-        ret_label.prior_signature = import_declaration("int label")
-        ep.labels[ret_label.name] = ret_label
+        # Add ret label
+        ep.add_label('ret', import_declaration("int label"))
 
         # Generate exit subprocess
         if len(analysis.exits) == 0:
@@ -157,9 +154,7 @@ class EntryProcessGenerator:
             ep.actions[exit_subprocess.name] = exit_subprocess
         else:
             for filename, exit_name in analysis.exits:
-                exit_label = Label(exit_name)
-                exit_label.prior_signature = import_declaration("void (*f)(void)")
-                exit_label.value = "& {}".format(exit_name)
+                exit_label = ep.add_label(exit_name, import_declaration("void (*f)(void)"), exit_name)
                 exit_label.file = filename
                 exit_subprocess = Call(exit_label.name)
                 exit_subprocess.comment = 'Exit the module before its unloading with {!r} function.'.format(exit_name)
@@ -207,7 +202,7 @@ class EntryProcessGenerator:
 
     def __generate_default_dispatches(self, process):
 
-        def make_signal(sp, rp, ra):
+        def make_signal(sp, rp, ra, guard):
             # Change name
             signal_name = "default_{}_{}".format(ra.name, rp.identifier)
             rp.rename_action(ra.name, signal_name)
@@ -221,11 +216,31 @@ class EntryProcessGenerator:
             ra.parameters = []
 
             # Replace condition
-            new_dispatch.condition = None
+            new_dispatch.condition = [guard]
             ra.condition = None
 
             sp.actions[new_dispatch.name] = new_dispatch
             return new_dispatch
+
+        # Do not do anything if no signals for default registration available
+        if len(self.__default_signals) == 0:
+            return None
+
+        # To nondeterministically register and deregister pairs of default dispatches let us insert artificial action
+        statements = []
+        for receiver in (self.__default_signals[p]['process'] for p in self.__default_signals):
+            # Create new label and add it to label set
+            name = 'reg_guard_{}'.format(receiver.identifier)
+            process.add_label(name, "int a")
+            label = "%{}%".format(name)
+
+            # Add initialization
+            statements.append("{} = ldv_undef_int();".format(label))
+
+            # Save label name
+            self.__default_signals[receiver.identifier]['guard'] = label
+        default_reg_con = process.add_condition('nondet_reg', [], statements,
+                                                "Do registration and deregistration nondeterministically.")
 
         activations = list()
         deactivations = list()
@@ -240,7 +255,7 @@ class EntryProcessGenerator:
                 receiver.insert_action(activation.name, after='<{}>'.format(allocation_name))
 
                 # Rename and make dispatch
-                nd = make_signal(process, receiver, activation)
+                nd = make_signal(process, receiver, activation, self.__default_signals[receiver.identifier]['guard'])
                 nd.comment = "Register {0!r} callbacks with unknown registration function."
                 activations.append(nd)
 
@@ -260,10 +275,9 @@ class EntryProcessGenerator:
         if len(activations + deactivations) == 0:
             expression = None
         else:
-            process.add_condition('none', [], [], 'Skip default callbacks registrations and deregistrations.')
             activation_expr = ["[@{}]".format(a.name) for a in activations]
             deactivation_expr = ["[@{}]".format(a.name) for a in reversed(deactivations)]
-            expression = "({} | <none>)".format(".".join(activation_expr + deactivation_expr))
+            expression = "<{}>.{}".format(default_reg_con.name, ".".join(activation_expr + deactivation_expr))
 
         return expression
 
