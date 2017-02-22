@@ -194,7 +194,7 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "size_cnt": {
             "resource": true,
