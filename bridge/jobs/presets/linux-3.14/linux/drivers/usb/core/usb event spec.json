@@ -29,7 +29,8 @@
             ]
           },
           "res": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           }
         },
         "process": "<assign>.[register].<success> | <fail>",
@@ -111,7 +112,8 @@
             "value": "false"
           },
           "probe_retval": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           },
           "callback": {
             "callback": true
