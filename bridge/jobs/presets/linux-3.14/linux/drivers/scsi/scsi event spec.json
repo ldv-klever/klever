@@ -28,11 +28,7 @@
             "comment": "Allocate memory for a new Scsi_Host structure and initialize it.",
             "statements": [
               "%scsi_host_template% = $ARG1;",
-              "%mask% = GFP_KERNEL;",
-              "if (%scsi_host_template%->unchecked_isa_dma && $ARG2)",
-              "  %mask% |= __GFP_DMA;",
-              "%host% = kzalloc(sizeof(struct Scsi_Host) + $ARG2, %mask%);",
-              "ldv_assume(%host%);",
+              "%host% = ldv_xzalloc(sizeof(struct Scsi_Host) + $ARG2);",
               "%host%->hostt= %scsi_host_template%;"
             ]
           },
@@ -168,7 +164,7 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           }
         },
         "process": "(!register).{main}",

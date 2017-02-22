@@ -94,11 +94,11 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "uret": {
             "signature": "unsigned int b",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "state": {
             "interface": [
@@ -408,11 +408,11 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "uret": {
             "signature": "unsigned int b",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "state": {
             "interface": [

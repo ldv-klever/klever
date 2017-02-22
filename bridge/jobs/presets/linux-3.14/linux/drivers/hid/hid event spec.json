@@ -83,7 +83,8 @@
             ]
           },
           "ret": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           },
           "callback": {
             "callback": true
