@@ -187,6 +187,20 @@
     },
     {
       "Linux kernel": {
+        "external modules": "tests/get_sb",
+        "modules": [
+          "get_sb_nodev_invoke.ko",
+          "get_sb_bdev_invoke.ko",
+          "get_sb_ns_invoke.ko",
+          "get_sb_single_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/hid",
         "modules": [
           "hid_add_device.ko",
@@ -367,21 +381,6 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/rtc_class_ops_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/sb_nodev",
-        "modules": [
-          "get_sb_nodev_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/get_sb_nodev_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

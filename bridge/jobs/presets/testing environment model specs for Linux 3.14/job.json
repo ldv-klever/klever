@@ -426,21 +426,6 @@
     },
     {
       "Linux kernel": {
-        "external modules": "tests/sb_nodev",
-        "modules": [
-          "get_sb_nodev_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/get_sb_nodev_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
         "external modules": "tests/scsi_device_handler",
         "modules": [
           "scsi_register_device_handler.ko",
