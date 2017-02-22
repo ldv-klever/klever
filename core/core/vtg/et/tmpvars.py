@@ -186,9 +186,11 @@ def __remove_tmp_vars(error_trace, edge):
 
             func_call_edge['source'] = m.group(1) + func_call + m.group(2)
 
-            for attr in ('condition', 'return'):
+            # Move vital attributes from edge to be removed. If this edge represents warning it can not be removed
+            # without this.
+            for attr in ('condition', 'return', 'note', 'warn'):
                 if attr in tmp_var_use_edge:
-                    func_call_edge[attr] = tmp_var_use_edge[attr]
+                    func_call_edge[attr] = tmp_var_use_edge.pop(attr)
 
             # Edge to be removed is return edge from current function.
             is_reach_cur_func_end = True if tmp_var_use_edge is return_edge else False
