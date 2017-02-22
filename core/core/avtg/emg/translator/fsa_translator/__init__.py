@@ -23,7 +23,7 @@ from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Co
     get_common_parameter
 from core.avtg.emg.translator.code import FunctionDefinition
 from core.avtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
-    extract_relevant_automata, choose_file, registration_intf_check
+    extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -641,10 +641,17 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             return inv
 
+        def reinitialize_variables(code):
+            reinitialization_action_set = get_conf_property(self._conf, 'callback actions with reinitialization', list)
+            if reinitialization_action_set and state.action.name in reinitialization_action_set:
+                statements = initialize_automaton_variables(self._conf, automaton)
+                code.extend(statements)
+
         # Determine callback implementations
         accesses = automaton.process.resolve_access(state.action.callback)
         generated_callbacks = []
         for access in accesses:
+            reinitialize_vars_flag = False
             if access.interface:
                 signature = access.interface.declaration
                 implementation = automaton.process.get_implementation(access)
@@ -665,6 +672,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     check = True
                     file = self._cmodel.entry_file
                     func_variable = invoke
+                    reinitialize_vars_flag = True
                 else:
                     # Avoid call if neither implementation and pointer call are known
                     invoke = None
@@ -731,6 +739,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
                 inv = make_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
+
+                # If necessary reinitialize variables, for instance, if probe skipped
+                if reinitialize_vars_flag:
+                    reinitialize_variables(code)
                 
                 generated_callbacks.append((st, code, list(), conditions, comments))
 
@@ -745,6 +757,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                  begin=True))
             comments.append(action_model_comment(state.action, None, begin=False))
             code.append('/* Skip callback without implementations */')
+
+            # If necessary reinitialize variables, for instance, if probe skipped
+            reinitialize_variables(code)
+
             generated_callbacks.append((state, code, list(), list(), comments))
 
         return generated_callbacks
