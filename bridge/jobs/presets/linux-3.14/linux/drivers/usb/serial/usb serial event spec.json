@@ -662,11 +662,11 @@
         "actions": {
           "insert_device": {
             "comment": "Device is inserted in the system.",
-            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[release]) | <not_probed>).{insert_device} | <free>.(deregister)"
+            "process": "[probe].(<probed>.[attach].(<attached>.{main_workflow} | <not_attached>.[disconnect]) | <not_probed>).{insert_device} | <free>.(deregister)"
           },
           "main_workflow": {
             "comment": "All initializations of usb_serial and device has been done, call the other callbacks.",
-            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [disconnect].[release].{insert_device}"
+            "process": "([suspend].(<suspended>.[resume] | <not_suspended>) | [port_probe].(<port_probed>.[port_remove] | <not_port_probed>) | [open].(<opened>.{tty_layer} | <not_opened>)).{main_workflow} | [release].[disconnect].{insert_device}"
           },
           "tty_layer": {
             "comment": "Call the rest callbacks from tty layer.",
