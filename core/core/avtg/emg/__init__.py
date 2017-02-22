@@ -97,7 +97,6 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Get instance maps if possible
         instance_maps = dict()
-        vo_identifier = self.abstract_task_desc['attrs'][0]['verification object']
         if get_conf_property(self.conf, "EMG instances"):
             self.logger.info('Looking for a file with an instance map {!r}'.
                              format(get_necessary_conf_property(self.conf, "EMG instances")))
@@ -105,9 +104,7 @@ class EMG(core.avtg.plugins.Plugin):
                                                   get_necessary_conf_property(self.conf, "main working directory"),
                                                   get_necessary_conf_property(self.conf, "EMG instances")),
                       encoding='utf8') as fp:
-                emg_instances = json.load(fp)
-            if vo_identifier in emg_instances:
-                instance_maps = emg_instances[vo_identifier]
+                instance_maps = json.load(fp)
 
         # Import additional aspect files
         instance_maps = translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, mcs, model,
@@ -126,7 +123,7 @@ class EMG(core.avtg.plugins.Plugin):
                           'data',
                           {
                               'id': self.id,
-                              'data': {self.abstract_task_desc['attrs'][0]['verification object']: instance_maps}
+                              'data': instance_maps
                           },
                           self.mqs['report files'],
                           get_necessary_conf_property(self.conf, "main working directory"))
