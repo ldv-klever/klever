@@ -103,6 +103,9 @@ class ScopeInfo:
         return curr_scope
 
     def show_current_scope(self, comment_type):
+        if not self.initialised:
+            self._shown.add('global')
+            return
         if comment_type == 'note':
             if all(ss not in self._hidden for ss in self._stack):
                 for ss in self._stack:
@@ -125,7 +128,7 @@ class ScopeInfo:
         try:
             return tuple(int(x) for x in scope_str.split('_')) in self._shown
         except ValueError:
-            return False
+            return scope_str == 'global' and scope_str in self._shown
 
     def current_action(self):
         if len(self._stack) > 0 and self._stack[-1][1]:
@@ -204,6 +207,7 @@ class ParseErrorTrace:
             if 'enter' in edge:
                 raise ValueError("Global initialization edge can't contain enter")
             if line_data['code'] is not None:
+                line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
                 self.global_lines.append(line_data)
             return
 
@@ -220,8 +224,7 @@ class ParseErrorTrace:
                 line_data['scope'] = self.scope.current()
             line_data.update(self.__enter_action(new_action, line_data['line']))
 
-        line_data.update(self.__get_note(edge.get('note')))
-        line_data.update(self.__get_warn(edge.get('warn')))
+        line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
         if 'enter' in edge:
             line_data.update(self.__enter_function(edge['enter'], line_data['code']))
@@ -305,17 +308,15 @@ class ParseErrorTrace:
         while self.scope.can_return():
             self.__return()
 
-    def __get_note(self, note):
-        if note is None:
-            return {}
-        self.scope.show_current_scope('note')
-        return {'note': note}
-
-    def __get_warn(self, warn):
-        if warn is None:
-            return {}
-        self.scope.show_current_scope('warning')
-        return {'warning': warn}
+    def __get_comment(self, note, warn):
+        new_data = {}
+        if warn is not None:
+            self.scope.show_current_scope('warning')
+            new_data['warning'] = warn
+        elif note is not None:
+            self.scope.show_current_scope('note')
+            new_data['note'] = note
+        return new_data
 
     def __add_assumptions(self, assumption):
         if self.include_assumptions and assumption is None:
@@ -386,7 +387,7 @@ class ParseErrorTrace:
             c = not self.scope.is_shown(self.lines[i]['scope'])
             d = 'hide_id' not in self.lines[i]
             e = 'hide_id' in self.lines[i] and not self.scope.is_shown(self.lines[i]['hide_id'])
-            f = self.lines[i]['type'] == 'eye-control'
+            f = self.lines[i]['type'] == 'eye-control' and self.lines[i]['scope'] != 'global'
             if a or b and (c or d or e) or not a and not b and c and (d or e) or f:
                 self.lines[i]['hidden'] = True
             if e:
@@ -478,7 +479,6 @@ class GetETV(object):
     def __html_trace(self):
         for n in self.err_trace_nodes:
             if 'thread' not in self.data['edges'][n]:
-                # self.data['edges'][n]['thread'] = 'fake'
                 raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])

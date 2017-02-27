@@ -59,9 +59,6 @@ class RSB(core.components.Component):
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
 
-            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
-                round(self.conf['VTG strategy']['resource limits']['CPU time'] / 1000))})
-
             if 'verifier configuration' in self.conf['abstract task desc']:
                 self.conf['VTG strategy']['verifier']['options'].append(
                     {self.conf['abstract task desc']['verifier configuration']: ''}
@@ -75,6 +72,10 @@ class RSB(core.components.Component):
             # Specify default CPAchecker configuration.
             else:
                 self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+
+            # Remove internal CPAchecker timeout.
+            self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
+                round(self.conf['VTG strategy']['resource limits']['CPU time'] / 1000))})
 
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
