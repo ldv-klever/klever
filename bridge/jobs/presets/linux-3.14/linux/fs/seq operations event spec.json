@@ -100,6 +100,9 @@
           "show_ret": {
             "signature": "int a",
             "value": "ldv_undef_int()"
+          },
+          "index": {
+            "signature": "loff_t *a"
           }
         },
         "process": "(!register).{outer_loop}",
@@ -148,22 +151,28 @@
             "comment": "Initialize data for walking through a list of kernel items.",
             "callback": "%ops.start%",
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%index%"
             ],
             "callback return value": "%ret%"
           },
           "stop": {
             "comment": "End of the sequence is reached, do necessary cleanup.",
             "callback": "%ops.stop%",
+            "pre-call": [
+              "%seq_file%->index = %index%;"
+            ],
+            "post-call": [
+              "%seq_file%->index = %index%;"
+            ],
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%ret%"
             ]
           },
           "show": {
             "comment": "Show current item: put data into the seq_file output buffer.",
             "callback": "%ops.show%",
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%ret%"
             ],
             "callback return value": "%show_ret%"
           },
@@ -171,7 +180,7 @@
             "comment": "Advance to the new item.",
             "callback": "%ops.next%",
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%ret%", "%index%"
             ],
             "callback return value": "%ret%"
           }
