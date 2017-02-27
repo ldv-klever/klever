@@ -20,6 +20,7 @@ before: file ("$this")
 struct urb;
 
 extern struct urb *ldv_usb_alloc_urb(void);
+extern struct urb *ldv_usb_get_urb(struct urb *urb);
 extern void ldv_usb_free_urb(struct urb *urb);
 }
 
@@ -40,5 +41,5 @@ around: call(struct urb *usb_alloc_urb(int iso_packets, gfp_t mem_flags))
 
 around: call(struct urb *usb_get_urb(struct urb *urb))
 {
-	return ldv_usb_alloc_urb();
+	return ldv_usb_get_urb(urb);
 }

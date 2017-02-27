@@ -54,7 +54,7 @@
           "fail": {
             "comment": "RTC device registration has failed.",
             "statements": [
-              "return 0;"
+              "return ldv_err_ptr(ldv_undef_int_negative());"
             ]
           }
         }
@@ -113,7 +113,7 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           }
         },
         "process": "(!register).{main}",

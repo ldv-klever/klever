@@ -39,6 +39,16 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/generic/memory",
+        "modules": [
+          "null-ptr-dereference.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["generic:memory"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/empty",
         "modules": ["safe.ko"]
       },
@@ -457,6 +467,18 @@
         ]
       },
       "rule specifications": ["linux:usb:urb"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/sync/races",
+        "modules": [
+          "race.ko",
+          "race2.ko",
+          "race_10.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["sync:race"]
     }
   ]
 }

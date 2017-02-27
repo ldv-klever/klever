@@ -166,7 +166,8 @@
             "callback": true
           },
           "ret": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           },
           "socket": {
             "interface": ["proto.socket"],

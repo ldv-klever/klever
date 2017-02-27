@@ -16,15 +16,19 @@
 #
 
 
-def get_conf_property(conf, name):
+def get_conf_property(conf, name, expected_type=None):
     """
     Check that configuration properties dictionary contains the given configuration property and return its value.
 
     :param conf: Dictionary.
     :param name: Configuration property string.
+    :param expected_type: Check that given value has an expected type.
     :return: Configuration property value.
     """
     if name in conf:
+        if expected_type and type(conf[name]) is not expected_type:
+            raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
+                            format(name, str(expected_type), str(type(conf[name]))))
         return conf[name]
     else:
         return None

@@ -30,10 +30,10 @@ from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMA
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
 from bridge.utils import logger
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
-    USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
+    USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, ReportComponent, TaskStatistic
+from reports.models import CompareJobsInfo, TaskStatistic
 from service.models import SchedulerUser, Scheduler
 
 
@@ -170,20 +170,21 @@ class JobAccess(object):
                 return False
         if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
         return self.__is_author or self.__is_manager
 
     def can_download(self):
-        return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
+        return self.job is not None and self.job.status != JOB_STATUS[2][0]
 
     def can_collapse(self):
         if self.job is None:
             return False
-        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) and not self.job.light
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) \
+            and self.job.weight != JOB_WEIGHT[2][0]
 
     def can_dfc(self):
-        return self.job is not None and self.job.status in [JOB_STATUS[3][0], JOB_STATUS[4][0]] and not self.job.light
+        return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
 
     def __get_prop(self, user):
         if self.job is not None:
@@ -663,10 +664,8 @@ class GetFilesComparison(object):
 
 
 def change_job_status(job, status):
-    if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
+    if not isinstance(job, Job) or status not in set(x[0] for x in JOB_STATUS):
         return
-    if status in [JOB_STATUS[3], JOB_STATUS[4]]:
-        ReportComponent.objects.filter(root__job=job, finish_date=None).update(finish_date=now())
     job.status = status
     job.save()
     try:
@@ -788,7 +787,7 @@ class GetConfiguration(object):
                     filedata['allow local source directories use'],
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
-                    filedata['lightweightness']
+                    filedata['weight']
                 ]
             ]
         except Exception as e:
@@ -860,7 +859,9 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
             return False
-        if any(not isinstance(x, bool) for x in self.configuration[4]):
+        if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
+            return False
+        if self.configuration[4][-1] not in set(w[0] for w in JOB_WEIGHT):
             return False
         return True
 
@@ -880,6 +881,7 @@ class StartDecisionData(object):
         self.parallelism = KLEVER_CORE_PARALLELISM
         self.formatters = KLEVER_CORE_FORMATTERS
         self.avtg_priorities = AVTG_PRIORITY
+        self.job_weight = JOB_WEIGHT
 
         self.need_auth = False
         try:

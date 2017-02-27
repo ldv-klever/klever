@@ -29,6 +29,59 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/atmdev_ops",
+        "modules": [
+          "atm_dev_register.ko",
+          "atm_dev_deregister.ko",
+          "atm_dev_callbacks.ko",
+          "atm_dev_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/atm_dev_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/block_device_operations",
+        "modules": [
+          "disk_invoke.ko",
+          "add_disk.ko",
+          "del_gendisk.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/disk_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/class",
+        "modules": [
+          "class_callbacks.ko",
+          "class_interface_register.ko",
+          "class_interface_unregister.ko",
+          "class_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/class_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
         "modules": [
           "devm_request_threaded_irq.ko",
@@ -592,24 +645,6 @@
     }
   ],
   "Unsupported Sub-jobs": [
-    {
-      "Linux kernel": {
-        "external modules": "tests/atmdev_ops",
-        "modules": [
-          "atm_dev_register.ko",
-          "atm_dev_deregister.ko",
-          "atm_dev_callbacks.ko",
-          "atm_dev_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/atm_dev_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
     {
       "Linux kernel": {
         "external modules": "tests/timer",

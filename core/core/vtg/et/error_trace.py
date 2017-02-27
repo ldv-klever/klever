@@ -106,6 +106,9 @@ class ErrorTrace:
     def add_violation_node_id(self, identifier):
         self._violation_node_ids.add(identifier)
 
+    def remove_violation_node_id(self, identifier):
+        self._violation_node_ids.remove(identifier)
+
     def add_file(self, file_name):
         if file_name not in self._files:
             self._files.append(file_name)
@@ -207,17 +210,33 @@ class ErrorTrace:
         # Do not delete edge with a warning
         if 'warn' in edge:
             raise ValueError('Cannot delete edge with warning: {!r}'.format(edge['source']))
-        if id(edge['target node']) in [id(v) for i, v in self.violation_nodes]:
-            raise ValueError('Is not allowed to delete violation nodes')
 
         source = edge['source node']
         target = edge['target node']
 
+        # Make source node violation node if target node is violation node.
+        for i, v in self.violation_nodes:
+            if id(target) == id(v):
+                if len(source['out']) > 1:
+                    raise ValueError('Is not allowed to delete violation nodes')
+                self.remove_violation_node_id(i)
+                is_replaced = False
+                for j, u in self._nodes.items():
+                    if id(source) == id(u):
+                        self.add_violation_node_id(j)
+                        is_replaced = True
+                        break
+                if not is_replaced:
+                    raise RuntimeError('Cannot add new violation node')
+                break
+
         source['out'].remove(edge)
         target['in'].remove(edge)
+
         for out_edge in target['out']:
             out_edge['source node'] = source
             source['out'].append(out_edge)
+
         del target
 
     @staticmethod
@@ -305,12 +324,18 @@ class ErrorTrace:
                                             'Auxiliary/model function definition is not specified in {!r}'.format(
                                                 func_decl))
 
-                                # Try to get names for simple formal arguments (in form "type name") that is required
-                                # for removing auxiliary function calls.
+                                # Try to get names for formal arguments (in form "type name") that is required for
+                                # removing auxiliary function calls.
                                 formal_arg_names = []
-                                match = re.search(r'{0}\s*\((.*)\)'.format(func_name), func_decl)
+                                match = re.search(r'{0}\s*\((.+)\)'.format(func_name), func_decl)
                                 if match:
-                                    for formal_arg in match.group(1).split(','):
+                                    formal_args_str = match.group(1)
+
+                                    # Remove arguments of function pointers and braces around corresponding argument
+                                    # names.
+                                    formal_args_str = re.sub(r'\((.+)\)\(.+\)', '\g<1>', formal_args_str)
+
+                                    for formal_arg in formal_args_str.split(','):
                                         match = re.search(r'^.*\W+(\w+)\s*$', formal_arg)
 
                                         # Give up if meet complicated formal argument.

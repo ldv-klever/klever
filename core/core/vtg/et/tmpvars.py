@@ -21,7 +21,7 @@ def generic_simplifications(logger, trace):
     logger.info('Simplify error trace')
     _basic_simplification(logger, trace)
     _remove_switch_cases(logger, trace)
-    _remove_artificial_edges(logger, trace)
+    _remove_tmp_vars(logger, trace)
     _remove_aux_functions(logger, trace)
 
 
@@ -52,11 +52,14 @@ def _basic_simplification(logger, error_trace):
         # Remove space before "," and ")".
         edge['source'] = re.sub(r' (,|\))', '\g<1>', edge['source'])
 
-        # Replace "!(... ==/!=/</> ...)" with "... !=/==/>/< ...".
-        edge['source'] = re.sub(r'^!\((.+)==(.+)\)$', '\g<1>!=\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)!=(.+)\)$', '\g<1>==\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)<(.+)\)$', '\g<1>>\g<2>', edge['source'])
-        edge['source'] = re.sub(r'^!\((.+)>(.+)\)$', '\g<1><\g<2>', edge['source'])
+        # Replace "!(... ==/!=/<=/>=/</> ...)" with "... !=/==/>/</>=/<= ...".
+        cond_replacements = {'==': '!=', '!=': '==', '<=': '>', '>=': '<', '<': '>=', '>': '<='}
+        for orig_cond, replacement_cond in cond_replacements.items():
+            m = re.match(r'^!\((.+) {0} (.+)\)$'.format(orig_cond), edge['source'])
+            if m:
+                edge['source'] = '{0} {1} {2}'.format(m.group(1), replacement_cond, m.group(2))
+                # Do not proceed after some replacement is applied - others won't be done.
+                break
 
         # Remove unnessary "(...)" around returned values/expressions.
         edge['source'] = re.sub(r'^return \((.*)\);$', 'return \g<1>;', edge['source'])
@@ -71,19 +74,7 @@ def _basic_simplification(logger, error_trace):
                 edge[source_kind] = re.sub(r'& ', '&', edge[source_kind])
 
 
-def _remove_artificial_edges(logger, error_trace):
-    # More advanced transformations.
-    # Get rid of artificial edges added after returning from functions.
-    removed_edges_num = 0
-    for edge in error_trace.trace_iterator():
-        if 'return' in edge:
-            next_edge = error_trace.next_edge(edge)
-            if next_edge is not None and 'return' in next_edge and next_edge['return'] == edge['return']:
-                error_trace.remove_edge_and_target_node(next_edge)
-                removed_edges_num += 1
-    if removed_edges_num:
-        logger.debug('{0} useless edges were removed'.format(removed_edges_num))
-
+def _remove_tmp_vars(logger, error_trace):
     # Get rid of temporary variables. Replace:
     #   ... tmp...;
     #   ...
@@ -92,13 +83,13 @@ def _remove_artificial_edges(logger, error_trace):
     # with (removing first and last statements if so):
     #   ...
     #   ... func(...) ...;
-    removed_tmp_vars_num = _remove_tmp_vars(error_trace, next(error_trace.trace_iterator()))[0]
+    removed_tmp_vars_num = __remove_tmp_vars(error_trace, next(error_trace.trace_iterator()))[0]
 
     if removed_tmp_vars_num:
         logger.debug('{0} temporary variables were removed'.format(removed_tmp_vars_num))
 
 
-def _remove_tmp_vars(error_trace, edge):
+def __remove_tmp_vars(error_trace, edge):
     removed_tmp_vars_num = 0
 
     # Remember current function. All temporary variables defined in a given function can be used just in it.
@@ -145,7 +136,7 @@ def _remove_tmp_vars(error_trace, edge):
         # Recursively get rid of temporary variables inside called function if there are some edges belonging to that
         # function.
         if 'enter' in edge and error_trace.next_edge(func_call_edge):
-            removed_tmp_vars_num_tmp, next_edge = _remove_tmp_vars(error_trace, func_call_edge)
+            removed_tmp_vars_num_tmp, next_edge = __remove_tmp_vars(error_trace, func_call_edge)
             removed_tmp_vars_num += removed_tmp_vars_num_tmp
 
             # Skip all edges belonging to called function.
@@ -195,9 +186,11 @@ def _remove_tmp_vars(error_trace, edge):
 
             func_call_edge['source'] = m.group(1) + func_call + m.group(2)
 
-            for attr in ('condition', 'return'):
+            # Move vital attributes from edge to be removed. If this edge represents warning it can not be removed
+            # without this.
+            for attr in ('condition', 'return', 'note', 'warn'):
                 if attr in tmp_var_use_edge:
-                    func_call_edge[attr] = tmp_var_use_edge[attr]
+                    func_call_edge[attr] = tmp_var_use_edge.pop(attr)
 
             # Edge to be removed is return edge from current function.
             is_reach_cur_func_end = True if tmp_var_use_edge is return_edge else False
@@ -218,6 +211,14 @@ def _remove_tmp_vars(error_trace, edge):
 
 
 def _parse_func_call_actual_args(actual_args_str):
+    # Get rid of all casts. Although they can be useful, but they considerably complicate actual arguments parsing.
+    while True:
+        new_actual_args_str = re.sub(r'(\([^\(\)]*\))', '', actual_args_str)
+        if new_actual_args_str == actual_args_str:
+            break
+        else:
+            actual_args_str = new_actual_args_str
+
     return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
 
 
@@ -249,8 +250,8 @@ def _remove_aux_functions(logger, error_trace):
 
         next_edge = error_trace.next_edge(edge)
 
-        # Do not proceed if next edge doesn't represent function call.
-        if 'enter' not in next_edge:
+        # Do not proceed if there isn't next edge or it doesn't represent function call.
+        if not next_edge or 'enter' not in next_edge:
             continue
 
         func_call_edge = next_edge
@@ -268,7 +269,7 @@ def _remove_aux_functions(logger, error_trace):
         rel_expr = m.group(3)
 
         # Get name and actual arguments of called function if so.
-        m = re.search(r'^(return )?(.+)\s*\((.*)\);$', func_call_edge['source'])
+        m = re.search(r'^(return )?(\w+)\s*\((.*)\);$', func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
         if not m:
@@ -278,51 +279,50 @@ def _remove_aux_functions(logger, error_trace):
         actual_args = _parse_func_call_actual_args(m.group(3))
 
         # Do not proceed if names of actual arguments of called function don't correspond to ones obtained during model
-        # comments parsing or/and hold their positions. Without this we won't be able to replace them with corresponding
-        # actual arguments of called auxiliary function.
+        # comments parsing. Without this we won't be able to replace them with corresponding actual arguments of called
+        # auxiliary function.
         is_all_replaced = True
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
-
             for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
                 if formal_arg_name == actual_arg:
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
                     break
-
             if is_replaced:
                 continue
 
-            m = re.search(r'arg(\d+)', actual_arg)
-
-            if not m:
-                is_all_replaced = False
-                break
-
-            actual_arg_position = int(m.group(1)) - 1
-
-            if actual_arg_position >= len(aux_actual_args):
-                is_all_replaced = False
-                break
-
-            actual_args[i] = aux_actual_args[actual_arg_position]
+            is_all_replaced = False
+            break
 
         if not is_all_replaced:
             continue
 
         # Third pattern. For first and second patterns it is enough that next edge returns from function since this
         # function can be just the parent auxiliary one.
-        if 'return' not in func_call_edge and 'condition' not in func_call_edge:
+        if 'return' not in func_call_edge:
             return_edge = error_trace.get_func_return_edge(func_call_edge)
 
             if return_edge:
-                aux_func_return_edge = error_trace.next_edge(return_edge)
+                # Skip body of next function entered when returning from the given one. Corresponding pattern is:
+                #   enter auxiliary function
+                #     enter function 1
+                #       ...
+                #       enter function 2 and return from function 1
+                #         ...
+                #         return from function 2
+                #   return from auxiliary function
+                if 'enter' in return_edge:
+                    return_edge = error_trace.get_func_return_edge(return_edge)
 
-                if aux_func_return_edge is None or 'return' not in aux_func_return_edge or \
-                                aux_func_return_edge['source'] != 'return;':
-                    continue
+                if return_edge:
+                    aux_func_return_edge = error_trace.next_edge(return_edge)
 
-                error_trace.remove_edge_and_target_node(aux_func_return_edge)
+                    if aux_func_return_edge is None or 'return' not in aux_func_return_edge \
+                            or aux_func_return_edge['source'] != 'return;':
+                        continue
+
+                    error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
             for attr in ('file', 'start line'):
@@ -374,34 +374,37 @@ def _remove_switch_cases(logger, error_trace):
             continue
 
         x = None
+        start_idx = 0
+        cond_edges_to_remove = []
         for idx, cond_edge in enumerate(cond_edges):
             m = re.search(r'^(.+) ([=!]=)', cond_edge['source'])
 
-            # Do not proceed if meet unexpected format of condition.
+            # Start from scratch if meet unexpected format of condition.
             if not m:
                 x = None
-                break
+                continue
 
+            # Do not proceed until first condition matches pattern.
+            if x is None and m.group(2) != '!=':
+                continue
+
+            # Begin to collect conditions.
             if x is None:
+                start_idx = idx
                 x = m.group(1)
-            # Do not proceed if first expression condition differs.
+                continue
+            # Start from scratch if first expression condition differs.
             elif x != m.group(1):
                 x = None
-                break
+                continue
 
-            if idx < len(cond_edges) - 1 and m.group(2) != '!=':
+            # Finish to collect conditions. Pattern matches.
+            if x is not None and m.group(2) == '==':
+                cond_edges_to_remove.extend(cond_edges[start_idx:idx])
                 x = None
-                break
+                continue
 
-            if idx == len(cond_edges) - 1 and m.group(2) != '==':
-                x = None
-                break
-
-        # Do not proceed if something above went wrong.
-        if x is None:
-            continue
-
-        for cond_edge in reversed(cond_edges[:-1]):
+        for cond_edge in reversed(cond_edges_to_remove):
             error_trace.remove_edge_and_target_node(cond_edge)
             removed_switch_cases_num += 1
 

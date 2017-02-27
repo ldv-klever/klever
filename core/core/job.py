@@ -105,7 +105,8 @@ class Job(core.utils.CallbacksCaller):
                     for p in sub_job_solver_processes:
                         p.join(1.0 / len(sub_job_solver_processes))
                         if p.exitcode:
-                            exit(1)
+                            self.logger.warning('Sub-job worker exitted with "{0}"'.format(p.exitcode))
+                            raise ChildProcessError('Decision of sub-job failed')
                         operating_sub_job_solvers_num += p.is_alive()
 
                     if not operating_sub_job_solvers_num:

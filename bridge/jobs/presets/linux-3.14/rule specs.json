@@ -160,15 +160,6 @@
       "description": "...",
       "template": "Empty"
     },
-    "linux:empty": {
-      "description": "...",
-      "template": "Linux kernel modules"
-    },
-    "linux:emg:test": {
-      "description": "Rule specification intended for testing environment model specifications and generator",
-      "template": "Linux kernel modules",
-      "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
-    },
     "generic:memory": {
       "description": "Generic memory safety",
       "template": "Linux kernel modules",
@@ -199,6 +190,7 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
+        "verifier version": "smg_witness_for_ldv:24341",
         "verifier configuration": "-smg-ldv",
         "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
@@ -206,6 +198,15 @@
           "LTL(G valid-deref)",
           "LTL(G valid-memtrack)"
       ]}
+    },
+    "linux:empty": {
+      "description": "...",
+      "template": "Linux kernel modules"
+    },
+    "linux:emg:test": {
+      "description": "Rule specification intended for testing environment model specifications and generator",
+      "template": "Linux kernel modules",
+      "RSG": {"models": {"linux/emg/test_model.c": {"bug kinds": ["linux:emg:test"]}}}
     },
     "linux:alloc:irq": {
       "description": "...",
@@ -556,6 +557,41 @@
         "linux:usb:urb::less initial decrement",
         "linux:usb:urb::more initial at exit"
       ]}}}
+    },
+    "sync:race": {
+      "description": "...",
+      "template": "Linux kernel modules",
+      "EMG": {
+         "translation options": {
+           "dump automata graphs": false,
+           "implicit callback calls": false,
+           "direct control functions calls": false,
+           "nested automata": true,
+           "no actions composition": ["Condition"],
+           "instance modifier": 1,
+           "pointer initialization": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "pointer free": {
+             "structures": true,
+             "arrays": true,
+             "functions": false,
+             "unions": false,
+             "primitives": false
+           },
+           "allocate with sizeof": true,
+           "allocate external": false
+         }
+      },
+      "RSG": {
+        "models": {"sync/races.c": {"bug kinds": []}},
+        "verifier version": "ThreadAnalysis:59fbf7c",
+        "verifier configuration": "-local-lock-combination-linux"
+      }
     }
   }
 }

@@ -72,19 +72,22 @@ def get_error_trace_nodes(data):
 
 
 class ScopeInfo:
-    def __init__(self, cnt):
+    def __init__(self, cnt, thread_id):
         self.initialised = False
         self._cnt = cnt
         # (index, is_action, thread, counter)
         self._stack = []
         # Klever main
-        self._main_scope = (0, 0, 0, 0)
+        self._main_scope = (0, 0, thread_id, 0)
         self._shown = {self._main_scope}
         self._hidden = set()
 
     def current(self):
         if len(self._stack) == 0:
-            return '_'.join(str(x) for x in self._main_scope)
+            if self.initialised:
+                return '_'.join(str(x) for x in self._main_scope)
+            else:
+                return 'global'
         return '_'.join(str(x) for x in self._stack[-1])
 
     def add(self, index, thread_id, is_action=False):
@@ -100,6 +103,9 @@ class ScopeInfo:
         return curr_scope
 
     def show_current_scope(self, comment_type):
+        if not self.initialised:
+            self._shown.add('global')
+            return
         if comment_type == 'note':
             if all(ss not in self._hidden for ss in self._stack):
                 for ss in self._stack:
@@ -122,7 +128,7 @@ class ScopeInfo:
         try:
             return tuple(int(x) for x in scope_str.split('_')) in self._shown
         except ValueError:
-            return False
+            return scope_str == 'global' and scope_str in self._shown
 
     def current_action(self):
         if len(self._stack) > 0 and self._stack[-1][1]:
@@ -170,7 +176,7 @@ class ParseErrorTrace:
         self.include_assumptions = include_assumptions
         self.triangles = triangles
         self.thread_id = thread_id
-        self.scope = ScopeInfo(cnt)
+        self.scope = ScopeInfo(cnt, thread_id)
         self.global_lines = []
         self.lines = []
         self.curr_file = None
@@ -196,15 +202,14 @@ class ParseErrorTrace:
         }
 
         line_data.update(self.__add_assumptions(edge.get('assumption')))
+        line_data['scope'] = self.scope.current()
         if not self.scope.initialised:
             if 'enter' in edge:
-                self.scope.initialised = True
-            else:
-                if line_data['code'] is not None:
-                    line_data['scope'] = 'global'
-                    self.global_lines.append(line_data)
-                return
-        line_data['scope'] = self.scope.current()
+                raise ValueError("Global initialization edge can't contain enter")
+            if line_data['code'] is not None:
+                line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
+                self.global_lines.append(line_data)
+            return
 
         if 'condition' in edge:
             line_data['code'] = self.__get_condition_code(line_data['code'])
@@ -219,8 +224,7 @@ class ParseErrorTrace:
                 line_data['scope'] = self.scope.current()
             line_data.update(self.__enter_action(new_action, line_data['line']))
 
-        line_data.update(self.__get_note(edge.get('note')))
-        line_data.update(self.__get_warn(edge.get('warn')))
+        line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
         if 'enter' in edge:
             line_data.update(self.__enter_function(edge['enter'], line_data['code']))
@@ -304,24 +308,19 @@ class ParseErrorTrace:
         while self.scope.can_return():
             self.__return()
 
-    def __get_note(self, note):
-        if note is None:
-            return {}
-        self.scope.show_current_scope('note')
-        return {'note': note}
-
-    def __get_warn(self, warn):
-        if warn is None:
-            return {}
-        self.scope.show_current_scope('warning')
-        return {'warning': warn}
+    def __get_comment(self, note, warn):
+        new_data = {}
+        if warn is not None:
+            self.scope.show_current_scope('warning')
+            new_data['warning'] = warn
+        elif note is not None:
+            self.scope.show_current_scope('note')
+            new_data['note'] = note
+        return new_data
 
     def __add_assumptions(self, assumption):
         if self.include_assumptions and assumption is None:
             return self.__fill_assumptions([])
-
-        if not self.scope.initialised and assumption is not None:
-            self.scope.initialised = True
 
         if not self.include_assumptions:
             return {}
@@ -388,7 +387,7 @@ class ParseErrorTrace:
             c = not self.scope.is_shown(self.lines[i]['scope'])
             d = 'hide_id' not in self.lines[i]
             e = 'hide_id' in self.lines[i] and not self.scope.is_shown(self.lines[i]['hide_id'])
-            f = self.lines[i]['type'] == 'eye-control'
+            f = self.lines[i]['type'] == 'eye-control' and self.lines[i]['scope'] != 'global'
             if a or b and (c or d or e) or not a and not b and c and (d or e) or f:
                 self.lines[i]['hidden'] = True
             if e:
@@ -480,7 +479,6 @@ class GetETV(object):
     def __html_trace(self):
         for n in self.err_trace_nodes:
             if 'thread' not in self.data['edges'][n]:
-                # self.data['edges'][n]['thread'] = 'fake'
                 raise ValueError('All error trace edges should have thread')
             if self.data['edges'][n]['thread'] not in self.threads:
                 self.threads.append(self.data['edges'][n]['thread'])
@@ -488,6 +486,8 @@ class GetETV(object):
 
     def __add_thread_lines(self, i, start_index):
         parsed_trace = ParseErrorTrace(self.data, self.include_assumptions, i, self.triangles, start_index)
+        if i > 0:
+            parsed_trace.scope.initialised = True
         trace_assumes = []
         j = start_index
         while j < len(self.err_trace_nodes):
@@ -686,69 +686,7 @@ def error_trace_callstack(error_trace):
     return call_stack
 
 
-# Some constants for internal representation of error traces.
-_CALL = 'CALL'
-_RET = 'RET'
-
-
-# Extracts model functions in specific format with some heuristics.
-def error_trace_model_functions(error_trace):
-    data = json.loads(error_trace)
-
-    # TODO: Very bad method.
-    err_trace_nodes = get_error_trace_nodes(data)
-    model_funcs = set()
-    for edge_id in err_trace_nodes:
-        edge_data = data['edges'][edge_id]
-        if 'enter' in edge_data:
-            res = re.search(r'ldv_linux_(.*)', data['funcs'][edge_data['enter']])
-            if res:
-                model_funcs.add(res.group(1))
-    call_tree = [{'entry_point': _CALL}]
-    for edge_id in err_trace_nodes:
-        edge_data = data['edges'][edge_id]
-        if 'enter' in edge_data:
-            call_tree.append({data['funcs'][edge_data['enter']]: _CALL})
-        if 'return' in edge_data:
-            is_done = False
-            for mf in model_funcs:
-                if data['funcs'][edge_data['return']].__contains__(mf):
-                    call_tree.append({data['funcs'][edge_data['return']]: _CALL})
-                    is_done = True
-            if not is_done:
-                is_save = False
-                sublist = []
-                for elem in reversed(call_tree):
-                    sublist.append(elem)
-                    func_name = list(elem.keys()).__getitem__(0)
-                    for mf in model_funcs:
-                        if func_name.__contains__(mf):
-                            is_save = True
-                    if elem == {data['funcs'][edge_data['return']]: _CALL}:
-                        sublist.reverse()
-                        break
-                if is_save:
-                    call_tree.append({data['funcs'][edge_data['return']]: _RET})
-                else:
-                    call_tree = call_tree[:-sublist.__len__()]
-
-    # Maybe for debug print?
-    level = 0
-    for elem in call_tree:
-        func_name, op = list(elem.items())[0]
-        spaces = ""
-        for i in range(0, level):
-            spaces += " "
-        if op == _CALL:
-            level += 1
-            print(spaces + func_name)
-        else:
-            level -= 1
-
-    return call_tree
-
-
-class ErrorTraceCallstackTree(object):
+class ErrorTraceCallstackTree:
     def __init__(self, error_trace):
         self.data = json.loads(error_trace)
         self.trace = self.__get_tree(get_error_trace_nodes(self.data))
@@ -808,7 +746,7 @@ class Forest:
         self._level = 0
         self.call_stack = []
         self._forest = []
-        self._model_functions = []
+        self._model_functions = set()
 
     def scope(self):
         return self.call_stack[-1] if len(self.call_stack) > 0 else None
@@ -822,10 +760,14 @@ class Forest:
             'parent': self.scope()
         })
         if is_model:
-            self._model_functions.append(new_scope)
+            self._model_functions.add(new_scope)
         self.call_stack.append(new_scope)
         self._level += 1
         self._cnt += 1
+
+    def mark_current_scope(self):
+        if len(self.call_stack) > 0:
+            self._model_functions.add(self.call_stack[-1])
 
     def return_from_func(self):
         self._level -= 1
@@ -919,8 +861,9 @@ class Forest:
 
 
 class ErrorTraceForests:
-    def __init__(self, error_trace):
+    def __init__(self, error_trace, with_callbacks=False):
         self.data = json.loads(error_trace)
+        self.with_callbcaks = with_callbacks
         self.trace = self.__get_forests(get_error_trace_nodes(self.data))
 
     def __get_forests(self, edge_trace):
@@ -956,8 +899,12 @@ class ErrorTraceForests:
                 collect_names = True
                 curr_action = edge_data['action']
             if collect_names:
+                is_model = 'note' in edge_data or 'warn' in edge_data
                 if 'enter' in edge_data:
-                    forest.enter_func(self.data['funcs'][edge_data['enter']], 'note' in edge_data)
+                    if self.with_callbcaks and 'action' in edge_data \
+                            and edge_data['action'] in self.data['callback actions']:
+                        is_model = True
+                    forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
                     if 'return' in edge_data:
                         if edge_data['enter'] == edge_data['return']:
                             forest.return_from_func()
@@ -970,6 +917,9 @@ class ErrorTraceForests:
                         double_return.remove(old_scope)
                         old_scope = forest.scope()
                         forest.return_from_func()
+                elif is_model:
+                    forest.mark_current_scope()
+
         if collect_names:
             curr_forest = forest.get_forest()
             if curr_forest is not None:

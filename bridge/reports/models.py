@@ -16,6 +16,7 @@
 #
 
 import os
+import time
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
@@ -63,9 +64,9 @@ class ReportRoot(models.Model):
 
 @receiver(pre_delete, sender=ReportRoot)
 def reportroot_delete_signal(**kwargs):
-    logger.info('Deleting ReportRoot files...')
+    t1 = time.time()
     RemoveFilesBeforeDelete(kwargs['instance'])
-    logger.info('Deleting ReportRoot object...')
+    logger.info('Deleting ReportRoot files took %s seconds.' % (time.time() - t1))
 
 
 class Report(models.Model):
@@ -137,6 +138,7 @@ class ReportUnsafe(Report):
     archive = models.FileField(upload_to='Unsafes/%Y/%m')
     error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
+    verifier_time = models.BigIntegerField()
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
@@ -155,6 +157,7 @@ class ReportSafe(Report):
     archive = models.FileField(upload_to='Safes/%Y/%m', null=True)
     proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
+    verifier_time = models.BigIntegerField()
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)

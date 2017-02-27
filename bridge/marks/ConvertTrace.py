@@ -20,7 +20,7 @@ from io import BytesIO
 from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions, ErrorTraceForests
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, ErrorTraceForests
 from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
@@ -71,12 +71,6 @@ Return list of lists of function names in json format.
         """
         return error_trace_callstack(self.error_trace)
 
-    def model_functions(self):
-        """
-This function is extracting model functions tree in specific format.
-        """
-        return error_trace_model_functions(self.error_trace)
-
     def call_stack_tree(self):
         """
 This function is extracting the error trace call stack tree.
@@ -93,7 +87,16 @@ The forest is a couple of call trees under callback action.
 Return list of forests.
         """
 
-        return ErrorTraceForests(self.error_trace).trace
+        return ErrorTraceForests(self.error_trace, False).trace
+
+    def forests_callbacks(self):
+        """
+This function is extracting the error trace call stack "forests".
+The forest is a couple of call trees under callback action.
+Return list of forests. These forests includes callback actions as leaves.
+        """
+
+        return ErrorTraceForests(self.error_trace, True).trace
 
 
 class GetConvertedErrorTrace:

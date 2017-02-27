@@ -71,7 +71,7 @@
                     {% if l.hide_id == 'global' %}
                         <span data-thread="{{ l.thread_id }}">
                             <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}<a class="ETV_GlobalExpanderLink"><i class="mini icon unhide"></i> <span class="ETV_GlobalExpander">{% trans 'Global variable declarations' %}</span></a></span>
+                            <span class="ETV_LC">{{ l.offset }}<a class="ETV_GlobalExpanderLink"><i class="mini icon {% if l.collapsed %}unhide{% else %}hide{% endif %}"></i> <span class="ETV_GlobalExpander">{% trans 'Global variable declarations' %}</span></a></span>
                             <br>
                         </span>
                     {% else %}

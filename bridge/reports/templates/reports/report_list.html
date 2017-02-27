@@ -67,7 +67,7 @@
                     {% for row_data in TableData.table_data.values %}
                         <tr>
                             {% for v in row_data %}
-                                <td class="collapsing">
+                                <td>
                                     {% if v.href %}
                                         <a href="{{ v.href }}">{{ v.value }}</a>
                                     {% else %}

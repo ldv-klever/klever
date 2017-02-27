@@ -29,6 +29,41 @@
   "Sub-jobs": [
     {
       "Linux kernel": {
+        "external modules": "tests/block_device_operations",
+        "modules": [
+          "disk_invoke.ko",
+          "add_disk.ko",
+          "del_gendisk.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/disk_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/class",
+        "modules": [
+          "class_callbacks.ko",
+          "class_interface_register.ko",
+          "class_interface_unregister.ko",
+          "class_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/class_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/devm_threaded_irq",
         "modules": [
           "devm_request_threaded_irq.ko",
@@ -148,6 +183,20 @@
           "verification object": "ext-modules/double_invoke.ko"
         },
         {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/get_sb",
+        "modules": [
+          "get_sb_nodev_invoke.ko",
+          "get_sb_bdev_invoke.ko",
+          "get_sb_ns_invoke.ko",
+          "get_sb_single_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
       ]
     },
     {
@@ -414,6 +463,25 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/serial_core_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/super_block",
+        "modules": [
+          "fs_callbacks.ko",
+          "fs_invoke.ko",
+          "register_filesystem.ko",
+          "unregister_filesystem.ko",
+          "super_callbacks.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/fs_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

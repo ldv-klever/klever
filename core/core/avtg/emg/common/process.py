@@ -195,7 +195,7 @@ class Process:
         self.headers = list()
         self.comment = None
         self.__process_ast = None
-        self.__accesses = None
+        self.__accesses = dict()
         self.allowed_implementations = dict()
 
     @property
@@ -240,10 +240,11 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_label(self, name, declaration, value):
+    def add_label(self, name, declaration, value=None):
         lb = Label(name)
         lb.prior_signature = declaration
-        lb.value = value
+        if value:
+            lb.value = value
 
         self.labels[name] = lb
         acc = Access('%{}%'.format(name))
