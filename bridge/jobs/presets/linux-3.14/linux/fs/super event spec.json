@@ -28,6 +28,8 @@
               "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
               "%super_block%->s_type = %file_system_type%;",
               "ret = $ARG4(%super_block%, $ARG3, $ARG2 & MS_SILENT ? 1 : 0);",
+              "if (ret != 0) ",
+              "   ldv_free(%super_block%);",
               "return ret;"
             ]
           }
@@ -60,6 +62,8 @@
               "%super_block% = ldv_xzalloc(sizeof(struct super_block));",
               "%super_block%->s_type = %file_system_type%;",
               "ret = $ARG5(%super_block%, $ARG4, $ARG2 & MS_SILENT ? 1 : 0);",
+              "if (ret != 0) ",
+              "   ldv_free(%super_block%);",
               "return ret;"
             ]
           }
