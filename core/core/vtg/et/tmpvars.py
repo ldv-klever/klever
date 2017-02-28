@@ -285,7 +285,7 @@ def _remove_aux_functions(logger, error_trace):
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
             for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
-                if formal_arg_name == actual_arg:
+                if formal_arg_name == actual_arg and j < len(aux_actual_args):
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
                     break
