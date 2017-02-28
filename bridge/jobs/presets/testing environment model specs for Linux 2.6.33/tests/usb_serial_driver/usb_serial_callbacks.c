@@ -36,7 +36,7 @@ int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
 	return res;
 }
 
-void ldv_release(struct usb_serial *serial)
+void ldv_disconnect(struct usb_serial *serial)
 {
 	ldv_release_down();
 	ldv_invoke_callback();
@@ -44,7 +44,7 @@ void ldv_release(struct usb_serial *serial)
 
 static struct usb_serial_driver ldv_driver = {
 	.probe = ldv_probe,
-	.release = ldv_release,
+	.disconnect = ldv_disconnect,
 };
 
 static int __init ldv_init(void)
