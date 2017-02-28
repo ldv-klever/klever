@@ -41,12 +41,18 @@ class UploadReport(object):
         self.data = {}
         self.ordered_attrs = []
         self.error = None
+        self.log = ['\n' + '=' * 30]
         try:
             self.__check_data(data)
             self.parent = self.__get_parent()
             self._parents_branch = self.__get_parents_branch()
             self.root = self.__get_root_report()
             self.__upload()
+            self.log.append('ATTR ORDER: %s' % self.ordered_attrs)
+            with open('REPORTLOG.txt', mode='a', encoding='utf8') as fp:
+                for line in self.log:
+                    fp.write('\n')
+                    fp.write(line)
         except Exception as e:
             logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
             self.__job_failed(str(e))
@@ -168,6 +174,9 @@ class UploadReport(object):
                 raise ValueError("property '%s' is required." % e)
         else:
             raise ValueError("report type is not supported")
+        self.log.append('UPLOAD %s report ID="%s", PARENT="%s" with attributes: %s' % (
+            self.data['type'], self.data['id'], self.data.get('parent', 'NULL'), self.data.get('attrs', 'NULL')
+        ))
 
     def __check_comp(self, descr):
         self.ccc = 0
@@ -214,6 +223,7 @@ class UploadReport(object):
                 parent = ReportComponent.objects.get(id=parent.parent_id)
             else:
                 parent = None
+        self.log.append('PARENTS: %s' % branch)
         return branch
 
     def __upload(self):
@@ -376,6 +386,7 @@ class UploadReport(object):
             if self.job.weight != JOB_WEIGHT[0][0]:
                 self.__collapse_reports()
         elif self.job.weight != JOB_WEIGHT[0][0] and ReportComponent.objects.filter(parent=report).count() == 0:
+            self.log.append('DELETING...')
             report.delete()
 
     def __finish_verification_report(self, identifier):
@@ -387,9 +398,11 @@ class UploadReport(object):
             raise ValueError('verification report does not exist')
         # I hope that verification reports can't have component reports as its children
         if Report.objects.filter(parent=report).count() == 0:
+            self.log.append('DELETING...')
             report.delete()
         else:
             report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            self.log.append('NEW PARENT: Core report')
             report.save()
 
     def __create_report_unknown(self, identifier):
@@ -534,9 +547,11 @@ class UploadReport(object):
 
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         if not self.parent.archive:
+            self.log.append('PARENT is Core')
             report.parent = root_report
             report.save()
         else:
+            self.log.append('PARENT is usual')
             verdict = Verdict.objects.get_or_create(report=self.parent)[0]
             verdict.safe += 1
             verdict.safe_unassociated += 1
@@ -630,9 +645,11 @@ class UploadReport(object):
 
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         if not self.parent.archive:
+            self.log.append('PARENT is Core')
             report.parent = root_report
             report.save()
         else:
+            self.log.append('PARENT is usual')
             verdict = Verdict.objects.get_or_create(report=self.parent)[0]
             verdict.unsafe += 1
             verdict.unsafe_unassociated += 1

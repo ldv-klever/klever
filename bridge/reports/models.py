@@ -121,6 +121,9 @@ class ReportComponent(Report):
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
 
+    def __str__(self):
+        return self.identifier
+
     class Meta:
         db_table = 'report_component'
 
