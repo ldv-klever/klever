@@ -222,7 +222,14 @@ class ParseErrorTrace:
                 self.lines.append(self.__triangle_line(self.scope.remove()))
                 line_data['offset'] = self.scope.offset()
                 line_data['scope'] = self.scope.current()
-            line_data.update(self.__enter_action(new_action, line_data['line']))
+            action_line = line_data['line']
+            action_file = None
+            if 'original start line' in edge and 'original file' in edge:
+                action_line = str(edge['original start line'])
+                if len(action_line) > self.max_line_length:
+                    self.max_line_length = len(action_line)
+                action_file = self.files[edge['original file']]
+            line_data.update(self.__enter_action(new_action, action_line, action_file))
 
         line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
@@ -250,13 +257,15 @@ class ParseErrorTrace:
     def __update_line_data(self):
         return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_action(self, action_id, line):
+    def __enter_action(self, action_id, line, file):
         if action_id is None:
             return {}
+        if file is None:
+            file = self.curr_file
         if action_id in self.callback_actions:
             self.scope.show_current_scope('callback action')
         enter_action_data = {
-            'line': line, 'file': self.curr_file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
+            'line': line, 'file': file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
             'code': '<span class="%s">%s</span>' % (
                 'ETV_CallbackAction' if action_id in self.callback_actions else 'ETV_Action',
                 self.actions[action_id]
