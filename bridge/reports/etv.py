@@ -104,7 +104,6 @@ class ScopeInfo:
 
     def show_current_scope(self, comment_type):
         if not self.initialised:
-            self._shown.add('global')
             return
         if comment_type == 'note':
             if all(ss not in self._hidden for ss in self._stack):
@@ -128,7 +127,7 @@ class ScopeInfo:
         try:
             return tuple(int(x) for x in scope_str.split('_')) in self._shown
         except ValueError:
-            return scope_str == 'global' and scope_str in self._shown
+            return False
 
     def current_action(self):
         if len(self._stack) > 0 and self._stack[-1][1]:
