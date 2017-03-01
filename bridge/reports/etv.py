@@ -404,8 +404,6 @@ class ParseErrorTrace:
                 self.lines[i]['commented'] = True
             if b and c and self.lines[i]['scope'] != 'global':
                 self.lines[i]['note_hidden'] = True
-        if self.thread_id == 0:
-            self.lines.append({'scope': 'ETV_End_of_trace', 'thread_id': thread_id})
 
     def __wrap_code(self, code, code_type):
         self.__is_not_used()
