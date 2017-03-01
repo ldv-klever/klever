@@ -403,7 +403,7 @@ class ParseErrorTrace:
             if a or b:
                 self.lines[i]['commented'] = True
                 self.lines[i]['note_line_offset'] = ' ' * self.max_line_length
-            if b and c:
+            if b and c and self.lines[i]['scope'] != 'global':
                 self.lines[i]['note_hidden'] = True
         if self.thread_id == 0:
             self.lines.append({'scope': 'ETV_End_of_trace', 'thread_id': thread_id})
