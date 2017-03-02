@@ -590,7 +590,7 @@
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "ThreadAnalysis:158dc35",
+        "verifier version": "ThreadAnalysis:25f700c",
         "verifier configuration": "-local-lock-combination-linux"
       }
     }
