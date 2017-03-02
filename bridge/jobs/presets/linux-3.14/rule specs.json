@@ -190,7 +190,7 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
-        "verifier version": "smg_witness_for_ldv:24510",
+        "verifier version": "smg_witness_for_ldv:24511",
         "verifier configuration": "-smg-ldv",
         "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
