@@ -98,7 +98,7 @@ class EntryProcessGenerator:
             ep.process += "[{}].[{}]".format(regd.name, derd.name)
 
         # Generate final
-        final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_stop();"],
+        final = ep.add_condition('final', [], ["ldv_check_final_state();", "ldv_assume(0);"],
                                  "Check rule model state at the exit.")
         ep.process += '.<{}>'.format(final.name)
 

@@ -17,25 +17,6 @@
 
 #include <verifier/common.h>
 
-/* http://sv-comp.sosy-lab.org/2015/rules.php */
-void __VERIFIER_error(void);
-
-void ldv_assume(int expression)
-{
-    if (!expression)
-    {
-        /* Cut this path */
-        ldv_assume_label:
-        goto ldv_assume_label;
-    }
-}
-
-void ldv_stop(void) {
-    /* Stop analysis */
-    ldv_stop_label:
-    goto ldv_stop_label;
-}
-
 /* Explicit model for GCC function __builin_expect(). Without this model
  * return value of __builtin_expect() will be treated as nondetermined by
  * verifiers.
