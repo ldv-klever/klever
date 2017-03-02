@@ -1,1 +1,4 @@
-TODO: write me!
+Linux Driver Verification (LDV) Tools.
+
+This is a verification system for checking Linux kernel modules against several requirements by solving
+composition of verification tasks, which can find several violations of checked requirements.
