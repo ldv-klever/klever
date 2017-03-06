@@ -102,7 +102,8 @@
             "value": "ldv_undef_int()"
           },
           "index": {
-            "signature": "loff_t *a"
+            "signature": "loff_t *a",
+            "pointer": true
           }
         },
         "process": "(!register).{outer_loop}",
@@ -159,10 +160,10 @@
             "comment": "End of the sequence is reached, do necessary cleanup.",
             "callback": "%ops.stop%",
             "pre-call": [
-              "%seq_file%->index = %index%;"
+              "%seq_file%->index = *%index%;"
             ],
             "post-call": [
-              "%seq_file%->index = %index%;"
+              "%seq_file%->index = *%index%;"
             ],
             "parameters": [
               "%seq_file%", "%ret%"
