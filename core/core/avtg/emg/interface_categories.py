@@ -23,6 +23,7 @@ from core.avtg.emg.common.signature import InterfaceReference, Primitive, Array,
 
 
 class CategoriesSpecification:
+    # todo: implement all logics as a separate module for import, but rest methods and properties just merge with the another specification
     """
     Parser and importer of a interface categories specification which should be provided to a EMG plugin.
     """

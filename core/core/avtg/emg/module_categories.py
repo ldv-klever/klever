@@ -39,14 +39,20 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         # Inheritable
         self._conf = conf
+
+        # todo: move it to a separate file to economy memory further and does not keep them in the object
         self._types = dict()
         self._typedefs = dict()
+
         self._inits = list()
         self._exits = list()
         self._interfaces = dict()
         self._kernel_functions = dict()
         self._modules_functions = None
+
+        # todo: we do not need this at all
         self._locked_categories = set()
+
         self._interface_cache = dict()
         self._implementations_cache = dict()
         self._containers_cache = dict()
@@ -60,6 +66,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         self._kernel_macro_functions = dict()
         self._kernel_macros = dict()
 
+        # todo: move this to separate file
         setup_collection(self._types, self._typedefs)
 
     ####################################################################################################################
@@ -338,6 +345,19 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         #with open(file, "w", encoding="utf8") as fh:
         #    fh.write(content)
 
+    def determine_original_file(self, label_value):
+        """
+        Try to resolve by a given name from a global scope a module file in which the value is introduced.
+
+        :param label_value: String expression like '& myfunc'.
+        :return: File name.
+        """
+        label_name = self.callback_name(label_value)
+        if label_name and label_name in self._modules_functions:
+            # todo: if several files exist?
+            return list(self._modules_functions[label_name])[0]
+        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
+
     ####################################################################################################################
     # PRIVATE METHODS
     ####################################################################################################################
@@ -363,13 +383,6 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                 self.__function_calls_cache[function] = [kfs, mfs]
         return kfs, mfs
 
-    def determine_original_file(self, label_value):
-        label_name = self.callback_name(label_value)
-        if label_name and label_name in self._modules_functions:
-            # todo: if several files exist?
-            return list(self._modules_functions[label_name])[0]
-        raise RuntimeError("Cannot find an original file for label '{}'".format(label_value))
-
     def __set_declaration(self, interface, declaration):
         if type(interface.declaration) is Function:
             if interface.rv_interface:
@@ -393,15 +406,20 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             interface.declaration = declaration
 
     def __import_source_analysis(self, analysis, avt):
+        # todo: Move this with all necessary functions to a separate module
         self.logger.info("Import modules init and exit functions")
         self.__import_inits_exits(analysis, avt)
 
         self.logger.info("Extract complete types definitions")
         self.__extract_types(analysis)
 
+        # todo: reimplement function below correctly
+        # todo: implement an option to disable creation of artificial categories
+        # todo: implement an option to disable addiction of types at all
         self.logger.info("Determine categories from extracted types")
         categories = self.__extract_categories()
 
+        # todo: this should be finally removed
         self.logger.info("Merge interface categories from both interface categories specification and modules "
                          "interface specification")
         self.__merge_categories(categories)
@@ -634,7 +652,8 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         else:
             return True
 
-    def __extract_categories(self):
+    # todo: remove
+    def __extract_categories_deprecated(self):
         structures = [self._types[name] for name in sorted(self._types.keys()) if type(self._types[name]) is Structure
                       and len([self._types[name].fields[nm] for nm in sorted(self._types[name].fields.keys())
                                if self._types[name].fields[nm].clean_declaration]) > 0]
@@ -701,10 +720,9 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             if len(category['callbacks']) > 0:
                 categories.append(category)
 
-            # todo: default registration and deregistrations may need categories based on function pointers directly
-            #       passed to kernel functions (feature #6568)
         return categories
 
+    # todo: check that is is used
     def __resolve_or_add_interface(self, signature, category, constructor):
         interface = self.resolve_interface(signature, category, False)
         if len(interface) == 0:
@@ -721,6 +739,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             interface[-1].declaration = signature
         return interface
 
+    # todo: check that is is used
     def __new_callback(self, declaration, category, identifier):
         if type(declaration) is Pointer and type(declaration.points) is Function:
             probe_identifier = "{}.{}".format(category, identifier)
@@ -736,6 +755,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         else:
             raise TypeError('Expect function pointer to create callback object')
 
+    # todo: check that is is used
     def __get_field_candidates(self, container):
         changes = True
         while changes:
@@ -747,6 +767,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
                     container.field_interfaces[field] = intf
                     changes = True
 
+    # todo: check that is is used
     def __match_interface_for_container(self, signature, category, id_match):
         candidates = self.resolve_interface_weakly(signature, category, False)
 
@@ -776,6 +797,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
             else:
                 return None
 
+    # todo remove
     def __merge_categories(self, categories):
         self.logger.info("Try to find suitable interface descriptions for found types")
         for category in categories:
@@ -849,6 +871,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
         # Refine dirty declarations
         self._refine_interfaces()
 
+    # todo: check that is is used
     def __yield_existing_category(self, category):
         category_identifier = None
         for interface_category in ["containers"]:
@@ -870,6 +893,7 @@ class ModuleCategoriesSpecification(CategoriesSpecification):
 
         return category_identifier
 
+    # todo: check whether is is used
     def __yield_new_category(self, category):
         category_identifier = None
         for interface_category in ["containers", "resources"]:
