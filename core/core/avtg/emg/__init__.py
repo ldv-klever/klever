@@ -22,12 +22,11 @@ import re
 
 import core.avtg.plugins
 import core.utils
+from core.avtg.emg.InterfaceSpecification import InterfaceCategoriesSpecification
 from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property,\
                                  check_necessary_conf_property
-from core.avtg.emg.interface_categories import CategoriesSpecification
 from core.avtg.emg.processmodel import ProcessModel
 from core.avtg.emg.processmodel.process_parser import parse_event_specification
-from core.avtg.emg.module_categories import ModuleCategoriesSpecification
 from core.avtg.emg.translator import translate_intermediate_model
 
 
@@ -66,13 +65,14 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Find specifications
         self.logger.info("Determine which specifications are provided")
-        interface_spec, module_interface_spec, event_categories_spec = self.__get_specs(self.logger, spec_dir)
+        interface_spec, event_categories_spec = self.__get_specs(self.logger, spec_dir)
         self.logger.info("All necessary data has been successfully found")
 
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
-        mcs = ModuleCategoriesSpecification(self.logger, self.conf)
-        mcs.import_specification(self.abstract_task_desc, interface_spec, module_interface_spec, analysis)
+        ics = InterfaceCategoriesSpecification(self.logger, self.conf)
+        ics.import_specification(interface_spec)
+        ics.import_code_analysis(self.abstract_task_desc, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 
@@ -88,7 +88,7 @@ class EMG(core.avtg.plugins.Plugin):
                              self.__get_json_content(get_necessary_conf_property(self.conf,
                                                                                  'intermediate model options'),
                                                      "roles map file"))
-        model.generate_event_model(mcs)
+        model.generate_event_model(ics)
         self.logger.info("An intermediate environment model has been prepared")
 
         # Generate module interface specification
@@ -107,7 +107,7 @@ class EMG(core.avtg.plugins.Plugin):
                 instance_maps = json.load(fp)
 
         # Import additional aspect files
-        instance_maps = translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, mcs, model,
+        instance_maps = translate_intermediate_model(self.logger, self.conf, self.abstract_task_desc, ics, model,
                                                      instance_maps, self.__read_additional_content("aspects"))
         self.logger.info("An environment model has been generated successfully")
 
@@ -220,7 +220,7 @@ class EMG(core.avtg.plugins.Plugin):
         self.__save_collection(logger, event_categories_spec, 'event_spec.json')
 
         # toso: search for module categories specification
-        return interface_spec, None, event_categories_spec
+        return interface_spec, event_categories_spec
 
     def __get_path(self, conf, prop):
         if prop in conf:

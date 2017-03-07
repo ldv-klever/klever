@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+
 def calculate_load_order(logger, modules):
     sorted_list = []
 
