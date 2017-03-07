@@ -20,115 +20,98 @@ from core.avtg.emg.common.signature import Function, Structure, Union, Array, Po
 
 
 def yield_categories(collection):
-    categories = __extract_categories(collection)
-    __merge_categories(collection, categories)
+    container_sets = __distribute_container_types(collection)
+    # todo: Distribute sets of containers and create new categories if necessaary
+    # todo: Add information about callbacks
+    # todo: Add information about resources
+    pass
 
 
-# todo: remove
-def __extract_categories(collection):
-    def __not_violate_specification(declaration1, declaration2):
-        intf1 = collection.resolve_interface_weakly(declaration1, None, False)
-        intf2 = collection.resolve_interface_weakly(declaration2, None, False)
+def __distribute_container_types(collection):
+    container_sets = list()
+    container_callbacks = dict()
+    processed = list()
 
-        if intf1 and intf2:
-            categories1 = set([intf.category for intf in intf1])
-            categories2 = set([intf.category for intf in intf2])
+    def add_container(current_set, container):
+        # Do nothing if it is processed
+        if container in processed and container not in current_set:
+            # Check presence in other sets
+            merged = False
+            for candidate_set in container_sets:
+                if container in candidate_set:
+                    # Merge current and procerssed one collection
+                    candidate_set.extend(current_set)
+                    current_set = candidate_set
+                    merged = True
+                    break
 
-            if len(categories1.symmetric_difference(categories2)) == 0:
-                return True
+            # New extended containers set will be anyway added, so remove reduced it version from the collection
+            if merged:
+                container_sets.remove(current_set)
             else:
-                return False
-        else:
-            return True
+                raise RuntimeError("Cannot determine container set for {!r}".format(container.identifier))
+        elif container not in current_set:
+            current_set.append(container)
 
-    def __add_to_processing(element, process_list, category):
-        if element not in process_list and element not in category['containers']:
-            process_list.append(element)
-        else:
-            return
+        return current_set
 
-    def __add_interface_candidate(element, e_type, category):
-        if element in category[e_type]:
-            return
-        else:
-            category[e_type].append(element)
+    def add_to_processing(current_set, queue, declaration):
+        # Just add a declaration to queue for further processing in the context of current set propcessing
+        if declaration not in queue and declaration not in current_set:
+            queue.append(declaration)
 
-    def __add_callback(signature, category, identifier=None):
-        if not identifier:
-            identifier = signature.identifier
+    def add_callback(container, field, callback):
+        if container.identifier not in container_callbacks:
+            container_callbacks[container.identifier] = dict()
+        if field not in container_callbacks[container.identifier]:
+            container_callbacks[container.identifier][field] = callback
 
-        if identifier not in category['callbacks']:
-            category['callbacks'][identifier] = signature
-
-            for parameter in [p for p in signature.points.parameters if type(p) is not str]:
-                __add_interface_candidate(parameter, 'resources', category)
-
-    structures = [tp for name, tp in extracted_types() if isinstance(tp, Structure) and
-                  len([tp.fields[nm] for nm in sorted(tp.fields.keys()) if tp.fields[nm].clean_declaration]) > 0]
-    categories = []
-
-    while len(structures) > 0:
-        container = structures.pop()
-        category = {
-            "callbacks": {},
-            "containers": [],
-            "resources": []
-        }
-
+    # All container types that has global variable implementations
+    containers = [tp for name, tp in extracted_types() if (isinstance(tp, Structure) or isinstance(tp, Array) or
+                                                           isinstance(tp, Union)) and
+                  len(tp.implementations) > 0]
+    while len(containers) > 0:
+        container = containers.pop()
         to_process = [container]
+        current = list()
+        relevance = False
+
         while len(to_process) > 0:
             tp = to_process.pop()
 
-            if type(tp) is Structure or type(tp) is Union:
-                c_flag = False
+            if isinstance(tp, Union) or isinstance(tp, Structure):
                 for field in sorted(tp.fields.keys()):
-                    if type(tp.fields[field]) is Pointer and \
-                            (type(tp.fields[field].points) is Array or
-                                     type(tp.fields[field].points) is Structure) and \
-                            __not_violate_specification(tp.fields[field].points, tp):
-                        __add_to_processing(tp.fields[field].points, to_process, category)
-                        c_flag = True
-                    if type(tp.fields[field]) is Pointer and type(tp.fields[field].points) is Function:
-                        __add_callback(tp.fields[field], category, field)
-                        c_flag = True
-                    elif (type(tp.fields[field]) is Array or type(tp.fields[field]) is Structure) and \
-                            __not_violate_specification(tp.fields[field], tp):
-                        __add_to_processing(tp.fields[field], to_process, category)
-                        c_flag = True
+                    if isinstance(tp.fields[field], Pointer) and \
+                            (isinstance(tp.fields[field].points, Array) or
+                             isinstance(tp.fields[field].points, Structure)):
+                        add_to_processing(current, to_process, tp.fields[field].points)
+                    elif isinstance(tp.fields[field], Array) or isinstance(tp.fields[field], Structure):
+                        add_to_processing(current, to_process, tp.fields[field])
+                    elif isinstance(tp.fields[field], Pointer) and isinstance(tp.fields[field].points, Function):
+                        add_callback(tp, field, tp.fields[field])
+                        relevance = True
+            elif isinstance(tp, Array):
+                if isinstance(tp.element, Pointer) and (isinstance(tp.element.points, Array) or
+                                                        isinstance(tp.element.points, Structure)):
+                    add_to_processing(current, to_process, tp.element.points)
+                elif isinstance(tp.element, Array) or isinstance(tp.element, Structure):
+                    add_to_processing(current, to_process, tp.element)
 
-                if tp in structures:
-                    del structures[structures.index(tp)]
-                if c_flag:
-                    __add_interface_candidate(tp, 'containers', category)
-            elif type(tp) is Array:
-                if type(tp.element) is Pointer and \
-                        (type(tp.element.points) is Array or
-                                 type(tp.element.points) is Structure) and \
-                        __not_violate_specification(tp.element.points, tp):
-                    __add_to_processing(tp.element.points, to_process, category)
-                    __add_interface_candidate(tp, 'containers', category)
-                elif type(tp.element) is Pointer and type(tp.element) is Function:
-                    __add_callback(tp.element, category)
-                    __add_interface_candidate(tp, 'containers', category)
-                elif (type(tp.element) is Array or type(tp.element) is Structure) and \
-                        __not_violate_specification(tp.element, tp):
-                    __add_to_processing(tp.element, to_process, category)
-                    __add_interface_candidate(tp, 'containers', category)
-            if (type(tp) is Array or type(tp) is Structure) and len(tp.parents) > 0:
-                for parent in tp.parents:
-                    if (type(parent) is Structure or
-                                type(parent) is Array) and __not_violate_specification(parent, tp):
-                        __add_to_processing(parent, to_process, category)
-                    elif type(parent) is Pointer and len(parent.parents) > 0:
-                        for ancestor in parent.parents:
-                            if (type(ancestor) is Structure or
-                                        type(ancestor) is Array) and __not_violate_specification(ancestor, tp):
-                                __add_to_processing(ancestor, to_process, category)
+            # Check parents
+            for parent in tp.parents + tp.take_pointer.parents:
+                if isinstance(parent, Array) or isinstance(parent, Structure) or isinstance(parent, Union):
+                    add_to_processing(current, to_process, parent)
 
-        if len(category['callbacks']) > 0:
-            categories.append(category)
+            current = add_container(current, tp)
 
-    return categories
+        if len(current) > 0 and relevance:
+            for container in (c for c in current if c not in processed):
+                processed.append(container)
+                if container in containers:
+                    containers.remove(container)
+            container_sets.append(current)
+
+    return container_sets
 
 
 # todo remove
