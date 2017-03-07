@@ -17,23 +17,17 @@
 
 import copy
 import re
-
-from core.avtg.emg.grammars.signature import setup_parser, parse_signature
+from core.avtg.emg.grammars.signature import parse_signature
 
 
 __type_collection = {}
-
 __typedefs = {}
-
 __noname_identifier = 0
 
 
-def setup_collection(collection, typedefs):
-    global __type_collection
-    global __typedefs
-
-    __type_collection = collection
-    __typedefs = typedefs
+def extracted_types():
+    for name in __type_collection:
+        yield name, __type_collection[name]
 
 
 def new_identifier():

@@ -22,7 +22,7 @@ import re
 
 import core.avtg.plugins
 import core.utils
-from core.avtg.emg.InterfaceSpecification import InterfaceCategoriesSpecification
+from core.avtg.emg.interfacespec import InterfaceCategoriesSpecification
 from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property,\
                                  check_necessary_conf_property
 from core.avtg.emg.processmodel import ProcessModel
@@ -70,9 +70,8 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
-        ics = InterfaceCategoriesSpecification(self.logger, self.conf)
-        ics.import_specification(interface_spec)
-        ics.import_code_analysis(self.abstract_task_desc, analysis)
+        ics = InterfaceCategoriesSpecification(self.logger, self.conf, self.abstract_task_desc, interface_spec,
+                                               analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 
