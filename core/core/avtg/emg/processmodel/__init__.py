@@ -144,8 +144,11 @@ class ProcessModel:
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
         # First random
-        best_process = self.__abstr_event_processes[[name for name in sorted(estimations) if estimations[name] and
-                                                     len(estimations[name]["matched calls"]) > 0][0]]
+        suits = [name for name in sorted(estimations) if estimations[name] and
+                 len(estimations[name]["matched calls"]) > 0 and len(estimations[name]["unmatched labels"]) == 0]
+        if len(suits) == 0:
+            raise RuntimeError("Cannot find any suitable process in specification for category {!r}".format(category))
+        best_process = self.__abstr_event_processes[suits[0]]
         best_map = estimations[best_process.name]
 
         for process in [self.__abstr_event_processes[name] for name in sorted(estimations)]:
