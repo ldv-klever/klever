@@ -16,15 +16,27 @@
 #
 from core.avtg.emg.interfacespec.specification import fulfill_function_interfaces
 from core.avtg.emg.common.interface import Container, Resource, Callback
-from core.avtg.emg.common.signature import Function, Structure, Union, Array, Pointer, extracted_types
+from core.avtg.emg.common.signature import Declaration, Function, Structure, Union, Array, Pointer, extracted_types
 
 
 def yield_categories(collection):
-    container_sets = __distribute_container_types(collection)
-    # todo: Distribute sets of containers and create new categories if necessaary
-    # todo: Add information about callbacks
-    # todo: Add information about resources
-    pass
+    # Extract dependencies between containers and callbacks that are stored in containers
+    container_sets, container_callbacks = __distribute_container_types(collection)
+
+    # Distribute sets of containers and create new categories if necessaary
+    # todo: Implement option that disable step below
+    __generate_new_categories(collection, container_sets, container_callbacks)
+
+    # Add information about callbacks
+    __populate_callbacks(collection)
+
+    # Add resources
+    __populate_resources(collection)
+
+    # Complement interface references
+    __complement_interfaces(collection)
+
+    return
 
 
 def __distribute_container_types(collection):
@@ -111,54 +123,111 @@ def __distribute_container_types(collection):
                     containers.remove(container)
             container_sets.append(current)
 
-    return container_sets
+    return container_sets, container_callbacks
 
 
-# todo remove
-def __merge_categories(collection, categories):
-    # todo: check that is is used
-    def __resolve_or_add_interface(signature, category, constructor):
-        interface = collection.resolve_interface(signature, category, False)
-        if len(interface) == 0:
-            interface = constructor(category, signature.pretty_name)
-            collection.logger.debug("Create new interface '{}' with signature '{}'".
-                              format(interface.identifier, signature.identifier))
-            interface.declaration = signature
+def __generate_new_categories(collection, containers_set, callbacks_set):
+    # Match existing container with existing categories and remove them from the set
+    for cset in containers_set:
+        for container in list(cset):
+            if container.identifier in callbacks_set:
+                # Remove only if a container has been found
+                intfs = collection.resolve_interface(container, use_cache=False)
+                container_intfs = [i for i in intfs if isinstance(i, Container)]
+
+                if len(container_intfs) > 0:
+                    cset.remove(container)
+            else:
+                # Do not track containers without callbacks
+                cset.remove(container)
+
+    # Create new categories from rest containers with callbacks. Do not merge anythging to make heuristical categories
+    # simpler
+    for cset in containers_set:
+        for container in (c for c in cset if c.identifier in callbacks_set):
+            if container.pretty_name not in collection.categories:
+                category = container.pretty_name
+            else:
+                category = 'ldv_' + container.pretty_name
+
+            if category in collection.categories:
+                raise RuntimeError('Cannot find uniwue name for category {!r}'.format(category))
+            interface = Container(category, container.pretty_name)
+            interface.declaration = container
             collection.set_intf(interface)
-            interface = [interface]
-        elif len(interface) > 1:
-            for intf in interface:
-                intf.declaration = signature
-        else:
-            interface[-1].declaration = signature
-        return interface
 
-    # todo: check that is is used
-    def __new_callback(declaration, category, identifier):
-        if type(declaration) is Pointer and type(declaration.points) is Function:
-            probe_identifier = "{}.{}".format(category, identifier)
-            if probe_identifier in collection.interfaces:
+    return
+
+
+def __populate_callbacks(collection):
+    for container in (c for c in collection.containers() if isinstance(c.declaration, Structure)):
+        for field in (f for f in container.declaration.fields if isinstance(container.declaration.fields[f], Pointer)
+                      and isinstance(container.declaration.fields[f].points, Function)
+                      and f not in container.field_interfaces):
+            declaration = container.declaration.fields[field]
+            if "{}.{}".format(container.category, field) not in collection.interfaces:
+                identifier = field
+            elif "{}.{}".format(container.category, declaration.pretty_name) not in collection.interfaces:
                 identifier = declaration.pretty_name
+            else:
+                raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
+                                   format(declaration.identifier, container.category))
 
-            interface = Callback(category, identifier)
-            collection.logger.debug("Create new interface '{}' with signature '{}'".
-                              format(interface.identifier, declaration.identifier))
+            interface = Callback(container.category, identifier)
             interface.declaration = declaration
             collection.set_intf(interface)
-            return interface
-        else:
-            raise TypeError('Expect function pointer to create callback object')
 
-    # todo: check that is is used
+    return
+
+
+def __populate_resources(collection):
+    # Iterate over categories
+    for category in collection.categories:
+        usage = dict()
+
+        # Extract callbacks
+        for callback in collection.callbacks(category):
+            for parameter in (p for i, p in enumerate(callback.declaration.points.parameters)
+                              if isinstance(p, Declaration) and p.clean_declaration and
+                              not (len(callback.param_interfaces) > i and callback.param_interfaces[i])):
+                if parameter.identifier in usage:
+                    usage[parameter.identifier]["counter"] += 1
+                else:
+                    # Try to resolve interface
+                    intfs = collection.resolve_interface_weakly(parameter, category=callback.category, use_cache=False)
+                    if len(intfs) == 0:
+                        # Only unmatched resources should be introduced
+                        usage[parameter.identifier] = {
+                            "counter": 1,
+                            "declaration": parameter
+                        }
+
+        # Introduce new resources
+        for declaration in (usage[i]["declaration"] for i in usage if usage[i]["counter"] > 1):
+            if "{}.{}".format(category, declaration.pretty_name) not in collection.interfaces:
+                identifier = declaration.pretty_name
+            elif "{}.{}".format(category, 'ldv_' + declaration.pretty_name) not in collection.interfaces:
+                identifier = 'ldv_' + declaration.pretty_name
+            else:
+                raise RuntimeError("Cannot yield identifier for callback {!r} of category {!r}".
+                                   format(declaration.identifier, category))
+
+            interface = Resource(category, identifier)
+            interface.declaration = declaration
+            collection.set_intf(interface)
+
+    return
+
+
+def __complement_interfaces(collection):
     def __match_interface_for_container(signature, category, id_match):
-        candidates = collection.resolve_interface_weakly(signature, category, False)
-
+        candidates = collection.resolve_interface_weakly(signature, category, use_cache=False)
         if len(candidates) == 1:
             return candidates[0]
         elif len(candidates) == 0:
             return None
         else:
-            strict_candidates = collection.resolve_interface(signature, category, False)
+            strict_candidates = collection.resolve_interface(signature, category, use_cache=False)
             if len(strict_candidates) == 1:
                 return strict_candidates[0]
             elif len(strict_candidates) > 1 and id_match:
@@ -179,126 +248,43 @@ def __merge_categories(collection, categories):
             else:
                 return None
 
-    # todo: check that is is used
-    def __get_field_candidates(container):
-        changes = True
-        while changes:
-            changes = False
-            for field in [field for field in container.declaration.fields if field not in container.field_interfaces]:
-                intf = __match_interface_for_container(container.declaration.fields[field], container.category,
-                                                            field)
-                if intf:
-                    container.field_interfaces[field] = intf
-                    changes = True
+    # Resolve callback parameters
+    for callback in collection.callbacks():
+        fulfill_function_interfaces(collection, callback)
 
-    # todo: check that is is used
-    def __yield_existing_category(category):
-        category_identifier = None
-        for interface_category in ["containers"]:
-            if category_identifier:
-                break
-            for signature in category[interface_category]:
-                interface = collection.resolve_interface(signature, False)
-                if len(interface) > 0:
-                    category_identifier = interface[-1].category
-                    break
-        for interface_category in ["callbacks"]:
-            if category_identifier:
-                break
-            for signature in sorted(list(category[interface_category].values()), key=lambda y: y.identifier):
-                interface = collection.resolve_interface(signature, False)
-                if len(interface) > 0:
-                    category_identifier = interface[-1].category
-                    break
-
-        return category_identifier
-
-    # todo: check whether is is used
-    def __yield_new_category(category):
-        category_identifier = None
-        for interface_category in ["containers", "resources"]:
-            if category_identifier:
-                break
-            for signature in category[interface_category]:
-                if signature.pretty_name not in collection.categories:
-                    category_identifier = signature.pretty_name
-                    break
-
-        if category_identifier:
-            return category_identifier
-        else:
-            raise ValueError('Cannot find a suitable category identifier')
-
-    collection.logger.info("Try to find suitable interface descriptions for found types")
-    for category in categories:
-        category_identifier = __yield_existing_category(category)
-        if not category_identifier:
-            category_identifier = __yield_new_category(category)
-
-        # Add containers and resources
-        collection.logger.info("Found interfaces for category {}".format(category_identifier))
-        for signature in category['containers']:
-            if type(signature) is not Array and type(signature) is not Structure:
-                raise TypeError('Expect structure or array to create container object')
-            interface = __resolve_or_add_interface(signature, category_identifier, Container)
-            if len(interface) > 1:
-                raise TypeError('Cannot match two containers with the same type')
-            else:
-                interface = interface[-1]
-
-            # Refine field interfaces
-            for field in sorted(interface.field_interfaces.keys()):
-                if not interface.field_interfaces[field].declaration.clean_declaration and \
-                        interface.declaration.fields[field].clean_declaration:
-                    interface.field_interfaces[field].declaration = interface.declaration.fields[field]
-                elif not interface.field_interfaces[field].declaration.clean_declaration:
-                    del interface.field_interfaces[field]
-        for signature in category['resources']:
-            intf = collection.resolve_interface_weakly(signature, category_identifier, False)
-            if len(intf) == 0:
-                interface = __resolve_or_add_interface(signature, category_identifier, Resource)
-                if len(interface) > 1:
-                    raise TypeError('Cannot match two resources with the same type')
-
-        # Add callbacks
-        for identifier in sorted(category['callbacks'].keys()):
-            candidates = collection.resolve_interface(category['callbacks'][identifier], category_identifier, False)
-
-            if len(candidates) > 0:
-                containers = collection.select_containers(identifier, category['callbacks'][identifier],
-                                                          category_identifier)
-                if len(containers) == 1 and identifier in containers[-1].field_interfaces and \
-                        containers[-1].field_interfaces[identifier] in candidates:
-                    containers[-1].field_interfaces[identifier].declaration = category['callbacks'][identifier]
-                elif len(containers) == 1 and identifier not in containers[-1].field_interfaces:
-                    intf = __new_callback(category['callbacks'][identifier], category_identifier, identifier)
-                    containers[-1].field_interfaces[identifier] = intf
-                else:
-                    __new_callback(category['callbacks'][identifier], category_identifier, identifier)
-            else:
-                __new_callback(category['callbacks'][identifier], category_identifier, identifier)
-
-        # Resolve array elements
-        for container in [cnt for cnt in collection.containers(category_identifier) if cnt.declaration and
-                          type(cnt.declaration) is Array and not cnt.element_interface]:
-            intf = __match_interface_for_container(container.declaration.element, container.category, None)
-            if intf:
-                container.element_interface = intf
-
-        # Resolve structure interfaces
-        for container in [cnt for cnt in collection.containers(category_identifier) if cnt.declaration and
-                          type(cnt.declaration) is Structure]:
-            __get_field_candidates(container)
-
-        # Resolve callback parameters
-        for callback in collection.callbacks(category_identifier):
-            fulfill_function_interfaces(collection, callback, category_identifier)
-
-        # Resolve kernel function parameters
-        for function in [collection.get_kernel_function(name) for name in collection.kernel_functions]:
-            fulfill_function_interfaces(collection, function)
+    # Resolve kernel function parameters
+    for function in (collection.get_kernel_function(name) for name in collection.kernel_functions):
+        fulfill_function_interfaces(collection, function)
 
     # Refine dirty declarations
     collection.refine_interfaces()
+
+    # Remove dirty declarations in container references and add additional clean one
+    for container in collection.containers():
+        # Refine field interfaces
+        for field in list(container.field_interfaces.keys()):
+            if not container.field_interfaces[field].declaration.clean_declaration and \
+                    container.declaration.fields[field].clean_declaration:
+                container.field_interfaces[field].declaration = container.declaration.fields[field]
+            elif not container.field_interfaces[field].declaration.clean_declaration:
+                del container.field_interfaces[field]
+
+    # Resolve array elements
+    for container in (cnt for cnt in collection.containers() if cnt.declaration and
+                      isinstance(cnt.declaration, Array) and not cnt.element_interface):
+        intf = __match_interface_for_container(container.declaration.element, container.category, None)
+        if intf:
+            container.element_interface = intf
+
+    # Resolve structure interfaces
+    for container in (cnt for cnt in collection.containers() if cnt.declaration and
+                      isinstance(cnt.declaration, Structure)):
+        for field in (f for f in container.declaration.fields if f not in container.field_interfaces):
+            intf = __match_interface_for_container(container.declaration.fields[field], container.category,
+                                                   field)
+            if intf:
+                container.field_interfaces[field] = intf
+
+    return
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
