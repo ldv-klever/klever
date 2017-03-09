@@ -421,14 +421,6 @@ class ParseErrorTrace:
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
-        m = re.match('^(.*?)<(.*)$', code)
-        while m is not None:
-            code = "%s&lt;%s" % (m.group(1), m.group(2))
-            m = re.match('^(.*?)<(.*)$', code)
-        m = re.match('^(.*?)>(.*)$', code)
-        while m is not None:
-            code = "%s&gt;%s" % (m.group(1), m.group(2))
-            m = re.match('^(.*?)>(.*)$', code)
         m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (
@@ -452,6 +444,7 @@ class ParseErrorTrace:
                 self.__wrap_code(m.group(2), 'number'),
                 self.__parse_code(m.group(3))
             )
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         words = re.split('([^a-zA-Z0-9-_#])', code)
         new_words = []
         for word in words:
@@ -555,7 +548,7 @@ class GetSource(object):
         cnt = 1
         lines = source_content.split('\n')
         for line in lines:
-            line = line.replace('\t', ' ' * TAB_LENGTH)
+            line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
             data += '<span>%s %s</span><br>' % (
                 self.__wrap_line(line_num, 'line', 'ETVSrcL_%s' % cnt), self.__parse_line(line)
@@ -563,19 +556,7 @@ class GetSource(object):
             cnt += 1
         return data
 
-    def parse_line(self, line):
-        return self.__parse_line(line)
-
     def __parse_line(self, line):
-        m = re.match('(.*?)<(.*)', line)
-        while m is not None:
-            line = m.group(1) + '&lt;' + m.group(2)
-            m = re.match('(.*?)<(.*)', line)
-        m = re.match('(.*?)>(.*)', line)
-        while m is not None:
-            line = m.group(1) + '&gt;' + m.group(2)
-            m = re.match('(.*?)>(.*)', line)
-
         if self.is_comment:
             m = re.match('(.*?)\*/(.*)', line)
             if m is None:
