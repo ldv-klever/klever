@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.avtg.emg.common.signature import Function, InterfaceReference
+from core.avtg.emg.common.signature import Function, Pointer, InterfaceReference
 
 
 class Interface:
@@ -66,19 +66,33 @@ class FunctionInterface(Interface):
         self.rv_interface = None
 
     def update_declaration(self, declaration):
+        if isinstance(self.declaration, Function):
+            self_declaration = self.declaration
+        elif isinstance(self.declaration, Pointer) and isinstance(self.declaration.points, Function):
+            self_declaration = self.declaration.points
+        else:
+            raise TypeError("As a type of {!r} interface expect a function or a function pointer but have: {!r}".
+                            format(self.identifier, self.declaration.identifier))
+
+        if isinstance(declaration, Pointer) and isinstance(declaration.points, Function):
+            declaration = declaration.points
+        elif not isinstance(declaration, Function):
+            raise TypeError("To update function interface a function type expected but have: {!r}".
+                            format(declaration.identifier))
+
         if self.rv_interface:
-            if type(self.declaration.return_value) is InterfaceReference and \
-                    self.declaration.return_value.pointer:
+            if type(self_declaration.return_value) is InterfaceReference and \
+                    self_declaration.return_value.pointer:
                 self.rv_interface.update_declaration(declaration.return_value.points)
             else:
                 self.rv_interface.update_declaration(declaration.return_value)
 
-        for index in range(len(self.declaration.parameters)):
+        for index in range(len(self_declaration.parameters)):
             p_declaration = declaration.parameters[index]
 
             if self.param_interfaces[index]:
-                if type(self.declaration.parameters[index]) is InterfaceReference and \
-                        self.declaration.parameters[index].pointer:
+                if type(self_declaration.parameters[index]) is InterfaceReference and \
+                        self_declaration.parameters[index].pointer:
                     self.param_interfaces[index].update_declaration(p_declaration.points)
                 else:
                     self.param_interfaces[index].update_declaration(p_declaration)
