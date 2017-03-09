@@ -546,22 +546,29 @@ class InterfaceCategoriesSpecification:
             # Filter filter interfaces
             implementations = []
             for impl in candidates:
-                if len(impl.sequence) > 0:
-                    cnts = self.resolve_containers(interface)
+                cnts = self.resolve_containers(interface, interface.category)
+                if len(impl.sequence) > 0 and len(cnts) > 0:
                     for cnt in sorted(list(cnts.keys())):
                         cnt_intf = self.get_intf(cnt)
                         if type(cnt_intf.declaration) is Array and cnt_intf.element_interface and \
                                 interface.identifier == cnt_intf.element_interface.identifier:
                             implementations.append(impl)
                             break
-                        elif (type(cnt_intf.declaration) is Structure or type(cnt_intf.declaration) is Union) and \
-                                interface in cnt_intf.field_interfaces.values():
+                        elif (isinstance(cnt_intf.declaration, Structure) or isinstance(cnt_intf.declaration, Union)) \
+                                and interface in cnt_intf.field_interfaces.values():
                             field = list(cnt_intf.field_interfaces.keys())[list(cnt_intf.field_interfaces.values()).
                                                                            index(interface)]
+
                             if field == impl.sequence[-1]:
-                                implementations.append(impl)
-                                break
-                else:
+                                base_value_match = not impl.base_value or \
+                                                   (impl.base_value and
+                                                    len([i for i in self.implementations(cnt_intf)
+                                                         if (i.base_value and i.base_value == impl.base_value)
+                                                         or (i.value and i.value == impl.base_value)]) > 0)
+                                if base_value_match:
+                                    implementations.append(impl)
+                                    break
+                elif len(impl.sequence) == 0 and len(cnts) == 0:
                     implementations.append(impl)
 
             candidates = implementations
@@ -672,7 +679,9 @@ class InterfaceCategoriesSpecification:
         # the kernel or just source analysis cannot find all containers
         # Add kernel function relevant interfaces
         for name in self.kernel_functions:
-            relevant_interfaces.update(__check_category_relevance(self.get_kernel_function(name)))
+            intfs = __check_category_relevance(self.get_kernel_function(name))
+            # Skip resources from kernel functions
+            relevant_interfaces.update([i for i in intfs if not isinstance(i, Resource)])
 
         # Add all interfaces for non-container categories
         for interface in set(relevant_interfaces):
@@ -727,5 +736,7 @@ class InterfaceCategoriesSpecification:
             if interface not in relevant_interfaces:
                 self.logger.debug("Delete interface description {} as unrelevant".format(interface.identifier))
                 self.del_intf(interface.identifier)
+
+        return
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
