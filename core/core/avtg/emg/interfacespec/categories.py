@@ -250,7 +250,7 @@ def __complement_interfaces(collection):
 
     # Resolve callback parameters
     for callback in collection.callbacks():
-        fulfill_function_interfaces(collection, callback)
+        fulfill_function_interfaces(collection, callback, callback.category)
 
     # Resolve kernel function parameters
     for function in (collection.get_kernel_function(name) for name in collection.kernel_functions):
