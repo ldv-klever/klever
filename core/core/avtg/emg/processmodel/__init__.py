@@ -533,6 +533,16 @@ class ProcessModel:
                             if intfs[-1].identifier in label_map["matched labels"][callback_label]:
                                 label_map["matched labels"][callback_label].remove(intfs[-1].identifier)
 
+        # todo: It is a workaraound but it helps to match random scenarios where a container is never used
+        for label in [l for l in label_map["unmatched labels"] if process.labels[l].container]:
+            # Check that label is not used except Dispatches and Receives
+            acceses = process.accesses(exclude=[Dispatch, Receive], no_labels=True)
+            containers = analysis.containers(category)
+            if "%{}%".format(label) not in acceses and len(containers) > 0:
+                # Try to match with random container
+                self.__add_label_match(analysis, label_map, process.labels[label], containers[0].identifier)
+                label_map["unmatched labels"].remove(label)
+
         self.logger.info("Matched labels and interfaces:")
         self.logger.info("Number of native interfaces: {}".format(label_map["native interfaces"]))
         self.logger.info("Matched labels:")
