@@ -291,11 +291,21 @@ def __complement_interfaces(collection):
     # Resolve structure interfaces
     for container in (cnt for cnt in collection.containers() if cnt.declaration and
                       isinstance(cnt.declaration, Structure)):
-        for field in (f for f in container.declaration.fields if f not in container.field_interfaces):
-            intf = __match_interface_for_container(container.declaration.fields[field], container.category,
-                                                   field)
-            if intf:
-                container.field_interfaces[field] = intf
+        for field in container.declaration.fields:
+            if field not in container.field_interfaces:
+                intf = __match_interface_for_container(container.declaration.fields[field], container.category,
+                                                       field)
+                if intf:
+                    container.field_interfaces[field] = intf
+
+            if field in container.field_interfaces and isinstance(container.field_interfaces[field], Callback) and \
+                    isinstance(container.declaration.fields[field], Pointer) and \
+                    isinstance(container.declaration.fields[field].points, Function) and \
+                    container.declaration.fields[field].clean_declaration and \
+                    isinstance(container.field_interfaces[field].declaration, Pointer) and \
+                    isinstance(container.field_interfaces[field].declaration.points, Function):
+                # Track implementations from structures if types slightly differs and attached to structure variable
+                container.field_interfaces[field].declaration = container.declaration.fields[field]
 
     return
 
