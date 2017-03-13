@@ -250,9 +250,6 @@ class UploadReport(object):
                         self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
                     ).encode('utf8')))
 
-        if self.data['type'] == 'verification':
-            report.finish_date = report.start_date
-
         if 'comp' in self.data:
             report.computer = Computer.objects.get_or_create(
                 description=json.dumps(self.data['comp'], ensure_ascii=False, sort_keys=True, indent=4)
@@ -390,6 +387,7 @@ class UploadReport(object):
             report.delete()
         else:
             report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            report.finish_date = now()
             report.save()
 
     def __create_report_unknown(self, identifier):
@@ -706,6 +704,9 @@ class UploadReport(object):
         total_res.save()
 
     def __collapse_reports(self):
+        # Do not collapse if there are unfinished reports.
+        if ReportComponent.objects.filter(root=self.root, finish_date=None).count() > 0:
+            return
         root_report = ReportComponent.objects.get(parent=None, root=self.root)
         reports_to_save = set()
         for u in ReportUnsafe.objects.filter(root=self.root).exclude(parent_id=root_report.id).values('parent_id'):
