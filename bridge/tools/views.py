@@ -185,4 +185,4 @@ def manual_unlock(request):
         os.remove(ExecLocker.lockfile)
     except FileNotFoundError:
         pass
-    return JsonResponse({})
+    return HttpResponse('<h1>Success!</h1>')
