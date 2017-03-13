@@ -20,8 +20,18 @@ from core.avtg.emg.common.signature import Declaration, Function, Structure, Uni
 
 
 def yield_categories(collection):
+    """
+    Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
+    interface specifications and global variables. All new categories and interfaces are added directly to the
+    InterfaceCategoriesSpecification object. Also all types declarations are updated according with new imported C
+    types. However, there are still unused interfaces present in the collection after this function termination.
+
+    :param collection: InterfaceCategoriesSpecification object.
+    :return: None
+    """
+
     # Extract dependencies between containers and callbacks that are stored in containers
-    container_sets, container_callbacks = __distribute_container_types(collection)
+    container_sets, container_callbacks = __distribute_container_types()
 
     # Distribute sets of containers and create new categories if necessaary
     # todo: Implement option that disable step below
@@ -39,18 +49,18 @@ def yield_categories(collection):
     return
 
 
-def __distribute_container_types(collection):
+def __distribute_container_types():
     container_sets = list()
     container_callbacks = dict()
     processed = list()
 
-    def add_container(current_set, container):
+    def add_container(current_set, cont):
         # Do nothing if it is processed
-        if container in processed and container not in current_set:
+        if cont in processed and cont not in current_set:
             # Check presence in other sets
             merged = False
             for candidate_set in container_sets:
-                if container in candidate_set:
+                if cont in candidate_set:
                     # Merge current and procerssed one collection
                     candidate_set.extend(current_set)
                     current_set = candidate_set
@@ -61,9 +71,9 @@ def __distribute_container_types(collection):
             if merged:
                 container_sets.remove(current_set)
             else:
-                raise RuntimeError("Cannot determine container set for {!r}".format(container.identifier))
-        elif container not in current_set:
-            current_set.append(container)
+                raise RuntimeError("Cannot determine container set for {!r}".format(cont.identifier))
+        elif cont not in current_set:
+            current_set.append(cont)
 
         return current_set
 
@@ -72,11 +82,11 @@ def __distribute_container_types(collection):
         if declaration not in queue and declaration not in current_set:
             queue.append(declaration)
 
-    def add_callback(container, field, callback):
-        if container.identifier not in container_callbacks:
-            container_callbacks[container.identifier] = dict()
-        if field not in container_callbacks[container.identifier]:
-            container_callbacks[container.identifier][field] = callback
+    def add_callback(cont, fld, callback):
+        if cont.identifier not in container_callbacks:
+            container_callbacks[cont.identifier] = dict()
+        if fld not in container_callbacks[cont.identifier]:
+            container_callbacks[cont.identifier][fld] = callback
 
     # All container types that has global variable implementations
     containers = [tp for name, tp in extracted_types() if (isinstance(tp, Structure) or isinstance(tp, Array) or
@@ -231,7 +241,7 @@ def __complement_interfaces(collection):
             if len(strict_candidates) == 1:
                 return strict_candidates[0]
             elif len(strict_candidates) > 1 and id_match:
-                id_candidates = [intf for intf in strict_candidates if intf.short_identifier == id_match]
+                id_candidates = [i for i in strict_candidates if i.short_identifier == id_match]
                 if len(id_candidates) == 1:
                     return id_candidates[0]
                 else:
@@ -242,7 +252,7 @@ def __complement_interfaces(collection):
                                    format(signature.to_string('a')))
 
             # Filter of resources
-            candidates = [intf for intf in candidates if type(intf) is not Resource]
+            candidates = [i for i in candidates if type(i) is not Resource]
             if len(candidates) == 1:
                 return candidates[0]
             else:
