@@ -177,7 +177,8 @@
         "comment": "Character driver scenario.",
         "headers": [
           "linux/fs.h",
-          "linux/pagemap.h"
+          "linux/pagemap.h",
+          "linux/poll.h"
         ],
         "labels": {
           "container": {
