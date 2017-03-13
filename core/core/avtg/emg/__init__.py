@@ -70,8 +70,9 @@ class EMG(core.avtg.plugins.Plugin):
 
         # Generate module interface specification
         self.logger.info("============== Modules interface categories selection stage ==============")
-        ics = InterfaceCategoriesSpecification(self.logger, self.conf, self.abstract_task_desc, interface_spec,
-                                               analysis)
+        check_or_set_conf_property(self.conf, 'interface categories options', default_value=dict(), expected_type=dict)
+        ics = InterfaceCategoriesSpecification(self.logger, self.conf['interface categories options'],
+                                               self.abstract_task_desc, interface_spec, analysis)
         # todo: export specification (issue 6561)
         #mcs.save_to_file("module_specification.json")
 

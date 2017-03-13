@@ -20,6 +20,7 @@ import collections
 from core.avtg.emg.interfacespec.specification import import_interface_specification
 from core.avtg.emg.interfacespec.analysis import import_code_analysis
 from core.avtg.emg.interfacespec.categories import yield_categories
+from core.avtg.emg.common import get_conf_property
 from core.avtg.emg.common.interface import Container, Resource, Callback
 from core.avtg.emg.common.signature import Structure, Union, Array, Pointer, InterfaceReference, refine_declaration
 
@@ -59,7 +60,7 @@ class InterfaceCategoriesSpecification:
         import_code_analysis(self, avt, analysis_data)
 
         self.logger.info("Metch interfaces with existing categories and introduce new categories")
-        yield_categories(self)
+        yield_categories(self, self._conf)
 
         self.logger.info("Determine unrelevant to the checked code interfaces and remove them")
         self.__refine_categories()
@@ -263,8 +264,8 @@ class InterfaceCategoriesSpecification:
             level_counter = 0
             max_level = None
 
-            if 'callstack deep search' in self._conf:
-                max_level = int(self._conf['callstack deep search'])
+            if get_conf_property(self._conf, 'callstack deep search', int):
+                max_level = get_conf_property(self._conf, 'callstack deep search', int)
 
             # Simple BFS with deep counting from the given function
             relevant = set()

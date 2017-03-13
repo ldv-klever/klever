@@ -15,11 +15,12 @@
 # limitations under the License.
 #
 from core.avtg.emg.interfacespec.specification import fulfill_function_interfaces
+from core.avtg.emg.common import get_conf_property
 from core.avtg.emg.common.interface import Container, Resource, Callback
 from core.avtg.emg.common.signature import Declaration, Function, Structure, Union, Array, Pointer, extracted_types
 
 
-def yield_categories(collection):
+def yield_categories(collection, conf):
     """
     Analyze all new types found by SA component and yield final set of interface categories built from manually prepared
     interface specifications and global variables. All new categories and interfaces are added directly to the
@@ -27,6 +28,7 @@ def yield_categories(collection):
     types. However, there are still unused interfaces present in the collection after this function termination.
 
     :param collection: InterfaceCategoriesSpecification object.
+    :param conf: Configuration property dictionary of InterfaceCategoriesSpecification object.
     :return: None
     """
 
@@ -34,8 +36,8 @@ def yield_categories(collection):
     container_sets, container_callbacks = __distribute_container_types()
 
     # Distribute sets of containers and create new categories if necessaary
-    # todo: Implement option that disable step below
-    __generate_new_categories(collection, container_sets, container_callbacks)
+    if get_conf_property(conf, "generate artificial categories", bool):
+        __generate_new_categories(collection, container_sets, container_callbacks)
 
     # Add information about callbacks
     __populate_callbacks(collection)
