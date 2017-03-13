@@ -422,7 +422,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
 
         # Close conditional statement
         if conditional_stack[-1]['len'] > 2:
-            f_code.append('\t' * tab + 'default: ldv_stop();')
+            f_code.append('\t' * tab + 'default: ldv_assume(0);')
             tab -= 1
             f_code.append('\t' * tab + '}')
         conditional_stack.pop()

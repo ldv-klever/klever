@@ -25,6 +25,8 @@ from bridge.settings import DEF_USER
 class UserForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput())
     retype_password = forms.CharField(widget=forms.PasswordInput(), help_text=_('Confirmation'), required=True)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
 
     def __init__(self, *args, **kwargs):
         super(UserForm, self).__init__(*args, **kwargs)
@@ -34,7 +36,7 @@ class UserForm(forms.ModelForm):
         self.fields['first_name'].label = _("First name")
         self.fields['last_name'].label = _("Last name")
 
-    def clean(self):
+    def clean_retype_password(self):
         cleaned_data = super(UserForm, self).clean()
         password = cleaned_data.get("password")
         retyped = cleaned_data.get("retype_password")
@@ -53,10 +55,10 @@ class UserForm(forms.ModelForm):
 
 
 class EditUserForm(forms.ModelForm):
-
     new_password = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'off'}), required=False)
-
     retype_password = forms.CharField(widget=forms.PasswordInput(attrs={'autocomplete': 'off'}), required=False)
+    first_name = forms.CharField(required=True)
+    last_name = forms.CharField(required=True)
 
     def __init__(self, *args, **kwargs):
         self.request = kwargs.pop('request', None)
@@ -66,7 +68,7 @@ class EditUserForm(forms.ModelForm):
         self.fields['first_name'].label = _("First name")
         self.fields['last_name'].label = _("Last name")
 
-    def clean(self):
+    def clean_retype_password(self):
         cleaned_data = super(EditUserForm, self).clean()
         new_pass = cleaned_data.get("new_password")
         retyped = cleaned_data.get("retype_password")

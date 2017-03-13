@@ -136,11 +136,11 @@ $(document).ready(function () {
         var global_icon = $(this).find('i').first();
         if (global_icon.hasClass('unhide')) {
             global_icon.removeClass('unhide').addClass('hide');
-            etv_window.find('.global').show();
+            etv_window.find('.global:not(.commented)').show();
         }
         else {
             global_icon.removeClass('hide').addClass('unhide');
-            etv_window.find('.global').hide();
+            etv_window.find('.global:not([data-type="comment"])').hide();
         }
     });
 

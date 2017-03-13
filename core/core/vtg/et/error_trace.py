@@ -444,12 +444,18 @@ class ErrorTrace:
         del self._violation_edges, self._model_funcs, self._notes, self._asserts
 
     def get_func_return_edge(self, func_enter_edge):
+        next_edge = self.next_edge(func_enter_edge)
+
+        # Do not proceed if function call terminates error trace.
+        if not next_edge:
+            return None
+
         # Keep in mind that each pair enter-return has identifier (function name), but such identifier is not unique
         # across error trace, so we need to ignore all intermediate calls to the same function.
         func_id = func_enter_edge['enter']
 
         subcalls = 0
-        for edge in self.trace_iterator(begin=self.next_edge(func_enter_edge)):
+        for edge in self.trace_iterator(begin=next_edge):
             if edge.get('enter') == func_id:
                 subcalls += 1
             if edge.get('return') == func_id:

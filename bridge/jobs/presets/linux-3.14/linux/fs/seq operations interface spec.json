@@ -40,17 +40,21 @@
           "file": {
             "signature": "struct file *file",
             "header": "linux/fs.h"
+          },
+          "index": {
+            "signature": "loff_t *a",
+            "header": "linux/fs.h"
           }
         },
         "callbacks": {
           "start": {
-            "signature": "void * (*start)(%seq_operations.seq_file%, $)"
+            "signature": "void * (*start)(%seq_operations.seq_file%, %seq_operations.index%)"
           },
           "stop": {
             "signature": "void (*stop)(%seq_operations.seq_file%, $)"
           },
           "next": {
-            "signature": "void * (*next)(%seq_operations.seq_file%, $, $)"
+            "signature": "void * (*next)(%seq_operations.seq_file%, $, %seq_operations.index%)"
           },
           "show": {
             "signature": "int (*show)(%seq_operations.seq_file%, $)"

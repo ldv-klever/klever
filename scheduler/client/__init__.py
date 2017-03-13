@@ -85,6 +85,7 @@ def solve_job(conf):
 
     # Import RunExec
     executor = RunExecutor()
+    set_signal_handler(executor)
 
     # Check resource limitations
     if not conf["resource limits"]["CPU time"]:
@@ -114,7 +115,6 @@ def solve_job(conf):
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
 
-    set_signal_handler(executor)
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -155,6 +155,7 @@ def solve_task(conf):
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     benchexec = BenchExec()
+    set_signal_handler(benchexec)
 
     # Check resource limitations
     if "CPU time" not in conf["resource limits"]:
@@ -205,7 +206,6 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
-    set_signal_handler(benchexec)
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
@@ -295,16 +295,9 @@ def set_signal_handler(executor):
     :param executor: Object which corresponds RunExec or BenchExec. Should have method stop().
     :return: None
     """
-    # Save default handler
-    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
-
     def handler(a, b):
-        executor.stop()
         logging.info("Trying to kill the task")
-        signal.signal(signal.SIGTERM, original_sigtrm_handler)
-        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
-
-        # Restore handler
+        executor.stop()
         exit(-1)
 
     # Set custom handler
