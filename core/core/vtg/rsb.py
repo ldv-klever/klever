@@ -65,13 +65,11 @@ class RSB(core.components.Component):
                 )
             elif 'value analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
-            elif 'caching' in self.conf['VTG strategy']:
-                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam-svcomp': ''}]
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
