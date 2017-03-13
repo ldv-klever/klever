@@ -239,21 +239,21 @@
                         <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
                     </div>
                 </div>
+
+                {% if can_freeze %}
+                    <div class="ui toggle checkbox">
+                        <input type="checkbox" id="is_modifiable" checked>
+                        <label>{% trans 'Editable' %}</label>
+                    </div>
+                    <br><br>
+                {% endif %}
+                <a href="{% url 'reports:unknown' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
+                <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
             </div>
             <div class="eight wide column">
-                <div class="ui red segment filecontent" style="height:400px;">{{ problem_description }}</div>
+                <div class="ui red segment filecontent" style="min-height:100%;max-height:80vh;">{{ problem_description }}</div>
             </div>
         </div>
-        <div class="ui divider"></div>
-        {% if can_freeze %}
-            <div class="ui toggle checkbox">
-                <input type="checkbox" id="is_modifiable" checked>
-                <label>{% trans 'Editable' %}</label>
-            </div>
-            <br><br>
-        {% endif %}
-        <a href="{% url 'reports:unknown' report.pk %}" class="ui blue button" style="float: right">{% trans 'Cancel' %}</a>
-        <button id="save_new_mark_btn" class="ui green button">{% trans 'Save' %}</button>
     </form>
     <span id="error__function_required" hidden>{% trans 'The pattern is required' %}</span>
     <span id="error__problem_required" hidden>{% trans 'The problem is required' %}</span>
