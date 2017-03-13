@@ -325,26 +325,30 @@ def _remove_aux_functions(logger, error_trace):
         if 'return' not in func_call_edge:
             return_edge = error_trace.get_func_return_edge(func_call_edge)
 
-            if return_edge:
-                # Skip body of next function entered when returning from the given one. Corresponding pattern is:
-                #   enter auxiliary function
-                #     enter function 1
-                #       ...
-                #       enter function 2 and return from function 1
-                #         ...
-                #         return from function 2
-                #   return from auxiliary function
-                if 'enter' in return_edge:
+            # Recursively skip body of next function entered when returning from the given one. Corresponding
+            # pattern is:
+            #   enter auxiliary function
+            #     enter function
+            #       ...
+            #       enter function 1 and return from function
+            #         ...
+            #         [enter function 2 and] return from function 1
+            #            ...
+            while True:
+                if return_edge and 'enter' in return_edge:
                     return_edge = error_trace.get_func_return_edge(return_edge)
+                else:
+                    break
 
-                if return_edge:
-                    aux_func_return_edge = error_trace.next_edge(return_edge)
+            aux_func_return_edge = error_trace.get_func_return_edge(aux_func_call_edge)
 
-                    if aux_func_return_edge is None or 'return' not in aux_func_return_edge \
-                            or aux_func_return_edge['source'] != 'return;':
-                        continue
+            # Do not remove auxiliary function since there are some extra edges between function call and return from
+            # auxiliary function.
+            if return_edge and aux_func_return_edge is not error_trace.next_edge(return_edge):
+                continue
 
-                    error_trace.remove_edge_and_target_node(aux_func_return_edge)
+            if aux_func_return_edge:
+                error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
             for attr in ('file', 'start line'):
