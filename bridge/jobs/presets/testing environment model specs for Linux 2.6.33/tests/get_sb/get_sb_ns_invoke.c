@@ -16,53 +16,29 @@
  */
 
 #include <linux/module.h>
-#include <linux/tty.h>
-#include <linux/usb.h>
-#include <linux/usb/serial.h>
+#include <linux/fs.h>
+#include <linux/mount.h>
 #include <linux/emg/test_model.h>
 #include <verifier/nondet.h>
 
-int flip_a_coin;
-const struct usb_device_id *id_table;
+struct file_system_type fs_type;
+struct vfsmount mnt;
+int flags;
 
-int ldv_probe(struct usb_serial *serial, const struct usb_device_id *id)
+int fill_super(struct super_block *sb, void *a, int b)
 {
-	int res;
-
-	ldv_invoke_callback();
-	res = ldv_undef_int();
-	if (!res)
-		ldv_probe_up();
-	return res;
+	ldv_invoke_reached();
+	return 0;
 }
-
-void ldv_disconnect(struct usb_serial *serial)
-{
-	ldv_release_down();
-	ldv_invoke_callback();
-}
-
-static struct usb_serial_driver ldv_driver = {
-	.probe = ldv_probe,
-	.disconnect = ldv_disconnect,
-};
 
 static int __init ldv_init(void)
 {
-	flip_a_coin = ldv_undef_int();
-	if (flip_a_coin) {
-		ldv_register();
-		return usb_serial_register(& ldv_driver);
-	}
-	return 0;
+	return get_sb_ns(& fs_type, flags, NULL, & fill_super, & mnt);
 }
 
 static void __exit ldv_exit(void)
 {
-	if (flip_a_coin) {
-		usb_serial_deregister(& ldv_driver);
-		ldv_deregister();
-	}
+	 /* Nothing to do */
 }
 
 module_init(ldv_init);

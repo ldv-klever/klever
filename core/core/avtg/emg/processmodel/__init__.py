@@ -56,7 +56,7 @@ class ProcessModel:
         # Del unnecessary reference
         self.entry = None
         for process in additional_processes:
-            self.__add_process(analysis, process, 'artificial')
+            self.__add_process(analysis, process, 'insmod')
 
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
@@ -671,7 +671,7 @@ class ProcessModel:
                 success.comment = "Registration of {!r} callbacks has been successful.".format(process.category)
                 new.actions[success.name] = success
 
-                new.process = "<{}>.[{}].<{}> | <{}>".format(assign.name, dispatch.name, fail.name, success.name)
+                new.process = "<{}>.[{}].<{}> | <{}>".format(assign.name, dispatch.name, success.name, fail.name)
                 assign.comment = "Get {!r} callbacks to register.".format(process.category)
                 new.comment = "Register {!r} callbacks.".format(process.category)
 

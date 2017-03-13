@@ -21,6 +21,7 @@ before: file ("$this")
 #include <linux/ldv/irq.h>
 #include <linux/ldv/err.h>
 #include <verifier/common.h>
+#include <verifier/gcc.h>
 #include <verifier/nondet.h>
 #include <verifier/memory.h>
 #include <verifier/thread.h>

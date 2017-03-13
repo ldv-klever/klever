@@ -379,6 +379,9 @@ class UploadReport(object):
         # I hope that verification reports can't have component reports as its children
         if Report.objects.filter(parent=report).count() == 0:
             report.delete()
+        else:
+            report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            report.save()
 
     def __create_report_unknown(self, identifier):
         if self.job.weight != JOB_WEIGHT[0][0]:
@@ -525,8 +528,6 @@ class UploadReport(object):
             report.parent = root_report
             report.save()
         else:
-            self.parent.parent = root_report
-            self.parent.save()
             verdict = Verdict.objects.get_or_create(report=self.parent)[0]
             verdict.safe += 1
             verdict.safe_unassociated += 1
@@ -623,8 +624,6 @@ class UploadReport(object):
             report.parent = root_report
             report.save()
         else:
-            self.parent.parent = root_report
-            self.parent.save()
             verdict = Verdict.objects.get_or_create(report=self.parent)[0]
             verdict.unsafe += 1
             verdict.unsafe_unassociated += 1
