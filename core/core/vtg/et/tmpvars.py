@@ -211,15 +211,37 @@ def __remove_tmp_vars(error_trace, edge):
 
 
 def _parse_func_call_actual_args(actual_args_str):
-    # Get rid of all casts. Although they can be useful, but they considerably complicate actual arguments parsing.
-    while True:
-        new_actual_args_str = re.sub(r'(\([^\(\)]*\))', '', actual_args_str)
-        if new_actual_args_str == actual_args_str:
-            break
+    actual_args = []
+    actual_args_str_iter = iter(actual_args_str)
+    actual_arg = ''
+    for c in actual_args_str_iter:
+        # Take into account that function pointer casts can use commas which also separate function arguments from
+        # each other.
+        if c == '(':
+            actual_arg += c
+            # Skip all nested "(...)".
+            open_paren_num = 0
+            while True:
+                c_next = next(actual_args_str_iter)
+                actual_arg += c_next
+                if c_next == '(':
+                    open_paren_num += 1
+                elif c_next == ')':
+                    if open_paren_num:
+                        open_paren_num -= 1
+                    else:
+                        break
+        elif c == ',':
+            actual_args.append(actual_arg.strip())
+            actual_arg = ''
         else:
-            actual_args_str = new_actual_args_str
+            actual_arg += c
 
-    return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
+    # Add last argument which isn't followed by comma if so.
+    if actual_arg:
+        actual_args.append(actual_arg.strip())
+
+    return actual_args
 
 
 def _remove_aux_functions(logger, error_trace):
@@ -285,7 +307,7 @@ def _remove_aux_functions(logger, error_trace):
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
             for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
-                if formal_arg_name == actual_arg and j < len(aux_actual_args):
+                if actual_arg.endswith(formal_arg_name) and j < len(aux_actual_args):
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
                     break
