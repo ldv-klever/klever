@@ -18,7 +18,10 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
-            "callstack deep search": 3,
+            "interface categories options": {
+              "callstack deep search": 3,
+              "generate artificial categories": true
+            },
             "intermediate model options": {
               "generate insmod scenario": true,
               "add missing activation signals": ["register", "instance_register", "irq_register"],

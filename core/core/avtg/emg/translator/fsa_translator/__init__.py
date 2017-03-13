@@ -469,8 +469,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                          (access.interface and
                           access.interface.declaration.compare(signature.points.return_value)) or
                          (not access.interface and access.label and
-                          signature.points.return_value.identifier in (d.identifier for d
-                                                                       in access.label.declarations))]
+                          any((signature.points.return_value.compare(d) for d in access.label.declarations)))]
                 if len(suits) > 0:
                     if suits[0].interface:
                         label_var = automaton.determine_variable(suits[0].label, suits[0].interface.identifier)

@@ -190,6 +190,43 @@
           "callback": {
             "comment": "Call any random callback.",
             "callback": "%callback%",
+            "parameters": []
+          }
+        }
+      },
+      "random_allocationless_scenario": {
+        "comment": "Scenario with random invocation of callbacks.",
+        "labels": {
+          "container": {
+            "container": true,
+            "resource": true
+          },
+          "callback": {
+            "callback": true
+          }
+        },
+        "process": "(!register).{call}",
+        "actions": {
+          "call": {
+            "comment": "Prepare to call a random callback or deregister the callbacks.",
+            "process": "[callback].{call} | (deregister)"
+          },
+          "register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "comment": "Call any random callback.",
+            "callback": "%callback%",
             "parameters": [
               "%container%"
             ]
