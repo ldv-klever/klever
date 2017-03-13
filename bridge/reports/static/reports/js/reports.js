@@ -223,7 +223,7 @@ $(document).ready(function () {
                         err_notify(data.error);
                     }
                     else if ('cache_id' in data) {
-                        window.location.replace('');
+                        window.location.href = '/marks/association_changes/' + data['cache_id'] + '/';
                     }
                 }
             );
@@ -264,6 +264,16 @@ $(document).ready(function () {
                 }
             }
         );
+    });
+    $('#show_unsafe_attributes').click(function () {
+        var attr_table = $('#unsafe_attributes');
+        if (attr_table.is(':hidden')) {
+            attr_table.show();
+
+        }
+        else {
+            attr_table.hide();
+        }
     });
 });
 

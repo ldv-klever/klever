@@ -61,74 +61,70 @@
         <div class="seven wide column">
             {% if can_mark %}
                 <div class="ui tiny buttons" style="float: right;">
+                    <button id="show_unsafe_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}" style="margin-left: 20px;"><i class="ui list icon"></i></button>
                     <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
-                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" target="_blank" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
+                    <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
                 </div>
             {% endif %}
             {% include 'reports/ETVButtons.html' %}
             <br><br>
-            <div class="ui accordion styled fluid" id="report_accordion">
-                <div class="title">
-                    <i class="grid layout icon"></i>{% trans 'Attributes' %}
-                </div>
-                <div class="content">
-                    <div style="overflow-x:auto;">
-                        <table class="ui celled compact purple table">
-                            <tbody>
-                                {% for v in SelfAttrsData %}
-                                    <tr>
-                                        <th class="collapsing">{{ v.0 }}</th>
-                                        <td class="collapsing">{{ v.1 }}</td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div id="unsafe_attributes" style="display: none">
+                <table id="unsafe_attributes" class="ui celled compact purple table">
+                    <tbody>
+                        {% for v in SelfAttrsData %}
+                            <tr>
+                                <th class="collapsing">{{ v.0 }}</th>
+                                <td class="collapsing">{{ v.1 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <br>
             </div>
         </div>
         <div class="nine wide column">
             {% if can_mark %}
                 <div id="inline_mark_form" style="display: none"></div>
             {% endif %}
-            {% if MarkTable.values|length %}
-                <div id="report_marks_table">
-                    <div style="overflow:auto; max-height: 14vh;">
-                        <table class="ui celled compact pink table">
-                            <thead>
-                                <tr>
-                                    <th>№</th>
-                                    <th>{% trans 'Verdict' %}</th>
-                                    <th>{% trans 'Similarity' %}</th>
-                                    <th>{% trans 'Status' %}</th>
-                                    <th>{% trans 'Last change author' %}</th>
-                                    <th>{% trans 'Automatic association' %}</th>
-                                    {% if can_mark %}
-                                        <th>&nbsp;</th>
-                                    {% endif %}
-                                </tr>
-                            </thead>
-                            <tbody>
-                            {% for v in MarkTable.values %}
-                                <tr>
-                                    <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
-                                    <td><span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}{% if v.description %}*{% endif %}</span></td>
-                                    <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
-                                    <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                                    <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                                    <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
-                                    {% if can_mark %}
-                                        <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            {% endif %}
         </div>
     </div>
+    {% if MarkTable.values|length %}
+        <div id="report_marks_table">
+            <table class="ui celled compact pink table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>{% trans 'Verdict' %}</th>
+                        <th>{% trans 'Similarity' %}</th>
+                        <th>{% trans 'Status' %}</th>
+                        <th>{% trans 'Last change author' %}</th>
+                        <th>{% trans 'Automatic association' %}</th>
+                        <th>{% trans 'Description' %}</th>
+                        {% if can_mark %}
+                            <th>&nbsp;</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                {% for v in MarkTable.values %}
+                    <tr>
+                        <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
+                        <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
+                        <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
+                        <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                        <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
+                        <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                        <td>{{ v.description|safe }}</td>
+                        {% if can_mark %}
+                            <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+    <br>
     <input type="hidden" id="report_pk" value="{{ report.pk }}">
     <input id="report_type" type="hidden" value="unsafe">
 

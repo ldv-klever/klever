@@ -321,7 +321,7 @@ function compare_jobs() {
                             err_notify(data.error);
                         }
                         else {
-                            window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
+                            window.location.href = '/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
                         }
                     },
                     'json'
