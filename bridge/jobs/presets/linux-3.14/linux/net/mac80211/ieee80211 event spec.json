@@ -97,7 +97,8 @@
             ]
           },
           "ret": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           }
         },
         "process": "(!register).{main}",
@@ -286,7 +287,8 @@
             ]
           },
           "ret": {
-            "signature": "int a"
+            "signature": "int a",
+            "value": "ldv_undef_int()"
           }
         },
         "process": "(!register).{main}",

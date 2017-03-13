@@ -94,18 +94,26 @@
             ]
           },
           "ret": {
-            "signature": "void *a"
+            "signature": "void *a",
+            "value": "ldv_undef_ptr()"
+          },
+          "show_ret": {
+            "signature": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "index": {
+            "signature": "loff_t *a"
           }
         },
-        "process": "(!register).{start_step}",
+        "process": "(!register).{outer_loop}",
         "actions": {
-          "start_step": {
-            "comment": "Start sequence or do nothing.",
-            "process": "[start].(<start_success>.{next_step} | <start_failed>.[stop].(deregister))"
+          "outer_loop": {
+            "comment": "Traverse sequence or do nothing.",
+            "process": "[start].{inner_loop} | (deregister)"
           },
-          "next_step": {
-            "comment": "Continue iteration over kernel items.",
-            "process": "[next].[show].(<next_success>.{next_step} | <next_fail>.[stop].{start_step})"
+          "inner_loop": {
+            "comment": "New iteration of sequence traversing.",
+            "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop].{outer_loop}) | <fail>.[stop].{outer_loop}"
           },
           "deregister": {
             "condition": [
@@ -121,57 +129,58 @@
               "%ops%"
             ]
           },
-          "start_success": {
-            "comment": "A new sequence is initialized successfully.",
+          "success": {
+            "comment": "Proceed with traversing further.",
             "condition": [
-              "%ret% != 0"
+              "!ldv_is_err_or_null(%ret%)"
             ]
           },
-          "start_failed": {
-            "comment": "Failed to initialize a new sequence.",
+          "fail": {
+            "comment": "Failed to proceed with traversing.",
             "condition": [
-              "%ret% == 0"
+              "ldv_is_err_or_null(%ret%)"
             ]
           },
-          "next_success": {
-            "comment": "More items to show are left.",
+          "success_show": {
+            "comment": "Current item has been shown successfully.",
             "condition": [
-              "%ret% != 0"
-            ]
-          },
-          "next_fail": {
-            "comment": "The last kernel item is reached.",
-            "condition": [
-              "%ret% == 0"
+              "%show_ret% >= 0"
             ]
           },
           "start": {
             "comment": "Initialize data for walking through a list of kernel items.",
             "callback": "%ops.start%",
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%index%"
             ],
             "callback return value": "%ret%"
           },
           "stop": {
             "comment": "End of the sequence is reached, do necessary cleanup.",
             "callback": "%ops.stop%",
+            "pre-call": [
+              "%seq_file%->index = %index%;"
+            ],
+            "post-call": [
+              "%seq_file%->index = %index%;"
+            ],
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%ret%"
             ]
           },
           "show": {
             "comment": "Show current item: put data into the seq_file output buffer.",
             "callback": "%ops.show%",
             "parameters": [
-              "%seq_file%"
-            ]
+              "%seq_file%", "%ret%"
+            ],
+            "callback return value": "%show_ret%"
           },
           "next": {
             "comment": "Advance to the new item.",
             "callback": "%ops.next%",
             "parameters": [
-              "%seq_file%"
+              "%seq_file%", "%ret%", "%index%"
             ],
             "callback return value": "%ret%"
           }

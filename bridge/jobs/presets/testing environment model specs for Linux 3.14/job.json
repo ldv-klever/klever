@@ -13,7 +13,7 @@
       "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
-        "version": "trunk:24102"
+        "version": "ldv-bam:24572"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -420,21 +420,6 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/rtc_class_ops_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/sb_nodev",
-        "modules": [
-          "get_sb_nodev_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/get_sb_nodev_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

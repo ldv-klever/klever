@@ -139,7 +139,7 @@ $(document).ready(function () {
         }
         else {
             global_icon.removeClass('hide').addClass('unhide');
-            etv_window.find('.global').hide();
+            etv_window.find('.global:not([data-type="comment"])').hide();
         }
     });
 

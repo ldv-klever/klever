@@ -18,13 +18,13 @@
                         </span>
                     {% else %}
                         {% if l.note %}
-                            <span class="{{ l.scope }}"{% if l.note_hidden %} style="display: none"{% endif %} data-thread="{{ l.thread_id }}">
+                            <span class="{{ l.scope }}"{% if l.note_hidden %} style="display: none"{% endif %} data-thread="{{ l.thread_id }}" data-type="comment">
                                 <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}{{ l.line }}{% endif %}</span>
                                 <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</a></span><br>
                             </span>
                         {% endif %}
                         {% if l.warning %}
-                            <span class="{{ l.scope }}" data-thread="{{ l.thread_id }}">
+                            <span class="{{ l.scope }}" data-thread="{{ l.thread_id }}" data-type="comment">
                                 <span class="ETV_LN ETV_LN_Warning"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}{{ l.line }}{% endif %}</span>
                                 <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_WarnText">{{ l.warning }}</a></span><br>
                             </span>

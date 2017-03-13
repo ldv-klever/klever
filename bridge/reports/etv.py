@@ -104,7 +104,6 @@ class ScopeInfo:
 
     def show_current_scope(self, comment_type):
         if not self.initialised:
-            self._shown.add('global')
             return
         if comment_type == 'note':
             if all(ss not in self._hidden for ss in self._stack):
@@ -222,7 +221,14 @@ class ParseErrorTrace:
                 self.lines.append(self.__triangle_line(self.scope.remove()))
                 line_data['offset'] = self.scope.offset()
                 line_data['scope'] = self.scope.current()
-            line_data.update(self.__enter_action(new_action, line_data['line']))
+            action_line = line_data['line']
+            action_file = None
+            if 'original start line' in edge and 'original file' in edge:
+                action_line = str(edge['original start line'])
+                if len(action_line) > self.max_line_length:
+                    self.max_line_length = len(action_line)
+                action_file = self.files[edge['original file']]
+            line_data.update(self.__enter_action(new_action, action_line, action_file))
 
         line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
@@ -250,13 +256,15 @@ class ParseErrorTrace:
     def __update_line_data(self):
         return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_action(self, action_id, line):
+    def __enter_action(self, action_id, line, file):
         if action_id is None:
             return {}
+        if file is None:
+            file = self.curr_file
         if action_id in self.callback_actions:
             self.scope.show_current_scope('callback action')
         enter_action_data = {
-            'line': line, 'file': self.curr_file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
+            'line': line, 'file': file, 'offset': self.scope.offset(), 'scope': self.scope.current(),
             'code': '<span class="%s">%s</span>' % (
                 'ETV_CallbackAction' if action_id in self.callback_actions else 'ETV_Action',
                 self.actions[action_id]
@@ -394,10 +402,8 @@ class ParseErrorTrace:
                 self.lines[i]['collapsed'] = True
             if a or b:
                 self.lines[i]['commented'] = True
-            if b and c:
+            if b and c and self.lines[i]['scope'] != 'global':
                 self.lines[i]['note_hidden'] = True
-        if self.thread_id == 0:
-            self.lines.append({'scope': 'ETV_End_of_trace', 'thread_id': thread_id})
 
     def __wrap_code(self, code, code_type):
         self.__is_not_used()
@@ -415,14 +421,6 @@ class ParseErrorTrace:
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
-        m = re.match('^(.*?)<(.*)$', code)
-        while m is not None:
-            code = "%s&lt;%s" % (m.group(1), m.group(2))
-            m = re.match('^(.*?)<(.*)$', code)
-        m = re.match('^(.*?)>(.*)$', code)
-        while m is not None:
-            code = "%s&gt;%s" % (m.group(1), m.group(2))
-            m = re.match('^(.*?)>(.*)$', code)
         m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (
@@ -446,6 +444,7 @@ class ParseErrorTrace:
                 self.__wrap_code(m.group(2), 'number'),
                 self.__parse_code(m.group(3))
             )
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         words = re.split('([^a-zA-Z0-9-_#])', code)
         new_words = []
         for word in words:
@@ -549,7 +548,7 @@ class GetSource(object):
         cnt = 1
         lines = source_content.split('\n')
         for line in lines:
-            line = line.replace('\t', ' ' * TAB_LENGTH)
+            line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
             data += '<span>%s %s</span><br>' % (
                 self.__wrap_line(line_num, 'line', 'ETVSrcL_%s' % cnt), self.__parse_line(line)
@@ -557,19 +556,7 @@ class GetSource(object):
             cnt += 1
         return data
 
-    def parse_line(self, line):
-        return self.__parse_line(line)
-
     def __parse_line(self, line):
-        m = re.match('(.*?)<(.*)', line)
-        while m is not None:
-            line = m.group(1) + '&lt;' + m.group(2)
-            m = re.match('(.*?)<(.*)', line)
-        m = re.match('(.*?)>(.*)', line)
-        while m is not None:
-            line = m.group(1) + '&gt;' + m.group(2)
-            m = re.match('(.*?)>(.*)', line)
-
         if self.is_comment:
             m = re.match('(.*?)\*/(.*)', line)
             if m is None:
