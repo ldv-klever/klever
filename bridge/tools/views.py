@@ -15,8 +15,9 @@
 # limitations under the License.
 #
 
+import os
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
@@ -24,8 +25,9 @@ from bridge.vars import USER_ROLES, JOB_STATUS
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
+from tools.models import LockTable
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
-from tools.profiling import unparallel_group, ProfileData, clear_old_logs
+from tools.profiling import unparallel_group, ProfileData, clear_old_logs, ExecLocker
 
 
 @login_required
@@ -173,3 +175,14 @@ def clear_call_logs(request):
         return JsonResponse({'error': 'Unknown error'})
     clear_old_logs()
     return JsonResponse({'message': _('Logs were successfully cleared')})
+
+
+def manual_unlock(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    LockTable.objects.all().delete()
+    try:
+        os.remove(ExecLocker.lockfile)
+    except FileNotFoundError:
+        pass
+    return JsonResponse({})
