@@ -102,18 +102,31 @@
             "value": "ldv_undef_int()"
           },
           "index": {
-            "signature": "loff_t *a"
+            "signature": "loff_t *a",
+            "pointer": true
           }
         },
-        "process": "(!register).{outer_loop}",
+        "process": "(!register).<init>.{outer_loop}",
         "actions": {
           "outer_loop": {
             "comment": "Traverse sequence or do nothing.",
-            "process": "[start].{inner_loop} | (deregister)"
+            "process": "[start].{inner_loop} | <free>.(deregister)"
           },
           "inner_loop": {
             "comment": "New iteration of sequence traversing.",
             "process": "<success>.[show].(<success_show>.[next].{inner_loop} | [stop].{outer_loop}) | <fail>.[stop].{outer_loop}"
+          },
+          "init": {
+            "comment": "Allocate memory for auxiliary variables.",
+            "statements": [
+              "$ALLOC(%index%);"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of auxiliary variables.",
+            "statements": [
+              "$FREE(%index%);"
+            ]
           },
           "deregister": {
             "condition": [
@@ -153,16 +166,19 @@
             "parameters": [
               "%seq_file%", "%index%"
             ],
-            "callback return value": "%ret%"
+            "callback return value": "%ret%",
+            "pre-call": [
+              "*%index% = 0;"
+            ]
           },
           "stop": {
             "comment": "End of the sequence is reached, do necessary cleanup.",
             "callback": "%ops.stop%",
             "pre-call": [
-              "%seq_file%->index = %index%;"
+              "%seq_file%->index = *%index%;"
             ],
             "post-call": [
-              "%seq_file%->index = %index%;"
+              "%seq_file%->index = *%index%;"
             ],
             "parameters": [
               "%seq_file%", "%ret%"
