@@ -146,6 +146,9 @@ def fulfill_function_interfaces(collection, interface, category=None):
 
             if p_interface and not category:
                 category = p_interface.category
+        elif len(interface.param_interfaces) > index and interface.param_interfaces[index] and \
+                isinstance(interface.param_interfaces[index], Callback):
+            interface.param_interfaces[index].declaration = interface.declaration.parameters[index]
 
     # Second match rest types
     if not interface.rv_interface and declaration.return_value and not is_primitive_or_void(declaration.return_value):
