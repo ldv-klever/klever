@@ -263,11 +263,10 @@ $(document).ready(function () {
             }
         );
     });
-    $('#show_unsafe_attributes').click(function () {
-        var attr_table = $('#unsafe_attributes');
+    $('#show_leaf_attributes').click(function () {
+        var attr_table = $('#leaf_attributes');
         if (attr_table.is(':hidden')) {
             attr_table.show();
-
         }
         else {
             attr_table.hide();

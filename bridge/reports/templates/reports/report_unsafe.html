@@ -59,17 +59,17 @@
     {% include 'reports/ETV.html' %}
     <div class="ui grid">
         <div class="seven wide column">
-            {% if can_mark %}
-                <div class="ui tiny buttons" style="float: right;">
-                    <button id="show_unsafe_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}" style="margin-left: 20px;"><i class="ui list icon"></i></button>
+            <div class="ui tiny buttons" style="float: right;">
+                <button id="show_leaf_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
+                {% if can_mark %}
                     <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
                     <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
-                </div>
-            {% endif %}
+                {% endif %}
+            </div>
             {% include 'reports/ETVButtons.html' %}
             <br><br>
-            <div id="unsafe_attributes" style="display: none">
-                <table id="unsafe_attributes" class="ui celled compact purple table">
+            <div id="leaf_attributes" style="display: none">
+                <table class="ui celled compact purple table">
                     <tbody>
                         {% for v in SelfAttrsData %}
                             <tr>
