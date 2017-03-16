@@ -376,17 +376,17 @@ class UploadReport(object):
             report.delete()
 
     def __finish_verification_report(self, identifier):
-        if self.job.weight == JOB_WEIGHT[0][0]:
-            return
         try:
             report = ReportComponent.objects.get(identifier=identifier)
         except ObjectDoesNotExist:
             raise ValueError('verification report does not exist')
+
         # I hope that verification reports can't have component reports as its children
-        if Report.objects.filter(parent=report).count() == 0:
+        if self.job.weight != JOB_WEIGHT[0][0] and Report.objects.filter(parent=report).count() == 0:
             report.delete()
         else:
-            report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            if self.job.weight != JOB_WEIGHT[0][0]:
+                report.parent = ReportComponent.objects.get(parent=None, root=self.root)
             report.finish_date = now()
             report.save()
 
