@@ -196,14 +196,12 @@ $(document).ready(function () {
 
     function activate_inline_markform(data) {
         var markform = $('#inline_mark_form');
-        $('#report_marks_table').hide();
         markform.html(data);
         activate_tags();
         markform.find('.ui.checkbox').checkbox();
         markform.show();
         $('#cancel_create_mark').click(function () {
             $('#inline_mark_form').hide().empty();
-            $('#report_marks_table').show();
         });
         $('#save_inline_mark_btn').click(function () {
             $('#dimmer_of_page').addClass('active');

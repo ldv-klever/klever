@@ -343,7 +343,7 @@ class ReportMarkTable:
     def __get_values(self):
         value_data = []
         cnt = 0
-        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author'):
+        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by('mark__change_date'):
             cnt += 1
             row_data = {
                 'id': mark_rep.mark_id,

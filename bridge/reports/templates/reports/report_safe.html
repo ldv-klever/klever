@@ -51,38 +51,36 @@
             <div id="inline_mark_form" style="display: none"></div>
         {% endif %}
         {% if MarkTable.values|length %}
-            <div id="report_marks_table">
-                <h4 class="header">{% trans 'Associated marks' %}</h4>
-                <div style="overflow-x:auto;">
-                    <table class="ui celled compact pink table">
-                        <thead>
-                            <tr>
-                                <th>№</th>
-                                <th>{% trans 'Verdict' %}</th>
-                                <th>{% trans 'Status' %}</th>
-                                <th>{% trans 'Last change author' %}</th>
-                                <th>{% trans 'Automatic association' %}</th>
-                                {% if can_mark %}
-                                    <th>&nbsp;</th>
-                                {% endif %}
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for v in MarkTable.values %}
-                            <tr>
-                                <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
-                                <td><span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}{% if v.description %}*{% endif %}</span></td>
-                                <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                                <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                                <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
-                                {% if can_mark %}
-                                    <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
-                                {% endif %}
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            <h4 class="header">{% trans 'Associated marks' %}</h4>
+            <div style="overflow-x:auto;">
+                <table class="ui celled compact pink table">
+                    <thead>
+                        <tr>
+                            <th>№</th>
+                            <th>{% trans 'Verdict' %}</th>
+                            <th>{% trans 'Status' %}</th>
+                            <th>{% trans 'Last change author' %}</th>
+                            <th>{% trans 'Automatic association' %}</th>
+                            {% if can_mark %}
+                                <th>&nbsp;</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                    {% for v in MarkTable.values %}
+                        <tr>
+                            <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
+                            <td><span{% if v.description %} class="note-popup" data-html="{{ v.description }}" data-variation="very wide"{% endif %} style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}{% if v.description %}*{% endif %}</span></td>
+                            <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                            <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
+                            <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                            {% if can_mark %}
+                                <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         {% endif %}
         <br>

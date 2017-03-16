@@ -89,40 +89,39 @@
         </div>
     </div>
     {% if MarkTable.values|length %}
-        <div id="report_marks_table">
-            <table class="ui celled compact pink table">
-                <thead>
-                    <tr>
-                        <th>№</th>
-                        <th>{% trans 'Verdict' %}</th>
-                        <th>{% trans 'Similarity' %}</th>
-                        <th>{% trans 'Status' %}</th>
-                        <th>{% trans 'Last change author' %}</th>
-                        <th>{% trans 'Automatic association' %}</th>
-                        <th>{% trans 'Description' %}</th>
-                        {% if can_mark %}
-                            <th>&nbsp;</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                {% for v in MarkTable.values %}
-                    <tr>
-                        <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
-                        <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
-                        <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
-                        <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                        <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                        <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
-                        <td>{{ v.description|safe }}</td>
-                        {% if can_mark %}
-                            <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
-                        {% endif %}
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
+        <h4 class="header">{% trans 'Associated marks' %}</h4>
+        <table class="ui celled compact pink table">
+            <thead>
+                <tr>
+                    <th>№</th>
+                    <th>{% trans 'Verdict' %}</th>
+                    <th>{% trans 'Similarity' %}</th>
+                    <th>{% trans 'Status' %}</th>
+                    <th>{% trans 'Last change author' %}</th>
+                    <th>{% trans 'Automatic association' %}</th>
+                    <th>{% trans 'Description' %}</th>
+                    {% if can_mark %}
+                        <th>&nbsp;</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+            {% for v in MarkTable.values %}
+                <tr>
+                    <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
+                    <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
+                    <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
+                    <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                    <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
+                    <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                    <td>{{ v.description|safe }}</td>
+                    {% if can_mark %}
+                        <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     {% endif %}
     <br>
     <input type="hidden" id="report_pk" value="{{ report.pk }}">
