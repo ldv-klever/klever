@@ -119,7 +119,7 @@
           "init": {
             "comment": "Allocate memory for auxiliary variables.",
             "statements": [
-              "$ALLOC(%index%);"
+              "%index% = $ALLOC(%index%);"
             ]
           },
           "free": {
