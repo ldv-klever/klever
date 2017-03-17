@@ -7,10 +7,7 @@
     <input id="marks_type" type="hidden" value="{{ type }}">
     <div class="ui grid">
         <div class="one wide column right aligned">
-            <button class="ui basic icon red button normal-popup" id="show_remove_marks_popup"><i class="ui remove icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Delete selected marks' %}</p>
-            </div>
+            <button class="ui basic icon red button note-popup" id="show_remove_marks_popup" data-position="bottom left" data-content="{% trans 'Delete selected marks' %}"><i class="ui remove icon"></i></button>
         </div>
         <div class="fifteen wide column">
             {% include 'marks/filters.html' %}
@@ -19,7 +16,7 @@
 
     {% if tabledata.values|length %}
         <h2 class="header" style="text-align:center">{{ title }}</h2>
-        <div style="overflow-x:auto;max-height: 690px;overflow-y:auto;">
+        <div style="overflow-x:auto;max-height: 75vh;overflow-y:auto;">
             <table class="ui compact celled table {% if view_type == '7' %}orange{% elif view_type == '8' %}green{% elif view_type == '9' %}red{% endif %}">
                 <thead>
                     {% for column_row in tabledata.header %}
@@ -52,7 +49,7 @@
                 </tbody>
             </table>
         </div>
-        <br><br><br>
+        <br>
     {% else %}
         <h2 class="header" style="text-align:center;">{% trans 'List of marks of the given type is empty, please create them or change the view' %}</h2>
     {% endif %}

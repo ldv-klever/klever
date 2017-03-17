@@ -1,62 +1,4 @@
 {% load i18n %}
-{% load staticfiles %}
-
-{% block reports_head_block %}
-    <script src="{% static 'reports/js/jquery-ui.min.js' %}"></script>
-    <script src="{% static 'reports/js/ETV.js' %}"></script>
-    <script src="{% static 'reports/js/ETV-windows.js' %}"></script>
-    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
-{% endblock %}
-<div class="ui grid">
-    <div class="thirteen wide column">
-        <div class="ui icon orange small buttons right attached">
-            <button id="etv_start" class="ui button normal-popup"><i class="forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space:nowrap">{% trans 'Play' %}</p>
-            </div>
-            <button id="etv_play_forward" class="ui button normal-popup"><i class="fast forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play from the selected line' %}</p>
-            </div>
-            <button id="etv_start_backward" class="ui button normal-popup"><i class="backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space:nowrap">{% trans 'Play backward' %}</p>
-            </div>
-            <button id="etv_play_backward" class="ui button normal-popup"><i class="fast backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play backward from the selected line' %}</p>
-            </div>
-            <button id="etv_next_step" class="ui button normal-popup"><i class="step forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play one line forward' %}</p>
-            </div>
-            <button id="etv_prev_step" class="ui button normal-popup"><i class="step backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play one line backward' %}</p>
-            </div>
-            <button id="etv_pause_play" class="ui button normal-popup"><i class="pause icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Pause' %}</p>
-            </div>
-        </div>
-        <div class="ui small input">
-        <select id="select_speed" class="ui dropdown attached">
-            <option value="1">1 {% trans 'second per a line' %}</option>
-            <option value="2">2 {% trans 'seconds per a line' %}</option>
-            <option value="3">3 {% trans 'seconds per a line' %}</option>
-            <option value="4">4 {% trans 'seconds per a line' %}</option>
-            <option value="5">5 {% trans 'seconds per a line' %}</option>
-            <option value="10">10 {% trans 'seconds per a line' %}</option>
-        </select>
-        </div>
-        <label for="select_speed"></label>
-    </div>
-    <div class="three wide column right aligned">
-        <a class="ui icon basic tiny button" href="{% if fullscreen %}{% url 'reports:leaf' 'unsafe' report.pk %}{% else %}{% url 'reports:etv' report.pk %}{% endif %}">
-            <i class="{% if fullscreen %}remove{% else %}maximize{% endif %} icon"></i>
-        </a>
-    </div>
-</div>
 
 <div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
     <div id="etv-trace">
@@ -71,7 +13,7 @@
                     {% if l.hide_id == 'global' %}
                         <span data-thread="{{ l.thread_id }}">
                             <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}<a class="ETV_GlobalExpanderLink"><i class="mini icon unhide"></i> <span class="ETV_GlobalExpander">{% trans 'Global variable declarations' %}</span></a></span>
+                            <span class="ETV_LC">{{ l.offset }}<a class="ETV_GlobalExpanderLink"><i class="mini icon {% if l.collapsed %}unhide{% else %}hide{% endif %}"></i> <span class="ETV_GlobalExpander">{% trans 'Global variable declarations' %}</span></a></span>
                             <br>
                         </span>
                     {% else %}

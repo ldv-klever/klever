@@ -21,7 +21,7 @@ from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import USER_ROLES, JOB_ROLES
+from bridge.vars import USER_ROLES, JOB_ROLES, MARKS_COMPARE_ATTRS
 from bridge.utils import logger, unique_id, ArchiveFileContent, file_checksum, file_get_or_create
 from marks.models import *
 from reports.models import Verdict, ReportComponentLeaf
@@ -202,12 +202,15 @@ class NewMark:
                 mark.function = new_func
                 self.do_recalk = True
 
-            error_trace = BytesIO(
-                json.dumps(json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-            )
-            if file_checksum(error_trace) != last_v.error_trace.hash_sum:
-                self.do_recalk = True
-                error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+            if 'error_trace' in args and isinstance(args['error_trace'], str):
+                error_trace = BytesIO(json.dumps(
+                    json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
+                ).encode('utf8'))
+                if file_checksum(error_trace) != last_v.error_trace.hash_sum:
+                    self.do_recalk = True
+                    error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+                else:
+                    error_trace = last_v.error_trace
             else:
                 error_trace = last_v.error_trace
 
@@ -278,10 +281,13 @@ class NewMark:
                 for r in self.changes:
                     RecalculateTags(r)
             elif self.type != 'unknown':
-                if recalc_verdicts:
-                    UpdateVerdict(mark)
+                self.changes = {}
                 for mr in self.mark.markreport_set.all():
-                    RecalculateTags(mr.report)
+                    self.changes[mr.report] = {'kind': '=', 'verdict1': mr.report.verdict}
+                if recalc_verdicts:
+                    self.changes = UpdateVerdict(mark, self.changes).changes
+                for report in self.changes:
+                    RecalculateTags(report)
         return None
 
     def __update_mark(self, mark, tags, error_trace=None, comment=''):
@@ -341,6 +347,9 @@ class NewMark:
         if not isinstance(attrs, list):
             logger.error('Attributes must be a list', stack_info=True)
             return True
+        if len(attrs) == 0:
+            for ma in old_mark.attrs.order_by('id').values_list('attr__name__name', 'is_compare'):
+                attrs.append({'attr': ma[0], 'is_compare': ma[1]})
         for a in attrs:
             if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
                 logger.error('Wrong attribute found: %s' % a, stack_info=True)
@@ -368,6 +377,13 @@ class NewMark:
     def __create_attributes(self, report, attrs):
         if not isinstance(attrs, list):
             raise ValueError('Attributes must be a list')
+        if len(attrs) == 0:
+            job_type = report.root.job.type
+            for ra in report.attrs.order_by('id').values_list('attr__name__name'):
+                attrs.append({'attr': ra[0], 'is_compare': True})
+                if job_type in MARKS_COMPARE_ATTRS and ra[0] not in MARKS_COMPARE_ATTRS[job_type]:
+                    attrs[-1]['is_compare'] = False
+
         for a in attrs:
             if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
                 raise ValueError('Wrong attribute found: %s' % a)

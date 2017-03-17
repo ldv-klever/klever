@@ -44,4 +44,7 @@ $(document).ready(function () {
         check_usernames();
     });
     check_usernames();
+    $('#populate_button').click(function () {
+        $(this).addClass('disabled');
+    });
 });

@@ -30,12 +30,6 @@ body {
     font-style: italic;
 }
 
-.attrs-table {
-    overflow-x: auto;
-    overflow-y: auto;
-    max-height: 500px;
-}
-
 .panel-collapse {
     padding: 10px;
 }

@@ -856,7 +856,6 @@ $(document).ready(function () {
     $('#job_scheduler').dropdown();
     var view_job_1st_part = $('#view_job_1st_part');
     view_job_1st_part.find('.ui.dropdown').dropdown();
-    $('.normal-popup').popup({position: 'bottom center'});
     $('#remove_job_popup').modal({
         transition: 'fade in', autofocus: false, closable: false})
         .modal('attach events', '#show_remove_job_popup', 'show');

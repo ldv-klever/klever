@@ -1,0 +1,63 @@
+{% load i18n %}
+
+<div class="ui pink segment">
+    <div class="ui two column grid">
+        <div class="column">
+            <h4 class="ui pink header">{% trans 'Verdict' %}</h4>
+            <div>
+                {% for v in markdata.verdicts %}
+                    <div class="ui radio checkbox">
+                        <input id="selected_verdict__{{ v.value }}" type="radio" name="selected_verdict" value="{{ v.value }}"{% if v.checked %} checked{% endif %}>
+                        <label for="selected_verdict__{{ v.value }}" style="color: {{ v.color }}">{{ v.title }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="column">
+            <h4 class="ui pink header">{% trans 'Status' %}</h4>
+            <div>
+                {% for s in markdata.statuses %}
+                    <div class="ui radio checkbox">
+                        <input id="selected_status__{{ s.value }}" type="radio" name="selected_status" value="{{ s.value }}"{% if s.checked %} checked{% endif %}>
+                        <label for="selected_status__{{ s.value }}" style="color: {{ s.color }}">{{ s.title }}</label>
+                    </div>
+                    <br>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+    <h4 class="ui pink header">{% trans 'Description' %}</h4>
+    <div class="ui form">
+        <label for="mark_description"></label>
+        <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
+    </div>
+    <br>
+    {% if markdata.mark_version.mark_id %}
+        <div class="ui action input fluid">
+            <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
+            <button id="save_inline_mark_btn" class="ui green button">{% trans 'Save' %}</button>
+            <button id="cancel_create_mark" class="ui blue button">{% trans 'Cancel' %}</button>
+        </div>
+    {% else %}
+        <button id="cancel_create_mark" class="ui blue button" style="float: right">{% trans 'Cancel' %}</button>
+        <button id="save_inline_mark_btn" class="ui green button">{% trans 'Save' %}</button>
+    {% endif %}
+    {% for f in markdata.convertion %}
+        {% if f.selected %}
+            <input id="convert_function" type="hidden" value="{{ f.value }}">
+        {% endif %}
+    {% endfor %}
+    {% for f in markdata.comparison %}
+        {% if f.selected %}
+            <input id="compare_function" type="hidden" value="{{ f.value }}">
+        {% endif %}
+    {% endfor %}
+    {% if markdata.mark_version.mark_id %}
+        <input id="mark_pk" type="hidden" value="{{ markdata.mark_version.mark_id }}">
+        <input id="mark_type" type="hidden" value="{{ markdata.type }}">
+        <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
+    {% endif %}
+</div>

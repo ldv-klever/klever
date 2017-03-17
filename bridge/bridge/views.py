@@ -80,7 +80,11 @@ def population(request):
         if need_manager and need_service and (manager_username is None or service_username is None):
             return HttpResponseRedirect(reverse('error', args=[305]))
         try:
-            changes = Population(request.user, manager_username, service_username).changes
+            changes = Population(
+                request.user,
+                (manager_username, request.POST.get('manager_password')),
+                (service_username, request.POST.get('service_password'))
+            ).changes
         except Exception as e:
             logger.exception(e)
             return render(request, 'Population.html', {'error': str(e)})

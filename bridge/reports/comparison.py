@@ -443,7 +443,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['unsafe', report.pk])
+        block.href = reverse('reports:unsafe', args=[report.pk])
         return block
 
     def __safe_data(self, report_id, parent_id):
@@ -459,7 +459,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['safe', report.pk])
+        block.href = reverse('reports:safe', args=[report.pk])
         return block
 
     def __unknown_data(self, report_id, parent_id):
@@ -482,7 +482,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['unknown', report.pk])
+        block.href = reverse('reports:unknown', args=[report.pk])
         return block
 
     def __unsafe_mark_data(self, report_id):
