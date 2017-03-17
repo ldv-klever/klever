@@ -327,17 +327,9 @@ class GetTasks:
                 self._data['job configurations'][progress.job.identifier] = \
                     json.loads(progress.configuration.decode('utf8'))
                 if progress.job.identifier in data['jobs']['error']:
-                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
-                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
-                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
-                                                             root=progress.job.reportroot).count() > 0:
-                        change_job_status(progress.job, JOB_STATUS[4][0])
-                    else:
-                        change_job_status(progress.job, JOB_STATUS[7][0])
-                    if progress.job.identifier in data['job errors']:
-                        progress.error = data['job errors'][progress.job.identifier]
-                    else:
-                        progress.error = "The scheduler hasn't given an error description"
+                    change_job_status(progress.job, JOB_STATUS[4][0])
+                    progress.error = data['job errors']\
+                        .get(progress.job.identifier, "The scheduler hasn't given an error description")
                     progress.save()
                 else:
                     self._data['jobs']['pending'].append(progress.job.identifier)
