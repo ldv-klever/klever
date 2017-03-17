@@ -230,9 +230,8 @@ class UploadReport(object):
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
-                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-            raise ValueError("attributes are not unique")
+        if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+            raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
         try:
@@ -759,6 +758,11 @@ class UploadReport(object):
             attrorder.append(attr)
             attrdata.add(report_id, attr, value)
         attrdata.upload()
+        if isinstance(self.parent, ReportComponent) and self.data['type'] in {'start', 'attrs', 'verification'}:
+            names = set(x[0] for x in ReportAttr.objects.filter(report_id=report_id).values_list('attr__name_id'))
+            for parent in self._parents_branch:
+                if parent.attrs.filter(attr__name_id__in=names).count() > 0:
+                    raise ValueError("The report has redefined parent's attributes")
         return attrorder
 
     def __is_not_used(self):
