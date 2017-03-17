@@ -60,10 +60,15 @@ class Population(object):
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
-        self.manager = self.__get_manager(manager[0], manager[1])
+        if manager is None:
+            self.manager = self.__get_manager(None, None)
+            if service is not None:
+                self.__add_service_user(service[0], service[1])
+        else:
+            self.manager = self.__get_manager(manager[0], manager[1])
+            if service is not None and manager[0] != service[0]:
+                self.__add_service_user(service[0], service[1])
         self.__population()
-        if service != manager:
-            self.__add_service_user(service[0], service[1])
 
     def __population(self):
         TaskStatistic.objects.get_or_create()
