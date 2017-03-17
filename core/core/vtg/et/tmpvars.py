@@ -290,15 +290,16 @@ def _remove_aux_functions(logger, error_trace):
         aux_actual_args = _parse_func_call_actual_args(m.group(2))
         rel_expr = m.group(3)
 
-        # Get name and actual arguments of called function if so.
-        m = re.search(r'^(return )?(\w+)\s*\((.*)\);$', func_call_edge['source'])
+        func_name = error_trace.resolve_function(func_call_edge['enter'])
+
+        # Get actual arguments of called function if so.
+        m = re.search(r'^.*{0}\s*\((.*)\);$'.format(func_name), func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
         if not m:
             continue
 
-        func_name = m.group(2)
-        actual_args = _parse_func_call_actual_args(m.group(3))
+        actual_args = _parse_func_call_actual_args(m.group(1))
 
         # Do not proceed if names of actual arguments of called function don't correspond to ones obtained during model
         # comments parsing. Without this we won't be able to replace them with corresponding actual arguments of called
