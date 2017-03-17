@@ -20,7 +20,7 @@
             "entry point": "main",
             "interface categories options": {
               "callstack deep search": 3,
-              "generate artificial categories": true
+              "generate artificial categories": false
             },
             "intermediate model options": {
               "generate insmod scenario": true,
