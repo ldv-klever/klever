@@ -24,7 +24,10 @@ from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table
 # So maximum waiting time is (MAX_WAITING * 2) in seconds.
-MAX_WAITING = 300
+if settings.UNLOCK_FAILED_REQUESTS:
+    MAX_WAITING = 30
+else:
+    MAX_WAITING = 300
 
 
 class ExecLocker:
