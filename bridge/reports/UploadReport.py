@@ -230,9 +230,8 @@ class UploadReport(object):
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs)) \
-                and self.data['type'] not in ['safe', 'unsafe', 'unknown']:
-            raise ValueError("attributes are not unique")
+        if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+            raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
         try:
