@@ -39,7 +39,7 @@
         },
         "resources": {
           "block_dev": {
-            "header": "linux/blkdev.h",
+            "header": "linux/fs.h",
             "signature": "struct block_device * a"
           }
         }
