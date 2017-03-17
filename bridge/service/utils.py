@@ -345,6 +345,9 @@ class GetTasks:
                 if progress.job.identifier in data['jobs']['finished']:
                     core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
                     if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
+                        if progress.error is None:
+                            progress.error = "There are unfinished reports"
+                            progress.save()
                         change_job_status(progress.job, JOB_STATUS[5][0])
                     elif ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
                                                       root=progress.job.reportroot).count() > 0:
