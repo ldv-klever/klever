@@ -193,7 +193,7 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
-        "verifier version": "smg_witness_for_ldv:24511",
+        "verifier version": "smg_witness_for_ldv:24577",
         "verifier configuration": "-smg-ldv",
         "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
@@ -593,7 +593,7 @@
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "ThreadAnalysis:25f700c",
+        "verifier version": "BranchForMerging:406f9a8",
         "verifier configuration": "-local-lock-combination-linux"
       }
     }
