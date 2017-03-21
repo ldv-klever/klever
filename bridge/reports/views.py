@@ -37,6 +37,7 @@ from reports.models import *
 from reports.utils import *
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+from service.models import Task
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
@@ -362,7 +363,7 @@ def report_etv_full(request, report_id):
         return HttpResponseRedirect(reverse('error', args=[505]))
 
 
-@unparallel_group([ReportRoot, AttrName])
+@unparallel_group([ReportRoot, AttrName, Task])
 def upload_report(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signed in'})
