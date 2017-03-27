@@ -17,9 +17,9 @@
 
 import json
 from django.db.models import ProtectedError
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import MEDIA_ROOT
 from bridge.vars import ATTR_STATISTIC, JOB_WEIGHT
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
@@ -52,13 +52,13 @@ class ClearFiles:
         files_in_the_system = set()
         files_to_delete = set()
         for f in table.objects.all():
-            file_path = os.path.abspath(os.path.join(MEDIA_ROOT, f.file.name))
+            file_path = os.path.abspath(os.path.join(settings.MEDIA_ROOT, f.file.name))
             files_in_the_system.add(file_path)
             if not (os.path.exists(file_path) and os.path.isfile(file_path)):
                 logger.error('Deleted from DB (file not exists): %s' % f.file.name, stack_info=True)
                 files_to_delete.add(f.pk)
         table.objects.filter(id__in=files_to_delete).delete()
-        files_directory = os.path.join(MEDIA_ROOT, files_dir)
+        files_directory = os.path.join(settings.MEDIA_ROOT, files_dir)
         if os.path.exists(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
             for f in files_on_disk - files_in_the_system:
@@ -68,10 +68,10 @@ class ClearFiles:
         self.__is_not_used()
         files_in_the_system = set()
         for s in Solution.objects.values_list('archive'):
-            files_in_the_system.add(os.path.abspath(os.path.join(MEDIA_ROOT, s[0])))
+            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
         for s in Task.objects.values_list('archive'):
-            files_in_the_system.add(os.path.abspath(os.path.join(MEDIA_ROOT, s[0])))
-        files_directory = os.path.join(MEDIA_ROOT, FILE_DIR)
+            files_in_the_system.add(os.path.abspath(os.path.join(settings.MEDIA_ROOT, s[0])))
+        files_directory = os.path.join(settings.MEDIA_ROOT, FILE_DIR)
         if os.path.exists(files_directory):
             files_on_disk = set(os.path.abspath(os.path.join(files_directory, x)) for x in os.listdir(files_directory))
             for f in files_on_disk - files_in_the_system:
@@ -278,7 +278,10 @@ class Recalculation(object):
         elif self.type == 'unsafe':
             RecalculateUnsafeMarkConnections(self.jobs)
         elif self.type == 'safe':
-            RecalculateSafeMarkConnections(self.jobs)
+            if settings.ENABLE_SAFE_MARKS:
+                RecalculateSafeMarkConnections(self.jobs)
+            else:
+                self.error = _('Safe marks are disabled')
         elif self.type == 'unknown':
             RecalculateUnknownMarkConnections(self.jobs)
         elif self.type == 'resources':
@@ -288,7 +291,8 @@ class Recalculation(object):
         elif self.type == 'all':
             RecalculateLeaves(self.jobs)
             RecalculateUnsafeMarkConnections(self.jobs)
-            RecalculateSafeMarkConnections(self.jobs)
+            if settings.ENABLE_SAFE_MARKS:
+                RecalculateSafeMarkConnections(self.jobs)
             RecalculateUnknownMarkConnections(self.jobs)
             RecalculateVerdicts(self.jobs)
             RecalculateResources(self.jobs)

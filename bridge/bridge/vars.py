@@ -43,6 +43,7 @@ ERRORS = {
     603: _("You don't have an access to edit this mark"),
     604: _("The mark was not found"),
     605: _('The mark is being deleted'),
+    606: _('Safe marks are disabled'),
     704: _("The attribute was not found")
 }
 
