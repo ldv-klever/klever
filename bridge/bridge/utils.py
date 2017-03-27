@@ -24,6 +24,7 @@ import tempfile
 import zipfile
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
+from django.db.models import Q
 from django.db.models.base import ModelBase
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
@@ -241,8 +242,6 @@ class RemoveFilesBeforeDelete:
             # Deleting of the job automatically send signals of deleting OneToOne fields
             # (ReportRoot and SolvingProgress), so we don't need to do here something
             pass
-        elif model_name == 'ReportComponent':
-            self.__remove_component_files(obj)
         elif model_name == 'Task':
             self.__remove_task_files(obj)
 
@@ -255,29 +254,14 @@ class RemoveFilesBeforeDelete:
 
     def __remove_reports_files(self, root):
         from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
-        for files in ReportSafe.objects.filter(root=root).values_list('archive'):
+        for files in ReportSafe.objects.filter(Q(root=root) & ~Q(archive=None)).values_list('archive'):
             self.__remove(files)
         for files in ReportUnsafe.objects.filter(root=root).values_list('archive'):
             self.__remove(files)
         for files in ReportUnknown.objects.filter(root=root).values_list('archive'):
             self.__remove(files)
-        for files in ReportComponent.objects.filter(root=root).values_list('archive', 'data'):
-            self.__remove(files)
-
-    def __remove_component_files(self, report):
-        from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown
-        reports = set()
-        parents = {report.parent_id}
-        while len(parents) > 0:
-            reports |= parents
-            parents = set(rc['id'] for rc in ReportComponent.objects.filter(parent_id__in=parents).values('id'))
-        for files in ReportUnsafe.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportSafe.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportUnknown.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportComponent.objects.filter(id__in=reports).values_list('archive', 'data'):
+        for files in ReportComponent.objects.filter(Q(root=root) & ~Q(archive=None, data=None))\
+                .values_list('archive', 'data'):
             self.__remove(files)
 
     def __remove_task_files(self, task):
