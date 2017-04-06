@@ -22,6 +22,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
+from bridge.utils import BridgeException
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
@@ -219,14 +220,12 @@ class ComparisonTableData(object):
                 self.attrs.append({'name': a, 'values': values})
 
 
-class ComparisonData(object):
+class ComparisonData:
     def __init__(self, info_id, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
-        self.error = None
         try:
             self.info = CompareJobsInfo.objects.get(pk=info_id)
         except ObjectDoesNotExist:
-            self.error = _("The comparison cache was not found")
-            return
+            raise BridgeException(_("The comparison cache was not found"))
         self.v1 = self.v2 = None
         self.hide_attrs = hide_attrs
         self.hide_components = hide_components
@@ -240,15 +239,14 @@ class ComparisonData(object):
         self.data = self.__get_data(verdict, attrs)
 
     def __get_verdicts(self, verdict):
+        self.__is_not_used()
         m = re.match('^(\d)_(\d)$', verdict)
         if m is None:
-            self.error = 'Unknown error'
-            return None, None
+            raise BridgeException()
         v1 = m.group(1)
         v2 = m.group(2)
         if any(v not in list(x[0] for x in COMPARE_VERDICT) for v in [v1, v2]):
-            self.error = 'Unknown error'
-            return None, None
+            raise BridgeException()
         return v1, v2
 
     def __get_data(self, verdict=None, search_attrs=None):
@@ -256,8 +254,7 @@ class ComparisonData(object):
             try:
                 search_attrs = '|'.join(json.loads(search_attrs))
             except ValueError:
-                self.error = 'Unknown error'
-                return None
+                raise BridgeException()
             if '__REGEXP_ANY__' in search_attrs:
                 search_attrs = re.escape(search_attrs)
                 search_attrs = search_attrs.replace('__REGEXP_ANY__', '\d+')
@@ -270,12 +267,10 @@ class ComparisonData(object):
             (v1, v2) = self.__get_verdicts(verdict)
             data = self.info.comparejobscache_set.filter(verdict1=v1, verdict2=v2).order_by('id')
         else:
-            self.error = 'Unknown error'
-            return None
+            raise BridgeException()
         self.pages['total'] = len(data)
         if self.pages['total'] < self.pages['num']:
-            self.error = _('Required reports were not found')
-            return None
+            raise BridgeException(_('Required reports were not found'))
         self.pages['backward'] = (self.pages['num'] > 1)
         self.pages['forward'] = (self.pages['num'] < self.pages['total'])
         data = data[self.pages['num'] - 1]
@@ -285,12 +280,9 @@ class ComparisonData(object):
         try:
             branches = self.__compare_reports(data)
         except ObjectDoesNotExist:
-            self.error = _('The report was not found, please recalculate the comparison cache')
-            return None
+            raise BridgeException(_('The report was not found, please recalculate the comparison cache'))
         if branches is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
+            raise BridgeException()
 
         final_data = []
         for branch in branches:
@@ -303,15 +295,7 @@ class ComparisonData(object):
 
     def __compare_reports(self, c):
         data1 = self.__get_reports_data(json.loads(c.reports1))
-        if data1 is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
         data2 = self.__get_reports_data(json.loads(c.reports2))
-        if data2 is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
         for i in sorted(list(data1)):
             if i not in data2:
                 break

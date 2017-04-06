@@ -24,8 +24,8 @@ from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, Stream
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
-from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, ArchiveFileContent
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR
+from bridge.utils import unparallel_group, ArchiveFileContent, BridgeException
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
@@ -293,9 +293,10 @@ def report_unsafe(request, report_id):
     except Exception as e:
         logger.exception(e, stack_info=True)
         return HttpResponseRedirect(reverse('error', args=[505]))
-    tags = TagsInfo('unsafe', [])
-    if tags.error is not None:
-        logger.error(tags.error, stack_info=True)
+    try:
+        tags = TagsInfo('unsafe', [])
+    except Exception as e:
+        logger.exception(e)
         return HttpResponseRedirect(reverse('error', args=[500]))
 
     try:
@@ -339,9 +340,10 @@ def report_safe(request, report_id):
         except Exception as e:
             logger.exception("Couldn't extract proof from archive: %s" % e)
             return HttpResponseRedirect(reverse('error', args=[500]))
-    tags = TagsInfo('safe', [])
-    if tags.error is not None:
-        logger.error(tags.error, stack_info=True)
+    try:
+        tags = TagsInfo('safe', [])
+    except Exception as e:
+        logger.exception(e)
         return HttpResponseRedirect(reverse('error', args=[500]))
 
     try:
@@ -537,7 +539,7 @@ def get_source_code(request):
 def fill_compare_cache(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         j1 = Job.objects.get(pk=request.POST.get('job1', 0))
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
@@ -549,7 +551,7 @@ def fill_compare_cache(request):
         CompareTree(request.user, j1, j2)
     except Exception as e:
         logger.exception("Comparison of reports' trees failed: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error while filling comparison cache'})
+        return JsonResponse({'error': _('Unknown error while filling comparison cache')})
     return JsonResponse({})
 
 
@@ -583,22 +585,22 @@ def jobs_comparison(request, job1_id, job2_id):
 @unparallel_group([CompareJobsInfo])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'info_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'info_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if all(x not in request.POST for x in ['verdict', 'attrs']):
-        return JsonResponse({'error': 'Unknown error'})
-    result = ComparisonData(
-        request.POST['info_id'],
-        int(request.POST.get('page_num', 1)),
-        True if 'hide_attrs' in request.POST else False,
-        True if 'hide_components' in request.POST else False,
-        request.POST.get('verdict', None),
-        request.POST.get('attrs', None)
-    )
-    if result.error is not None:
-        return JsonResponse({'error': str(result.error)})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        result = ComparisonData(
+            request.POST['info_id'], int(request.POST.get('page_num', 1)),
+            True if 'hide_attrs' in request.POST else False,
+            True if 'hide_components' in request.POST else False,
+            request.POST.get('verdict', None), request.POST.get('attrs', None)
+        )
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     v1 = result.v1
     v2 = result.v2
     for v in COMPARE_VERDICT:

@@ -24,7 +24,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.utils import file_get_or_create, logger, unique_id
+from bridge.utils import file_get_or_create, logger, unique_id, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from marks.utils import NewMark, RecalculateTags, ConnectMarkWithReports, DeleteMark
 from marks.ConvertTrace import ET_FILE_NAME
@@ -119,7 +119,7 @@ class ReadMarkArchive:
         self.type = None
         self._user = user
         self._archive = archive
-        self.error = self.__create_mark_from_archive()
+        self.__create_mark_from_archive()
 
     class UploadMark(object):
         def __init__(self, user, mark_type, args):
@@ -128,9 +128,8 @@ class ReadMarkArchive:
             self.user = user
             self.type = mark_type
             if not isinstance(args, dict) or not isinstance(user, User):
-                self.error = _("Unknown error")
-            else:
-                self.error = self.__create_mark(args)
+                raise BridgeException()
+            self.__create_mark(args)
 
         def __create_mark(self, args):
             mark_model = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
@@ -142,7 +141,7 @@ class ReadMarkArchive:
                 description=args.get('description', ''), type=MARK_TYPE[2][0]
             )
             if mark.format != FORMAT:
-                return _('The mark format is not supported')
+                raise BridgeException(_('The mark format is not supported'))
 
             if self.type == 'unsafe':
                 mark.verdict = MARK_UNSAFE[int(args['verdict'])][0]
@@ -152,7 +151,7 @@ class ReadMarkArchive:
             elif self.type == 'unknown':
                 if len(MarkUnknown.objects.filter(component__name=args['component'],
                                                   problem_pattern=args['problem'])) > 0:
-                    return _('Could not upload the mark archive since the similar mark exists already')
+                    raise BridgeException(_('Could not upload the mark archive since the similar mark exists already'))
                 mark.component = Component.objects.get_or_create(name=args['component'])[0]
                 mark.function = args['function']
                 mark.problem_pattern = args['problem']
@@ -163,18 +162,16 @@ class ReadMarkArchive:
                 mark.save()
             except Exception as e:
                 logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
-                return 'Unknown error'
+                raise BridgeException()
 
-            res = self.__update_mark(mark, args.get('error_trace'), args.get('tags'))
-            if res is not None:
-                return res
+            self.__update_mark(mark, args.get('error_trace'), args.get('tags'))
             if self.type != 'unknown':
-                res = self.__create_attributes(args['attrs'])
-                if res is not None:
+                try:
+                    self.__create_attributes(args['attrs'])
+                except Exception:
                     mark.delete()
-                    return res
+                    raise
             self.mark = mark
-            return None
 
         def __update_mark(self, mark, error_trace, tags):
             version_model = {'unsafe': MarkUnsafeHistory, 'safe': MarkSafeHistory, 'unknown': MarkUnknownHistory}
@@ -200,7 +197,7 @@ class ReadMarkArchive:
                         try:
                             safetag = SafeTag.objects.get(tag=tag)
                         except ObjectDoesNotExist:
-                            return _('One of tags was not found')
+                            raise BridgeException(_('One of tags was not found'))
                         MarkSafeTag.objects.get_or_create(tag=safetag, mark_version=self.mark_version)
                         newtag = safetag.parent
                         while newtag is not None:
@@ -210,20 +207,19 @@ class ReadMarkArchive:
                         try:
                             unsafetag = UnsafeTag.objects.get(tag=tag)
                         except ObjectDoesNotExist:
-                            return _('One of tags was not found')
+                            raise BridgeException(_('One of tags was not found'))
                         MarkUnsafeTag.objects.get_or_create(tag=unsafetag, mark_version=self.mark_version)
                         newtag = unsafetag.parent
                         while newtag is not None:
                             MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
                             newtag = newtag.parent
-            return None
 
         def __create_attributes(self, attrs):
             if not isinstance(attrs, list):
-                return _('The attributes have wrong format')
+                raise BridgeException(_('The attributes have wrong format'))
             for a in attrs:
                 if any(x not in a for x in ['attr', 'value', 'is_compare']):
-                    return _('The attributes have wrong format')
+                    raise BridgeException(_('The attributes have wrong format'))
             for a in attrs:
                 attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
                 attr = Attr.objects.get_or_create(name=attr_name, value=a['value'])[0]
@@ -236,7 +232,6 @@ class ReadMarkArchive:
                     MarkUnsafeAttr.objects.get_or_create(**create_args)
                 else:
                     MarkSafeAttr.objects.get_or_create(**create_args)
-            return None
 
     def __create_mark_from_archive(self):
 
@@ -255,60 +250,57 @@ class ReadMarkArchive:
                     try:
                         mark_data = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
-                        return _("The mark archive is corrupted")
+                        raise BridgeException(_("The mark archive is corrupted"))
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
                     try:
                         versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
-                        return _("The mark archive is corrupted")
+                        raise BridgeException(_("The mark archive is corrupted"))
                 elif file_name.startswith('error_trace_'):
                     err_traces[int(file_name.replace('error_trace_', ''))] = zfp.read(file_name).decode('utf8')
 
         if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
-            return _("The mark archive is corrupted")
+            raise BridgeException(_("The mark archive is corrupted"))
         self.type = mark_data['mark_type']
         if self.type not in {'safe', 'unsafe', 'unknown'}:
-            return _("The mark archive is corrupted")
+            raise BridgeException(_("The mark archive is corrupted"))
         if self.type == 'unknown' and 'component' not in mark_data:
-            return _("The mark archive is corrupted")
+            raise BridgeException(_("The mark archive is corrupted"))
 
         mark_table = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
         if 'identifier' in mark_data:
             if isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
                 if mark_table[self.type].objects.filter(identifier=mark_data['identifier']).count() > 0:
-                    return _("The mark with identifier specified in the archive already exists")
+                    raise BridgeException(_("The mark with identifier specified in the archive already exists"))
             else:
                 del mark_data['identifier']
 
         if self.type == 'unsafe':
             for v_id in versions_data:
                 if v_id not in err_traces:
-                    return _("The mark archive is corrupted")
+                    raise BridgeException(_("The mark archive is corrupted"))
                 versions_data[v_id]['error_trace'] = err_traces[v_id]
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
         for version in version_list:
             if any(x not in version for x in ['status', 'comment']):
-                return _("The mark archive is corrupted")
+                raise BridgeException(_("The mark archive is corrupted"))
             if self.type == 'unsafe' and 'function' not in version:
-                return _("The mark archive is corrupted")
+                raise BridgeException(_("The mark archive is corrupted"))
             if self.type != 'unknown' and any(x not in version for x in ['verdict', 'attrs', 'tags']):
-                return _("The mark archive is corrupted")
+                raise BridgeException(_("The mark archive is corrupted"))
             if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
-                return _("The mark archive is corrupted")
+                raise BridgeException(_("The mark archive is corrupted"))
 
         mark_data.update(version_list[0])
         if self.type == 'unsafe':
             mark_data['compare_id'] = get_func_id(version_list[0]['function'])
             del mark_data['function'], mark_data['mark_type']
 
-        umark = self.UploadMark(self._user, self.type, mark_data)
-        if umark.error is not None:
-            return umark.error
-        mark = umark.mark
+        mark = self.UploadMark(self._user, self.type, mark_data).mark
         if not isinstance(mark, mark_table[self.type]):
-            return _("Unknown error")
+            raise BridgeException()
         for version_data in version_list[1:]:
             if 'tags' in version_data:
                 if self.type == 'safe':
@@ -316,28 +308,28 @@ class ReadMarkArchive:
                 elif self.type == 'unsafe':
                     tag_table = UnsafeTag
                 else:
-                    return 'Unknown error'
+                    raise BridgeException()
                 tag_ids = []
                 for t_name in version_data['tags']:
                     try:
                         tag_ids.append(tag_table.objects.get(tag=t_name).pk)
                     except ObjectDoesNotExist:
-                        return _('One of tags was not found')
+                        raise BridgeException(_('One of tags was not found'))
                 version_data['tags'] = tag_ids
             if len(version_data['comment']) == 0:
                 version_data['comment'] = '1'
             if self.type == 'unsafe':
                 version_data['compare_id'] = get_func_id(version_data['function'])
                 del version_data['function']
-            upd_mark = NewMark(mark, self._user, self.type, version_data, False)
-            if upd_mark.error is not None:
+            try:
+                NewMark(mark, self._user, self.type, version_data, False)
+            except Exception:
                 mark.delete()
-                return upd_mark.error
+                raise
 
         for report in ConnectMarkWithReports(mark).changes:
             RecalculateTags(report)
         self.mark = mark
-        return None
 
 
 class UploadAllMarks:
@@ -363,8 +355,10 @@ class UploadAllMarks:
             mark_path = os.path.join(marks_dir, file_name)
             if os.path.isfile(mark_path):
                 with open(mark_path, mode='rb') as fp:
-                    res = ReadMarkArchive(self.user, fp)
-                if res.error is None and res.type in self.numbers:
-                    self.numbers[res.type] += 1
-                else:
-                    self.numbers['fail'] += 1
+                    try:
+                        mark_type = ReadMarkArchive(self.user, fp).type
+                        if mark_type in self.numbers:
+                            self.numbers[mark_type] += 1
+                    except Exception as e:
+                        logger.exception(e)
+                        self.numbers['fail'] += 1

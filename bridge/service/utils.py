@@ -23,7 +23,7 @@ from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum, logger
+from bridge.utils import file_checksum, logger, BridgeException
 from jobs.models import RunHistory, JobFile
 from jobs.utils import JobAccess, change_job_status
 from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
@@ -192,15 +192,12 @@ class KleverCoreStartDecision:
 
 class StopDecision:
     def __init__(self, job):
-        self.error = None
         if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-            self.error = _("Only pending and processing jobs can be stopped")
-            return
+            raise BridgeException(_("Only pending and processing jobs can be stopped"))
         try:
             self.progress = SolvingProgress.objects.get(job=job)
         except ObjectDoesNotExist:
-            self.error = _('The job solving progress does not exist')
-            return
+            raise BridgeException(_('The job solving progress does not exist'))
 
         change_job_status(job, JOB_STATUS[6][0])
         self.__clear_tasks()
@@ -674,22 +671,13 @@ class NodesData(object):
 
 class StartJobDecision:
     def __init__(self, user, job_id, data):
-        self.error = None
         self.operator = user
         self.data = data
         self.job = self.__get_job(job_id)
-        if self.error is not None:
-            return
         self.job_scheduler = self.__get_scheduler()
-        if self.error is not None:
-            return
         self.klever_core_data = self.__get_klever_core_data()
         self.__check_schedulers()
-        if self.error is not None:
-            return
         self.progress = self.__create_solving_progress()
-        if self.error is not None:
-            return
         try:
             ReportRoot.objects.get(job=self.job).delete()
         except ObjectDoesNotExist:
@@ -765,18 +753,15 @@ class StartJobDecision:
         try:
             return Scheduler.objects.get(type=self.data[0][1])
         except ObjectDoesNotExist:
-            self.error = _('The scheduler was not found')
-            return None
+            raise BridgeException(_('The scheduler was not found'))
 
     def __get_job(self, job_id):
         try:
             job = Job.objects.get(pk=job_id)
         except ObjectDoesNotExist:
-            self.error = _('The job was not found')
-            return
+            raise BridgeException(_('The job was not found'))
         if not JobAccess(self.operator, job).can_decide():
-            self.error = _("You don't have an access to start decision of this job")
-            return
+            raise BridgeException(_("You don't have an access to start decision of this job"))
         return job
 
     def __create_solving_progress(self):
@@ -807,17 +792,13 @@ class StartJobDecision:
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            self.error = _('Unknown error')
-            return
+            raise BridgeException()
         if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _('The Klever scheduler is disconnected')
-            return
+            raise BridgeException(_('The Klever scheduler is disconnected'))
         if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
             if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                self.error = _('The VerifierCloud scheduler is disconnected')
-                return
+                raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
             try:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
-                self.error = _("You didn't specify credentials for VerifierCloud")
-                return
+                raise BridgeException(_("You didn't specify credentials for VerifierCloud"))

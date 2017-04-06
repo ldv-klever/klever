@@ -21,16 +21,15 @@ import json
 import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q, Case, When, IntegerField
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
     DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
-from bridge.utils import logger
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
+from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
 from reports.models import CompareJobsInfo, TaskStatistic
@@ -427,9 +426,11 @@ def create_version(job, kwargs):
 
 def create_job(kwargs):
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        raise ValueError('The job title is required')
+        logger.error('The job name was not got')
+        raise BridgeException()
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        raise ValueError('The job author is required')
+        logger.error('The job author was not got')
+        raise BridgeException()
     newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
@@ -437,7 +438,8 @@ def create_job(kwargs):
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        raise ValueError('The parent or the job class is required')
+        logger.error('The parent or the job class are required')
+        raise BridgeException()
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
@@ -452,21 +454,16 @@ def create_job(kwargs):
         try:
             SaveFileData(kwargs['filedata'], new_version)
         except Exception as e:
+            logger.exception(e)
             newjob.delete()
-            raise e
+            raise BridgeException()
     if 'absolute_url' in kwargs:
-        newjob_url = reverse('jobs:job', args=[newjob.pk])
-        try:
-            Notify(newjob, 0, {
-                'absurl': kwargs['absolute_url'] + newjob_url
-            })
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # newjob_url = reverse('jobs:job', args=[newjob.pk])
+        # Notify(newjob, 0, {'absurl': kwargs['absolute_url'] + newjob_url})
+        pass
     else:
-        try:
-            Notify(newjob, 0)
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # Notify(newjob, 0)
+        pass
     return newjob
 
 
@@ -866,7 +863,7 @@ class GetConfiguration(object):
         return True
 
 
-class StartDecisionData(object):
+class StartDecisionData:
     def __init__(self, user, data):
         self.error = None
         self.default = data
@@ -915,6 +912,9 @@ class StartDecisionData(object):
                 cloud_sch.type,
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
+        elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
+            self.error = _('The scheduler for tasks is disconnected')
+            return []
         return schedulers
 
 

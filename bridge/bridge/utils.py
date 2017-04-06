@@ -30,6 +30,7 @@ from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
+from bridge.vars import UNKNOWN_ERROR
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -305,3 +306,13 @@ class RemoveFilesBeforeDelete:
 
     def __is_not_used(self):
         pass
+
+
+class BridgeException(Exception):
+    def __init__(self, message=None):
+        self.message = message
+        if self.message is None:
+            self.message = UNKNOWN_ERROR
+
+    def __str__(self):
+        return str(self.message)
