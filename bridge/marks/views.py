@@ -34,7 +34,8 @@ from django.utils.timezone import pytz
 
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent, BridgeException
+from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent, BridgeException,\
+    BridgeErrorResponse
 
 from users.models import View
 
@@ -67,18 +68,18 @@ def create_mark(request, mark_type, report_id):
                 problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(500)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
     if not MarkAccess(request.user, report=report).can_create():
-        return HttpResponseRedirect(reverse('error', args=[601]))
+        return BridgeErrorResponse(_("You don't have an access to create new marks"))
     tags = None
     if mark_type != 'unknown':
         try:
             tags = TagsInfo(mark_type, [])
         except Exception as e:
             logger.exception(e)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            return BridgeErrorResponse(500)
 
     return render(request, 'marks/CreateMark.html', {
         'report': report,
@@ -103,10 +104,10 @@ def view_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
 
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
@@ -122,7 +123,7 @@ def view_mark(request, mark_type, mark_id):
             tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
         except Exception as e:
             logger.exception(e)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            return BridgeErrorResponse(500)
     return render(request, 'marks/ViewMark.html', {
         'mark': mark,
         'version': last_version,
@@ -151,12 +152,12 @@ def edit_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     if not MarkAccess(request.user, mark=mark).can_edit():
-        return HttpResponseRedirect(reverse('error', args=[603]))
+        return BridgeErrorResponse(_("You don't have an access to edit this mark"))
 
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
@@ -172,7 +173,7 @@ def edit_mark(request, mark_type, mark_id):
             tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
         except Exception as e:
             logger.exception(e)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+            return BridgeErrorResponse(500)
 
     template = 'marks/EditMark.html'
     if mark_type == 'unknown':
@@ -403,9 +404,9 @@ def download_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     generator = MarkArchiveGenerator(mark)
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
@@ -458,9 +459,9 @@ def delete_mark(request, mark_type, mark_id):
     try:
         mark = obj_model[mark_type][0].objects.get(pk=mark_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if not MarkAccess(request.user, mark=mark).can_delete():
-        return HttpResponseRedirect(reverse('error', args=[602]))
+        return BridgeErrorResponse(_("You don't have an access to delete this mark"))
     DeleteMark(mark)
     if request.method == 'GET' and 'report_to_redirect' in request.GET:
         return HttpResponseRedirect(reverse('reports:%s' % mark_type, args=[request.GET['report_to_redirect']]))
@@ -573,11 +574,12 @@ def association_changes(request, association_id):
     try:
         ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
     try:
         data = json.loads(ass_ch.table_data)
-    except ValueError:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(request, 'marks/SaveMarkResult.html', {
         'MarkTable': data,
         'header': Header(data.get('columns', []), MARK_TITLES).struct
@@ -597,7 +599,7 @@ def show_tags(request, tags_type):
         tags_data = GetTagsData(tags_type)
     except Exception as e:
         logger.exception(e)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(500)
     return render(request, 'marks/TagsTree.html', {
         'title': page_title,
         'tags': tags_data.table.data,
@@ -805,8 +807,6 @@ def upload_all(request):
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': 'Unknown error'})
-    if res.error is not None:
-        return JsonResponse({'error': res.error})
     return JsonResponse(res.numbers)
 
 

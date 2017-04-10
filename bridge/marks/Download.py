@@ -334,7 +334,6 @@ class ReadMarkArchive:
 
 class UploadAllMarks:
     def __init__(self, user, marks_dir, delete_all_marks):
-        self.error = None
         self.user = user
         self.numbers = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}
         self.delete_all = delete_all_marks

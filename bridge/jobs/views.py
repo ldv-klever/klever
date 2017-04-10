@@ -24,19 +24,19 @@ from difflib import unified_diff
 from wsgiref.util import FileWrapper
 
 from django.conf import settings
-
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
 from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES
-from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive, logger, BridgeException
+from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive, logger,\
+    BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
 from reports.models import ReportComponent
@@ -193,11 +193,10 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
-
+        return BridgeErrorResponse(404)
     job_access = jobs.utils.JobAccess(request.user, job)
     if not job_access.can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     parent_set = []
     next_parent = job.parent
@@ -547,13 +546,14 @@ def upload_file(request):
 @unparallel_group(['FileSystem', 'JobFile'])
 def download_file(request, file_id):
     if request.method == 'POST':
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(301)
     try:
-        source = jobs.utils.FileSystem.objects.get(pk=int(file_id))
+        source = jobs.utils.FileSystem.objects.get(pk=file_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_('The file was not found'))
     if source.file is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        logger.error('Trying to download directory')
+        return BridgeErrorResponse(500)
 
     mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
     response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
@@ -568,9 +568,9 @@ def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
+        return BridgeErrorResponse(404)
     if not jobs.utils.JobAccess(request.user, job).can_download():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     generator = JobArchiveGenerator(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
@@ -583,15 +583,12 @@ def download_job(request, job_id):
 @unparallel_group(['Job'])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
-        return HttpResponseRedirect(
-            reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-        )
+        return BridgeErrorResponse(301, back=reverse('jobs:tree'))
     jobs_list = Job.objects.filter(pk__in=json.loads(request.POST['job_ids']))
     for job in jobs_list:
         if not jobs.utils.JobAccess(request.user, job).can_download():
-            return HttpResponseRedirect(
-                reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
-            )
+            return BridgeErrorResponse(_("You don't have an access to one of the selected jobs"),
+                                       back=reverse('jobs:tree'))
     generator = JobsArchivesGen(jobs_list)
 
     mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
@@ -642,23 +639,20 @@ def upload_job(request, parent_id=None):
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
         try:
-            zipdata = UploadJob(parent, request.user, job_dir.name)
+            UploadJob(parent, request.user, job_dir.name)
+        except BridgeException as e:
+            errors.append(
+                _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': f.name, 'message': str(e)
+                }
+            )
         except Exception as e:
             logger.exception(e)
             errors.append(
                 _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                    'arcname': f.name,
-                    'message': _('The job archive is corrupted')
+                    'arcname': f.name, 'message': _('The job archive is corrupted')
                 }
             )
-        else:
-            if zipdata.err_message is not None:
-                errors.append(
-                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                        'arcname': f.name,
-                        'message': str(zipdata.err_message)
-                    }
-                )
     if len(errors) > 0:
         return JsonResponse({'errors': list(str(x) for x in errors)})
     return JsonResponse({})
@@ -776,29 +770,37 @@ def prepare_decision(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
+        return BridgeErrorResponse(404)
     if request.method == 'POST' and 'conf_name' in request.POST:
         current_conf = request.POST['conf_name']
         if request.POST['conf_name'] == 'file_conf':
             if 'file_conf' not in request.FILES:
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(301)
             try:
                 configuration = jobs.utils.GetConfiguration(
                     file_conf=json.loads(request.FILES['file_conf'].read().decode('utf8'))
                 ).configuration
             except Exception as e:
                 logger.exception(e, stack_info=True)
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(500)
         else:
             configuration = jobs.utils.GetConfiguration(conf_name=request.POST['conf_name']).configuration
     else:
         configuration = jobs.utils.GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE).configuration
         current_conf = settings.DEF_KLEVER_CORE_MODE
     if configuration is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(500)
+
+    try:
+        data = jobs.utils.StartDecisionData(request.user, configuration)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(request, 'jobs/startDecision.html', {
-        'job': job, 'data': jobs.utils.StartDecisionData(request.user, configuration),
-        'configurations': jobs.utils.get_default_configurations(), 'current_conf': current_conf
+        'job': job, 'data': data, 'current_conf': current_conf,
+        'configurations': jobs.utils.get_default_configurations()
     })
 
 
@@ -872,15 +874,17 @@ def jobs_files_comparison(request, job1_id, job2_id):
         job1 = Job.objects.get(pk=job1_id)
         job2 = Job.objects.get(pk=job2_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[405]))
+        return BridgeErrorResponse(405)
     if not can_compare(request.user, job1, job2):
-        return HttpResponseRedirect(reverse('error', args=[507]))
-    res = jobs.utils.GetFilesComparison(request.user, job1, job2)
-    return render(request, 'jobs/comparison.html', {
-        'job1': job1,
-        'job2': job2,
-        'data': res.data
-    })
+        return BridgeErrorResponse(507)
+    try:
+        data = jobs.utils.GetFilesComparison(request.user, job1, job2).data
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'jobs/comparison.html', {'job1': job1, 'job2': job2, 'data': data})
 
 
 @login_required
@@ -922,7 +926,7 @@ def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_('The configuration was not found'))
 
     file_name = "job-%s.conf" % run_history.job.identifier[:5]
     mimetype = mimetypes.guess_type(file_name)[0]
@@ -998,13 +1002,13 @@ def do_job_has_children(request):
 @unparallel_group(['Job'])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(301)
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
+        return BridgeErrorResponse(404)
     if not jobs.utils.JobAccess(request.user, job).can_dfc():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]

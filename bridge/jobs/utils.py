@@ -655,8 +655,7 @@ class GetFilesComparison(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('The comparison cache was not found')
-            return
+            raise BridgeException(_('The comparison cache was not found'))
         return json.loads(info.files_diff)
 
 
@@ -694,6 +693,7 @@ class GetConfiguration(object):
         elif user_conf is not None:
             self.__get_user_conf(user_conf)
         if not self.__check_conf():
+            logger.error("The configuration didn't pass checks")
             self.configuration = None
 
     def __get_default_conf(self, name):
@@ -865,14 +865,9 @@ class GetConfiguration(object):
 
 class StartDecisionData:
     def __init__(self, user, data):
-        self.error = None
         self.default = data
-
         self.job_sch_err = None
         self.schedulers = self.__get_schedulers()
-        if self.error is not None:
-            return
-
         self.priorities = list(reversed(PRIORITY))
         self.logging_levels = LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
@@ -891,18 +886,15 @@ class StartDecisionData:
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         try:
             cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
             self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _("The Klever scheduler is disconnected")
-            return []
+            raise BridgeException(_('The Klever scheduler is disconnected'))
         schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
@@ -913,8 +905,7 @@ class StartDecisionData:
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
         elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
-            self.error = _('The scheduler for tasks is disconnected')
-            return []
+            raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
 
 

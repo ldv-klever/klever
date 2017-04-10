@@ -123,7 +123,7 @@ class ReportTree(object):
         del self._leaves_data[l_type]
 
 
-class CompareTree(object):
+class CompareTree:
     def __init__(self, user, j1, j2):
         self.user = user
         self.tree1 = ReportTree(j1)
@@ -166,13 +166,12 @@ class CompareTree(object):
         ) for x in self.attr_values))
 
 
-class ComparisonTableData(object):
+class ComparisonTableData:
     def __init__(self, user, j1, j2):
         self.job1 = j1
         self.job2 = j2
         self.user = user
         self.data = []
-        self.error = None
         self.info = 0
         self.attrs = []
         self.__get_data()
@@ -181,8 +180,7 @@ class ComparisonTableData(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('The comparison cache was not found')
-            return
+            raise BridgeException(_('The comparison cache was not found'))
         self.info = info.pk
 
         numbers = {}
@@ -199,15 +197,9 @@ class ComparisonTableData(object):
             self.data.append(row_data)
         all_attrs = {}
         for compare in info.comparejobscache_set.all():
-            try:
-                attr_values = compare.attr_values.split('|')
-            except Exception as e:
-                logger.exception("Json parsing error: %s" % e, stack_info=True)
-                self.error = 'Unknown error'
-                return
+            attr_values = compare.attr_values.split('|')
             if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
-                self.error = 'Unknown error'
-                return
+                raise BridgeException(_('The comparison cache was corrupted'))
             for i in range(len(attr_values)):
                 if JOBS_COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
                     all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]] = []

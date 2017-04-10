@@ -39,7 +39,7 @@ class ConvertTrace:
 
     def __init__(self, function_name, error_trace):
         """
-        If something failed self.error is not None.
+        If something failed raise BridgeException().
         In case of success you need just self.patter_error_trace.
         :param function_name: name of the function (str).
         :param error_trace: error trace (str).
