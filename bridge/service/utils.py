@@ -257,6 +257,24 @@ class GetTasks:
         for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
                 .annotate(sol=F('solution__id')):
             all_tasks[task.status.lower()].append(task)
+
+        for old_status in ['error', 'finished']:
+            for task in all_tasks[old_status]:
+                for new_status in ['pending', 'processing', 'error', 'finished']:
+                    if str(task.pk) in data['tasks'][new_status]:
+                        raise ServiceError("The task '%s' with status '%s' has become '%s'" % (
+                            task.id, old_status.upper(), new_status.upper()
+                        ))
+        for task in all_tasks['processing']:
+            if str(task.id) in data['tasks']['pending']:
+                raise ServiceError("The task '%s' with status 'PROCESSING' has become 'PENDING'" % task.id)
+        for j_id in data['job errors']:
+            if len(data['job errors'][j_id]) > 1024:
+                raise ServiceError("Length of error for job with id '%s' must be less than 1024 characters" % j_id)
+        for t_id in data['task errors']:
+            if len(data['task errors'][t_id]) > 1024:
+                raise ServiceError("Length of error for task with id '%s' must be less than 1024 characters" % t_id)
+
         for task in all_tasks['pending']:
             if str(task.id) in data['tasks']['pending']:
                 self._data['tasks']['pending'].append(str(task.id))
@@ -284,13 +302,12 @@ class GetTasks:
                 self._solution_req.add(task.id)
                 self.__add_description(task)
         for task in all_tasks['processing']:
-            if str(task.id) in data['tasks']['pending']:
+            # if str(task.id) in data['tasks']['pending']:
                 # TODO: check if there are cases when task status changes from processing to pending
                 # self.data['tasks']['pending'].append(str(task.id))
                 # self.__change_status(task, 'processing', 'pending')
                 # self._solution_req.add(task.id)
-                raise ServiceError("The task '%s' with status 'PROCESSING' has become 'PENDING'" % task.id)
-            elif str(task.id) in data['tasks']['processing']:
+            if str(task.id) in data['tasks']['processing']:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
             elif str(task.id) in data['tasks']['finished']:
@@ -308,13 +325,6 @@ class GetTasks:
             else:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
-        for old_status in ['error', 'finished']:
-            for task in all_tasks[old_status]:
-                for new_status in ['pending', 'processing', 'error', 'finished']:
-                    if str(task.pk) in data['tasks'][new_status]:
-                        raise ServiceError("The task '%s' with status '%s' has become '%s'" % (
-                            task.id, old_status.upper(), new_status.upper()
-                        ))
         # There are no cancelled tasks because when the task is cancelled it is deleted,
         # and there are no changes of status to cancelled in get_jobs_and_tasks_status()
 
@@ -365,7 +375,7 @@ class GetTasks:
         task_id = str(task.id)
         self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
         # TODO: does description have to have 'id'?
-        self._data['task descriptions'][task_id]['description']['id'] = task_id
+        # self._data['task descriptions'][task_id]['description']['id'] = task_id
         if self._scheduler.type == SCHEDULER_TYPE[1][0]:
             if task.progress_id in self._operators:
                 self._data['task descriptions'][task_id]['VerifierCloud user name'] = \

@@ -727,6 +727,7 @@ class GetConfiguration(object):
         for sch in SCHEDULER_TYPE:
             if sch[1] == filedata['task scheduler']:
                 scheduler = sch[0]
+                break
         if scheduler is None:
             logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
