@@ -119,19 +119,6 @@ class RemoveTask:
         self.task.delete()
 
 
-class RemoveAllTasks:
-    def __init__(self, progress):
-        if progress.job.status != JOB_STATUS[2][0]:
-            raise ServiceError('The job is not processing')
-        if progress.task_set.filter(status__in={TASK_STATUS[0][0], TASK_STATUS[0][1]}).count() > 0:
-            raise ServiceError('There are unfinished tasks')
-        if progress.task_set.filter(status=TASK_STATUS[3][0], error=None).count() > 0:
-            raise ServiceError('There are tasks finished with error and without error descriptions')
-        if progress.task_set.filter(status=TASK_STATUS[2][0], solution=None).count() > 0:
-            raise ServiceError('There are finished tasks without solutions')
-        progress.task_set.all().delete()
-
-
 class CancelTask:
     def __init__(self, task_id):
         try:
@@ -156,24 +143,78 @@ class CancelTask:
         self.task.delete()
 
 
-class KleverCoreFinishDecision:
-    def __init__(self, job, error=None):
+class FinishJobDecision:
+    def __init__(self, inst, status, error=None):
+        if isinstance(inst, SolvingProgress):
+            self.progress = inst
+            self.job = self.progress.job
+        elif isinstance(inst, Job):
+            self.job = inst
+            try:
+                self.progress = SolvingProgress.objects.get(job=self.job)
+            except ObjectDoesNotExist:
+                logger.exception('The job does not have solving progress')
+                change_job_status(self.job, JOB_STATUS[5][0])
+                return
+        else:
+            raise ValueError('Unsupported argument: %s' % type(inst))
+        if error is not None and len(error) > 1024:
+            error = error[:1021] + '...'
+        self.error = error
+        self.status = self.__get_status(status)
         try:
-            self.progress = SolvingProgress.objects.get(job=job)
-        except ObjectDoesNotExist:
-            logger.exception('The job does not have solving progress')
-            change_job_status(job, JOB_STATUS[5][0])
-            return
-        try:
-            RemoveAllTasks(self.progress)
-        except Exception as e:
+            self.__remove_tasks()
+        except ServiceError as e:
+            logger.exception(e)
             self.progress.error = str(e)
-        if error is not None:
-            self.progress.error = error
-        if self.progress.error is not None:
-            change_job_status(job, JOB_STATUS[5][0])
+            self.status = JOB_STATUS[5][0]
+        if self.error is not None:
+            self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
+        change_job_status(self.job, self.status)
+
+    def __remove_tasks(self):
+        if self.progress.job.status == JOB_STATUS[1][0]:
+            return
+        elif self.progress.job.status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
+        elif self.progress.task_set.filter(status__in={TASK_STATUS[0][0], TASK_STATUS[0][1]}).count() > 0:
+            raise ServiceError('There are unfinished tasks')
+        elif self.progress.task_set.filter(status=TASK_STATUS[3][0], error=None).count() > 0:
+            raise ServiceError('There are tasks finished with error and without error descriptions')
+        elif self.progress.task_set.filter(status=TASK_STATUS[2][0], solution=None).count() > 0:
+            raise ServiceError('There are finished tasks without solutions')
+        self.progress.task_set.all().delete()
+
+    def __get_status(self, status):
+        if status not in set(x[0] for x in JOB_STATUS):
+            raise ValueError('Unsupported status: %s' % status)
+        if status == JOB_STATUS[3][0]:
+            if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0:
+                self.error = 'There are unfinished reports'
+                return JOB_STATUS[5][0]
+            try:
+                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+            except ObjectDoesNotExist:
+                self.error = "The job doesn't have Core report"
+                return JOB_STATUS[5][0]
+            if ReportUnknown.objects\
+                    .filter(parent=core_r, component=core_r.component, root=self.progress.job.reportroot).count() > 0:
+                status = JOB_STATUS[4][0]
+        elif status == JOB_STATUS[4][0]:
+            try:
+                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+            except ObjectDoesNotExist:
+                pass
+            else:
+                if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0 \
+                        or ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                        root=self.progress.job.reportroot).count() == 0:
+                    status = JOB_STATUS[7][0]
+            if self.error is None:
+                self.error = "The scheduler hasn't given an error description"
+        return status
 
 
 class KleverCoreStartDecision:
@@ -234,12 +275,7 @@ class GetTasks:
             'job errors': {},
             'job configurations': {}
         }
-        try:
-            self.__get_tasks(tasks)
-        except KeyError or IndexError:
-            raise ServiceError('Wrong task data format')
-        except Exception:
-            raise ServiceError('Unknown error')
+        self.__get_tasks(tasks)
         try:
             self.newtasks = json.dumps(self._data, ensure_ascii=False, sort_keys=True, indent=4)
         except ValueError:
@@ -247,15 +283,40 @@ class GetTasks:
 
     def __get_tasks(self, tasks):
         data = json.loads(tasks)
-        all_tasks = {
-            'pending': [],
-            'processing': [],
-            'error': [],
-            'finished': [],
-            'cancelled': []
-        }
+
+        # Check lenghts of error messages
+        for j_id in data['job errors']:
+            if len(data['job errors'][j_id]) > 1024:
+                raise ServiceError("Length of error for job with id '%s' must be less than 1024 characters" % j_id)
+        for t_id in data['task errors']:
+            if len(data['task errors'][t_id]) > 1024:
+                raise ServiceError("Length of error for task with id '%s' must be less than 1024 characters" % t_id)
+
+        # Finish job decisions and add pending/processing/cancelled jobs
+        if self._scheduler.type == SCHEDULER_TYPE[0][0]:
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
+                if progress.job.identifier in data['jobs']['finished']:
+                    FinishJobDecision(progress, JOB_STATUS[5][0], "The job can't be finished as it is still pending")
+                elif progress.job.identifier in data['jobs']['error']:
+                    FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
+                else:
+                    self._data['job configurations'][progress.job.identifier] = \
+                        json.loads(progress.configuration.decode('utf8'))
+                    self._data['jobs']['pending'].append(progress.job.identifier)
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
+                if progress.job.identifier in data['jobs']['finished']:
+                    FinishJobDecision(progress, JOB_STATUS[3][0])
+                elif progress.job.identifier in data['jobs']['error']:
+                    FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
+                else:
+                    self._data['jobs']['processing'].append(progress.job.identifier)
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
+                self._data['jobs']['cancelled'].append(progress[0])
+
+        # Everything with tasks
+        all_tasks = dict((x[0].lower(), []) for x in TASK_STATUS)
         for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
-                .annotate(sol=F('solution__id')):
+                .annotate(sol=F('solution__id')).order_by('id'):
             all_tasks[task.status.lower()].append(task)
 
         for old_status in ['error', 'finished']:
@@ -268,12 +329,6 @@ class GetTasks:
         for task in all_tasks['processing']:
             if str(task.id) in data['tasks']['pending']:
                 raise ServiceError("The task '%s' with status 'PROCESSING' has become 'PENDING'" % task.id)
-        for j_id in data['job errors']:
-            if len(data['job errors'][j_id]) > 1024:
-                raise ServiceError("Length of error for job with id '%s' must be less than 1024 characters" % j_id)
-        for t_id in data['task errors']:
-            if len(data['task errors'][t_id]) > 1024:
-                raise ServiceError("Length of error for task with id '%s' must be less than 1024 characters" % t_id)
 
         for task in all_tasks['pending']:
             if str(task.id) in data['tasks']['pending']:
@@ -302,11 +357,6 @@ class GetTasks:
                 self._solution_req.add(task.id)
                 self.__add_description(task)
         for task in all_tasks['processing']:
-            # if str(task.id) in data['tasks']['pending']:
-                # TODO: check if there are cases when task status changes from processing to pending
-                # self.data['tasks']['pending'].append(str(task.id))
-                # self.__change_status(task, 'processing', 'pending')
-                # self._solution_req.add(task.id)
             if str(task.id) in data['tasks']['processing']:
                 self._data['tasks']['processing'].append(str(task.id))
                 self._solution_req.add(task.id)
@@ -327,55 +377,11 @@ class GetTasks:
                 self._solution_req.add(task.id)
         # There are no cancelled tasks because when the task is cancelled it is deleted,
         # and there are no changes of status to cancelled in get_jobs_and_tasks_status()
-
         self.__finish_with_tasks()
-        if self._scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
-                self._data['job configurations'][progress.job.identifier] = \
-                    json.loads(progress.configuration.decode('utf8'))
-                if progress.job.identifier in data['jobs']['error']:
-                    change_job_status(progress.job, JOB_STATUS[4][0])
-                    progress.error = data['job errors']\
-                        .get(progress.job.identifier, "The scheduler hasn't given an error description")
-                    progress.save()
-                else:
-                    self._data['jobs']['pending'].append(progress.job.identifier)
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
-                if progress.job.identifier in data['jobs']['finished']:
-                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
-                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() > 0:
-                        if progress.error is None:
-                            progress.error = "There are unfinished reports"
-                            progress.save()
-                        change_job_status(progress.job, JOB_STATUS[5][0])
-                    elif ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
-                                                      root=progress.job.reportroot).count() > 0:
-                        change_job_status(progress.job, JOB_STATUS[4][0])
-                    else:
-                        change_job_status(progress.job, JOB_STATUS[3][0])
-                elif progress.job.identifier in data['jobs']['error']:
-                    core_r = ReportComponent.objects.get(parent=None, root=progress.job.reportroot)
-                    if ReportComponent.objects.filter(root=progress.job.reportroot, finish_date=None).count() == 0 \
-                            and ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
-                                                             root=progress.job.reportroot).count() > 0:
-                        change_job_status(progress.job, JOB_STATUS[4][0])
-                    else:
-                        change_job_status(progress.job, JOB_STATUS[7][0])
-                    if progress.job.identifier in data['job errors']:
-                        progress.error = data['job errors'][progress.job.identifier]
-                    else:
-                        progress.error = "The scheduler hasn't given an error description"
-                    progress.save()
-                else:
-                    self._data['jobs']['processing'].append(progress.job.identifier)
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
-                self._data['jobs']['cancelled'].append(progress[0])
 
     def __add_description(self, task):
         task_id = str(task.id)
         self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
-        # TODO: does description have to have 'id'?
-        # self._data['task descriptions'][task_id]['description']['id'] = task_id
         if self._scheduler.type == SCHEDULER_TYPE[1][0]:
             if task.progress_id in self._operators:
                 self._data['task descriptions'][task_id]['VerifierCloud user name'] = \

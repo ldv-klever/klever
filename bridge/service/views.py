@@ -146,10 +146,12 @@ def get_jobs_and_tasks(request):
         return JsonResponse({'error': 'Tasks data is required'})
     try:
         jobs_and_tasks = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status']).newtasks
-    except Exception as e:
+    except ServiceError as e:
         # TODO: email notification
-        logger.exception(e)
         return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({'jobs and tasks status': jobs_and_tasks})
 
 
