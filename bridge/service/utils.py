@@ -158,9 +158,6 @@ class FinishJobDecision:
                 return
         else:
             raise ValueError('Unsupported argument: %s' % type(inst))
-        if error is not None and len(error) > 1024:
-            logger.error("The job '%s' finished with large error to be saved in DB: %s" % error)
-            error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
         self.error = error
         self.status = self.__get_status(status)
         try:
@@ -170,6 +167,10 @@ class FinishJobDecision:
             self.progress.error = str(e)
             self.status = JOB_STATUS[5][0]
         if self.error is not None:
+            if len(self.error) > 1024:
+                logger.error("The job '%s' finished with large error: %s" % (self.job.identifier, self.error))
+                self.error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
+                self.status = JOB_STATUS[5][0]
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
