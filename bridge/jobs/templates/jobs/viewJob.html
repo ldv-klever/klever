@@ -8,7 +8,7 @@
 
 {% block jobs_head_block %}<script src="{% static 'jobs/js/editjob.js' %}"></script>{% endblock %}
 
-{% block title %}{% trans 'Job' %}{% endblock %}
+{% block title %}{% trans 'Job' %} ({{ job.get_status_display }}){% endblock %}
 
 {% block body_block %}
     {% if job %}
