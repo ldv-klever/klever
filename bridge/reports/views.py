@@ -292,7 +292,7 @@ def report_unsafe(request, report_id):
         etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
     except Exception as e:
         logger.exception(e, stack_info=True)
-        return BridgeErrorResponse(505)
+        etv = None
     try:
         tags = TagsInfo('unsafe', [])
     except Exception as e:
@@ -312,7 +312,8 @@ def report_unsafe(request, report_id):
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
                 'markdata': MarkData('unsafe', report=report),
-                'tags': tags
+                'tags': tags,
+                'include_jquery_ui': True
             }
         )
     except Exception as e:
