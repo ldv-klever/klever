@@ -283,6 +283,20 @@ class GetTasks:
 
     def __get_tasks(self, tasks):
         data = json.loads(tasks)
+        if 'jobs' not in data:
+            data['jobs'] = {'error': [], 'finished': []}
+        if 'tasks' not in data:
+            data['tasks'] = {'pending': [], 'processing': [], 'error': [], 'finished': []}
+        for x in ['error', 'finished']:
+            if x not in data['jobs']:
+                data['jobs'][x] = []
+        for x in ['pending', 'processing', 'error', 'finished']:
+            if x not in data['tasks']:
+                data['tasks'][x] = []
+        if 'task errors' not in data:
+            data['task errors'] = {}
+        if 'job errors' not in data:
+            data['job errors'] = {}
 
         # Check lenghts of error messages
         for j_id in data['job errors']:
@@ -431,6 +445,9 @@ class GetTasks:
             self._progresses[progress_id].save()
         for solution in Solution.objects.filter(task_id__in=self._solution_req):
             self._data['task solutions'][str(solution.task_id)] = json.loads(solution.description.decode('utf8'))
+
+    def __is_not_used(self):
+        pass
 
 
 class GetTaskData:
