@@ -584,23 +584,12 @@ class GetSource(object):
             new_line += self.__wrap_line('//' + m.group(2), 'comment')
             return new_line
 
-        m = re.match('(.*?)"(.*)', line)
+        m = re.match('(.*?)([\'\"])(.*)', line)
         if m is not None:
             new_line = self.__parse_line(m.group(1))
-            self.text_quote = '"'
-            before, after = self.__parse_text(m.group(2))
-            new_line += self.__wrap_line('"' + before, 'text')
-            if after is None:
-                self.is_text = True
-                return new_line
-            self.is_text = False
-            return new_line + self.__parse_line(after)
-        m = re.match("(.*?)'(.*)", line)
-        if m is not None:
-            new_line = self.__parse_line(m.group(1))
-            self.text_quote = "'"
-            before, after = self.__parse_text(m.group(2))
-            new_line += self.__wrap_line("'" + before, 'text')
+            self.text_quote = m.group(2)
+            before, after = self.__parse_text(m.group(3))
+            new_line += self.__wrap_line(self.text_quote + before, 'text')
             if after is None:
                 self.is_text = True
                 return new_line
