@@ -159,7 +159,8 @@ class FinishJobDecision:
         else:
             raise ValueError('Unsupported argument: %s' % type(inst))
         if error is not None and len(error) > 1024:
-            error = error[:1021] + '...'
+            logger.error("The job '%s' finished with large error to be saved in DB: %s" % error)
+            error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
         self.error = error
         self.status = self.__get_status(status)
         try:
@@ -298,14 +299,6 @@ class GetTasks:
         if 'job errors' not in data:
             data['job errors'] = {}
 
-        # Check lenghts of error messages
-        for j_id in data['job errors']:
-            if len(data['job errors'][j_id]) > 1024:
-                raise ServiceError("Length of error for job with id '%s' must be less than 1024 characters" % j_id)
-        for t_id in data['task errors']:
-            if len(data['task errors'][t_id]) > 1024:
-                raise ServiceError("Length of error for task with id '%s' must be less than 1024 characters" % t_id)
-
         # Finish job decisions and add pending/processing/cancelled jobs
         if self._scheduler.type == SCHEDULER_TYPE[0][0]:
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
@@ -361,7 +354,10 @@ class GetTasks:
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
                 if str(task.id) in data['task errors']:
-                    task.error = data['task errors'][str(task.id)]
+                    if len(data['task errors'][str(task.id)]) > 1024:
+                        task.error = "Length of error for task with id '%s' must be less than 1024 characters" % task.id
+                    else:
+                        task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
@@ -381,7 +377,10 @@ class GetTasks:
                     logger.error('There are finished tasks without solutions', stack_info=True)
             elif str(task.id) in data['tasks']['error']:
                 if str(task.id) in data['task errors']:
-                    task.error = data['task errors'][str(task.id)]
+                    if len(data['task errors'][str(task.id)]) > 1024:
+                        task.error = "Length of error for task with id '%s' must be less than 1024 characters" % task.id
+                    else:
+                        task.error = data['task errors'][str(task.id)]
                 else:
                     task.error = "The scheduler hasn't given error description"
                 task.save()
