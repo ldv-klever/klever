@@ -28,6 +28,7 @@ from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
     SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
+from users.models import View
 from jobs.utils import get_resource_data, get_user_time
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
     ReportRoot
@@ -136,19 +137,15 @@ class ReportTable(object):
         elif view_id == 'default':
             return def_views[self.type], 'default'
         else:
-            user_view = self.user.view_set.filter(id=int(view_id), type=self.type).first()
+            user_view = View.objects.filter(
+                Q(id=view_id, type=self.type) & (Q(shared=True) | Q(author=self.user))
+            ).first()
             if user_view:
                 return json.loads(user_view.view), user_view.id
         return def_views[self.type], 'default'
 
     def __views(self):
-        views = []
-        for view in self.user.view_set.filter(type=self.type):
-            views.append({
-                'id': view.pk,
-                'name': view.name
-            })
-        return views
+        return View.objects.filter(Q(type=self.type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_table_data(self):
         actions = {

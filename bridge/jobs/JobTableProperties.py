@@ -22,6 +22,7 @@ from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT
+from users.models import View
 from jobs.models import Job, JobHistory, UserRole, RunHistory
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
@@ -93,26 +94,26 @@ def get_view(user, view=None, view_id=None):
     elif view_id == 'default':
         return JOB_DEF_VIEW, 'default'
     else:
-        user_view = user.view_set.filter(pk=int(view_id), type='1').first()
+        user_view = View.objects.filter(Q(id=view_id, type='1') & (Q(shared=True) | Q(author=user))).first()
         if user_view:
             return json.loads(user_view.view), user_view.pk
     return JOB_DEF_VIEW, 'default'
 
 
-class FilterForm(object):
-
+class FilterForm:
     def __init__(self, user, view=None, view_id=None):
+        self.user = user
         (self.view, self.view_id) = get_view(user, view, view_id)
+        self.user_views = self.__user_views()
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
         self.selected_orders = self.__selected_orders()
         self.available_orders = self.__available_orders()
         self.available_filters = []
         self.selected_filters = self.__view_filters()
-        self.user_views = self.__user_views(user)
 
     def __column_title(self, column):
-        self.ccc = 1
+        self.__is_not_used()
         col_parts = column.split(':')
         column_starts = []
         for i in range(0, len(col_parts)):
@@ -174,16 +175,8 @@ class FilterForm(object):
                 })
         return new_orders
 
-    def __user_views(self, user):
-        view_data = []
-        views = user.view_set.filter(type='1')
-        for v in views:
-            view_data.append({
-                'title': v.name,
-                'id': v.pk,
-                'selected': (self.view_id == v.pk)
-            })
-        return view_data
+    def __user_views(self):
+        return View.objects.filter(Q(type='1') & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __view_filters(self):
         view_filters = []
@@ -214,8 +207,11 @@ class FilterForm(object):
                 })
         return view_filters
 
+    def __is_not_used(self):
+        pass
 
-class TableTree(object):
+
+class TableTree:
     def __init__(self, user, view=None, view_id=None):
         self._user = user
         self._columns = ['name']

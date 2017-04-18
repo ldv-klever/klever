@@ -354,11 +354,7 @@ def mark_list(request, marks_type):
         'safe': MARK_SAFE,
         'unknown': []
     }
-    view_type = {
-        'unsafe': '7',
-        'safe': '8',
-        'unknown': '9'
-    }
+    view_type = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
     table_args = [request.user, marks_type]
     if request.method == 'POST':
         if request.POST.get('view_type', None) == view_type[marks_type]:
@@ -372,9 +368,7 @@ def mark_list(request, marks_type):
         'statuses': MARK_STATUS,
         'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],
-        'authors': User.objects.all(),
-        'view_type': view_type[marks_type],
-        'views': View.objects.filter(type=view_type[marks_type]),
+        'authors': User.objects.all()
     })
 
 

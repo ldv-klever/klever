@@ -23,6 +23,7 @@ from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
 from bridge.utils import unique_id
+from users.models import View
 from marks.models import *
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -387,8 +388,12 @@ class MarksList:
         self.type = marks_type
         if self.type not in {'unsafe', 'safe', 'unknown'}:
             return
+        view_types = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
+        self.view_type = view_types[self.type]
+
         self.authors = []
         self.view, self.view_id = self.__get_view(view, view_id)
+        self.views = self.__views()
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
         if self.type != 'unknown':
@@ -396,32 +401,30 @@ class MarksList:
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
 
+    def __views(self):
+        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
+
     def __get_view(self, view, view_id):
         def_views = {
             'unsafe': MARKS_UNSAFE_VIEW,
             'safe': MARKS_SAFE_VIEW,
             'unknown': MARKS_UNKNOWN_VIEW
         }
-        view_types = {
-            'unsafe': '7',
-            'safe': '8',
-            'unknown': '9',
-        }
 
         if view is not None:
             return json.loads(view), None
         if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=view_types[self.type])
+            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
             if len(pref_view) > 0:
                 return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
             return def_views[self.type], 'default'
         else:
-            try:
-                user_view = self.user.view_set.get(pk=int(view_id), type=view_types[self.type])
+            user_view = View.objects.filter(
+                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))
+            ).first()
+            if user_view:
                 return json.loads(user_view.view), user_view.pk
-            except ObjectDoesNotExist:
-                pass
         return def_views[self.type], 'default'
 
     def __get_columns(self):

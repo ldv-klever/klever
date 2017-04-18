@@ -3,7 +3,7 @@
 {% load i18n %}
 {% block title %}{% if type == 'safe' %}{% trans 'Safe marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
 {% block body_block %}
-    <input id="view_type" type="hidden" value="{{ view_type }}">
+    <input id="view_type" type="hidden" value="{{ tabledata.view_type }}">
     <input id="marks_type" type="hidden" value="{{ type }}">
     <div class="ui grid">
         <div class="one wide column right aligned">
@@ -17,7 +17,7 @@
     {% if tabledata.values|length %}
         <h2 class="header" style="text-align:center">{{ title }}</h2>
         <div style="overflow-x:auto;max-height: 75vh;overflow-y:auto;">
-            <table class="ui compact celled table {% if view_type == '7' %}orange{% elif view_type == '8' %}green{% elif view_type == '9' %}red{% endif %}">
+            <table class="ui compact celled table {% if tabledata.view_type == '7' %}orange{% elif tabledata.view_type == '8' %}green{% elif tabledata.view_type == '9' %}red{% endif %}">
                 <thead>
                     {% for column_row in tabledata.header %}
                         <tr>

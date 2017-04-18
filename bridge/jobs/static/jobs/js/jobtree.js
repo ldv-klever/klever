@@ -512,6 +512,26 @@ $(document).ready(function () {
         });
     });
 
+    $('#share_view_btn').click(function () {
+        $.ajax({
+            method: 'post',
+            url: job_ajax_url + 'share_view/',
+            dataType: 'json',
+            data: {
+                view_id: $('#available_views').children('option:selected').val(),
+                view_type: '1'
+            },
+            success: function(data) {
+                if (data.error) {
+                    err_notify(data.error)
+                }
+                else {
+                    success_notify(data.message)
+                }
+            }
+        });
+    });
+
     $('#make_preferable_view_btn').click(function () {
         $.ajax({
             method: 'post',

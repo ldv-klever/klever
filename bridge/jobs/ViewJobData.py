@@ -21,6 +21,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
+from users.models import View
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 from reports.models import AttrStatistic
 
@@ -63,19 +64,13 @@ class ViewJobData(object):
         elif view_id == 'default':
             return VIEWJOB_DEF_VIEW, 'default'
         else:
-            user_view = self.user.view_set.filter(pk=int(view_id), type='2')
-            if len(user_view):
-                return json.loads(user_view[0].view), user_view[0].pk
+            user_view = View.objects.filter(Q(id=view_id, type='2') & (Q(shared=True) | Q(author=self.user))).first()
+            if user_view:
+                return json.loads(user_view.view), user_view.pk
         return VIEWJOB_DEF_VIEW, 'default'
 
     def __views(self):
-        views = []
-        for view in self.user.view_set.filter(type='2'):
-            views.append({
-                'id': view.pk,
-                'name': view.name
-            })
-        return views
+        return View.objects.filter(Q(type='2') & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_view_data(self):
         if 'data' not in self.view:

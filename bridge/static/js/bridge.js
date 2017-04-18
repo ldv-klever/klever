@@ -201,6 +201,25 @@ window.set_actions_for_views = function(filter_type, data_collection) {
             }
         });
     });
+    $('#' + filter_type + '__share_view_btn').click(function () {
+        $.ajax({
+            method: 'post',
+            url: job_ajax_url + 'share_view/',
+            dataType: 'json',
+            data: {
+                view_id: $('#' + filter_type + '__available_views').children('option:selected').val(),
+                view_type: filter_type
+            },
+            success: function(data) {
+                if (data.error) {
+                    err_notify(data.error)
+                }
+                else {
+                    success_notify(data.message)
+                }
+            }
+        });
+    });
 
     $('#' + filter_type + '__prefer_view_btn').click(function () {
         $.ajax({

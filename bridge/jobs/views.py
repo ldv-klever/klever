@@ -87,7 +87,7 @@ def preferable_view(request):
         return JsonResponse({'error': _("The default view is already preferred")})
 
     try:
-        user_view = View.objects.get(pk=int(view_id), author=request.user, type=view_type)
+        user_view = View.objects.get(Q(pk=view_id, type=view_type) & (Q(author=request.user) | Q(shared=True)))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The view was not found")})
     request.user.preferableview_set.filter(view__type=view_type).delete()
@@ -138,7 +138,7 @@ def save_view(request):
         try:
             new_view = request.user.view_set.get(pk=int(view_id))
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The view was not found')})
+            return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
     elif len(view_name) > 0:
         new_view = View()
         new_view.name = view_name
@@ -169,10 +169,35 @@ def remove_view(request):
     if v_id == 'default':
         return JsonResponse({'error': _("You can't remove the default view")})
     try:
-        View.objects.get(author=request.user, pk=int(v_id), type=view_type).delete()
+        View.objects.get(author=request.user, pk=v_id, type=view_type).delete()
     except ObjectDoesNotExist:
-        return JsonResponse({'error': _("The view was not found")})
+        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
     return JsonResponse({'message': _("The view was successfully removed")})
+
+
+@login_required
+@unparallel_group([View])
+def share_view(request):
+    activate(request.user.extended.language)
+
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Unknown error'})
+    v_id = request.POST.get('view_id', 0)
+    view_type = request.POST.get('view_type', None)
+    if view_type is None:
+        return JsonResponse({'error': 'Unknown error'})
+    if v_id == 'default':
+        return JsonResponse({'error': _("You can't share the default view")})
+    try:
+        view = View.objects.get(author=request.user, pk=v_id, type=view_type)
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The view was not found or you don't have an access to it")})
+    view.shared = not view.shared
+    view.save()
+    if view.shared:
+        return JsonResponse({'message': _("The view was successfully shared")})
+    PreferableView.objects.filter(view=view).exclude(user=request.user).delete()
+    return JsonResponse({'message': _("The view was hidden from other users")})
 
 
 @login_required

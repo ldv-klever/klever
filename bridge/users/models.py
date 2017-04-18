@@ -43,6 +43,7 @@ class View(models.Model):
     type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
     name = models.CharField(max_length=255)
     view = models.TextField()
+    shared = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

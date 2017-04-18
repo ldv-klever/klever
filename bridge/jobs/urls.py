@@ -32,6 +32,7 @@ urlpatterns = [
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
     url(r'^ajax/remove_view/$', views.remove_view),
+    url(r'^ajax/share_view/$', views.share_view),
     url(r'^ajax/preferable_view/$', views.preferable_view),
     url(r'^ajax/check_view_name/$', views.check_view_name),
     url(r'^ajax/removejobs/$', views.remove_jobs),
