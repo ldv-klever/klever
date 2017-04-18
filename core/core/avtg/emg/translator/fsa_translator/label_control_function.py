@@ -91,7 +91,7 @@ def normalize_fsa(automaton, composer):
     """
     new_states = list()
 
-    # Keep subprocess states as jumb points
+    # Keep subprocess states as jump points
     # Insert process and subprocess artificial single entry states
     for subprocess in (a for a in automaton.process.actions.values() if type(a) is Subprocess):
         new = automaton.fsa.new_state(None)
