@@ -349,6 +349,9 @@ def _remove_aux_functions(logger, error_trace):
                 continue
 
             if aux_func_return_edge:
+                # Do not remove auxiliary function since its return statement is not trivial.
+                if aux_func_return_edge['source'] != 'return;':
+                    continue
                 error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:

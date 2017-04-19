@@ -593,7 +593,7 @@
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "BranchForMerging:406f9a8",
+        "verifier version": "CPALockator:24629",
         "verifier configuration": "-local-lock-combination-linux"
       }
     }

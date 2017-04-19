@@ -26,25 +26,15 @@ DATAFORMAT = (
 
 # Do not use error code 500 (Unknown error)
 ERRORS = {
-    300: _("You don't have an access to this page"),
-    305: _("Can't populate without Manager and service user"),
+    301: _('Wrong request method or not enough request arguments'),
     400: _("You don't have an access to this job"),
-    401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
-    506: _("The comparison cache was not found or was corrupted"),
     507: _("You can't compare the selected jobs"),
-    508: _("The problem was not found"),
-    509: _("The tag was not found"),
-    601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark"),
-    603: _("You don't have an access to edit this mark"),
     604: _("The mark was not found"),
-    605: _('The mark is being deleted'),
-    606: _('Safe marks are disabled'),
-    704: _("The attribute was not found")
+    605: _('The mark is being deleted')
 }
 
 LANGUAGES = (
@@ -451,3 +441,6 @@ START_JOB_DEFAULT_MODES = {
 }
 
 REPORT_FILES_ARCHIVE = 'data.zip'
+
+# You can set translatable text _("Unknown error")
+UNKNOWN_ERROR = 'Unknown error'

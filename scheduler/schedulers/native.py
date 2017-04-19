@@ -547,12 +547,13 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Future task {!r}: get pid of the started process.".format(process.name))
         if process.pid:
             logging.debug("Future task {!r}: the pid is {!r}.".format(process.name, process.pid))
-            process.join()
+            j = process.join()
+            logging.debug("Future task {!r}: join method returned {!r}.".format(process.name, str(j)))
             logging.debug("Future task {!r}: process {!r} joined, going to check its exit code".
                           format(process.name, process.pid))
             ec = process.exitcode
             logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
-                          format(process.name, process.pid, str(-ec)))
+                          format(process.name, process.pid, str(ec)))
             if ec is not None:
                 if ec == 0:
                     return 0

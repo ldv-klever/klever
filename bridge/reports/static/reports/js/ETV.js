@@ -30,6 +30,9 @@ $(document).ready(function () {
             }
         });
     }
+    if (!etv_window.length) {
+        return false;
+    }
 
     function get_source_code(line, filename) {
 

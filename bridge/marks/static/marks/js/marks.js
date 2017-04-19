@@ -150,7 +150,7 @@ $(document).ready(function () {
             {savedata: collect_new_markdata()},
             function (data) {
                 if (data.error) {
-                    $(this).removeClass('disabled');
+                    $('#save_new_mark_btn').removeClass('disabled');
                     err_notify(data.error);
                 }
                 else if ('cache_id' in data) {

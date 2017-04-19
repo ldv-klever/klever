@@ -20,6 +20,7 @@ import json
 import mimetypes
 from io import BytesIO
 from urllib.parse import unquote
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.conf import settings
@@ -31,10 +32,14 @@ from django.template.defaulttags import register
 from django.template.loader import get_template
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
-from bridge.vars import USER_ROLES
+
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR
 from bridge.tableHead import Header
-from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent
+from bridge.utils import logger, unparallel_group, extract_archive, ArchiveFileContent, BridgeException,\
+    BridgeErrorResponse
+
 from users.models import View
+
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
 from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
@@ -66,17 +71,18 @@ def create_mark(request, mark_type, report_id):
                 problem_description = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (report.id, e))
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(500)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
     if not MarkAccess(request.user, report=report).can_create():
-        return HttpResponseRedirect(reverse('error', args=[601]))
+        return BridgeErrorResponse(_("You don't have an access to create new marks"))
     tags = None
     if mark_type != 'unknown':
-        tags = TagsInfo(mark_type, [])
-        if tags.error is not None:
-            logger.error(tags.error, stack_info=True)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+        try:
+            tags = TagsInfo(mark_type, [])
+        except Exception as e:
+            logger.exception(e)
+            return BridgeErrorResponse(500)
 
     return render(request, 'marks/CreateMark.html', {
         'report': report,
@@ -101,10 +107,10 @@ def view_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
 
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
@@ -116,10 +122,11 @@ def view_mark(request, mark_type, mark_id):
 
     tags = None
     if mark_type != 'unknown':
-        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
-        if tags.error is not None:
-            logger.error(tags.error, stack_info=True)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+        try:
+            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
+        except Exception as e:
+            logger.exception(e)
+            return BridgeErrorResponse(500)
     return render(request, 'marks/ViewMark.html', {
         'mark': mark,
         'version': last_version,
@@ -148,12 +155,12 @@ def edit_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     if not MarkAccess(request.user, mark=mark).can_edit():
-        return HttpResponseRedirect(reverse('error', args=[603]))
+        return BridgeErrorResponse(_("You don't have an access to edit this mark"))
 
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
@@ -165,10 +172,11 @@ def edit_mark(request, mark_type, mark_id):
 
     tags = None
     if mark_type != 'unknown':
-        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
-        if tags.error is not None:
-            logger.error(tags.error, stack_info=True)
-            return HttpResponseRedirect(reverse('error', args=[500]))
+        try:
+            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in last_version.tags.all()))
+        except Exception as e:
+            logger.exception(e)
+            return BridgeErrorResponse(500)
 
     template = 'marks/EditMark.html'
     if mark_type == 'unknown':
@@ -206,14 +214,14 @@ def save_mark(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         savedata = json.loads(unquote(request.POST.get('savedata', '{}')))
     except Exception as e:
-        logger.exception(e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if savedata.get('data_type') not in {'safe', 'unsafe', 'unknown'}:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     if 'report_id' in savedata:
         try:
@@ -242,21 +250,21 @@ def save_mark(request):
         if not MarkAccess(request.user, mark=inst).can_edit():
             return JsonResponse({'error': str(_("You don't have an access to this mark"))})
     else:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
         res = NewMark(inst, request.user, savedata['data_type'], savedata)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception("Error while saving/creating mark: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
-    if res.error is not None:
-        return JsonResponse({'error': str(res.error)})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
         return JsonResponse({'cache_id': MarkChangesTable(request.user, res.mark, res.changes).cache_id})
     except Exception as e:
         logger.exception('Error while saving changes of mark associations: %s' % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @login_required
@@ -265,26 +273,26 @@ def get_func_description(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     func_id = int(request.POST.get('func_id', '0'))
     func_type = request.POST.get('func_type', 'compare')
     if func_type == 'compare':
         try:
-            function = MarkUnsafeCompare.objects.get(pk=func_id)
+            func = MarkUnsafeCompare.objects.get(pk=func_id)
         except ObjectDoesNotExist:
             return JsonResponse({
                 'error': _('The error traces comparison function was not found')
             })
     elif func_type == 'convert':
         try:
-            function = MarkUnsafeConvert.objects.get(pk=func_id)
+            func = MarkUnsafeConvert.objects.get(pk=func_id)
         except ObjectDoesNotExist:
             return JsonResponse({
                 'error': _('The error traces conversion function was not found')
             })
     else:
-        return JsonResponse({'error': 'Unknown error'})
-    return JsonResponse({'description': function.description})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'description': func.description})
 
 
 @login_required
@@ -298,7 +306,7 @@ def get_mark_version_data(request):
 
     mark_type = request.POST.get('type', None)
     if mark_type not in ['safe', 'unsafe', 'unknown']:
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     error_trace = None
     try:
         if mark_type == 'unsafe':
@@ -333,9 +341,13 @@ def get_mark_version_data(request):
         })
     else:
         data_templ = get_template('marks/MarkAddData.html')
-        tags = TagsInfo(mark_type, list(tag.tag.pk for tag in mark_version.tags.all()))
-        if tags.error is not None:
-            return JsonResponse({'error': str(tags.error)})
+        try:
+            tags = TagsInfo(mark_type, list(tag.tag.pk for tag in mark_version.tags.all()))
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
         data = data_templ.render({
             'markdata': MarkData(mark_type, mark_version=mark_version),
             'tags': tags,
@@ -397,9 +409,9 @@ def download_mark(request, mark_type, mark_id):
         else:
             mark = MarkUnknown.objects.get(pk=int(mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if mark.version == 0:
-        return HttpResponseRedirect(reverse('error', args=[605]))
+        return BridgeErrorResponse(605)
 
     generator = MarkArchiveGenerator(mark)
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
@@ -414,10 +426,7 @@ def upload_marks(request):
     activate(request.user.extended.language)
 
     if not MarkAccess(request.user).can_create():
-        return JsonResponse({
-            'status': False,
-            'message': _("You don't have access to create new marks")
-        })
+        return JsonResponse({'status': False, 'message': _("You don't have access to create new marks")})
 
     failed_marks = []
     mark_id = None
@@ -426,16 +435,15 @@ def upload_marks(request):
     for f in request.FILES.getlist('file'):
         try:
             res = ReadMarkArchive(request.user, f)
+        except BridgeException as e:
+            failed_marks.append([str(e), f.name])
         except Exception as e:
             logger.exception(e)
-            failed_marks.append(['Unknown error', f.name])
+            failed_marks.append([str(UNKNOWN_ERROR), f.name])
         else:
-            if res.error is not None:
-                failed_marks.append([str(res.error), f.name])
-            else:
-                num_of_new_marks += 1
-                mark_id = res.mark.id
-                mark_type = res.type
+            num_of_new_marks += 1
+            mark_id = res.mark.id
+            mark_type = res.type
     if len(failed_marks) > 0:
         return JsonResponse({'status': False, 'messages': failed_marks})
     if num_of_new_marks == 1:
@@ -456,9 +464,9 @@ def delete_mark(request, mark_type, mark_id):
     try:
         mark = obj_model[mark_type][0].objects.get(pk=mark_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
     if not MarkAccess(request.user, mark=mark).can_delete():
-        return HttpResponseRedirect(reverse('error', args=[602]))
+        return BridgeErrorResponse(_("You don't have an access to delete this mark"))
     DeleteMark(mark)
     if request.method == 'GET' and 'report_to_redirect' in request.GET:
         return HttpResponseRedirect(reverse('reports:%s' % mark_type, args=[request.GET['report_to_redirect']]))
@@ -469,15 +477,13 @@ def delete_mark(request, mark_type, mark_id):
 @unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def delete_marks(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'type' not in request.POST or 'ids' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'type' not in request.POST or 'ids' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         mark_ids = json.loads(request.POST['ids'])
     except Exception as e:
         logger.exception("Json parsing error: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.POST['type'] == 'unsafe':
         marks = MarkUnsafe.objects.filter(id__in=mark_ids)
     elif request.POST['type'] == 'safe':
@@ -485,7 +491,7 @@ def delete_marks(request):
     elif request.POST['type'] == 'unknown':
         marks = MarkUnknown.objects.filter(id__in=mark_ids)
     else:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     if not all(MarkAccess(request.user, mark=mark).can_delete() for mark in marks):
         return JsonResponse({'error': _("You can't delete one of the selected mark")})
@@ -500,7 +506,7 @@ def remove_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:
@@ -511,9 +517,9 @@ def remove_versions(request):
         elif mark_type == 'unknown':
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
-            return JsonResponse({'error': 'Unknown error'})
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
         if mark.version == 0:
-            return JsonResponse({'error': 'The mark is being deleted'})
+            return JsonResponse({'error': _('The mark is being deleted')})
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
@@ -536,7 +542,7 @@ def get_mark_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     mark_id = int(request.POST.get('mark_id', 0))
     mark_type = request.POST.get('mark_type', None)
     try:
@@ -547,7 +553,7 @@ def get_mark_versions(request):
         elif mark_type == 'unknown':
             mark = MarkUnknown.objects.get(pk=mark_id)
         else:
-            return JsonResponse({'error': 'Unknown error'})
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
         if mark.version == 0:
             return JsonResponse({'error': 'The mark is being deleted'})
         mark_history = mark.versions.filter(
@@ -573,11 +579,12 @@ def association_changes(request, association_id):
     try:
         ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
     try:
         data = json.loads(ass_ch.table_data)
-    except ValueError:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(request, 'marks/SaveMarkResult.html', {
         'MarkTable': data,
         'header': Header(data.get('columns', []), MARK_TITLES).struct
@@ -593,10 +600,11 @@ def show_tags(request, tags_type):
         page_title = "Unsafe tags"
     else:
         page_title = "Safe tags"
-    tags_data = GetTagsData(tags_type)
-    if tags_data.error is not None:
-        logger.error("Can't get tags data: %s" % tags_data.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+    try:
+        tags_data = GetTagsData(tags_type)
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(request, 'marks/TagsTree.html', {
         'title': page_title,
         'tags': tags_data.table.data,
@@ -611,9 +619,9 @@ def get_tag_parents(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'tag_id' not in request.POST:
         if request.POST['tag_type'] == 'unsafe':
             return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
@@ -621,9 +629,13 @@ def get_tag_parents(request):
         else:
             return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
                                                        ensure_ascii=False, sort_keys=True, indent=4)})
-    res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
-    if res.error is not None:
-        return JsonResponse({'error': str(res.error)})
+    try:
+        res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({
         'parents': json.dumps(res.parents_ids, ensure_ascii=False, sort_keys=True, indent=4),
         'current': res.tag.parent_id if res.tag.parent_id is not None else 0
@@ -636,12 +648,16 @@ def save_tag(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tags(request.user):
         return JsonResponse({'error': _("You don't have an access to edit tags")})
-    res = SaveTag(request.POST)
-    if res.error is not None:
-        return JsonResponse({'error': str(res.error)})
+    try:
+        SaveTag(request.POST)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -651,11 +667,11 @@ def remove_tag(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tags(request.user):
-        return JsonResponse({'error': _("You don't have an access to remove tags") + ''})
+        return JsonResponse({'error': _("You don't have an access to remove tags")})
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.POST['tag_type'] == 'safe':
         try:
             SafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
@@ -675,26 +691,30 @@ def get_tags_data(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'selected_tags' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     deleted_tag = None
     if 'deleted' in request.POST and request.POST['deleted'] is not None:
         try:
             deleted_tag = int(request.POST['deleted'])
         except Exception as e:
             logger.error("Deleted tag has wrong format: %s" % e)
-            return JsonResponse({'error': 'Unknown error'})
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         selected_tags = json.loads(request.POST['selected_tags'])
     except Exception as e:
         logger.error("Can't parse selected tags: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
-    res = TagsInfo(request.POST['tag_type'], selected_tags, deleted_tag)
-    if res.error is not None:
-        return JsonResponse({'error': str(res.error)})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        res = TagsInfo(request.POST['tag_type'], selected_tags, deleted_tag)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({
         'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
         'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
@@ -732,19 +752,23 @@ def download_tags(request, tags_type):
 @unparallel_group([UnsafeTag, SafeTag])
 def upload_tags(request):
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tags(request.user):
         return JsonResponse({'error': _("You don't have an access to create tags") + ''})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     fp = None
     for f in request.FILES.getlist('file'):
         fp = f
     if fp is None:
-        return JsonResponse({'error': 'Unknown error'})
-    res = CreateTagsFromFile(fp, request.POST['tags_type'])
-    if res.error is not None:
-        return JsonResponse({'error': str(res.error)})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        CreateTagsFromFile(fp, request.POST['tags_type'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -788,8 +812,6 @@ def upload_all(request):
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': 'Unknown error'})
-    if res.error is not None:
-        return JsonResponse({'error': res.error})
     return JsonResponse(res.numbers)
 
 
@@ -802,7 +824,7 @@ def get_inline_mark_form(request):
     if request.method != 'POST' or 'type' not in request.POST \
             or ('mark_id' not in request.POST and 'report_id' not in request.POST) \
             or request.POST['type'] not in obj_model:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     if 'mark_id' in request.POST:
         try:
@@ -812,17 +834,26 @@ def get_inline_mark_form(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The mark was not found')})
         markdata = MarkData(request.POST['type'], mark_version=last_version)
-        tags = TagsInfo(request.POST['type'], list(tag.tag.pk for tag in last_version.tags.all()))
+        try:
+            tags = TagsInfo(request.POST['type'], list(tag.tag.pk for tag in last_version.tags.all()))
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
     else:
         try:
             report = obj_model[request.POST['type']][1].objects.get(id=request.POST['report_id'])
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The report was not found')})
         markdata = MarkData(request.POST['type'], report=report)
-        tags = TagsInfo(request.POST['type'], [])
-    if tags.error is not None:
-        logger.error(tags.error, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
+        try:
+            tags = TagsInfo(request.POST['type'], [])
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
+        except Exception as e:
+            logger.exception(e)
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     return JsonResponse({
         'data': get_template('marks/InlineMarkForm.html').render({
