@@ -63,7 +63,7 @@ def create_mark(request, mark_type, report_id):
             report = ReportUnsafe.objects.get(pk=int(report_id))
         elif mark_type == 'safe':
             if not settings.ENABLE_SAFE_MARKS:
-                return HttpResponseRedirect(reverse('error', args=[606]))
+                return BridgeErrorResponse(_('Safe marks are disabled'))
             report = ReportSafe.objects.get(pk=int(report_id))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
