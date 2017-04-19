@@ -500,7 +500,7 @@ class UploadReport:
                 attr_stat.save()
 
             ReportComponentLeaf.objects.create(report=p, safe=report)
-        if settings.ENABLE_SAFE_MARKS:
+        if self.job.safe_marks:
             ConnectReportWithMarks(report)
 
     def __create_medium_safe_report(self, identifier):
@@ -547,7 +547,7 @@ class UploadReport:
             attr_stat.save()
 
         ReportComponentLeaf.objects.create(report=root_report, safe=report)
-        if settings.ENABLE_SAFE_MARKS:
+        if self.job.safe_marks:
             ConnectReportWithMarks(report)
 
     def __create_light_safe_report(self, identifier):

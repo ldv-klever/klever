@@ -226,7 +226,8 @@ function set_actions_for_edit_form () {
                 user_roles: user_roles,
                 file_data: file_data,
                 parent_identifier: $('#job_parent_identifier').val(),
-                last_version: last_job_version
+                last_version: last_job_version,
+                safe_marks: $('#safe_marks_checkbox').is(':checked')
             },
             function (data) {
                 $('#dimmer_of_page').removeClass('active');
@@ -1055,6 +1056,34 @@ $(document).ready(function () {
             }
         );
     });
+
+    var safe_marks_popup = $('#safe_marks_popup');
+    if (safe_marks_popup.length) {
+        $('#safe_marks_link').popup({
+            popup: safe_marks_popup,
+            hoverable: true,
+            delay: {show: 100, hide: 300},
+            variation: 'wide',
+            position: 'right center'
+        });
+        $('#change_safe_marks').click(function () {
+            $('#safe_marks_link').popup('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.post(
+                job_ajax_url + 'enable_safe_marks/',
+                {job_id: $('#job_pk').val()},
+                function (data) {
+                    if (data.error) {
+                        $('#dimmer_of_page').removeClass('active');
+                        err_notify(data.error);
+                    }
+                    else {
+                        window.location.replace('');
+                    }
+                }
+            );
+        });
+    }
 
     if ($('#job_data_div').length) {
         var interval = setInterval(function () {

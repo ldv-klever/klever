@@ -23,7 +23,6 @@ from urllib.parse import unquote
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
@@ -62,9 +61,9 @@ def create_mark(request, mark_type, report_id):
         if mark_type == 'unsafe':
             report = ReportUnsafe.objects.get(pk=int(report_id))
         elif mark_type == 'safe':
-            if not settings.ENABLE_SAFE_MARKS:
-                return BridgeErrorResponse(_('Safe marks are disabled'))
             report = ReportSafe.objects.get(pk=int(report_id))
+            if not report.root.job.safe_marks:
+                return BridgeErrorResponse(_('Safe marks are disabled'))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
             try:
@@ -228,9 +227,9 @@ def save_mark(request):
             if savedata['data_type'] == 'unsafe':
                 inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
             elif savedata['data_type'] == 'safe':
-                if not settings.ENABLE_SAFE_MARKS:
-                    return JsonResponse({'error': _('Safe marks are disabled')})
                 inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
+                if not inst.root.job.safe_marks:
+                    return JsonResponse({'error': _('Safe marks are disabled')})
             else:
                 inst = ReportUnknown.objects.get(pk=int(savedata['report_id']))
         except ObjectDoesNotExist:

@@ -16,7 +16,7 @@
 #
 
 import json
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, F
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
@@ -38,6 +38,20 @@ def objects_without_relations(table):
             accessor_name = accessor_name[:-4]
         filters[accessor_name] = None
     return table.objects.filter(**filters)
+
+
+def disable_safe_marks_for_job(job):
+    try:
+        root = ReportRoot.objects.get(job=job)
+    except ObjectDoesNotExist:
+        return
+    ReportSafeTag.objects.filter(report__root=root).delete()
+    SafeReportTag.objects.filter(report__root=root).delete()
+    MarkSafeReport.objects.filter(report__root=root).delete()
+    Verdict.objects.filter(report__root=job.reportroot).update(
+        safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
+    )
+    ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
 
 
 class ClearFiles:
@@ -116,7 +130,7 @@ class RecalculateVerdicts(object):
         data.upload()
 
 
-class RecalculateUnsafeMarkConnections(object):
+class RecalculateUnsafeMarkConnections:
     def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc()
@@ -125,11 +139,15 @@ class RecalculateUnsafeMarkConnections(object):
         ReportUnsafeTag.objects.filter(report__root__job__in=self.jobs).delete()
         UnsafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
         MarkUnsafeReport.objects.filter(report__root__job__in=self.jobs).delete()
+        Verdict.objects.filter(report__root__job__in=self.jobs).update(
+            unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
+            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('safe')
+        )
         for unsafe in ReportUnsafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(unsafe)
 
 
-class RecalculateSafeMarkConnections(object):
+class RecalculateSafeMarkConnections:
     def __init__(self, jobs):
         self.jobs = jobs
         self.__recalc()
@@ -138,6 +156,10 @@ class RecalculateSafeMarkConnections(object):
         ReportSafeTag.objects.filter(report__root__job__in=self.jobs).delete()
         SafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
         MarkSafeReport.objects.filter(report__root__job__in=self.jobs).delete()
+        Verdict.objects.filter(report__root__job__in=self.jobs).update(
+            safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0,
+            safe_inconclusive=0, safe_unassociated=F('safe')
+        )
         for safe in ReportSafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(safe)
 
