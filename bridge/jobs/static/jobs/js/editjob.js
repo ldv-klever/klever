@@ -1113,7 +1113,7 @@ $(document).ready(function () {
                         $('#max_time').text(progress_data[3]);
                     }
                     num_of_updates++;
-                    if (num_of_updates > 200) {
+                    if (num_of_updates > 60) {
                         err_notify($('#error__autoupdate_off').text());
                         clearInterval(interval);
                     }
