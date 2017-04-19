@@ -155,28 +155,28 @@
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
             {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
             {% if TableData.table_data.values|length %}
-                <div class="attrs-table">
-                <table class="ui celled compact teal table">
-                    <thead>
-                        {% for column_row in TableData.table_data.header %}
-                            <tr>
-                            {% for coldata in column_row %}
-                                <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
-                            {% endfor %}
-                            </tr>
-                        {% endfor %}
-                    </thead>
-                    <tbody>
-                        {% for v in TableData.table_data.values %}
-                            <tr>
-                                <td class="collapsing"><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
-                                {% for attr in v.attrs %}
-                                    <td class="collapsing"><span>{{ attr }}</span></td>
+                <div style="overflow: auto;max-height: 40vh;">
+                    <table class="ui celled compact teal table">
+                        <thead>
+                            {% for column_row in TableData.table_data.header %}
+                                <tr>
+                                {% for coldata in column_row %}
+                                    <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
                                 {% endfor %}
-                            </tr>
-                        {%  endfor %}
-                    </tbody>
-                </table>
+                                </tr>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for v in TableData.table_data.values %}
+                                <tr>
+                                    <td class="collapsing"><a href="{% url 'reports:component' report.root.job.pk v.pk %}">{{ v.component.name }}</a></td>
+                                    {% for attr in v.attrs %}
+                                        <td class="collapsing"><span>{{ attr }}</span></td>
+                                    {% endfor %}
+                                </tr>
+                            {%  endfor %}
+                        </tbody>
+                    </table>
                 </div>
             {% else %}
                 <h3 class="italic" style="text-align:center;color: #7b7f8c;">{% trans 'There is no children, please wait for them or change the view' %}</h3>
@@ -201,7 +201,7 @@
                 <button id="close_file_view" class="ui icon red button"><i class="remove icon"></i></button>
             </div>
         </div>
-        <div class="filecontent ui olive segment" id="file_content" style="height:700px;"></div>
+        <div class="filecontent ui olive segment" id="file_content" style="height:75vh;"></div>
     </div>
 </div>
 

@@ -55,7 +55,7 @@
 }
 
 #etv {
-    height: 550px;
+    height: 70vh;
     position: relative;
 }
 
@@ -115,7 +115,7 @@
 
 /* Error trace: Line number object */
 .ETV_LN {
-    z-index: 999;
+    z-index: 100;
     position: relative;
     white-space: pre;
     background-color: #ffe6d7;
@@ -164,6 +164,7 @@
 .ETV_LN_Note {
     background-color: #4aafdd;
     border-radius: 2px;
+    color: #f7ff3a;
 }
 .ETV_LN_Note:hover {
     background-color: #4aafdd;
@@ -178,6 +179,7 @@
 .ETV_LN_Warning {
     background-color: #dd2222;
     border-radius: 2px;
+    color: #f7ff3a;
 }
 .ETV_LN_Warning:hover {
     background-color: #dd2222;

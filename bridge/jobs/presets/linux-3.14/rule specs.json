@@ -18,7 +18,10 @@
           "EMG": {
             "specifications directory": "linux/",
             "entry point": "main",
-            "callstack deep search": 3,
+            "interface categories options": {
+              "callstack deep search": 3,
+              "generate artificial categories": false
+            },
             "intermediate model options": {
               "generate insmod scenario": true,
               "add missing activation signals": ["register", "instance_register", "irq_register"],
@@ -130,7 +133,7 @@
                   }
                 }
               },
-              "verifier/common.c": {},
+              "verifier/gcc.c": {},
               "verifier/nondet.c": {},
               "verifier/memory.c": {},
               "verifier/thread.c": {}
@@ -190,7 +193,7 @@
       },
       "RSG": {
         "models": {"generic/memory.c": {}},
-        "verifier version": "smg_witness_for_ldv:24455",
+        "verifier version": "smg_witness_for_ldv:24577",
         "verifier configuration": "-smg-ldv",
         "verifier options": [{"-setprop": "analysis.machineModel=LINUX64"}],
         "verifier specifications": [
@@ -590,7 +593,7 @@
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "ThreadAnalysis:b4c3a32",
+        "verifier version": "CPALockator:24629",
         "verifier configuration": "-local-lock-combination-linux"
       }
     }

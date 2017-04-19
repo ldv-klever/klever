@@ -60,10 +60,15 @@ class Population(object):
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
-        self.manager = self.__get_manager(manager)
+        if manager is None:
+            self.manager = self.__get_manager(None, None)
+            if service is not None:
+                self.__add_service_user(service[0], service[1])
+        else:
+            self.manager = self.__get_manager(manager[0], manager[1])
+            if service is not None and manager[0] != service[0]:
+                self.__add_service_user(service[0], service[1])
         self.__population()
-        if service != manager:
-            self.__add_service_user(service)
 
     def __population(self):
         TaskStatistic.objects.get_or_create()
@@ -116,7 +121,7 @@ class Population(object):
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
 
-    def __get_manager(self, manager_username):
+    def __get_manager(self, manager_username, manager_password):
         if manager_username is None:
             try:
                 return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
@@ -128,12 +133,12 @@ class Population(object):
             manager = User.objects.create(username=manager_username, first_name='Firstname', last_name='Lastname')
             self.changes['manager'] = {
                 'username': manager.username,
-                'password': self.__add_password(manager)
+                'password': self.__add_password(manager, manager_password)
             }
         extend_user(manager, USER_ROLES[2][0])
         return manager
 
-    def __add_service_user(self, service_username):
+    def __add_service_user(self, service_username, service_password):
         if service_username is None:
             return
         try:
@@ -143,12 +148,15 @@ class Population(object):
             extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
-                'password': self.__add_password(service)
+                'password': self.__add_password(service, service_password)
             }
 
-    def __add_password(self, user):
+    def __add_password(self, user, password):
         self.__is_not_used()
-        password = unique_id()[:8]
+        if isinstance(password, str):
+            password = password.strip()
+        if not isinstance(password, str) or len(password) == 0:
+            password = unique_id()[:8]
         user.set_password(password)
         user.save()
         return password
@@ -323,10 +331,11 @@ class Population(object):
             logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
         with open(preset_tags, mode='rb') as fp:
-            res = CreateTagsFromFile(fp, tag_type, True)
-            if res.error is not None:
-                raise PopulationError("Error while creating tags: %s" % res.error)
-        return res.number_of_created
+            try:
+                res = CreateTagsFromFile(fp, tag_type, True)
+            except Exception as e:
+                raise PopulationError("Error while creating tags: %s" % str(e))
+            return res.number_of_created
 
     def __is_not_used(self):
         pass

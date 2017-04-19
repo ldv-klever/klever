@@ -176,7 +176,6 @@ class MarkUnsafeReport(models.Model):
     mark = models.ForeignKey(MarkUnsafe, related_name='markreport_set')
     report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
     result = models.FloatField()
-    broken = models.BooleanField(default=False)
     error = models.TextField(null=True)
 
     class Meta:

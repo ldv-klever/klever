@@ -44,6 +44,7 @@ urlpatterns = [
     url(r'^ajax/remove_tag/$', views.remove_tag),
     url(r'^ajax/get_tags_data/$', views.get_tags_data),
     url(r'^ajax/upload_tags/$', views.upload_tags),
+    url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

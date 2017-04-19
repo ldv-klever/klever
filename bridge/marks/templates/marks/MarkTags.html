@@ -1,23 +1,21 @@
 {% load i18n %}
 
-<div class="ui pink segment">
-    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
-    <div id="tags_tree" class="tagsmap">
-        {% include 'marks/MarkTagsTree.html' with tags=tags tags_type=markdata.type %}
-    </div>
-    {% if not view_tags %}
-        <div id="selected_tags" hidden>
-            {% for t_id in selected %}
-                <span>{{ t_id }}</span>
-            {% endfor %}
-        </div>
-        <label for="tag_list"></label>
-        <select id="tag_list" class="ui search selection dropdown fluid" multiple>
-            {% for tag in available %}
-                <option value="{{ tag.0 }}">{{ tag.1 }}</option>
-            {% endfor %}
-        </select>
-    {% endif %}
+
+<div id="tags_tree" class="tagsmap">
+    {% include 'marks/MarkTagsTree.html' with tags=tags tags_type=markdata.type %}
 </div>
+{% if not view_tags %}
+    <div id="selected_tags" hidden>
+        {% for t_id in selected %}
+            <span>{{ t_id }}</span>
+        {% endfor %}
+    </div>
+    <label for="tag_list"></label>
+    <select id="tag_list" class="ui search selection dropdown fluid" multiple>
+        {% for tag in available %}
+            <option value="{{ tag.0 }}">{{ tag.1 }}</option>
+        {% endfor %}
+    </select>
+{% endif %}
 <span id="tag_label_color" hidden>{% if markdata.type == 'safe' %}green{% elif markdata.type == 'unsafe' %}orange{% endif %}</span>
 <span id="error__no_results" hidden>{% trans 'No results found' %}</span>

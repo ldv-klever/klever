@@ -211,15 +211,37 @@ def __remove_tmp_vars(error_trace, edge):
 
 
 def _parse_func_call_actual_args(actual_args_str):
-    # Get rid of all casts. Although they can be useful, but they considerably complicate actual arguments parsing.
-    while True:
-        new_actual_args_str = re.sub(r'(\([^\(\)]*\))', '', actual_args_str)
-        if new_actual_args_str == actual_args_str:
-            break
+    actual_args = []
+    actual_args_str_iter = iter(actual_args_str)
+    actual_arg = ''
+    for c in actual_args_str_iter:
+        # Take into account that function pointer casts can use commas which also separate function arguments from
+        # each other.
+        if c == '(':
+            actual_arg += c
+            # Skip all nested "(...)".
+            open_paren_num = 0
+            while True:
+                c_next = next(actual_args_str_iter)
+                actual_arg += c_next
+                if c_next == '(':
+                    open_paren_num += 1
+                elif c_next == ')':
+                    if open_paren_num:
+                        open_paren_num -= 1
+                    else:
+                        break
+        elif c == ',':
+            actual_args.append(actual_arg.strip())
+            actual_arg = ''
         else:
-            actual_args_str = new_actual_args_str
+            actual_arg += c
 
-    return [aux_actual_arg.strip() for aux_actual_arg in actual_args_str.split(',')] if actual_args_str else []
+    # Add last argument which isn't followed by comma if so.
+    if actual_arg:
+        actual_args.append(actual_arg.strip())
+
+    return actual_args
 
 
 def _remove_aux_functions(logger, error_trace):
@@ -268,15 +290,16 @@ def _remove_aux_functions(logger, error_trace):
         aux_actual_args = _parse_func_call_actual_args(m.group(2))
         rel_expr = m.group(3)
 
-        # Get name and actual arguments of called function if so.
-        m = re.search(r'^(return )?(\w+)\s*\((.*)\);$', func_call_edge['source'])
+        func_name = error_trace.resolve_function(func_call_edge['enter'])
+
+        # Get actual arguments of called function if so.
+        m = re.search(r'^.*{0}\s*\((.*)\);$'.format(func_name), func_call_edge['source'])
 
         # Do not proceed if meet unexpected format of function call.
         if not m:
             continue
 
-        func_name = m.group(2)
-        actual_args = _parse_func_call_actual_args(m.group(3))
+        actual_args = _parse_func_call_actual_args(m.group(1))
 
         # Do not proceed if names of actual arguments of called function don't correspond to ones obtained during model
         # comments parsing. Without this we won't be able to replace them with corresponding actual arguments of called
@@ -285,7 +308,7 @@ def _remove_aux_functions(logger, error_trace):
         for i, actual_arg in enumerate(actual_args):
             is_replaced = False
             for j, formal_arg_name in enumerate(error_trace.aux_funcs[aux_func_call_edge['enter']]['formal arg names']):
-                if formal_arg_name == actual_arg:
+                if actual_arg.endswith(formal_arg_name) and j < len(aux_actual_args):
                     actual_args[i] = aux_actual_args[j]
                     is_replaced = True
                     break
@@ -303,26 +326,33 @@ def _remove_aux_functions(logger, error_trace):
         if 'return' not in func_call_edge:
             return_edge = error_trace.get_func_return_edge(func_call_edge)
 
-            if return_edge:
-                # Skip body of next function entered when returning from the given one. Corresponding pattern is:
-                #   enter auxiliary function
-                #     enter function 1
-                #       ...
-                #       enter function 2 and return from function 1
-                #         ...
-                #         return from function 2
-                #   return from auxiliary function
-                if 'enter' in return_edge:
+            # Recursively skip body of next function entered when returning from the given one. Corresponding
+            # pattern is:
+            #   enter auxiliary function
+            #     enter function
+            #       ...
+            #       enter function 1 and return from function
+            #         ...
+            #         [enter function 2 and] return from function 1
+            #            ...
+            while True:
+                if return_edge and 'enter' in return_edge:
                     return_edge = error_trace.get_func_return_edge(return_edge)
+                else:
+                    break
 
-                if return_edge:
-                    aux_func_return_edge = error_trace.next_edge(return_edge)
+            aux_func_return_edge = error_trace.get_func_return_edge(aux_func_call_edge)
 
-                    if aux_func_return_edge is None or 'return' not in aux_func_return_edge \
-                            or aux_func_return_edge['source'] != 'return;':
-                        continue
+            # Do not remove auxiliary function since there are some extra edges between function call and return from
+            # auxiliary function.
+            if return_edge and aux_func_return_edge is not error_trace.next_edge(return_edge):
+                continue
 
-                    error_trace.remove_edge_and_target_node(aux_func_return_edge)
+            if aux_func_return_edge:
+                # Do not remove auxiliary function since its return statement is not trivial.
+                if aux_func_return_edge['source'] != 'return;':
+                    continue
+                error_trace.remove_edge_and_target_node(aux_func_return_edge)
 
         if error_trace.aux_funcs[aux_func_call_edge['enter']]['is callback']:
             for attr in ('file', 'start line'):

@@ -12,7 +12,6 @@
     },
     "categories": {
       "iio_triggered_buffer": {
-        "extensible": false,
         "containers": {},
         "resources": {
           "line": {

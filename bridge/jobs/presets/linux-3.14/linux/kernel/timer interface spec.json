@@ -28,7 +28,6 @@
     },
     "categories": {
       "timer": {
-        "extensible": false,
         "containers": {
           "timer_list": {
             "signature": "struct timer_list list",

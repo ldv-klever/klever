@@ -17,9 +17,6 @@
             "interface": [
               "scsi_host_template.host"
             ]
-          },
-          "mask": {
-            "signature": "gfp_t gfp_mask"
           }
         },
         "process": "<alloc>.<success> | <fail>",
@@ -49,6 +46,13 @@
       "scsi_register": {
         "comment": "Create and register a SCSI host adapter instance.",
         "labels": {
+          "scsi_host_template": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "scsi_host_template.scsi_host_template"
+            ]
+          },
           "host": {
             "container": true,
             "pointer": true,
@@ -62,7 +66,9 @@
           "alloc": {
             "comment": "Allocate memory for Scsi_Host structure.",
             "statements": [
-              "%host% = $ALLOC(%host%);"
+              "%scsi_host_template% = $ARG1;",
+              "%host% = ldv_xzalloc(sizeof(struct Scsi_Host) + $ARG2);",
+              "%host%->hostt= %scsi_host_template%;"
             ]
           },
           "register": {
@@ -133,7 +139,7 @@
             ]
           }
         },
-        "process": "<assign>.[deregister]",
+        "process": "<assign>.[deregister].<free>",
         "actions": {
           "deregister": {
             "parameters": [
@@ -144,6 +150,34 @@
             "comment": "Get Scsi_Host structure from parameters.",
             "statements": [
               "%host% = $ARG1;"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of Scsi_Host structure.",
+            "statements": [
+              "$FREE(%host%);"
+            ]
+          }
+        }
+      },
+      "scsi_host_put": {
+        "comment": "Detach and remove all SCSI devices owned by host.",
+        "labels": {
+          "host": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "scsi_host_template.host"
+            ]
+          }
+        },
+        "process": "<free>",
+        "actions": {
+          "free": {
+            "comment": "Free memory of Scsi_Host structure.",
+            "statements": [
+              "%host% = $ARG1;",
+              "$FREE(%host%);"
             ]
           }
         }

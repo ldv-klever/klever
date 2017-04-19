@@ -237,17 +237,17 @@ class TestReports(KleverTestCase):
 
         response = self.client.get(reverse('reports:list', args=[main_report.pk, 'unsafes']))
         if ReportUnsafe.objects.count() == 1:
-            self.assertRedirects(response, reverse('reports:leaf', args=['unsafe', ReportUnsafe.objects.first().id]))
+            self.assertRedirects(response, reverse('reports:unsafe', args=[ReportUnsafe.objects.first().id]))
         else:
             self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:list', args=[main_report.pk, 'safes']))
         if ReportSafe.objects.count() == 1:
-            self.assertRedirects(response, reverse('reports:leaf', args=['safe', ReportSafe.objects.first().id]))
+            self.assertRedirects(response, reverse('reports:safe', args=[ReportSafe.objects.first().id]))
         else:
             self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:list', args=[main_report.pk, 'unknowns']))
         if ReportUnknown.objects.count() == 1:
-            self.assertRedirects(response, reverse('reports:leaf', args=['unknown', ReportUnknown.objects.first().id]))
+            self.assertRedirects(response, reverse('reports:unknown', args=[ReportUnknown.objects.first().id]))
         else:
             self.assertEqual(response.status_code, 200)
 
@@ -258,39 +258,39 @@ class TestReports(KleverTestCase):
             # response = self.client.get(reverse('reports:list', args=[report.pk, 'unsafes']))
             # leaves = ReportComponentLeaf.objects.exclude(unsafe=None).filter(report=report)
             # if leaves.count() == 1:
-            #     self.assertRedirects(response, reverse('reports:leaf', args=['unsafe', leaves.first().unsafe_id]))
+            #     self.assertRedirects(response, reverse('reports:unsafe', args=[leaves.first().unsafe_id]))
             # else:
             #     self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('reports:list', args=[report.pk, 'safes']))
             leaves = ReportComponentLeaf.objects.exclude(safe=None).filter(report=report)
             if leaves.count() == 1:
-                self.assertRedirects(response, reverse('reports:leaf', args=['safe', leaves.first().safe_id]))
+                self.assertRedirects(response, reverse('reports:safe', args=[leaves.first().safe_id]))
             else:
                 self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('reports:list', args=[report.pk, 'unknowns']))
             leaves = ReportComponentLeaf.objects.exclude(unknown=None).filter(report=report)
             if leaves.count() == 1:
-                self.assertRedirects(response, reverse('reports:leaf', args=['unknown', leaves.first().unknown_id]))
+                self.assertRedirects(response, reverse('reports:unknown', args=[leaves.first().unknown_id]))
             else:
                 self.assertEqual(response.status_code, 200)
             response = self.client.get(reverse('reports:unknowns', args=[report.pk, report.component_id]))
             leaves = ReportComponentLeaf.objects.exclude(unknown=None)\
                 .filter(report=report, unknown__component_id=report.component_id)
             if leaves.count() == 1:
-                self.assertRedirects(response, reverse('reports:leaf', args=['unknown', leaves.first().unknown_id]))
+                self.assertRedirects(response, reverse('reports:unknown', args=[leaves.first().unknown_id]))
             else:
                 self.assertEqual(response.status_code, 200)
         for report in ReportUnknown.objects.all():
-            response = self.client.get(reverse('reports:leaf', args=['unknown', report.pk]))
+            response = self.client.get(reverse('reports:unknown', args=[report.pk]))
             self.assertEqual(response.status_code, 200)
         # TODO: update archives so that all unsafes can be shown without errors and uncomment it
         # for report in ReportUnsafe.objects.all():
-        #     response = self.client.get(reverse('reports:leaf', args=['unsafe', report.pk]))
+        #     response = self.client.get(reverse('reports:unsafe', args=[report.pk]))
         #     self.assertEqual(response.status_code, 200)
         #     response = self.client.get(reverse('reports:etv', args=[report.pk]))
         #     self.assertEqual(response.status_code, 200)
         for report in ReportSafe.objects.all():
-            response = self.client.get(reverse('reports:leaf', args=['safe', report.pk]))
+            response = self.client.get(reverse('reports:safe', args=[report.pk]))
             self.assertEqual(response.status_code, 200)
         response = self.client.get(reverse('reports:download_files', args=[main_report.pk]))
         self.assertEqual(response.status_code, 200)
@@ -459,11 +459,22 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(ReportComponent.objects.filter(
-            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
-              parent__identifier=self.job.identifier + parent, component__name=name) & ~Q(finish_date=None)
-        )), 1)
+        self.assertEqual(len(ReportComponent.objects.filter(Q(
+            root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
+            parent__identifier=self.job.identifier + parent, component__name=name, finish_date=None
+        ))), 1)
         return r_id
+
+    def __upload_finish_verification_report(self, r_id):
+        response = self.service_client.post('/reports/upload/', {
+            'report': json.dumps({'id': r_id, 'type': 'verification finish'})
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(len(ReportComponent.objects.filter(
+            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
+        )), 1)
 
     def __upload_unknown_report(self, parent, archive):
         r_id = self.__get_report_id('unknown')
@@ -535,7 +546,7 @@ class TestReports(KleverTestCase):
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         core_data1 = None
@@ -623,14 +634,17 @@ class TestReports(KleverTestCase):
             if 'safe' in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_safe_report(tool, [], chunk['safe'])
+                self.__upload_finish_verification_report(tool)
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
+                    self.__upload_finish_verification_report(tool)
                     cnt += 1
             if 'unknown' in chunk and 'safe' not in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_unknown_report(tool, chunk['unknown'])
+                self.__upload_finish_verification_report(tool)
             self.__upload_finish_report(abkm)
 
         self.__upload_finish_report(avtg)

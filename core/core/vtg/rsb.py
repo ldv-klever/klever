@@ -65,13 +65,11 @@ class RSB(core.components.Component):
                 )
             elif 'value analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valueAnalysis': ''}]
-            elif 'caching' in self.conf['VTG strategy']:
-                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-bam-svcomp': ''}]
             elif 'recursion support' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
@@ -320,6 +318,9 @@ class RSB(core.components.Component):
 
                 self.create_verification_finish_report(verification_report_id)
 
+                if self.witness_processing_exception:
+                    raise self.witness_processing_exception
+
                 break
 
             time.sleep(1)
@@ -359,6 +360,11 @@ class RSB(core.components.Component):
     def process_single_verdict(self, decision_results, verification_report_id):
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
+        # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
+        # not upload all witnesses that can be properly processed as well as information on all such failures.
+        # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
+        self.witness_processing_exception = None
+
         if decision_results['status'] == 'safe':
             core.utils.report(self.logger,
                               'safe',
@@ -378,51 +384,63 @@ class RSB(core.components.Component):
             # is not "unsafe".
             if self.rule_specification == 'sync:race' and len(witnesses) != 0:
                 for witness in witnesses:
-                    et = import_error_trace(self.logger, witness)
+                    try:
+                        et = import_error_trace(self.logger, witness)
 
-                    result = re.search(r'witness\.(.*)\.graphml', witness)
-                    trace_id = result.groups()[0]
-                    error_trace_name = 'error trace_' + trace_id + '.json'
+                        result = re.search(r'witness\.(.*)\.graphml', witness)
+                        trace_id = result.groups()[0]
+                        error_trace_name = 'error trace_' + trace_id + '.json'
 
-                    self.logger.info('Write processed witness to "' + error_trace_name + '"')
-                    with open(error_trace_name, 'w', encoding='utf8') as fp:
+                        self.logger.info('Write processed witness to "' + error_trace_name + '"')
+                        with open(error_trace_name, 'w', encoding='utf8') as fp:
+                            json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+                        core.utils.report(self.logger,
+                                          'unsafe',
+                                          {
+                                              'id': verification_report_id + '/unsafe' + '_' + trace_id,
+                                              'parent id': verification_report_id,
+                                              'attrs': [
+                                                  {"Rule specification": self.rule_specification},
+                                                  {"Error trace identifier": trace_id}],
+                                              'error trace': error_trace_name,
+                                              'files': [error_trace_name] + et['files']
+                                          },
+                                          self.mqs['report files'],
+                                          self.conf['main working directory'],
+                                          trace_id)
+                    except Exception as e:
+                        if self.witness_processing_exception:
+                            try:
+                                raise e from self.witness_processing_exception
+                            except Exception as e:
+                                self.witness_processing_exception = e
+                        else:
+                            self.witness_processing_exception = e
+
+            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
+                try:
+                    if len(witnesses) != 1:
+                        NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
+
+                    et = import_error_trace(self.logger, witnesses[0])
+                    self.logger.info('Write processed witness to "error trace.json"')
+                    with open('error trace.json', 'w', encoding='utf8') as fp:
                         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': verification_report_id + '/unsafe' + '_' + trace_id,
+                                          'id': verification_report_id + '/unsafe',
                                           'parent id': verification_report_id,
-                                          'attrs': [
-                                              {"Rule specification": self.rule_specification},
-                                              {"Error trace identifier": trace_id}],
-                                          'error trace': error_trace_name,
-                                          'files': [error_trace_name] + et['files']
+                                          'attrs': [{"Rule specification": self.rule_specification}],
+                                          'error trace': 'error trace.json',
+                                          'files': ['error trace.json'] + et['files']
                                       },
                                       self.mqs['report files'],
-                                      self.conf['main working directory'],
-                                      trace_id)
-
-            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
-                if len(witnesses) != 1:
-                    NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
-
-                et = import_error_trace(self.logger, witnesses[0])
-                self.logger.info('Write processed witness to "error trace.json"')
-                with open('error trace.json', 'w', encoding='utf8') as fp:
-                    json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-                core.utils.report(self.logger,
-                                  'unsafe',
-                                  {
-                                      'id': verification_report_id + '/unsafe',
-                                      'parent id': verification_report_id,
-                                      'attrs': [{"Rule specification": self.rule_specification}],
-                                      'error trace': 'error trace.json',
-                                      'files': ['error trace.json'] + et['files']
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'])
+                                      self.conf['main working directory'])
+                except Exception as e:
+                    self.witness_processing_exception = e
             elif decision_results['status'] != 'unsafe':
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.

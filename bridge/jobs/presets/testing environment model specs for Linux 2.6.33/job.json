@@ -13,7 +13,7 @@
       "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
-        "version": "trunk:24102"
+        "version": "ldv-bam:24572"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -27,6 +27,33 @@
     }
   },
   "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": [
+          "scsi_add_host.ko",
+          "scsi_add_host_with_dma.ko",
+          "scsi_host_alloc.ko",
+          "scsi_remove_host.ko",
+          "scsi_unregister.ko",
+          "scsi_host_alloc_invoke.ko",
+          "scsi_host_template_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/scsi_host_alloc_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/scsi_host_template_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    }
+  ],
+  "~Sub-jobs": [
     {
       "Linux kernel": {
         "external modules": "tests/block_device_operations",
