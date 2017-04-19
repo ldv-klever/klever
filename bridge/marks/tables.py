@@ -353,7 +353,7 @@ class ReportMarkTable:
             }
             if self.type == 'unsafe':
                 row_data['verdict'] = (mark_rep.mark.get_verdict_display(), UNSAFE_COLOR[mark_rep.mark.verdict])
-                if mark_rep.broken:
+                if mark_rep.error is not None:
                     row_data['similarity'] = (_("Comparison failed"), result_color(0), mark_rep.error)
                 else:
                     row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result), None)
@@ -536,7 +536,7 @@ class MarksList:
                     if 'order' in self.view and self.view['order'] == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
-                        broken = len(mark.markreport_set.filter(broken=True))
+                        broken = mark.markreport_set.exclude(error=None).count()
                         if broken > 0:
                             val = ungettext_lazy(
                                 '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
@@ -761,7 +761,7 @@ class MarkReportsTable(object):
                         if JobAccess(self.user, report.root.job).can_view():
                             href = reverse('reports:%s' % self.type, args=[report.id])
                     elif col == 'result':
-                        if mark_report.broken:
+                        if mark_report.error is not None:
                             val = _("Comparison failed")
                             color = result_color(0)
                             if mark_report.error is not None:

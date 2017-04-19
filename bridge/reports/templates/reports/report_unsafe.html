@@ -53,7 +53,9 @@
             </div>
         </div>
         <div class="one wide column right aligned">
-            <a class="ui icon basic mini button" href="{% url 'reports:etv' report.pk %}"><i class="maximize icon"></i></a>
+            {% if etv %}
+                <a class="ui icon basic mini button" href="{% url 'reports:etv' report.pk %}"><i class="maximize icon"></i></a>
+            {% endif %}
         </div>
     </div>
     {% include 'reports/ETV.html' %}

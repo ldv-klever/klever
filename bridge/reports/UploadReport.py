@@ -19,9 +19,9 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT
+from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT, JOB_STATUS
 from marks.utils import ConnectReportWithMarks
-from service.utils import KleverCoreFinishDecision, KleverCoreStartDecision
+from service.utils import FinishJobDecision, KleverCoreStartDecision
 from reports.utils import AttrData
 from reports.models import *
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
@@ -33,8 +33,7 @@ VTG_FAIL_NAME = 'faulty processed abstract verification task descriptions'
 BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verification task'
 
 
-class UploadReport(object):
-
+class UploadReport:
     def __init__(self, job, data, archive=None):
         self.job = job
         self.archive = archive
@@ -55,7 +54,7 @@ class UploadReport(object):
     def __job_failed(self, error=None):
         if 'id' in self.data:
             error = 'The error occurred when uploading the report with id "%s": ' % self.data['id'] + str(error)
-        KleverCoreFinishDecision(self.job, error)
+        FinishJobDecision(self.job, JOB_STATUS[5][0], error)
 
     def __check_data(self, data):
         if not isinstance(data, dict):
@@ -170,13 +169,11 @@ class UploadReport(object):
             raise ValueError("report type is not supported")
 
     def __check_comp(self, descr):
-        self.ccc = 0
+        self.__is_not_used()
         if not isinstance(descr, list):
             raise ValueError('wrong computer description format')
         for d in descr:
-            if not isinstance(d, dict):
-                raise ValueError('wrong computer description format')
-            if len(d) != 1:
+            if not isinstance(d, dict) or len(d) != 1:
                 raise ValueError('wrong computer description format')
             if not isinstance(d[next(iter(d))], str) and not isinstance(d[next(iter(d))], int):
                 raise ValueError('wrong computer description format')
@@ -367,11 +364,8 @@ class UploadReport(object):
         else:
             self.__update_parent_resources(report)
 
-        if self.data['id'] == '/':
-            KleverCoreFinishDecision(self.job)
-            if self.job.weight != JOB_WEIGHT[0][0]:
-                self.__collapse_reports()
-        elif self.job.weight != JOB_WEIGHT[0][0] and ReportComponent.objects.filter(parent=report).count() == 0:
+        if self.job.weight != JOB_WEIGHT[0][0] and report.parent is not None \
+                and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
 
     def __finish_verification_report(self, identifier):
@@ -703,6 +697,7 @@ class UploadReport(object):
         total_res.save()
 
     def __collapse_reports(self):
+        # TODO: method is not used. Check that everything is already collapsed.
         # Do not collapse if there are unfinished reports.
         if ReportComponent.objects.filter(root=self.root, finish_date=None).count() > 0:
             return

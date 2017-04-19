@@ -30,7 +30,7 @@ from users.models import Notifications, Extended, User
 from bridge.populate import extend_user
 from bridge.settings import DEF_USER
 from bridge.utils import logger, unparallel_group
-from bridge.vars import LANGUAGES, SCHEDULER_TYPE
+from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR
 from jobs.models import Job
 
 
@@ -318,8 +318,8 @@ def save_notifications(request):
             new_ntf.self_ntf = json.loads(request.POST.get('self_ntf', 'false'))
         except Exception as e:
             logger.error("Can't parse json: %s" % e, stack_info=True)
-            return JsonResponse({'error': 'Unknown error'})
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
         new_ntf.settings = request.POST.get('notifications', '[]')
         new_ntf.save()
         return JsonResponse({'message': _('Saved')})
-    return JsonResponse({'error': _('Unknown error')})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})

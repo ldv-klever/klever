@@ -21,6 +21,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.settings import MEDIA_ROOT
 from bridge.vars import ATTR_STATISTIC, JOB_WEIGHT
+from bridge.utils import BridgeException
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from reports.models import *
@@ -237,37 +238,26 @@ class RecalculateAttrStatistic(object):
         AttrStatistic.objects.bulk_create(attrs_data)
 
 
-class Recalculation(object):
+class Recalculation:
     def __init__(self, rec_type, jobs=None):
-        self.error = None
         self.type = rec_type
         self.jobs = self.__get_jobs(jobs)
-        if self.error is not None:
-            return
         self.__recalc()
 
     def __get_jobs(self, job_ids):
+        self.__is_not_used()
         if job_ids is None:
             return Job.objects.filter(weight=JOB_WEIGHT[0][0])
         jobs = []
-        try:
-            job_ids = json.loads(job_ids)
-        except ValueError:
-            self.error = 'Unknown error'
-            return None
+        job_ids = json.loads(job_ids)
         for j_id in job_ids:
             try:
                 job = Job.objects.get(pk=int(j_id))
                 jobs.append(job)
             except ObjectDoesNotExist:
-                self.error = _('One of the selected jobs was not found')
-                return None
-            except ValueError:
-                self.error = 'Unknown error'
-                return None
+                raise BridgeException(_('One of the selected jobs was not found'))
         if len(jobs) == 0:
-            self.error = _('Please select jobs to recalculate caches for them')
-            return None
+            raise BridgeException(_('Please select jobs to recalculate caches for them'))
         return jobs
 
     def __recalc(self):
@@ -294,7 +284,11 @@ class Recalculation(object):
             RecalculateResources(self.jobs)
             RecalculateAttrStatistic(self.jobs)
         else:
-            self.error = 'Unknown error'
+            logger.error('Wrong type of recalculation')
+            raise BridgeException()
+
+    def __is_not_used(self):
+        pass
 
 
 class RecalculateResources(object):
