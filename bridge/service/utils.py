@@ -170,7 +170,7 @@ class FinishJobDecision:
             if len(self.error) > 1024:
                 logger.error("The job '%s' finished with large error: %s" % (self.job.identifier, self.error))
                 self.error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
-                self.status = JOB_STATUS[5][0]
+                self.status = JOB_STATUS[7][0]
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
