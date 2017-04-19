@@ -421,6 +421,7 @@ class ParseErrorTrace:
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
+        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (
@@ -430,7 +431,7 @@ class ParseErrorTrace:
             )
         m = re.match('^(.*?)([\'\"])(.*)$', code)
         if m is not None:
-            m2 = re.match('^(.*?)%s(.*)$' % m.group(2), m.group(3))
+            m2 = re.match(r'^(.*?)(?<!\\)(?:\\\\)*%s(.*)$' % m.group(2), m.group(3))
             if m2 is not None:
                 return "%s%s%s" % (
                     self.__parse_code(m.group(1)),
@@ -444,7 +445,6 @@ class ParseErrorTrace:
                 self.__wrap_code(m.group(2), 'number'),
                 self.__parse_code(m.group(3))
             )
-        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         words = re.split('([^a-zA-Z0-9-_#])', code)
         new_words = []
         for word in words:
