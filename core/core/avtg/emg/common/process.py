@@ -126,7 +126,7 @@ class Access:
 
 class Label:
 
-    def __init__(self, name):
+    def __init__(self, name, scope=None):
         self.container = False
         self.resource = False
         self.callback = False
@@ -135,9 +135,11 @@ class Label:
         self.parameters = []
         self.file = None
         self.value = None
-        self.name = name
         self.prior_signature = None
         self.__signature_map = {}
+
+        self.name = name
+        self.scope = scope
 
     @property
     def interfaces(self):
@@ -167,7 +169,7 @@ class Label:
                 return 'different'
         elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
-               (self.callback and label.callback):
+                    (self.callback and label.callback):
                 return 'сompatible'
             else:
                 return 'different'
@@ -240,8 +242,8 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_label(self, name, declaration, value=None):
-        lb = Label(name)
+    def add_label(self, name, declaration, value=None, scope=None):
+        lb = Label(name, scope)
         lb.prior_signature = declaration
         if value:
             lb.value = value

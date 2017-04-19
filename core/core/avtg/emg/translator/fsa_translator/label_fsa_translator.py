@@ -60,7 +60,7 @@ class LabelTranslator(FSATranslator):
         for name in (n for n in automata_peers if len(automata_peers[n]['states']) > 0):
             decl = self._get_cf_struct(automaton, function_parameters)
             cf_param = 'cf_arg_{}'.format(automata_peers[name]['automaton'].identifier)
-            vf_param_var = Variable(cf_param, None, decl.take_pointer, False)
+            vf_param_var = Variable(cf_param, None, decl.take_pointer, False, 'local')
             pre.append(vf_param_var.declare() + ';')
 
             if replicative:
@@ -135,7 +135,7 @@ class LabelTranslator(FSATranslator):
 
                 if len(param_declarations) > 0:
                     decl = self._get_cf_struct(automaton, [val for val in param_declarations])
-                    var = Variable('data', None, decl.take_pointer, False)
+                    var = Variable('data', None, decl.take_pointer, False, 'local')
                     v_code.append('/* Received labels */')
                     v_code.append('{} = ({}*) arg0;'.format(var.declare(), decl.to_string('', typedef='complex')))
                     v_code.append('')
@@ -216,10 +216,12 @@ class LabelTranslator(FSATranslator):
     def __thread_variable(self, automaton, number=1):
         if automaton.identifier not in self.__thread_variables:
             if number > 1:
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread_set a', True)
+                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread_set a', True,
+                               'global')
                 var.value = '{' + '.number = {}'.format(number) + '}'
             else:
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread a', True)
+                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread a', True,
+                               'global')
             var.use += 1
             self.__thread_variables[automaton.identifier] = var
 

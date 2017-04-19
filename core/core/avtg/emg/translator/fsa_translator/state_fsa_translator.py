@@ -142,6 +142,11 @@ class StateTranslator(FSATranslator):
                     tab -= 1
                     f_code.append('\t' * tab + '}')
 
+            # Add declaration of local functions
+            for var in (v for v in automaton.variables() if v.scope == 'local'):
+                # To declare and initialize
+                v_code.append(var.declare_with_init() + ";")
+
             # Add comments
             v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
                      v_code + \
@@ -167,7 +172,7 @@ class StateTranslator(FSATranslator):
             for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         else:
-            for var in automaton.variables():
+            for var in (v for v in automaton.variables() if v.scope != 'local'):
                 # To declare and initialize
                 self._cmodel.add_global_variable(var, None)
                 # To allow useing it in dispatches
@@ -228,7 +233,7 @@ class StateTranslator(FSATranslator):
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
-            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  None, 'int a', True)
+            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  None, 'int a', True, 'global')
             var.use += 1
             self.__state_variables[automaton.identifier] = var
 
