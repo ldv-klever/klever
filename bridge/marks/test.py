@@ -307,7 +307,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['safe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         with open(os.path.join(MEDIA_ROOT, self.safe_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
@@ -724,7 +724,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unsafe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         with open(os.path.join(MEDIA_ROOT, self.unsafe_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
@@ -1033,7 +1033,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unknown', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         with open(os.path.join(MEDIA_ROOT, self.unknown_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)

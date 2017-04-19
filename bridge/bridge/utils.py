@@ -21,13 +21,18 @@ import logging
 import hashlib
 import tempfile
 import zipfile
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
+from django.http import HttpResponseBadRequest
+from django.template import loader
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
+
+from bridge.vars import UNKNOWN_ERROR, ERRORS
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -64,10 +69,10 @@ def file_checksum(f):
 def file_get_or_create(fp, filename, table, check_size=False):
     if check_size:
         file_size = fp.seek(0, os.SEEK_END)
-        if file_size > MAX_FILE_SIZE:
+        if file_size > settings.MAX_FILE_SIZE:
             raise ValueError(
                 _('Please keep the file size under {0} (the current file size is {1})'.format(
-                    filesizeformat(MAX_FILE_SIZE),
+                    filesizeformat(settings.MAX_FILE_SIZE),
                     filesizeformat(file_size)
                 ))
             )
@@ -104,29 +109,30 @@ def unique_id():
 
 
 def tests_logging_conf():
-    tests_logging = LOGGING.copy()
+    tests_logging = settings.LOGGING.copy()
     cnt = 1
     for handler in tests_logging['handlers']:
         if 'filename' in tests_logging['handlers'][handler]:
-            tests_logging['handlers'][handler]['filename'] = os.path.join(MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
+            tests_logging['handlers'][handler]['filename'] = os.path.join(
+                settings.MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
             cnt += 1
     return tests_logging
 
 
 # Logging overriding does not work (does not override it for tests but override it after tests done)
 # Maybe it's Django's bug (LOGGING=tests_logging_conf())
-@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR))
+@override_settings(MEDIA_ROOT=os.path.join(settings.MEDIA_ROOT, TESTS_DIR))
 class KleverTestCase(TestCase):
     def setUp(self):
-        if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
-            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR).encode("utf8"))
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, TESTS_DIR)):
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, TESTS_DIR).encode("utf8"))
         self.client = Client()
         super(KleverTestCase, self).setUp()
 
     def tearDown(self):
         super(KleverTestCase, self).tearDown()
         try:
-            shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
+            shutil.rmtree(os.path.join(settings.MEDIA_ROOT, TESTS_DIR))
         except PermissionError:
             pass
 
@@ -219,7 +225,7 @@ class RemoveFilesBeforeDelete:
         self.__is_not_used()
         for f in files:
             if f:
-                path = os.path.join(MEDIA_ROOT, f)
+                path = os.path.join(settings.MEDIA_ROOT, f)
                 try:
                     os.remove(path)
                 except OSError:
@@ -229,3 +235,25 @@ class RemoveFilesBeforeDelete:
 
     def __is_not_used(self):
         pass
+
+
+class BridgeException(Exception):
+    def __init__(self, message=None):
+        self.message = message
+        if self.message is None:
+            self.message = UNKNOWN_ERROR
+        elif isinstance(self.message, int):
+            self.message = ERRORS.get(self.message, UNKNOWN_ERROR)
+
+    def __str__(self):
+        return str(self.message)
+
+
+class BridgeErrorResponse(HttpResponseBadRequest):
+    def __init__(self, response, *args, back=None, **kwargs):
+        if isinstance(response, int):
+            response = ERRORS.get(response, UNKNOWN_ERROR)
+        super(BridgeErrorResponse, self).__init__(
+            loader.get_template('error.html').render({'message': response, 'back': back}),
+            *args, **kwargs
+        )

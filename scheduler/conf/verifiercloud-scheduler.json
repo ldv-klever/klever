@@ -5,7 +5,9 @@
     "password": "service"
   },
   "scheduler": {
-    "type": "native",
+    "type": "scheduler",
+    "production": true,
+    "processes": 4,
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": true,
@@ -15,7 +17,7 @@
       }
     },
     "iteration timeout": 3,
-    "web-interface address": "http://vcloud.sosy-lab.org/cpachecker/webclient",
+    "web-interface address": "https://vcloud.sosy-lab.org/cpachecker/webclient",
     "web client location": "/abs/path/to/scripts/benchmark"
   },
   "common": {

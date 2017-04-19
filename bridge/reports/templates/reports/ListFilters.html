@@ -18,6 +18,10 @@
             <input type="checkbox" id="list_filter_checkbox__tags"{% if 'tags' in view.columns %} checked{% endif %}>
             <label for="list_filter_checkbox__tags">{% trans 'Tags' %}</label>
         </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="list_filter_checkbox__parent_cpu"{% if 'parent_cpu' in view.columns %} checked{% endif %}>
+            <label for="list_filter_checkbox__parent_cpu">{% trans 'Verifiers time' %}</label>
+        </div><br>
         <h5 class="header">{% trans 'Order by attribute' %}</h5>
         <div class="ui grid">
             <div class="two wide column">

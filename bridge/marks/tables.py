@@ -188,7 +188,7 @@ class MarkChangesTable:
                     val = self.attr_values_data[report][col]
                 elif col == 'report':
                     val = cnt
-                    href = reverse('reports:leaf', args=['unsafe', report.pk])
+                    href = reverse('reports:unsafe', args=[report.pk])
                 elif col == 'sum_verdict':
                     val = get_verdict_change(report)
                 elif col == 'status':
@@ -244,7 +244,7 @@ class MarkChangesTable:
                     val = self.attr_values_data[report][col]
                 elif col == 'report':
                     val = cnt
-                    href = reverse('reports:leaf', args=['safe', report.pk])
+                    href = reverse('reports:safe', args=[report.pk])
                 elif col == 'sum_verdict':
                     val = get_verdict_change(report)
                 elif col == 'status':
@@ -300,7 +300,7 @@ class MarkChangesTable:
                 href = None
                 if col == 'report':
                     val = cnt
-                    href = reverse('reports:leaf', args=['unknown', report.pk])
+                    href = reverse('reports:unknown', args=[report.pk])
                 elif col == 'status':
                     val = self.__status_change()
                 elif col == 'change_kind':
@@ -331,69 +331,53 @@ class ReportMarkTable:
         self.report = report
         self.user = user
         if isinstance(report, ReportUnsafe):
-            self.columns = ['number', 'verdict', 'result', 'status', 'author', 'is_prime']
             self.type = 'unsafe'
         elif isinstance(report, ReportSafe):
-            self.columns = ['number', 'verdict', 'status', 'author', 'is_prime']
             self.type = 'safe'
         elif isinstance(report, ReportUnknown):
-            self.columns = ['number', 'problem', 'status', 'author', 'is_prime']
             self.type = 'unknown'
         else:
             return
-        self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
 
     def __get_values(self):
         value_data = []
         cnt = 0
-        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author'):
+        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by('mark__change_date'):
             cnt += 1
-            values_row = []
-            for col in self.columns:
-                value = '-'
-                href = None
-                color = None
-                comment = None
-                if col == 'number':
-                    value = cnt
-                    href = reverse('marks:view_mark', args=[self.type, mark_rep.mark_id])
-                elif col == 'verdict':
-                    value = mark_rep.mark.get_verdict_display()
-                    if self.type == 'unsafe':
-                        color = UNSAFE_COLOR[mark_rep.mark.verdict]
-                    else:
-                        color = SAFE_COLOR[mark_rep.mark.verdict]
-                elif col == 'result':
-                    if mark_rep.broken:
-                        value = _("Comparison failed")
-                        color = result_color(0)
-                        if mark_rep.error is not None:
-                            comment = mark_rep.error
-                    else:
-                        value = "{:.0%}".format(mark_rep.result)
-                        color = result_color(mark_rep.result)
-                elif col == 'status':
-                    value = mark_rep.mark.get_status_display()
-                    color = STATUS_COLOR[mark_rep.mark.status]
-                elif col == 'author':
-                    if mark_rep.mark.author is not None:
-                        value = mark_rep.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
-                elif col == 'problem':
-                    value = mark_rep.problem.name
-                    if mark_rep.mark.link is not None:
-                        href = mark_rep.mark.link
-                        if not href.startswith('http'):
-                            href = 'http://' + mark_rep.mark.link
-                elif col == 'is_prime':
-                    if mark_rep.mark.prime == self.report:
-                        value = _('No')
-                        color = '#B12EAF'
-                    else:
-                        value = _('Yes')
-                values_row.append({'value': value, 'href': href, 'color': color, 'comment': comment})
-            value_data.append(values_row)
+            row_data = {
+                'id': mark_rep.mark_id,
+                'number': cnt,
+                'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
+                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
+            }
+            if self.type == 'unsafe':
+                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), UNSAFE_COLOR[mark_rep.mark.verdict])
+                if mark_rep.error is not None:
+                    row_data['similarity'] = (_("Comparison failed"), result_color(0), mark_rep.error)
+                else:
+                    row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result), None)
+            elif self.type == 'safe':
+                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
+            else:
+                problem_link = mark_rep.mark.link
+                if problem_link is not None and not problem_link.startswith('http'):
+                    problem_link = 'http://' + mark_rep.mark.link
+                row_data['problem'] = (mark_rep.problem.name, problem_link)
+
+            if mark_rep.mark.prime == self.report:
+                row_data['is_prime'] = (_('No'), '#B12EAF')
+            else:
+                row_data['is_prime'] = (_('Yes'), '#000000')
+            if mark_rep.mark.author is not None:
+                row_data['author'] = (
+                    mark_rep.mark.author.get_full_name(),
+                    reverse('users:show_profile', args=[mark_rep.mark.author_id])
+                )
+            if len(mark_rep.mark.description) > 0:
+                row_data['description'] = mark_rep.mark.description
+
+            value_data.append(row_data)
         return value_data
 
 
@@ -552,7 +536,7 @@ class MarksList:
                     if 'order' in self.view and self.view['order'] == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
-                        broken = len(mark.markreport_set.filter(broken=True))
+                        broken = mark.markreport_set.exclude(error=None).count()
                         if broken > 0:
                             val = ungettext_lazy(
                                 '%(all)s (%(broken)s is broken)', '%(all)s (%(broken)s are broken)', broken
@@ -775,9 +759,9 @@ class MarkReportsTable(object):
                     if col == 'report':
                         val = cnt
                         if JobAccess(self.user, report.root.job).can_view():
-                            href = reverse('reports:leaf', args=[self.type, report.id])
+                            href = reverse('reports:%s' % self.type, args=[report.id])
                     elif col == 'result':
-                        if mark_report.broken:
+                        if mark_report.error is not None:
                             val = _("Comparison failed")
                             color = result_color(0)
                             if mark_report.error is not None:

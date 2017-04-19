@@ -202,7 +202,7 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks
@@ -550,7 +550,7 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks

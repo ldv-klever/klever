@@ -42,15 +42,11 @@ class TestPopulation(KleverTestCase):
         response = self.client.get('/')
         self.assertRedirects(response, reverse('jobs:tree'))
 
-    def test_error_page(self):
-        response = self.client.get(reverse('error', args=[500]))
-        self.assertEqual(response.status_code, 200)
-
     def test_population(self):
         # Trying to get access without superuser permission
         self.client.post(reverse('users:login'), {'username': 'user', 'password': 'top_secret2'})
         response = self.client.get(reverse('population'))
-        self.assertRedirects(response, reverse('error', args=[300]))
+        self.assertEqual(response.status_code, 400)
         self.client.get(reverse('users:logout'))
 
         # Trying to get access with superuser permission
@@ -62,7 +58,7 @@ class TestPopulation(KleverTestCase):
         response = self.client.post(reverse('population'), {
             'manager_username': 'superuser', 'service_username': ''
         })
-        self.assertRedirects(response, reverse('error', args=[305]))
+        self.assertEqual(response.status_code, 400)
 
         # Normal population
         response = self.client.post(reverse('population'), {

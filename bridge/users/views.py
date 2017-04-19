@@ -16,6 +16,7 @@
 #
 
 import json
+
 from django.contrib.auth import authenticate, login, logout, models
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
@@ -25,14 +26,17 @@ from django.middleware.csrf import get_token
 from django.shortcuts import render, get_object_or_404
 from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
+
+from tools.profiling import unparallel_group
+from bridge.settings import DEF_USER
+from bridge.vars import LANGUAGES, SCHEDULER_TYPE, UNKNOWN_ERROR
+from bridge.utils import logger
+from bridge.populate import extend_user
+
+from jobs.models import Job
+
 from users.forms import UserExtendedForm, UserForm, EditUserForm
 from users.models import Notifications, Extended, User
-from bridge.populate import extend_user
-from bridge.settings import DEF_USER
-from bridge.vars import LANGUAGES, SCHEDULER_TYPE
-from bridge.utils import logger
-from tools.profiling import unparallel_group
-from jobs.models import Job
 
 
 @unparallel_group(['User'])
@@ -322,8 +326,8 @@ def save_notifications(request):
             new_ntf.self_ntf = json.loads(request.POST.get('self_ntf', 'false'))
         except Exception as e:
             logger.error("Can't parse json: %s" % e, stack_info=True)
-            return JsonResponse({'error': 'Unknown error'})
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
         new_ntf.settings = request.POST.get('notifications', '[]')
         new_ntf.save()
         return JsonResponse({'message': _('Saved')})
-    return JsonResponse({'error': _('Unknown error')})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})

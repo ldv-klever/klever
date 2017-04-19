@@ -24,8 +24,10 @@ from django.db.models import Q
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
-from bridge.vars import USER_ROLES
+
 from tools.profiling import unparallel_group
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR
+
 from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
 from service.utils import *
 
@@ -146,10 +148,12 @@ def get_jobs_and_tasks(request):
         return JsonResponse({'error': 'Tasks data is required'})
     try:
         jobs_and_tasks = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status']).newtasks
-    except Exception as e:
+    except ServiceError as e:
         # TODO: email notification
-        logger.exception(e)
         return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': 'Unknown error'})
     return JsonResponse({'jobs and tasks status': jobs_and_tasks})
 
 
@@ -264,10 +268,7 @@ def set_schedulers_status(request):
 @unparallel_group([NodesConfiguration, Workload])
 def schedulers_info(request):
     activate(request.user.extended.language)
-    return render(request, 'service/scheduler.html', {
-        'schedulers': Scheduler.objects.all(),
-        'data': NodesData()
-    })
+    return render(request, 'service/scheduler.html', {'schedulers': Scheduler.objects.all(), 'data': NodesData()})
 
 
 @login_required
@@ -322,12 +323,9 @@ def process_job(request):
 @unparallel_group([SchedulerUser])
 def add_scheduler_user(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'login' not in request.POST or len(request.POST['login']) == 0:
-        return JsonResponse({'error': 'Unknown error'})
-    if 'password' not in request.POST or len(request.POST['password']) == 0:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'login' not in request.POST or len(request.POST['login']) == 0 \
+            or 'password' not in request.POST or len(request.POST['password']) == 0:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     SchedulerUser.objects.get_or_create(
         user=request.user, defaults={'login': request.POST['login'], 'password': request.POST['password']}
     )
