@@ -731,10 +731,6 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                             invoke)
 
                 conditions = list()
-                if not get_necessary_conf_property(self._conf, 'nested automata'):
-                    checks = self._relevant_checks(relevant_automata)
-                    if len(checks) > 0:
-                        code.append('ldv_assume({});'.format(' || '.join(checks)))
 
                 inv = make_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
