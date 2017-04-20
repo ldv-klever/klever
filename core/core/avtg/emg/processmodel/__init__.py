@@ -869,7 +869,7 @@ class ProcessModel:
                                 new.complete_list_interface = new_tail
 
                             accesses[access].append(new)
-                    elif access not in accesses:
+                    elif access not in accesses or len(accesses[access]) == 0:
                         new = Access(access)
                         new.label = label
                         new.list_access = [label.name]
