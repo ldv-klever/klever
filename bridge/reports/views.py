@@ -15,26 +15,32 @@
 # limitations under the License.
 #
 
+import json
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
+
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR
-from bridge.utils import unparallel_group, ArchiveFileContent, BridgeException, BridgeErrorResponse
+
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT
+from bridge.utils import unparallel_group, logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
-from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
+from jobs.models import Job
+from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe, MarkUnknown, UnknownProblem
 from marks.utils import MarkAccess
 from marks.tables import ReportMarkTable, MarkData
 from marks.tags import TagsInfo
+
+import reports.utils
+import reports.models
 from reports.UploadReport import UploadReport
-from reports.models import *
-from reports.utils import *
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
@@ -68,7 +74,7 @@ def report_component(request, job_id, report_id):
     if not JobAccess(request.user, job).can_view():
         return BridgeErrorResponse(400)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -92,7 +98,7 @@ def report_component(request, job_id, report_id):
     unknown_href = None
     try:
         unknown_href = reverse('reports:unknown', args=[
-            ReportUnknown.objects.get(parent=report, component=report.component).pk
+            reports.models.ReportUnknown.objects.get(parent=report, component=report.component).pk
         ])
         status = 3
     except ObjectDoesNotExist:
@@ -114,12 +120,12 @@ def report_component(request, job_id, report_id):
         {
             'report': report,
             'duration': duration,
-            'resources': report_resources(report, request.user),
-            'computer': computer_description(report.computer.description),
+            'resources': reports.utils.report_resources(report, request.user),
+            'computer': reports.utils.computer_description(report.computer.description),
             'reportdata': ViewJobData(*view_args),
-            'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
-            'TableData': ReportTable(*report_attrs_data, table_type='3'),
+            'parents': reports.utils.get_parents(report),
+            'SelfAttrsData': reports.utils.ReportTable(*report_attrs_data).table_data,
+            'TableData': reports.utils.ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
             'data': report_data
@@ -134,7 +140,7 @@ def report_list(request, report_id, ltype, component_id=None,
     activate(request.user.extended.language)
 
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -192,7 +198,7 @@ def report_list(request, report_id, ltype, component_id=None,
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
-    table_data = ReportTable(
+    table_data = reports.utils.ReportTable(
         *report_attrs_data, table_type=list_types[ltype],
         component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr
     )
@@ -206,7 +212,7 @@ def report_list(request, report_id, ltype, component_id=None,
         'reports/report_list.html',
         {
             'report': report,
-            'parents': get_parents(report),
+            'parents': reports.utils.get_parents(report),
             'TableData': table_data,
             'view_type': list_types[ltype],
             'title': title
@@ -250,7 +256,7 @@ def report_list_by_mark(request, report_id, ltype, mark_id):
 @unparallel_group(['Attr'])
 def report_list_by_attr(request, report_id, ltype, attr_id):
     try:
-        return report_list(request, report_id, ltype, attr=Attr.objects.get(pk=attr_id))
+        return report_list(request, report_id, ltype, attr=reports.models.Attr.objects.get(pk=attr_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(_("The attribute was not found"))
 
@@ -280,7 +286,7 @@ def report_unsafe(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        report = ReportUnsafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -304,8 +310,8 @@ def report_unsafe(request, report_id):
             request, 'reports/report_unsafe.html',
             {
                 'report': report,
-                'parents': get_parents(report),
-                'SelfAttrsData': report_attibutes(report),
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report),
                 'etv': etv,
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
@@ -327,7 +333,7 @@ def report_safe(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        report = ReportSafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportSafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -352,8 +358,8 @@ def report_safe(request, report_id):
             request, 'reports/report_safe.html',
             {
                 'report': report,
-                'parents': get_parents(report),
-                'SelfAttrsData': report_attibutes(report),
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
@@ -372,7 +378,7 @@ def report_unknown(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        report = ReportUnknown.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnknown.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
     if not JobAccess(request.user, report.root.job).can_view():
@@ -388,8 +394,8 @@ def report_unknown(request, report_id):
             request, 'reports/report_unknown.html',
             {
                 'report': report,
-                'parents': get_parents(report),
-                'SelfAttrsData': report_attibutes(report),
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
@@ -407,7 +413,7 @@ def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        report = ReportUnsafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -424,7 +430,7 @@ def report_etv_full(request, report_id):
         return BridgeErrorResponse(505)
 
 
-@unparallel_group([ReportRoot, AttrName])
+@unparallel_group([reports.models.ReportRoot, reports.models.AttrName])
 def upload_report(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signed in'})
@@ -464,7 +470,7 @@ def upload_report(request):
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -492,7 +498,7 @@ def get_component_log(request, report_id):
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
 
@@ -536,7 +542,7 @@ def get_source_code(request):
 
 
 @login_required
-@unparallel_group(['Job', 'ReportRoot', CompareJobsInfo])
+@unparallel_group(['Job', 'ReportRoot', reports.models.CompareJobsInfo])
 def fill_compare_cache(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -557,7 +563,7 @@ def fill_compare_cache(request):
 
 
 @login_required
-@unparallel_group([CompareJobsInfo])
+@unparallel_group([reports.models.CompareJobsInfo])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -587,7 +593,7 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group([CompareJobsInfo])
+@unparallel_group([reports.models.CompareJobsInfo])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'info_id' not in request.POST:
@@ -632,7 +638,7 @@ def get_compare_jobs_data(request):
 @unparallel_group(['ReportComponent'])
 def download_report_files(request, report_id):
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
     if not report.archive:
@@ -650,7 +656,7 @@ def download_error_trace(request, report_id):
     if request.method != 'GET':
         return BridgeErrorResponse(301)
     try:
-        report = ReportUnsafe.objects.get(id=report_id)
+        report = reports.models.ReportUnsafe.objects.get(id=report_id)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
     content = ArchiveFileContent(report, report.error_trace).content
@@ -658,3 +664,22 @@ def download_error_trace(request, report_id):
     response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
     return response
+
+
+@login_required
+@unparallel_group([reports.models.Report])
+def clear_verification_files(request):
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = Job.objects.get(id=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The job was not found or wasn't decided")})
+    if not JobAccess(request.user, job).can_clear_verifications():
+        return JsonResponse({'error': _("You can't remove verification files of this job")})
+    try:
+        reports.utils.remove_verification_files(job)
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})

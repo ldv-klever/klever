@@ -54,7 +54,6 @@ class Attr(models.Model):
 class ReportRoot(models.Model):
     user = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     job = models.OneToOneField(Job)
-    safes = models.PositiveIntegerField(default=0)
     tasks_total = models.PositiveIntegerField(default=0)
     average_time = models.BigIntegerField(default=0)
 
@@ -106,6 +105,7 @@ class Component(models.Model):
 class ReportComponent(Report):
     computer = models.ForeignKey(Computer)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
+    verification = models.BooleanField(default=False)
     cpu_time = models.BigIntegerField(null=True)
     wall_time = models.BigIntegerField(null=True)
     memory = models.BigIntegerField(null=True)

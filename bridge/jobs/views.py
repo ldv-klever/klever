@@ -256,7 +256,8 @@ def show_job(request, job_id=None):
             'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop(),
             'can_collapse': job_access.can_collapse(),
-            'can_dfc': job_access.can_dfc()
+            'can_dfc': job_access.can_dfc(),
+            'can_clear_verifications': job_access.can_clear_verifications()
         }
     )
 

@@ -469,8 +469,7 @@ class ConnectReportWithMarks:
             new_markreports.append(MarkUnknownReport(
                 mark=mark, report=self.report, problem=UnknownProblem.objects.get_or_create(name=problem)[0]
             ))
-        if len(new_markreports) > 0:
-            MarkUnknownReport.objects.bulk_create(new_markreports)
+        MarkUnknownReport.objects.bulk_create(new_markreports)
         if self.update_cache:
             update_unknowns_cache([self.report])
 
@@ -810,8 +809,6 @@ class TagsInfo:
 class RecalculateTags:
     def __init__(self, report):
         self.report = report
-        self._safes = set()
-        self._unsafes = set()
         self.__fill_leaves_cache()
         if isinstance(self.report, ReportSafe):
             self.__fill_reports_safe_cache()
