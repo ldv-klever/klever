@@ -1031,10 +1031,10 @@ def enable_safe_marks(request):
         return JsonResponse({'error': _('The job was not found')})
     if not jobs.utils.JobAccess(request.user, job).can_edit():
         return JsonResponse({'error': _("You don't have an access to edit this job")})
-    if job.safe_marks:
-        disable_safe_marks_for_job(job)
-    else:
-        RecalculateSafeMarkConnections([job])
     job.safe_marks = not job.safe_marks
     job.save()
+    if job.safe_marks:
+        RecalculateSafeMarkConnections([job])
+    else:
+        disable_safe_marks_for_job(job)
     return JsonResponse({})
