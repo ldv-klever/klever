@@ -141,7 +141,7 @@ class RecalculateUnsafeMarkConnections:
         MarkUnsafeReport.objects.filter(report__root__job__in=self.jobs).delete()
         Verdict.objects.filter(report__root__job__in=self.jobs).update(
             unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
-            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('safe')
+            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
         )
         for unsafe in ReportUnsafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(unsafe)
@@ -149,7 +149,7 @@ class RecalculateUnsafeMarkConnections:
 
 class RecalculateSafeMarkConnections:
     def __init__(self, jobs):
-        self.jobs = jobs
+        self.jobs = list(job for job in jobs if job.safe_marks)
         self.__recalc()
 
     def __recalc(self):
@@ -157,8 +157,7 @@ class RecalculateSafeMarkConnections:
         SafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
         MarkSafeReport.objects.filter(report__root__job__in=self.jobs).delete()
         Verdict.objects.filter(report__root__job__in=self.jobs).update(
-            safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0,
-            safe_inconclusive=0, safe_unassociated=F('safe')
+            safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
         )
         for safe in ReportSafe.objects.filter(root__job__in=self.jobs):
             ConnectReportWithMarks(safe)
@@ -290,10 +289,7 @@ class Recalculation:
         elif self.type == 'unsafe':
             RecalculateUnsafeMarkConnections(self.jobs)
         elif self.type == 'safe':
-            if settings.ENABLE_SAFE_MARKS:
-                RecalculateSafeMarkConnections(self.jobs)
-            else:
-                self.error = _('Safe marks are disabled')
+            RecalculateSafeMarkConnections(self.jobs)
         elif self.type == 'unknown':
             RecalculateUnknownMarkConnections(self.jobs)
         elif self.type == 'resources':
@@ -303,8 +299,7 @@ class Recalculation:
         elif self.type == 'all':
             RecalculateLeaves(self.jobs)
             RecalculateUnsafeMarkConnections(self.jobs)
-            if settings.ENABLE_SAFE_MARKS:
-                RecalculateSafeMarkConnections(self.jobs)
+            RecalculateSafeMarkConnections(self.jobs)
             RecalculateUnknownMarkConnections(self.jobs)
             RecalculateVerdicts(self.jobs)
             RecalculateResources(self.jobs)

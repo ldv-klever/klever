@@ -132,8 +132,8 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
-            'status': self.job.status, 'files_map': self.arch_files,
-            'run_history': self.__add_run_history_files(), 'weight': self.job.weight
+            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
+            'weight': self.job.weight, 'safe_marks': self.job.safe_marks
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __add_run_history_files(self):
@@ -356,7 +356,8 @@ class UploadJob(object):
         if not isinstance(jobdata, dict):
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map', 'run_history', 'weight']):
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
+                                          'run_history', 'weight', 'safe_marks']):
             raise ValueError('Not enough data in job.json file')
         if jobdata['format'] != FORMAT:
             raise BridgeException(_("The job format is not supported"))
@@ -416,7 +417,8 @@ class UploadJob(object):
                 'type': self.parent.type,
                 'global_role': version_list[0]['global_role'],
                 'filedata': version_list[0]['filedata'],
-                'comment': version_list[0]['comment']
+                'comment': version_list[0]['comment'],
+                'safe_marks': jobdata['safe_marks']
             })
         except Exception as e:
             logger.exception(e, stack_info=True)
