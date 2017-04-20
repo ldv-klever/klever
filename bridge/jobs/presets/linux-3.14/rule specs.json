@@ -51,7 +51,6 @@
               "implicit callback calls": true,
               "direct control functions calls": true,
               "nested automata": true,
-              "no actions composition": ["Condition"],
               "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,

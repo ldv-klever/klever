@@ -30,10 +30,10 @@ class StateTranslator(FSATranslator):
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
 
-        check_or_set_conf_property(conf, 'no actions composition', default_value=['Condition'], expected_type=list)
-        self.__jump_types = set([t for t in [Dispatch, CallRetval, Call, Condition, Subprocess]
+        check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
+        self.__jump_types = set([t for t in [Dispatch, Receive, CallRetval, Call, Condition, Subprocess]
                                  if t.__name__ not in
-                                 get_necessary_conf_property(conf, 'no actions composition')])
+                                 get_necessary_conf_property(conf, 'actions composition')])
 
         super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
 
