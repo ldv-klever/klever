@@ -62,6 +62,8 @@ def create_mark(request, mark_type, report_id):
             report = ReportUnsafe.objects.get(pk=int(report_id))
         elif mark_type == 'safe':
             report = ReportSafe.objects.get(pk=int(report_id))
+            if not report.root.job.safe_marks:
+                return BridgeErrorResponse(_('Safe marks are disabled'))
         else:
             report = ReportUnknown.objects.get(pk=int(report_id))
             try:
@@ -226,6 +228,8 @@ def save_mark(request):
                 inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
             elif savedata['data_type'] == 'safe':
                 inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
+                if not inst.root.job.safe_marks:
+                    return JsonResponse({'error': _('Safe marks are disabled')})
             else:
                 inst = ReportUnknown.objects.get(pk=int(savedata['report_id']))
         except ObjectDoesNotExist:

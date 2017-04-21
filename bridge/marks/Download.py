@@ -265,6 +265,8 @@ class ReadMarkArchive:
         self.type = mark_data['mark_type']
         if self.type not in {'safe', 'unsafe', 'unknown'}:
             raise BridgeException(_("The mark archive is corrupted"))
+        if self.type == 'safe' and not settings.ENABLE_SAFE_MARKS:
+            raise BridgeException(_("Safe marks are disabled"))
         if self.type == 'unknown' and 'component' not in mark_data:
             raise BridgeException(_("The mark archive is corrupted"))
 

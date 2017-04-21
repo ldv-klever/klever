@@ -26,7 +26,7 @@ from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
-    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
+    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
@@ -454,6 +454,7 @@ def create_job(kwargs):
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
         newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    newjob.safe_marks = bool(kwargs.get('safe_marks', ENABLE_SAFE_MARKS))
     newjob.save()
 
     new_version = create_version(newjob, kwargs)

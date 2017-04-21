@@ -448,7 +448,8 @@ class UploadReport:
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
         self.__fill_attrs_statistic(leaf)
-        ConnectReportWithMarks(leaf)
+        if self.data['type'] != 'safe' or self.job.safe_marks:
+            ConnectReportWithMarks(leaf)
 
     def __cut_reports_branch(self, leaf):
         # Just Core report
