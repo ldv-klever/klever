@@ -188,7 +188,7 @@ class ErrorTrace:
                 else:
                     yield current
 
-    def insert_edge_and_target_node(self, edge):
+    def insert_edge_and_target_node(self, edge, after=True):
         new_edge = {
             'target node': None,
             'source node': None,
@@ -196,13 +196,22 @@ class ErrorTrace:
         }
         new_node = self.add_node(int(len(self._nodes)))
 
-        edge['target node']['in'].remove(edge)
-        edge['target node']['in'].append(new_edge)
-        new_edge['target node'] = edge['target node']
-        edge['target node'] = new_node
-        new_node['in'] = [edge]
-        new_node['out'] = [new_edge]
-        new_edge['source node'] = new_node
+        if after:
+            edge['target node']['in'].remove(edge)
+            edge['target node']['in'].append(new_edge)
+            new_edge['target node'] = edge['target node']
+            edge['target node'] = new_node
+            new_node['in'] = [edge]
+            new_node['out'] = [new_edge]
+            new_edge['source node'] = new_node
+        else:
+            edge['source node']['out'].remove(edge)
+            edge['source node']['out'].append(new_edge)
+            new_edge['source node'] = edge['source node']
+            edge['source node'] = new_node
+            new_node['out'] = [edge]
+            new_node['in'] = [new_edge]
+            new_edge['target node'] = new_node
 
         return new_edge
 

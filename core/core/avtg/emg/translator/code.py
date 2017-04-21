@@ -230,7 +230,9 @@ class CModel:
             "int {}(void)".format(self.entry_name),
             False
         )
-        body = []
+
+        body = ['/* LDV {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
+                '"function": "{0}"'.format(self.entry_name) + '} */']
 
         # Init external allocated pointers
         cnt = 0
@@ -264,6 +266,8 @@ class CModel:
 
         body += given_body
         body.append('return 0;')
+        body.append('/* LDV {' + '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END",'
+                    ' "function": "{0}"'.format(self.entry_name) + '} */')
 
         ep.body = body
         self.add_function_definition(self.entry_file, ep)

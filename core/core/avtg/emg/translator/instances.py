@@ -36,7 +36,7 @@ def yield_instances(logger, conf, analysis, model, instance_maps):
     """
     def yeild_identifier():
         """Return unique identifier."""
-        identifier_counter = 0
+        identifier_counter = 1
         while True:
             identifier_counter += 1
             yield identifier_counter
