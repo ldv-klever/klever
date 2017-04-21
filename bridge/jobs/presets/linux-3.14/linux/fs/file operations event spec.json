@@ -260,7 +260,11 @@
               "%size_cnt%"
             ],
             "pre-call": [
-              "ldv_assume(%size_cnt% <= (INT_MAX & PAGE_CACHE_MASK));"
+              "/* MAX_RW_COUNT moved to 'linux/fs.h' since 2.6.37, before it was defined in 'fs/read_write.c' */",
+              "#if !defined(MAX_RW_COUNT)",
+              "  #define MAX_RW_COUNT (INT_MAX & PAGE_CACHE_MASK)",
+              "#endif",
+              "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
             ]
           },
           "init": {

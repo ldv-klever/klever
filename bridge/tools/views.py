@@ -20,8 +20,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
-from bridge.vars import USER_ROLES, JOB_STATUS
-from bridge.utils import unparallel_group
+from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
+from bridge.utils import unparallel_group, BridgeException, logger
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
@@ -34,8 +34,9 @@ def manager_tools(request):
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all(),
-        'jobs': Job.objects.exclude(reportroot=None)
-                  .exclude(status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]])
+        'jobs': Job.objects.exclude(reportroot=None).exclude(
+            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]]
+        )
     })
 
 
@@ -44,7 +45,7 @@ def manager_tools(request):
 def rename_component(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     try:
@@ -66,7 +67,7 @@ def rename_component(request):
 def clear_components(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(Component).delete()
@@ -78,7 +79,7 @@ def clear_components(request):
 def clear_problems(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(UnknownProblem).delete()
@@ -90,7 +91,7 @@ def clear_problems(request):
 def clear_system(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     ClearFiles()
@@ -105,12 +106,16 @@ def clear_system(request):
 def recalculation(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     if 'type' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    res = Recalculation(request.POST['type'], request.POST.get('jobs', None))
-    if res.error is not None:
-        return JsonResponse({'error': res.error + ''})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        Recalculation(request.POST['type'], request.POST.get('jobs', None))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({'message': _("Caches were successfully recalculated")})

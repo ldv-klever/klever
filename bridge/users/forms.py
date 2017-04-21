@@ -73,7 +73,7 @@ class EditUserForm(forms.ModelForm):
         new_pass = cleaned_data.get("new_password")
         retyped = cleaned_data.get("retype_password")
         if new_pass != retyped:
-            raise forms.ValidationError({'retype_password': _("Passwords don't match")})
+            raise forms.ValidationError(_("Passwords don't match"))
 
     class Meta:
         model = User
