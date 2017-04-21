@@ -16,6 +16,7 @@
 #
 
 import json
+from django.db import transaction
 from django.db.models import ProtectedError, F
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
@@ -149,18 +150,123 @@ class RecalculateUnsafeMarkConnections:
 
 class RecalculateSafeMarkConnections:
     def __init__(self, jobs):
-        self.jobs = list(job for job in jobs if job.safe_marks)
-        self.__recalc()
+        self._roots = ReportRoot.objects.filter(job__in=list(job for job in jobs if job.safe_marks))
+        self._marks = {}
+        self._safes = {}
+        self._reports = {}
+        self.__clear_caches()
+        self.__get_marks()
+        self.__get_safes()
+        self.__connect_marks()
+        self.__fill_cache()
 
-    def __recalc(self):
-        ReportSafeTag.objects.filter(report__root__job__in=self.jobs).delete()
-        SafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
-        MarkSafeReport.objects.filter(report__root__job__in=self.jobs).delete()
-        Verdict.objects.filter(report__root__job__in=self.jobs).update(
+    def __clear_caches(self):
+        ReportSafeTag.objects.filter(report__root__in=self._roots).delete()
+        SafeReportTag.objects.filter(report__root__in=self._roots).delete()
+        MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
+        ReportSafe.objects.filter(root__in=self._roots).update(verdict=SAFE_VERDICTS[4][0])
+        Verdict.objects.filter(report__root__in=self._roots).update(
             safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
         )
-        for safe in ReportSafe.objects.filter(root__job__in=self.jobs):
-            ConnectReportWithMarks(safe)
+
+    def __get_marks(self):
+        for mark_id, attr_id, verdict in MarkSafeAttr.objects.filter(is_compare=True)\
+                .values_list('mark_id', 'attr_id', 'mark__verdict'):
+            if mark_id not in self._marks:
+                self._marks[mark_id] = {'attrs': set(), 'tags': set(), 'verdict': verdict}
+            self._marks[mark_id]['attrs'].add(attr_id)
+        for mark_id, tag_id in MarkSafeTag.objects.all().values_list('mark_version__mark_id', 'tag_id'):
+            # Marks without enabled attributes will not be associated
+            if mark_id in self._marks:
+                self._marks[mark_id]['tags'].add(tag_id)
+
+    def __get_safes(self):
+        for safe_id, in ReportSafe.objects.filter(root__in=self._roots).values_list('id'):
+            self._safes[safe_id] = {'attrs': set(), 'marks': set(), 'reports': set()}
+        for safe_id, attr_id in ReportAttr.objects.filter(report__root__in=self._roots, report_id__in=self._safes)\
+                .values_list('report_id', 'attr_id'):
+            self._safes[safe_id]['attrs'].add(attr_id)
+
+        # Fill affected reports
+        verdicts_nums = {}
+        for v in SAFE_VERDICTS:
+            verdicts_nums[v[0]] = 0
+        for report_id, safe_id in ReportComponentLeaf.objects.filter(safe_id__in=self._safes)\
+                .values_list('report_id', 'safe_id'):
+            self._safes[safe_id]['reports'].add(report_id)
+            if report_id not in self._reports:
+                self._reports[report_id] = {'safes': set()}
+            self._reports[report_id]['safes'].add(safe_id)
+
+    def __connect_marks(self):
+        for safe_id in self._safes:
+            for mark_id in self._marks:
+                if self._marks[mark_id]['attrs'].issubset(self._safes[safe_id]['attrs']):
+                    self._safes[safe_id]['marks'].add(mark_id)
+            # We don't need safe attributes already
+            del self._safes[safe_id]['attrs']
+        for mark_id in self._marks:
+            # We don't need mark attributes already
+            del self._marks[mark_id]['attrs']
+
+    def __fill_cache(self):
+        safe_tag_cache = {}
+        report_tag_cache = {}
+        new_markreports = []
+        for safe_id in self._safes:
+            new_verdict = SAFE_VERDICTS[4][0]
+            for mark_id in self._safes[safe_id]['marks']:
+                new_markreports.append(MarkSafeReport(mark_id=mark_id, report_id=safe_id))
+                if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != self._marks[mark_id]['verdict']:
+                    new_verdict = SAFE_VERDICTS[3][0]
+                    break
+                else:
+                    new_verdict = self._marks[mark_id]['verdict']
+                for tag_id in self._marks[mark_id]['tags']:
+                    if (safe_id, tag_id) not in safe_tag_cache:
+                        safe_tag_cache[(safe_id, tag_id)] = \
+                            SafeReportTag(report_id=safe_id, tag_id=tag_id, number=0)
+                    safe_tag_cache[(safe_id, tag_id)].number += 1
+                    for report_id in self._safes[safe_id]['reports']:
+                        if (report_id, tag_id) not in report_tag_cache:
+                            report_tag_cache[(report_id, tag_id)] = \
+                                ReportSafeTag(report_id=report_id, tag_id=tag_id, number=0)
+                        report_tag_cache[(report_id, tag_id)].number += 1
+            self._safes[safe_id]['verdict'] = new_verdict
+        MarkSafeReport.objects.bulk_create(new_markreports)
+        SafeReportTag.objects.bulk_create(safe_tag_cache.values())
+        ReportSafeTag.objects.bulk_create(report_tag_cache.values())
+        self.__update_safe_verdicts()
+
+        for report_id in self._reports:
+            for safe_id in self._reports[report_id]['safes']:
+                safe_verdict = self._safes[safe_id]['verdict']
+                if safe_verdict not in self._reports[report_id]:
+                    self._reports[report_id][safe_verdict] = 1
+                else:
+                    self._reports[report_id][safe_verdict] += 1
+            # We need just verdicts statistic
+            del self._reports[report_id]['safes']
+        self.__update_verdicts()
+
+    def __update_safe_verdicts(self):
+        safes_by_verdict = {}
+        for safe_id in self._safes:
+            if self._safes[safe_id]['verdict'] not in safes_by_verdict:
+                safes_by_verdict[self._safes[safe_id]['verdict']] = set()
+            safes_by_verdict[self._safes[safe_id]['verdict']].add(safe_id)
+        for verdict in safes_by_verdict:
+            ReportSafe.objects.filter(id__in=safes_by_verdict[verdict]).update(verdict=verdict)
+
+    @transaction.atomic
+    def __update_verdicts(self):
+        for verdict in Verdict.objects.filter(report_id__in=self._reports):
+            verdict.safe_unknown = self._reports[verdict.report_id].get(SAFE_VERDICTS[0][0], 0)
+            verdict.safe_incorrect_proof = self._reports[verdict.report_id].get(SAFE_VERDICTS[1][0], 0)
+            verdict.safe_missed_bug = self._reports[verdict.report_id].get(SAFE_VERDICTS[2][0], 0)
+            verdict.safe_inconclusive = self._reports[verdict.report_id].get(SAFE_VERDICTS[3][0], 0)
+            verdict.safe_unassociated = self._reports[verdict.report_id].get(SAFE_VERDICTS[4][0], 0)
+            verdict.save()
 
 
 class RecalculateUnknownMarkConnections(object):
