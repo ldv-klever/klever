@@ -871,6 +871,13 @@ $(document).ready(function () {
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
+    $('#clear_verifications_modal').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#clear_verifications_modal_show', 'show');
+    $('#cancel_clear_verifications').click(function () {
+        $('#clear_verifications_modal').modal('hide');
+    });
+
     $('#collapse_reports_modal').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#collapse_reports_modal_show', 'show');
@@ -939,6 +946,19 @@ $(document).ready(function () {
         $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'collapse_reports/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                data.error ? err_notify(data.error) : window.location.replace('');
+            }
+        );
+    });
+
+    $('#clear_verifications_confirm').click(function () {
+        $('#clear_verifications_modal').modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        $.post(
+            '/reports/ajax/clear_verification_files/',
             {job_id: $('#job_pk').val()},
             function (data) {
                 $('#dimmer_of_page').removeClass('active');

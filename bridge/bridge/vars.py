@@ -89,8 +89,7 @@ JOB_STATUS = (
 
 JOB_WEIGHT = (
     ('0', _('Full-weight')),
-    ('1', _('Medium-weight')),
-    ('2', _('Lightweight')),
+    ('1', _('Lightweight'))
 )
 
 # Default view of the table

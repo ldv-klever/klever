@@ -24,8 +24,8 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
-    SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, SAFE_LIST_DEF_VIEW,\
+    UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
 from jobs.utils import get_resource_data, get_user_time
@@ -715,3 +715,18 @@ class FilesForCompetitionArchive(object):
 
 def report_attibutes(report):
     return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
+
+
+def remove_verification_files(job):
+    root = job.reportroot
+    for report in ReportComponent.objects.filter(root=root, verification=True):
+        report.archive.delete()
+
+    core_report = ReportComponent.objects.get(root=root, parent=None)
+    if job.weight == JOB_WEIGHT[1][0]:
+        ReportSafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportUnsafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportUnknown.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportComponent.objects.filter(root=root, verification=True).delete()
+    else:
+        ReportComponent.objects.filter(root=root, verification=True).update(log=None)

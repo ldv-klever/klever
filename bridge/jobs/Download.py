@@ -176,15 +176,14 @@ class JobsArchivesGen:
         yield self.stream.close_stream()
 
 
-class LightWeightCache(object):
+class LightWeightCache:
     def __init__(self, job):
         self.data = {}
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
             return
-        self.data['safes'] = self.root.safes
-        if job.weight != JOB_WEIGHT[0][0]:
+        if job.weight == JOB_WEIGHT[1][0]:
             self.data['resources'] = self.__get_light_resources()
             self.data['attrs_data'] = self.__get_attrs_statistic()
 
@@ -480,9 +479,6 @@ class UploadJob(object):
             root = ReportRoot.objects.get(job=self.job)
         except ObjectDoesNotExist:
             return
-        if 'safes' in light_cache:
-            root.safes = int(light_cache['safes'])
-            root.save()
         if 'resources' in light_cache:
             LightResource.objects.bulk_create(list(LightResource(
                 report=root, wall_time=int(d['wall_time']), cpu_time=int(d['cpu_time']), memory=int(d['memory']),

@@ -26,6 +26,7 @@
                     <button id="show_remove_job_popup" class="ui red button note-popup{% if not can_delete %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
                     <button id="collapse_reports_modal_show" class="ui orange button note-popup{% if not can_collapse %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Collapse reports' %}"><i class="archive icon"></i></button>
                     <button id="dfc_modal_show" class="ui teal button note-popup{% if not can_dfc %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Download files for competition' %}"><i class="download icon"></i></button>
+                    <button id="clear_verifications_modal_show" class="ui orange button note-popup{% if not can_clear_verifications %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Clear verification files' %}"><i class="erase icon"></i></button>
                 </div>
                 <table class="ui selectable compact inverted violet table attached">
                     <thead>
@@ -304,6 +305,23 @@
                 </div>
             </div>
         </div>
+        <div id="clear_verifications_modal" class="ui basic modal">
+            <div class="ui icon header">
+                <i class="warning sign icon"></i>
+                {% trans 'Are you sure' %}?
+            </div>
+            <div class="content">
+                <div class="ui center aligned grid">
+                    <p>{% trans "Files of verification reports will be deleted" %}!</p>
+                </div>
+            </div>
+            <div class="actions">
+                <div class="ui center aligned grid">
+                    <button id="cancel_clear_verifications" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                    <button id="clear_verifications_confirm" type="button" class="ui red basic inverted button">{% trans 'Clear' %}</button>
+                </div>
+            </div>
+        </div>
         {% if can_dfc %}
             <div id="dfc_modal" class="ui small dinamic modal">
                 <div class="ui header">{% trans 'Choose filters' %}</div>
@@ -346,7 +364,7 @@
                         </div>
                         <div class="sixteen wide column right aligned">
                             <div class="ui buttons">
-                                <button id="dfc__confirm" href="{% url 'jobs:download_file_for_compet' job.pk %}" class="ui green button">{% trans 'Download' %}</button>
+                                <a id="dfc__confirm" href="{% url 'jobs:download_file_for_compet' job.pk %}" class="ui green button">{% trans 'Download' %}</a>
                                 <button id="dfc__cancel" class="ui blue button">{% trans 'Cancel' %}</button>
                             </div>
                         </div>
