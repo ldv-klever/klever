@@ -6,7 +6,7 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-    dependencies = [('jobs', '0004_remove_light')]
+    dependencies = [('jobs', '0006_enable_safe_marks')]
     operations = [
         migrations.AlterField(
             model_name='job', name='weight',
