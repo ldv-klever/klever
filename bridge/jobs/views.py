@@ -619,7 +619,7 @@ def check_access(request):
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
-    if not JobAccess(request.user).can_create():
+    if not jobs.utils.JobAccess(request.user).can_create():
         return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
     if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
         return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
