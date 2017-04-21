@@ -62,6 +62,7 @@ class Job(JobBase):
     parent = models.ForeignKey('self', null=True, related_name='children')
     status = models.CharField(max_length=1, choices=JOB_STATUS, default=JOB_STATUS[0][0])
     weight = models.CharField(max_length=1, choices=JOB_WEIGHT, default=JOB_WEIGHT[0][0])
+    safe_marks = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name

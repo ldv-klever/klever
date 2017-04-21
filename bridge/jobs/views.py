@@ -44,6 +44,7 @@ from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision
+from tools.utils import disable_safe_marks_for_job, RecalculateSafeMarkConnections
 
 import jobs.utils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
@@ -410,6 +411,7 @@ def copy_new_job(request):
         'parent_id': job.identifier,
         'job': job_version,
         'roles': roles,
+        'safe_marks': job.safe_marks,
         'job_roles': JOB_ROLES,
         'filedata': jobs.utils.FileData(job_version).filedata
     })
@@ -479,6 +481,7 @@ def save_job(request):
             return JsonResponse({'error': _("You don't have an access to create new jobs")})
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()
+        job_kwargs['safe_marks'] = json.loads(request.POST.get('safe_marks', 'false'))
         try:
             newjob = jobs.utils.create_job(job_kwargs)
         except BridgeException as e:
@@ -1015,3 +1018,23 @@ def download_files_for_compet(request, job_id):
     response = StreamingHttpResponse(generator, content_type=mimetype)
     response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
+
+
+@login_required
+@unparallel_group([Job])
+def enable_safe_marks(request):
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = Job.objects.get(id=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    if not jobs.utils.JobAccess(request.user, job).can_edit():
+        return JsonResponse({'error': _("You don't have an access to edit this job")})
+    job.safe_marks = not job.safe_marks
+    job.save()
+    if job.safe_marks:
+        RecalculateSafeMarkConnections([job])
+    else:
+        disable_safe_marks_for_job(job)
+    return JsonResponse({})

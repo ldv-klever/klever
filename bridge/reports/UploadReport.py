@@ -18,6 +18,7 @@
 import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
 from django.db.models import Q
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT, JOB_STATUS
 from marks.utils import ConnectReportWithMarks
@@ -490,7 +491,8 @@ class UploadReport:
                 attr_stat.save()
 
             ReportComponentLeaf.objects.create(report=p, safe=report)
-        ConnectReportWithMarks(report)
+        if self.job.safe_marks:
+            ConnectReportWithMarks(report)
 
     def __create_medium_safe_report(self, identifier):
         try:
@@ -536,7 +538,8 @@ class UploadReport:
             attr_stat.save()
 
         ReportComponentLeaf.objects.create(report=root_report, safe=report)
-        ConnectReportWithMarks(report)
+        if self.job.safe_marks:
+            ConnectReportWithMarks(report)
 
     def __create_light_safe_report(self, identifier):
         report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root, verifier_time=0)
