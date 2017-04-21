@@ -290,10 +290,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Add conditions on base of dispatches
             checks = self._relevant_checks(automata_peers)
             if len(checks) > 0:
-                # Convert conditions into assume, because according to signals semantics process could not proceed until
-                # it sends a signal and condition describes precondition to prevent signal sending to a wrong process.
-                if len(checks) > 0:
-                    code.append('ldv_assume({});'.format(' || '.join(checks)))
+                if automaton in self._model_fsa:
+                    conditions.append("({})".format(' || '.join(checks)))
+                else:
+                    # Convert conditions into assume, because according to signals semantics process could not proceed
+                    # until it sends a signal and condition describes precondition to prevent signal sending to a
+                    # wrong process.
+                    if len(checks) > 0:
+                        code.append('ldv_assume({});'.format(' || '.join(checks)))
 
             # Generate artificial function
             body = []

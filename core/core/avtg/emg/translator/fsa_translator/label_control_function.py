@@ -158,6 +158,7 @@ def normalize_fsa(automaton, composer):
 
     return
 
+
 def __merge_points(initial_states):
     # Terminal marking
     def add_terminal(terminal, out_value, split_points, subprocess=False):
