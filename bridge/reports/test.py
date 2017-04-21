@@ -546,7 +546,7 @@ class TestReports(KleverTestCase):
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
-        self.assertEqual(response['Content-Type'], 'application/x-zip-compressed')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         core_data1 = None
