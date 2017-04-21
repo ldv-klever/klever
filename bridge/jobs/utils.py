@@ -32,7 +32,7 @@ from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEV
 from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, TaskStatistic
+from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -180,7 +180,15 @@ class JobAccess(object):
         if self.job is None:
             return False
         return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) \
-            and self.job.weight != JOB_WEIGHT[2][0]
+            and self.job.weight == JOB_WEIGHT[0][0]
+
+    def can_clear_verifications(self):
+        if self.job is None or self.job.status not in {JOB_STATUS[3][0], JOB_STATUS[4][0]}:
+            return False
+        if not (self.__is_author or self.__is_manager):
+            return False
+        return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
+            .exclude(archive='').count() > 0
 
     def can_dfc(self):
         return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]

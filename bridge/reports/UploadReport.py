@@ -18,7 +18,6 @@
 import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
-from django.conf import settings
 from django.db.models import Q
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT, JOB_STATUS
 from marks.utils import ConnectReportWithMarks
@@ -237,12 +236,12 @@ class UploadReport:
             raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportComponent(
-                identifier=identifier, parent=self.parent, root=self.root, start_date=now(),
+                identifier=identifier, parent=self.parent, root=self.root,
+                start_date=now(), verification=(self.data['type'] == 'verification'),
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
             if 'data' in self.data:
-                if self.job.weight == JOB_WEIGHT[0][0] \
-                        or self.job.weight != JOB_WEIGHT[0][0] and self.data['id'] == '/':
+                if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
                     report.new_data('report-data.json', BytesIO(json.dumps(
                         self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
                     ).encode('utf8')))
@@ -260,7 +259,7 @@ class UploadReport:
             report.wall_time = int(self.data['resources']['wall time'])
 
         if self.archive is not None and \
-                (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.data['id'] == '/'):
+                (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
 
@@ -312,11 +311,11 @@ class UploadReport:
             self.__update_dict_data(report, report_data)
 
     def __update_dict_data(self, report, new_data):
-        if self.job.weight != JOB_WEIGHT[0][0] and self.data['id'] != '/':
+        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None:
             report.save()
             return
         if not isinstance(new_data, dict):
-            raise ValueError("report's data must be dictionary")
+            raise ValueError("report's data must be a dictionary")
         if report.data:
             with report.data as fp:
                 old_data = json.loads(fp.read().decode('utf8'))
@@ -337,13 +336,12 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        if self.archive is not None:
-            if self.data['id'] == '/' or self.job.weight == JOB_WEIGHT[0][0]:
-                report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-                report.log = self.data.get('log')
+        if self.archive is not None and (report.parent is None or self.job.weight == JOB_WEIGHT[0][0]):
+            report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
+            report.log = self.data.get('log')
 
         report.finish_date = now()
-        if 'data' in self.data and (self.job.weight == JOB_WEIGHT[0][0] or self.data['id'] == '/'):
+        if 'data' in self.data:
             # Report is saved after the data is updated
             self.__update_dict_data(report, self.data['data'])
         else:
@@ -351,12 +349,12 @@ class UploadReport:
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
-        if self.job.weight != JOB_WEIGHT[0][0]:
-            self.__update_light_resources(report)
-        else:
+        if self.job.weight == JOB_WEIGHT[0][0]:
             self.__update_parent_resources(report)
+        else:
+            self.__update_light_resources(report)
 
-        if self.job.weight != JOB_WEIGHT[0][0] and report.parent is not None \
+        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
                 and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
 
@@ -367,18 +365,15 @@ class UploadReport:
             raise ValueError('verification report does not exist')
 
         # I hope that verification reports can't have component reports as its children
-        if self.job.weight != JOB_WEIGHT[0][0] and Report.objects.filter(parent=report).count() == 0:
+        if self.job.weight == JOB_WEIGHT[1][0] and Report.objects.filter(parent=report).count() == 0:
             report.delete()
         else:
-            if self.job.weight != JOB_WEIGHT[0][0]:
-                report.parent = ReportComponent.objects.get(parent=None, root=self.root)
+            if self.job.weight == JOB_WEIGHT[1][0]:
+                report.parent = self._parents_branch[0]
             report.finish_date = now()
             report.save()
 
     def __create_report_unknown(self, identifier):
-        if self.job.weight != JOB_WEIGHT[0][0]:
-            self.__create_light_unknown_report(identifier)
-            return
         try:
             ReportUnknown.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
@@ -389,75 +384,10 @@ class UploadReport:
             identifier=identifier, parent=self.parent, root=self.root,
             component=self.parent.component, problem_description=self.data['problem desc']
         )
-        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-        report.save()
-
-        self.__collect_attrs(report)
-        if 'attrs' in self.data:
-            self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unknown += 1
-            verdict.save()
-
-            for ra in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
-                attr_stat.unknowns += 1
-                attr_stat.save()
-
-            comp_unknown = ComponentUnknown.objects.get_or_create(report=p, component=report.component)[0]
-            comp_unknown.number += 1
-            comp_unknown.save()
-
-            ReportComponentLeaf.objects.create(report=p, unknown=report)
-        ConnectReportWithMarks(report)
-
-    def __create_light_unknown_report(self, identifier):
-        try:
-            ReportUnknown.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            if self.archive is None:
-                raise ValueError('unknown report must contain archive with problem description')
-        report = ReportUnknown(
-            identifier=identifier, parent=self.parent, root=self.root,
-            component=self.parent.component, problem_description=self.data['problem desc']
-        )
-        report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-        report.save()
-
-        self.__collect_attrs(report)
-        if 'attrs' in self.data:
-            self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        report.parent = ReportComponent.objects.get(parent=None, root=self.root)
-        report.save()
-
-        verdict = Verdict.objects.get_or_create(report=report.parent)[0]
-        verdict.unknown += 1
-        verdict.save()
-
-        for ra in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(report=report.parent, name_id=ra[0], attr_id=ra[1])[0]
-            attr_stat.unknowns += 1
-            attr_stat.save()
-
-        comp_unknown = ComponentUnknown.objects.get_or_create(report=report.parent, component=report.component)[0]
-        comp_unknown.number += 1
-        comp_unknown.save()
-        ReportComponentLeaf.objects.create(report=report.parent, unknown=report)
-        ConnectReportWithMarks(report)
+        report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
-        if self.job.weight == JOB_WEIGHT[1][0]:
-            self.__create_medium_safe_report(identifier)
-            return
-        elif self.job.weight == JOB_WEIGHT[2][0]:
-            self.__create_light_safe_report(identifier)
-            return
         try:
             ReportSafe.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
@@ -471,95 +401,9 @@ class UploadReport:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
         report.save()
-
-        self.root.safes += 1
-        self.root.save()
-
-        self.__collect_attrs(report)
-        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.safe += 1
-            verdict.safe_unassociated += 1
-            verdict.save()
-
-            for ra in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
-                attr_stat.safes += 1
-                attr_stat.save()
-
-            ReportComponentLeaf.objects.create(report=p, safe=report)
-        if self.job.safe_marks:
-            ConnectReportWithMarks(report)
-
-    def __create_medium_safe_report(self, identifier):
-        try:
-            ReportSafe.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            if self.parent.cpu_time is None:
-                raise ValueError('safe parent need to be verification report and must have cpu_time')
-            report = ReportSafe.objects.create(
-                identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
-            )
-        if self.archive is not None:
-            report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
-            report.proof = self.data['proof']
-        report.save()
-
-        self.root.safes += 1
-        self.root.save()
-
-        self.__collect_attrs(report)
-        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        if not self.parent.archive:
-            report.parent = root_report
-            report.save()
-        else:
-            verdict = Verdict.objects.get_or_create(report=self.parent)[0]
-            verdict.safe += 1
-            verdict.safe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=self.parent, safe=report)
-
-        verdict = Verdict.objects.get_or_create(report=root_report)[0]
-        verdict.safe += 1
-        verdict.safe_unassociated += 1
-        verdict.save()
-
-        for ra in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
-            attr_stat.safes += 1
-            attr_stat.save()
-
-        ReportComponentLeaf.objects.create(report=root_report, safe=report)
-        if self.job.safe_marks:
-            ConnectReportWithMarks(report)
-
-    def __create_light_safe_report(self, identifier):
-        report = ReportSafe.objects.create(identifier=identifier, parent=self.parent, root=self.root, verifier_time=0)
-        self.root.safes += 1
-        self.root.save()
-        self.__collect_attrs(report)
-        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-        root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        for ra in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
-            attr_stat.safes += 1
-            attr_stat.save()
-
-        report.delete()
+        self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
-        if self.job.weight != JOB_WEIGHT[0][0]:
-            self.__create_medium_unsafe_report(identifier)
-            return
         try:
             ReportUnsafe.objects.get(identifier=identifier)
             raise ValueError('the report with specified identifier already exists')
@@ -573,77 +417,87 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__fill_leaf_data(report)
 
-        self.__collect_attrs(report)
-        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        for p in self._parents_branch:
-            verdict = Verdict.objects.get_or_create(report=p)[0]
-            verdict.unsafe += 1
-            verdict.unsafe_unassociated += 1
-            verdict.save()
-
-            for ra in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
-                attr_stat.unsafes += 1
-                attr_stat.save()
-
-            ReportComponentLeaf.objects.create(report=p, unsafe=report)
-        ConnectReportWithMarks(report)
-
-    def __create_medium_unsafe_report(self, identifier):
-        try:
-            ReportUnsafe.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
-        except ObjectDoesNotExist:
-            if self.archive is None:
-                raise ValueError('unsafe report must contain archive with error trace and source code files')
-        if self.parent.cpu_time is None:
-            raise ValueError('unsafe parent need to be verification report and must have cpu_time')
-        report = ReportUnsafe.objects.create(
-            identifier=identifier, parent=self.parent, root=self.root,
-            error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
-        )
-        report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-
-        # Each verification report must have only one unsafe child
-        # In other cases unsafe reports will be without attributes
-        self.__collect_attrs(report)
-        self.ordered_attrs += self.__save_attrs(report.id, self.data['attrs'])
-        report_attrs = self.__get_attrs(report)
-
-        root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        if not self.parent.archive:
-            report.parent = root_report
-            report.save()
-        else:
-            verdict = Verdict.objects.get_or_create(report=self.parent)[0]
-            verdict.unsafe += 1
-            verdict.unsafe_unassociated += 1
-            verdict.save()
-            ReportComponentLeaf.objects.create(report=self.parent, unsafe=report)
-
-        verdict = Verdict.objects.get_or_create(report=root_report)[0]
-        verdict.unsafe += 1
-        verdict.unsafe_unassociated += 1
-        verdict.save()
-
-        for ra in report_attrs:
-            attr_stat = AttrStatistic.objects.get_or_create(report=root_report, name_id=ra[0], attr_id=ra[1])[0]
-            attr_stat.unsafes += 1
-            attr_stat.save()
-
-        ReportComponentLeaf.objects.create(report=root_report, unsafe=report)
-        ConnectReportWithMarks(report)
-
-    def __collect_attrs(self, report):
+    def __fill_leaf_data(self, leaf):
         attrs_ids = []
         for p in self._parents_branch:
             for ra in p.attrs.order_by('id').values('attr__name__name', 'attr_id'):
                 self.ordered_attrs.append(ra['attr__name__name'])
                 attrs_ids.append(ra['attr_id'])
-        ReportAttr.objects.bulk_create(list(ReportAttr(attr_id=a_id, report=report) for a_id in attrs_ids))
+        ReportAttr.objects.bulk_create(list(ReportAttr(attr_id=a_id, report=leaf) for a_id in attrs_ids))
+
+        if 'attrs' in self.data:
+            self.ordered_attrs += self.__save_attrs(leaf.id, self.data['attrs'])
+        if self.job.weight == JOB_WEIGHT[1][0]:
+            self.__cut_reports_branch(leaf)
+
+        if self.data['type'] == 'unknown':
+            self.__fill_unknown_cache(leaf)
+        elif self.data['type'] == 'unsafe':
+            self.__fill_unsafe_cache(leaf)
+        elif self.data['type'] == 'safe':
+            self.__fill_safe_cache(leaf)
+        self.__fill_attrs_statistic(leaf)
+        if self.data['type'] != 'safe' or self.job.safe_marks:
+            ConnectReportWithMarks(leaf)
+
+    def __cut_reports_branch(self, leaf):
+        # Just Core report
+        self._parents_branch = self._parents_branch[:1]
+        if self.parent.archive:
+            # After verification finish report self.parent.parent will be Core report
+            self._parents_branch.append(self.parent)
+        else:
+            leaf.parent = self._parents_branch[0]
+            leaf.save()
+
+    def __fill_unknown_cache(self, unknown):
+        for p in self._parents_branch:
+            self.__is_not_used()
+            verdict = Verdict.objects.get_or_create(report=p)[0]
+            verdict.unknown += 1
+            verdict.save()
+            comp_unknown = ComponentUnknown.objects.get_or_create(report=p, component=unknown.component)[0]
+            comp_unknown.number += 1
+            comp_unknown.save()
+            ReportComponentLeaf.objects.create(unknown=unknown, report=p)
+
+    def __fill_safe_cache(self, safe):
+        for p in self._parents_branch:
+            verdict = Verdict.objects.get_or_create(report=p)[0]
+            verdict.safe += 1
+            verdict.safe_unassociated += 1
+            verdict.save()
+            ReportComponentLeaf.objects.create(report=p, safe=safe)
+
+    def __fill_unsafe_cache(self, unsafe):
+        for p in self._parents_branch:
+            verdict = Verdict.objects.get_or_create(report=p)[0]
+            verdict.unsafe += 1
+            verdict.unsafe_unassociated += 1
+            verdict.save()
+            ReportComponentLeaf.objects.create(report=p, unsafe=unsafe)
+
+    def __fill_attrs_statistic(self, leaf):
+        report_attrs = []
+        if self.job.type in ATTR_STATISTIC:
+            for a in ReportAttr.objects.filter(report=leaf).values('attr__name__name', 'attr__name_id', 'attr_id'):
+                if a['attr__name__name'] in ATTR_STATISTIC[self.job.type]:
+                    report_attrs.append((a['attr__name_id'], a['attr_id']))
+        if self.data['type'] == 'unknown':
+            optname = 'unknowns'
+        elif self.data['type'] == 'unsafe':
+            optname = 'unsafes'
+        elif self.data['type'] == 'safe':
+            optname = 'safes'
+        else:
+            return
+        for p in self._parents_branch:
+            for ra in report_attrs:
+                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
+                setattr(attr_stat, optname, getattr(attr_stat, optname) + 1)
+                attr_stat.save()
 
     def __update_parent_resources(self, report):
 
@@ -689,28 +543,6 @@ class UploadReport:
         total_res.wall_time += report.wall_time
         total_res.memory = max(report.memory, total_res.memory)
         total_res.save()
-
-    def __collapse_reports(self):
-        # TODO: method is not used. Check that everything is already collapsed.
-        # Do not collapse if there are unfinished reports.
-        if ReportComponent.objects.filter(root=self.root, finish_date=None).count() > 0:
-            return
-        root_report = ReportComponent.objects.get(parent=None, root=self.root)
-        reports_to_save = set()
-        for u in ReportUnsafe.objects.filter(root=self.root).exclude(parent_id=root_report.id).values('parent_id'):
-            reports_to_save.add(u['parent_id'])
-        if self.job.weight != JOB_WEIGHT[2][0]:
-            for u in ReportSafe.objects.filter(root=self.root).exclude(parent_id=root_report.id).values('parent_id'):
-                reports_to_save.add(u['parent_id'])
-        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
-
-    def __get_attrs(self, report):
-        report_attrs = []
-        if self.job.type in ATTR_STATISTIC:
-            for a in ReportAttr.objects.filter(report=report).values('attr__name__name', 'attr__name_id', 'attr_id'):
-                if a['attr__name__name'] in ATTR_STATISTIC[self.job.type]:
-                    report_attrs.append((a['attr__name_id'], a['attr_id']))
-        return report_attrs
 
     def __save_total_tasks_number(self, tnums):
         if tnums.bt_num == 0:
@@ -758,62 +590,31 @@ class UploadReport:
         pass
 
 
-class CollapseReports(object):
+class CollapseReports:
     def __init__(self, job):
         self.job = job
-        if self.job.weight == JOB_WEIGHT[0][0]:
-            self.__collapse()
-            self.job.weight = JOB_WEIGHT[1][0]
-        elif self.job.weight == JOB_WEIGHT[1][0]:
-            self.__collapse()
-            self.job.weight = JOB_WEIGHT[2][0]
-        else:
+        if self.job.weight != JOB_WEIGHT[0][0]:
             return
+        self.__collapse()
+        self.job.weight = JOB_WEIGHT[1][0]
         self.job.save()
 
     def __collapse(self):
+        root = self.job.reportroot
         try:
-            root_report = ReportComponent.objects.get(parent=None, root__job=self.job)
+            core_report = ReportComponent.objects.get(parent=None, root=root)
         except ObjectDoesNotExist:
             return
-        reports_to_save = []
-        for u in ReportUnsafe.objects.filter(root__job=self.job):
-            parent = ReportComponent.objects.get(id=u.parent_id)
-            if parent.parent is None:
-                continue
-            if parent.archive:
-                parent.parent = root_report
-                parent.save()
-                reports_to_save.append(parent.id)
-            else:
-                u.parent = root_report
-                u.save()
-        if self.job.weight == JOB_WEIGHT[0][0]:
-            for s in ReportSafe.objects.filter(root__job=self.job):
-                parent = ReportComponent.objects.get(id=s.parent_id)
-                if parent.parent is None:
-                    continue
-                if parent.archive:
-                    parent.parent = root_report
-                    parent.save()
-                    reports_to_save.append(parent.id)
-                else:
-                    s.parent = root_report
-                    s.save()
-        elif self.job.weight == JOB_WEIGHT[1][0]:
-            ReportSafe.objects.filter(root__job=self.job).delete()
-        ReportUnknown.objects.filter(root__job=self.job).update(parent=root_report)
-        if self.job.weight == JOB_WEIGHT[0][0]:
-            self.__fill_resources()
-        ReportComponent.objects.filter(Q(parent=root_report) & ~Q(id__in=reports_to_save)).delete()
-        AttrStatistic.objects.filter(Q(report__root__job=self.job) & ~Q(report=root_report)).delete()
-        RecalculateLeaves([self.job])
-        RecalculateVerdicts([self.job])
-        RecalculateResources([self.job])
+        ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportUnknown.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
+        ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
+        ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
 
-    def __fill_resources(self):
-        LightResource.objects.filter(report=self.job.reportroot).delete()
         LightResource.objects.bulk_create(list(LightResource(
-            report=self.job.reportroot, component=cres.component,
-            cpu_time=cres.cpu_time, wall_time=cres.wall_time, memory=cres.memory
-        ) for cres in ComponentResource.objects.filter(report__root__job=self.job, report__parent=None)))
+            report=root, component=cres.component, cpu_time=cres.cpu_time, wall_time=cres.wall_time, memory=cres.memory
+        ) for cres in ComponentResource.objects.filter(report=core_report)))
+        RecalculateLeaves([root])
+        RecalculateVerdicts([root])
+        RecalculateResources([root])

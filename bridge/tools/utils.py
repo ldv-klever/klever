@@ -21,7 +21,7 @@ from django.db.models import ProtectedError, F
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import ATTR_STATISTIC, JOB_WEIGHT
+from bridge.vars import ATTR_STATISTIC
 from bridge.utils import BridgeException
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
@@ -97,60 +97,60 @@ class ClearFiles:
         pass
 
 
-class RecalculateLeaves(object):
-    def __init__(self, jobs):
-        self._jobs = jobs
+class RecalculateLeaves:
+    def __init__(self, roots):
+        self._roots = roots
         self._leaves = LeavesData()
         self.__recalc()
 
     def __recalc(self):
-        ReportComponentLeaf.objects.filter(report__root__job__in=self._jobs).delete()
-        for rc in ReportComponent.objects.filter(root__job__in=self._jobs).order_by('id').only('id', 'parent_id'):
+        ReportComponentLeaf.objects.filter(report__root__in=self._roots).delete()
+        for rc in ReportComponent.objects.filter(root__in=self._roots).order_by('id').only('id', 'parent_id'):
             self._leaves.add(rc)
-        for u in ReportUnsafe.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+        for u in ReportUnsafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
             self._leaves.add(u)
-        for s in ReportSafe.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+        for s in ReportSafe.objects.filter(root__in=self._roots).only('id', 'parent_id'):
             self._leaves.add(s)
-        for f in ReportUnknown.objects.filter(root__job__in=self._jobs).only('id', 'parent_id'):
+        for f in ReportUnknown.objects.filter(root__in=self._roots).only('id', 'parent_id'):
             self._leaves.add(f)
         self._leaves.upload()
 
 
-class RecalculateVerdicts(object):
-    def __init__(self, jobs):
-        self.jobs = jobs
+class RecalculateVerdicts:
+    def __init__(self, roots):
+        self._roots = roots
         self.__recalc()
 
     def __recalc(self):
-        Verdict.objects.filter(report__root__job__in=self.jobs).delete()
-        ComponentUnknown.objects.filter(report__root__job__in=self.jobs).delete()
+        Verdict.objects.filter(report__root__in=self._roots).delete()
+        ComponentUnknown.objects.filter(report__root__in=self._roots).delete()
         data = VerdictsData()
-        for leaf in ReportComponentLeaf.objects.filter(report__root__job__in=self.jobs)\
+        for leaf in ReportComponentLeaf.objects.filter(report__root__in=self._roots)\
                 .select_related('safe', 'unsafe', 'unknown'):
             data.add(leaf)
         data.upload()
 
 
 class RecalculateUnsafeMarkConnections:
-    def __init__(self, jobs):
-        self.jobs = jobs
+    def __init__(self, roots):
+        self._roots = roots
         self.__recalc()
 
     def __recalc(self):
-        ReportUnsafeTag.objects.filter(report__root__job__in=self.jobs).delete()
-        UnsafeReportTag.objects.filter(report__root__job__in=self.jobs).delete()
-        MarkUnsafeReport.objects.filter(report__root__job__in=self.jobs).delete()
-        Verdict.objects.filter(report__root__job__in=self.jobs).update(
+        ReportUnsafeTag.objects.filter(report__root__in=self._roots).delete()
+        UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
+        MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
+        Verdict.objects.filter(report__root__in=self._roots).update(
             unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
             unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
         )
-        for unsafe in ReportUnsafe.objects.filter(root__job__in=self.jobs):
+        for unsafe in ReportUnsafe.objects.filter(root__in=self._roots):
             ConnectReportWithMarks(unsafe)
 
 
 class RecalculateSafeMarkConnections:
-    def __init__(self, jobs):
-        self._roots = ReportRoot.objects.filter(job__in=list(job for job in jobs if job.safe_marks))
+    def __init__(self, roots):
+        self._roots = list(root for root in roots if root.job.safe_marks)
         self._marks = {}
         self._safes = {}
         self._reports = {}
@@ -269,9 +269,9 @@ class RecalculateSafeMarkConnections:
             verdict.save()
 
 
-class RecalculateUnknownMarkConnections(object):
-    def __init__(self, jobs):
-        self.jobs = jobs
+class RecalculateUnknownMarkConnections:
+    def __init__(self, roots):
+        self._roots = roots
         self.__recalc()
         for problem in UnknownProblem.objects.all():
             try:
@@ -280,31 +280,31 @@ class RecalculateUnknownMarkConnections(object):
                 pass
 
     def __recalc(self):
-        MarkUnknownReport.objects.filter(report__root__job__in=self.jobs).delete()
-        ComponentMarkUnknownProblem.objects.filter(report__root__job__in=self.jobs).delete()
-        for unknown in ReportUnknown.objects.filter(root__job__in=self.jobs):
+        MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
+        ComponentMarkUnknownProblem.objects.filter(report__root__in=self._roots).delete()
+        for unknown in ReportUnknown.objects.filter(root__in=self._roots):
             ConnectReportWithMarks(unknown, False)
-        update_unknowns_cache(ReportUnknown.objects.filter(root__job__in=self.jobs))
+        update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
 
 
-class RecalculateAttrStatistic(object):
-    def __init__(self, jobs):
-        self.jobs = list(j for j in jobs if j.weight != JOB_WEIGHT[2][0])
+class RecalculateAttrStatistic:
+    def __init__(self, roots):
+        self._roots = roots
         self.__recalc()
 
     def __recalc(self):
-        AttrStatistic.objects.filter(report__root__job__in=self.jobs).delete()
+        AttrStatistic.objects.filter(report__root__in=self._roots).delete()
         attrs_data = []
         for j_type in ATTR_STATISTIC:
-            job_ids = [j.id for j in self.jobs if j.type == j_type]
-            if len(job_ids) == 0:
+            root_ids = [root.id for root in self._roots if root.job.type == j_type]
+            if len(root_ids) == 0:
                 continue
             attr_names = set(a['id'] for a in AttrName.objects.filter(name__in=ATTR_STATISTIC[j_type]).values('id'))
 
             safes = {}
             unsafes = {}
             unknowns = {}
-            for leaf in ReportComponentLeaf.objects.filter(report__root__job_id__in=job_ids):
+            for leaf in ReportComponentLeaf.objects.filter(report__root_id__in=root_ids):
                 if leaf.safe_id is not None:
                     if leaf.safe_id not in safes:
                         safes[leaf.safe_id] = set()
@@ -329,7 +329,7 @@ class RecalculateAttrStatistic(object):
                     .values_list('report_id', 'attr__name_id', 'attr_id'):
                 report_attrs[('f', ra[0], ra[1])] = ra[2]
 
-            for r_id in list(r[0] for r in ReportComponent.objects.filter(root__job_id__in=job_ids).values_list('id')):
+            for r_id in list(r[0] for r in ReportComponent.objects.filter(root_id__in=root_ids).values_list('id')):
                 for n_id in attr_names:
                     safes_num = {}
                     unsafes_num = {}
@@ -368,48 +368,44 @@ class RecalculateAttrStatistic(object):
 class Recalculation:
     def __init__(self, rec_type, jobs=None):
         self.type = rec_type
-        self.jobs = self.__get_jobs(jobs)
+        self._roots = self.__get_roots(jobs)
         self.__recalc()
 
-    def __get_jobs(self, job_ids):
+    def __get_roots(self, job_ids):
         self.__is_not_used()
         if job_ids is None:
-            return Job.objects.filter(weight=JOB_WEIGHT[0][0])
-        jobs = []
+            return ReportRoot.objects.all().select_related('job')
         job_ids = json.loads(job_ids)
-        for j_id in job_ids:
-            try:
-                job = Job.objects.get(pk=int(j_id))
-                jobs.append(job)
-            except ObjectDoesNotExist:
-                raise BridgeException(_('One of the selected jobs was not found'))
-        if len(jobs) == 0:
+        roots = ReportRoot.objects.filter(job_id__in=job_ids).select_related('job')
+        if roots.count() < len(job_ids):
+            raise BridgeException(_('One of the selected jobs was not found'))
+        if roots.count() == 0:
             raise BridgeException(_('Please select jobs to recalculate caches for them'))
-        return jobs
+        return roots
 
     def __recalc(self):
         if self.type == 'verdicts':
-            RecalculateVerdicts(self.jobs)
+            RecalculateVerdicts(self._roots)
         elif self.type == 'leaves':
-            RecalculateLeaves(self.jobs)
+            RecalculateLeaves(self._roots)
         elif self.type == 'unsafe':
-            RecalculateUnsafeMarkConnections(self.jobs)
+            RecalculateUnsafeMarkConnections(self._roots)
         elif self.type == 'safe':
-            RecalculateSafeMarkConnections(self.jobs)
+            RecalculateSafeMarkConnections(self._roots)
         elif self.type == 'unknown':
-            RecalculateUnknownMarkConnections(self.jobs)
+            RecalculateUnknownMarkConnections(self._roots)
         elif self.type == 'resources':
-            RecalculateResources(self.jobs)
+            RecalculateResources(self._roots)
         elif self.type == 'attrs_stat':
-            RecalculateAttrStatistic(self.jobs)
+            RecalculateAttrStatistic(self._roots)
         elif self.type == 'all':
-            RecalculateLeaves(self.jobs)
-            RecalculateUnsafeMarkConnections(self.jobs)
-            RecalculateSafeMarkConnections(self.jobs)
-            RecalculateUnknownMarkConnections(self.jobs)
-            RecalculateVerdicts(self.jobs)
-            RecalculateResources(self.jobs)
-            RecalculateAttrStatistic(self.jobs)
+            RecalculateLeaves(self._roots)
+            RecalculateUnsafeMarkConnections(self._roots)
+            RecalculateSafeMarkConnections(self._roots)
+            RecalculateUnknownMarkConnections(self._roots)
+            RecalculateVerdicts(self._roots)
+            RecalculateResources(self._roots)
+            RecalculateAttrStatistic(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()
@@ -418,15 +414,15 @@ class Recalculation:
         pass
 
 
-class RecalculateResources(object):
-    def __init__(self, jobs):
-        self.jobs = jobs
+class RecalculateResources:
+    def __init__(self, roots):
+        self._roots = roots
         self.__recalc()
 
     def __recalc(self):
-        ComponentResource.objects.filter(report__root__job__in=self.jobs).delete()
+        ComponentResource.objects.filter(report__root__in=self._roots).delete()
         rd = ResourceData()
-        for rep in ReportComponent.objects.filter(root__job__in=self.jobs).order_by('id'):
+        for rep in ReportComponent.objects.filter(root__in=self._roots).order_by('id'):
             rd.add(rep)
         ComponentResource.objects.bulk_create(rd.cache_for_db())
 
