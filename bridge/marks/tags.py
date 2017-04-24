@@ -24,8 +24,24 @@ from bridge.utils import logger, BridgeException
 from marks.models import SafeTag, UnsafeTag
 
 
-def can_edit_tags(user):
-    if user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
+def can_edit_tag(user, tag=None):
+    if user is None:
+        return False
+    if user.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
+        return True
+    if tag is not None and tag.author == user \
+            and tag.children.filter(author__extended__role__in={USER_ROLES[2][0], USER_ROLES[3][0]}).count() == 0:
+        return True
+    return False
+
+
+def can_create_tag_child(user, parent):
+    if user is None:
+        return False
+    if user.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
+        return True
+    if parent.author.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]} \
+            and parent.children.filter(author__extended__role__in={USER_ROLES[2][0], USER_ROLES[3][0]}).count() == 0:
         return True
     return False
 
@@ -86,22 +102,26 @@ class TagTable(object):
         self.data = newdata
 
 
-class TagData(object):
-    def __init__(self, tag):
+class TagData:
+    def __init__(self, user, tag):
         self.id = tag.pk
         self.parent = tag.parent_id
         self.name = tag.tag
         self.children = list(child.pk for child in tag.children.all())
         self.description = tag.description
         self.populated = tag.populated
+        self.author = tag.author.get_full_name()
+        self.can_edit = can_edit_tag(user, tag)
+        self.can_create_the_child = can_create_tag_child(user, tag)
 
     def __repr__(self):
         return "<Tag: '%s'>" % self.name
 
 
 class GetTagsData:
-    def __init__(self, tags_type, tag_ids=None):
+    def __init__(self, tags_type, tag_ids=None, user=None):
         self.__type = tags_type
+        self.user = user
         self.tags = []
         self.tag_ids = tag_ids
         if self.__type not in {'safe', 'unsafe'}:
@@ -120,9 +140,10 @@ class GetTagsData:
             if self.tag_ids is not None:
                 tags_filter['id__in'] = self.tag_ids
             if self.__type == 'safe':
-                next_level = [TagData(tag) for tag in SafeTag.objects.filter(**tags_filter).order_by('tag')]
+                next_level = [TagData(self.user, tag) for tag in SafeTag.objects.filter(**tags_filter).order_by('tag')]
             else:
-                next_level = [TagData(tag) for tag in UnsafeTag.objects.filter(**tags_filter).order_by('tag')]
+                next_level = \
+                    [TagData(self.user, tag) for tag in UnsafeTag.objects.filter(**tags_filter).order_by('tag')]
             if len(next_level) == 0:
                 return
             self.tags.append(next_level)
@@ -221,7 +242,8 @@ class GetParents:
 
 
 class SaveTag:
-    def __init__(self, data):
+    def __init__(self, user, data):
+        self.user = user
         self.data = data
         if 'action' not in self.data or self.data['action'] not in ['edit', 'create']:
             raise BridgeException()
@@ -239,31 +261,39 @@ class SaveTag:
     def __create_tag(self):
         if any(x not in self.data for x in ['description', 'name', 'parent_id']):
             raise BridgeException()
-        if len(self.data['name']) == 0:
-            raise BridgeException(_('The tag name is required'))
-        if len(self.data['name']) > 32:
-            raise BridgeException(_('The maximum length of a tag must be 32 characters'))
-        if len(self.table.objects.filter(tag=self.data['name'])) > 0:
-            raise BridgeException(_('The tag name is used already'))
         parent = None
         if self.data['parent_id'] != '0':
             try:
                 parent = self.table.objects.get(pk=self.data['parent_id'])
             except ObjectDoesNotExist:
                 raise BridgeException(_('The tag parent was not found'))
-        self.table.objects.create(tag=self.data['name'], parent=parent, description=self.data['description'])
+        if not can_create_tag_child(self.user, parent):
+            raise BridgeException(_("You don't have an access to create this tag"))
 
-    def __edit_tag(self):
-        if any(x not in self.data for x in ['tag_id', 'description', 'name', 'parent_id']):
-            raise BridgeException()
         if len(self.data['name']) == 0:
             raise BridgeException(_('The tag name is required'))
         if len(self.data['name']) > 32:
             raise BridgeException(_('The maximum length of a tag must be 32 characters'))
+        if len(self.table.objects.filter(tag=self.data['name'])) > 0:
+            raise BridgeException(_('The tag name is used already'))
+        self.table.objects.create(
+            author=self.user, tag=self.data['name'], parent=parent, description=self.data['description']
+        )
+
+    def __edit_tag(self):
+        if any(x not in self.data for x in ['tag_id', 'description', 'name', 'parent_id']):
+            raise BridgeException()
         try:
             tag = self.table.objects.get(pk=self.data['tag_id'])
         except ObjectDoesNotExist:
             raise BridgeException(_('The tag was not found'))
+        if not can_edit_tag(self.user, tag):
+            raise BridgeException(_("You don't have an access to edit this tag"))
+
+        if len(self.data['name']) == 0:
+            raise BridgeException(_('The tag name is required'))
+        if len(self.data['name']) > 32:
+            raise BridgeException(_('The maximum length of a tag must be 32 characters'))
         if len(self.table.objects.filter(Q(tag=self.data['name']) & ~Q(id=self.data['tag_id']))) > 0:
             raise BridgeException(_('The tag name is used already'))
         parent = None
@@ -277,6 +307,7 @@ class SaveTag:
         tag.description = self.data['description']
         tag.tag = self.data['name']
         tag.parent = parent
+        tag.author = self.user
         tag.save()
 
     def __check_parent(self, tag, parent):
@@ -288,7 +319,7 @@ class SaveTag:
         return True
 
 
-class TagsInfo(object):
+class TagsInfo:
     def __init__(self, tag_type, selected_tags, deleted_tag=None):
         self.tag_type = tag_type
         self.tag_table = {'safe': SafeTag, 'unsafe': UnsafeTag}

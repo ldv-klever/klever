@@ -39,7 +39,7 @@ from bridge.tableHead import Header
 
 from users.models import View
 
-from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tags, TagsInfo, CreateTagsFromFile
+from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
 from marks.utils import NewMark, MarkAccess, DeleteMark
 from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
@@ -594,7 +594,7 @@ def show_tags(request, tags_type):
     else:
         page_title = "Safe tags"
     try:
-        tags_data = GetTagsData(tags_type)
+        tags_data = GetTagsData(tags_type, user=request.user)
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
@@ -602,7 +602,7 @@ def show_tags(request, tags_type):
         'title': page_title,
         'tags': tags_data.table.data,
         'tags_type': tags_type,
-        'can_edit': can_edit_tags(request.user)
+        'can_edit': can_edit_tag(request.user)
     })
 
 
@@ -642,10 +642,8 @@ def save_tag(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not can_edit_tags(request.user):
-        return JsonResponse({'error': _("You don't have an access to edit tags")})
     try:
-        SaveTag(request.POST)
+        SaveTag(request.user, request.POST)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
@@ -661,20 +659,23 @@ def remove_tag(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not can_edit_tags(request.user):
-        return JsonResponse({'error': _("You don't have an access to remove tags")})
+
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.POST['tag_type'] == 'safe':
         try:
-            SafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+            tag = SafeTag.objects.get(pk=request.POST.get('tag_id', 0))
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The tag was not found')})
     else:
         try:
-            UnsafeTag.objects.get(pk=request.POST.get('tag_id', 0)).delete()
+            tag = UnsafeTag.objects.get(pk=request.POST.get('tag_id', 0))
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The tag was not found')})
+
+    if not can_edit_tag(request.user, tag):
+        return JsonResponse({'error': _("You don't have an access to remove this tag")})
+    tag.delete()
     return JsonResponse({})
 
 
@@ -746,8 +747,8 @@ def download_tags(request, tags_type):
 def upload_tags(request):
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not can_edit_tags(request.user):
-        return JsonResponse({'error': _("You don't have an access to create tags") + ''})
+    if not can_edit_tag(request.user):
+        return JsonResponse({'error': str(_("You don't have an access to create tags"))})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     fp = None
