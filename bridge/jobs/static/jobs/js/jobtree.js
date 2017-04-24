@@ -353,11 +353,13 @@ $(document).ready(function () {
             confirm_delete_modal.modal('show');
             confirm_delete_btn.unbind();
             confirm_delete_btn.click(function () {
+                confirm_delete_modal.modal('hide');
+                $('#dimmer_of_page').addClass('active');
                 $.post(
                     job_ajax_url + 'removejobs/',
                     {jobs: JSON.stringify(jobs_for_delete)},
                     function (data) {
-                        confirm_delete_modal.modal('hide');
+                        $('#dimmer_of_page').removeClass('active');
                         data.error ? err_notify(data.error) : window.location.replace('');
                     },
                     'json'

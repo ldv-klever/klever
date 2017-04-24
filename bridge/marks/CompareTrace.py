@@ -17,6 +17,7 @@
 
 import json
 from types import MethodType
+from bridge.utils import BridgeException
 from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
 
@@ -32,11 +33,12 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 DEFAULT_COMPARE = 'call_forests_compare'
 
 
-class CompareTrace(object):
+class CompareTrace:
 
     def __init__(self, func_name, pattern_error_trace, unsafe):
         """
-        If something failed self.error is not None.
+        If you want to pass exception message (can be translatable) to user,
+        raise BridgeException(message) then.
         In case of success you need just self.result.
         :param func_name: name of the function (str).
         :param pattern_error_trace: pattern error trace of the mark (str).
@@ -48,32 +50,22 @@ class CompareTrace(object):
         try:
             self.pattern_error_trace = json.loads(pattern_error_trace)
         except Exception as e:
-            self.error = "Can't parse error trace pattern (it must be JSON serializable): %s" % e
-            return
+            raise BridgeException("Can't parse error trace pattern (it must be JSON serializable): %s" % e)
 
-        self.error = None
         self.result = 0.0
-        if func_name.startswith('__'):
-            self.error = 'Wrong function name'
-            return
+        if func_name.startswith('_'):
+            raise BridgeException("Function name mustn't start with '_'")
         try:
-            function = getattr(self, func_name)
-            if not isinstance(function, MethodType):
-                self.error = 'Wrong function name'
-                return
+            func = getattr(self, func_name)
+            if not isinstance(func, MethodType):
+                raise BridgeException('Wrong function name')
         except AttributeError:
-            self.error = 'Function was not found'
-            return
-        try:
-            self.result = function()
-        except Exception as e:
-            self.error = e
-            return
+            raise BridgeException('The error trace comparison function does not exist')
+        self.result = func()
         if isinstance(self.result, int):
             self.result = float(self.result)
         if not (isinstance(self.result, float) and 0 <= self.result <= 1):
-            self.error = "Compare function reterned incorrect result: %s" % self.result
-            self.result = 0.0
+            raise BridgeException("Compare function returned incorrect result: %s" % self.result)
 
     def default_compare(self):
         """
@@ -135,7 +127,6 @@ Returns the number of similar forests with callbacks calls divided by the maximu
         return len(err_trace_converted & pattern) / max_len
 
     def __get_converted_trace(self, conversion_function_name):
-        res = GetConvertedErrorTrace(MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe)
-        if res.error is not None:
-            raise ValueError(res.error)
-        return res.parsed_trace()
+        return GetConvertedErrorTrace(
+            MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe
+        ).parsed_trace()

@@ -15,30 +15,42 @@
 # limitations under the License.
 #
 
+import os
+import json
 import mimetypes
 from datetime import datetime
 from urllib.parse import quote
 from difflib import unified_diff
 from wsgiref.util import FileWrapper
+
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.urlresolvers import reverse
+from django.db.models import Q
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.template import loader
-from django.utils.translation import ugettext as _, activate
+from django.template import loader, Template, Context
+from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
-from bridge.vars import VIEW_TYPES
-from bridge.utils import unparallel_group, print_exec_time, file_get_or_create, extract_archive
-from jobs.ViewJobData import ViewJobData
-from jobs.JobTableProperties import FilterForm, TableTree
-from users.models import View, PreferableView
+
+from tools.profiling import unparallel_group
+from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES
+from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
+
+from users.models import User, View, PreferableView
 from reports.models import ReportComponent
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
-from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
-from jobs.utils import *
-from jobs.models import RunHistory
 from service.utils import StartJobDecision, StopDecision
+from tools.utils import disable_safe_marks_for_job, RecalculateSafeMarkConnections
+
+import jobs.utils
+from jobs.models import Job, RunHistory, JobHistory, JobFile
+from jobs.ViewJobData import ViewJobData
+from jobs.JobTableProperties import FilterForm, TableTree
+from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 
 
 @login_required
@@ -72,12 +84,12 @@ def preferable_view(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': "Unknown error"})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     view_id = request.POST.get('view_id', None)
     view_type = request.POST.get('view_type', None)
     if view_id is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
-        return JsonResponse({'error': "Unknown error"})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     if view_id == 'default':
         pref_views = request.user.preferableview_set.filter(view__type=view_type)
@@ -103,12 +115,12 @@ def preferable_view(request):
 def check_view_name(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     view_name = request.POST.get('view_title', None)
     view_type = request.POST.get('view_type', None)
     if view_name is None or view_type is None:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     if view_name == '':
         return JsonResponse({'error': _("The view name is required")})
@@ -124,14 +136,14 @@ def save_view(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     view_data = request.POST.get('view', None)
     view_name = request.POST.get('title', '')
     view_id = request.POST.get('view_id', None)
     view_type = request.POST.get('view_type', None)
     if view_data is None or view_type is None or view_type not in list(x[0] for x in VIEW_TYPES):
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if view_id == 'default':
         return JsonResponse({'error': _("You can't edit the default view")})
     elif view_id is not None:
@@ -149,8 +161,7 @@ def save_view(request):
     new_view.view = view_data
     new_view.save()
     return JsonResponse({
-        'view_id': new_view.pk,
-        'view_name': new_view.name,
+        'view_id': new_view.pk, 'view_name': new_view.name,
         'message': _("The view was successfully saved")
     })
 
@@ -161,11 +172,11 @@ def remove_view(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     v_id = request.POST.get('view_id', 0)
     view_type = request.POST.get('view_type', None)
     if view_type is None:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if v_id == 'default':
         return JsonResponse({'error': _("You can't remove the default view")})
     try:
@@ -208,11 +219,10 @@ def show_job(request, job_id=None):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
-
-    job_access = JobAccess(request.user, job)
+        return BridgeErrorResponse(404)
+    job_access = jobs.utils.JobAccess(request.user, job)
     if not job_access.can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     parent_set = []
     next_parent = job.parent
@@ -222,7 +232,7 @@ def show_job(request, job_id=None):
     parent_set.reverse()
     parents = []
     for parent in parent_set:
-        if JobAccess(request.user, parent).can_view():
+        if jobs.utils.JobAccess(request.user, parent).can_view():
             job_id = parent.pk
         else:
             job_id = None
@@ -233,7 +243,7 @@ def show_job(request, job_id=None):
 
     children = []
     for child in job.children.all().order_by('change_date'):
-        if JobAccess(request.user, child).can_view():
+        if jobs.utils.JobAccess(request.user, child).can_view():
             job_id = child.pk
         else:
             job_id = None
@@ -252,7 +262,8 @@ def show_job(request, job_id=None):
         view_args.append(request.POST.get('view', None))
         view_args.append(request.POST.get('view_id', None))
 
-    progress_data = get_job_progress(request.user, job) if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
+    progress_data = jobs.utils.get_job_progress(request.user, job)\
+        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
     return render(
         request,
         'jobs/viewJob.html',
@@ -271,7 +282,8 @@ def show_job(request, job_id=None):
             'can_download': job_access.can_download(),
             'can_stop': job_access.can_stop(),
             'can_collapse': job_access.can_collapse(),
-            'can_dfc': job_access.can_dfc()
+            'can_dfc': job_access.can_dfc(),
+            'can_clear_verifications': job_access.can_clear_verifications()
         }
     )
 
@@ -282,11 +294,11 @@ def get_job_data(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         job = Job.objects.get(pk=request.POST.get('job_id', 0))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     data = {'jobstatus': job.status}
     try:
@@ -300,7 +312,7 @@ def get_job_data(request):
     except ObjectDoesNotExist:
         pass
     if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        data['progress_data'] = json.dumps(list(get_job_progress(request.user, job)))
+        data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
@@ -318,7 +330,7 @@ def edit_job(request):
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
         return HttpResponse('')
-    if not JobAccess(request.user, job).can_edit():
+    if not jobs.utils.JobAccess(request.user, job).can_edit():
         return HttpResponse('')
 
     version = int(request.POST.get('version', 0))
@@ -347,11 +359,11 @@ def edit_job(request):
         'parent_id': parent_identifier,
         'job': job_version,
         'job_id': job_id,
-        'roles': role_info(job_version, request.user),
+        'roles': jobs.utils.role_info(job_version, request.user),
         'job_roles': JOB_ROLES,
         'job_versions': job_versions,
         'version': version,
-        'filedata': FileData(job_version).filedata
+        'filedata': jobs.utils.FileData(job_version).filedata
     })
 
 
@@ -361,18 +373,18 @@ def remove_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     job_id = int(request.POST.get('job_id', 0))
     try:
         job = Job.objects.get(pk=job_id)
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The job was not found')})
-    if not JobAccess(request.user, job).can_edit():
+    if not jobs.utils.JobAccess(request.user, job).can_edit():
         return JsonResponse({'error': _("You don't have access to delete versions")})
 
     versions = json.loads(request.POST.get('versions', '[]'))
 
-    deleted_versions = delete_versions(job, versions)
+    deleted_versions = jobs.utils.delete_versions(job, versions)
     if deleted_versions > 0:
         return JsonResponse({'message': _('Selected versions were successfully deleted')})
     return JsonResponse({'error': _('Nothing to delete')})
@@ -384,7 +396,7 @@ def get_job_versions(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'message': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     job_id = int(request.POST.get('job_id', 0))
     try:
         job = Job.objects.get(pk=job_id)
@@ -396,10 +408,7 @@ def get_job_versions(request):
             j.change_date.astimezone(pytz.timezone(request.user.extended.timezone)).strftime("%d.%m.%Y %H:%M:%S"),
             j.change_author.get_full_name(), j.comment
         )
-        job_versions.append({
-            'version': j.version,
-            'title': title
-        })
+        job_versions.append({'version': j.version, 'title': title})
     return render(request, 'jobs/viewVersions.html', {'versions': job_versions})
 
 
@@ -410,7 +419,7 @@ def copy_new_job(request):
 
     if request.method != 'POST':
         return HttpResponse('')
-    if not JobAccess(request.user).can_create():
+    if not jobs.utils.JobAccess(request.user).can_create():
         return HttpResponse('')
 
     roles = {
@@ -428,8 +437,9 @@ def copy_new_job(request):
         'parent_id': job.identifier,
         'job': job_version,
         'roles': roles,
+        'safe_marks': job.safe_marks,
         'job_roles': JOB_ROLES,
-        'filedata': FileData(job_version).filedata
+        'filedata': jobs.utils.FileData(job_version).filedata
     })
 
 
@@ -439,7 +449,7 @@ def save_job(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     job_kwargs = {
         'name': request.POST.get('title', ''),
@@ -458,7 +468,7 @@ def save_job(request):
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The job was not found')})
-        if not JobAccess(request.user, job).can_edit():
+        if not jobs.utils.JobAccess(request.user, job).can_edit():
             return JsonResponse({'error': _("You don't have an access to edit this job")})
         if parent_identifier is not None and len(parent_identifier) > 0:
             parents = Job.objects.filter(identifier__startswith=parent_identifier)
@@ -472,7 +482,7 @@ def save_job(request):
             parent = parents[0]
             if job.parent is None:
                 return JsonResponse({'error': _("Parent can't be specified for root jobs")})
-            if not check_new_parent(job, parent):
+            if not jobs.utils.check_new_parent(job, parent):
                 return JsonResponse({'error': _("The specified parent can't be set for this job")})
             job_kwargs['parent'] = parent
         elif job.parent is not None:
@@ -483,7 +493,7 @@ def save_job(request):
         job_kwargs['comment'] = request.POST.get('comment', '')
         job_kwargs['absolute_url'] = 'http://' + request.get_host() + reverse('jobs:job', args=[job_id])
         try:
-            update_job(job_kwargs)
+            jobs.utils.update_job(job_kwargs)
         except Exception as e:
             logger.exception(str(e), stack_info=True)
             return JsonResponse({'error': _('Updating the job failed')})
@@ -493,19 +503,20 @@ def save_job(request):
             parent = Job.objects.get(identifier=parent_identifier)
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The job parent was not found')})
-        if not JobAccess(request.user).can_create():
+        if not jobs.utils.JobAccess(request.user).can_create():
             return JsonResponse({'error': _("You don't have an access to create new jobs")})
         job_kwargs['parent'] = parent
         job_kwargs['absolute_url'] = 'http://' + request.get_host()
+        job_kwargs['safe_marks'] = json.loads(request.POST.get('safe_marks', 'false'))
         try:
-            newjob = create_job(job_kwargs)
+            newjob = jobs.utils.create_job(job_kwargs)
+        except BridgeException as e:
+            return JsonResponse({'error': str(e)})
         except Exception as e:
-            logger.exception(str(e), stack_info=True)
+            logger.exception(str(e))
             return JsonResponse({'error': _('Saving the job failed')})
-        if isinstance(newjob, Job):
-            return JsonResponse({'job_id': newjob.pk})
-        return JsonResponse({'error': newjob + ''})
-    return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'job_id': newjob.pk})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @login_required
@@ -514,9 +525,9 @@ def remove_jobs(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
-    remove_jobs_by_id(request.user, jobs_for_del)
+    jobs.utils.remove_jobs_by_id(request.user, jobs_for_del)
     return JsonResponse({})
 
 
@@ -535,7 +546,7 @@ def showjobdata(request):
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.versions.get(version=job.version).description,
-        'filedata': FileData(job.versions.get(version=job.version)).filedata
+        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata
     })
 
 
@@ -557,20 +568,21 @@ def upload_file(request):
         except Exception as e:
             return JsonResponse({'error': str(string_concat(_('File uploading failed'), ' (%s): ' % fname, e))})
         return JsonResponse({'checksum': check_sum})
-    return JsonResponse({'error': 'Unknown error'})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @login_required
 @unparallel_group(['FileSystem', 'JobFile'])
 def download_file(request, file_id):
     if request.method == 'POST':
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(301)
     try:
-        source = FileSystem.objects.get(pk=int(file_id))
+        source = jobs.utils.FileSystem.objects.get(pk=file_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_('The file was not found'))
     if source.file is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        logger.error('Trying to download directory')
+        return BridgeErrorResponse(500)
 
     mimetype = mimetypes.guess_type(os.path.basename(source.name))[0]
     response = StreamingHttpResponse(FileWrapper(source.file.file, 8192), content_type=mimetype)
@@ -585,9 +597,9 @@ def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_download():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(404)
+    if not jobs.utils.JobAccess(request.user, job).can_download():
+        return BridgeErrorResponse(400)
 
     generator = JobArchiveGenerator(job)
     mimetype = mimetypes.guess_type(os.path.basename(generator.arcname))[0]
@@ -600,16 +612,13 @@ def download_job(request, job_id):
 @unparallel_group(['Job'])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
-        return HttpResponseRedirect(
-            reverse('error', args=[500]) + "?back=%s" % quote(reverse('jobs:tree'))
-        )
-    jobs = Job.objects.filter(pk__in=json.loads(request.POST['job_ids']))
-    for job in jobs:
-        if not JobAccess(request.user, job).can_download():
-            return HttpResponseRedirect(
-                reverse('error', args=[401]) + "?back=%s" % quote(reverse('jobs:tree'))
-            )
-    generator = JobsArchivesGen(jobs)
+        return BridgeErrorResponse(301, back=reverse('jobs:tree'))
+    jobs_list = Job.objects.filter(pk__in=json.loads(request.POST['job_ids']))
+    for job in jobs_list:
+        if not jobs.utils.JobAccess(request.user, job).can_download():
+            return BridgeErrorResponse(_("You don't have an access to one of the selected jobs"),
+                                       back=reverse('jobs:tree'))
+    generator = JobsArchivesGen(jobs_list)
 
     mimetype = mimetypes.guess_type(os.path.basename('KleverJobs.zip'))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
@@ -623,33 +632,34 @@ def check_access(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    jobs = json.loads(request.POST.get('jobs', '[]'))
-    for job_id in jobs:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    for job_id in json.loads(request.POST.get('jobs', '[]')):
         try:
             job = Job.objects.get(pk=int(job_id))
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('One of the selected jobs was not found')})
-        if not JobAccess(request.user, job).can_download():
+        if not jobs.utils.JobAccess(request.user, job).can_download():
             return JsonResponse({'error': _("You don't have an access to download one of the selected jobs")})
     return JsonResponse({})
 
 
 @login_required
-@print_exec_time
+@unparallel_group([Job])
 def upload_job(request, parent_id=None):
     activate(request.user.extended.language)
 
+    if not jobs.utils.JobAccess(request.user).can_create():
+        return JsonResponse({'error': str(_("You don't have an access to upload jobs"))})
     if Job.objects.filter(status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]).count() > 0:
         return JsonResponse({'error': _("There are jobs in progress right now, uploading may corrupt it results. "
                                         "Please wait until it will be finished.")})
     if len(parent_id) == 0:
-        return JsonResponse({'error': str(_("The parent identifier was not got"))})
+        return JsonResponse({'error': _("The parent identifier was not got")})
     parents = Job.objects.filter(identifier__startswith=parent_id)
     if len(parents) == 0:
-        return JsonResponse({'error': str(_("The parent with the specified identifier was not found"))})
+        return JsonResponse({'error': _("The parent with the specified identifier was not found")})
     elif len(parents) > 1:
-        return JsonResponse({'error': str(_("Too many jobs starts with the specified identifier"))})
+        return JsonResponse({'error': _("Too many jobs starts with the specified identifier")})
     parent = parents[0]
     errors = []
     for f in request.FILES.getlist('file'):
@@ -659,25 +669,21 @@ def upload_job(request, parent_id=None):
             logger.exception("Archive extraction failed: %s" % e, stack_info=True)
             errors.append(_('Extraction of the archive "%(arcname)s" has failed') % {'arcname': f.name})
             continue
-        # TODO: ensure that tempdir is deleted after job is uploaded (on Linux)
         try:
-            zipdata = UploadJob(parent, request.user, job_dir.name)
+            UploadJob(parent, request.user, job_dir.name)
+        except BridgeException as e:
+            errors.append(
+                _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
+                    'arcname': f.name, 'message': str(e)
+                }
+            )
         except Exception as e:
             logger.exception(e)
             errors.append(
                 _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                    'arcname': f.name,
-                    'message': _('The job archive is corrupted')
+                    'arcname': f.name, 'message': _('The job archive is corrupted')
                 }
             )
-        else:
-            if zipdata.err_message is not None:
-                errors.append(
-                    _('Creating the job from archive "%(arcname)s" failed: %(message)s') % {
-                        'arcname': f.name,
-                        'message': str(zipdata.err_message)
-                    }
-                )
     if len(errors) > 0:
         return JsonResponse({'errors': list(str(x) for x in errors)})
     return JsonResponse({})
@@ -704,14 +710,14 @@ def decide_job(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
-    if not JobAccess(request.user, job).klever_core_access():
+    if not jobs.utils.JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
             'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(request.user, job.identifier)
         })
     if job.status != JOB_STATUS[1][0]:
         return JsonResponse({'error': 'Only pending jobs can be decided'})
 
-    change_job_status(job, JOB_STATUS[2][0])
+    jobs.utils.change_job_status(job, JOB_STATUS[2][0])
     err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
     if err is not None:
         return JsonResponse({'error': err})
@@ -729,13 +735,13 @@ def getfilecontent(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'message': "Unknown error"})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         file_id = int(request.POST.get('file_id', 0))
     except ValueError:
-        return JsonResponse({'message': "Unknown error"})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        source = FileSystem.objects.get(pk=int(file_id))
+        source = jobs.utils.FileSystem.objects.get(pk=int(file_id))
     except ObjectDoesNotExist:
         return JsonResponse({'message': _("The file was not found")})
     return HttpResponse(source.file.file.read())
@@ -747,16 +753,20 @@ def stop_decision(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
-        return JsonResponse({'error': "Unknown error"})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _("The job was not found")})
-    if not JobAccess(request.user, job).can_stop():
+    if not jobs.utils.JobAccess(request.user, job).can_stop():
         return JsonResponse({'error': _("You don't have an access to stop decision of this job")})
-    result = StopDecision(job)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        StopDecision(job)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -765,18 +775,22 @@ def stop_decision(request):
 def run_decision(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if any(x not in request.POST for x in ['data', 'job_id']):
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        configuration = GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
+        configuration = jobs.utils.GetConfiguration(user_conf=json.loads(request.POST['data'])).configuration
     except ValueError:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if configuration is None:
-        return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        StartJobDecision(request.user, request.POST['job_id'], configuration)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -787,31 +801,37 @@ def prepare_decision(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
+        return BridgeErrorResponse(404)
     if request.method == 'POST' and 'conf_name' in request.POST:
         current_conf = request.POST['conf_name']
         if request.POST['conf_name'] == 'file_conf':
             if 'file_conf' not in request.FILES:
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(301)
             try:
-                configuration = GetConfiguration(
+                configuration = jobs.utils.GetConfiguration(
                     file_conf=json.loads(request.FILES['file_conf'].read().decode('utf8'))
                 ).configuration
             except Exception as e:
                 logger.exception(e, stack_info=True)
-                return HttpResponseRedirect(reverse('error', args=[500]))
+                return BridgeErrorResponse(500)
         else:
-            configuration = GetConfiguration(conf_name=request.POST['conf_name']).configuration
+            configuration = jobs.utils.GetConfiguration(conf_name=request.POST['conf_name']).configuration
     else:
-        configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
-        current_conf = DEF_KLEVER_CORE_MODE
+        configuration = jobs.utils.GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE).configuration
+        current_conf = settings.DEF_KLEVER_CORE_MODE
     if configuration is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(500)
+
+    try:
+        data = jobs.utils.StartDecisionData(request.user, configuration)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(request, 'jobs/startDecision.html', {
-        'job': job,
-        'data': StartDecisionData(request.user, configuration),
-        'configurations': get_default_configurations(),
-        'current_conf': current_conf
+        'job': job, 'data': data, 'current_conf': current_conf,
+        'configurations': jobs.utils.get_default_configurations()
     })
 
 
@@ -819,16 +839,18 @@ def prepare_decision(request, job_id):
 @unparallel_group([Job])
 def fast_run_decision(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'job_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    configuration = GetConfiguration(conf_name=DEF_KLEVER_CORE_MODE).configuration
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    configuration = jobs.utils.GetConfiguration(conf_name=settings.DEF_KLEVER_CORE_MODE).configuration
     if configuration is None:
-        return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        StartJobDecision(request.user, request.POST['job_id'], configuration)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -836,24 +858,26 @@ def fast_run_decision(request):
 @unparallel_group([Job])
 def lastconf_run_decision(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'job_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     last_run = RunHistory.objects.filter(job_id=request.POST['job_id']).order_by('date').last()
     if last_run is None:
         return JsonResponse({'error': _('The job was not decided before')})
     try:
         with last_run.configuration.file as fp:
-            configuration = GetConfiguration(file_conf=json.loads(fp.read().decode('utf8'))).configuration
+            configuration = jobs.utils.GetConfiguration(file_conf=json.loads(fp.read().decode('utf8'))).configuration
     except Exception as e:
         logger.exception(e)
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if configuration is None:
-        return JsonResponse({'error': 'Unknown error'})
-    result = StartJobDecision(request.user, request.POST['job_id'], configuration)
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        StartJobDecision(request.user, request.POST['job_id'], configuration)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
@@ -862,7 +886,7 @@ def lastconf_run_decision(request):
 def check_compare_access(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         j1 = Job.objects.get(pk=request.POST.get('job1', 0))
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
@@ -881,15 +905,17 @@ def jobs_files_comparison(request, job1_id, job2_id):
         job1 = Job.objects.get(pk=job1_id)
         job2 = Job.objects.get(pk=job2_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[405]))
+        return BridgeErrorResponse(405)
     if not can_compare(request.user, job1, job2):
-        return HttpResponseRedirect(reverse('error', args=[507]))
-    res = GetFilesComparison(request.user, job1, job2)
-    return render(request, 'jobs/comparison.html', {
-        'job1': job1,
-        'job2': job2,
-        'data': res.data
-    })
+        return BridgeErrorResponse(507)
+    try:
+        data = jobs.utils.GetFilesComparison(request.user, job1, job2).data
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'jobs/comparison.html', {'job1': job1, 'job2': job2, 'data': data})
 
 
 @login_required
@@ -897,24 +923,24 @@ def jobs_files_comparison(request, job1_id, job2_id):
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         check_sums = json.loads(request.POST['check_sums'])
     except Exception as e:
         logger.exception("Json parsing failed: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if len(check_sums) == 1:
         try:
             f = JobFile.objects.get(hash_sum=check_sums[0])
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The file was not found') + ''})
+            return JsonResponse({'error': _('The file was not found')})
         return HttpResponse(f.file.read())
     elif len(check_sums) == 2:
         try:
             f1 = JobFile.objects.get(hash_sum=check_sums[0])
             f2 = JobFile.objects.get(hash_sum=check_sums[1])
         except ObjectDoesNotExist:
-            return JsonResponse({'error': _('The file was not found') + ''})
+            return JsonResponse({'error': _('The file was not found')})
         diff_result = []
         with f1.file as fp1, f2.file as fp2:
             for line in unified_diff(
@@ -923,7 +949,7 @@ def get_file_by_checksum(request):
             ):
                 diff_result.append(line)
         return HttpResponse('\n'.join(diff_result))
-    return JsonResponse({'error': 'Unknown error'})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @unparallel_group(['RunHistory'])
@@ -931,7 +957,7 @@ def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_('The configuration was not found'))
 
     file_name = "job-%s.conf" % run_history.job.identifier[:5]
     mimetype = mimetypes.guess_type(file_name)[0]
@@ -943,31 +969,32 @@ def download_configuration(request, runhistory_id):
 
 def get_def_start_job_val(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'name' not in request.POST or 'value' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    if request.POST['name'] == 'formatter' and request.POST['value'] in KLEVER_CORE_LOG_FORMATTERS:
-        return JsonResponse({'value': KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
-    if request.POST['name'] == 'sub_jobs_proc_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+    if request.method != 'POST' or 'name' not in request.POST or 'value' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    if request.POST['name'] == 'formatter' and request.POST['value'] in settings.KLEVER_CORE_LOG_FORMATTERS:
+        return JsonResponse({'value': settings.KLEVER_CORE_LOG_FORMATTERS[request.POST['value']]})
+    if request.POST['name'] == 'sub_jobs_proc_parallelism' \
+            and request.POST['value'] in settings.KLEVER_CORE_PARALLELISM_PACKS:
         return JsonResponse({
             'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
-                'val': KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0]
+                'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][0]
             }))
         })
-    if request.POST['name'] == 'build_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+    if request.POST['name'] == 'build_parallelism' \
+            and request.POST['value'] in settings.KLEVER_CORE_PARALLELISM_PACKS:
         return JsonResponse({
             'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
-                'val': KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1]
+                'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][1]
             }))
         })
-    if request.POST['name'] == 'tasks_gen_parallelism' and request.POST['value'] in KLEVER_CORE_PARALLELISM_PACKS:
+    if request.POST['name'] == 'tasks_gen_parallelism' \
+            and request.POST['value'] in settings.KLEVER_CORE_PARALLELISM_PACKS:
         return JsonResponse({
             'value': Template('{% load l10n %}{{ val|localize }}').render(Context({
-                'val': KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][2]
+                'val': settings.KLEVER_CORE_PARALLELISM_PACKS[request.POST['value']][2]
             }))
         })
-    return JsonResponse({'error': 'Unknown error'})
+    return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
 @login_required
@@ -975,12 +1002,12 @@ def get_def_start_job_val(request):
 def collapse_reports(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         job = Job.objects.get(pk=request.POST.get('job_id', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The job was not found')})
-    if not JobAccess(request.user, job).can_collapse():
+    if not jobs.utils.JobAccess(request.user, job).can_collapse():
         return JsonResponse({'error': _("You don't have an access to collapse reports")})
     CollapseReports(job)
     return JsonResponse({})
@@ -992,7 +1019,7 @@ def do_job_has_children(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST' or 'job_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         job = Job.objects.get(pk=request.POST['job_id'])
     except ObjectDoesNotExist:
@@ -1006,16 +1033,36 @@ def do_job_has_children(request):
 @unparallel_group(['Job'])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(301)
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
-    if not JobAccess(request.user, job).can_dfc():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(404)
+    if not jobs.utils.JobAccess(request.user, job).can_dfc():
+        return BridgeErrorResponse(400)
 
     generator = FilesForCompetitionArchive(job, json.loads(request.POST['filters']))
     mimetype = mimetypes.guess_type(os.path.basename(generator.name))[0]
     response = StreamingHttpResponse(generator, content_type=mimetype)
     response["Content-Disposition"] = "attachment; filename=%s" % generator.name
     return response
+
+
+@login_required
+@unparallel_group([Job])
+def enable_safe_marks(request):
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = Job.objects.get(id=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _('The job was not found')})
+    if not jobs.utils.JobAccess(request.user, job).can_edit():
+        return JsonResponse({'error': _("You don't have an access to edit this job")})
+    job.safe_marks = not job.safe_marks
+    job.save()
+    if job.safe_marks:
+        RecalculateSafeMarkConnections([job])
+    else:
+        disable_safe_marks_for_job(job)
+    return JsonResponse({})

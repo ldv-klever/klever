@@ -148,7 +148,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   allow local source directories use - True or False,
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
-#   weight of decision - '0' for full-weight, '1' for medium-weight and '2' for lightweight jobs.
+#   weight of decision - '0' for full-weight and '1' for lightweight jobs.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
@@ -240,3 +240,5 @@ LOGGING = {
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB
+
+ENABLE_SAFE_MARKS = False

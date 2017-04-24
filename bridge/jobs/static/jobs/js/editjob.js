@@ -226,7 +226,8 @@ function set_actions_for_edit_form () {
                 user_roles: user_roles,
                 file_data: file_data,
                 parent_identifier: $('#job_parent_identifier').val(),
-                last_version: last_job_version
+                last_version: last_job_version,
+                safe_marks: $('#safe_marks_checkbox').is(':checked')
             },
             function (data) {
                 $('#dimmer_of_page').removeClass('active');
@@ -870,6 +871,13 @@ $(document).ready(function () {
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#decide_job_btn_show_popup', 'show');
 
+    $('#clear_verifications_modal').modal({
+        transition: 'fly up', autofocus: false, closable: false})
+        .modal('attach events', '#clear_verifications_modal_show', 'show');
+    $('#cancel_clear_verifications').click(function () {
+        $('#clear_verifications_modal').modal('hide');
+    });
+
     $('#collapse_reports_modal').modal({
         transition: 'fly up', autofocus: false, closable: false})
         .modal('attach events', '#collapse_reports_modal_show', 'show');
@@ -938,6 +946,19 @@ $(document).ready(function () {
         $('#dimmer_of_page').addClass('active');
         $.post(
             job_ajax_url + 'collapse_reports/',
+            {job_id: $('#job_pk').val()},
+            function (data) {
+                $('#dimmer_of_page').removeClass('active');
+                data.error ? err_notify(data.error) : window.location.replace('');
+            }
+        );
+    });
+
+    $('#clear_verifications_confirm').click(function () {
+        $('#clear_verifications_modal').modal('hide');
+        $('#dimmer_of_page').addClass('active');
+        $.post(
+            '/reports/ajax/clear_verification_files/',
             {job_id: $('#job_pk').val()},
             function (data) {
                 $('#dimmer_of_page').removeClass('active');
@@ -1056,7 +1077,36 @@ $(document).ready(function () {
         );
     });
 
+    var safe_marks_popup = $('#safe_marks_popup');
+    if (safe_marks_popup.length) {
+        $('#safe_marks_link').popup({
+            popup: safe_marks_popup,
+            hoverable: true,
+            delay: {show: 100, hide: 300},
+            variation: 'wide',
+            position: 'right center'
+        });
+        $('#change_safe_marks').click(function () {
+            $('#safe_marks_link').popup('hide');
+            $('#dimmer_of_page').addClass('active');
+            $.post(
+                job_ajax_url + 'enable_safe_marks/',
+                {job_id: $('#job_pk').val()},
+                function (data) {
+                    if (data.error) {
+                        $('#dimmer_of_page').removeClass('active');
+                        err_notify(data.error);
+                    }
+                    else {
+                        window.location.replace('');
+                    }
+                }
+            );
+        });
+    }
+
     if ($('#job_data_div').length) {
+        var num_of_updates = 0;
         var interval = setInterval(function () {
             if ($.active > 0) {
                 return false;
@@ -1110,6 +1160,11 @@ $(document).ready(function () {
                         $('#average_time').text(progress_data[1]);
                         $('#local_average_time').text(progress_data[2]);
                         $('#max_time').text(progress_data[3]);
+                    }
+                    num_of_updates++;
+                    if (num_of_updates > 60) {
+                        err_notify($('#error__autoupdate_off').text());
+                        clearInterval(interval);
                     }
                 }
             ).fail(function () {

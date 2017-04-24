@@ -59,6 +59,8 @@
                     <a href="{% url 'marks:download_all' %}" class="ui green button">{% trans 'Download all marks' %}</a>
                     <button id="upload_all_marks" class="ui teal button">{% trans 'Upload all marks' %}</button>
                     <button id="clear_system" class="ui red button">{% trans 'Remove unused files and DB rows' %}</button>
+                    <a href="{% url 'tools:view_call_logs' %}" class="ui yellow button">{% trans 'View function call logs' %}</a>
+                    <button id="clear_call_logs" class="ui orange button">{% trans 'Remove call log that is older than 30 days' %}</button>
                 </div>
             </div>
         </div>

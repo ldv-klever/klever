@@ -15,17 +15,23 @@
 # limitations under the License.
 #
 
+import os
+
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import ObjectDoesNotExist
-from django.http import JsonResponse
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate
-from bridge.vars import USER_ROLES, JOB_STATUS
-from bridge.utils import unparallel_group
+
+from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
+from bridge.utils import BridgeException, logger
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
+
+from tools.models import LockTable
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
+from tools.profiling import unparallel_group, ProfileData, clear_old_logs, ExecLocker
 
 
 @login_required
@@ -34,8 +40,9 @@ def manager_tools(request):
     return render(request, "tools/ManagerPanel.html", {
         'components': Component.objects.all(),
         'problems': UnknownProblem.objects.all(),
-        'jobs': Job.objects.exclude(reportroot=None)
-                  .exclude(status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]])
+        'jobs': Job.objects.exclude(reportroot=None).exclude(
+            status__in=[JOB_STATUS[0][0], JOB_STATUS[1][0], JOB_STATUS[2][0]]
+        )
     })
 
 
@@ -44,7 +51,7 @@ def manager_tools(request):
 def rename_component(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     try:
@@ -66,7 +73,7 @@ def rename_component(request):
 def clear_components(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(Component).delete()
@@ -78,7 +85,7 @@ def clear_components(request):
 def clear_problems(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     objects_without_relations(UnknownProblem).delete()
@@ -90,7 +97,7 @@ def clear_problems(request):
 def clear_system(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': _('Unknown error')})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     ClearFiles()
@@ -105,12 +112,86 @@ def clear_system(request):
 def recalculation(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if request.user.extended.role != USER_ROLES[2][0]:
         return JsonResponse({'error': _("No access")})
     if 'type' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    res = Recalculation(request.POST['type'], request.POST.get('jobs', None))
-    if res.error is not None:
-        return JsonResponse({'error': res.error + ''})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        Recalculation(request.POST['type'], request.POST.get('jobs', None))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({'message': _("Caches were successfully recalculated")})
+
+
+@login_required
+def view_call_logs(request):
+    activate(request.user.extended.language)
+    return render(request, "tools/CallLogs.html", {})
+
+
+def call_list(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    action = request.POST.get('action')
+    if action == 'between':
+        date1 = None
+        if 'date1' in request.POST:
+            date1 = float(request.POST['date1'])
+        date2 = None
+        if 'date2' in request.POST:
+            date2 = float(request.POST['date2'])
+        data = ProfileData().get_log(date1, date2, request.POST.get('name'))
+    elif action == 'around' and 'date' in request.POST:
+        if 'interval' in request.POST:
+            data = ProfileData().get_log_around(float(request.POST['date']), int(request.POST['interval']))
+        else:
+            data = ProfileData().get_log_around(float(request.POST['date']))
+    else:
+        return HttpResponse('<h1>Unknown error</h1>')
+    return render(request, "tools/LogList.html", {'data': data})
+
+
+def call_statistic(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return HttpResponse('<h1>Unknown error</h1>')
+    action = request.POST.get('action')
+    data = None
+    if action == 'between':
+        date1 = None
+        if 'date1' in request.POST:
+            date1 = float(request.POST['date1'])
+        date2 = None
+        if 'date2' in request.POST:
+            date2 = float(request.POST['date2'])
+        data = ProfileData().get_statistic(date1, date2, request.POST.get('name'))
+    elif action == 'around' and 'date' in request.POST:
+        if 'interval' in request.POST:
+            data = ProfileData().get_statistic_around(float(request.POST['date']), int(request.POST['interval']))
+        else:
+            data = ProfileData().get_statistic_around(float(request.POST['date']))
+    return render(request, "tools/CallStatistic.html", {'data': data})
+
+
+def clear_call_logs(request):
+    activate(request.user.extended.language)
+    if not request.user.is_authenticated or request.method != 'POST' or request.user.extended.role != USER_ROLES[2][0]:
+        return JsonResponse({'error': 'Unknown error'})
+    clear_old_logs()
+    return JsonResponse({'message': _('Logs were successfully cleared')})
+
+
+def manual_unlock(request):
+    if not request.user.is_staff:
+        raise PermissionDenied()
+    LockTable.objects.all().delete()
+    try:
+        os.remove(ExecLocker.lockfile)
+    except FileNotFoundError:
+        pass
+    return HttpResponse('<h1>Success!</h1>')

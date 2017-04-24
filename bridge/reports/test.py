@@ -459,11 +459,22 @@ class TestReports(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        self.assertEqual(len(ReportComponent.objects.filter(
-            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
-              parent__identifier=self.job.identifier + parent, component__name=name) & ~Q(finish_date=None)
-        )), 1)
+        self.assertEqual(len(ReportComponent.objects.filter(Q(
+            root__job_id=self.job.pk, identifier=self.job.identifier + r_id,
+            parent__identifier=self.job.identifier + parent, component__name=name, finish_date=None
+        ))), 1)
         return r_id
+
+    def __upload_finish_verification_report(self, r_id):
+        response = self.service_client.post('/reports/upload/', {
+            'report': json.dumps({'id': r_id, 'type': 'verification finish'})
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(len(ReportComponent.objects.filter(
+            Q(root__job_id=self.job.pk, identifier=self.job.identifier + r_id) & ~Q(finish_date=None)
+        )), 1)
 
     def __upload_unknown_report(self, parent, archive):
         r_id = self.__get_report_id('unknown')
@@ -535,7 +546,7 @@ class TestReports(KleverTestCase):
         response = self.service_client.post('/jobs/decide_job/', {'report': json.dumps({
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': FORMAT})
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         core_data1 = None
@@ -623,14 +634,17 @@ class TestReports(KleverTestCase):
             if 'safe' in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_safe_report(tool, [], chunk['safe'])
+                self.__upload_finish_verification_report(tool)
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
+                    self.__upload_finish_verification_report(tool)
                     cnt += 1
             if 'unknown' in chunk and 'safe' not in chunk:
                 tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
                 self.__upload_unknown_report(tool, chunk['unknown'])
+                self.__upload_finish_verification_report(tool)
             self.__upload_finish_report(abkm)
 
         self.__upload_finish_report(avtg)

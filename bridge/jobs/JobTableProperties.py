@@ -350,7 +350,7 @@ class TableTree:
 
         for job in Job.objects.filter(**self.__view_filters()).order_by(*orders):
             if JobAccess(self._user, job).can_view():
-                if job.weight != JOB_WEIGHT[0][0]:
+                if job.weight == JOB_WEIGHT[1][0]:
                     self._light_jobs.append(job.id)
                 else:
                     self._full_jobs.append(job.id)
@@ -853,9 +853,6 @@ class TableTree:
                     reverse('reports:list', args=[verdict.report_id, 'unknowns'])
                 )
             })
-        for root in ReportRoot.objects.filter(job_id__in=self._job_ids, job__weight=JOB_WEIGHT[2][0])\
-                .values('job', 'safes'):
-            self._values_data[root['job']]['safe:total'] = root['safes']
 
     def __collect_roles(self):
         user_role = self._user.extended.role

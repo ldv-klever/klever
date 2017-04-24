@@ -24,7 +24,7 @@ from django.db import transaction
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, JOB_WEIGHT
-from bridge.utils import file_get_or_create
+from bridge.utils import file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 from .models import RunHistory, JobFile
 from .utils import create_job, update_job, change_job_status
@@ -132,8 +132,8 @@ class JobArchiveGenerator:
     def __job_data(self):
         return json.dumps({
             'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
-            'status': self.job.status, 'files_map': self.arch_files,
-            'run_history': self.__add_run_history_files(), 'weight': self.job.weight
+            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
+            'weight': self.job.weight, 'safe_marks': self.job.safe_marks
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __add_run_history_files(self):
@@ -176,15 +176,14 @@ class JobsArchivesGen:
         yield self.stream.close_stream()
 
 
-class LightWeightCache(object):
+class LightWeightCache:
     def __init__(self, job):
         self.data = {}
         try:
             self.root = ReportRoot.objects.get(job=job)
         except ObjectDoesNotExist:
             return
-        self.data['safes'] = self.root.safes
-        if job.weight != JOB_WEIGHT[0][0]:
+        if job.weight == JOB_WEIGHT[1][0]:
             self.data['resources'] = self.__get_light_resources()
             self.data['attrs_data'] = self.__get_attrs_statistic()
 
@@ -302,7 +301,7 @@ class UploadJob(object):
         self.job = None
         self.user = user
         self.job_dir = job_dir
-        self.err_message = self.__create_job_from_tar()
+        self.__create_job_from_tar()
 
     def __create_job_from_tar(self):
         jobdata = None
@@ -329,9 +328,9 @@ class UploadJob(object):
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         computers = json.load(fp)
                 elif rel_path.startswith('version-'):
-                    m = re.match('version-(\d+)\.json', file_name)
+                    m = re.match('version-(\d+)\.json', rel_path)
                     if m is None:
-                        raise ValueError("Unknown file that startswith 'version-' was found in the archive")
+                        raise BridgeException(_('Unknown file in the archive: %(filename)s') % {'filename': rel_path})
                     with open(os.path.join(dir_path, file_name), encoding='utf8') as fp:
                         versions_data[int(m.group(1))] = json.load(fp)
                 elif rel_path.startswith('Configurations'):
@@ -339,7 +338,7 @@ class UploadJob(object):
                 else:
                     b_dir = os.path.basename(dir_path)
                     if not rel_path.startswith(b_dir):
-                        raise ValueError('Unknown file in archive: %s' % rel_path)
+                        raise BridgeException(_('Unknown file in the archive: %(filename)s') % {'filename': rel_path})
                     if b_dir in {'ReportSafe', 'ReportUnsafe', 'ReportUnknown', 'ReportComponent'}:
                         m = re.match('(\d+)\.zip', file_name)
                         if m is not None:
@@ -351,27 +350,28 @@ class UploadJob(object):
                             )[1]
                         except Exception as e:
                             logger.exception("Can't save job files to DB: %s" % e)
-                            return _("Creating job's file failed")
+                            raise BridgeException(_("Creating job's file failed"))
 
         if not isinstance(jobdata, dict):
             raise ValueError('job.json file was not found or contains wrong data')
         # Check job data
-        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map', 'run_history', 'weight']):
+        if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
+                                          'run_history', 'weight', 'safe_marks']):
             raise ValueError('Not enough data in job.json file')
         if jobdata['format'] != FORMAT:
-            return _("The job format is not supported")
+            raise BridgeException(_("The job format is not supported"))
         if 'identifier' in jobdata:
             if isinstance(jobdata['identifier'], str) and len(jobdata['identifier']) > 0:
                 if len(Job.objects.filter(identifier=jobdata['identifier'])) > 0:
-                    return _("The job with identifier specified in the archive already exists")
+                    raise BridgeException(_("The job with identifier specified in the archive already exists"))
             else:
                 del jobdata['identifier']
         if jobdata['type'] != self.parent.type:
-            return _("The job class does not equal to the parent class")
+            raise BridgeException(_("The job class does not equal to the parent class"))
         if jobdata['weight'] not in set(w[0] for w in JOB_WEIGHT):
-            raise ValueError('Wrong job weight')
+            raise ValueError('Wrong job weight: %s' % jobdata['weight'])
         if jobdata['status'] not in list(x[0] for x in JOB_STATUS):
-            raise ValueError("The job status is wrong")
+            raise ValueError("The job status is wrong: %s" % jobdata['status'])
         for f_id in list(jobdata['files_map']):
             if jobdata['files_map'][f_id] in files_in_db:
                 jobdata['files_map'][int(f_id)] = files_in_db[jobdata['files_map'][f_id]]
@@ -416,11 +416,12 @@ class UploadJob(object):
                 'type': self.parent.type,
                 'global_role': version_list[0]['global_role'],
                 'filedata': version_list[0]['filedata'],
-                'comment': version_list[0]['comment']
+                'comment': version_list[0]['comment'],
+                'safe_marks': jobdata['safe_marks']
             })
         except Exception as e:
             logger.exception(e, stack_info=True)
-            return _('Saving the job failed')
+            raise BridgeException(_('Saving the job failed'))
         job.weight = jobdata['weight']
         job.save()
 
@@ -428,7 +429,7 @@ class UploadJob(object):
         try:
             for rh in jobdata['run_history']:
                 if rh['status'] not in list(x[0] for x in JOB_STATUS):
-                    return _("The job archive is corrupted")
+                    raise BridgeException(_("The job archive is corrupted"))
                 with open(run_history_files[rh['id']], mode='rb') as fp:
                     RunHistory.objects.create(
                         job=job, status=rh['status'],
@@ -454,31 +455,30 @@ class UploadJob(object):
                     'comment': version_data['comment']
                 })
             except Exception as e:
-                logger.exception(str(e), stack_info=True)
+                logger.exception(e)
                 job.delete()
-                return _('Updating the job failed')
+                raise BridgeException(_('Updating the job failed'))
 
         # Change job's status as it was in downloaded archive
         change_job_status(job, jobdata['status'])
         ReportRoot.objects.create(user=self.user, job=job)
         try:
             UploadReports(job, computers, reports_data, report_files)
-        except Exception as e:
-            logger.exception("Uploading report failed: %s" % e, stack_info=True)
+        except BridgeException:
             job.delete()
-            return _("Uploading reports failed")
+            raise
+        except Exception as e:
+            logger.exception("Uploading reports failed: %s" % e, stack_info=True)
+            job.delete()
+            raise BridgeException(_("Unknown error while uploading reports"))
         self.job = job
         self.__fill_lightweight_cache(light_cache)
-        return None
 
     def __fill_lightweight_cache(self, light_cache):
         try:
             root = ReportRoot.objects.get(job=self.job)
         except ObjectDoesNotExist:
             return
-        if 'safes' in light_cache:
-            root.safes = int(light_cache['safes'])
-            root.save()
         if 'resources' in light_cache:
             LightResource.objects.bulk_create(list(LightResource(
                 report=root, wall_time=int(d['wall_time']), cpu_time=int(d['cpu_time']), memory=int(d['memory']),

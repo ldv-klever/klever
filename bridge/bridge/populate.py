@@ -331,10 +331,11 @@ class Population(object):
             logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
         with open(preset_tags, mode='rb') as fp:
-            res = CreateTagsFromFile(fp, tag_type, True)
-            if res.error is not None:
-                raise PopulationError("Error while creating tags: %s" % res.error)
-        return res.number_of_created
+            try:
+                res = CreateTagsFromFile(fp, tag_type, True)
+            except Exception as e:
+                raise PopulationError("Error while creating tags: %s" % str(e))
+            return res.number_of_created
 
     def __is_not_used(self):
         pass

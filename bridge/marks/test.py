@@ -17,13 +17,17 @@
 
 import os
 import json
+
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.test import override_settings
+
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
 from bridge.utils import KleverTestCase, ArchiveFileContent
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
+
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
@@ -66,6 +70,7 @@ class TestMarks(KleverTestCase):
         self.test_tagsfile = 'test_tags.json'
         self.all_marks_arch = 'All-marks.zip'
 
+    @override_settings(ENABLE_SAFE_MARKS=True)
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
@@ -161,6 +166,13 @@ class TestMarks(KleverTestCase):
         # Tags tree page
         response = self.client.post(reverse('marks:tags', args=['safe']))
         self.assertEqual(response.status_code, 200)
+
+        # Enable safe marks for the job
+        self.assertFalse(self.job.safe_marks)
+        response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get report
         try:
@@ -307,7 +319,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['safe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.safe_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
@@ -724,7 +736,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unsafe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.unsafe_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
@@ -1033,7 +1045,7 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unknown', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/zip')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.unknown_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
