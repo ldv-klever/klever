@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/usb.h>
@@ -7,6 +24,7 @@ static int __init init(void)
 {
 	struct urb *tmp_1;
 	struct urb *tmp_2;
+	struct urb *tmp_3;
 	int iso_packets;
 	gfp_t mem_flags;
 
@@ -15,6 +33,11 @@ static int __init init(void)
 
 	usb_free_urb(tmp_1);
 	usb_free_urb(tmp_2);
+
+	tmp_3 = usb_alloc_urb(iso_packets, mem_flags);
+	tmp_3 = usb_get_urb(tmp_3);
+	usb_put_urb(tmp_3);
+	usb_put_urb(tmp_3);
 
 	return 0;
 }

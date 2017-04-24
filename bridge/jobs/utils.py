@@ -1,26 +1,42 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import re
 import json
 import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, Case, When, IntegerField
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
-    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
-from bridge.utils import logger
+    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
-    USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS
-from jobs.models import Job, JobHistory, FileSystem, File, UserRole
+    USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
+from bridge.utils import logger, BridgeException
+from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, ReportComponent
+from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
-READABLE = ['txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl']
+READABLE = {'txt', 'json', 'xml', 'c', 'aspect', 'i', 'h', 'tmpl'}
 
 # List of available types of 'safe' column class.
 SAFES = [
@@ -46,8 +62,8 @@ UNSAFES = [
 # Dictionary of titles of static columns
 TITLES = {
     'name': _('Title'),
-    'author': _('Author'),
-    'date': _('Last change'),
+    'author': _('Last change author'),
+    'date': _('Last change date'),
     'status': _('Decision status'),
     'safe': _('Safes'),
     'safe:missed_bug': _('Missed target bugs'),
@@ -89,13 +105,17 @@ TITLES = {
     'tasks_cancelled': _('Cancelled tasks'),
     'tasks_total': _('Total tasks'),
     'progress': _('Progress of job decision'),
-    'solutions': _('Number of task decisions')
+    'solutions': _('Number of task decisions'),
+    'average_time': _('Average time before finishing decision (all jobs)'),
+    'local_average_time': _('Average time before finishing decision (just this jobs)'),
+    'max_time': _('Maximum time before finishing decision')
 }
 
 
 class JobAccess(object):
 
     def __init__(self, user, job=None):
+        self.user = user
         self.job = job
         self.__is_author = False
         self.__job_role = None
@@ -137,36 +157,47 @@ class JobAccess(object):
     def can_stop(self):
         if self.job is None:
             return False
-        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] \
-                and (self.__is_operator or self.__is_manager):
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] and (self.__is_operator or self.__is_manager):
             return True
         return False
 
     def can_delete(self):
         if self.job is None:
             return False
-        if len(self.job.children.all()) > 0:
-            return False
+        for ch in self.job.children.all():
+            if not JobAccess(self.user, ch).can_delete():
+                return False
         if self.__is_manager and self.job.status == JOB_STATUS[3]:
             return True
-        if self.job.status in [js[0] for js in JOB_STATUS[1:2]]:
+        if self.job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
             return False
         return self.__is_author or self.__is_manager
 
     def can_download(self):
-        return not (self.job is None or self.job.status in [JOB_STATUS[2][0], JOB_STATUS[5][0], JOB_STATUS[6][0]])
+        return self.job is not None and self.job.status != JOB_STATUS[2][0]
 
     def can_collapse(self):
         if self.job is None:
             return False
-        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager)
+        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) \
+            and self.job.weight == JOB_WEIGHT[0][0]
+
+    def can_clear_verifications(self):
+        if self.job is None or self.job.status not in {JOB_STATUS[3][0], JOB_STATUS[4][0]}:
+            return False
+        if not (self.__is_author or self.__is_manager):
+            return False
+        return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
+            .exclude(archive='').count() > 0
+
+    def can_dfc(self):
+        return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
 
     def __get_prop(self, user):
         if self.job is not None:
             try:
                 first_version = self.job.versions.get(version=1)
-                last_version = self.job.versions.get(
-                    version=self.job.version)
+                last_version = self.job.versions.get(version=self.job.version)
             except ObjectDoesNotExist:
                 return
             self.__is_author = (first_version.change_author == user)
@@ -182,34 +213,19 @@ class FileData(object):
     def __init__(self, job):
         self.filedata = []
         self.__get_filedata(job)
-        self.__order_by_type()
         self.__order_by_lvl()
 
     def __get_filedata(self, job):
-        for f in job.filesystem_set.all().order_by('name'):
-            file_info = {
-                'title': f.name,
+        for f in job.filesystem_set\
+                .annotate(is_file=Case(When(file=None, then=0), default=1, output_field=IntegerField()))\
+                .order_by('is_file', 'name').select_related('file'):
+            self.filedata.append({
                 'id': f.pk,
-                'parent': None,
-                'hash_sum': None,
-                'type': 0
-            }
-            if f.parent:
-                file_info['parent'] = f.parent_id
-            if f.file:
-                file_info['type'] = 1
-                file_info['hash_sum'] = f.file.hash_sum
-            self.filedata.append(file_info)
-
-    def __order_by_type(self):
-        newfilesdata = []
-        for fd in self.filedata:
-            if fd['type'] == 0:
-                newfilesdata.append(fd)
-        for fd in self.filedata:
-            if fd['type'] == 1:
-                newfilesdata.append(fd)
-        self.filedata = newfilesdata
+                'title': f.name,
+                'parent': f.parent_id,
+                'type': f.is_file,
+                'hash_sum': f.file.hash_sum if f.file is not None else None
+            })
 
     def __order_by_lvl(self):
         ordered_data = []
@@ -243,87 +259,74 @@ class SaveFileData(object):
         self.filedata = filedata
         self.job = job
         self.filedata_by_lvl = []
-        self.filedata_hash = {}
-        self.err_message = self.__validate()
-        if self.err_message is None:
-            self.err_message = self.__save_file_data()
+        self.__check_data()
+        self._files = self.__get_files()
+        self.__save_file_data()
 
     def __save_file_data(self):
+        saved_files = {}
         for lvl in self.filedata_by_lvl:
             for lvl_elem in lvl:
                 fs_elem = FileSystem()
                 fs_elem.job = self.job
                 if lvl_elem['parent']:
-                    parent_pk = self.filedata_hash[lvl_elem['parent']].get(
-                        'pk', None
-                    )
-                    if parent_pk is None:
-                        return _("Saving folder failed")
-                    try:
-                        parent = FileSystem.objects.get(pk=parent_pk, file=None)
-                    except ObjectDoesNotExist:
-                        return _("Saving folder failed")
-                    fs_elem.parent = parent
+                    fs_elem.parent = saved_files[lvl_elem['parent']]
                 if lvl_elem['type'] == '1':
-                    try:
-                        fs_elem.file = File.objects.get(
-                            hash_sum=lvl_elem['hash_sum']
-                        )
-                    except ObjectDoesNotExist:
-                        return _("The file was not uploaded")
+                    if lvl_elem['hash_sum'] not in self._files:
+                        raise ValueError('The file was not uploaded before')
+                    fs_elem.file = self._files[lvl_elem['hash_sum']]
                 if not all(ord(c) < 128 for c in lvl_elem['title']):
                     t_size = len(lvl_elem['title'])
                     if t_size > 30:
                         lvl_elem['title'] = lvl_elem['title'][(t_size - 30):]
                 fs_elem.name = lvl_elem['title']
                 fs_elem.save()
-                self.filedata_hash[lvl_elem['id']]['pk'] = fs_elem.pk
+                saved_files[lvl_elem['id']] = fs_elem
         return None
 
-    def __validate(self):
+    def __check_data(self):
         num_of_elements = 0
         element_of_lvl = []
         cnt = 0
         while num_of_elements < len(self.filedata):
             cnt += 1
             if cnt > 1000:
-                return _("Unknown error")
+                raise ValueError('The file is too deep, maybe there is a loop in the files tree')
             num_of_elements += len(element_of_lvl)
             element_of_lvl = self.__get_lower_level(element_of_lvl)
             if len(element_of_lvl):
                 self.filedata_by_lvl.append(element_of_lvl)
         for lvl in self.filedata_by_lvl:
-            names_of_lvl = []
-            names_with_parents = []
+            names_with_parents = set()
             for fd in lvl:
-                self.filedata_hash[fd['id']] = fd
                 if len(fd['title']) == 0:
-                    return _("You can't specify an empty name")
+                    raise ValueError("The file/folder name can't be empty")
                 if not all(ord(c) < 128 for c in fd['title']):
                     title_size = len(fd['title'])
                     if title_size > 30:
                         fd['title'] = fd['title'][(title_size - 30):]
                 if fd['type'] == '1' and fd['hash_sum'] is None:
-                    return _("The file was not uploaded")
-                if [fd['title'], fd['parent']] in names_with_parents:
-                    return _("You can't use the same names in one folder")
-                names_of_lvl.append(fd['title'])
-                names_with_parents.append([fd['title'], fd['parent']])
-        return None
+                    raise ValueError('The file was not uploaded before')
+                if fd['parent'] is not None:
+                    rel_path = "%s/%s" % (fd['parent'], fd['title'])
+                else:
+                    rel_path = fd['title']
+                if rel_path in names_with_parents:
+                    raise ValueError("The same names in one folder found")
+                names_with_parents.add(rel_path)
 
     def __get_lower_level(self, data):
-        new_level = []
-        if len(data):
-            for d in data:
-                for fd in self.filedata:
-                    if fd['parent'] == d['id']:
-                        if fd not in new_level:
-                            new_level.append(fd)
-        else:
-            for fd in self.filedata:
-                if fd['parent'] is None:
-                    new_level.append(fd)
-        return new_level
+        if len(data) == 0:
+            return list(fd for fd in self.filedata if fd['parent'] is None)
+        parents = set(fd['id'] for fd in data)
+        return list(fd for fd in self.filedata if fd['parent'] in parents)
+
+    def __get_files(self):
+        files_data = {}
+        hash_sums = set(fd['hash_sum'] for fd in self.filedata if fd['hash_sum'] is not None)
+        for f in JobFile.objects.filter(hash_sum__in=list(hash_sums)):
+            files_data[f.hash_sum] = f
+        return files_data
 
 
 def convert_time(val, acc):
@@ -393,10 +396,9 @@ def role_info(job, user):
     job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
-        title = ur.user.extended.last_name + ' ' + ur.user.extended.first_name
         u_id = ur.user_id
         user_roles_data.append({
-            'user': {'id': u_id, 'name': title},
+            'user': {'id': u_id, 'name': ur.user.get_full_name()},
             'role': {'val': ur.role, 'title': ur.get_role_display()}
         })
         users.append(u_id)
@@ -406,103 +408,82 @@ def role_info(job, user):
     available_users = []
     for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)):
         if u != job_author:
-            available_users.append({
-                'id': u.pk,
-                'name': u.extended.last_name + ' ' + u.extended.first_name
-            })
+            available_users.append({'id': u.pk, 'name': u.get_full_name()})
     roles_data['available_users'] = available_users
     return roles_data
 
 
 def create_version(job, kwargs):
-    new_version = JobHistory()
-    new_version.job = job
-    new_version.parent = job.parent
-    new_version.version = job.version
-    new_version.change_author = job.change_author
-    new_version.change_date = job.change_date
-    new_version.name = job.name
-    if 'comment' in kwargs:
-        new_version.comment = kwargs['comment']
-    if 'global_role' in kwargs and \
-            kwargs['global_role'] in list(x[0] for x in JOB_ROLES):
+    new_version = JobHistory(
+        job=job, parent=job.parent, version=job.version, name=job.name,
+        change_author=job.change_author, change_date=job.change_date,
+        comment=kwargs.get('comment', ''), description=kwargs.get('description', '')
+    )
+    if 'global_role' in kwargs and kwargs['global_role'] in set(x[0] for x in JOB_ROLES):
         new_version.global_role = kwargs['global_role']
-    if 'description' in kwargs:
-        new_version.description = kwargs['description']
     new_version.save()
     if 'user_roles' in kwargs:
-        for ur in kwargs['user_roles']:
-            try:
-                ur_user = User.objects.get(pk=int(ur['user']))
-            except ObjectDoesNotExist:
-                continue
-            new_ur = UserRole()
-            new_ur.job = new_version
-            new_ur.user = ur_user
-            new_ur.role = ur['role']
-            new_ur.save()
+        user_roles = dict((int(ur['user']), ur['role']) for ur in kwargs['user_roles'])
+        user_roles_to_create = []
+        for u in User.objects.filter(id__in=list(user_roles)).only('id'):
+            user_roles_to_create.append(UserRole(job=new_version, user=u, role=user_roles[u.id]))
+        if len(user_roles_to_create) > 0:
+            UserRole.objects.bulk_create(user_roles_to_create)
     return new_version
 
 
 def create_job(kwargs):
-    newjob = Job()
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        return _("The job title is required")
+        logger.error('The job name was not got')
+        raise BridgeException()
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("The job author is required")
-    newjob.name = kwargs['name']
-    newjob.change_author = kwargs['author']
+        logger.error('The job author was not got')
+        raise BridgeException()
+    newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
         newjob.type = kwargs['parent'].type
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        return _("The parent or the job class is required")
-    if 'pk' in kwargs:
-        try:
-            Job.objects.get(pk=int(kwargs['pk']))
-        except ObjectDoesNotExist:
-            newjob.pk = int(kwargs['pk'])
+        logger.error('The parent or the job class are required')
+        raise BridgeException()
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
         newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    newjob.safe_marks = bool(kwargs.get('safe_marks', ENABLE_SAFE_MARKS))
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = SaveFileData(kwargs['filedata'], new_version)
-        if db_fdata.err_message is not None:
+        try:
+            SaveFileData(kwargs['filedata'], new_version)
+        except Exception as e:
+            logger.exception(e)
             newjob.delete()
-            return db_fdata.err_message
+            raise BridgeException()
     if 'absolute_url' in kwargs:
-        newjob_url = reverse('jobs:job', args=[newjob.pk])
-        try:
-            Notify(newjob, 0, {
-                'absurl': kwargs['absolute_url'] + newjob_url
-            })
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # newjob_url = reverse('jobs:job', args=[newjob.pk])
+        # Notify(newjob, 0, {'absurl': kwargs['absolute_url'] + newjob_url})
+        pass
     else:
-        try:
-            Notify(newjob, 0)
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # Notify(newjob, 0)
+        pass
     return newjob
 
 
 def update_job(kwargs):
     if 'job' not in kwargs or not isinstance(kwargs['job'], Job):
-        return _("Unknown error")
+        raise ValueError('The job is required')
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        return _("Change author is required")
+        raise ValueError('Change author is required')
     if 'comment' in kwargs:
         if len(kwargs['comment']) == 0:
-            return _("Change comment is required")
+            raise ValueError('Change comment is required')
     else:
         kwargs['comment'] = ''
     if 'parent' in kwargs:
@@ -516,12 +497,13 @@ def update_job(kwargs):
     newversion = create_version(kwargs['job'], kwargs)
 
     if 'filedata' in kwargs:
-        db_fdata = SaveFileData(kwargs['filedata'], newversion)
-        if db_fdata.err_message is not None:
+        try:
+            SaveFileData(kwargs['filedata'], newversion)
+        except Exception as e:
             newversion.delete()
             kwargs['job'].version -= 1
             kwargs['job'].save()
-            return db_fdata.err_message
+            raise e
     if 'absolute_url' in kwargs:
         try:
             Notify(kwargs['job'], 1, {'absurl': kwargs['absolute_url']})
@@ -532,26 +514,36 @@ def update_job(kwargs):
             Notify(kwargs['job'], 1)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
-    return kwargs['job']
 
 
 def remove_jobs_by_id(user, job_ids):
-    jobs = []
-    for job_id in job_ids:
+    job_struct = {}
+    all_jobs = {}
+    for j in Job.objects.only('id', 'parent_id'):
+        if j.parent_id not in job_struct:
+            job_struct[j.parent_id] = set()
+        job_struct[j.parent_id].add(j.id)
+        all_jobs[j.id] = j
+
+    def remove_job_with_children(j_id):
+        j_id = int(j_id)
+        if j_id not in all_jobs:
+            return
+        if j_id in job_struct:
+            for ch_id in job_struct[j_id]:
+                remove_job_with_children(ch_id)
+            del job_struct[j_id]
+        if not JobAccess(user, all_jobs[j_id]).can_delete():
+            raise ValueError("You don't have an access to delete one of the childrens")
         try:
-            jobs.append(Job.objects.get(pk=job_id))
-        except ObjectDoesNotExist:
-            return 404
-    for job in jobs:
-        if not JobAccess(user, job).can_delete():
-            return 400
-    for job in jobs:
-        try:
-            Notify(job, 2)
+            Notify(all_jobs[j_id], 2)
         except Exception as e:
             logger.exception("Can't notify users: %s" % e)
-        job.delete()
-    return 0
+        all_jobs[j_id].delete()
+        del all_jobs[j_id]
+
+    for job_id in job_ids:
+        remove_job_with_children(job_id)
 
 
 def delete_versions(job, versions):
@@ -578,11 +570,11 @@ def check_new_parent(job, parent):
     return True
 
 
-def get_resource_data(user, resource):
-    if user.extended.data_format == 'hum':
-        wall = convert_time(resource.wall_time, user.extended.accuracy)
-        cpu = convert_time(resource.cpu_time, user.extended.accuracy)
-        mem = convert_memory(resource.memory, user.extended.accuracy)
+def get_resource_data(data_format, accuracy, resource):
+    if data_format == 'hum':
+        wall = convert_time(resource.wall_time, accuracy)
+        cpu = convert_time(resource.cpu_time, accuracy)
+        mem = convert_memory(resource.memory, accuracy)
     else:
         wall = "%s %s" % (resource.wall_time, _('ms'))
         cpu = "%s %s" % (resource.cpu_time, _('ms'))
@@ -614,15 +606,18 @@ class CompareFileSet(object):
 
         def get_files(job):
             files = []
-            last_v = job.versions.order_by('-version')[0]
-            for f in last_v.filesystem_set.all():
-                if f.file is not None:
-                    parent = f.parent
-                    f_name = f.name
-                    while parent is not None:
-                        f_name = os.path.join(parent.name, f_name)
-                        parent = parent.parent
-                    files.append([f_name, f.file.hash_sum])
+            last_v = job.versions.order_by('-version').first()
+            files_data = {}
+            for f in last_v.filesystem_set.only('parent_id', 'name'):
+                files_data[f.pk] = (f.parent_id, f.name)
+            for f in last_v.filesystem_set.exclude(file=None).select_related('file')\
+                    .only('name', 'parent_id', 'file__hash_sum'):
+                f_name = f.name
+                parent = f.parent_id
+                while parent is not None:
+                    f_name = files_data[parent][1] + '/' + f_name
+                    parent = files_data[parent][0]
+                files.append([f_name, f.file.hash_sum])
             return files
 
         files1 = get_files(self.j1)
@@ -669,18 +664,13 @@ class GetFilesComparison(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('The comparison cache was not found')
-            return
+            raise BridgeException(_('The comparison cache was not found'))
         return json.loads(info.files_diff)
 
 
 def change_job_status(job, status):
-    if not isinstance(job, Job) or status not in list(x[0] for x in JOB_STATUS):
+    if not isinstance(job, Job) or status not in set(x[0] for x in JOB_STATUS):
         return
-    if status in [JOB_STATUS[3], JOB_STATUS[4]]:
-        for comp in ReportComponent.objects.filter(root=job.reportroot, finish_date=None):
-            comp.finish_date = now()
-            comp.save()
     job.status = status
     job.save()
     try:
@@ -712,6 +702,7 @@ class GetConfiguration(object):
         elif user_conf is not None:
             self.__get_user_conf(user_conf)
         if not self.__check_conf():
+            logger.error("The configuration didn't pass checks")
             self.configuration = None
 
     def __get_default_conf(self, name):
@@ -745,6 +736,7 @@ class GetConfiguration(object):
         for sch in SCHEDULER_TYPE:
             if sch[1] == filedata['task scheduler']:
                 scheduler = sch[0]
+                break
         if scheduler is None:
             logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
@@ -802,7 +794,7 @@ class GetConfiguration(object):
                     filedata['allow local source directories use'],
                     filedata['ignore other instances'],
                     filedata['ignore failed sub-jobs'],
-                    filedata['lightweightness']
+                    filedata['weight']
                 ]
             ]
         except Exception as e:
@@ -874,26 +866,24 @@ class GetConfiguration(object):
             return False
         if not isinstance(self.configuration[3][1], str) or not isinstance(self.configuration[3][3], str):
             return False
-        if any(not isinstance(x, bool) for x in self.configuration[4]):
+        if any(not isinstance(x, bool) for x in self.configuration[4][:-1]):
+            return False
+        if self.configuration[4][-1] not in set(w[0] for w in JOB_WEIGHT):
             return False
         return True
 
 
-class StartDecisionData(object):
+class StartDecisionData:
     def __init__(self, user, data):
-        self.error = None
         self.default = data
-
         self.job_sch_err = None
         self.schedulers = self.__get_schedulers()
-        if self.error is not None:
-            return
-
         self.priorities = list(reversed(PRIORITY))
         self.logging_levels = LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
         self.formatters = KLEVER_CORE_FORMATTERS
         self.avtg_priorities = AVTG_PRIORITY
+        self.job_weight = JOB_WEIGHT
 
         self.need_auth = False
         try:
@@ -906,18 +896,15 @@ class StartDecisionData(object):
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         try:
             cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
             self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _("The Klever scheduler is disconnected")
-            return []
+            raise BridgeException(_('The Klever scheduler is disconnected'))
         schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
@@ -927,4 +914,32 @@ class StartDecisionData(object):
                 cloud_sch.type,
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
+        elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
+            raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
+
+
+def get_job_progress(user, job):
+    progress = '-'
+    average_time = '-'
+    local_average_time = '-'
+    max_time = '-'
+    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+        total_tasks = job.reportroot.tasks_total
+        solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
+        if total_tasks > 0:
+            curr_progress = int(solved_tasks / total_tasks * 100)
+            if curr_progress < 100:
+                progress = '%s%%' % curr_progress
+        else:
+            progress = '0%'
+        if progress != '-' and total_tasks > solved_tasks:
+            average_time = get_user_time(
+                user, (total_tasks - solved_tasks) * TaskStatistic.objects.get_or_create()[0].average_time
+            )
+            local_average_time = get_user_time(user, (total_tasks - solved_tasks) * job.reportroot.average_time)
+            with RunHistory.objects.filter(job=job).order_by('id').last().configuration.file as fp:
+                time_limit = json.loads(fp.read().decode('utf8'))['resource limits']['CPU time']
+            if isinstance(time_limit, int):
+                max_time = get_user_time(user, time_limit * (total_tasks - solved_tasks))
+    return progress, average_time, local_average_time, max_time

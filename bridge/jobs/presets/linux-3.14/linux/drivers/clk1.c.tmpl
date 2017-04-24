@@ -1,0 +1,53 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <verifier/common.h>
+#include <verifier/nondet.h>
+
+struct clk;
+
+// for arg_sign in clk1_arg_signs
+/* NOTE Initialize counter to zero */
+int ldv_counter{{ arg_sign.id }} = 0;
+
+/* MODEL_FUNC Release */
+void ldv_clk_disable{{ arg_sign.id }}(struct clk *clk)
+{
+    /* NOTE Increase counter */
+    ldv_counter{{ arg_sign.id }} = 0;
+}
+
+/* MODEL_FUNC Reset counter */
+int ldv_clk_enable{{ arg_sign.id }}(void)
+{
+	int retval = ldv_undef_int();
+	if (!retval) {
+		/* NOTE Increase counter */
+		ldv_counter{{ arg_sign.id }} = 1;
+	}
+	return retval;
+}
+// endfor
+
+/* MODEL_FUNC Check that all clk are freed at the end */
+void ldv_check_final_state(void)
+{
+	// for arg_sign in clk1_arg_signs
+	/* ASSERT All clk should be released before finishing operation */
+	ldv_assert("linux:drivers:clk1::more at exit", ldv_counter{{ arg_sign.id }} == 0);
+	// endfor
+}

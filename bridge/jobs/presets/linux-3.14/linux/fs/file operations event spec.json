@@ -1,0 +1,299 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "misc_register": {
+        "comment": "Register miscellaneous character driver.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "miscdevice": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.miscdevice"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "register": {
+            "comment": "Register file_operations callbacks of the miscellaneous character driver.",
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "statements": [
+              "%miscdevice% = $ARG1;",
+              "%file_operations% = %miscdevice%->fops;"
+            ]
+          },
+          "fail": {
+            "comment": "Fail to register the miscellaneous character driver.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Successfully registered the miscellaneous character driver.",
+            "statements": [
+              "return 0;"
+            ]
+          }
+        }
+      },
+      "misc_deregister": {
+        "comment": "Deregister miscellaneous character driver.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "miscdevice": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.miscdevice"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "condition": [],
+            "statements": [
+              "%miscdevice% = $ARG1;",
+              "%file_operations% = %miscdevice%->fops;"
+            ]
+          }
+        }
+      },
+      "cdev_init": {
+        "comment": "Register cdev structure of the character driver.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "cdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.cdev"
+            ]
+          }
+        },
+        "process": "<assign>.[register]",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "condition": [],
+            "statements": [
+              "%cdev% = $ARG1;",
+              "%file_operations% = $ARG2;",
+              "%cdev%->ops = %file_operations%;"
+            ]
+          }
+        }
+      },
+      "cdev_del": {
+        "comment": "Deregister cdev structure of the character driver.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "cdev": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "file_operations.cdev"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          },
+          "assign": {
+            "comment": "Extract a file_operations structure pointer.",
+            "condition": [],
+            "statements": [
+              "%cdev% = $ARG1;",
+              "%file_operations% = %cdev%->ops;"
+            ]
+          }
+        }
+      },
+      "unregister_chrdev": {
+        "comment": "Unregister and destroy a cdev.",
+        "labels": {
+          "file_operations": {
+            "container": true,
+            "pointer": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          }
+        },
+        "process": "[@deregister]",
+        "actions": {
+          "deregister": {
+            "parameters": [
+              "%file_operations%"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "character_driver_scenario": {
+        "comment": "Character driver scenario.",
+        "headers": [
+          "linux/fs.h",
+          "linux/pagemap.h",
+          "linux/poll.h"
+        ],
+        "labels": {
+          "container": {
+            "container": true,
+            "interface": [
+              "file_operations.file_operations"
+            ]
+          },
+          "resource": {
+            "resource": true
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "size_cnt": {
+            "resource": true,
+            "interface": [
+              "file_operations.write_size"
+            ]
+          }
+        },
+        "process": "(!register).<init>.{main}",
+        "actions": {
+          "main": {
+            "comment": "Device appeared in the system.",
+            "process": "[probe].(<probe_success>.{call} | <probe_fail>.{main}) | <free>.(deregister)"
+          },
+          "call": {
+            "comment": "Device file is opened, ready to read and write.",
+            "process": "([callback] | [write]).{call} | [release].{main}"
+          },
+          "register": {
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%container% == $ARG1"
+            ],
+            "parameters": [
+              "%container%"
+            ]
+          },
+          "callback": {
+            "callback": "%callback%",
+            "parameters": [
+              "%resource%",
+              "%size_cnt%"
+            ]
+          },
+          "release": {
+            "comment": "File structure is released.",
+            "callback": "%container.release%",
+            "parameters": [
+              "%resource%"
+            ]
+          },
+          "probe": {
+            "comment": "Open the device file.",
+            "callback": "%container.probe%",
+            "parameters": [
+              "%resource%"
+            ],
+            "callback return value": "%ret%",
+            "post-call": [
+              "%ret% = ldv_filter_err_code(%ret%);"
+            ]
+          },
+          "write": {
+            "comment": "Write data to the device.",
+            "callback": "%container.write%",
+            "parameters": [
+              "%resource%",
+              "%size_cnt%"
+            ],
+            "pre-call": [
+              "/* MAX_RW_COUNT moved to 'linux/fs.h' since 2.6.37, before it was defined in 'fs/read_write.c' */",
+              "#if !defined(MAX_RW_COUNT)",
+              "  #define MAX_RW_COUNT (INT_MAX & PAGE_CACHE_MASK)",
+              "#endif",
+              "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
+            ]
+          },
+          "init": {
+            "comment": "Allocate memory for file and inode structures.",
+            "statements": [
+              "%resource% = $ALLOC(%resource%);",
+              "%size_cnt% = ldv_undef_int();"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of file and inode structures.",
+            "statements": [
+              "$FREE(%resource%);"
+            ]
+          },
+          "probe_success": {
+            "comment": "Device file is opened successfully.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "probe_fail": {
+            "comment": "Failed to open devices file.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

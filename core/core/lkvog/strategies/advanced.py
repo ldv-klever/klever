@@ -1,6 +1,25 @@
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import re
+from operator import itemgetter
+
 from core.lkvog.strategies.strategy_utils import Module, Graph
 from core.lkvog.strategies.abstract_strategy import AbstractStrategy
-from operator import itemgetter
 
 
 class Advanced(AbstractStrategy):
@@ -15,7 +34,12 @@ class Advanced(AbstractStrategy):
         self.max_g_for_m = params.get('max group for module', 5)
         self.minimize_groups_for_module = params.get('minimize groups for module', True)
         self.priority_on_module_size = params.get('priority on module size', True) and bool(module_sizes)
-        self.user_deps = params.get('user deps', {})
+
+        self.user_deps = {}
+        for module, dep_modules in params.get('user deps', {}).items():
+            module = re.subn('.ko$', '.o', module)[0]
+            self.user_deps[module] = [re.subn('.ko$', '.o', dep_module)[0] for dep_module in dep_modules]
+
         self.division_type = params.get('division type', 'All')
         if self.division_type not in ('Library', 'Module', 'All'):
             raise ValueError("Division type {} doesn't exist".format(self.division_type))
@@ -254,6 +278,13 @@ class Advanced(AbstractStrategy):
             ret = set()
             for module in sorted(self.modules.keys()):
                 ret.update(self.divide(module))
+            return ret
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            ret = set()
+            for module in sorted(self.modules.keys()):
+                if module.startswith(module_name):
+                    ret.update(self.divide(module))
             return ret
 
         if module_name not in self.modules:

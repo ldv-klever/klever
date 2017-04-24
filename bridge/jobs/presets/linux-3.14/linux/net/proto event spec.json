@@ -1,0 +1,258 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel model": {
+      "sock_register": {
+        "comment": "Add a socket protocol handler.",
+        "labels": {
+          "ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "proto.family_ops"
+            ]
+          },
+          "family": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "proto.family"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "assign": {
+            "comment": "Get socket from arguments.",
+            "statements": [
+              "%ops% = $ARG1;",
+              "%family% = %ops%->family;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to add a socket protocol handler.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Added a socket protocol handler successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%ops%", "%family%"
+            ]
+          }
+        }
+      },
+      "sock_unregister": {
+        "comment": "Remove a protocol handler.",
+        "labels": {
+          "family": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "proto.family"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "assign": {
+            "comment": "Get family identifier from arguments.",
+            "statements": [
+              "%family% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%family%"
+            ]
+          }
+        }
+      },
+      "register_pppox_proto": {
+        "comment": "Add a socket protocol handler.",
+        "labels": {
+          "ops": {
+            "container": true,
+            "parameter": true,
+            "interface": [
+              "proto.pppox_proto"
+            ]
+          },
+          "family": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "proto.family"
+            ]
+          }
+        },
+        "process": "<assign>.[register].<success> | <fail>",
+        "actions": {
+          "assign": {
+            "comment": "Get PPP encapsulation socket family identifier and socket from arguments.",
+            "statements": [
+              "%family% = $ARG1;",
+              "%ops% = $ARG2;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to add a PPP encapsulation socket protocol handler.",
+            "statements": [
+              "return ldv_undef_int_negative();"
+            ]
+          },
+          "success": {
+            "comment": "Added a PPP encapsulation socket protocol handler successfully.",
+            "statements": [
+              "return 0;"
+            ]
+          },
+          "register": {
+            "parameters": [
+              "%ops%", "%family%"
+            ]
+          }
+        }
+      },
+      "unregister_pppox_proto": {
+        "comment": "Remove a PPP encapsulation socket protocol handler.",
+        "labels": {
+          "family": {
+            "resource": true,
+            "parameter": true,
+            "interface": [
+              "proto.family"
+            ]
+          }
+        },
+        "process": "<assign>.[deregister]",
+        "actions": {
+          "assign": {
+            "comment": "Get PPP encapsulation socket family identifier from arguments.",
+            "statements": [
+              "%family% = $ARG1;"
+            ]
+          },
+          "deregister": {
+            "parameters": [
+              "%family%"
+            ]
+          }
+        }
+      }
+    },
+    "environment processes": {
+      "proto_scenario": {
+        "headers": ["linux/poll.h"],
+        "comment": "Socket family scenario.",
+        "labels": {
+          "container": {
+            "container": true
+          },
+          "proto_ops": {
+            "container": true,
+            "interface": ["proto.proto_ops"]
+          },
+          "family": {
+            "resource": true,
+            "interface": ["proto.family"]
+          },
+          "callback": {
+            "callback": true
+          },
+          "ret": {
+            "signature": "int a",
+            "value": "ldv_undef_int()"
+          },
+          "socket": {
+            "interface": ["proto.socket"],
+            "resource": true
+          }
+        },
+        "process": "(!register).<alloc>.[create].(<create_success>.[bind].(<bind_success>.[callback].[release] | <bind_fail>) | <create_fail>).<free>.(deregister)",
+        "actions": {
+          "register": {
+            "parameters": [
+              "%container%",
+              "%family%"
+            ]
+          },
+          "deregister": {
+            "condition": [
+              "%family% == $ARG1"
+            ],
+            "parameters": [
+              "%family%"
+            ]
+          },
+          "callback": {
+            "comment": "Call any random callback.",
+            "callback": "%callback%",
+            "parameters": []
+          },
+          "create": {
+            "callback": "%container.create%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "bind": {
+            "callback": "%proto_ops.bind%",
+            "callback return value": "%ret%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "release": {
+            "callback": "%proto_ops.release%",
+            "parameters": [
+              "%socket%"
+            ]
+          },
+          "alloc": {
+            "comment": "Alloc memory for socket structure.",
+            "statements": [
+              "%socket% = $ALLOC(%socket%);"
+            ]
+          },
+          "free": {
+            "comment": "Free memory of socket structure.",
+            "statements": [
+              "$FREE(%socket%);"
+            ]
+          },
+          "create_success": {
+            "comment": "Create has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "create_fail": {
+            "comment": "Create has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          },
+          "bind_success": {
+            "comment": "Bind has been successfull.",
+            "condition": [
+              "%ret% == 0"
+            ]
+          },
+          "bind_fail": {
+            "comment": "Bind has failed.",
+            "condition": [
+              "%ret% != 0"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

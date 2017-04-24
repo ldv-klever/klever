@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import filecmp
 import json
 import os
@@ -44,17 +61,13 @@ class Command:
             return
 
         # We assume that dependency files are generated for all C source files.
-        deps_file = None
-        for opt in self.other_opts:
-            match = re.search(r'-MD,(.+)', opt)
-            if match:
-                deps_file = match.group(1)
-                break
-        if not deps_file:
-            # Generate them by ourselves if not so.
-            deps_file = self.out_file + '.d'
-            p = subprocess.Popen(['aspectator', '-M', '-MF', deps_file] + self.opts, stdout=subprocess.DEVNULL,
-                                 stderr=subprocess.DEVNULL)
+        base_name = '{0}.d'.format(os.path.basename(self.out_file))
+        if base_name[0] != '.':
+            base_name = '.' + base_name
+        deps_file = os.path.join(os.path.dirname(self.out_file), base_name)
+        if not os.path.isfile(deps_file):
+            p = subprocess.Popen(['aspectator'] + self.opts + ['-Wp,-MD,{0}'.format(deps_file)],
+                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             if p.wait():
                 raise RuntimeError('Getting dependencies failed')
 
@@ -72,8 +85,8 @@ class Command:
 
             dest_dep = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                     os.path.relpath(dep))
-            os.makedirs(os.path.dirname(dest_dep), exist_ok=True)
-            with core.utils.LockedOpen(dest_dep, 'a', encoding='ascii'):
+            os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
+            with core.utils.LockedOpen(dest_dep, 'a', encoding='utf8'):
                 if os.path.getsize(dest_dep):
                     if filecmp.cmp(dep, dest_dep):
                         continue
@@ -82,13 +95,6 @@ class Command:
                         raise AssertionError('Dependency "{0}" changed to "{1}"'.format(dest_dep, dep))
                 else:
                     shutil.copy2(dep, dest_dep)
-
-        # Fix up absolute paths including current working directory. We rely on exact matching that will not be the
-        # case if there will be ".." in file paths.
-        self.other_opts = [re.sub(re.escape(os.getcwd()),
-                                  os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
-                                  opt)
-                           for opt in self.other_opts]
 
     def dump(self):
         full_desc_file = None
@@ -99,13 +105,17 @@ class Command:
                                        os.environ['KLEVER_MAIN_WORK_DIR']),
                 'in files': self.in_files,
                 'out file': self.out_file,
-                'opts': self.other_opts
+                # Fix up absolute paths including current working directory. We rely on exact matching that will not be
+                # the case if there will be ".." in file paths.
+                'opts': [re.sub(re.escape(os.getcwd()),
+                                os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                opt) for opt in self.other_opts]
             }
 
             full_desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                           '{0}.full.json'.format(self.out_file))
 
-            os.makedirs(os.path.dirname(full_desc_file), exist_ok=True)
+            os.makedirs(os.path.dirname(full_desc_file).encode('utf8'), exist_ok=True)
 
             full_desc_file_suffix = 2
             while True:
@@ -116,17 +126,33 @@ class Command:
                 else:
                     break
 
-            with open(full_desc_file, 'w', encoding='ascii') as fp:
-                json.dump(full_desc, fp, sort_keys=True, indent=4)
+            with open(full_desc_file, 'w', encoding='utf8') as fp:
+                json.dump(full_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
+            # Options used for compilation of this file will be used for compilation of model files written in C.
+            if self.in_files[0] == 'scripts/mod/empty.c':
+                with open(os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
+                                       'model CC opts.json'), 'w', encoding='utf8') as fp:
+                    json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+        # Check, whether the output file has init function
+        has_init = False
+        elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
+        if elf_out and elf_out[0].startswith('ELF'):
+            symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
+            for table_entry in symbol_table:
+                if re.search(r'(.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
+                    has_init = True
+                    break
+
+        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file, 'has init': has_init}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 
         self.desc_file = os.path.join(os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE']),
                                       '{0}.json'.format(self.out_file))
 
-        os.makedirs(os.path.dirname(self.desc_file), exist_ok=True)
+        os.makedirs(os.path.dirname(self.desc_file).encode('utf8'), exist_ok=True)
 
         desc_file_suffix = 2
         while True:
@@ -137,12 +163,12 @@ class Command:
             else:
                 break
 
-        with open(self.desc_file, 'w', encoding='ascii') as fp:
-            json.dump(desc, fp, sort_keys=True, indent=4)
+        with open(self.desc_file, 'w', encoding='utf8') as fp:
+            json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def enqueue(self):
-        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
-            fp.write(os.path.relpath(self.desc_file, os.path.dirname(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'])) + '\n')
+        with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
+            fp.write(os.path.relpath(self.desc_file, os.environ['KLEVER_MAIN_WORK_DIR']) + '\n')
 
     def filter(self):
         # Filter out CC commands if input files or output file are absent or input files are '/dev/null' or STDIN ('-')
@@ -185,7 +211,8 @@ class Command:
                 self.dump()
                 self.enqueue()
         except Exception:
-            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='ascii') as fp:
+            # TODO: KLEVER_BUILD_CMD_DESCS_FILE could be not specified at this point.
+            with core.utils.LockedOpen(os.environ['KLEVER_BUILD_CMD_DESCS_FILE'], 'a', encoding='utf8') as fp:
                 fp.write('KLEVER FATAL ERROR\n')
             raise
 
@@ -266,7 +293,7 @@ class Command:
 
         # Check thar all original options becomes either input files or output file or options.
         # Option -o isn't included in the resulting set.
-        original_opts = self.opts
+        original_opts = list(self.opts)
         if '-o' in original_opts:
             original_opts.remove('-o')
         resulting_opts = self.in_files + self.other_opts

@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import copy
 import hashlib
 import importlib
@@ -6,7 +23,7 @@ import multiprocessing
 import os
 import re
 import sys
-import tarfile
+import zipfile
 import traceback
 
 import core.utils
@@ -14,7 +31,7 @@ import core.utils
 
 class Job(core.utils.CallbacksCaller):
     FORMAT = 1
-    ARCHIVE = 'job.tar.gz'
+    ARCHIVE = 'job.zip'
     DIR = 'job'
     CLASS_FILE = os.path.join(DIR, 'class')
     DEFAULT_CONF_FILE = 'core.json'
@@ -46,6 +63,7 @@ class Job(core.utils.CallbacksCaller):
         self.components = []
         self.callbacks = {}
         self.component_processes = []
+        self.reporting_results_process = None
 
     def decide(self, conf, mqs, locks, uploading_reports_process):
         self.logger.info('Decide job')
@@ -87,7 +105,8 @@ class Job(core.utils.CallbacksCaller):
                     for p in sub_job_solver_processes:
                         p.join(1.0 / len(sub_job_solver_processes))
                         if p.exitcode:
-                            exit(1)
+                            self.logger.warning('Sub-job worker exitted with "{0}"'.format(p.exitcode))
+                            raise ChildProcessError('Decision of sub-job failed')
                         operating_sub_job_solvers_num += p.is_alive()
 
                     if not operating_sub_job_solvers_num:
@@ -111,6 +130,8 @@ class Job(core.utils.CallbacksCaller):
             try:
                 self.sub_jobs[sub_job_index].__decide_sub_job()
             except SystemExit:
+                self.logger.error('Decision of sub-job of type "{0}" with identifier "{1}" failed'.
+                                  format(self.type, self.sub_jobs[sub_job_index].id))
                 if not self.components_common_conf['ignore failed sub-jobs']:
                     sys.exit(1)
 
@@ -121,12 +142,20 @@ class Job(core.utils.CallbacksCaller):
         # All sub-job names should be unique, so there shouldn't be any problem to create directories with these names
         # to be used as working directories for corresponding sub-jobs. Jobs without sub-jobs don't have names.
         if self.name:
-            os.makedirs(self.work_dir)
+            os.makedirs(self.work_dir.encode('utf8'))
 
         # Do not produce any reports until changing directory. Otherwise there can be races between various sub-jobs.
         with core.utils.Cd(self.work_dir if self.name else os.path.curdir):
             try:
                 if self.name:
+                    if self.components_common_conf['keep intermediate files']:
+                        if os.path.isfile('conf.json'):
+                            raise FileExistsError(
+                                'Components configuration file "conf.json" already exists')
+                        self.logger.debug('Create components configuration file "conf.json"')
+                        with open('conf.json', 'w', encoding='utf8') as fp:
+                            json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
                     core.utils.report(self.logger,
                                       'start',
                                       {
@@ -138,11 +167,10 @@ class Job(core.utils.CallbacksCaller):
                                       self.mqs['report files'],
                                       self.components_common_conf['main working directory'])
 
-                # Specify callbacks to collect verification statuses from VTG. They will be used to
-                # calculate validation and testing results.
                 if 'ideal verdicts' in self.components_common_conf:
-                    def before_launch_sub_job_components(context):
-                        context.mqs['verification statuses'] = multiprocessing.Queue()
+                    # Create queue and specify callbacks to collect verification statuses from VTG. They will be used to
+                    # calculate validation and testing results.
+                    self.mqs['verification statuses'] = multiprocessing.Queue()
 
                     def after_generate_abstact_verification_task_desc(context):
                         if not context.abstract_task_desc_file:
@@ -165,11 +193,15 @@ class Job(core.utils.CallbacksCaller):
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
-                                                           before_launch_sub_job_components,
                                                            after_generate_abstact_verification_task_desc,
                                                            after_process_single_verdict,
                                                            after_generate_all_verification_tasks
                                                        ))
+
+                    # Start up parallel process for reporting results. Without this there can be deadlocks since queue
+                    # created and filled above can be overfilled that results in VTG processes will not terminate.
+                    self.reporting_results_process = multiprocessing.Process(target=self.report_results)
+                    self.reporting_results_process.start()
 
                 self.get_sub_job_components()
 
@@ -179,59 +211,55 @@ class Job(core.utils.CallbacksCaller):
                 self.launch_sub_job_components()
             except Exception:
                 if self.name:
-                    if self.mqs:
-                        with open('problem desc.txt', 'w', encoding='ascii') as fp:
+                    self.logger.exception('Catch exception')
+
+                    try:
+                        with open('problem desc.txt', 'w', encoding='utf8') as fp:
                             traceback.print_exc(file=fp)
 
-                        if os.path.isfile('problem desc.txt'):
-                            core.utils.report(self.logger,
-                                              'unknown',
-                                              {
-                                                  'id': self.id + '/unknown',
-                                                  'parent id': self.id,
-                                                  'problem desc': 'problem desc.txt',
-                                                  'files': ['problem desc.txt']
-                                              },
-                                              self.mqs['report files'],
-                                              self.components_common_conf['main working directory'])
-
-                    if self.logger:
+                        core.utils.report(self.logger,
+                                          'unknown',
+                                          {
+                                              'id': self.id + '/unknown',
+                                              'parent id': self.id,
+                                              'problem desc': 'problem desc.txt',
+                                              'files': ['problem desc.txt']
+                                          },
+                                          self.mqs['report files'],
+                                          self.components_common_conf['main working directory'])
+                    except Exception:
                         self.logger.exception('Catch exception')
-                    else:
-                        traceback.print_exc()
-
-                    self.logger.error(
-                        'Decision of sub-job of type "{0}" with identifier "{1}" failed'.format(self.type, self.id))
-
-                    # TODO: components.py makes this better. I hope that multiprocessing extensions implemented there
-                    # will be used for sub-jobs as well one day.
-                    sys.exit(1)
+                    finally:
+                        sys.exit(1)
                 else:
                     raise
             finally:
-                core.utils.remove_component_callbacks(self.logger, type(self))
+                try:
+                    core.utils.remove_component_callbacks(self.logger, type(self))
 
-                if self.name:
-                    core.utils.report(self.logger,
-                                      'finish',
-                                      {
-                                          'id': self.id,
-                                          'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
-                                          'log': None
-                                      },
-                                      self.mqs['report files'],
-                                      self.components_common_conf['main working directory'])
+                    if self.name:
+                        core.utils.report(self.logger,
+                                          'finish',
+                                          {
+                                              'id': self.id,
+                                              'resources': {'wall time': 0, 'CPU time': 0, 'memory size': 0},
+                                              'log': None
+                                          },
+                                          self.mqs['report files'],
+                                          self.components_common_conf['main working directory'])
+                except Exception:
+                    self.logger.exception('Catch exception')
 
     def get_class(self):
         self.logger.info('Get job class')
-        with open(self.CLASS_FILE, encoding='ascii') as fp:
+        with open(self.CLASS_FILE, encoding='utf8') as fp:
             self.type = fp.read()
         self.logger.debug('Job class is "{0}"'.format(self.type))
 
     def get_common_components_conf(self, core_conf):
         self.logger.info('Get components common configuration')
 
-        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='ascii') as fp:
+        with open(core.utils.find_file_or_dir(self.logger, os.path.curdir, 'job.json'), encoding='utf8') as fp:
             self.components_common_conf = json.load(fp)
 
         # Add complete Klever Core configuration itself to components configuration since almost all its attributes will
@@ -243,8 +271,8 @@ class Job(core.utils.CallbacksCaller):
                 raise FileExistsError(
                     'Components common configuration file "components common conf.json" already exists')
             self.logger.debug('Create components common configuration file "components common conf.json"')
-            with open('components common conf.json', 'w', encoding='ascii') as fp:
-                json.dump(self.components_common_conf, fp, sort_keys=True, indent=4)
+            with open('components common conf.json', 'w', encoding='utf8') as fp:
+                json.dump(self.components_common_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     def get_sub_jobs(self):
         self.logger.info('Get job sub-jobs')
@@ -260,6 +288,7 @@ class Job(core.utils.CallbacksCaller):
             for sub_job_concrete_conf in self.components_common_conf['Sub-jobs']:
                 # Sub-job configuration is based on common sub-jobs configuration.
                 sub_job_components_common_conf = copy.deepcopy(self.components_common_conf)
+                del (sub_job_components_common_conf['Sub-jobs'])
                 sub_job_concrete_conf = core.utils.merge_confs(sub_job_components_common_conf, sub_job_concrete_conf)
 
                 self.logger.info('Get sub-job name and type')
@@ -330,8 +359,8 @@ class Job(core.utils.CallbacksCaller):
 
     def extract_archive(self):
         self.logger.info('Extract job archive "{0}" to directory "{1}"'.format(self.ARCHIVE, self.DIR))
-        with tarfile.open(self.ARCHIVE) as TarFile:
-            TarFile.extractall(self.DIR)
+        with zipfile.ZipFile(self.ARCHIVE) as ZipFile:
+            ZipFile.extractall(self.DIR)
 
     def launch_sub_job_components(self):
         self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
@@ -359,6 +388,9 @@ class Job(core.utils.CallbacksCaller):
 
                 if self.uploading_reports_process.exitcode:
                     raise RuntimeError('Uploading reports failed')
+
+                if self.reporting_results_process and self.reporting_results_process.exitcode:
+                    raise RuntimeError('Reporting results failed')
         except Exception:
             for p in self.component_processes:
                 # Do not terminate components that already exitted.
@@ -371,10 +403,13 @@ class Job(core.utils.CallbacksCaller):
 
             raise
         finally:
-            self.report_results()
+            if self.reporting_results_process:
+                self.logger.info('Wait for reporting all results')
+                self.reporting_results_process.join()
 
     def report_results(self):
-        if 'ideal verdicts' in self.components_common_conf:
+        # Process exceptions like for uploading reports.
+        try:
             verification_statuses = []
             while True:
                 verification_status = self.mqs['verification statuses'].get()
@@ -415,10 +450,13 @@ class Job(core.utils.CallbacksCaller):
                                   'data',
                                   {
                                       'id': self.parent['id'],
-                                      'data': json.dumps(results)
+                                      'data': results
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])
+        except Exception as e:
+            self.logger.exception('Catch exception when reporting results')
+            exit(1)
 
     def process_testing_results(self, results):
         self.logger.info('Check whether tests passed')

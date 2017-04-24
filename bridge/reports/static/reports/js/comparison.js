@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function draw_connections() {
     var cnt = 1;
     function draw_line(b1, b2, column) {
@@ -73,8 +90,9 @@ function block_hover_off() {
 
 function setup_buttons() {
     $('#fast_backward_btn').click(function () {
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), 1);
+        var cur_v_input = $('#current_verdict');
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), 1);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), 1)
@@ -82,32 +100,36 @@ function setup_buttons() {
 
     });
     $('#fast_forward_btn').click(function () {
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), $('#total_pages').val());
+        var cur_v_input = $('#current_verdict');
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), $('#total_pages').val());
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), $('#total_pages').val())
         }
     });
     $('#backward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val());
+        var curr_page = parseInt($('#current_page_num').val()),
+            cur_v_input = $('#current_verdict');
         if (curr_page > 1) {
             curr_page--;
         }
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), curr_page);
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), curr_page);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
         }
     });
     $('#forward_btn').click(function () {
-        var curr_page = parseInt($('#current_page_num').val()), max_page_num = parseInt($('#total_pages').val());
+        var curr_page = parseInt($('#current_page_num').val()),
+            max_page_num = parseInt($('#total_pages').val()),
+            cur_v_input = $('#current_verdict');
         if (curr_page < max_page_num) {
             curr_page++;
         }
-        if ($('#current_verdict').length) {
-            get_comparison($('#current_verdict').val(), curr_page);
+        if (cur_v_input.length) {
+            get_comparison(cur_v_input.val(), curr_page);
         }
         else if ($('#attrs_search_value').length) {
             get_comparison_by_attrs($('#attrs_search_value').val(), curr_page)
@@ -188,7 +210,7 @@ $(document).ready(function () {
                 get_comparison(verdict.val(), curr_page.val());
             }
             else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), 1)
+                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
             }
         }
     });
@@ -199,20 +221,18 @@ $(document).ready(function () {
                 get_comparison(verdict.val(), curr_page.val());
             }
             else if (curr_page.length && $('#attrs_search_value').length) {
-                get_comparison_by_attrs($('#attrs_search_value').val(), 1)
+                get_comparison_by_attrs($('#attrs_search_value').val(), curr_page.val())
             }
         }
     });
     $('#search_by_attrs').click(function () {
         var attrs = [];
-        $('input[name^="attr_value"]').each(function () {
-            if ($(this).val().length > 0) {
+        $('select[id^="attr_value__"]').each(function () {
+            if ($(this).val() != '0') {
                 attrs.push($(this).val());
             }
             else {
-                err_notify($('#error__no_selected_attribute').text());
-                attrs = null;
-                return false;
+                attrs.push("__REGEXP_ANY__");
             }
         });
         if (attrs) {

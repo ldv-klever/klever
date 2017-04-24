@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import json
 from django.core.urlresolvers import reverse
@@ -20,16 +37,14 @@ class TestJobs(KleverTestCase):
             service={'username': 'service', 'password': 'service'}
         )
         self.client.post(reverse('users:login'), {'username': 'superuser', 'password': 'top_secret'})
-        self.test_filename = 'test_jobfile.txt'
-        self.test_archive = 'test_jobarchive.tar.gz'
-
-    def test_tree_and_views(self):
-        # Check jobs tree before and after population
-        response = self.client.get(reverse('jobs:tree'))
-        self.assertEqual(response.status_code, 200)
         self.client.post(reverse('population'))
         self.client.get(reverse('users:logout'))
         self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
+        self.test_filename = 'test_jobfile.txt'
+        self.test_archive = 'test_jobarchive.zip'
+
+    def test_tree_and_views(self):
+        # Check jobs tree
         response = self.client.get(reverse('jobs:tree'))
         self.assertEqual(response.status_code, 200)
 
@@ -129,10 +144,6 @@ class TestJobs(KleverTestCase):
         self.assertEqual(len(View.objects.filter(author__username='manager')), 0)
 
     def test_create_edit_job(self):
-        self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
-
         try:
             job_template = Job.objects.filter(~Q(parent=None))[0]
         except IndexError:
@@ -156,7 +167,7 @@ class TestJobs(KleverTestCase):
 
         # Save new job
         file_data = []
-        for f in job_template.versions.order_by('-version').first().filesystem_set.all():
+        for f in job_template.versions.order_by('-version').first().filesystem_set.all().select_related('file'):
             file_data.append({
                 'id': f.pk,
                 'parent': f.parent_id,
@@ -254,15 +265,13 @@ class TestJobs(KleverTestCase):
         self.assertIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Remove job
-        response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob.pk])})
+        response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob.parent_id])})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(Job.objects.filter(id__in={newjob.id, newjob.parent_id}).count(), 0)
 
     def test_files(self):
-        self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
         job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -287,7 +296,7 @@ class TestJobs(KleverTestCase):
         self.assertIn('checksum', res)
 
         try:
-            newfile = File.objects.get(hash_sum=res['checksum'])
+            newfile = JobFile.objects.get(hash_sum=res['checksum'])
         except ObjectDoesNotExist:
             self.fail('The file was not uploaded')
 
@@ -343,8 +352,8 @@ class TestJobs(KleverTestCase):
         response = self.client.get('/jobs/ajax/downloadjob/%s/' % newjob_pk)
         self.assertEqual(response.status_code, 200)
         with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='wb') as fp:
-            fp.write(response.content)
-            fp.close()
+            for content in response.streaming_content:
+                fp.write(content)
 
         # We have to remove job before uploading new one with the same identifier
         response = self.client.post('/jobs/ajax/removejobs/', {'jobs': json.dumps([newjob_pk])})
@@ -360,7 +369,7 @@ class TestJobs(KleverTestCase):
             fp.close()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
-        self.assertJSONEqual(str(response.content, encoding='utf8'), json.dumps({'status': True}))
+        self.assertJSONEqual(str(response.content, encoding='utf8'), '{}')
         try:
             uploaded_job = Job.objects.get(parent__identifier=job_template.identifier, name='New job title')
         except ObjectDoesNotExist:
@@ -378,9 +387,6 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response.content, b'My test text')
 
     def test_run_decision(self):
-        self.client.post(reverse('population'))
-        self.client.get(reverse('users:logout'))
-        self.client.post(reverse('users:login'), {'username': 'manager', 'password': '12345'})
         job_template = Job.objects.get(type=JOB_CLASSES[0][0], parent=None)
         response = self.client.post('/jobs/ajax/savejob/', {
             'title': 'New job title',
@@ -428,7 +434,7 @@ class TestJobs(KleverTestCase):
                 "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
                 "NOTSET", "%(name)s %(levelname)5s> %(message)s"
             ],
-            [False, True, True, False, True, False, False]
+            [False, True, True, False, True, False, '0']
         ])
         response = self.client.post('/jobs/ajax/run_decision/', {'job_id': job_pk, 'data': run_conf})
         self.assertEqual(response.status_code, 200)

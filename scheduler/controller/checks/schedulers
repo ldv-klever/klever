@@ -1,4 +1,21 @@
 #!/usr/bin/python3
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 import json
 import sys
@@ -10,7 +27,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 import utils.bridge as bridge
 
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
-with open(expect_file, encoding="ascii") as fh:
+with open(expect_file, encoding="utf8") as fh:
     conf = json.load(fh)
 
 # Sign in
@@ -30,7 +47,7 @@ if vc_out and vc_out != '':
     status["VerifierCloud"] = "HEALTHY"
 
 data = {
-    "statuses": json.dumps(status)
+    "statuses": json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
 }
 
 session.json_exchange("service/set_schedulers_status/", data)
@@ -41,7 +58,7 @@ session.sign_out()
 # Submit scheduler status to kv storage for debug
 session = consulate.Consul()
 try:
-    session.kv["schedulers"] = json.dumps(status)
+    session.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
     exit(0)
 except KeyError:
     print("Key-value storage is inaccessible.")

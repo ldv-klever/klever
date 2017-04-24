@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 import requests
 import time
@@ -58,7 +75,7 @@ class Session:
 
     def start_job_decision(self, job, start_report_file):
         # TODO: report is likely should be compressed.
-        with open(start_report_file, encoding='ascii') as fp:
+        with open(start_report_file, encoding='utf8') as fp:
             resp = self.__request('jobs/decide_job/', {
                 'job format': job.FORMAT,
                 'report': fp.read()
@@ -71,8 +88,8 @@ class Session:
 
     def schedule_task(self, task_desc):
         resp = self.__request('service/schedule_task/',
-                              {'description': json.dumps(task_desc)},
-                              files={'file': open('task files.tar.gz', 'rb')})
+                              {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
+                              files={'file': open('task files.zip', 'rb')})
         return resp.json()['task id']
 
     def get_task_status(self, task_id):
@@ -86,7 +103,7 @@ class Session:
     def download_decision(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
 
-        with open('decision result files.tar.gz', 'wb') as fp:
+        with open('decision result files.zip', 'wb') as fp:
             for chunk in resp.iter_content(1024):
                 fp.write(chunk)
 
@@ -99,7 +116,7 @@ class Session:
 
     def upload_report(self, report, archive=None):
         # TODO: report is likely should be compressed.
-        with open(report, encoding='ascii') as fp:
+        with open(report, encoding='utf8') as fp:
             if archive:
                 self.__request('reports/upload/',
                                {'report': fp.read()},

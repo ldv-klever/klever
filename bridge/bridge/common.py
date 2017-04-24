@@ -1,4 +1,19 @@
-# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
 
 import os
 import json
@@ -60,7 +75,7 @@ WSGI_APPLICATION = 'bridge.wsgi.application'
 
 # In db.json ENGINE should be either "django.db.backends.postgresql_psycopg2" or "django.db.backends.mysql"
 DATABASES = {
-    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'))),
+    'default': json.load(open(os.path.join(BASE_DIR, 'bridge', 'db.json'), encoding='utf8')),
 }
 
 LANGUAGE_CODE = 'en-us'
@@ -133,7 +148,7 @@ LOGGING_LEVELS = ['NONE', 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG', 'NOTS
 #   allow local source directories use - True or False,
 #   ignore other instances - True or False,
 #   ignore failed sub-jobs - True of False.
-#   lightweight decision - True of False.
+#   weight of decision - '0' for full-weight and '1' for lightweight jobs.
 # WARNING!!! Change also START_JOB_DEFAULT_MODES from bridge.vars when you change these packs
 DEF_KLEVER_CORE_MODES = [
     {
@@ -142,7 +157,7 @@ DEF_KLEVER_CORE_MODES = [
             'slow',
             [1.0, 2, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
-            False, False, False, False, False, False, True
+            False, False, False, False, False, False, '1'
         ]
     },
     {
@@ -151,7 +166,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
-            True, True, False, True, True, True, False
+            True, True, False, True, True, True, '0'
         ]
     },
     {
@@ -160,7 +175,7 @@ DEF_KLEVER_CORE_MODES = [
             'quick',
             [1.0, 1, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
-            True, True, True, True, True, True, False
+            True, True, True, True, True, True, '0'
         ]
     },
 ]
@@ -170,7 +185,8 @@ DEF_USER = {
     'language': 'en',  # See bridge.vars.LANGUAGES for options
     'timezone': 'Europe/Moscow',  # See pytz.common_timezones for options
     'accuracy': 2,  # 0 - 10
-    'assumptions': False
+    'assumptions': False,
+    'triangles': False
 }
 
 LOGGING = {
@@ -224,3 +240,5 @@ LOGGING = {
 }
 
 MAX_FILE_SIZE = 104857600  # 100MB
+
+ENABLE_SAFE_MARKS = False

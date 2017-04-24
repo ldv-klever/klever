@@ -32,6 +32,13 @@
                 <input id="job_parent_identifier" type="hidden" value="{{ parent_id }}">
             {% endif %}
             <br>
+            {% if not job_id %}
+                <div class="ui toggle checkbox">
+                    <input type="checkbox" id="safe_marks_checkbox"{% if safe_marks %} checked{% endif %}>
+                    <label for="safe_marks_checkbox">{% trans 'Safe marks' %}</label>
+                </div>
+                <br><br>
+            {% endif %}
             <label style="width: 100%;"><strong>{% trans 'Description' %}</strong></label>
             <textarea id="job_description" rows="10" style="resize: none" placeholder="{% trans 'Description' %}">{{ job.description }}</textarea>
         </div>

@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef __LINUX_LDV_H
 #define __LINUX_LDV_H
 
@@ -39,6 +56,7 @@ extern int ldv_post_init(int init_ret_val);
  * before calling module probe callbacks.
  */
 extern void ldv_pre_probe(void);
+
 /**
  * ldv_post_probe() - perform some actions and checks specific for rule
  *                    specifications after calling module probe callbacks.
@@ -48,40 +66,38 @@ extern void ldv_pre_probe(void);
  */
 extern int ldv_post_probe(int probe_ret_val);
 
+/**
+ * ldv_filter_err_code() - filter positive return values after a call of module callbacks.
+ * @ret_val:	           Return value of module callback.
+ *
+ * ldv_filter_err_code() is very like ldv_post_init().
+ */
+extern int ldv_filter_err_code(int ret_val);
 
 /**
- * ldv_pre_usb_register_driver() - perform some actions and checks specific for
- *                                 rule specifications before calling module USB
- *                                 callbacks.
+ * ldv_failed_usb_register_driver() - do specific for rule specifications actions if
+ *                                    USB callbacks registration failed.
  *
- * ldv_pre_usb_register_driver() can be defined by rule specification models.
+ * ldv_failed_usb_register_driver() can be defined by rule specification models.
  *
- * ldv_pre_usb_register_driver() should be always called by generated
- * environment models just before calling module USB callbacks.
- *
- * Return: Return value of usb_register_driver(). Callers should use this
- *         returned value.
+ * ldv_failed_usb_register_driver() should be always called by generated
+ * environment models in a failing branch of usb_register model function.
  */
-int ldv_pre_usb_register_driver(void);
+int ldv_failed_usb_register_driver(void);
 
 /**
- * ldv_pre_register_netdev() - perform some actions and checks specific for
- *                             rule specifications before calling module net
- *                             device callbacks.
+ * ldv_failed_register_netdev() - perform some actions and checks specific for
+ *                                rule specifications after failed call of register_netdev.
  *
- * ldv_pre_register_netdev() can be defined by rule specification models.
+ * ldv_failed_register_netdev() can be defined by rule specification models.
  *
- * ldv_pre_register_netdev() should be always called by generated environment
- * models just before calling module net device callbacks.
- *
- * Return: Return value of register_netdev(). Callers should use this returned
- *         value.
+ * ldv_failed_register_netdev() should be always called by generated environment.
  */
-int ldv_pre_register_netdev(void);
+int ldv_failed_register_netdev(void);
 
 /**
  * ldv_check_final_state() - perform some checks of final state specific for
- *                           rule specification models
+ *                           rule specification models.
  *
  * ldv_check_final_state() can be defined by rule specification models if they
  * use model states and need to check it at the end.
@@ -92,5 +108,15 @@ int ldv_pre_register_netdev(void);
  * unexpected false alarms.
  */
 extern void ldv_check_final_state(void);
+
+/**
+ * ldv_add_disk() - add partitioning information to kernel list.
+ */
+extern void ldv_add_disk(void);
+
+/**
+ * ldv_add_disk() - remove partitioning information from kernel list.
+ */
+extern void ldv_del_gendisk(void);
 
 #endif /* __LINUX_LDV_H */

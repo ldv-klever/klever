@@ -1,15 +1,31 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.db.models import Q
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES
-from bridge.utils import logger
+from bridge.utils import logger, BridgeException
 from marks.models import SafeTag, UnsafeTag
 
 
-# TODO: who can edit or create tags?
 def can_edit_tags(user):
-    if user.extended.role == USER_ROLES[2][0]:
+    if user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
         return True
     return False
 
@@ -83,15 +99,13 @@ class TagData(object):
         return "<Tag: '%s'>" % self.name
 
 
-class GetTagsData(object):
+class GetTagsData:
     def __init__(self, tags_type, tag_ids=None):
-        self.error = None
         self.__type = tags_type
         self.tags = []
         self.tag_ids = tag_ids
-        if self.__type not in ['safe', 'unsafe']:
-            self.error = 'Unknown error'
-            return
+        if self.__type not in {'safe', 'unsafe'}:
+            raise BridgeException()
         self.__get_tags()
         self.table = TagTable()
         self.__fill_table()
@@ -170,13 +184,10 @@ class GetTagsData(object):
         return None
 
 
-class GetParents(object):
+class GetParents:
     def __init__(self, tag_id, tag_type):
-        self.error = None
         self._tag_table = None
         self.tag = self.__get_tag(tag_id, tag_type)
-        if self.error is not None:
-            return
         self._black_parents = self.__get_black_parents()
         self.parents_ids = self.__get_parents()
 
@@ -186,13 +197,11 @@ class GetParents(object):
         elif tag_type == 'unsafe':
             self._tag_table = UnsafeTag
         else:
-            self.error = 'Unknown error'
-            return None
+            raise BridgeException()
         try:
             return self._tag_table.objects.get(pk=tag_id)
         except ObjectDoesNotExist:
-            self.error = _('The tag was not found')
-        return None
+            raise BridgeException(_('The tag was not found'))
 
     def __get_black_parents(self):
         black = [self.tag.pk]
@@ -211,16 +220,13 @@ class GetParents(object):
         return list(tag.pk for tag in self._tag_table.objects.filter(~Q(id__in=self._black_parents)).order_by('tag'))
 
 
-class SaveTag(object):
+class SaveTag:
     def __init__(self, data):
-        self.error = None
         self.data = data
         if 'action' not in self.data or self.data['action'] not in ['edit', 'create']:
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         if 'tag_type' not in self.data or self.data['tag_type'] not in ['safe', 'unsafe']:
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         if self.data['tag_type'] == 'unsafe':
             self.table = UnsafeTag
         else:
@@ -232,54 +238,42 @@ class SaveTag(object):
 
     def __create_tag(self):
         if any(x not in self.data for x in ['description', 'name', 'parent_id']):
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         if len(self.data['name']) == 0:
-            self.error = _('The tag name is required')
-            return
+            raise BridgeException(_('The tag name is required'))
         if len(self.data['name']) > 32:
-            self.error = _('The maximum length of a tag must be 32 characters')
-            return
+            raise BridgeException(_('The maximum length of a tag must be 32 characters'))
         if len(self.table.objects.filter(tag=self.data['name'])) > 0:
-            self.error = _('The tag name is used already')
-            return
+            raise BridgeException(_('The tag name is used already'))
         parent = None
         if self.data['parent_id'] != '0':
             try:
                 parent = self.table.objects.get(pk=self.data['parent_id'])
             except ObjectDoesNotExist:
-                self.error = _('The tag parent was not found')
-                return
+                raise BridgeException(_('The tag parent was not found'))
         self.table.objects.create(tag=self.data['name'], parent=parent, description=self.data['description'])
 
     def __edit_tag(self):
         if any(x not in self.data for x in ['tag_id', 'description', 'name', 'parent_id']):
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         if len(self.data['name']) == 0:
-            self.error = _('The tag name is required')
-            return
+            raise BridgeException(_('The tag name is required'))
         if len(self.data['name']) > 32:
-            self.error = _('The maximum length of a tag must be 32 characters')
-            return
+            raise BridgeException(_('The maximum length of a tag must be 32 characters'))
         try:
             tag = self.table.objects.get(pk=self.data['tag_id'])
         except ObjectDoesNotExist:
-            self.error = _('The tag was not found')
-            return
+            raise BridgeException(_('The tag was not found'))
         if len(self.table.objects.filter(Q(tag=self.data['name']) & ~Q(id=self.data['tag_id']))) > 0:
-            self.error = _('The tag name is used already')
-            return
+            raise BridgeException(_('The tag name is used already'))
         parent = None
         if self.data['parent_id'] != '0':
             try:
                 parent = self.table.objects.get(pk=self.data['parent_id'])
             except ObjectDoesNotExist:
-                self.error = _('The tag parent was not found')
-                return
+                raise BridgeException(_('The tag parent was not found'))
         if not self.__check_parent(tag, parent):
-            self.error = _('Choose another tag parent')
-            return
+            raise BridgeException(_('Choose another tag parent'))
         tag.description = self.data['description']
         tag.tag = self.data['name']
         tag.parent = parent
@@ -296,19 +290,15 @@ class SaveTag(object):
 
 class TagsInfo(object):
     def __init__(self, tag_type, selected_tags, deleted_tag=None):
-        self.error = None
         self.tag_type = tag_type
         self.tag_table = {'safe': SafeTag, 'unsafe': UnsafeTag}
         if self.tag_type not in self.tag_table:
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         self.available = []
         self.selected = []
         self.__get_selected(selected_tags, deleted_tag)
-        if self.error is not None:
-            return
         self.__get_available()
-        self.table = self.__get_table()
+        self.table = GetTagsData(self.tag_type, self.selected).table.data
 
     def __get_selected(self, selected, deleted):
         tags_for_del = []
@@ -324,8 +314,7 @@ class TagsInfo(object):
             try:
                 tag = self.tag_table[self.tag_type].objects.get(pk=sel_id)
             except ObjectDoesNotExist:
-                self.error = _('The tag was not found')
-                return
+                raise BridgeException(_('The tag was not found'))
             if tag.pk not in tags_for_del:
                 self.selected.append(tag.pk)
             while tag.parent is not None:
@@ -337,17 +326,9 @@ class TagsInfo(object):
         for tag in self.tag_table[self.tag_type].objects.filter(~Q(id__in=self.selected)).order_by('tag'):
             self.available.append([tag.pk, tag.tag])
 
-    def __get_table(self):
-        res = GetTagsData(self.tag_type, self.selected)
-        if res.error is not None:
-            self.error = res.error
-            return None
-        return res.table.data
 
-
-class CreateTagsFromFile(object):
+class CreateTagsFromFile:
     def __init__(self, fp, tags_type, population=False):
-        self.error = None
         self.fp = fp
         self.tags_type = tags_type
         self.number_of_created = 0
@@ -358,32 +339,24 @@ class CreateTagsFromFile(object):
             return json.loads(self.fp.read().decode('utf8'))
         except Exception as e:
             logger.exception("Error while parsing tag's data: %s" % e, stack_info=True)
-            self.error = 'Unknown error'
-            return None
+            raise BridgeException()
 
     def __create_tags(self, population):
         tag_table = {'unsafe': UnsafeTag, 'safe': SafeTag}
         if self.tags_type not in tag_table:
-            self.error = 'Unknown error'
-            return
+            raise BridgeException()
         newtags = {}
         list_of_tags = self.__read_json()
-        if self.error is not None:
-            return
         if not isinstance(list_of_tags, list):
-            self.error = _('Wrong tags format')
-            return
+            raise BridgeException(_('Wrong tags format'))
         for data in list_of_tags:
             if 'name' not in data:
-                self.error = _('Tag name is required')
-                return
+                raise BridgeException(_('Tag name is required'))
             tag_name = str(data['name'])
             if len(tag_name) > 32 or len(tag_name) == 0:
-                self.error = _("The tag name length must be 1-32 (%(name)s)") % {'name': tag_name}
-                return
+                raise BridgeException(_("The tag name length must be 1-32 (%(name)s)") % {'name': tag_name})
             if tag_name in newtags:
-                self.error = _("Thename must be unique (%(name)s)") % {'name': tag_name}
-                return
+                raise BridgeException(_("The name must be unique (%(name)s)") % {'name': tag_name})
 
             parent = data.get('parent', None)
             if parent is not None:

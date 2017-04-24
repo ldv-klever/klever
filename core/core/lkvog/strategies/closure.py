@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from core.lkvog.strategies.strategy_utils import Module, Cluster
 from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 
@@ -32,6 +49,12 @@ class Closure(AbstractStrategy):
             for module in [module for module in self.modules.values() if not module.successors]:
                 clusters.extend(self.divide(module.id))
             return clusters
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            for module in sorted(self.modules.keys()):
+                if module.startswith(module_name):
+                    clusters.extend(self.divide(module.id))
+            return set(clusters)
 
         self.logger.info("Start verificaton multimodule task extraction based on closure partitioning")
         self.logger.debug("Calculate dependencies for these 'top' modules")

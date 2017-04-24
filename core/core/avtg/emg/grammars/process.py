@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import ply.lex as lex
 import ply.yacc as yacc
 
@@ -66,11 +83,17 @@ def t_NUMBER(t):
 
 
 def t_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    if t:
+        raise TypeError("Unknown text '%s'" % (t.value,))
+    else:
+        raise TypeError('Unknown token parsing error')
 
 
 def p_error(t):
-    raise TypeError("Unknown text '%s'" % (t.value,))
+    if t:
+        raise TypeError("Unknown text '%s'" % (t.value,))
+    else:
+        raise TypeError('Unknown parsing error')
 
 
 t_ignore = ' \t\n'
@@ -249,6 +272,10 @@ def parse_process(string):
     if not __parser:
         setup_parser()
 
-    return __parser.parse(string, lexer=__lexer)
+    try:
+        return __parser.parse(string, lexer=__lexer)
+    except TypeError as err:
+        raise ValueError("Cannot parse process '{}' due to parse error: {}".format(string, err.args))
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

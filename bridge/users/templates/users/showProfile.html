@@ -8,7 +8,7 @@
 {% block body_block %}
     <div class="ui grid">
         <div class="three wide column">
-            <h3><cite>{{ target.extended.first_name }} {{ target.extended.last_name }}</cite></h3>
+            <h3><cite>{{ target.first_name }} {{ target.last_name }}</cite></h3>
             <div class="ui list">
                 {% if target.email %}
                     <div class="item"><span style="color: #a7aab4">{% trans 'Email' %}: </span><ins style="color: #507ab4">{{ target.email }}</ins></div>

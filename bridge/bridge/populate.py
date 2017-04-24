@@ -1,18 +1,40 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
+import re
 import json
-import hashlib
 from types import FunctionType
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
-from django.utils.timezone import now
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import file_get_or_create, unique_id
+from bridge.utils import file_get_or_create, unique_id, BridgeException
 from users.models import Extended
 from jobs.utils import create_job
-from jobs.models import Job
+from jobs.models import Job, JobFile
+from reports.models import TaskStatistic
+from marks.ConvertTrace import ConvertTrace
+from marks.CompareTrace import CompareTrace
+from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert,\
+    ErrorTraceConvertionCache
+from marks.utils import ConnectMarkWithReports
 from marks.tags import CreateTagsFromFile
 from service.models import Scheduler
 
@@ -24,19 +46,28 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.extended.role = role
         user.extended.save()
     except ObjectDoesNotExist:
-        Extended.objects.create(first_name='Firstname', last_name='Lastname', role=role, user=user)
+        Extended.objects.create(role=role, user=user)
+        user.first_name = 'Firstname'
+        user.last_name = 'Lastname'
+        user.save()
 
 
 class Population(object):
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {}
         self.user = user
-        self.manager = self.__get_manager(manager)
+        if manager is None:
+            self.manager = self.__get_manager(None, None)
+            if service is not None:
+                self.__add_service_user(service[0], service[1])
+        else:
+            self.manager = self.__get_manager(manager[0], manager[1])
+            if service is not None and manager[0] != service[0]:
+                self.__add_service_user(service[0], service[1])
         self.__population()
-        if service != manager:
-            self.__add_service_user(service)
 
     def __population(self):
+        TaskStatistic.objects.get_or_create()
         if self.user is not None:
             try:
                 Extended.objects.get(user=self.user)
@@ -53,10 +84,6 @@ class Population(object):
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
 
     def __populate_functions(self):
-        from marks.models import MarkUnsafeCompare, MarkUnsafeConvert
-        from marks.ConvertTrace import ConvertTrace
-        from marks.CompareTrace import CompareTrace
-
         func_names = []
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
@@ -79,9 +106,10 @@ class Population(object):
                 func.description = description
                 func.save()
         MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
+        ErrorTraceConvertionCache.objects.all().delete()
 
     def __correct_description(self, descr):
-        self.ccc = 0
+        self.__is_not_used()
         descr_strs = descr.split('\n')
         new_descr_strs = []
         for s in descr_strs:
@@ -89,36 +117,42 @@ class Population(object):
                 new_descr_strs.append(s)
         return '\n'.join(new_descr_strs)
 
-    def __get_manager(self, manager_username):
+    def __get_manager(self, manager_username, manager_password):
         if manager_username is None:
-            return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
+            try:
+                return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
+            except IndexError:
+                raise BridgeException('There are no managers in the system')
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
-            manager = User.objects.create(username=manager_username)
+            manager = User.objects.create(username=manager_username, first_name='Firstname', last_name='Lastname')
             self.changes['manager'] = {
                 'username': manager.username,
-                'password': self.__add_password(manager)
+                'password': self.__add_password(manager, manager_password)
             }
         extend_user(manager, USER_ROLES[2][0])
         return manager
 
-    def __add_service_user(self, service_username):
+    def __add_service_user(self, service_username, service_password):
         if service_username is None:
             return
         try:
             extend_user(User.objects.get(username=service_username), USER_ROLES[4][0])
         except ObjectDoesNotExist:
-            service = User.objects.create(username=service_username)
+            service = User.objects.create(username=service_username, first_name='Firstname', last_name='Lastname')
             extend_user(service, USER_ROLES[4][0])
             self.changes['service'] = {
                 'username': service.username,
-                'password': self.__add_password(service)
+                'password': self.__add_password(service, service_password)
             }
 
-    def __add_password(self, user):
-        self.ccc = 0
-        password = hashlib.md5(now().strftime("%Y%m%d%H%M%S%f%z").encode('utf8')).hexdigest()[:8]
+    def __add_password(self, user, password):
+        self.__is_not_used()
+        if isinstance(password, str):
+            password = password.strip()
+        if not isinstance(password, str) or len(password) == 0:
+            password = unique_id()[:8]
         user.set_password(password)
         user.save()
         return password
@@ -143,23 +177,28 @@ class Population(object):
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                raise ValueError('There is default job without settings file (%s)' % jobdir)
+                raise BridgeException('There is default job without settings file (%s)' % jobdir)
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
-                job_settings = json.load(fp)
+                try:
+                    job_settings = json.load(fp)
+                except Exception as e:
+                    raise BridgeException('The default job settings file is wrong json: %s' % e)
             if any(x not in job_settings for x in ['name', 'class', 'description']):
-                raise ValueError('Default job settings must contain name, class and description. Job in "%s" has %s' % (
-                    jobdir, str(list(job_settings))
-                ))
+                raise BridgeException(
+                    'Default job settings must contain name, class and description. Job in "%s" has %s' % (
+                        jobdir, str(list(job_settings))
+                    )
+                )
             if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                raise ValueError(
+                raise BridgeException(
                     'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
                 )
             if len(job_settings['name']) == 0:
-                raise ValueError('Default job name is required')
+                raise BridgeException('Default job name is required')
             try:
                 parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
-                raise Exception(
+                raise BridgeException(
                     "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
                 )
             job = create_job({
@@ -170,8 +209,6 @@ class Population(object):
                 'parent': parent,
                 'filedata': self.__get_filedata(jobdir)
             })
-            if not isinstance(job, Job):
-                raise ValueError('Default job was not created: %s' % job)
             if 'default_jobs' not in self.changes:
                 self.changes['default_jobs'] = []
             self.changes['default_jobs'].append([job.name, job.identifier])
@@ -188,10 +225,12 @@ class Population(object):
                     continue
                 self.cnt += 1
                 if os.path.isfile(f):
+                    with open(f, mode='rb') as fp:
+                        check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
                     fdata.append({
                         'id': self.cnt,
                         'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
-                        'hash_sum': file_get_or_create(open(f, 'rb'), base_f, True)[1],
+                        'hash_sum': check_sum,
                         'title': base_f,
                         'type': '1'
                     })
@@ -209,20 +248,32 @@ class Population(object):
         return get_fdata(d)
 
     def __populate_unknown_marks(self):
-        if not isinstance(self.manager, User):
-            return None
-        from marks.models import MarkUnknown, MarkUnknownHistory, Component
-        from marks.utils import ConnectMarkWithReports
         presets_dir = os.path.join(BASE_DIR, 'marks', 'presets')
         for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             component = os.path.basename(component_dir)
             if not 0 < len(component) <= 15:
                 raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
+                data = None
                 with open(mark_settings, encoding='utf8') as fp:
-                    data = json.load(fp)
+                    try:
+                        data = json.load(fp)
+                    except Exception as e:
+                        fp.seek(0)
+                        try:
+                            path_to_json = os.path.abspath(os.path.join(component_dir, fp.read()))
+                            with open(path_to_json, encoding='utf8') as fp2:
+                                data = json.load(fp2)
+                        except Exception:
+                            raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                                e, os.path.relpath(mark_settings, presets_dir)
+                            ))
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    raise ValueError('Wrong unknown mark data format: %s' % mark_settings)
+                    raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
+                try:
+                    re.compile(data['function'])
+                except re.error:
+                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
                 if 'link' not in data:
                     data['link'] = ''
                 if 'description' not in data:
@@ -233,11 +284,9 @@ class Population(object):
                     data['is_modifiable'] = True
                 if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
-                    raise ValueError('Wrong unknown mark data: %s' % mark_settings)
+                    raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 try:
-                    MarkUnknown.objects.get(
-                        component__name=component, function=data['function'], problem_pattern=data['pattern']
-                    )
+                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
                 except ObjectDoesNotExist:
                     mark = MarkUnknown.objects.create(
                         identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
@@ -274,10 +323,14 @@ class Population(object):
         if not os.path.isfile(preset_tags):
             return 0
         with open(preset_tags, mode='rb') as fp:
-            res = CreateTagsFromFile(fp, tag_type, True)
-            if res.error is not None:
-                raise Exception(res.error)
-        return res.number_of_created
+            try:
+                res = CreateTagsFromFile(fp, tag_type, True)
+            except Exception as e:
+                raise BridgeException("Error while creating tags: %s" % str(e))
+            return res.number_of_created
+
+    def __is_not_used(self):
+        pass
 
 
 # Example argument: {'username': 'myname', 'password': '12345', 'last_name': 'Mylastname', 'first_name': 'Myfirstname'}
@@ -295,12 +348,10 @@ def populate_users(admin=None, manager=None, service=None):
             admin['first_name'] = 'Firstname'
         try:
             user = User.objects.get(username=admin['username'])
-            Extended.objects.create(
-                last_name=admin['last_name'],
-                first_name=admin['first_name'],
-                role=USER_ROLES[1][0],
-                user=user
-            )
+            user.first_name = admin['first_name']
+            user.last_name = admin['last_name']
+            user.save()
+            Extended.objects.create(user=user, role=USER_ROLES[1][0])
         except ObjectDoesNotExist:
             return 'Administrator with specified username does not exist'
     if manager is not None:
@@ -318,15 +369,12 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=manager['username'])
             return 'Manager with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=manager['username'])
+            newuser = User(
+                username=manager['username'], first_name=manager['first_name'], last_name=manager['last_name']
+            )
             newuser.set_password(manager['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=manager['last_name'],
-                first_name=manager['first_name'],
-                role=USER_ROLES[2][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[2][0])
     if service is not None:
         if not isinstance(service, dict):
             return 'Wrong service format'
@@ -342,13 +390,10 @@ def populate_users(admin=None, manager=None, service=None):
             User.objects.get(username=service['username'])
             return 'Service with specified username already exists'
         except ObjectDoesNotExist:
-            newuser = User.objects.create(username=service['username'])
+            newuser = User(
+                username=service['username'], last_name=service['last_name'], first_name=service['first_name']
+            )
             newuser.set_password(service['password'])
             newuser.save()
-            Extended.objects.create(
-                last_name=service['last_name'],
-                first_name=service['first_name'],
-                role=USER_ROLES[4][0],
-                user=newuser
-            )
+            Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
     return None

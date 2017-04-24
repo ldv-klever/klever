@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import json
 from django.core.urlresolvers import reverse
 from bridge.utils import KleverTestCase
@@ -51,16 +68,15 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertRedirects(response, reverse('users:login'))
         # Check if new user exists in DB
         self.assertEqual(len(Extended.objects.filter(
-            user__username='user', first_name='Firstname', last_name='Lastname',
+            user__username='user', user__first_name='Firstname', user__last_name='Lastname',
             data_format=DATAFORMAT[1][0], accuracy=2, language=LANGUAGES[0][0]
         )), 1)
 
     def test_service(self):
 
-        Extended.objects.create(
-            user=User.objects.create_user(username='service', password='service'),
-            last_name='Lastname', first_name='Firstname'
-        )
+        Extended.objects.create(user=User.objects.create_user(
+            username='service', password='service', last_name='Lastname', first_name='Firstname'
+        ))
 
         response = self.client.get('/users/service_signin/')
         self.assertEqual(response.status_code, 200)
@@ -75,7 +91,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'Incorrect username or password'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
         User.objects.create_user(username='service2', password='service2')
@@ -83,7 +100,8 @@ class TestLoginAndRegister(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertJSONEqual(
-            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'})
+            str(response.content, encoding='utf8'), json.dumps({'error': 'User does not have extended data'},
+                                                               ensure_ascii=False, sort_keys=True, indent=4)
         )
 
 
@@ -118,9 +136,10 @@ class TestLoggedInUser(KleverTestCase):
             'accuracy': 2, 'language': LANGUAGES[1][0], 'data_format': DATAFORMAT[0][0],
             'last_name': 'Newlastname', 'first_name': 'Newname'
         })
+        self.user = User.objects.get(pk=self.user.pk)
         self.assertRedirects(response, reverse('users:edit_profile'))
-        self.assertEqual(Extended.objects.get(user=self.user).first_name, 'Newname')
-        self.assertEqual(Extended.objects.get(user=self.user).last_name, 'Newlastname')
+        self.assertEqual(self.user.first_name, 'Newname')
+        self.assertEqual(self.user.last_name, 'Newlastname')
 
         # Check that user can change password
         response = self.client.post(reverse('users:edit_profile'), {

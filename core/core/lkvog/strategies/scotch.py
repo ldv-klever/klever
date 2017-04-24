@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import os
 
 from core.lkvog.strategies.strategy_utils import Module, Graph
@@ -92,7 +109,7 @@ class Scotch(AbstractStrategy):
         count_e = int(sum(len(e) for e in dual_graph.values()))
 
         self.logger.debug('Dual graph contains {0} vertex and {1} edges'.format(count_v, count_e))
-        with open(self.graph_file, 'w') as gf:
+        with open(self.graph_file, 'w', encoding='utf8') as gf:
             gf.write('0\n{0} {1}\n0 000\n'.format(count_v, count_e))
             for key, value in sorted(dual_graph.items()):
                 gf.write('{0} {1}\n'.format(len(value), ' '.join([str(v) for v in value])))
@@ -108,7 +125,7 @@ class Scotch(AbstractStrategy):
         self.logger.debug("Import partitioning results from the file")
 
         partitioning = {}
-        with open(self.scotch_out, encoding='ascii') as fp:
+        with open(self.scotch_out, encoding='utf8') as fp:
             lines = fp.readlines()
             for line in lines[1:]:
                 line = line.rstrip("\n")
@@ -142,6 +159,15 @@ class Scotch(AbstractStrategy):
     def divide(self, module_name):
         if module_name == "all":
             return self.clusters
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            ret = []
+            for cluster in self.clusters:
+                for module in cluster.modules:
+                    if module.startswith(module_name):
+                        ret.append(cluster)
+                        break
+            return ret
 
         ret_clusters = [cluster for cluster in self.clusters if module_name in
                         [module.id for module in cluster.modules]]

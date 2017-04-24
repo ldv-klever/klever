@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function component_filters_data() {
     var filter_values = {};
 
@@ -138,11 +155,6 @@ $(document).ready(function () {
         }
     });
 
-    /*var report_list = $('#report_list_table').find('tbody').children();
-    if (report_list.length == 1) {
-        window.location.replace(report_list.find('a').first().attr('href'));
-    }*/
-
     $('input[class=buttons-view-type]').each(function () {
         var data_collection;
         switch ($(this).val()) {
@@ -180,6 +192,85 @@ $(document).ready(function () {
                 });
             }
         });
+    });
+
+    function activate_inline_markform(data) {
+        var markform = $('#inline_mark_form');
+        markform.html(data);
+        activate_tags();
+        markform.find('.ui.checkbox').checkbox();
+        markform.show();
+        $('#cancel_create_mark').click(function () {
+            $('#inline_mark_form').hide().empty();
+        });
+        $('#save_inline_mark_btn').click(function () {
+            $('#dimmer_of_page').addClass('active');
+            var data, mark_id = $('#mark_pk');
+            if (mark_id.length) {
+                data = {savedata: collect_markdata(), mark_id: mark_id.val()}
+            }
+            else {
+                data = {savedata: collect_new_markdata()}
+            }
+            $.post(
+                marks_ajax_url + 'save_mark/',
+                data,
+                function (data) {
+                    if (data.error) {
+                        $('#dimmer_of_page').removeClass('active');
+                        err_notify(data.error);
+                    }
+                    else if ('cache_id' in data) {
+                        window.location.href = '/marks/association_changes/' + data['cache_id'] + '/';
+                    }
+                }
+            );
+        });
+    }
+
+    $('#create_light_mark_btn').click(function () {
+        $.post(
+            marks_ajax_url + 'inline_mark_form/',
+            {
+                report_id: $('#report_pk').val(),
+                type: $('#report_type').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if ('data' in data) {
+                    activate_inline_markform(data['data']);
+                }
+            }
+        );
+    });
+
+    $('button[id^="inline_edit_mark_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'inline_mark_form/',
+            {
+                mark_id: $(this).attr('id').replace('inline_edit_mark_', ''),
+                type: $('#report_type').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else if ('data' in data) {
+                    activate_inline_markform(data['data']);
+                }
+            }
+        );
+    });
+    $('#show_leaf_attributes').click(function () {
+        var attr_table = $('#leaf_attributes');
+        if (attr_table.is(':hidden')) {
+            attr_table.show();
+        }
+        else {
+            attr_table.hide();
+        }
     });
 });
 

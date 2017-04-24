@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __
 
 FORMAT = 1
@@ -9,21 +26,15 @@ DATAFORMAT = (
 
 # Do not use error code 500 (Unknown error)
 ERRORS = {
-    300: _("You don't have an access to this page"),
-    305: _("Can't populate without Manager and service user"),
+    301: _('Wrong request method or not enough request arguments'),
     400: _("You don't have an access to this job"),
-    401: _("You don't have an access to one of the selected jobs"),
     404: _('The job was not found'),
     405: _('One of the selected jobs was not found'),
     504: _('The report was not found'),
     505: _("Couldn't visualize the error trace"),
-    506: _("The comparison cache was not found or was corrupted"),
-    507: _("You don't have an access to compare these jobs"),
-    508: _("The problem was not found"),
-    509: _("The tag was not found"),
+    507: _("You can't compare the selected jobs"),
     604: _("The mark was not found"),
-    601: _("You don't have an access to create new marks"),
-    602: _("You don't have an access to delete this mark")
+    605: _('The mark is being deleted')
 }
 
 LANGUAGES = (
@@ -43,6 +54,11 @@ JOB_CLASSES = (
     ('0', _('Verification of Linux kernel modules')),
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
+
+ATTR_STATISTIC = {
+    '0': ['Rule specification'],
+    '3': ['Rule specification']
+}
 
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
@@ -67,12 +83,18 @@ JOB_STATUS = (
     ('3', _('Solved')),
     ('4', _('Failed')),
     ('5', _('Corrupted')),
-    ('6', _('Cancelled'))
+    ('6', _('Cancelled')),
+    ('7', _('Terminated'))
+)
+
+JOB_WEIGHT = (
+    ('0', _('Full-weight')),
+    ('1', _('Lightweight'))
 )
 
 # Default view of the table
 JOB_DEF_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe', 'problem', 'safe', 'resource'],
+    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
     # Available orders: ['date', 'status', 'name', 'author']
     'orders': ['-date'],
 
@@ -85,6 +107,7 @@ JOB_DEF_VIEW = {
     # problem:component [iexact, istartswith, icontains] (<any text>)
     # problem:problem [iexact, istartswith, icontains] (<any text>)
     # format [is] (<number>)
+    # finish_date [is, older, younger] (<month:year>)
     'filters': {
         # 'name': {
         #     'type': 'istartswith',
@@ -109,6 +132,10 @@ JOB_DEF_VIEW = {
         # 'format': {
         #     'type': 'is',
         #     'value': '1',
+        # },
+        # 'finish_date': {
+        #     'type': 'is',
+        #     'value': '1:2016',
         # },
     },
 }
@@ -170,7 +197,8 @@ SAFE_VERDICTS = (
 
 VIEWJOB_DEF_VIEW = {
     # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'],
+    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'safes_attr_stat',
+             'unsafes_attr_stat', 'unknowns_attr_stat'],
     # Available filters (id [types], (example value)):
     # unknown_component [iexact, istartswith, icontains] (<any text>)
     # unknown_problem [iexact, istartswith, icontains] (<any text>)
@@ -233,7 +261,7 @@ REPORT_ATTRS_DEF_VIEW = {
 }
 
 UNSAFE_LIST_DEF_VIEW = {
-    'columns': ['marks_number', 'report_verdict', 'tags'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -245,7 +273,7 @@ UNSAFE_LIST_DEF_VIEW = {
 }
 
 SAFE_LIST_DEF_VIEW = {
-    'columns': ['marks_number', 'report_verdict', 'tags'],
+    'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
     'order': ('default', 'down'),
     'filters': {
         # 'attr': {
@@ -382,7 +410,7 @@ MARKS_COMPARE_ATTRS = {
 
 JOBS_COMPARE_ATTRS = {
     JOB_CLASSES[0][0]: ['Verification object', 'Rule specification'],
-    JOB_CLASSES[1][0]: ['Commit', 'Verification object', 'Rule specification'],
+    JOB_CLASSES[1][0]: ['Name', 'Verification object', 'Rule specification'],
 }
 
 # TODO: keys and values are almost the same and thus can be refactored.
@@ -411,4 +439,7 @@ START_JOB_DEFAULT_MODES = {
     'paranoid development': _('Paranoid development')
 }
 
-REPORT_FILES_ARCHIVE = 'data.tar.gz'
+REPORT_FILES_ARCHIVE = 'data.zip'
+
+# You can set translatable text _("Unknown error")
+UNKNOWN_ERROR = 'Unknown error'

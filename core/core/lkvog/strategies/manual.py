@@ -1,3 +1,22 @@
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import re
+
 from core.lkvog.strategies.strategy_utils import Module, Graph
 from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 
@@ -5,7 +24,13 @@ from core.lkvog.strategies.abstract_strategy import AbstractStrategy
 class Manual(AbstractStrategy):
     def __init__(self, logger, strategy_params, params):
         super().__init__(logger)
-        self.groups = params.get('groups', {})
+        self.groups = {}
+        for key, value in params.get('groups', {}).items():
+            key = re.subn('.ko$', '.o', key)[0]
+            self.groups[key] = []
+            for module_list in value:
+                self.groups[key].append([re.subn('.ko$', '.o', module)[0] for module in module_list])
+        #self.groups = params.get('groups', {})
 
     def divide(self, module_name):
         ret = []
@@ -13,6 +38,12 @@ class Manual(AbstractStrategy):
         if module_name == 'all':
             for module in self.groups.keys():
                 ret.extend(self.divide(module))
+            return ret
+        elif not module_name.endswith('.o'):
+            # This is subsystem
+            for module in self.groups.keys():
+                if module.startswith(module_name):
+                    ret.extend(self.divide(module))
             return ret
 
         if module_name.startswith('ext-modules/'):

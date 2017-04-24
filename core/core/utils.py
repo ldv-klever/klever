@@ -1,3 +1,20 @@
+#
+# Copyright (c) 2014-2015 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import fcntl
 import json
 import logging
@@ -6,10 +23,11 @@ import re
 import resource
 import subprocess
 import sys
-import tarfile
+import zipfile
 import threading
 import time
 import queue
+from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
@@ -159,7 +177,7 @@ class StreamQueue:
             # This will put lines from stream to queue until stream will be closed. For instance it will happen when
             # execution of command will be completed.
             for line in self.stream:
-                line = line.decode('ascii').rstrip()
+                line = line.decode('utf8').rstrip()
                 self.queue.put(line)
                 if self.collect_all_output:
                     self.output.append(line)
@@ -214,11 +232,30 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
 
     if p.poll():
         logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
-        with open('problem desc.txt', 'a', encoding='ascii') as fp:
+        with open('problem desc.txt', 'a', encoding='utf8') as fp:
             fp.write('\n'.join(err_q.output))
         raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output
+
+
+def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
+    logger.debug('Execute:\n{!r}'.format(' '.join(args)))
+    executor = RunExecutor()
+    result = executor.execute_run(args=args,
+                                  output_filename="output.log",
+                                  walltimelimit=timelimit,
+                                  memlimit=memlimit,
+                                  maxLogfileSize=10000000)
+    exit_code = int(result["exitcode"]) % 255
+    if exit_code != 0:
+        os.rename("output.log", "problem desc.txt")
+        raise ValueError("Tool {!r} exited with non-zero exit code: {}".format(args[0], exit_code))
+    else:
+        with open("output.log") as fd:
+            output = fd.read()
+
+    return output
 
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
@@ -371,7 +408,7 @@ def get_logger(name, conf):
             handler = logging.StreamHandler(sys.stdout)
         elif handler_conf['name'] == 'file':
             # Always print log to file "log" in working directory.
-            handler = logging.FileHandler('log.txt', encoding='ascii')
+            handler = logging.FileHandler('log.txt', encoding='utf8')
         else:
             raise KeyError(
                 'Handler "{0}" (logger "{1}") is not supported, please use either "console" or "file"'.format(
@@ -499,11 +536,13 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
+        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        with tarfile.open(report_files_archive, 'w:gz') as tar:
+        if os.path.isfile(report_files_archive):
+            raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
+        with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
             for file in report['files']:
-                tar.add(file)
+                zfp.write(file)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
@@ -513,8 +552,8 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-    with open(report_file, 'w', encoding='ascii') as fp:
-        json.dump(report, fp, sort_keys=True, indent=4)
+    with open(report_file, 'w', encoding='utf8') as fp:
+        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
 

@@ -14,7 +14,7 @@
                 </div>
                 <div class="seven wide column">
                     <span class="purple-title">{% trans 'Author' %}: </span>
-                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.extended.last_name }} {{ report.root.user.extended.first_name }}</a>
+                    <a href="{% url 'users:show_profile' report.root.user.id %}">{{ report.root.user.get_full_name }}</a>
                 </div>
             </div>
         </div>
@@ -67,7 +67,7 @@
                     {% for row_data in TableData.table_data.values %}
                         <tr>
                             {% for v in row_data %}
-                                <td class="collapsing">
+                                <td>
                                     {% if v.href %}
                                         <a href="{{ v.href }}">{{ v.value }}</a>
                                     {% else %}

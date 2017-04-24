@@ -1,0 +1,49 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+before: file ("$this")
+{
+struct completion;
+
+extern void __ldv_init_completion_macro(struct completion *x);
+extern void __ldv_init_completion(struct completion *x);
+}
+
+around: define(INIT_COMPLETION(x))
+{
+__ldv_init_completion_macro(&x)
+}
+
+around: define(DECLARE_COMPLETION_ONSTACK(x))
+{
+struct completion x;
+__ldv_init_completion(&x)
+}
+
+info: call(void wait_for_completion(..)) ||
+      call(int wait_for_completion_interruptible(..)) ||
+      call(int wait_for_completion_killable(..)) ||
+      call(unsigned long wait_for_completion_timeout(..)) ||
+      call(long wait_for_completion_interruptible_timeout(..)) ||
+      call(long wait_for_completion_killable_timeout(..)) ||
+      call(bool try_wait_for_completion(..)) ||
+      call(static inline void init_completion(..)) ||
+      call(void __ldv_init_completion_macro(..)) ||
+      call(void __ldv_init_completion(..))
+{
+	$fprintf<$env<LDV_ARG_SIGNS_FILE>,"%s\n",$arg_sign1>
+}

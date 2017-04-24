@@ -1,1 +1,1 @@
-obj-m += created-at-exit.o safe.o chrdev-at-exit.o chrdev-at-exit-2.o chrdev-with-usb-gadget.o class-with-usb-gadget.o usb-gadget-at-exit.o class-registered-at-exit.o unregister-chrdev.o unregister-class.o unregister-usb-gadget.o
+obj-m += safe.o chrdev-with-usb-gadget.o class-with-usb-gadget.o usb-gadget-at-exit.o unregister-usb-gadget.o

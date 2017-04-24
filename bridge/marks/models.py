@@ -1,12 +1,51 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 from django.contrib.auth.models import User
 from django.db import models
+from django.db.models.signals import pre_delete
+from django.dispatch.dispatcher import receiver
 from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
-from jobs.models import Job, File
+from jobs.models import Job
+
+CONVERTED_DIR = 'Error-traces'
+
+
+class ConvertedTraces(models.Model):
+    hash_sum = models.CharField(max_length=255, db_index=True)
+    file = models.FileField(upload_to=CONVERTED_DIR, null=False)
+
+    class Meta:
+        db_table = 'file'
+
+    def __str__(self):
+        return self.hash_sum
+
+
+@receiver(pre_delete, sender=ConvertedTraces)
+def converted_delete(**kwargs):
+    file = kwargs['instance']
+    storage, path = file.file.storage, file.file.path
+    storage.delete(path)
 
 
 class UnknownProblem(models.Model):
-    name = models.CharField(max_length=15)
+    name = models.CharField(max_length=15, db_index=True)
 
     def __str__(self):
         return self.name
@@ -17,7 +56,7 @@ class UnknownProblem(models.Model):
 
 # Tables with functions
 class MarkUnsafeConvert(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
@@ -28,7 +67,7 @@ class MarkUnsafeConvert(models.Model):
 
 
 class MarkUnsafeCompare(models.Model):
-    name = models.CharField(max_length=30)
+    name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 
     def __str__(self):
@@ -41,10 +80,10 @@ class MarkUnsafeCompare(models.Model):
 # Abstract tables
 class Mark(models.Model):
     identifier = models.CharField(max_length=255, unique=True)
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name='+')
     format = models.PositiveSmallIntegerField(default=FORMAT)
     version = models.PositiveSmallIntegerField(default=1)
-    author = models.ForeignKey(User, related_name="%(class)s", null=True, on_delete=models.SET_NULL)
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     is_modifiable = models.BooleanField(default=True)
     change_date = models.DateTimeField(auto_now=True)
@@ -60,7 +99,7 @@ class Mark(models.Model):
 
 class MarkHistory(models.Model):
     version = models.PositiveSmallIntegerField()
-    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name="%(class)s")
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL, related_name='+')
     status = models.CharField(max_length=1, choices=MARK_STATUS, default='0')
     change_date = models.DateTimeField()
     comment = models.TextField()
@@ -109,7 +148,6 @@ class MarkUnsafe(Mark):
     prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
-    error_trace = models.ForeignKey(File)
 
     class Meta:
         db_table = 'mark_unsafe'
@@ -119,6 +157,7 @@ class MarkUnsafeHistory(MarkHistory):
     mark = models.ForeignKey(MarkUnsafe, related_name='versions')
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE)
     function = models.ForeignKey(MarkUnsafeCompare)
+    error_trace = models.ForeignKey(ConvertedTraces)
 
     class Meta:
         db_table = 'mark_unsafe_history'
@@ -137,7 +176,6 @@ class MarkUnsafeReport(models.Model):
     mark = models.ForeignKey(MarkUnsafe, related_name='markreport_set')
     report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
     result = models.FloatField()
-    broken = models.BooleanField(default=False)
     error = models.TextField(null=True)
 
     class Meta:
@@ -147,7 +185,7 @@ class MarkUnsafeReport(models.Model):
 # Tags tables
 class SafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
-    tag = models.CharField(max_length=32)
+    tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
 
@@ -157,7 +195,7 @@ class SafeTag(models.Model):
 
 class UnsafeTag(models.Model):
     parent = models.ForeignKey('self', null=True, related_name='children')
-    tag = models.CharField(max_length=32)
+    tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
     populated = models.BooleanField(default=False)
 
@@ -167,7 +205,7 @@ class UnsafeTag(models.Model):
 
 class ReportSafeTag(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='safe_tags')
-    tag = models.ForeignKey(SafeTag, related_name='+')
+    tag = models.ForeignKey(SafeTag)
     number = models.IntegerField(default=0)
 
     def __str__(self):
@@ -239,6 +277,7 @@ class MarkUnknown(Mark):
 
     class Meta:
         db_table = 'mark_unknown'
+        index_together = ['component', 'problem_pattern']
 
 
 class MarkUnknownHistory(MarkHistory):
@@ -263,7 +302,7 @@ class MarkUnknownReport(models.Model):
 class ComponentMarkUnknownProblem(models.Model):
     report = models.ForeignKey(ReportComponent, related_name='mark_unknowns_cache')
     component = models.ForeignKey(Component, related_name='+', on_delete=models.PROTECT)
-    problem = models.ForeignKey(UnknownProblem, null=True, related_name='+', on_delete=models.PROTECT)
+    problem = models.ForeignKey(UnknownProblem, null=True, on_delete=models.PROTECT)
     number = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -282,7 +321,7 @@ class MarkAssociationsChanges(models.Model):
 class ErrorTraceConvertionCache(models.Model):
     unsafe = models.ForeignKey(ReportUnsafe)
     function = models.ForeignKey(MarkUnsafeConvert)
-    converted = models.ForeignKey(File)
+    converted = models.ForeignKey(ConvertedTraces)
 
     class Meta:
         db_table = 'cache_error_trace_converted'

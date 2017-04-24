@@ -1,9 +1,28 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import abc
 import concurrent.futures
 import logging
 import os
 import shutil
 import time
+import traceback
+import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
@@ -30,12 +49,6 @@ class SchedulerException(RuntimeError):
 class SchedulerExchange(metaclass=abc.ABCMeta):
     """Class provide general scheduler API."""
 
-    __tasks = {}
-    __jobs = {}
-    __nodes = None
-    __tools = None
-    __iteration_period = 1
-
     @staticmethod
     @abc.abstractstaticmethod
     def scheduler_type():
@@ -51,7 +64,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         self.conf = conf
         self.work_dir = os.path.abspath(work_dir)
-        self.server = get_gateway(conf, os.path.join(work_dir, "requests"))
+        self.init_scheduler()
+
+    @abc.abstractmethod
+    def init_scheduler(self):
+        self.__tasks = {}
+        self.__jobs = {}
+        self.__nodes = None
+        self.__tools = None
+        self.__iteration_period = 1
+        self.server = get_gateway(self.conf, os.path.join(self.work_dir, "requests"))
 
         # Check configuration completeness
         logging.debug("Check whether configuration contains all necessary data")
@@ -59,17 +81,23 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         # Initialize interaction
         self.server.register(self.scheduler_type())
 
+        # Reinitialization flag
+        if "production" in self.conf["scheduler"] and self.conf["scheduler"]["production"]:
+            self.production = True
+        else:
+            self.production = False
+
         # Clean working directory
-        if os.path.isdir(work_dir) and ("keep working directory" not in self.conf["scheduler"]
-                                        or not self.conf["scheduler"]["keep working directory"]):
-            logging.info("Clean scheduler working directory {}".format(work_dir))
-            shutil.rmtree(work_dir)
-        os.makedirs(work_dir, exist_ok=True)
+        if os.path.isdir(self.work_dir) and ("keep working directory" not in self.conf["scheduler"]
+                                             or not self.conf["scheduler"]["keep working directory"]):
+            logging.info("Clean scheduler working directory {}".format(self.work_dir))
+            shutil.rmtree(self.work_dir)
+        os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
         if "iteration timeout" in self.conf["scheduler"]:
             self.__iteration_period = self.conf["scheduler"]["iteration timeout"]
 
-        logging.info("Scheduler initialization has been successful")
+        logging.info("Scheduler base initialization has been successful")
 
     def __sort_priority(self, task):
         """
@@ -89,12 +117,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         else:
             raise ValueError("Unknown priority: {}".format(priority))
 
-    @abc.abstractmethod
     def launch(self):
         """Start scheduler loop."""
         logging.info("Start scheduler loop")
-        try:
-            while True:
+        while True:
+            try:
                 # Prepare scheduler state
                 logging.info("Start scheduling iteration with statuses exchange with the server")
                 scheduler_state = {
@@ -147,25 +174,30 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Submit scheduler state and receive server state
                 server_state = self.server.exchange(scheduler_state)
 
-                # Ignore tasks which have been finished or cancelled
-                for task_id in [task_id for task_id in self.__tasks
-                                if self.__tasks[task_id]["status"] in ["FINISHED", "ERROR"]]:
-                    if task_id in server_state["tasks"]["pending"]:
-                        logging.debug("Ignore PENDING task {}, since it has been processed recently".format(task_id))
-                        server_state["tasks"]["pending"].remove(task_id)
-                    if task_id in server_state["tasks"]["processing"]:
-                        logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
-                        server_state["tasks"]["processing"].remove(task_id)
-                        
-                # Ignore jobs which have been finished or cancelled
-                for job_id in [job_id for job_id in self.__jobs
-                               if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
-                    if job_id in server_state["jobs"]["pending"]:
-                        logging.debug("Ignore PENDING job {}, since it has been processed recently".format(job_id))
-                        server_state["jobs"]["pending"].remove(job_id)
-                    if job_id in server_state["jobs"]["processing"]:
-                        logging.debug("Ignore PROCESSING job {}, since it has been processed recently")
-                        server_state["jobs"]["processing"].remove(job_id)
+                try:
+                    # Ignore tasks which have been finished or cancelled
+                    for task_id in [task_id for task_id in self.__tasks
+                                    if self.__tasks[task_id]["status"] in ["FINISHED", "ERROR"]]:
+                        if task_id in server_state["tasks"]["pending"]:
+                            logging.debug("Ignore PENDING task {}, since it has been processed recently".format(task_id))
+                            server_state["tasks"]["pending"].remove(task_id)
+                        if task_id in server_state["tasks"]["processing"]:
+                            logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
+                            server_state["tasks"]["processing"].remove(task_id)
+
+                    # Ignore jobs which have been finished or cancelled
+                    for job_id in [job_id for job_id in self.__jobs
+                                   if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
+                        if job_id in server_state["jobs"]["pending"]:
+                            logging.debug("Ignore PENDING job {}, since it has been processed recently".format(job_id))
+                            server_state["jobs"]["pending"].remove(job_id)
+                        if job_id in server_state["jobs"]["processing"]:
+                            logging.debug("Ignore PROCESSING job {}, since it has been processed recently")
+                            server_state["jobs"]["processing"].remove(job_id)
+                except KeyError as missed_tag:
+                    self.__report_error_server_state(
+                        server_state,
+                        "Missed tag {} in a received server state".format(missed_tag))
 
                 # Remove finished or error tasks which have been already submitted
                 logging.debug("Remove tasks with statuses FINISHED and ERROR which have been submitted")
@@ -182,21 +214,27 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Add new PENDING tasks
                 for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
                     logging.debug("Add new PENDING task {}".format(task_id))
-                    self.__tasks[task_id] = {
-                        "id": task_id,
-                        "status": "PENDING",
-                        "description": server_state["task descriptions"][task_id]["description"],
-                        "priority": server_state["task descriptions"][task_id]["description"]["priority"]
-                    }
-                    # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
-                    if self.scheduler_type() == "VerifierCloud":
-                        self.__tasks[task_id]["user"] = \
-                            server_state["task descriptions"][task_id]["VerifierCloud user name"]
-                        self.__tasks[task_id]["password"] = \
-                            server_state["task descriptions"][task_id]["VerifierCloud user password"]
-                    else:
-                        self.__tasks[task_id]["user"] = None
-                        self.__tasks[task_id]["password"] = None
+                    try:
+                        self.__tasks[task_id] = {
+                            "id": task_id,
+                            "status": "PENDING",
+                            "description": server_state["task descriptions"][task_id]["description"],
+                            "priority": server_state["task descriptions"][task_id]["description"]["priority"]
+                        }
+
+                        # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
+                        if self.scheduler_type() == "VerifierCloud":
+                            self.__tasks[task_id]["user"] = \
+                                server_state["task descriptions"][task_id]["VerifierCloud user name"]
+                            self.__tasks[task_id]["password"] = \
+                                server_state["task descriptions"][task_id]["VerifierCloud user password"]
+                        else:
+                            self.__tasks[task_id]["user"] = None
+                            self.__tasks[task_id]["password"] = None
+                    except KeyError as missed_tag:
+                        self.__report_error_server_state(
+                            server_state,
+                            "Missed tag '{}' in the description of pendng task {}".format(missed_tag, task_id))
 
                     # Try to prepare task
                     logging.debug("Prepare new task {} before launching".format(task_id))
@@ -230,9 +268,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                                            scheduler_state["tasks"]["processing"])
                                 if task_id not in
                                 set(server_state["tasks"]["pending"] + scheduler_state["tasks"]["processing"])]:
-                    logging.debug("Cancel task {} with status {}".format(task_id, self.__tasks[task_id]))
-                    self.__tasks[task_id]["future"].cancel()
-                    self.cancel_task(task_id)
+                    logging.debug("Cancel task {} with status {}".format(task_id, self.__tasks[task_id]['status']))
+                    if "future" in self.__tasks[task_id]:
+                        cancelled = self.__tasks[task_id]["future"].cancel()
+                        if not cancelled:
+                            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
                     del self.__tasks[task_id]
 
                 # Cancel jobs
@@ -240,13 +280,19 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                ["PENDING", "PROCESSING"] and
                                (job_id not in set(server_state["jobs"]["pending"]+server_state["jobs"]["processing"])
                                 or job_id in server_state["jobs"]["cancelled"])]:
-                    logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]))
+                    logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]['status']))
                     if "future" in self.__jobs[job_id]:
-                        self.__jobs[job_id]["future"].cancel()
-                        self.cancel_job(job_id)
-                        del self.__jobs[job_id]
-                    else:
-                        del self.__jobs[job_id]
+                        cancelled = self.__jobs[job_id]["future"].cancel()
+                        if not cancelled:
+                            self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
+
+                            # Then terminate all pending and processing tasks for the job
+                            for task_id in [task_id for task_id in self.__tasks
+                                            if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
+                                            self.__tasks[task_id]["description"]["job id"] == job_id]:
+                                self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+
+                    del self.__jobs[job_id]
 
                 # Update jobs processing status
                 for job_id in server_state["jobs"]["processing"]:
@@ -299,34 +345,24 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 for task_id in [task_id for task_id in self.__tasks
                                 if self.__tasks[task_id]["status"] == "PROCESSING" and
                                 "future" in self.__tasks[task_id] and self.__tasks[task_id]["future"].done()]:
-                    try:
-                        self.__tasks[task_id]["status"] = self.process_task_result(task_id,
-                                                                                   self.__tasks[task_id]["future"])
-                        logging.debug("Task {} new status is {}".format(task_id, self.__tasks[task_id]["status"]))
-                        if self.__tasks[task_id]["status"] not in ["FINISHED", "ERROR"]:
-                            raise ValueError("Scheduler got non-finished status {} for finished task {}".
-                                             format(self.__tasks[task_id]["status"], task_id))
-                    except SchedulerException as err:
-                        logging.error("Cannot process results of task {}: {}".format(task_id, err))
-                        self.__tasks[task_id]["status"] = "ERROR"
-                        self.__tasks[task_id]["error"] = err
+                    self.__process_future(self.process_task_result, self.__tasks[task_id], task_id)
 
                 # Update jobs
                 for job_id in [job_id for job_id in self.__jobs
                                if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"] and
                                "future" in self.__jobs[job_id] and self.__jobs[job_id]["future"].done()]:
-                    try:
-                        self.__jobs[job_id]["status"] = self.process_job_result(job_id, self.__jobs[job_id]["future"])
-                        logging.debug("Job {} new status is {}".format(job_id, self.__jobs[job_id]["status"]))
-                        if self.__jobs[job_id]["status"] not in ["FINISHED", "ERROR"]:
-                            raise ValueError("Scheduler got non-finished status {} for finished job {}".
-                                             format(self.__jobs[job_id]["status"], job_id))
-                    except SchedulerException as err:
-                        logging.error("Cannot process results of job {}: {}".format(job_id, err))
-                        self.__jobs[job_id]["status"] = "ERROR"
-                        self.__jobs[job_id]["error"] = err
+                    self.__process_future(self.process_job_result, self.__jobs[job_id], job_id)
+
+                # Submit tools
+                try:
+                    logging.debug("Update information about available verification tools")
+                    self.update_tools()
+                except Exception as err:
+                    logging.warning('Cannot submit verification tools information: {}'.format(err))
+
 
                 # Get actual information about connected nodes
+                # todo: proper error checking
                 submit = True
                 try:
                     logging.debug("Update information about connected nodes")
@@ -362,19 +398,34 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     for job_id in jobs_to_start:
                         if "future" in self.__jobs[job_id] or self.__jobs[job_id]["status"] != "PENDING":
                             raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
-                        self.__jobs[job_id]["future"] = self.solve_job(job_id, self.__jobs[job_id]["configuration"])
-                        logging.info("Submitted job {}".format(job_id))
+                        try:
+                            self.__jobs[job_id]["future"]\
+                                = self.__attempts(self.solve_job, 3, 'start job {}'.format(job_id),
+                                                  (job_id,
+                                                   self.__jobs[job_id]["configuration"]))
+                        except SchedulerException as err:
+                            msg = "Cannot start job {}: {}".format(job_id, err)
+                            logging.warning(msg)
+                            self.__jobs[job_id]["status"] = "ERROR"
+                            self.__jobs[job_id]["error"] = msg
 
                     for task_id in tasks_to_start:
                         # This check is very helpful for debugging
                         if "future" in self.__tasks[task_id] or self.__tasks[task_id]["status"] != "PENDING":
                             raise ValueError("Attempt to scheduler running or processed task {}".format(task_id))
-                        self.__tasks[task_id]["future"] = self.solve_task(task_id,
-                                                                          self.__tasks[task_id]["description"],
-                                                                          self.__tasks[task_id]["user"],
-                                                                          self.__tasks[task_id]["password"])
-                        logging.info("Submitted task {}".format(task_id))
-                        self.__tasks[task_id]["status"] = "PROCESSING"
+                        try:
+                            self.__tasks[task_id]["future"]\
+                                = self.__attempts(self.solve_task, 3, 'start task {}'.format(task_id),
+                                                  (task_id,
+                                                   self.__tasks[task_id]["description"],
+                                                   self.__tasks[task_id]["user"],
+                                                   self.__tasks[task_id]["password"]))
+                            self.__tasks[task_id]["status"] = "PROCESSING"
+                        except SchedulerException as err:
+                            msg = "Cannot start task {}: {}".format(task_id, err)
+                            logging.warning(msg)
+                            self.__tasks[task_id]["status"] = "ERROR"
+                            self.__tasks[task_id]["error"] = msg
 
                     # Flushing tasks
                     logging.debug("Flush submitted tasks and jobs if necessary")
@@ -384,15 +435,26 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
                 logging.debug("Scheduler iteration has finished")
                 time.sleep(self.__iteration_period)
-        except KeyboardInterrupt:
-            logging.error("Scheduler execution is interrupted, cancel all running threads")
-            self.terminate()
-            exit(137)
+            except KeyboardInterrupt:
+                logging.error("Scheduler execution is interrupted, cancel all running threads")
+                self.terminate()
+                exit(137)
+            except Exception:
+                exception_info = 'An error occured:\n{}'.format(traceback.format_exc().rstrip())
+                logging.error(exception_info)
+                self.terminate()
+                if self.production:
+                    logging.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
+                    time.sleep(30)
+                    self.init_scheduler()
+                else:
+                    exit(1)
 
     @abc.abstractmethod
     def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
         """
         Get list of new tasks which can be launched during current scheduler iteration.
+
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
         :param processing_tasks: List with currently ongoing tasks.
@@ -406,6 +468,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def prepare_task(self, identifier, description):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
         """
@@ -415,6 +478,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def prepare_job(self, identifier, configuration):
         """
         Prepare working directory before starting solution.
+
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
         """
@@ -424,6 +488,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
+
         :param identifier: Verification task identifier.
         :param description: Verification task description dictionary.
         :param user: User name.
@@ -436,6 +501,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def solve_job(self, identifier, configuration):
         """
         Solve given verification task.
+
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
@@ -450,6 +516,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def process_task_result(self, identifier, future):
         """
         Process result and send results to the server.
+
         :param identifier:
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
@@ -460,6 +527,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def process_job_result(self, identifier, future):
         """
         Process result and send results to the server.
+
         :param identifier:
         :param future: Future object.
         :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
@@ -467,58 +535,46 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         return
 
     @abc.abstractmethod
-    def cancel_job(self, identifier):
+    def cancel_job(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
-        if identifier in self.__jobs and "future" in self.__jobs[identifier] \
-                and not self.__jobs[identifier]["future"].done():
-            logging.debug("Cancel future object of job {}".format(identifier))
-            self.__jobs[identifier]["future"].cancel()
-            if not self.__jobs[identifier]["future"].done():
-                try:
-                    self.__jobs[identifier]["future"].result(timeout=0)
-                except concurrent.futures.TimeoutError:
-                    logging.info("Job {} has been killed".format(identifier))
-                    while not self.__jobs[identifier]["future"].done():
-                        time.sleep(1)
-        else:
-            logging.debug("Job '{}' is not running, so it cannot be canceled".format(identifier))
+        return
 
     @abc.abstractmethod
-    def cancel_task(self, identifier):
+    def cancel_task(self, identifier, future):
         """
         Stop task solution.
+
         :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
-        if identifier in self.__tasks and "future" in self.__tasks[identifier] \
-                and not self.__tasks[identifier]["future"].done():
-            logging.debug("Cancel task '{}'".format(identifier))
-            self.__tasks[identifier]["future"].cancel()
-        else:
-            logging.debug("Task '{}' is not running, so it cannot be canceled".format(identifier))
+        return
 
     @abc.abstractmethod
     def terminate(self):
         """
-        Abort solution of all running tasks and any other actions before
-        termination.
+        Abort solution of all running tasks and any other actions before termination.
         """
         # Stop tasks
         for task_id in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"]
-                        in ["PENDING", "PROCESSING"]]:
-            self.cancel_task(task_id)
+                        in ["PENDING", "PROCESSING"] and 'future' in self.__tasks[task_id]]:
+            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
         # stop jobs
         for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"]
                         in ["PENDING", "PROCESSING"] and "future" in self.__jobs[job_id]]:
-            self.cancel_job(job_id)
+            self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
     @abc.abstractmethod
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes and
-        push it to the server.
+        Update statuses and configurations of available nodes and push it to the server.
+
         :return: Return True if nothing has changes
         """
         return True
@@ -526,9 +582,49 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_tools(self):
         """
-        Generate dictionary with verification tools available and
-        push it to the verification gate.
+        Generate dictionary with verification tools available and push it to the verification gate.
         """
         return
+
+    def __process_future(self, handler, item, identifier):
+        try:
+            item["status"] = handler(identifier, item["future"])
+            logging.debug("Task {} new status is {}".format(identifier, item["status"]))
+            if item["status"] not in ["FINISHED", "ERROR"]:
+                raise ValueError("Scheduler got non-finished status {} for finished task {}".
+                                 format(item["status"], identifier))
+        except SchedulerException as err:
+            logging.error("Cannot process results of task {}: {}".format(identifier, err))
+            item["status"] = "ERROR"
+            item["error"] = err
+
+    def __attempts(self, handler, attempts, action, args):
+        result = None
+        error = None
+        while attempts > 0:
+            try:
+                logging.info("Try to {}".format(action))
+                result = handler(*args)
+                break
+            except Exception as err:
+                logging.error("Failed to {}: {}".format(action, err))
+                time.sleep(30)
+                attempts -= 1
+                error = err
+        if attempts == 0 and error:
+            raise SchedulerException(error)
+
+        return result
+
+    def __report_error_server_state(self, server_state, message):
+        # Save server state file
+        state_file_name = time.strftime("%d-%m-%Y %H:%M:%S server state.json")
+        error_file = os.path.join(os.path.curdir, state_file_name)
+        with open(error_file, 'w') as outfile:
+            json.dump(server_state, outfile, ensure_ascii=False, sort_keys=True, indent=4)
+
+        # Raise an exception
+        raise RuntimeError("Received invalid server state (printed at {!r}): {!r}".
+                           format(os.path.abspath(error_file), message))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

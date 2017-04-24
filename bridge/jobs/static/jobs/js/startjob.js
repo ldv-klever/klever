@@ -1,3 +1,20 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 function set_actions_for_scheduler_user() {
     $('.for_popup').popup();
     function check_sch_u_data() {
@@ -85,7 +102,6 @@ function set_actions_for_scheduler_user() {
 
 $(document).ready(function () {
     $('.note-popup').popup();
-    $('#job_light_popup').popup();
 
     function collect_data() {
         return {
@@ -121,7 +137,7 @@ $(document).ready(function () {
                     $('#allow_localdir_checkbox').is(':checked'),
                     $('#ignore_core_checkbox').is(':checked'),
                     $('#ignore_failed_sub_jobs_checkbox').is(':checked'),
-                    $('#is_job_light').is(':checked')
+                    $('input[name=job_weight]:checked').val()
                 ]
             ]),
             job_id: $('#job_pk').val()

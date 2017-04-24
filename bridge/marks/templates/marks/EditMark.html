@@ -13,18 +13,9 @@
         <div class="ui grid">
             <div class="seven wide column">
                 <div class="ui small icon buttons top attached">
-                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button normal-popup"><i class="download icon"></i></a>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Download' %}</p>
-                    </div>
-                    <button id="edit_mark_versions" type="button" class="ui brown button normal-popup"><i class="recycle icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete versions' %}</p>
-                    </div>
-                    <button id="show_remove_mark_popup" type="button" class="ui red button normal-popup"><i class="remove icon"></i></button>
-                    <div class="ui popup">
-                        <p style="white-space: nowrap">{% trans 'Delete' %}</p>
-                    </div>
+                    <a href="{% url 'marks:download_mark' type mark.pk %}" class="ui olive button note-popup" data-position="bottom center" data-content="{% trans 'Download' %}"><i class="download icon"></i></a>
+                    <button id="edit_mark_versions" type="button" class="ui brown button note-popup" data-position="bottom center" data-content="{% trans 'Delete versions' %}"><i class="recycle icon"></i></button>
+                    <button id="show_remove_mark_popup" type="button" class="ui red button note-popup" data-position="bottom center" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
                 </div>
                 <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
                 <input id="mark_type" type="hidden" value="{{ type }}">
@@ -56,7 +47,7 @@
                         {% if first_version.author %}
                             <tr>
                                 <th class="right aligned">{% trans 'Author' %}</th>
-                                <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.extended.last_name }} {{ first_version.author.extended.first_name }}</a></td>
+                                <td><a class="violet-link" href="{% url 'users:show_profile' first_version.author.pk %}">{{ first_version.author.get_full_name }}</a></td>
                             </tr>
                         {% endif %}
                         <tr>
@@ -70,7 +61,7 @@
                                     {% endtimezone %}
                                 {% endif %}
                                 {% if version.author %}
-                                    (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.extended.last_name }} {{ version.author.extended.first_name }}</a>)
+                                    (<a class="violet-link" href="{% url 'users:show_profile' version.author.pk %}">{{ version.author.get_full_name }}</a>)
                                 {% endif %}
                                 {% if version.comment|length %}
                                     <p><span class="italic">{% trans 'Comment' %}:</span> <small>"{{ version.comment }}"</small></p>
@@ -100,7 +91,7 @@
                                             {% if v.href %}
                                                 <a href="{{ v.href }}">{{ v.value }}</a>
                                             {% else %}
-                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="simple-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
+                                                <span{% if v.color %} style="color:{{ v.color }}"{% endif %}{% if v.comment %} class="note-popup" data-content="{{ v.comment }}"{% endif %}>{{ v.value }}</span>
                                             {% endif %}
                                         </td>
                                     {% endfor %}
@@ -137,7 +128,8 @@
                 <label for="edit_mark_comment"></label>
                 <div class="ui action input fluid">
                     <input id="edit_mark_comment" type="text" placeholder="{% trans 'Comment' %}">
-                    <button id="save_mark_btn" style="float: right" class="ui green button">{% trans 'Save' %}</button>
+                    <button id="save_mark_btn" style="float:right" class="ui green button">{% trans 'Save' %}</button>
+                    <a href="{% url 'marks:view_mark' type mark.pk %}" class="ui blue button">{% trans 'Cancel' %}</a>
                 </div>
             </div>
         </div>
@@ -156,7 +148,7 @@
         <div class="actions">
             <div class="ui center aligned grid">
                 <button id="cancel_remove_mark" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <a href="{% url 'marks:delete_mark' type mark.pk %}" class="ui red basic inverted button">{% trans 'Delete' %}</a>
+                <a href="{% url 'marks:delete_mark' type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui red basic inverted button">{% trans 'Delete' %}</a>
             </div>
         </div>
     </div>

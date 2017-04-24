@@ -1,15 +1,33 @@
+/*
+ * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+ * Institute for System Programming of the Russian Academy of Sciences
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * ee the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 $(document).ready(function () {
     $('.for_popup').popup();
     function check_sch_u_data() {
         var err_found = false, login = $('#scheduler_login'),
             password = $('#scheduler_password'),
             password_retype = $('#scheduler_password_retype'),
-            confirm = $('#submit_settings');
-        if (login.val().length == 0 && $('#sch_user_delete_warn').length) {
-            $('#sch_user_delete_warn').show();
+            confirm = $('#submit_settings'),
+            sch_user_del_warn =  $('#sch_user_delete_warn');
+        if (login.val().length == 0 && sch_user_del_warn.length) {
+            sch_user_del_warn.show();
         }
         else {
-            $('#sch_user_delete_warn').hide();
+            sch_user_del_warn.hide();
             if (password.val().length == 0) {
                 err_found = true;
                 $('#sch_u_password_warn').show();

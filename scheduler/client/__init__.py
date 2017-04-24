@@ -1,10 +1,28 @@
+#
+# Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 import glob
 import json
 import logging
 import os
 import re
 import sys
-import tarfile
+import zipfile
+import signal
 from xml.etree import ElementTree
 from xml.dom import minidom
 
@@ -17,8 +35,8 @@ def solve_job(conf):
     conf = utils.common_initialization("Job executor client", conf)
 
     logging.debug("Create job configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -53,17 +71,21 @@ def solve_job(conf):
     else:
         bin = conf["client"]["Klever Core path"]
 
+    # Do it to make it possible to use runexec inside Klever
+    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
+
     # Check existence of the file
     logging.info("Going to use Klever Core from {}".format(bin))
     if not os.path.isfile(bin):
         raise FileExistsError("There is no Klever Core executable script {}".format(bin))
 
     # Save Klever Core configuration to default configuration file
-    with open("core.json", "w", encoding="ascii") as fh:
-        json.dump(conf["Klever Core conf"], fh, sort_keys=True, indent=4)
+    with open("core.json", "w", encoding="utf8") as fh:
+        json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Import RunExec
     executor = RunExecutor()
+    set_signal_handler(executor)
 
     # Check resource limitations
     if not conf["resource limits"]["CPU time"]:
@@ -86,6 +108,13 @@ def solve_job(conf):
     # TODO: How to choose proper CPU core numbers?
 
     logging.info("Run Klever Core {}".format(bin))
+    # Do this for deterministic python in job
+    os.environ['PYTHONHASHSEED'] = "0"
+    os.environ['PYTHONIOENCODING'] = "utf8"
+    os.environ['LC_LANG'] = "en_US"
+    os.environ['LC_ALL'] = "en_US.UTF8"
+    os.environ['LC_C'] = "en_US.UTF8"
+
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -103,8 +132,8 @@ def solve_task(conf):
     conf = utils.common_initialization("Task executor client", conf)
 
     logging.debug("Create task configuration file \"conf.json\"")
-    with open("conf.json", "w", encoding="ascii") as fp:
-        json.dump(conf, fp, sort_keys=True, indent=4)
+    with open("conf.json", "w", encoding="utf8") as fp:
+        json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
     # Check configuration
     logging.info("Check configuration consistency")
@@ -118,15 +147,15 @@ def solve_task(conf):
     sys.path.append(bench_exec_location)
     from benchexec.benchexec import BenchExec
 
-    # Add CPAchecker path
-    if "cpachecker location" in conf["client"]:
-        logging.info("Add CPAchecker bin location to path {}".format(conf["client"]["cpachecker location"]))
-        os.environ["PATH"] = "{}:{}".format(conf["client"]["cpachecker location"], os.environ["PATH"])
-        logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
-    else:
-        raise KeyError("Provide configuration option 'client''cpachecker location' as path to CPAchecker executables")
+    # Add verifiers path
+    tool = conf['verifier']['name']
+    version = conf['verifier']['version']
+    path = conf['client']['verification tools'][tool][version]
+    logging.info("Add {!r} of version {!r} bin location {!r} to PATH".format(tool, version, path))
+    os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     benchexec = BenchExec()
+    set_signal_handler(benchexec)
 
     # Check resource limitations
     if "CPU time" not in conf["resource limits"]:
@@ -145,9 +174,9 @@ def solve_task(conf):
     logging.info("Download task")
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
-    server.pull_task(conf["identifier"], "task files.tar.gz")
-    with tarfile.open("task files.tar.gz") as tar:
-        tar.extractall()
+    server.pull_task(conf["identifier"], "task files.zip")
+    with zipfile.ZipFile('task files.zip') as zfp:
+        zfp.extractall()
 
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
@@ -166,14 +195,14 @@ def solve_task(conf):
     # TODO: in this case verifier is invoked per each such file rather than per all of them.
     for file in conf["files"]:
         ElementTree.SubElement(tasks, "include").text = file
-    with open("benchmark.xml", "w", encoding="ascii") as fp:
+    with open("benchmark.xml", "w", encoding="utf8") as fp:
         fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
 
-    os.makedirs("output")
+    os.makedirs("output".encode("utf8"))
 
     # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
     # around its binary.
-    os.symlink(os.path.join(conf["client"]["cpachecker location"], os.pardir, 'config'), 'config')
+    os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
@@ -188,6 +217,9 @@ def solve_task(conf):
     # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
     statuses_map = {
         'false(reach)': 'unsafe',
+        'false(valid-free)': 'unsafe',
+        'false(valid-deref)': 'unsafe',
+        'false(valid-memtrack)': 'unsafe',
         'true': 'safe',
         'EXCEPTION': 'error',
         'ERROR': 'error',
@@ -222,17 +254,18 @@ def solve_task(conf):
                     else:
                         decision_results["status"] = value
     # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
-    with open("decision results.json", "w", encoding="ascii") as fp:
-        json.dump(decision_results, fp, sort_keys=True, indent=4)
+    with open("decision results.json", "w", encoding="utf8") as fp:
+        json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    with tarfile.open("decision result files.tar.gz", "w:gz") as tar:
-        tar.add("decision results.json")
-        for file in glob.glob("output/*"):
-            tar.add(file)
+    with zipfile.ZipFile('decision result files.zip', mode='w') as zfp:
+        zfp.write("decision results.json")
+        for dirpath, dirnames, filenames in os.walk("output"):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename))
         if conf["upload input files of static verifiers"]:
-            tar.add("benchmark.xml")
+            zfp.write("benchmark.xml")
 
-    server.submit_solution(conf["identifier"], decision_results, "decision result files.tar.gz")
+    server.submit_solution(conf["identifier"], decision_results, "decision result files.zip")
 
     return exit_code
 
@@ -253,6 +286,22 @@ def split_archive_name(path):
         extension = split[1] + extension
 
     return name, extension
+
+
+def set_signal_handler(executor):
+    """
+    Set custom sigterm handler in order to terminate job/task execution with all process group.
+
+    :param executor: Object which corresponds RunExec or BenchExec. Should have method stop().
+    :return: None
+    """
+    def handler(a, b):
+        logging.info("Trying to kill the task")
+        executor.stop()
+        exit(-1)
+
+    # Set custom handler
+    signal.signal(signal.SIGTERM, handler)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -1,21 +1,19 @@
 {
   "Linux kernel": {
-    "source": "linux-3.5.tar.bz2",
+    "source": "linux-3.14",
     "configuration": "allmodconfig",
     "modules": ["drivers/net/usb/kaweth.ko"]
   },
   "LKVOG strategy": {"name": "separate modules"},
   "maximum verification object size": 30000,
   "rule specifications DB": "rule specs.json",
-  "rule specifications": ["linux:alloc:spin lock", "linux:mutex", "linux:module"],
-  "unite rule specifications": false,
-  "RSG strategy": "instrumentation",
+  "specifications set": "Linux 3.14 (base)",
+  "rule specifications": ["linux:alloc:spinlock", "linux:kernel:locking:mutex", "linux:kernel:module"],
   "VTG strategy": {
-    "name": "single bug type",
+    "name": "rule specification bugs",
     "verifier": {
       "name": "CPAchecker",
-      "version": "20376",
-      "options": [{"-ldv": ""}]
+      "version": "ldv-bam:24572"
     },
     "resource limits": {
       "wall time": 1000000,
