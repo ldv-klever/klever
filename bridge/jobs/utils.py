@@ -30,7 +30,7 @@ from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMA
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
-from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
+from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile
 from users.notifications import Notify
 from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
 from service.models import SchedulerUser, Scheduler
@@ -107,8 +107,7 @@ TITLES = {
     'progress': _('Progress of job decision'),
     'solutions': _('Number of task decisions'),
     'average_time': _('Average time before finishing decision (all jobs)'),
-    'local_average_time': _('Average time before finishing decision (just this jobs)'),
-    'max_time': _('Maximum time before finishing decision')
+    'local_average_time': _('Average time before finishing decision (just this jobs)')
 }
 
 
@@ -923,7 +922,6 @@ def get_job_progress(user, job):
     progress = '-'
     average_time = '-'
     local_average_time = '-'
-    max_time = '-'
     if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
         total_tasks = job.reportroot.tasks_total
         solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
@@ -938,8 +936,4 @@ def get_job_progress(user, job):
                 user, (total_tasks - solved_tasks) * TaskStatistic.objects.get_or_create()[0].average_time
             )
             local_average_time = get_user_time(user, (total_tasks - solved_tasks) * job.reportroot.average_time)
-            with RunHistory.objects.filter(job=job).order_by('id').last().configuration.file as fp:
-                time_limit = json.loads(fp.read().decode('utf8'))['resource limits']['CPU time']
-            if isinstance(time_limit, int):
-                max_time = get_user_time(user, time_limit * (total_tasks - solved_tasks))
-    return progress, average_time, local_average_time, max_time
+    return progress, average_time, local_average_time

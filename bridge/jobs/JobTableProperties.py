@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
 from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT
 from users.models import View
-from jobs.models import Job, JobHistory, UserRole, RunHistory
+from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
     TaskStatistic
@@ -79,7 +79,7 @@ def all_user_columns():
         'problem', 'problem:total', 'resource', 'tag', 'tag:safe', 'tag:unsafe', 'identifier', 'format', 'version',
         'type', 'parent_id', 'priority', 'start_date', 'finish_date', 'solution_wall_time', 'operator', 'tasks_pending',
         'tasks_processing', 'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions', 'progress',
-        'average_time', 'local_average_time', 'max_time'
+        'average_time', 'local_average_time'
     ])
     return columns
 
@@ -755,14 +755,6 @@ class TableTree:
                     self._values_data[root.job_id]['local_average_time'] = get_user_time(
                         self._user, (total_tasks - solved_tasks) * root.average_time
                     )
-                    if 'max_time' in self._columns:
-                        # TODO: optimize it
-                        with RunHistory.objects.filter(job=root.job_id).order_by('id').last().configuration.file as fp:
-                            time_limit = json.loads(fp.read().decode('utf8'))['resource limits']['CPU time']
-                        if isinstance(time_limit, int):
-                            self._values_data[root.job_id]['max_time'] = get_user_time(
-                                self._user, time_limit * (total_tasks - solved_tasks)
-                            )
 
     def __collect_authors(self):
         for j in Job.objects.filter(id__in=self._job_ids) \

@@ -1159,7 +1159,6 @@ $(document).ready(function () {
                         $('#progress_val').text(progress_data[0]);
                         $('#average_time').text(progress_data[1]);
                         $('#local_average_time').text(progress_data[2]);
-                        $('#max_time').text(progress_data[3]);
                     }
                     num_of_updates++;
                     if (num_of_updates > 60) {
