@@ -357,22 +357,24 @@ class ErrorTrace:
                                 raise ValueError('Auxiliary/model function definition does not exist')
 
                             # Deal with functions referenced by witness.
-                            for func_id, ref_func_name in self.functions:
-                                if ref_func_name == func_name:
-                                    if kind == 'AUX_FUNC':
-                                        self.add_aux_func(func_id, False, formal_arg_names)
-                                        self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
-                                                           format(func_name, file, line))
-                                    elif kind == 'AUX_FUNC_CALLBACK':
-                                        self.add_aux_func(func_id, True, formal_arg_names)
-                                        self._logger.debug("Get auxiliary function '{0}' for callback from '{1}:{2}'".
-                                                           format(func_name, file, line))
-                                    else:
-                                        self._model_funcs[func_id] = comment
-                                        self._logger.debug("Get note '{0}' for model function '{1}' from '{2}:{3}'".
-                                                           format(comment, func_name, file, line))
+                            try:
+                                func_id = self.resolve_function_id(func_name)
+                            except ValueError:
+                                self.add_function(func_name)
+                                func_id = self.resolve_function_id(func_name)
 
-                                    break
+                            if kind == 'AUX_FUNC':
+                                self.add_aux_func(func_id, False, formal_arg_names)
+                                self._logger.debug("Get auxiliary function '{0}' from '{1}:{2}'".
+                                                   format(func_name, file, line))
+                            elif kind == 'AUX_FUNC_CALLBACK':
+                                self.add_aux_func(func_id, True, formal_arg_names)
+                                self._logger.debug("Get auxiliary function '{0}' for callback from '{1}:{2}'".
+                                                   format(func_name, file, line))
+                            else:
+                                self._model_funcs[func_id] = comment
+                                self._logger.debug("Get note '{0}' for model function '{1}' from '{2}:{3}'".
+                                                   format(comment, func_name, file, line))
                         else:
                             if file_id not in self._notes:
                                 self._notes[file_id] = dict()
