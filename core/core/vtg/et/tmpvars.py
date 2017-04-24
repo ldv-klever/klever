@@ -175,8 +175,12 @@ def __remove_tmp_vars(error_trace, edge):
         #   tmp... = func(...);
         #   ... gunc(... tmp... ...);
         # since it requires two entered functions from one edge.
-        if 'enter' in tmp_var_use_edge and tmp_var_decl_id in unused_tmp_var_decl_ids:
-            unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
+        if 'enter' in tmp_var_use_edge:
+            # Do not assume that each temporary variable is used only once. This isn't the case when they are used
+            # within cycles. That's why do not require temporary variable to be in list of temporary variables to be
+            # removed - it can be withdrawn from this list on previous cycle iteration.
+            if tmp_var_decl_id in unused_tmp_var_decl_ids:
+                unused_tmp_var_decl_ids.remove(tmp_var_decl_id)
         else:
             m = re.search(r'^(.*){0}(.*)$'.format(tmp_var_name), tmp_var_use_edge['source'])
 
