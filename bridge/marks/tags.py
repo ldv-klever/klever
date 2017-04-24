@@ -40,6 +40,8 @@ def can_create_tag_child(user, parent):
         return False
     if user.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
         return True
+    if parent is None:
+        return False
     if parent.author.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]} \
             and parent.children.filter(author__extended__role__in={USER_ROLES[2][0], USER_ROLES[3][0]}).count() == 0:
         return True
@@ -359,7 +361,8 @@ class TagsInfo:
 
 
 class CreateTagsFromFile:
-    def __init__(self, fp, tags_type, population=False):
+    def __init__(self, user, fp, tags_type, population=False):
+        self.user = user
         self.fp = fp
         self.tags_type = tags_type
         self.number_of_created = 0
@@ -405,6 +408,7 @@ class CreateTagsFromFile:
                         created_tags[tag_name] = tag_table[self.tags_type].objects.get(tag=tag_name)
                     except ObjectDoesNotExist:
                         created_tags[tag_name] = tag_table[self.tags_type].objects.create(
+                            author=self.user,
                             tag=tag_name,
                             parent=created_tags[newtags[tag_name]['parent']],
                             description=newtags[tag_name]['description'],

@@ -748,7 +748,7 @@ def upload_tags(request):
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tag(request.user):
-        return JsonResponse({'error': str(_("You don't have an access to create tags"))})
+        return JsonResponse({'error': str(_("You don't have an access to upload tags"))})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     fp = None
@@ -757,7 +757,7 @@ def upload_tags(request):
     if fp is None:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        CreateTagsFromFile(fp, request.POST['tags_type'])
+        CreateTagsFromFile(request.user, fp, request.POST['tags_type'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
