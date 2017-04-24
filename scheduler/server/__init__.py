@@ -86,5 +86,12 @@ class AbstractServer(metaclass=abc.ABCMeta):
         """
         return
 
+    @abc.abstractmethod
+    def stop(self):
+        """
+        Log out if necessary.
+        """
+        return
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

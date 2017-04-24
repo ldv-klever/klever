@@ -439,6 +439,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             except KeyboardInterrupt:
                 logging.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
+                self.server.stop()
                 exit(137)
             except Exception:
                 exception_info = 'An error occured:\n{}'.format(traceback.format_exc().rstrip())
@@ -449,6 +450,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     time.sleep(30)
                     self.init_scheduler()
                 else:
+                    self.server.stop()
                     exit(1)
 
     @abc.abstractmethod

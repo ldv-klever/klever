@@ -319,4 +319,10 @@ class Server(server.AbstractServer):
         with open(os.path.join(self.work_dir, "tools.json"), "w", encoding="utf8") as fh:
             fh.write(tool_desc)
 
+    def stop(self):
+        """
+        Log out if necessary.
+        """
+        return
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
