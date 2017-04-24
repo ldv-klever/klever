@@ -20,12 +20,12 @@ import re
 import json
 from types import FunctionType
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
-from bridge.utils import file_get_or_create, logger, unique_id
+from bridge.utils import file_get_or_create, unique_id, BridgeException
 from users.models import Extended
 from jobs.utils import create_job
 from jobs.models import Job, JobFile
@@ -50,10 +50,6 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.first_name = 'Firstname'
         user.last_name = 'Lastname'
         user.save()
-
-
-class PopulationError(Exception):
-    pass
 
 
 class Population(object):
@@ -126,7 +122,7 @@ class Population(object):
             try:
                 return Extended.objects.filter(role=USER_ROLES[2][0])[0].user
             except IndexError:
-                raise PopulationError('There are no managers in the system')
+                raise BridgeException('There are no managers in the system')
         try:
             manager = User.objects.get(username=manager_username)
         except ObjectDoesNotExist:
@@ -166,8 +162,6 @@ class Population(object):
             'author': self.manager,
             'global_role': JOB_ROLES[1][0],
         }
-        if not isinstance(args['author'], User):
-            return
         for i in range(len(JOB_CLASSES)):
             try:
                 Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
@@ -183,28 +177,28 @@ class Population(object):
         default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
-                raise PopulationError('There is default job without settings file (%s)' % jobdir)
+                raise BridgeException('There is default job without settings file (%s)' % jobdir)
             with open(os.path.join(jobdir, JOB_SETTINGS_FILE), encoding='utf8') as fp:
                 try:
                     job_settings = json.load(fp)
                 except Exception as e:
-                    raise PopulationError('The default job settings file is wrong json: %s' % e)
+                    raise BridgeException('The default job settings file is wrong json: %s' % e)
             if any(x not in job_settings for x in ['name', 'class', 'description']):
-                raise PopulationError(
+                raise BridgeException(
                     'Default job settings must contain name, class and description. Job in "%s" has %s' % (
                         jobdir, str(list(job_settings))
                     )
                 )
             if job_settings['class'] not in list(x[0] for x in JOB_CLASSES):
-                raise PopulationError(
+                raise BridgeException(
                     'Default job class is wrong: %s. See bridge.vars.JOB_CLASSES for choice.' % job_settings['class']
                 )
             if len(job_settings['name']) == 0:
-                raise PopulationError('Default job name is required')
+                raise BridgeException('Default job name is required')
             try:
                 parent = Job.objects.get(parent=None, type=job_settings['class'])
             except ObjectDoesNotExist:
-                raise PopulationError(
+                raise BridgeException(
                     "Main jobs were not created (can't find main job with class %s)" % job_settings['class']
                 )
             job = create_job({
@@ -231,11 +225,8 @@ class Population(object):
                     continue
                 self.cnt += 1
                 if os.path.isfile(f):
-                    try:
-                        with open(f, mode='rb') as fp:
-                            check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
-                    except Exception as e:
-                        raise PopulationError('One of the job files was not uploaded (%s): %s' % (f, e))
+                    with open(f, mode='rb') as fp:
+                        check_sum = file_get_or_create(fp, base_f, JobFile, True)[1]
                     fdata.append({
                         'id': self.cnt,
                         'parent': self.dir_info[parent_name] if parent_name in self.dir_info else None,
@@ -261,7 +252,7 @@ class Population(object):
         for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
             component = os.path.basename(component_dir)
             if not 0 < len(component) <= 15:
-                logger.error('Wrong component length: "%s". 1-15 is allowed.' % component, stack_info=True)
+                raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
             for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
                 data = None
                 with open(mark_settings, encoding='utf8') as fp:
@@ -274,11 +265,11 @@ class Population(object):
                             with open(path_to_json, encoding='utf8') as fp2:
                                 data = json.load(fp2)
                         except Exception:
-                            raise PopulationError("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                            raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
                                 e, os.path.relpath(mark_settings, presets_dir)
                             ))
                 if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    raise PopulationError('Wrong unknown mark data format: %s' % mark_settings)
+                    raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
                 try:
                     re.compile(data['function'])
                 except re.error:
@@ -293,7 +284,7 @@ class Population(object):
                     data['is_modifiable'] = True
                 if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
                         or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
-                    raise PopulationError('Wrong unknown mark data: %s' % mark_settings)
+                    raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
                 try:
                     MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
                 except ObjectDoesNotExist:
@@ -310,6 +301,8 @@ class Population(object):
                     )
                     ConnectMarkWithReports(mark)
                     self.changes['marks'] = True
+                except MultipleObjectsReturned:
+                    raise Exception('There are similar unknown marks in the system')
 
     def __populate_tags(self):
         self.changes['tags'] = []
@@ -328,13 +321,12 @@ class Population(object):
         self.ccc = 0
         preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
         if not os.path.isfile(preset_tags):
-            logger.error('The preset tags file "%s" was not found' % preset_tags)
             return 0
         with open(preset_tags, mode='rb') as fp:
             try:
                 res = CreateTagsFromFile(fp, tag_type, True)
             except Exception as e:
-                raise PopulationError("Error while creating tags: %s" % str(e))
+                raise BridgeException("Error while creating tags: %s" % str(e))
             return res.number_of_created
 
     def __is_not_used(self):
