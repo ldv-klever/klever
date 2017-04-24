@@ -731,7 +731,7 @@ class TableTree:
         solving_jobs = set(j.id for j in Job.objects.filter(
             id__in=self._job_ids, status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]
         ))
-        for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress)).select_related('user'):
+        for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress)).select_related('user', 'job'):
             self._values_data[root.job_id]['operator'] = (
                 root.user.get_full_name(),
                 reverse('users:show_profile', args=[root.user_id])
@@ -741,20 +741,30 @@ class TableTree:
                 solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
                     self._values_data[root.job_id]['tasks_finished']
                 progress = '-'
-                if total_tasks > 0:
+                if root.job.status != JOB_STATUS[2][0]:
+                    progress = '-'
+                elif total_tasks > 0:
                     curr_progress = int(solved_tasks / total_tasks * 100)
                     if curr_progress < 100:
                         progress = '%s%%' % curr_progress
                 else:
                     progress = '0%'
-                if progress != '-' and total_tasks > solved_tasks:
+                if progress == '-':
+                    self._values_data[root.job_id].update({
+                        'progress': '-', 'average_time': '-', 'local_average_time': '-',
+                    })
+                else:
                     self._values_data[root.job_id]['progress'] = progress
-                    self._values_data[root.job_id]['average_time'] = get_user_time(
-                        self._user, (total_tasks - solved_tasks) * stat_average_time
-                    )
-                    self._values_data[root.job_id]['local_average_time'] = get_user_time(
-                        self._user, (total_tasks - solved_tasks) * root.average_time
-                    )
+                    atime = (total_tasks - solved_tasks) * stat_average_time
+                    if atime <= 0:
+                        self._values_data[root.job_id]['average_time'] = '-'
+                    else:
+                        self._values_data[root.job_id]['average_time'] = get_user_time(self._user, atime)
+                    local_atime = (total_tasks - solved_tasks) * root.average_time
+                    if local_atime <= 0:
+                        self._values_data[root.job_id]['local_average_time'] = '-'
+                    else:
+                        self._values_data[root.job_id]['local_average_time'] = get_user_time(self._user, local_atime)
 
     def __collect_authors(self):
         for j in Job.objects.filter(id__in=self._job_ids) \

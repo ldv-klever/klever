@@ -551,7 +551,7 @@ class UploadReport:
             tasks_total = (tnums.avtg_total - tnums.avtg_fail - tnums.vtg_fail) * tnums.bt_total / tnums.bt_num
         if tasks_total < 0:
             tasks_total = 0
-        self.root.tasks_total = tasks_total
+        self.root.tasks_total = int(tasks_total)
         self.root.save()
 
     def __attr_children(self, name, val):
