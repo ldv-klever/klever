@@ -301,7 +301,7 @@ class UploadReport:
             tasks_nums.vtg_fail = int(report_data[VTG_FAIL_NAME])
             tasks_nums.save()
             self.__save_total_tasks_number(tasks_nums)
-        elif report.component.name in {'SBT', 'MBT', 'RSB'} and BT_TOTAL_NAME in report_data:
+        elif report.component.name == 'RSB' and BT_TOTAL_NAME in report_data:
             tasks_nums = TasksNumbers.objects.get_or_create(root=self.root)[0]
             tasks_nums.bt_total += int(report_data[BT_TOTAL_NAME])
             tasks_nums.bt_num += 1
