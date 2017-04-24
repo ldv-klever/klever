@@ -929,7 +929,7 @@ def get_job_progress(user, job):
         if total_tasks > 0:
             curr_progress = int(solved_tasks / total_tasks * 100)
             if curr_progress < 100:
-                progress = '%s%%' % curr_progress
+                progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
         else:
             progress = '0%'
         if progress != '-' and total_tasks > solved_tasks:
