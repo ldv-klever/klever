@@ -287,10 +287,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
                             # Then terminate all pending and processing tasks for the job
-                            for task_id in [task_id for task_id in self.__tasks
-                                            if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
-                                            self.__tasks[task_id]["description"]["job id"] == job_id]:
-                                self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+                            self.__cancel_job_tasks(job_id)
 
                     del self.__jobs[job_id]
 
@@ -352,6 +349,10 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"] and
                                "future" in self.__jobs[job_id] and self.__jobs[job_id]["future"].done()]:
                     self.__process_future(self.process_job_result, self.__jobs[job_id], job_id)
+
+                    if self.__jobs[job_id]["status"] == "ERROR":
+                        # Then terminate all pending and processing tasks for the job
+                        self.__cancel_job_tasks(job_id)
 
                 # Submit tools
                 try:
@@ -615,6 +616,12 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             raise SchedulerException(error)
 
         return result
+
+    def __cancel_job_tasks(self, job_id):
+        for task_id in [task_id for task_id in self.__tasks
+                        if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
+                        self.__tasks[task_id]["description"]["job id"] == job_id]:
+            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
 
     def __report_error_server_state(self, server_state, message):
         # Save server state file
