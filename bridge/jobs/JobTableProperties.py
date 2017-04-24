@@ -741,7 +741,7 @@ class TableTree:
                 solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
                     self._values_data[root.job_id]['tasks_finished']
                 progress = '-'
-                if root.job.status != JOB_STATUS[2][0]:
+                if root.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
                     progress = '-'
                 elif total_tasks > 0:
                     curr_progress = int(solved_tasks / total_tasks * 100)
