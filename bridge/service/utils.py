@@ -19,226 +19,210 @@ import json
 from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
-from django.db.models import Q
+from django.db.models import F
 from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
-from bridge.utils import file_checksum, logger
-from jobs.models import RunHistory
-from jobs.utils import JobAccess, File, change_job_status
-from reports.models import ReportRoot, ReportUnknown, ReportComponent, TaskStatistic
+from bridge.utils import file_checksum, logger, BridgeException
+from jobs.models import RunHistory, JobFile
+from jobs.utils import JobAccess, change_job_status
+from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
 from service.models import *
 
 
-# Case 3.1(3) DONE
-class ScheduleTask(object):
+class ServiceError(Exception):
+    pass
+
+
+class ScheduleTask:
     def __init__(self, job_id, description, archive):
-        self.error = None
-        self.job = self.__get_job(job_id)
-        if self.error is not None:
-            return
         try:
-            priority = json.loads(description)['priority']
-        except Exception as e:
-            logger.exception("Json parsing error: %s" % e, stack_info=True)
-            self.error = 'Wrong description format'
-            return
-        if priority not in list(x[0] for x in PRIORITY):
-            self.error = "Wrong priority"
-            return
-        try:
-            self.progress = self.job.solvingprogress
+            self.progress = SolvingProgress.objects\
+                .annotate(job_status=F('job__status'), sch_status=F('scheduler__status'))\
+                .get(job_id=job_id)
         except ObjectDoesNotExist:
-            self.error = 'Solving progress of the job was not found'
-            return
-        if self.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
-        if self.progress.scheduler.status == SCHEDULER_STATUS[2][0]:
-            self.error = 'The scheduler for tasks is disconnected'
-            return
-        if self.error is not None:
-            return
+            raise ServiceError('Solving progress of the job was not found')
+        self.description = description
+        try:
+            priority = json.loads(self.description)['priority']
+        except Exception:
+            raise ServiceError('Wrong description format')
+        if priority not in set(x[0] for x in PRIORITY):
+            raise ServiceError('Wrong priority')
+        if self.progress.job_status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
+        if self.progress.sch_status == SCHEDULER_STATUS[2][0]:
+            raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
-            self.error = 'Priority of the task is too big'
-            return
-        self.task_id = self.__create_task(description, archive)
+            raise ServiceError('Priority of the task is too big')
+        self.task_id = self.__create_task(archive)
 
-    def __get_job(self, job_id):
-        try:
-            return Job.objects.get(pk=int(job_id))
-        except ObjectDoesNotExist:
-            self.error = 'Job was not found was not found' % job_id
-            return
-        except ValueError:
-            self.error = 'Unknown error'
-            return
-
-    def __create_task(self, description, archive):
-        task = Task.objects.create(progress=self.progress, archname=archive.name,
-                                   archive=archive, description=description.encode('utf8'))
-        self.progress.tasks_total += 1
-        self.progress.tasks_pending += 1
-        self.progress.save()
-        new_description = json.loads(task.description.decode('utf8'))
-        new_description['id'] = task.pk
-        task.description = json.dumps(new_description, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-        task.save()
-        return task.pk
+    def __create_task(self, archive):
+        task = Task.objects.create(
+            progress=self.progress, archname=archive.name,
+            archive=archive, description=self.description.encode('utf8')
+        )
+        SolvingProgress.objects.filter(id=self.progress.id)\
+            .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
+        return task.id
 
 
-# Case 3.1(4) DONE
-class GetTaskStatus(object):
+class GetTaskStatus:
     def __init__(self, task_id):
-        self.error = None
         try:
-            self.task = Task.objects.get(pk=int(task_id))
+            self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
+            raise ServiceError("The task '%s' was not found" % task_id)
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
         self.status = self.task.status
 
 
-# Case 3.1(5) DONE
-class GetSolution(object):
+class GetSolution:
     def __init__(self, task_id):
-        self.error = None
         try:
-            self.task = Task.objects.get(pk=int(task_id))
+            self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
+            raise ServiceError("The task '%s' was not found" % task_id)
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
-                self.error = "The task was finished with error but doesn't have its description"
+                raise ServiceError("The task was finished with error but doesn't have its description")
         elif self.task.status == TASK_STATUS[2][0]:
-            self.solution = self.__get_solution()
+            try:
+                self.solution = Solution.objects.get(task=self.task)
+            except ObjectDoesNotExist:
+                raise ServiceError("The solution of the finished task doesn't exist")
         else:
-            self.error = 'The task is not finished'
-
-    def __get_solution(self):
-        try:
-            solution = self.task.solution
-        except ObjectDoesNotExist:
-            self.error = "The solution of the finished task doesn't exist"
-            return None
-        return solution
+            raise ServiceError('The task is not finished')
 
 
-# Case 3.1(6) DONE
-class RemoveTask(object):
+class RemoveTask:
     def __init__(self, task_id):
-        self.error = None
         try:
-            self.task = Task.objects.get(pk=int(task_id))
+            self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
+            raise ServiceError("The task '%s' was not found" % task_id)
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
         if self.task.status == TASK_STATUS[3][0]:
             if self.task.error is None:
-                self.error = "The task was finished with error but doesn't have its description"
-                return
+                raise ServiceError("The task was finished with error but doesn't have its description")
         elif self.task.status == TASK_STATUS[2][0]:
             try:
                 Solution.objects.get(task=self.task)
             except ObjectDoesNotExist:
-                self.error = "The solution of the finished task doesn't exist"
+                raise ServiceError("The solution of the finished task doesn't exist")
+        else:
+            raise ServiceError('The task is not finished')
+        self.task.delete()
+
+
+class CancelTask:
+    def __init__(self, task_id):
+        try:
+            self.task = Task.objects.get(id=task_id)
+        except ObjectDoesNotExist:
+            raise ServiceError("The task '%s' was not found" % task_id)
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
+
+        progress = SolvingProgress.objects.get(id=self.task.progress_id)
+        if self.task.status == TASK_STATUS[0][0]:
+            if progress.tasks_pending > 0:
+                progress.tasks_pending -= 1
+        elif self.task.status == TASK_STATUS[1][0]:
+            if progress.tasks_processing > 0:
+                progress.tasks_processing -= 1
+        else:
+            raise ServiceError('The task status is wrong')
+        progress.tasks_cancelled += 1
+        progress.save()
+
+        self.task.delete()
+
+
+class FinishJobDecision:
+    def __init__(self, inst, status, error=None):
+        if isinstance(inst, SolvingProgress):
+            self.progress = inst
+            self.job = self.progress.job
+        elif isinstance(inst, Job):
+            self.job = inst
+            try:
+                self.progress = SolvingProgress.objects.get(job=self.job)
+            except ObjectDoesNotExist:
+                logger.exception('The job does not have solving progress')
+                change_job_status(self.job, JOB_STATUS[5][0])
                 return
         else:
-            self.error = 'The task is not finished'
-            return
+            raise ValueError('Unsupported argument: %s' % type(inst))
+        self.error = error
+        self.status = self.__get_status(status)
         try:
-            self.task.delete()
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            self.error = 'Task was not deleted, error occured'
-
-
-# Case 3.1(7) DONE
-class CancelTask(object):
-    def __init__(self, task_id):
-        self.error = None
-        try:
-            self.task = Task.objects.get(pk=int(task_id))
-        except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
-        if self.task.status == TASK_STATUS[0][0]:
-            if self.task.progress.tasks_pending > 0:
-                self.task.progress.tasks_pending -= 1
-        elif self.task.status == TASK_STATUS[1][0]:
-            if self.task.progress.tasks_processing > 0:
-                self.task.progress.tasks_processing -= 1
-        else:
-            self.error = 'The task status is wrong'
-            return
-        try:
-            self.task.delete()
-            self.task.progress.tasks_cancelled += 1
-            self.task.progress.save()
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            self.error = 'Task was not deleted, error occured'
-
-
-# Case 3.1(8)
-class KleverCoreFinishDecision(object):
-    def __init__(self, job, error=None):
-        self.error = None
-        try:
-            self.progress = job.solvingprogress
-        except ObjectDoesNotExist:
-            self.error = "The job doesn't have solving progress"
-            change_job_status(job, JOB_STATUS[5][0])
-            return
-        self.error = None
-        for task in job.solvingprogress.task_set.all():
-            if task.status not in [TASK_STATUS[2][0], TASK_STATUS[3][0]]:
-                self.error = 'There are unfinished tasks'
-            RemoveTask(task.pk)
-        self.progress.finish_date = now()
-        if error is not None:
-            self.progress.error = error
-            change_job_status(job, JOB_STATUS[5][0])
-        elif self.error is not None:
+            self.__remove_tasks()
+        except ServiceError as e:
+            logger.exception(e)
+            self.progress.error = str(e)
+            self.status = JOB_STATUS[5][0]
+        if self.error is not None:
+            if len(self.error) > 1024:
+                logger.error("The job '%s' finished with large error: %s" % (self.job.identifier, self.error))
+                self.error = "Length of error for job '%s' is large (1024 characters is maximum)" % self.job.identifier
+                self.status = JOB_STATUS[7][0]
             self.progress.error = self.error
-            change_job_status(job, JOB_STATUS[5][0])
+        self.progress.finish_date = now()
         self.progress.save()
+        change_job_status(self.job, self.status)
+
+    def __remove_tasks(self):
+        if self.progress.job.status == JOB_STATUS[1][0]:
+            return
+        elif self.progress.job.status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
+        elif self.progress.task_set.filter(status__in={TASK_STATUS[0][0], TASK_STATUS[0][1]}).count() > 0:
+            raise ServiceError('There are unfinished tasks')
+        elif self.progress.task_set.filter(status=TASK_STATUS[3][0], error=None).count() > 0:
+            raise ServiceError('There are tasks finished with error and without error descriptions')
+        elif self.progress.task_set.filter(status=TASK_STATUS[2][0], solution=None).count() > 0:
+            raise ServiceError('There are finished tasks without solutions')
+        self.progress.task_set.all().delete()
+
+    def __get_status(self, status):
+        if status not in set(x[0] for x in JOB_STATUS):
+            raise ValueError('Unsupported status: %s' % status)
+        if status == JOB_STATUS[3][0]:
+            if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0:
+                self.error = 'There are unfinished reports'
+                return JOB_STATUS[5][0]
+            try:
+                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+            except ObjectDoesNotExist:
+                self.error = "The job doesn't have Core report"
+                return JOB_STATUS[5][0]
+            if ReportUnknown.objects\
+                    .filter(parent=core_r, component=core_r.component, root=self.progress.job.reportroot).count() > 0:
+                status = JOB_STATUS[4][0]
+        elif status == JOB_STATUS[4][0]:
+            try:
+                core_r = ReportComponent.objects.get(parent=None, root=self.progress.job.reportroot)
+            except ObjectDoesNotExist:
+                pass
+            else:
+                if ReportComponent.objects.filter(root=self.progress.job.reportroot, finish_date=None).count() > 0 \
+                        or ReportUnknown.objects.filter(parent=core_r, component=core_r.component,
+                                                        root=self.progress.job.reportroot).count() == 0:
+                    status = JOB_STATUS[7][0]
+            if self.error is None:
+                self.error = "The scheduler hasn't given an error description"
+        return status
 
 
-# Case 3.1(2)
-class KleverCoreStartDecision(object):
+class KleverCoreStartDecision:
     def __init__(self, job):
-        self.job = job
-        self.__start()
-
-    def __start(self):
         try:
-            progress = self.job.solvingprogress
+            progress = SolvingProgress.objects.get(job=job)
         except ObjectDoesNotExist:
             raise ValueError('job decision was not successfully started')
         if progress.start_date is not None:
@@ -249,389 +233,279 @@ class KleverCoreStartDecision(object):
         progress.save()
 
 
-# Case 3.4(6) DONE
-class StopDecision(object):
+class StopDecision:
     def __init__(self, job):
-        self.error = None
-        self.job = job
+        if job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            raise BridgeException(_("Only pending and processing jobs can be stopped"))
         try:
-            self.progress = self.job.solvingprogress
+            self.progress = SolvingProgress.objects.get(job=job)
         except ObjectDoesNotExist:
-            self.error = _('The job solving progress does not exist')
-            return
-        if self.progress.job.status not in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-            self.error = _("Only pending and processing jobs can be stopped")
-            return
+            raise BridgeException(_('The job solving progress does not exist'))
+
         change_job_status(job, JOB_STATUS[6][0])
         self.__clear_tasks()
 
     def __clear_tasks(self):
-        for task in self.progress.task_set.all():
-            if task.status == TASK_STATUS[1][0]:
-                self.progress.tasks_processing -= 1
-                self.progress.tasks_cancelled += 1
-            elif task.status == TASK_STATUS[0][0]:
-                self.progress.tasks_pending -= 1
-                self.progress.tasks_cancelled += 1
-            try:
-                task.delete()
-            except Exception as e:
-                logger.exception(e, stack_info=True)
+        pending_num = self.progress.task_set.filter(status=TASK_STATUS[0][0]).count()
+        processing_num = self.progress.task_set.filter(status=TASK_STATUS[1][0]).count()
+        self.progress.tasks_processing = self.progress.tasks_pending = 0
+        self.progress.tasks_cancelled += processing_num + pending_num
         self.progress.finish_date = now()
         self.progress.error = "The job was cancelled"
         self.progress.save()
+        # If there are a lot of tasks that are not still deleted it could be too long
+        # as there is request to DB for each task here (pre_delete signal)
+        self.progress.task_set.all().delete()
 
 
-# Case 3.2(2) DONE
-class GetTasks(object):
+class GetTasks:
     def __init__(self, sch_type, tasks):
-        self.error = None
-        self.scheduler = self.__get_scheduler(sch_type)
-        if self.error is not None:
-            return
-        self.data = {}
         try:
-            self.data = self.__get_tasks(tasks)
-            if self.error is not None:
-                # TODO: notify admin with email
-                logger.error(self.error, stack_info=True)
-        except KeyError or IndexError:
-            self.error = 'Wrong task data format'
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            self.error = "Unknown error"
-
-    def __get_scheduler(self, sch_type):
-        try:
-            return Scheduler.objects.get(type=sch_type)
+            self._scheduler = Scheduler.objects.get(type=sch_type)
         except ObjectDoesNotExist:
-            self.error = "The scheduler was not found"
-            return None
-
-    def __get_tasks(self, data):
-        data = json.loads(data)
-        new_data = {
-            'tasks': {
-                'pending': [],
-                'processing': [],
-                'error': [],
-                'finished': []
-            },
+            raise ServiceError('The scheduler was not found')
+        self._operators = {}
+        self._progresses = {}
+        self._tasks_statuses = {}
+        self._solution_req = set()
+        self._data = {
+            'jobs': {'pending': [], 'processing': [], 'error': [], 'finished': [], 'cancelled': []},
+            'tasks': {'pending': [], 'processing': [], 'error': [], 'finished': []},
             'task errors': {},
             'task descriptions': {},
             'task solutions': {},
-            'jobs': {
-                'pending': [],
-                'processing': [],
-                'error': [],
-                'finished': [],
-                'cancelled': []
-            },
             'job errors': {},
             'job configurations': {}
         }
-        status_map = {
-            'pending': TASK_STATUS[0][0],
-            'processing': TASK_STATUS[1][0],
-            'finished': TASK_STATUS[2][0],
-            'error': TASK_STATUS[3][0],
-            'cancelled': TASK_STATUS[4][0]
-        }
-        all_tasks = {
-            'pending': [],
-            'processing': [],
-            'error': [],
-            'finished': [],
-            'cancelled': []
-        }
-        found_ids = []
-        for task in Task.objects.filter(progress__scheduler=self.scheduler, progress__job__status=JOB_STATUS[2][0]):
-            found_ids.append(task.pk)
-            for status in status_map:
-                if status_map[status] == task.status:
-                    all_tasks[status].append(task)
-        roots_to_save = []
-        for task in all_tasks['pending']:
-            if str(task.pk) in data['tasks']['pending']:
-                new_data['tasks']['pending'].append(str(task.pk))
-                new_data = self.__add_description(task, new_data)
-                new_data = self.__add_solution(task, new_data)
-            elif str(task.pk) in data['tasks']['processing']:
-                task.status = status_map['processing']
-                task.save()
-                if task.progress.tasks_pending > 0:
-                    task.progress.tasks_pending -= 1
-                task.progress.tasks_processing += 1
-                task.progress.save()
-                new_data['tasks']['processing'].append(str(task.pk))
-                new_data = self.__add_description(task, new_data)
-                new_data = self.__add_solution(task, new_data)
-            elif str(task.pk) in data['tasks']['finished']:
-                task.status = status_map['finished']
-                task.save()
-                try:
-                    Solution.objects.get(task=task)
-                except ObjectDoesNotExist:
-                    # TODO: notify admin with email
-                    logger.exception(
-                        "Solution was not found for the pending->finished task with id '%s'" % task.pk,
-                        stack_info=True
-                    )
-                if task.progress.tasks_pending > 0:
-                    task.progress.tasks_pending -= 1
-                task.progress.tasks_finished += 1
-                task.progress.save()
-            elif str(task.pk) in data['tasks']['error']:
-                task.status = status_map['error']
-                if str(task.pk) in data['task errors']:
-                    task.error = data['task errors'][str(task.pk)]
-                else:
-                    task.error = "The scheduler hasn't given error description"
-                task.save()
-                if task.progress.tasks_pending > 0:
-                    task.progress.tasks_pending -= 1
-                task.progress.tasks_error += 1
-                task.progress.save()
-            else:
-                new_data['tasks']['pending'].append(str(task.pk))
-                new_data = self.__add_description(task, new_data)
-                new_data = self.__add_solution(task, new_data)
-        for task in all_tasks['processing']:
-            if str(task.pk) in data['tasks']['pending']:
-                task.status = status_map['pending']
-                task.save()
-                if task.progress.tasks_processing > 0:
-                    task.progress.tasks_processing -= 1
-                task.progress.tasks_pending += 1
-                task.progress.save()
-                new_data['tasks']['processing'].append(str(task.pk))
-                new_data = self.__add_solution(task, new_data)
-            elif str(task.pk) in data['tasks']['processing']:
-                new_data['tasks']['processing'].append(str(task.pk))
-                new_data = self.__add_solution(task, new_data)
-            elif str(task.pk) in data['tasks']['finished']:
-                task.status = status_map['finished']
-                task.save()
-                try:
-                    Solution.objects.get(task=task)
-                except ObjectDoesNotExist:
-                    # TODO: notify admin with email
-                    logger.exception(
-                        "Solution was not found for the processing->finished task with id '%s'" % task.pk,
-                        stack_info=True
-                    )
-                if task.progress.tasks_processing > 0:
-                    task.progress.tasks_processing -= 1
-                task.progress.tasks_finished += 1
-                task.progress.save()
-            elif str(task.pk) in data['tasks']['error']:
-                task.status = status_map['error']
-                if str(task.pk) in data['task errors']:
-                    task.error = data['task errors'][str(task.pk)]
-                else:
-                    task.error = "The scheduler hasn't given error description"
-                task.save()
-                if task.progress.tasks_processing > 0:
-                    task.progress.tasks_processing -= 1
-                task.progress.tasks_error += 1
-                task.progress.save()
-            else:
-                new_data['tasks']['processing'].append(str(task.pk))
-                new_data = self.__add_solution(task, new_data)
-        for r in roots_to_save:
-            r.save()
-        for task in all_tasks['error']:
-            if str(task.pk) in data['tasks']['pending']:
-                self.error = "The task '%s' with status 'ERROR' has become 'PENDING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['processing']:
-                self.error = "The task '%s' with status 'ERROR' has become 'PROCESSING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['error']:
-                self.error = "The task '%s' with status 'ERROR' has become 'ERROR'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['finished']:
-                self.error = "The task '%s' with status 'ERROR' has become 'FINISHED'" % task.pk
-                return None
-        for task in all_tasks['finished']:
-            if str(task.pk) in data['tasks']['pending']:
-                self.error = "The task '%s' with status 'FINISHED' has become 'PENDING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['processing']:
-                self.error = "The task '%s' with status 'FINISHED' has become 'PROCESSING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['error']:
-                self.error = "The task '%s' with status 'FINISHED' has become 'ERROR'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['finished']:
-                self.error = "The task '%s' with status 'FINISHED' has become 'FINISHED'" % task.pk
-                return None
-        for task in all_tasks['cancelled']:
-            if str(task.pk) in data['tasks']['pending']:
-                self.error = "The task '%s' with status 'CANCELLED' has become 'PENDING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['processing']:
-                self.error = "The task '%s' with status 'CANCELLED' has become 'PROCESSING'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['error']:
-                self.error = "The task '%s' with status 'CANCELLED' has become 'ERROR'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['finished']:
-                self.error = "The task '%s' with status 'CANCELLED' has become 'FINISHED'" % task.pk
-                return None
-            elif str(task.pk) in data['tasks']['cancelled']:
-                self.error = "The task '%s' with status 'CANCELLED' has become 'CANCELLED'" % task.pk
-                return None
+        self.__get_tasks(tasks)
+        try:
+            self.newtasks = json.dumps(self._data, ensure_ascii=False, sort_keys=True, indent=4)
+        except ValueError:
+            raise ServiceError("Can't dump json")
 
-        if self.scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in SolvingProgress.objects.filter(
-                    job__status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0], JOB_STATUS[6][0]]
-            ):
-                if progress.job.status == JOB_STATUS[1][0]:
-                    new_data['job configurations'][progress.job.identifier] = \
+    def __get_tasks(self, tasks):
+        data = json.loads(tasks)
+        if 'jobs' not in data:
+            data['jobs'] = {'error': [], 'finished': []}
+        if 'tasks' not in data:
+            data['tasks'] = {'pending': [], 'processing': [], 'error': [], 'finished': []}
+        for x in ['error', 'finished']:
+            if x not in data['jobs']:
+                data['jobs'][x] = []
+        for x in ['pending', 'processing', 'error', 'finished']:
+            if x not in data['tasks']:
+                data['tasks'][x] = []
+        if 'task errors' not in data:
+            data['task errors'] = {}
+        if 'job errors' not in data:
+            data['job errors'] = {}
+
+        # Finish job decisions and add pending/processing/cancelled jobs
+        if self._scheduler.type == SCHEDULER_TYPE[0][0]:
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
+                if progress.job.identifier in data['jobs']['finished']:
+                    FinishJobDecision(progress, JOB_STATUS[5][0], "The job can't be finished as it is still pending")
+                elif progress.job.identifier in data['jobs']['error']:
+                    FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
+                else:
+                    self._data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
-                    if progress.job.identifier in data['jobs']['error']:
-                        change_job_status(progress.job, JOB_STATUS[4][0])
-                        if progress.job.identifier in data['job errors']:
-                            progress.error = data['job errors'][progress.job.identifier]
-                        else:
-                            progress.error = "The scheduler hasn't given an error description"
-                        progress.save()
-                    else:
-                        new_data['jobs']['pending'].append(progress.job.identifier)
-                elif progress.job.status == JOB_STATUS[2][0]:
-                    if progress.job.identifier in data['jobs']['finished']:
-                        try:
-                            root_report = ReportComponent.objects.get(
-                                Q(parent=None, root=progress.job.reportroot) & ~Q(finish_date=None)
-                            )
-                        except ObjectDoesNotExist:
-                            change_job_status(progress.job, JOB_STATUS[5][0])
-                        else:
-                            if progress.job.light:
-                                change_job_status(progress.job, JOB_STATUS[3][0])
-                            elif len(ReportUnknown.objects.filter(parent=root_report)) > 0:
-                                change_job_status(progress.job, JOB_STATUS[4][0])
-                            else:
-                                change_job_status(progress.job, JOB_STATUS[3][0])
-                    elif progress.job.identifier in data['jobs']['error']:
-                        change_job_status(progress.job, JOB_STATUS[4][0])
-                        if progress.job.identifier in data['job errors']:
-                            progress.error = data['job errors'][progress.job.identifier]
-                        else:
-                            progress.error = "The scheduler hasn't given an error description"
-                        progress.save()
-                    else:
-                        new_data['jobs']['processing'].append(progress.job.identifier)
-                elif progress.job.status == JOB_STATUS[6][0]:
-                    new_data['jobs']['cancelled'].append(progress.job.identifier)
-        try:
-            return json.dumps(new_data, ensure_ascii=False, sort_keys=True, indent=4)
-        except ValueError:
-            self.error = "Can't dump json data"
-            return None
+                    self._data['jobs']['pending'].append(progress.job.identifier)
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
+                if progress.job.identifier in data['jobs']['finished']:
+                    FinishJobDecision(progress, JOB_STATUS[3][0])
+                elif progress.job.identifier in data['jobs']['error']:
+                    FinishJobDecision(progress, JOB_STATUS[4][0], data['job errors'].get(progress.job.identifier))
+                else:
+                    self._data['jobs']['processing'].append(progress.job.identifier)
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[6][0]).values_list('job__identifier'):
+                self._data['jobs']['cancelled'].append(progress[0])
 
-    def __add_description(self, task, data):
-        self.ccc = 0
-        data['task descriptions'][str(task.pk)] = {
-            'description': json.loads(task.description.decode('utf8'))
+        # Everything with tasks
+        all_tasks = dict((x[0].lower(), []) for x in TASK_STATUS)
+        for task in Task.objects.filter(progress__scheduler=self._scheduler, progress__job__status=JOB_STATUS[2][0])\
+                .annotate(sol=F('solution__id')).order_by('id'):
+            all_tasks[task.status.lower()].append(task)
+
+        for old_status in ['error', 'finished']:
+            for task in all_tasks[old_status]:
+                for new_status in ['pending', 'processing', 'error', 'finished']:
+                    if str(task.pk) in data['tasks'][new_status]:
+                        raise ServiceError("The task '%s' with status '%s' has become '%s'" % (
+                            task.id, old_status.upper(), new_status.upper()
+                        ))
+        for task in all_tasks['processing']:
+            if str(task.id) in data['tasks']['pending']:
+                raise ServiceError("The task '%s' with status 'PROCESSING' has become 'PENDING'" % task.id)
+
+        for task in all_tasks['pending']:
+            if str(task.id) in data['tasks']['pending']:
+                self._data['tasks']['pending'].append(str(task.id))
+                self._solution_req.add(task.id)
+                self.__add_description(task)
+            elif str(task.id) in data['tasks']['processing']:
+                self.__change_status(task, 'pending', 'processing')
+                self._data['tasks']['processing'].append(str(task.id))
+                self._solution_req.add(task.id)
+                self.__add_description(task)
+            elif str(task.id) in data['tasks']['finished']:
+                self.__change_status(task, 'pending', 'finished')
+                if task.sol is None:
+                    # TODO: email notification
+                    logger.error('There are finished tasks without solutions', stack_info=True)
+            elif str(task.id) in data['tasks']['error']:
+                if str(task.id) in data['task errors']:
+                    if len(data['task errors'][str(task.id)]) > 1024:
+                        task.error = "Length of error for task with id '%s' must be less than 1024 characters" % task.id
+                    else:
+                        task.error = data['task errors'][str(task.id)]
+                else:
+                    task.error = "The scheduler hasn't given error description"
+                task.save()
+                self.__change_status(task, 'pending', 'error')
+            else:
+                self._data['tasks']['pending'].append(str(task.id))
+                self._solution_req.add(task.id)
+                self.__add_description(task)
+        for task in all_tasks['processing']:
+            if str(task.id) in data['tasks']['processing']:
+                self._data['tasks']['processing'].append(str(task.id))
+                self._solution_req.add(task.id)
+            elif str(task.id) in data['tasks']['finished']:
+                self.__change_status(task, 'processing', 'finished')
+                if task.sol is None:
+                    # TODO: email notification
+                    logger.error('There are finished tasks without solutions', stack_info=True)
+            elif str(task.id) in data['tasks']['error']:
+                if str(task.id) in data['task errors']:
+                    if len(data['task errors'][str(task.id)]) > 1024:
+                        task.error = "Length of error for task with id '%s' must be less than 1024 characters" % task.id
+                    else:
+                        task.error = data['task errors'][str(task.id)]
+                else:
+                    task.error = "The scheduler hasn't given error description"
+                task.save()
+                self.__change_status(task, 'processing', 'error')
+            else:
+                self._data['tasks']['processing'].append(str(task.id))
+                self._solution_req.add(task.id)
+        # There are no cancelled tasks because when the task is cancelled it is deleted,
+        # and there are no changes of status to cancelled in get_jobs_and_tasks_status()
+        self.__finish_with_tasks()
+
+    def __add_description(self, task):
+        task_id = str(task.id)
+        self._data['task descriptions'][task_id] = {'description': json.loads(task.description.decode('utf8'))}
+        if self._scheduler.type == SCHEDULER_TYPE[1][0]:
+            if task.progress_id in self._operators:
+                self._data['task descriptions'][task_id]['VerifierCloud user name'] = \
+                    self._operators[task.progress_id][0]
+                self._data['task descriptions'][task_id]['VerifierCloud user password'] = \
+                    self._operators[task.progress_id][1]
+            else:
+                try:
+                    root = ReportRoot.objects.get(job__solvingprogress=task.progress)
+                    sch_user = SchedulerUser.objects.get(user=root.user)
+                except ObjectDoesNotExist:
+                    return
+                else:
+                    self._operators[task.progress_id] = (sch_user.login, sch_user.password)
+                    self._data['task descriptions'][task_id]['VerifierCloud user name'] = sch_user.login
+                    self._data['task descriptions'][task_id]['VerifierCloud user password'] = sch_user.password
+
+    def __change_status(self, task, old, new):
+        old = old.upper()
+        new = new.upper()
+        fields = {
+            TASK_STATUS[0][0]: 'tasks_pending',
+            TASK_STATUS[1][0]: 'tasks_processing',
+            TASK_STATUS[2][0]: 'tasks_finished',
+            TASK_STATUS[3][0]: 'tasks_error',
+            TASK_STATUS[4][0]: 'tasks_cancelled'
         }
-        if task.progress.scheduler.type == SCHEDULER_TYPE[1][0]:
-            try:
-                operator = task.progress.job.reportroot.user
-            except ObjectDoesNotExist:
-                return data
-            data['task descriptions'][str(task.pk)]['VerifierCloud user name'] = operator.scheduleruser.login
-            data['task descriptions'][str(task.pk)]['VerifierCloud user password'] = operator.scheduleruser.password
-        return data
+        if task.progress_id not in self._progresses:
+            self._progresses[task.progress_id] = SolvingProgress.objects.get(id=task.progress_id)
+        old_num = getattr(self._progresses[task.progress_id], fields[old])
+        if old_num <= 0:
+            logger.error('Something wrong with SolvingProgress cache: '
+                         'number of %s tasks is 0, but there is at least one such task in the system' % old)
+        else:
+            setattr(self._progresses[task.progress_id], fields[old], old_num - 1)
+        new_num = getattr(self._progresses[task.progress_id], fields[new])
+        setattr(self._progresses[task.progress_id], fields[new], new_num + 1)
 
-    def __add_solution(self, task, data):
-        self.ccc = 0
-        try:
-            solution = task.solution
-        except ObjectDoesNotExist:
-            return data
-        data['task solutions'][str(task.pk)] = json.loads(solution.description.decode('utf8'))
-        return data
+        if new not in self._tasks_statuses:
+            self._tasks_statuses[new] = set()
+        self._tasks_statuses[new].add(task.id)
+
+    def __finish_with_tasks(self):
+        for status in self._tasks_statuses:
+            Task.objects.filter(id__in=self._tasks_statuses[status]).update(status=status)
+        for progress_id in self._progresses:
+            self._progresses[progress_id].save()
+        for solution in Solution.objects.filter(task_id__in=self._solution_req):
+            self._data['task solutions'][str(solution.task_id)] = json.loads(solution.description.decode('utf8'))
+
+    def __is_not_used(self):
+        pass
 
 
-# Case 3.2(3) DONE
-class GetTaskData(object):
+class GetTaskData:
     def __init__(self, task_id):
-        self.error = None
         try:
-            self.task = Task.objects.get(pk=int(task_id))
+            self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
-        if self.task.status not in [TASK_STATUS[0][0], TASK_STATUS[1][0]]:
-            self.error = 'The task status is wrong'
+            raise ServiceError('The task %s was not found' % task_id)
+        if Job.objects.get(solvingprogress=self.task.progress).status != JOB_STATUS[2][0]:
+            raise ServiceError('The job is not processing')
+        if self.task.status not in {TASK_STATUS[0][0], TASK_STATUS[1][0]}:
+            raise ServiceError('The task status is wrong')
 
 
-# Case 3.2(4) DONE
-class SaveSolution(object):
+class SaveSolution:
     def __init__(self, task_id, archive, description):
-        self.error = None
         try:
-            self.task = Task.objects.get(pk=int(task_id))
+            self.task = Task.objects.get(id=task_id)
         except ObjectDoesNotExist:
-            self.error = 'The task was not found'
-            return
-        except ValueError:
-            self.error = 'Incorrect task id (integer needed)'
-            return
-        if self.task.progress.job.status != JOB_STATUS[2][0]:
-            self.error = "The job is not processing"
-            return
+            raise ServiceError('The task %s was not found' % task_id)
+        if not Job.objects.filter(solvingprogress=self.task.progress_id, status=JOB_STATUS[2][0]).exists():
+            raise ServiceError('The job is not processing')
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):
         try:
             Solution.objects.get(task=self.task)
-            self.error = 'The task already has solution'
-            return
+            raise ServiceError('The task already has solution')
         except ObjectDoesNotExist:
             pass
-        Solution.objects.create(
-            task=self.task, description=description.encode('utf8'),
-            archive=archive, archname=archive.name
-        )
-        self.task.progress.solutions += 1
-        self.task.progress.save()
+        Solution.objects.create(task=self.task, description=description.encode('utf8'),
+                                archive=archive, archname=archive.name)
+        progress = SolvingProgress.objects.get(id=self.task.progress_id)
+        progress.solutions += 1
+        progress.save()
+        solved_tasks = progress.tasks_finished + progress.tasks_error
         try:
             wall_time = json.loads(description)['resources']['wall time']
-            statistic = TaskStatistic.objects.get_or_create()[0]
-            statistic.average_time = (statistic.average_time * statistic.number_of_tasks + wall_time) / \
-                                     (statistic.number_of_tasks + 1)
-            statistic.number_of_tasks += 1
-            statistic.save()
-            root = ReportRoot.objects.get(pk=self.task.progress.job.reportroot.pk)
-            solved_tasks = self.task.progress.tasks_finished + self.task.progress.tasks_error
-            root.average_time = (root.average_time * solved_tasks + wall_time) / (solved_tasks + 1)
-            root.save()
         except Exception as e:
-            logger.exception("Expected another format of solution description: %s" % e)
+            raise ServiceError('Expected another format of solution description: %s' % e)
+        TaskStatistic.objects.all().update(
+            average_time=(F('average_time') * F('number_of_tasks') + wall_time)/(F('number_of_tasks') + 1),
+            number_of_tasks=F('number_of_tasks') + 1
+        )
+        ReportRoot.objects.filter(job__solvingprogress=self.task.progress_id) \
+            .update(average_time=(F('average_time') * solved_tasks + wall_time) / (solved_tasks + 1))
 
 
-# Case 3.2(5) DONE
-class SetNodes(object):
+class SetNodes:
     def __init__(self, node_data):
-        self.error = None
         try:
             self.__read_node_data(node_data)
         except IndexError or KeyError:
-            self.error = "Wrong nodes data format"
             NodesConfiguration.objects.all().delete()
-        except Exception as e:
-            logger.exception("SetNodes failed: %s" % e, stack_info=True)
+            raise ServiceError('Wrong nodes data format')
+        except Exception:
             NodesConfiguration.objects.all().delete()
-            self.error = "Unknown error"
+            raise ServiceError('Unknown error')
 
     def __read_node_data(self, nodes_data):
         NodesConfiguration.objects.all().delete()
@@ -644,12 +518,10 @@ class SetNodes(object):
                 self.__create_node(nodes_conf, hostname, config['nodes'][hostname])
 
     def __create_node(self, conf, hostname, data):
-        self.ccc = 0
-        node = Node.objects.create(
-            config=conf, hostname=hostname, status=data['status']
-        )
+        self.__is_not_used()
+        workload = None
         if 'workload' in data:
-            node.workload = Workload.objects.create(
+            workload = Workload.objects.create(
                 cores=data['workload']['reserved CPU number'],
                 ram=data['workload']['reserved RAM memory'],
                 memory=data['workload']['reserved disk memory'],
@@ -658,41 +530,39 @@ class SetNodes(object):
                 for_jobs=data['workload']['available for jobs'],
                 for_tasks=data['workload']['available for tasks']
             )
-            node.save()
+        Node.objects.create(config=conf, hostname=hostname, status=data['status'], workload=workload)
+
+    def __is_not_used(self):
+        pass
 
 
-# Case 3.2(6) DONE
-class UpdateTools(object):
+class UpdateTools:
     def __init__(self, sch_type, tools_data):
-        self.error = None
         try:
             self.scheduler = Scheduler.objects.get(type=sch_type)
         except ObjectDoesNotExist:
-            self.error = 'Scheduler was not found'
-            return
+            raise ServiceError('Scheduler was not found')
         try:
             self.__read_tools_data(tools_data)
         except ValueError or KeyError:
-            self.error = "Wrong tools data format"
-        except Exception as e:
-            logger.exception(e, stack_info=True)
-            self.error = "Unknown error"
+            raise ServiceError('Wrong tools data format')
+        except Exception:
+            raise ServiceError('Unknown error')
 
     def __read_tools_data(self, data):
         VerificationTool.objects.filter(scheduler=self.scheduler).delete()
-        for tool in json.loads(data):
-            VerificationTool.objects.create(scheduler=self.scheduler, name=tool['tool'], version=tool['version'])
+        VerificationTool.objects.bulk_create(list(
+            VerificationTool(scheduler=self.scheduler, name=tool['tool'], version=tool['version'])
+            for tool in json.loads(data)
+        ))
 
 
-# Case 3.3(2) DONE
-class SetSchedulersStatus(object):
+class SetSchedulersStatus:
     def __init__(self, statuses):
-        self.error = None
         try:
             self.statuses = json.loads(statuses)
         except ValueError:
-            self.error = "Incorrect format of statuses"
-            return
+            raise ServiceError('Incorrect format of statuses')
         self.__update_statuses()
 
     def __update_statuses(self):
@@ -703,11 +573,9 @@ class SetSchedulersStatus(object):
             try:
                 scheduler = Scheduler.objects.get(type=sch_type_map[sch_type])
             except ObjectDoesNotExist:
-                self.error = "Scheduler was not found"
-                return
+                raise ServiceError('Scheduler was not found')
             if self.statuses[sch_type] not in list(x[0] for x in SCHEDULER_STATUS):
-                self.error = "Scheduler status is wrong"
-                return
+                raise ServiceError('Scheduler status is wrong')
             if scheduler.status == self.statuses[sch_type]:
                 continue
             if self.statuses[sch_type] == SCHEDULER_STATUS[2][0]:
@@ -716,24 +584,22 @@ class SetSchedulersStatus(object):
             scheduler.save()
 
     def __finish_tasks(self, scheduler):
-        self.ccc = 0
+        self.__is_not_used()
         for progress in scheduler.solvingprogress_set.filter(job__status=JOB_STATUS[2][0], finish_date=None):
-            for task in progress.task_set.filter(status__in=[TASK_STATUS[0][0], TASK_STATUS[1][0]]):
-                if task.status == TASK_STATUS[0][0]:
-                    if progress.tasks_pending > 0:
-                        progress.tasks_pending -= 1
-                        progress.tasks_error += 1
-                else:
-                    if progress.tasks_processing > 0:
-                        progress.tasks_processing -= 1
-                        progress.tasks_error += 1
-                task.error = "Task was finished with error due to scheduler is disconnected"
-                task.save()
+            pending_num = Task.objects.filter(status=TASK_STATUS[0][0], progress=progress)\
+                .update(error='Task was finished with error due to scheduler is disconnected')
+            processing_num = Task.objects.filter(status=TASK_STATUS[1][0], progress=progress)\
+                .update(error='Task was finished with error due to scheduler is disconnected')
+            progress.tasks_pending = progress.tasks_processing = 0
+            progress.tasks_error += pending_num + processing_num
             if scheduler.type == SCHEDULER_TYPE[0][0]:
                 progress.finish_date = now()
-                progress.error = "Klever scheduler was disconnected"
-                change_job_status(progress.job, JOB_STATUS[5][0])
+                progress.error = 'Klever scheduler was disconnected'
+                change_job_status(progress.job, JOB_STATUS[7][0])
             progress.save()
+
+    def __is_not_used(self):
+        pass
 
 
 def compare_priority(priority1, priority2):
@@ -774,7 +640,7 @@ class NodesData(object):
                     'ram': int(conf.ram / 10**9),
                     'cores': conf.cores,
                     'memory': int(conf.memory / 10**9),
-                    'num_of_nodes': len(conf.node_set.all())
+                    'num_of_nodes': conf.node_set.count()
                 },
                 'cnt': cnt,
                 'cpu': conf.cpu,
@@ -836,32 +702,22 @@ class NodesData(object):
                                                int(self.total_data['memory'][1] / 10**9))
 
 
-# Case 3.4(5) DONE
-class StartJobDecision(object):
+class StartJobDecision:
     def __init__(self, user, job_id, data):
-        self.error = None
         self.operator = user
         self.data = data
         self.job = self.__get_job(job_id)
-        if self.error is not None:
-            return
         self.job_scheduler = self.__get_scheduler()
-        if self.error is not None:
-            return
         self.klever_core_data = self.__get_klever_core_data()
         self.__check_schedulers()
-        if self.error is not None:
-            return
         self.progress = self.__create_solving_progress()
-        if self.error is not None:
-            return
         try:
-            self.job.reportroot.delete()
+            ReportRoot.objects.get(job=self.job).delete()
         except ObjectDoesNotExist:
             pass
         ReportRoot.objects.create(user=self.operator, job=self.job)
         self.job.status = JOB_STATUS[1][0]
-        self.job.light = self.data[4][6]
+        self.job.weight = self.data[4][6]
         self.job.save()
 
     def __get_klever_core_data(self):
@@ -889,7 +745,7 @@ class StartJobDecision(object):
             'allow local source directories use': self.data[4][3],
             'ignore other instances': self.data[4][4],
             'ignore failed sub-jobs': self.data[4][5],
-            'lightweightness': self.data[4][6],
+            'weight': self.data[4][6],
             'logging': {
                 'formatters': [
                     {
@@ -930,18 +786,15 @@ class StartJobDecision(object):
         try:
             return Scheduler.objects.get(type=self.data[0][1])
         except ObjectDoesNotExist:
-            self.error = _('The scheduler was not found')
-            return None
+            raise BridgeException(_('The scheduler was not found'))
 
     def __get_job(self, job_id):
         try:
             job = Job.objects.get(pk=job_id)
         except ObjectDoesNotExist:
-            self.error = _('The job was not found')
-            return
+            raise BridgeException(_('The job was not found'))
         if not JobAccess(self.operator, job).can_decide():
-            self.error = _("You don't have an access to start decision of this job")
-            return
+            raise BridgeException(_("You don't have an access to start decision of this job"))
         return job
 
     def __create_solving_progress(self):
@@ -957,36 +810,28 @@ class StartJobDecision(object):
         )
 
     def __save_configuration(self):
-        m = BytesIO()
-        m.write(json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
-        m.seek(0)
+        m = BytesIO(json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
         check_sum = file_checksum(m)
         try:
-            db_file = File.objects.get(hash_sum=check_sum)
+            db_file = JobFile.objects.get(hash_sum=check_sum)
         except ObjectDoesNotExist:
-            db_file = File()
+            db_file = JobFile()
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(
-            job=self.job, operator=self.operator, configuration=db_file, status=JOB_STATUS[1][0], date=now()
-        )
+        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file)
 
     def __check_schedulers(self):
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            self.error = _('Unknown error')
-            return
+            raise BridgeException()
         if klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _('The Klever scheduler is disconnected')
-            return
+            raise BridgeException(_('The Klever scheduler is disconnected'))
         if self.job_scheduler.type == SCHEDULER_TYPE[1][0]:
             if self.job_scheduler.status == SCHEDULER_STATUS[2][0]:
-                self.error = _('The VerifierCloud scheduler is disconnected')
-                return
+                raise BridgeException(_('The VerifierCloud scheduler is disconnected'))
             try:
                 self.operator.scheduleruser
             except ObjectDoesNotExist:
-                self.error = _("You didn't specify credentials for VerifierCloud")
-                return
+                raise BridgeException(_("You didn't specify credentials for VerifierCloud"))

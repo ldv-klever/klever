@@ -1,13 +1,13 @@
 {% extends 'base.html' %}
 
 {% load i18n %}
-
+{% load staticfiles %}
 {% block title %}{% trans 'Settings' %}{% endblock %}
 
 {% block head_block %}
-    <script src="/static/users/js/users.js"></script>
-    <script src="/static/users/js/schedulerUser.js"></script>
-    <link href="/static/users/css/style.css" rel="stylesheet">
+    <script src="{% static 'users/js/users.js' %}"></script>
+    <script src="{% static 'users/js/schedulerUser.js' %}"></script>
+    <link href="{% static 'users/css/style.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -32,14 +32,14 @@
                         {{ user_form.email }}
                     </div>
                     <div class="field">
-                        <label>{{ profile_form.first_name.label }}</label>
-                        {{ profile_form.first_name }}
-                        <br>{{ profile_form.errors.first_name }}
+                        <label>{{ user_form.first_name.label }}</label>
+                        {{ user_form.first_name }}
+                        <br>{{ user_form.errors.first_name }}
                     </div>
                     <div class="field">
-                        <label>{{ profile_form.last_name.label }}</label>
-                        {{ profile_form.last_name }}
-                        <br>{{ profile_form.errors.last_name }}
+                        <label>{{ user_form.last_name.label }}</label>
+                        {{ user_form.last_name }}
+                        <br>{{ user_form.errors.last_name }}
                     </div>
                 </div>
                 <div class="five wide column">
@@ -69,6 +69,13 @@
                         <div class="ui checkbox">
                             {{ profile_form.assumptions }}
                             <label>{{ profile_form.assumptions.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace assumptions. This can take very much time for big error traces.' %}"></i></label>
+                        </div>
+                        <br>
+                    </div>
+                    <div class="field">
+                        <div class="ui checkbox">
+                            {{ profile_form.triangles }}
+                            <label>{{ profile_form.triangles.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of error trace closing triangles at the end of each thread.' %}"></i></label>
                         </div>
                         <br>
                     </div>

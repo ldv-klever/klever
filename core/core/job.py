@@ -23,7 +23,7 @@ import multiprocessing
 import os
 import re
 import sys
-import tarfile
+import zipfile
 import traceback
 
 import core.utils
@@ -31,7 +31,7 @@ import core.utils
 
 class Job(core.utils.CallbacksCaller):
     FORMAT = 1
-    ARCHIVE = 'job.tar.gz'
+    ARCHIVE = 'job.zip'
     DIR = 'job'
     CLASS_FILE = os.path.join(DIR, 'class')
     DEFAULT_CONF_FILE = 'core.json'
@@ -105,7 +105,8 @@ class Job(core.utils.CallbacksCaller):
                     for p in sub_job_solver_processes:
                         p.join(1.0 / len(sub_job_solver_processes))
                         if p.exitcode:
-                            exit(1)
+                            self.logger.warning('Sub-job worker exitted with "{0}"'.format(p.exitcode))
+                            raise ChildProcessError('Decision of sub-job failed')
                         operating_sub_job_solvers_num += p.is_alive()
 
                     if not operating_sub_job_solvers_num:
@@ -358,8 +359,8 @@ class Job(core.utils.CallbacksCaller):
 
     def extract_archive(self):
         self.logger.info('Extract job archive "{0}" to directory "{1}"'.format(self.ARCHIVE, self.DIR))
-        with tarfile.open(self.ARCHIVE, encoding='utf8') as TarFile:
-            TarFile.extractall(self.DIR)
+        with zipfile.ZipFile(self.ARCHIVE) as ZipFile:
+            ZipFile.extractall(self.DIR)
 
     def launch_sub_job_components(self):
         self.logger.info('Launch components for sub-job of type "{0}" with identifier "{1}"'.format(self.type, self.id))
@@ -449,7 +450,7 @@ class Job(core.utils.CallbacksCaller):
                                   'data',
                                   {
                                       'id': self.parent['id'],
-                                      'data': json.dumps(results, ensure_ascii=False, sort_keys=True, indent=4)
+                                      'data': results
                                   },
                                   self.mqs['report files'],
                                   self.components_common_conf['main working directory'])

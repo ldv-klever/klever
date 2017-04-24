@@ -1,6 +1,23 @@
 {
   "Linux 3.14 (base)": {
-    "kernel functions": {},
+    "kernel functions": {
+      "sock_register": {
+        "signature": "int sock_register(*%proto.family_ops%)",
+        "header": "linux/net.h"
+      },
+      "sock_unregister": {
+        "signature": "void sock_unregister(%proto.family%)",
+        "header": "linux/net.h"
+      },
+      "register_pppox_proto": {
+        "signature": "int register_pppox_proto(%proto.family%, *%proto.pppox_proto%)",
+        "header": "linux/if_pppox.h"
+      },
+      "unregister_pppox_proto": {
+        "signature": "void unregister_pppox_proto(%proto.family%)",
+        "header": "linux/if_pppox.h"
+      }
+    },
     "categories": {
       "proto": {
         "containers": {
@@ -8,19 +25,36 @@
             "signature": "struct proto_ops ops",
             "header": "linux/net.h",
             "fields": {
-              "bind": "%proto.probe%",
+              "bind": "%proto.bind%",
               "release": "%proto.release%"
+            }
+          },
+          "family_ops": {
+            "signature": "struct net_proto_family a",
+            "header": "linux/net.h",
+            "fields": {
+              "family": "%proto.family%"
+            }
+          },
+          "pppox_proto": {
+            "signature": "struct pppox_proto a",
+            "header": "linux/if_pppox.h",
+            "fields": {
             }
           }
         },
         "resources": {
+          "family": {
+            "signature": "int a"
+          },
           "socket": {
-            "signature": "struct socket *socket"
+            "signature": "struct socket *socket",
+            "header": "linux/net.h"
           }
         },
         "callbacks": {
-          "probe": {
-            "signature": "int (*probe)(%proto.socket%, $, $)"
+          "bind": {
+            "signature": "int (*bind)(%proto.socket%, $, $)"
           },
           "release": {
             "signature": "int (*release)(%proto.socket%)"

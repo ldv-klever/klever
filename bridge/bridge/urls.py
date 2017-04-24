@@ -31,10 +31,6 @@ urlpatterns = [
     url(r'^service/', include('service.urls', namespace='service')),
     url(r'^tools/', include('tools.urls', namespace='tools')),
     url(r'^$', views.index_page),
-    url(r'^media/(?P<path>.*)$', serve, {
-        'document_root': settings.MEDIA_ROOT,
-        'show_indexes': True
-    }),
-    url(r'^error/(?P<err_code>[0-9]+)/$', views.klever_bridge_error, name='error'),
+    url(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT, 'show_indexes': True}),
     url(r'^population/$', views.population, name='population')
 ]

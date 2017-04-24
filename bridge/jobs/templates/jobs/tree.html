@@ -140,7 +140,7 @@
                                             <label for="filter_value__change_author"></label>
                                             <select class="ui dropdown" id="filter_value__change_author">
                                                 {% for u in users %}
-                                                    <option value="{{ u.pk }}"{% if u.pk|slugify == fil.value %} selected{% endif %}>{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                                                    <option value="{{ u.pk }}"{% if u.pk|slugify == fil.value %} selected{% endif %}>{{ u.get_full_name }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>
@@ -418,12 +418,15 @@
                         <select id="available_views" class="ui dropdown">
                             <option value="default">{% trans 'Default' %}</option>
                             {% for v in FF.user_views %}
-                                <option title="{{ v.title }}" value="{{ v.id }}"{% if v.selected %} selected{% endif %}>{{ v.title }}</option>
+                                <option title="{{ v.name }}" value="{{ v.id }}"{% if v.id == FF.view_id %} selected{% endif %}>{{ v.name }}
+                                    {% if v.shared %} ({% if v.author_id == user.id %}{% trans 'shared' %}{% else %}{{ v.author.get_full_name }}{% endif %}){% endif %}
+                                </option>
                             {% endfor %}
                         </select>
                         <button id="show_view_btn" type="button" class="ui small teal button">{% trans 'Show' %}</button>
                         <button id="make_preferable_view_btn" type="button" class="ui small green button">{% trans 'Make preferred' %}</button>
                         <button id="update_view_btn" type="button" class="ui small pink button">{% trans 'Update' %}</button>
+                        <button id="share_view_btn" type="button" class="ui small yellow button">{% trans 'Share' %}/{% trans 'Hide' %}</button>
                         <button id="remove_view_btn" type="button" class="ui small orange button">{% trans 'Delete' %}</button>
                     </div>
                 </div>
@@ -431,18 +434,9 @@
         </form>
     </div>
     <div class="ui mini basic icon buttons">
-        <button class="ui button violet normal-popup" id="compare_reports_btn"><i class="ui columns icon"></i></button>
-        <div class="ui popup">
-            <p style="white-space: nowrap">{% trans 'Compare reports' %}</p>
-        </div>
-        <button class="ui olive button normal-popup" id="download_selected_jobs"><i class="ui download icon"></i></button>
-        <div class="ui popup">
-            <p style="white-space: nowrap">{% trans 'Download selected jobs' %}</p>
-        </div>
-        <button class="ui red button normal-popup" id="show_remove_jobs_popup"><i class="ui remove icon"></i></button>
-        <div class="ui popup">
-            <p style="white-space: nowrap">{% trans 'Delete selected jobs' %}</p>
-        </div>
+        <button class="ui button violet note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
+        <button class="ui olive button note-popup" id="download_selected_jobs" data-position="bottom left" data-content="{% trans 'Download selected jobs' %}"><i class="ui download icon"></i></button>
+        <button class="ui red button note-popup" id="show_remove_jobs_popup" data-position="bottom left" data-content="{% trans 'Delete selected jobs' %}"><i class="ui remove icon"></i></button>
     </div>
 
     <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;margin-right: 10px;">
@@ -463,7 +457,7 @@
         </div>
         <div class="content">
             <div class="ui center aligned grid">
-                <p>{% trans 'All versions and all data of the selected jobs will be deleted' %}!</p>
+                <p>{% trans 'All versions and all data of the selected jobs will be deleted' %}! {% trans 'If any job has children they will also be deleted' %}!</p>
             </div>
         </div>
         <div class="actions">

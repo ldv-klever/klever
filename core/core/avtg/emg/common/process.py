@@ -41,33 +41,6 @@ def generate_regex_set(subprocess_name):
     return regexes
 
 
-def rename_subprocess(pr, old_name, new_name):
-    if old_name not in pr.actions:
-        raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
-                       format(old_name, pr.name))
-
-    subprocess = pr.actions[old_name]
-    subprocess.name = new_name
-
-    # Delete old subprocess
-    del pr.actions[old_name]
-
-    # Set new subprocess
-    pr.actions[subprocess.name] = subprocess
-
-    # Replace subprocess entries
-    processes = [pr]
-    processes.extend([pr.actions[name] for name in sorted(pr.actions.keys()) if type(pr.actions[name]) is Subprocess])
-    regexes = generate_regex_set(old_name)
-    for process in processes:
-        for regex in regexes:
-            if regex['regex'].search(process.process):
-                # Replace signal entries
-                old_match = regex['regex'].search(process.process).group()
-                new_match = old_match.replace(old_name, new_name)
-                process.process = process.process.replace(old_match, new_match)
-
-
 def get_common_parameter(action, process, position):
     interfaces = [access.interface for access in process.resolve_access(action.parameters[position])
                   if access.interface]
@@ -83,8 +56,6 @@ def get_common_parameter(action, process, position):
     else:
         # Todo how to choose between several ones?
         return list(interfaces)[0]
-
-    return interfaces
 
 
 class Access:
@@ -155,7 +126,7 @@ class Access:
 
 class Label:
 
-    def __init__(self, name):
+    def __init__(self, name, scope=None):
         self.container = False
         self.resource = False
         self.callback = False
@@ -164,9 +135,11 @@ class Label:
         self.parameters = []
         self.file = None
         self.value = None
-        self.name = name
         self.prior_signature = None
         self.__signature_map = {}
+
+        self.name = name
+        self.scope = scope
 
     @property
     def interfaces(self):
@@ -196,7 +169,7 @@ class Label:
                 return 'different'
         elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
-               (self.callback and label.callback):
+                    (self.callback and label.callback):
                 return 'сompatible'
             else:
                 return 'different'
@@ -222,8 +195,9 @@ class Process:
         self.category = None
         self.process = None
         self.headers = list()
+        self.comment = None
         self.__process_ast = None
-        self.__accesses = None
+        self.__accesses = dict()
         self.allowed_implementations = dict()
 
     @property
@@ -268,10 +242,11 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_label(self, name, declaration, value):
-        lb = Label(name)
+    def add_label(self, name, declaration, value=None, scope=None):
+        lb = Label(name, scope)
         lb.prior_signature = declaration
-        lb.value = value
+        if value:
+            lb.value = value
 
         self.labels[name] = lb
         acc = Access('%{}%'.format(name))
@@ -280,13 +255,73 @@ class Process:
         self.__accesses[acc.expression] = [acc]
         return lb
 
-    def add_condition(self, name, condition, statements):
+    def add_condition(self, name, condition, statements, comment):
         new = Condition(name)
         self.actions[name] = new
 
         new.condition = condition
         new.statements = statements
+        new.comment = comment
         return new
+
+    def insert_action(self, name, after=None, before=None, instead=None):
+        # Sanity checks
+        if not (after or before or instead):
+            raise ValueError('Choose where to insert the action')
+        if not name or name not in self.actions:
+            raise KeyError('Cannot rename action {!r} in process {!r} because it does not exist'.
+                           format(name, self.name))
+        if instead:
+            # Delete old subprocess
+            del self.actions[name]
+
+        # Replace action entries
+        processes = [self]
+        processes.extend(
+            [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Subprocess])
+        regexes = generate_regex_set(name)
+        for process in processes:
+            for regex in regexes:
+                m = regex['regex'].search(process.process)
+                if m:
+                    # Replace signal entries
+                    curr_expr = m.group(0)
+                    if before:
+                        next_expr = "{}.{}".format(before, curr_expr)
+                    elif after:
+                        next_expr = "{}.{}".format(curr_expr, after)
+                    else:
+                        next_expr = instead
+
+                    process.process = process.process.replace(curr_expr, next_expr)
+                    break
+
+    def rename_action(self, name, new_name):
+        if name not in self.actions:
+            raise KeyError('Cannot rename subprocess {} in process {} because it does not exist'.
+                           format(name, self.name))
+
+        action = self.actions[name]
+        action.name = new_name
+
+        # Delete old subprocess
+        del self.actions[name]
+
+        # Set new subprocess
+        self.actions[action.name] = action
+
+        # Replace subprocess entries
+        processes = [self]
+        processes.extend(
+            [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Subprocess)])
+        regexes = generate_regex_set(name)
+        for process in processes:
+            for regex in regexes:
+                if regex['regex'].search(process.process):
+                    # Replace signal entries
+                    old_match = regex['regex'].search(process.process).group()
+                    new_match = old_match.replace(name, new_name)
+                    process.process = process.process.replace(old_match, new_match)
 
     def extract_label_with_tail(self, string):
         if self.label_re.fullmatch(string):
@@ -351,39 +386,47 @@ class Process:
 
         return ret
 
-    def accesses(self, accesses=None):
+    def accesses(self, accesses=None, exclude=list(), no_labels=False):
         if not accesses:
-            if not self.__accesses:
-                self.__accesses = {}
-
+            accss = dict()
+            
+            if not self.__accesses or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
                 for action in [self.actions[name] for name in sorted(self.actions.keys())]:
-                    if type(action) is Call or type(action) is CallRetval and action.callback:
-                        self.__accesses[action.callback] = []
-                    if type(action) is Call:
-                        for index in range(len(action.parameters)):
-                            self.__accesses[action.parameters[index]] = []
-                    if type(action) is Receive or type(action) is Dispatch:
-                        for index in range(len(action.parameters)):
-                            self.__accesses[action.parameters[index]] = []
-                    if type(action) is CallRetval and action.retlabel:
-                        self.__accesses[action.retlabel] = []
-                    if type(action) is Condition:
-                        for statement in action.statements:
-                            for match in self.label_re.finditer(statement):
-                                self.__accesses[match.group()] = []
-                    if action.condition:
-                        for statement in action.condition:
-                            for match in self.label_re.finditer(statement):
-                                self.__accesses[match.group()] = []
+                    tp = type(action)
+                    if tp not in exclude:
+                        if type(action) is Call or type(action) is CallRetval and action.callback:
+                            accss[action.callback] = []
+                        if type(action) is Call:
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if type(action) is Receive or type(action) is Dispatch:
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if type(action) is CallRetval and action.retlabel:
+                            accss[action.retlabel] = []
+                        if type(action) is Condition:
+                            for statement in action.statements:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+                        if action.condition:
+                            for statement in action.condition:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
 
                 # Add labels with interfaces
-                for label in [self.labels[name] for name in sorted(self.labels.keys())]:
-                    access = '%{}%'.format(label.name)
-                    if access not in self.__accesses:
-                        self.__accesses[access] = []
+                if not no_labels:
+                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                        access = '%{}%'.format(label.name)
+                        if access not in accss:
+                            accss[access] = []
 
-            return self.__accesses
+                if not self.__accesses and len(exclude) == 0 and not no_labels:
+                    self.__accesses = accss
+            else:
+                accss = self.__accesses
+            
+            return accss
         else:
             self.__accesses = accesses
 
@@ -424,15 +467,25 @@ class Process:
 
     def get_implementation(self, access):
         if access.interface:
-            return self.allowed_implementations[access.expression][access.interface.identifier]
+            if self.allowed_implementations[access.expression][access.interface.identifier] != '':
+                return self.allowed_implementations[access.expression][access.interface.identifier]
+            else:
+                return False
         else:
             return None
 
 
-class Subprocess:
+class Action:
 
     def __init__(self, name):
         self.name = name
+        self.comment = None
+
+
+class Subprocess(Action):
+
+    def __init__(self, name):
+        super().__init__(name)
         self.process = None
         self.condition = None
         self.__process_ast = None
@@ -444,30 +497,30 @@ class Subprocess:
         return self.__process_ast
 
 
-class Dispatch:
+class Dispatch(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.parameters = []
         self.broadcast = False
         self.peers = []
 
 
-class Receive:
+class Receive(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.condition = None
         self.replicative = False
         self.peers = []
 
 
-class Call:
+class Call(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.condition = None
         self.callback = None
         self.parameters = []
@@ -476,20 +529,20 @@ class Call:
         self.post_call = []
 
 
-class CallRetval:
+class CallRetval(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.parameters = []
         self.callback = None
         self.retlabel = None
         self.condition = None
 
 
-class Condition:
+class Condition(Action):
 
     def __init__(self, name):
-        self.name = name
+        super().__init__(name)
         self.statements = []
         self.condition = None
 

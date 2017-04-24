@@ -22,6 +22,7 @@ from marks import views
 urlpatterns = [
     url(r'^(?P<mark_type>unsafe|safe|unknown)/create/(?P<report_id>[0-9]+)/$', views.create_mark, name='create_mark'),
     url(r'^(?P<mark_type>unsafe|safe|unknown)/edit/(?P<mark_id>[0-9]+)/$', views.edit_mark, name='edit_mark'),
+    url(r'^(?P<mark_type>unsafe|safe|unknown)/view/(?P<mark_id>[0-9]+)/$', views.view_mark, name='view_mark'),
     url(r'^(?P<marks_type>unsafe|safe|unknown)/$', views.mark_list, name='mark_list'),
     url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
         views.download_mark, name='download_mark'),
@@ -43,6 +44,7 @@ urlpatterns = [
     url(r'^ajax/remove_tag/$', views.remove_tag),
     url(r'^ajax/get_tags_data/$', views.get_tags_data),
     url(r'^ajax/upload_tags/$', views.upload_tags),
+    url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

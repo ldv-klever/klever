@@ -1,11 +1,12 @@
 {% extends 'base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 {% block title %}{% trans 'Sign in' %}{% endblock %}
 
 {% block head_block %}
-    <script src="/static/users/js/login.js"></script>
-    <link href="/static/users/css/login.css" rel="stylesheet">
+    <script src="{% static 'users/js/login.js' %}"></script>
+    <link href="{% static 'users/css/login.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}

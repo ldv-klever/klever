@@ -202,13 +202,13 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks
         task_ids = []
         for i in range(0, 5):
-            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
                 response = self.core.post('/service/schedule_task/', {
                     'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
                 })
@@ -297,7 +297,7 @@ class TestService(KleverTestCase):
         self.assertNotEqual(response['Content-Type'], 'application/json')
 
         # Upload solutions for 3d and 4th tasks
-        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
                 'task id': task_ids[2], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
@@ -305,7 +305,7 @@ class TestService(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
-        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
                 'task id': task_ids[3], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
@@ -364,7 +364,7 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=task_ids)), 0)
 
         # Upload finish report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
@@ -423,7 +423,7 @@ class TestService(KleverTestCase):
         # Schedule 5 tasks
         task_ids = []
         for i in range(0, 5):
-            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
                 response = self.core.post('/service/schedule_task/', {
                     'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
                 })
@@ -464,7 +464,7 @@ class TestService(KleverTestCase):
         self.assertEqual(progress.tasks_cancelled, 1)
 
         # Upload solution for the 1st task
-        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
                 'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
@@ -503,7 +503,7 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1], task_ids[3]])), 0)
 
         # Upload finish report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
@@ -550,13 +550,13 @@ class TestService(KleverTestCase):
             'type': 'start', 'id': '/', 'attrs': [{'PSI version': 'stage-2-1k123j13'}], 'comp': COMPUTER
         }), 'job format': 1})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[2][0])
 
         # Schedule 5 tasks
         task_ids = []
         for i in range(0, 5):
-            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
                 response = self.core.post('/service/schedule_task/', {
                     'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
                 })
@@ -599,7 +599,7 @@ class TestService(KleverTestCase):
         self.assertEqual(set(json.loads(res['jobs and tasks status'])['tasks']['pending']), {task_ids[4]})
 
         # Upload solution for 1st task
-        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
             response = self.core.post('/service/upload_solution/', {
                 'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
@@ -651,8 +651,8 @@ class TestService(KleverTestCase):
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[0][0]).status, SCHEDULER_STATUS[2][0])
         self.assertEqual(Scheduler.objects.get(type=SCHEDULER_TYPE[1][0]).status, SCHEDULER_STATUS[0][0])
 
-        # Status is corrupted because scheduler is disconnected
-        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[5][0])
+        # Status is terminated because scheduler is disconnected
+        self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[7][0])
 
         # Check that scheduler does not get any tasks or jobs
         sch_data = {
@@ -675,7 +675,7 @@ class TestService(KleverTestCase):
         })
 
         # Check that after job is corrupted you can't upload report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
@@ -711,7 +711,7 @@ class TestService(KleverTestCase):
         # Schedule 5 tasks
         task_ids = []
         for i in range(0, 5):
-            with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+            with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
                 response = self.core.post('/service/schedule_task/', {
                     'description': json.dumps({'priority': PRIORITY[3][0]}), 'file': fp
                 })
@@ -733,7 +733,7 @@ class TestService(KleverTestCase):
         self.scheduler.post('/service/get_jobs_and_tasks/', {'jobs and tasks status': json.dumps(sch_data)})
 
         # Upload solution for the 1st task
-        with open(os.path.join(ARCHIVE_PATH, 'archive.tar.gz'), mode='rb') as fp:
+        with open(os.path.join(ARCHIVE_PATH, 'archive.zip'), mode='rb') as fp:
             self.core.post('/service/upload_solution/', {
                 'task id': task_ids[0], 'file': fp, 'description': json.dumps({'resources': {'wall time': 1000}})
             })
@@ -865,7 +865,7 @@ class TestService(KleverTestCase):
                     self.fail("Node was not created")
                 if 'workload' in n_conf['nodes'][n]:
                     self.assertEqual(len(Workload.objects.filter(
-                        node=node,
+                        id=node.workload_id,
                         jobs=n_conf['nodes'][n]['workload']['running verification jobs'],
                         tasks=n_conf['nodes'][n]['workload']['running verification tasks'],
                         cores=n_conf['nodes'][n]['workload']['reserved CPU number'],

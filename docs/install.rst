@@ -29,6 +29,30 @@ Documentation installation
 Klever Bridge installation
 --------------------------
 
+PostgreSQL setup
+^^^^^^^^^^^^^^^^
+
+#. Trust all local connections by editing :file:`pg_hba.conf` and by restarting the PostgreSQL server::
+
+    $ sudo sed -i '/^local/c\local all all trust' /path/to/pg_hba.conf"
+
+#. Create a new PostgreSQL database (**db_name**)::
+
+    $ createdb -U postgres -T template0 -E utf8 -O postgres db_name
+
+#. Create :file:`bridge/bridge/db.json`:
+
+   .. code-block:: json
+
+      {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "db_name",
+        "USER": "postgres"
+      }
+
+MySQL/MariaDB setup
+^^^^^^^^^^^^^^^^^^^
+
 #. Create a new MySQL/MariaDB user (**db_user**) identified by a password (**db_user_passwd**)::
 
     MariaDB [(none)]> CREATE USER `db_user`@`localhost` IDENTIFIED BY 'db_user_passwd';
@@ -41,12 +65,6 @@ Klever Bridge installation
     MariaDB [(none)]> CREATE DATABASE `db_name` CHARACTER SET utf8 COLLATE utf8_bin;
     MariaDB [(none)]> GRANT ALL ON `db_name`.* TO `db_user`@`localhost`;
     MariaDB [(none)]> FLUSH PRIVILEGES;
-
-#. Create :file:`bridge/bridge/settings.py`:
-
-   .. code-block:: python
-
-      from bridge.development import *
 
 #. Create :file:`bridge/bridge/db.json`:
 
@@ -64,6 +82,15 @@ Klever Bridge installation
    .. note:: Password can be omitted if it wasn't set before. Host and port can be omitted if they don't differ from the
              values specified in the example.
 
+Installation for development purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#. Create :file:`bridge/bridge/settings.py`:
+
+   .. code-block:: python
+
+      from bridge.development import *
+
 #. Execute the following manage.py tasks::
 
     $ python3 manage.py compilemessages
@@ -75,28 +102,19 @@ Klever Bridge installation
 #. The last command will prompt you to create a Klever Bridge administrator **klever_bridge_admin** identified by a
    password **klever_bridge_admin_passwd**.
    An email address could be omitted.
-#. Proceed with either :ref:`klever-bridge-dev-install` or :ref:`klever-bridge-production-install`.
-#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**klever_bridge_admin**) and password
-   (**klever_bridge_admin_passwd**).
-#. Create a new Klever Bridge Manager (**klever_bridge_manager**) and a new service user
-   (**klever_bridge_service_user**).
-#. Remember their passwords (**klever_bridge_manager_passwd** and **klever_bridge_service_user_passwd** respectively).
-#. Sign out and sign in on behalf of **klever_bridge_manager** with password **klever_bridge_manager_passwd**.
-#. Enjoy!
-
-.. _klever-bridge-dev-install:
-
-Installation for development purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #. Run a development server::
 
     $ python3 manage.py runserver 8998
 
-.. _klever-bridge-production-install:
+TOOD: Installation for production purposes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Installation for production purposes
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#. Create :file:`/var/www/bridge/bridge/settings.py`:
+
+   .. code-block:: python
+
+      from bridge.production import *
 
 Below instructions are given just for Debian (Ubuntu).
 Adapt them for your Linux distribution by yourself.
@@ -108,15 +126,10 @@ Adapt them for your Linux distribution by yourself.
    $ echo "Listen 8998" > /etc/apache2/conf-enabled/bridge.conf
 
 #. Copy directory :file:`bridge` to directory :file:`/var/www/bridge`.
-#. Create :file:`/var/www/bridge/bridge/settings.py`:
 
-   .. code-block:: python
+#. Execute the following manage.py task after the ones that are executed during installation for development purposes::
 
-      from bridge.production import *
-
-#. Execute the following manage.py task::
-
-    $ python3.4 /var/www/bridge/manage.py collectstatic
+    $ python3 /var/www/bridge/manage.py collectstatic
 
 #. Make *www-data:www-data* owner of directory :file:`/var/www/bridge/media`::
 
@@ -125,6 +138,21 @@ Adapt them for your Linux distribution by yourself.
 #. Restart service apache2::
 
     $ service apache2 restart
+
+Common installation
+^^^^^^^^^^^^^^^^^^^
+
+#. Sign in at `<http://127.0.0.1:8998/>`_ with username (**klever_bridge_admin**) and password
+   (**klever_bridge_admin_passwd**).
+#. Populate the database and create a new Klever Bridge Manager (**klever_bridge_manager**) and a new service user
+   (**klever_bridge_service_user**).
+
+   .. note:: Population can take quite much time.
+
+#. Either remember passwords generated for them or in addition change these passwords using Admin Tools
+   (**klever_bridge_manager_passwd** and **klever_bridge_service_user_passwd** respectively).
+#. Sign out and sign in on behalf of **klever_bridge_manager** with password **klever_bridge_manager_passwd**.
+#. Enjoy!
 
 Update for development purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

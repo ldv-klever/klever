@@ -53,7 +53,7 @@
                 <label for="temp___filter_value__change_author"></label>
                 <select class="ui dropdown filter-dropdown" id="temp___filter_value__change_author">
                     {% for u in users %}
-                        <option value="{{ u.pk }}">{{ u.extended.last_name }} {{ u.extended.first_name }}</option>
+                        <option value="{{ u.pk }}">{{ u.get_full_name }}</option>
                     {% endfor %}
                 </select>
             </div>

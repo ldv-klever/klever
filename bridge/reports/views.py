@@ -15,25 +15,34 @@
 # limitations under the License.
 #
 
+import json
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
+
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import MultipleObjectsReturned
+from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
+from django.core.urlresolvers import reverse
 from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
-from bridge.vars import JOB_STATUS
-from bridge.utils import unparallel_group, logger, ArchiveFileContent
+
+from tools.profiling import unparallel_group
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT
+from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
-from marks.tables import ReportMarkTable
+from jobs.models import Job
+from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe, MarkUnknown, UnknownProblem
 from marks.utils import MarkAccess
-from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe
+from marks.tables import ReportMarkTable, MarkData
+from marks.tags import TagsInfo
+from service.models import Task
+
+import reports.utils
+import reports.models
 from reports.UploadReport import UploadReport
-from reports.models import *
-from reports.utils import *
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
 
@@ -55,20 +64,21 @@ def sort_bugs_list(l):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
     try:
         job = Job.objects.get(pk=int(job_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[404]))
+        return BridgeErrorResponse(404)
 
     if not JobAccess(request.user, job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     duration = None
     status = 1
@@ -89,8 +99,8 @@ def report_component(request, job_id, report_id):
 
     unknown_href = None
     try:
-        unknown_href = reverse('reports:leaf', args=[
-            'unknown', ReportUnknown.objects.get(parent=report, component=report.component).pk
+        unknown_href = reverse('reports:unknown', args=[
+            reports.models.ReportUnknown.objects.get(parent=report, component=report.component).pk
         ])
         status = 3
     except ObjectDoesNotExist:
@@ -99,7 +109,7 @@ def report_component(request, job_id, report_id):
         status = 4
 
     report_data = None
-    if report.data is not None:
+    if report.data:
         try:
             with report.data.file as fp:
                 report_data = json.loads(fp.read().decode('utf8'))
@@ -112,12 +122,12 @@ def report_component(request, job_id, report_id):
         {
             'report': report,
             'duration': duration,
-            'resources': report_resources(report, request.user),
-            'computer': computer_description(report.computer.description),
+            'resources': reports.utils.report_resources(report, request.user),
+            'computer': reports.utils.computer_description(report.computer.description),
             'reportdata': ViewJobData(*view_args),
-            'parents': get_parents(report),
-            'SelfAttrsData': ReportTable(*report_attrs_data).table_data,
-            'TableData': ReportTable(*report_attrs_data, table_type='3'),
+            'parents': reports.utils.get_parents(report),
+            'SelfAttrsData': reports.utils.ReportTable(*report_attrs_data).table_data,
+            'TableData': reports.utils.ReportTable(*report_attrs_data, table_type='3'),
             'status': status,
             'unknown': unknown_href,
             'data': report_data
@@ -126,17 +136,18 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
+@unparallel_group(['ReportComponent', 'ReportSafe', 'ReportUnsafe', 'ReportUnknown'])
 def report_list(request, report_id, ltype, component_id=None,
                 verdict=None, tag=None, problem=None, mark=None, attr=None):
     activate(request.user.extended.language)
 
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     list_types = {
         'unsafes': '4',
@@ -147,7 +158,7 @@ def report_list(request, report_id, ltype, component_id=None,
     if ltype == 'safes':
         title = _("All safes")
         if tag is not None:
-            title = string_concat(_("Safes"), ': ', tag.tag)
+            title = string_concat(_("Safes"), ': ', tag)
         elif verdict is not None:
             for s in SAFE_VERDICTS:
                 if s[0] == verdict:
@@ -160,7 +171,7 @@ def report_list(request, report_id, ltype, component_id=None,
     elif ltype == 'unsafes':
         title = _("All unsafes")
         if tag is not None:
-            title = string_concat(_("Unsafes"), ': ', tag.tag)
+            title = string_concat(_("Unsafes"), ': ', tag)
         elif verdict is not None:
             for s in UNSAFE_VERDICTS:
                 if s[0] == verdict:
@@ -189,15 +200,22 @@ def report_list(request, report_id, ltype, component_id=None,
             report_attrs_data.append(request.POST.get('view', None))
             report_attrs_data.append(request.POST.get('view_id', None))
 
+    table_data = reports.utils.ReportTable(
+        *report_attrs_data, table_type=list_types[ltype],
+        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr
+    )
+    # If there is only one element in table, and first column of table is link, redirect to this link
+    if len(table_data.table_data['values']) == 1 and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+            and table_data.table_data['values'][0][0]['href']:
+        return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
     return render(
         request,
         'reports/report_list.html',
         {
             'report': report,
-            'parents': get_parents(report),
-            'TableData': ReportTable(
-                *report_attrs_data, table_type=list_types[ltype],
-                component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr),
+            'parents': reports.utils.get_parents(report),
+            'TableData': table_data,
             'view_type': list_types[ltype],
             'title': title
         }
@@ -205,6 +223,7 @@ def report_list(request, report_id, ltype, component_id=None,
 
 
 @login_required
+@unparallel_group(['UnsafeTag', 'SafeTag'])
 def report_list_tag(request, report_id, ltype, tag_id):
     try:
         if ltype == 'unsafes':
@@ -212,8 +231,8 @@ def report_list_tag(request, report_id, ltype, tag_id):
         else:
             tag = SafeTag.objects.get(pk=int(tag_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[509]))
-    return report_list(request, report_id, ltype, tag=tag)
+        return BridgeErrorResponse(_("The tag was not found"))
+    return report_list(request, report_id, ltype, tag=tag.tag)
 
 
 @login_required
@@ -222,6 +241,7 @@ def report_list_by_verdict(request, report_id, ltype, verdict):
 
 
 @login_required
+@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def report_list_by_mark(request, report_id, ltype, mark_id):
     tables = {
         'safes': MarkSafe,
@@ -231,15 +251,16 @@ def report_list_by_mark(request, report_id, ltype, mark_id):
     try:
         return report_list(request, report_id, ltype, mark=tables[ltype].objects.get(pk=mark_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[604]))
+        return BridgeErrorResponse(604)
 
 
 @login_required
+@unparallel_group(['Attr'])
 def report_list_by_attr(request, report_id, ltype, attr_id):
     try:
-        return report_list(request, report_id, ltype, attr=Attr.objects.get(pk=attr_id))
+        return report_list(request, report_id, ltype, attr=reports.models.Attr.objects.get(pk=attr_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[704]))
+        return BridgeErrorResponse(_("The attribute was not found"))
 
 
 @login_required
@@ -248,6 +269,7 @@ def report_unknowns(request, report_id, component_id):
 
 
 @login_required
+@unparallel_group(['UnknownProblem'])
 def report_unknowns_by_problem(request, report_id, component_id, problem_id):
     problem_id = int(problem_id)
     if problem_id == 0:
@@ -256,107 +278,161 @@ def report_unknowns_by_problem(request, report_id, component_id, problem_id):
         try:
             problem = UnknownProblem.objects.get(pk=problem_id)
         except ObjectDoesNotExist:
-            return HttpResponseRedirect(reverse('error', args=[508]))
+            return BridgeErrorResponse(_("The problem was not found"))
     return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
 
 
 @login_required
-def report_leaf(request, leaf_type, report_id):
+@unparallel_group(['ReportUnsafe'])
+def report_unsafe(request, report_id):
     activate(request.user.extended.language)
 
-    tables = {
-        'unknown': ReportUnknown,
-        'safe': ReportSafe,
-        'unsafe': ReportUnsafe
-    }
-    if leaf_type not in tables:
-        return HttpResponseRedirect(reverse('error', args=[500]))
-
     try:
-        report = tables[leaf_type].objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
-    template = 'reports/report_leaf.html'
-    etv = None
     main_file_content = None
-    if leaf_type == 'unsafe':
-        template = 'reports/report_unsafe.html'
-        afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
-        if afc.error is not None:
-            logger.error(afc.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
-        etv = GetETV(afc.content, request.user.extended.assumptions)
-        if etv.error is not None:
-            logger.error(etv.error, stack_info=True)
-            return HttpResponseRedirect(reverse('error', args=[505]))
-    elif leaf_type == 'safe':
-        main_file_content = None
-        if report.archive is not None and report.proof is not None:
-            afc = ArchiveFileContent(report.archive, file_name=report.proof)
-            if afc.error is not None:
-                logger.error(afc.error)
-                return HttpResponseRedirect(reverse('error', args=[500]))
-            main_file_content = afc.content
-    elif leaf_type == 'unknown':
-        afc = ArchiveFileContent(report.archive, file_name=report.problem_description)
-        if afc.error is not None:
-            logger.error(afc.error)
-            return HttpResponseRedirect(reverse('error', args=[500]))
-        main_file_content = afc.content
+    try:
+        etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
+    except Exception as e:
+        logger.exception(e, stack_info=True)
+        etv = None
+    try:
+        tags = TagsInfo('unsafe', [])
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+
     try:
         return render(
-            request, template,
+            request, 'reports/report_unsafe.html',
             {
-                'type': leaf_type,
                 'report': report,
-                'parents': get_parents(report),
-                'SelfAttrsData': ReportTable(request.user, report).table_data,
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
                 'MarkTable': ReportMarkTable(request.user, report),
                 'etv': etv,
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'include_assumptions': request.user.extended.assumptions
+                'include_assumptions': request.user.extended.assumptions,
+                'markdata': MarkData('unsafe', report=report),
+                'tags': tags,
+                'include_jquery_ui': True
             }
         )
     except Exception as e:
         logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(505)
 
 
 @login_required
+@unparallel_group(['ReportSafe'])
+def report_safe(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = reports.models.ReportSafe.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return BridgeErrorResponse(400)
+
+    main_file_content = None
+    if report.archive and report.proof:
+        try:
+            main_file_content = ArchiveFileContent(report, report.proof).content.decode('utf8')
+        except Exception as e:
+            logger.exception("Couldn't extract proof from archive: %s" % e)
+            return BridgeErrorResponse(500)
+    try:
+        tags = TagsInfo('safe', [])
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+
+    try:
+        return render(
+            request, 'reports/report_safe.html',
+            {
+                'report': report,
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
+                'MarkTable': ReportMarkTable(request.user, report),
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'markdata': MarkData('safe', report=report),
+                'tags': tags
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing proof: %s" % e, stack_info=True)
+        return BridgeErrorResponse(500)
+
+
+@login_required
+@unparallel_group(['ReportUnknown'])
+def report_unknown(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = reports.models.ReportUnknown.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+    if not JobAccess(request.user, report.root.job).can_view():
+        return BridgeErrorResponse(400)
+    try:
+        main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
+    except Exception as e:
+        logger.exception("Couldn't extract problem description from archive: %s" % e)
+        return BridgeErrorResponse(500)
+
+    try:
+        return render(
+            request, 'reports/report_unknown.html',
+            {
+                'report': report,
+                'parents': reports.utils.get_parents(report),
+                'SelfAttrsData': reports.utils.report_attibutes(report),
+                'MarkTable': ReportMarkTable(request.user, report),
+                'can_mark': MarkAccess(request.user, report=report).can_create(),
+                'main_content': main_file_content,
+                'markdata': MarkData('unknown', report=report)
+            }
+        )
+    except Exception as e:
+        logger.exception("Error while visualizing problem description: %s" % e, stack_info=True)
+        return BridgeErrorResponse(500)
+
+
+@login_required
+@unparallel_group(['ReportUnsafe'])
 def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        report = ReportUnsafe.objects.get(pk=int(report_id))
+        report = reports.models.ReportUnsafe.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
-
-    afc = ArchiveFileContent(report.archive, file_name=report.error_trace)
-    if afc.error is not None:
-        logger.error(afc.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
-    etv = GetETV(afc.content, request.user.extended.assumptions)
-    if etv.error is not None:
-        logger.error(etv.error, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[505]))
+        return BridgeErrorResponse(400)
     try:
         return render(request, 'reports/etv_fullscreen.html', {
-            'report': report, 'etv': etv, 'include_assumptions': request.user.extended.assumptions
+            'report': report,
+            'etv': GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user),
+            'include_assumptions': request.user.extended.assumptions
         })
     except Exception as e:
-        logger.exception("Error while visualizing error trace: %s" % e, stack_info=True)
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        logger.exception(e, stack_info=True)
+        return BridgeErrorResponse(505)
 
 
-@unparallel_group(['mark', 'report'])
+@unparallel_group([reports.models.ReportRoot, reports.models.AttrName, Task])
 def upload_report(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signed in'})
@@ -392,66 +468,73 @@ def upload_report(request):
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     if report.log is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(_("The component doesn't have log"))
     logname = '%s-log.txt' % report.component.name
 
-    afc = ArchiveFileContent(report.archive, file_name=report.log)
-    if afc.error is not None:
-        logger.error(afc.error)
-        return HttpResponseRedirect(reverse('error', args=[500]))
-    file_inmem = BytesIO(afc.content.encode('utf8'))
-    file_inmem.seek(0, 2)
-    size = file_inmem.tell()
-    file_inmem.seek(0)
-    response = StreamingHttpResponse(FileWrapper(file_inmem, 8192), content_type='text/plain')
-    response['Content-Length'] = size
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='text/plain')
+    response['Content-Length'] = len(content)
     response['Content-Disposition'] = 'attachment; filename="%s"' % quote(logname)
     return response
 
 
 @login_required
+@unparallel_group(['ReportComponent'])
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
+        return BridgeErrorResponse(504)
 
     if not JobAccess(request.user, report.root.job).can_view():
-        return HttpResponseRedirect(reverse('error', args=[400]))
+        return BridgeErrorResponse(400)
 
     if report.log is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
-    afc = ArchiveFileContent(report.archive, file_name=report.log, max_size=10**5)
-    if afc.error is not None:
-        return HttpResponse(str(afc.error))
-    return HttpResponse(afc.content)
+        return BridgeErrorResponse(_("The component doesn't have log"))
+
+    try:
+        content = ArchiveFileContent(report, report.log).content
+    except Exception as e:
+        logger.exception(str(e))
+        return HttpResponse(str(_('Extraction of the component log from archive failed')))
+
+    if len(content) > 10**5:
+        return HttpResponse(str(_('The component log is huge and can not be showed but you can download it')))
+    return HttpResponse(content.decode('utf8'))
 
 
 @login_required
+@unparallel_group(['ReportUnsafe'])
 def get_source_code(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'report_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
-    if 'file_name' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'report_id' not in request.POST or 'file_name' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
-    result = GetSource(request.POST['report_id'], request.POST['file_name'])
-    if result.error is not None:
-        return JsonResponse({'error': result.error + ''})
+    try:
+        result = GetSource(request.POST['report_id'], request.POST['file_name'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     filename = request.POST['file_name']
     if len(filename) > 50:
         filename = '.../' + filename[-50:].split('/', 1)[-1]
@@ -460,38 +543,45 @@ def get_source_code(request):
     })
 
 
-@unparallel_group(['decision', 'job'])
 @login_required
+@unparallel_group(['Job', 'ReportRoot', reports.models.CompareJobsInfo])
 def fill_compare_cache(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
         j1 = Job.objects.get(pk=request.POST.get('job1', 0))
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+    if not can_compare(request.user, j1, j2):
+        return JsonResponse({'error': _("You can't compare the selected jobs")})
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
-        logger.exception("Comparison of reports' trees failed: %s" % e, stack_info=True)
-        return JsonResponse({'error': 'Unknown error while filling comparison cache'})
+        logger.exception("Comparison of reports' trees failed: %s" % e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
 @login_required
+@unparallel_group([reports.models.CompareJobsInfo])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
         job1 = Job.objects.get(pk=job1_id)
         job2 = Job.objects.get(pk=job2_id)
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[405]))
+        return BridgeErrorResponse(405)
     if not can_compare(request.user, job1, job2):
-        return HttpResponseRedirect(reverse('error', args=[507]))
-    tabledata = ComparisonTableData(request.user, job1, job2)
-    if tabledata.error is not None:
-        return HttpResponseRedirect(reverse('error', args=[506]))
+        return BridgeErrorResponse(507)
+    try:
+        tabledata = ComparisonTableData(request.user, job1, job2)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
     return render(
         request, 'reports/comparison.html',
         {
@@ -505,24 +595,25 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
+@unparallel_group([reports.models.CompareJobsInfo])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Unknown error'})
-    if 'info_id' not in request.POST:
-        return JsonResponse({'error': 'Unknown error'})
+    if request.method != 'POST' or 'info_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if all(x not in request.POST for x in ['verdict', 'attrs']):
-        return JsonResponse({'error': 'Unknown error'})
-    result = ComparisonData(
-        request.POST['info_id'],
-        int(request.POST.get('page_num', 1)),
-        True if 'hide_attrs' in request.POST else False,
-        True if 'hide_components' in request.POST else False,
-        request.POST.get('verdict', None),
-        request.POST.get('attrs', None)
-    )
-    if result.error is not None:
-        return JsonResponse({'error': str(result.error)})
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        result = ComparisonData(
+            request.POST['info_id'], int(request.POST.get('page_num', 1)),
+            True if 'hide_attrs' in request.POST else False,
+            True if 'hide_components' in request.POST else False,
+            request.POST.get('verdict', None), request.POST.get('attrs', None)
+        )
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     v1 = result.v1
     v2 = result.v2
     for v in COMPARE_VERDICT:
@@ -546,17 +637,51 @@ def get_compare_jobs_data(request):
 
 
 @login_required
-@unparallel_group(['report'])
+@unparallel_group(['ReportComponent'])
 def download_report_files(request, report_id):
     try:
-        report = ReportComponent.objects.get(pk=int(report_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return HttpResponseRedirect(reverse('error', args=[504]))
-    if report.archive is None:
-        return HttpResponseRedirect(reverse('error', args=[500]))
+        return BridgeErrorResponse(504)
+    if not report.archive:
+        return BridgeErrorResponse(_("The report doesn't have files"))
 
-    with report.archive.file as fp:
-        response = StreamingHttpResponse(FileWrapper(fp, 8192), content_type='application/x-tar-gz')
-        response['Content-Length'] = len(fp)
-        response['Content-Disposition'] = 'attachment; filename="%s files.tar.gz"' % report.component.name
-        return response
+    response = StreamingHttpResponse(FileWrapper(report.archive.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.archive.file)
+    response['Content-Disposition'] = 'attachment; filename="%s files.zip"' % report.component.name
+    return response
+
+
+@login_required
+@unparallel_group(['ReportUnsafe'])
+def download_error_trace(request, report_id):
+    if request.method != 'GET':
+        return BridgeErrorResponse(301)
+    try:
+        report = reports.models.ReportUnsafe.objects.get(id=report_id)
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+    content = ArchiveFileContent(report, report.error_trace).content
+    response = StreamingHttpResponse(FileWrapper(BytesIO(content), 8192), content_type='application/json')
+    response['Content-Length'] = len(content)
+    response['Content-Disposition'] = 'attachment; filename="error-trace.json"'
+    return response
+
+
+@login_required
+@unparallel_group([reports.models.Report])
+def clear_verification_files(request):
+    if request.method != 'POST' or 'job_id' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        job = Job.objects.get(id=request.POST['job_id'])
+    except ObjectDoesNotExist:
+        return JsonResponse({'error': _("The job was not found or wasn't decided")})
+    if not JobAccess(request.user, job).can_clear_verifications():
+        return JsonResponse({'error': _("You can't remove verification files of this job")})
+    try:
+        reports.utils.remove_verification_files(job)
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})

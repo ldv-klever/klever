@@ -2,7 +2,7 @@
 
 {% for lvl in data %}
     {% for block in lvl %}
-        <div class="comparison-block" style="min-width: 200px;border-color: {% if block.type == 'component' %}#021cfc{% elif block.type == 'unsafe' %}#fc902f{% elif block.type == 'safe' %}#42fc51{% elif block.type == 'unknown' %}#fc1c67{% elif block.type == 'mark' %}#a73efc{% endif %}">
+        <div class="comparison-block" style="min-width: 200px;border-color: {% if block.type == 'c' %}#021cfc{% elif block.type == 'u' %}#fc902f{% elif block.type == 's' %}#42fc51{% elif block.type == 'f' %}#fc1c67{% elif block.type == 'm' %}#a73efc{% endif %}">
             <input class="block_class" type="hidden" value="{{ block.block_class }}">
             <div class="block-title">
                 <span>

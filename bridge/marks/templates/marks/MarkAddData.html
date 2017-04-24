@@ -18,6 +18,13 @@
             </div>
         </div>
     </div>
+    <div class="ui blue segment">
+        <h4 class="header ui blue">{% trans 'Converted error trace' %}</h4>
+        <div class="ui form">
+            <label for="mark_error_trace"></label>
+            <textarea id="mark_error_trace" rows="15" style="resize:none">{{ error_trace }}</textarea>
+        </div>
+    </div>
 
 {% endif %}
 <div class="ui green segment">
@@ -55,7 +62,10 @@
         <textarea id="mark_description" rows="5" style="resize:none">{{ markdata.description }}</textarea>
     </div>
 </div>
-{% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+<div class="ui pink segment">
+    <h4 class="header ui pink">{% trans 'Tags' %}</h4>
+    {% include 'marks/MarkTags.html' with tags=tags.table available=tags.available selected=tags.selected %}
+</div>
 
 {% if markdata.type == 'unsafe' or markdata.type == 'safe' %}
     <div class="ui styled accordion fluid">
@@ -63,7 +73,7 @@
             <i class="grid layout icon"></i>{% trans 'Attributes' %}
         </div>
         <div class="content">
-            <div style="overflow-x:auto;overflow-y:auto;max-height:300px;">
+            <div style="overflow-x:auto;">
                 <table class="ui celled compact purple table">
                     <tbody>
                         {% for v in markdata.attributes %}

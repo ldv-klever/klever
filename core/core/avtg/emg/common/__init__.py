@@ -14,3 +14,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+
+
+def get_conf_property(conf, name, expected_type=None):
+    """
+    Check that configuration properties dictionary contains the given configuration property and return its value.
+
+    :param conf: Dictionary.
+    :param name: Configuration property string.
+    :param expected_type: Check that given value has an expected type.
+    :return: Configuration property value.
+    """
+    if name in conf:
+        if expected_type and type(conf[name]) is not expected_type:
+            raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
+                            format(name, str(expected_type), str(type(conf[name]))))
+        return conf[name]
+    else:
+        return None
+
+
+def get_necessary_conf_property(conf, name):
+    """
+    Return configuration property value and expect it to be set.
+
+    :param conf: Dictionary.
+    :param name: Configuration property string.
+    :return: Configuration property value.
+    """
+    check_necessary_conf_property(conf, name, None)
+    return conf[name]
+
+
+def check_or_set_conf_property(conf, name, default_value=None, expected_type=None):
+    """
+    Check that property is set or set its value with a provided value.
+
+    :param conf: Dictionary.
+    :param name: Configuration property string.
+    :param default_value: Default value to be set.
+    :param expected_type: Check that given value has an expected type.
+    :return: None
+    """
+    if name not in conf:
+        conf[name] = default_value
+    check_necessary_conf_property(conf, name, expected_type)
+
+
+def check_necessary_conf_property(conf, name, expected_type=None):
+    """
+    Check that property is set or set its value with a provided value.
+
+    :param conf: Dictionary.
+    :param name: Configuration property string.
+    :param expected_type: Check that given value has an expected type.
+    :return: True
+    """
+    if name not in conf:
+        raise KeyError("Expect configuration property '{}' to be set properly".format(name))
+    elif name in conf and expected_type and type(conf[name]) is not expected_type:
+        raise TypeError("Expect configuration property '{}' to be set with a '{}' value but it has type '{}'".
+                        format(name, str(expected_type), str(type(conf[name]))))
+    return True

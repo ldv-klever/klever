@@ -9,6 +9,7 @@
 
 {% block body_block %}
     {% if changes %}
+        <br>
         <div class="ui grid">
             {% if changes.manager %}
                 <div class="eight wide column">
@@ -68,25 +69,49 @@
             <h1 class="ui brown header">{% trans 'Nothing changed' %}</h1>
         {% endif %}
         <a href="{% url 'jobs:tree' %}" class="ui green button">{% trans 'OK' %}</a>
+    {% elif error %}
+        <h2 class="ui red header">{{ error }}</h2>
     {% else %}
         <h1 class="ui violet header">{% trans 'Welcome to Klever Bridge!' %}</h1>
-        <form method="post">
+        <form class="ui form" method="post">
             {% csrf_token %}
             <div class="ui grid">
             {% if need_manager and need_service %}
-                <div class="nine wide column">
+                <div class="eight wide column">
                     <div class="ui orange segment">
                         <h5 class="ui orange header">{% trans "Create the Manager with the specified username and jobs of all classes on behalf of that Manager" %}</h5>
-                        <div class="ui input">
-                            <input id="manager_username" name="manager_username" type="text" placeholder="{% trans 'Manager username' %}">
+                        <div class="ui two column grid">
+                            <div class="column">
+                                <div class="ui field">
+                                    <label for="manager_username">{% trans 'Manager username' %} <i class="ui help blue link icon note-popup" data-content="{% trans 'You can enter username of existed user to give him manager role' %}"></i></label>
+                                    <input id="manager_username" name="manager_username" type="text">
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="ui field">
+                                    <label for="manager_password">{% trans 'Manager password' %} <i class="ui help blue link icon note-popup" data-content="{% trans 'Live empty if you want randomly generated password' %}"></i></label>
+                                    <input id="manager_password" name="manager_password" type="text">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div class="seven wide column">
+                <div class="eight wide column">
                     <div class="ui teal segment">
                         <h5 class="ui teal header">{% trans "Create the service user with the specified username" %}</h5>
-                        <div class="ui input">
-                            <input id="service_username" name="service_username" type="text" placeholder="{% trans 'Service username' %}">
+                        <div class="ui two column grid">
+                            <div class="column">
+                                <div class="ui field">
+                                    <label for="service_username">{% trans 'Service username' %} <i class="ui help blue link icon note-popup" data-content="{% trans 'You can enter username of existed user to give him service role' %}"></i></label>
+                                    <input id="service_username" name="service_username" type="text">
+                                </div>
+                            </div>
+                            <div class="column">
+                                <div class="ui field">
+                                    <label for="service_password">{% trans 'Service password' %} <i class="ui help blue link icon note-popup" data-content="{% trans 'Leave empty if you want randomly generated password' %}"></i></label>
+                                    <input id="service_password" name="service_password" type="text">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

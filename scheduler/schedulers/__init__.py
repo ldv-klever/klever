@@ -21,6 +21,8 @@ import logging
 import os
 import shutil
 import time
+import traceback
+import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
@@ -172,25 +174,30 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Submit scheduler state and receive server state
                 server_state = self.server.exchange(scheduler_state)
 
-                # Ignore tasks which have been finished or cancelled
-                for task_id in [task_id for task_id in self.__tasks
-                                if self.__tasks[task_id]["status"] in ["FINISHED", "ERROR"]]:
-                    if task_id in server_state["tasks"]["pending"]:
-                        logging.debug("Ignore PENDING task {}, since it has been processed recently".format(task_id))
-                        server_state["tasks"]["pending"].remove(task_id)
-                    if task_id in server_state["tasks"]["processing"]:
-                        logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
-                        server_state["tasks"]["processing"].remove(task_id)
+                try:
+                    # Ignore tasks which have been finished or cancelled
+                    for task_id in [task_id for task_id in self.__tasks
+                                    if self.__tasks[task_id]["status"] in ["FINISHED", "ERROR"]]:
+                        if task_id in server_state["tasks"]["pending"]:
+                            logging.debug("Ignore PENDING task {}, since it has been processed recently".format(task_id))
+                            server_state["tasks"]["pending"].remove(task_id)
+                        if task_id in server_state["tasks"]["processing"]:
+                            logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
+                            server_state["tasks"]["processing"].remove(task_id)
 
-                # Ignore jobs which have been finished or cancelled
-                for job_id in [job_id for job_id in self.__jobs
-                               if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
-                    if job_id in server_state["jobs"]["pending"]:
-                        logging.debug("Ignore PENDING job {}, since it has been processed recently".format(job_id))
-                        server_state["jobs"]["pending"].remove(job_id)
-                    if job_id in server_state["jobs"]["processing"]:
-                        logging.debug("Ignore PROCESSING job {}, since it has been processed recently")
-                        server_state["jobs"]["processing"].remove(job_id)
+                    # Ignore jobs which have been finished or cancelled
+                    for job_id in [job_id for job_id in self.__jobs
+                                   if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
+                        if job_id in server_state["jobs"]["pending"]:
+                            logging.debug("Ignore PENDING job {}, since it has been processed recently".format(job_id))
+                            server_state["jobs"]["pending"].remove(job_id)
+                        if job_id in server_state["jobs"]["processing"]:
+                            logging.debug("Ignore PROCESSING job {}, since it has been processed recently")
+                            server_state["jobs"]["processing"].remove(job_id)
+                except KeyError as missed_tag:
+                    self.__report_error_server_state(
+                        server_state,
+                        "Missed tag {} in a received server state".format(missed_tag))
 
                 # Remove finished or error tasks which have been already submitted
                 logging.debug("Remove tasks with statuses FINISHED and ERROR which have been submitted")
@@ -207,21 +214,27 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 # Add new PENDING tasks
                 for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
                     logging.debug("Add new PENDING task {}".format(task_id))
-                    self.__tasks[task_id] = {
-                        "id": task_id,
-                        "status": "PENDING",
-                        "description": server_state["task descriptions"][task_id]["description"],
-                        "priority": server_state["task descriptions"][task_id]["description"]["priority"]
-                    }
-                    # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
-                    if self.scheduler_type() == "VerifierCloud":
-                        self.__tasks[task_id]["user"] = \
-                            server_state["task descriptions"][task_id]["VerifierCloud user name"]
-                        self.__tasks[task_id]["password"] = \
-                            server_state["task descriptions"][task_id]["VerifierCloud user password"]
-                    else:
-                        self.__tasks[task_id]["user"] = None
-                        self.__tasks[task_id]["password"] = None
+                    try:
+                        self.__tasks[task_id] = {
+                            "id": task_id,
+                            "status": "PENDING",
+                            "description": server_state["task descriptions"][task_id]["description"],
+                            "priority": server_state["task descriptions"][task_id]["description"]["priority"]
+                        }
+
+                        # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
+                        if self.scheduler_type() == "VerifierCloud":
+                            self.__tasks[task_id]["user"] = \
+                                server_state["task descriptions"][task_id]["VerifierCloud user name"]
+                            self.__tasks[task_id]["password"] = \
+                                server_state["task descriptions"][task_id]["VerifierCloud user password"]
+                        else:
+                            self.__tasks[task_id]["user"] = None
+                            self.__tasks[task_id]["password"] = None
+                    except KeyError as missed_tag:
+                        self.__report_error_server_state(
+                            server_state,
+                            "Missed tag '{}' in the description of pendng task {}".format(missed_tag, task_id))
 
                     # Try to prepare task
                     logging.debug("Prepare new task {} before launching".format(task_id))
@@ -272,6 +285,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         cancelled = self.__jobs[job_id]["future"].cancel()
                         if not cancelled:
                             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
+
+                            # Then terminate all pending and processing tasks for the job
+                            for task_id in [task_id for task_id in self.__tasks
+                                            if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
+                                            self.__tasks[task_id]["description"]["job id"] == job_id]:
+                                self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+
                     del self.__jobs[job_id]
 
                 # Update jobs processing status
@@ -419,8 +439,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 logging.error("Scheduler execution is interrupted, cancel all running threads")
                 self.terminate()
                 exit(137)
-            except Exception as err:
-                logging.error("An error occured: {}".format(err))
+            except Exception:
+                exception_info = 'An error occured:\n{}'.format(traceback.format_exc().rstrip())
+                logging.error(exception_info)
                 self.terminate()
                 if self.production:
                     logging.info("Reinitialize scheduler and try to proceed execution in 30 seconds...")
@@ -428,7 +449,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     self.init_scheduler()
                 else:
                     exit(1)
-
 
     @abc.abstractmethod
     def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
@@ -596,5 +616,15 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         return result
 
+    def __report_error_server_state(self, server_state, message):
+        # Save server state file
+        state_file_name = time.strftime("%d-%m-%Y %H:%M:%S server state.json")
+        error_file = os.path.join(os.path.curdir, state_file_name)
+        with open(error_file, 'w') as outfile:
+            json.dump(server_state, outfile, ensure_ascii=False, sort_keys=True, indent=4)
+
+        # Raise an exception
+        raise RuntimeError("Received invalid server state (printed at {!r}): {!r}".
+                           format(os.path.abspath(error_file), message))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

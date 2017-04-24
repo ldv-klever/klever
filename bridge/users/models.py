@@ -23,14 +23,13 @@ from bridge.settings import DEF_USER
 
 class Extended(models.Model):
     user = models.OneToOneField(User)
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
     accuracy = models.SmallIntegerField(default=DEF_USER['accuracy'])
     data_format = models.CharField(max_length=3, choices=DATAFORMAT, default=DEF_USER['dataformat'])
     language = models.CharField(max_length=2, choices=LANGUAGES, default=DEF_USER['language'])
     role = models.CharField(max_length=1, choices=USER_ROLES, default='0')
     timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
     assumptions = models.BooleanField(default=DEF_USER['assumptions'])
+    triangles = models.BooleanField(default=DEF_USER['triangles'])
 
     def __str__(self):
         return self.user.username
@@ -44,6 +43,7 @@ class View(models.Model):
     type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
     name = models.CharField(max_length=255)
     view = models.TextField()
+    shared = models.BooleanField(default=False)
 
     def __str__(self):
         return self.name
@@ -54,7 +54,7 @@ class View(models.Model):
 
 class PreferableView(models.Model):
     user = models.ForeignKey(User)
-    view = models.ForeignKey(View, related_name='+', on_delete=models.CASCADE)
+    view = models.ForeignKey(View, related_name='+')
 
     def __str__(self):
         return self.view.name

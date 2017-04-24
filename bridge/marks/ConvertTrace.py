@@ -19,26 +19,27 @@ import json
 from io import BytesIO
 from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
-from bridge.utils import ArchiveFileContent, logger, file_get_or_create
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, error_trace_model_functions
-from marks.models import ErrorTraceConvertionCache
+from django.utils.translation import ugettext_lazy as _
+from bridge.utils import ArchiveFileContent, logger, file_get_or_create, BridgeException
+from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, ErrorTraceForests
+from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
 # 1) Add created function to the class ConvertTrace;
 # 2) Use self.error_trace for convertion
-# 3) Return the converted trace. This value MUST be json serializable.
+# 3) Return the converted trace. This value MUST be json serializable. Dict and list are good choices.
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'call_stack_tree'
+DEFAULT_CONVERT = 'call_forests'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
-class ConvertTrace(object):
+class ConvertTrace:
 
     def __init__(self, function_name, error_trace):
         """
-        If something failed self.error is not None.
+        If something failed raise BridgeException().
         In case of success you need just self.patter_error_trace.
         :param function_name: name of the function (str).
         :param error_trace: error trace (str).
@@ -46,23 +47,15 @@ class ConvertTrace(object):
         """
         self.error_trace = error_trace
         self.pattern_error_trace = None
-        self.error = None
-        if function_name.startswith('__'):
-            self.error = 'Wrong function name'
-            return
+        if function_name.startswith('_'):
+            raise BridgeException('Wrong function name')
         try:
-            function = getattr(self, function_name)
-            if not isinstance(function, MethodType):
-                self.error = 'Wrong function name'
-                return
+            func = getattr(self, function_name)
+            if not isinstance(func, MethodType):
+                raise BridgeException('Wrong function name')
         except AttributeError:
-            self.error = 'Function was not found'
-            return
-        try:
-            self.pattern_error_trace = function()
-        except Exception as e:
-            self.error = e
-            return
+            raise BridgeException(_('Error trace convert function does not exist'))
+        self.pattern_error_trace = func()
 
     def call_stack(self):
         """
@@ -70,12 +63,6 @@ This function is extracting the error trace call stack to first warning.
 Return list of lists of function names in json format.
         """
         return error_trace_callstack(self.error_trace)
-
-    def model_functions(self):
-        """
-This function is extracting model functions tree in specific format.
-        """
-        return error_trace_model_functions(self.error_trace)
 
     def call_stack_tree(self):
         """
@@ -86,46 +73,50 @@ Return list of lists of levels of function names in json format.
 
         return ErrorTraceCallstackTree(self.error_trace).trace
 
+    def call_forests(self):
+        """
+This function is extracting the error trace call stack "forests".
+The forest is a couple of call trees under callback action.
+Return list of forests.
+        """
 
-class GetConvertedErrorTrace(object):
-    def __init__(self, function, unsafe):
-        self.error = None
+        return ErrorTraceForests(self.error_trace, False).trace
+
+    def forests_callbacks(self):
+        """
+This function is extracting the error trace call stack "forests".
+The forest is a couple of call trees under callback action.
+Return list of forests. These forests includes callback actions as leaves.
+        """
+
+        return ErrorTraceForests(self.error_trace, True).trace
+
+
+class GetConvertedErrorTrace:
+    def __init__(self, func, unsafe):
         self.unsafe = unsafe
-        self.function = function
-        self.error_trace = self.__get_error_trace()
-        if self.error is not None:
-            return
-        try:
-            self.converted = self.__convert()
-        except Exception as e:
-            logger.exception("Can't get converted error trace: %s" % e)
-            self.error = "Can't get converted error trace"
-        if self.error is not None:
-            return
+        self.function = func
         self._parsed_trace = None
+        self.error_trace = self.__get_error_trace()
+        self.converted = self.__convert()
 
     def __get_error_trace(self):
-        afc = ArchiveFileContent(self.unsafe.archive, file_name=self.unsafe.error_trace)
-        if afc.error is not None:
-            logger.error("Can't get error trace for unsafe '%s': %s" % (self.unsafe.pk, afc.error), stack_info=True)
-            self.error = "Can't get error trace for unsafe '%s'" % self.unsafe.pk
-            return None
-        return afc.content
+        try:
+            return ArchiveFileContent(self.unsafe, self.unsafe.error_trace).content.decode('utf8')
+        except Exception as e:
+            logger.exception(e, stack_info=True)
+            raise BridgeException("Can't exctract error trace for unsafe '%s' from archive" % self.unsafe.pk)
 
     def __convert(self):
         try:
             return ErrorTraceConvertionCache.objects.get(unsafe=self.unsafe, function=self.function).converted
         except ObjectDoesNotExist:
-            res = ConvertTrace(self.function.name, self.error_trace)
-            if res.error is not None:
-                self.error = res.error
-                return None
-            et_file = file_get_or_create(
-                BytesIO(json.dumps(res.pattern_error_trace,
-                                   ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')), ET_FILE_NAME
+            self._parsed_trace = ConvertTrace(self.function.name, self.error_trace).pattern_error_trace
+            et_file = file_get_or_create(BytesIO(
+                json.dumps(self._parsed_trace, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
+            ), ET_FILE_NAME, ConvertedTraces
             )[0]
             ErrorTraceConvertionCache.objects.create(unsafe=self.unsafe, function=self.function, converted=et_file)
-            self._parsed_trace = res.pattern_error_trace
             return et_file
 
     def parsed_trace(self):

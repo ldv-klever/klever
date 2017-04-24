@@ -155,46 +155,31 @@ class UserMessage(object):
                 msg = MESSAGES[0][0] % {
                     'url': self.args['absurl'],
                     'id': job.identifier,
-                    'user': ("%s %s" % (
-                        self.change_user.extended.last_name,
-                        self.change_user.extended.first_name
-                    ))
+                    'user': self.change_user.get_full_name()
                 }
             else:
                 msg = MESSAGES[0][1] % {
                     'id': job.identifier,
-                    'user': ("%s %s" % (
-                        self.change_user.extended.last_name,
-                        self.change_user.extended.first_name
-                    ))
+                    'user': self.change_user.get_full_name()
                 }
         elif self.type == 1:
             if self.args is not None and 'absurl' in self.args:
                 msg = MESSAGES[1][0] % {
                     'url': self.args['absurl'],
                     'id': job.identifier,
-                    'user': ("%s %s" % (
-                        self.change_user.extended.last_name,
-                        self.change_user.extended.first_name
-                    )),
+                    'user': self.change_user.get_full_name(),
                     'comm': job.versions.get(version=job.version).comment
                 }
             else:
                 msg = MESSAGES[1][1] % {
                     'id': job.identifier,
-                    'user': ("%s %s" % (
-                        self.change_user.extended.last_name,
-                        self.change_user.extended.first_name
-                    )),
+                    'user': self.change_user.get_full_name(),
                     'comm': job.versions.get(version=job.version).comment
                 }
         elif self.type == 2:
             msg = MESSAGES[self.type] % {
                 'id': job.identifier,
-                'user': ("%s %s" % (
-                    self.change_user.extended.last_name,
-                    self.change_user.extended.first_name
-                ))
+                'user': self.change_user.get_full_name()
             }
         elif self.type in [3, 4, 5, 6]:
             msg = MESSAGES[self.type] % {'id': job.identifier}

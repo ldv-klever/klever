@@ -27,5 +27,5 @@ urlpatterns = [
     url(r'^profile/(?P<user_id>[0-9]+)$', views.show_profile, name='show_profile'),
     url(r'^service_signin/$', views.service_signin),
     url(r'^service_signout/$', views.service_signout),
-    url(r'^ajax/save_notifications/$', views.save_notifications),
+    url(r'^ajax/save_notifications/$', views.save_notifications)
 ]

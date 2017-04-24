@@ -44,7 +44,8 @@ tokens = (
     'BIT_SIZE_DELEMITER',
     'NUMBER',
     'END',
-    'IDENTIFIER'
+    'IDENTIFIER',
+    'EQUAL_SIGN'
 )
 
 keyword_map = None
@@ -72,6 +73,8 @@ t_UNKNOWN = r"\$"
 t_BIT_SIZE_DELEMITER = r'[:]'
 
 t_END = r'[;]'
+
+t_EQUAL_SIGN = r'='
 
 t_ignore = ' \t'
 
@@ -246,6 +249,7 @@ def p_type_specifier_list(p):
 def p_struct_specifier(p):
     """
     struct_specifier : STRUCT IDENTIFIER
+                     | STRUCT BLOCK_OPEN BLOCK_CLOSE
                      | STRUCT BLOCK_OPEN struct_declaration_list BLOCK_CLOSE
     """
     if len(p) == 3:
@@ -302,11 +306,38 @@ def p_union_specifier(p):
 def p_enum_specifier(p):
     """
     enum_specifier : ENUM IDENTIFIER
+                   | ENUM BLOCK_OPEN enumerator_list BLOCK_CLOSE
     """
-    p[0] = {
-        'class': 'enum',
-        'name': p[2]
-    }
+    if len(p) == 3:
+        p[0] = {
+            'class': 'enum',
+            'name': p[2]
+        }
+    else:
+        p[0] = {
+            'class': 'enum',
+            'name': None,
+            'enumerators': p[3]
+        }
+
+
+def p_enumerator_list(p):
+    """
+    enumerator_list : enumerator COMMA enumerator_list
+                    | enumerator
+    """
+    if len(p) == 2:
+        p[0] = [p[1]]
+    else:
+        p[0] = [p[1]] + p[3]
+
+
+def p_enumerator(p):
+    """
+    enumerator : IDENTIFIER
+               | IDENTIFIER EQUAL_SIGN NUMBER
+    """
+    p[0] = p[1]
 
 
 def p_typedef(p):

@@ -21,7 +21,7 @@ import logging
 import os
 import re
 import sys
-import tarfile
+import zipfile
 import signal
 from xml.etree import ElementTree
 from xml.dom import minidom
@@ -71,6 +71,9 @@ def solve_job(conf):
     else:
         bin = conf["client"]["Klever Core path"]
 
+    # Do it to make it possible to use runexec inside Klever
+    os.environ['PYTHONPATH'] = "{}:{}".format(os.environ['PYTHONPATH'], bench_exec_location)
+
     # Check existence of the file
     logging.info("Going to use Klever Core from {}".format(bin))
     if not os.path.isfile(bin):
@@ -82,6 +85,7 @@ def solve_job(conf):
 
     # Import RunExec
     executor = RunExecutor()
+    set_signal_handler(executor)
 
     # Check resource limitations
     if not conf["resource limits"]["CPU time"]:
@@ -111,11 +115,6 @@ def solve_job(conf):
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
 
-    def handler(a, b):
-        executor.stop()
-        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
-        logging.info("Trying to kill the job")
-    signal.signal(signal.SIGTERM, handler)
     result = executor.execute_run(args=[bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
@@ -156,6 +155,7 @@ def solve_task(conf):
     os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
 
     benchexec = BenchExec()
+    set_signal_handler(benchexec)
 
     # Check resource limitations
     if "CPU time" not in conf["resource limits"]:
@@ -174,9 +174,9 @@ def solve_task(conf):
     logging.info("Download task")
     server = bridge.Server(conf["Klever Bridge"], os.curdir)
     server.register()
-    server.pull_task(conf["identifier"], "task files.tar.gz")
-    with tarfile.open("task files.tar.gz", encoding="utf8") as tar:
-        tar.extractall()
+    server.pull_task(conf["identifier"], "task files.zip")
+    with zipfile.ZipFile('task files.zip') as zfp:
+        zfp.extractall()
 
     logging.info("Prepare benchmark")
     benchmark = ElementTree.Element("benchmark", {
@@ -206,11 +206,6 @@ def solve_task(conf):
 
     logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
 
-    def handler(a, b):
-        benchexec.stop()
-        os.killpg(os.getpgid(os.getpid()), signal.SIGTERM)
-        logging.info("Trying to kill the task")
-    signal.signal(signal.SIGTERM, handler)
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
     logging.info("Task solution has finished with exit code {}".format(exit_code))
@@ -262,14 +257,15 @@ def solve_task(conf):
     with open("decision results.json", "w", encoding="utf8") as fp:
         json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    with tarfile.open("decision result files.tar.gz", "w:gz", encoding="utf8") as tar:
-        tar.add("decision results.json")
-        for file in glob.glob("output/*"):
-            tar.add(file)
+    with zipfile.ZipFile('decision result files.zip', mode='w') as zfp:
+        zfp.write("decision results.json")
+        for dirpath, dirnames, filenames in os.walk("output"):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename))
         if conf["upload input files of static verifiers"]:
-            tar.add("benchmark.xml")
+            zfp.write("benchmark.xml")
 
-    server.submit_solution(conf["identifier"], decision_results, "decision result files.tar.gz")
+    server.submit_solution(conf["identifier"], decision_results, "decision result files.zip")
 
     return exit_code
 
@@ -290,6 +286,22 @@ def split_archive_name(path):
         extension = split[1] + extension
 
     return name, extension
+
+
+def set_signal_handler(executor):
+    """
+    Set custom sigterm handler in order to terminate job/task execution with all process group.
+
+    :param executor: Object which corresponds RunExec or BenchExec. Should have method stop().
+    :return: None
+    """
+    def handler(a, b):
+        logging.info("Trying to kill the task")
+        executor.stop()
+        exit(-1)
+
+    # Set custom handler
+    signal.signal(signal.SIGTERM, handler)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

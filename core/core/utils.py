@@ -23,10 +23,11 @@ import re
 import resource
 import subprocess
 import sys
-import tarfile
+import zipfile
 import threading
 import time
 import queue
+from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
@@ -236,6 +237,25 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
         raise CommandError('"{0}" failed'.format(cmd))
 
     return out_q.output
+
+
+def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
+    logger.debug('Execute:\n{!r}'.format(' '.join(args)))
+    executor = RunExecutor()
+    result = executor.execute_run(args=args,
+                                  output_filename="output.log",
+                                  walltimelimit=timelimit,
+                                  memlimit=memlimit,
+                                  maxLogfileSize=10000000)
+    exit_code = int(result["exitcode"]) % 255
+    if exit_code != 0:
+        os.rename("output.log", "problem desc.txt")
+        raise ValueError("Tool {!r} exited with non-zero exit code: {}".format(args[0], exit_code))
+    else:
+        with open("output.log") as fd:
+            output = fd.read()
+
+    return output
 
 
 # TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
@@ -516,13 +536,13 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.tar.gz'.format(type, suffix or '')
+        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         if os.path.isfile(report_files_archive):
             raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with tarfile.open(report_files_archive, 'w:gz', encoding='utf8') as tar:
+        with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
             for file in report['files']:
-                tar.add(file)
+                zfp.write(file)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))

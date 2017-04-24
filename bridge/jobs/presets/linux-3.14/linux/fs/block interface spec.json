@@ -1,0 +1,49 @@
+{
+  "Linux 3.14 (base)": {
+    "kernel functions": {
+      "add_disk": {
+        "signature": "void add_disk(*%block_device.gendisk%)",
+        "header": "linux/genhd.h"
+      },
+      "del_gendisk": {
+        "signature": "void del_gendisk(*%block_device.gendisk%)",
+        "header": "linux/genhd.h"
+      }
+    },
+    "categories": {
+      "block_device": {
+        "containers": {
+          "gendisk": {
+            "signature": "struct gendisk a",
+            "header": "linux/genhd.h",
+            "fields": {
+              "fops": "*%block_device.block_device_operations%"
+            }
+          },
+          "block_device_operations": {
+            "header": "linux/blkdev.h",
+            "signature": "struct block_device_operations driver",
+            "fields": {
+              "open": "%block_device.open%",
+              "release": "%block_device.release%"
+            }
+          }
+        },
+        "callbacks": {
+          "open": {
+            "signature": "int (*open) (%block_device.block_dev%, $)"
+          },
+          "release": {
+            "signature": "void (*release) (%block_device.gendisk%, $)"
+          }
+        },
+        "resources": {
+          "block_dev": {
+            "header": "linux/fs.h",
+            "signature": "struct block_device * a"
+          }
+        }
+      }
+    }
+  }
+}

@@ -7,13 +7,11 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 3.14 (base)",
-    "unite rule specifications": false,
-    "RSG strategy": "instrumentation",
     "VTG strategy": {
-      "name": "single bug type",
+      "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
-        "version": "22517"
+        "version": "ldv-bam:24572"
       },
       "resource limits": {
         "wall time": 1000000,

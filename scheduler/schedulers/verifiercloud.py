@@ -160,7 +160,7 @@ class Scheduler(schedulers.SchedulerExchange):
         os.makedirs(task_data_dir.encode("utf8"), exist_ok=True)
 
         # Pull the task from the Verification gateway
-        archive = os.path.join(task_work_dir, "task.tar.gz")
+        archive = os.path.join(task_work_dir, "task.zip")
         logging.debug("Pull from the verification gateway archive {}".format(archive))
         self.server.pull_task(identifier, archive)
         logging.debug("Unpack archive {} to {}".format(archive, task_data_dir))
@@ -278,9 +278,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
-        logging.debug("Make archive {} with a solution of the task {}.tar.gz".format(solution_archive, identifier))
-        shutil.make_archive(solution_archive, 'gztar', task_solution_dir)
-        solution_archive += ".tar.gz"
+        logging.debug("Make archive {} with a solution of the task {}.zip".format(solution_archive, identifier))
+        shutil.make_archive(solution_archive, 'zip', task_solution_dir)
+        solution_archive += ".zip"
 
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,

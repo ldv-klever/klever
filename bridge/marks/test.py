@@ -17,13 +17,17 @@
 
 import os
 import json
+
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.test import override_settings
+
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
 from bridge.utils import KleverTestCase, ArchiveFileContent
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
+
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
@@ -50,14 +54,23 @@ class TestMarks(KleverTestCase):
             self.job = Job.objects.filter(~Q(parent=None))[0]
         except IndexError:
             self.job = Job.objects.all()[0]
-        self.client.post('/jobs/ajax/fast_run_decision/', {'job_id': self.job.pk})
+        run_conf = json.dumps([
+            ["HIGH", "0", "rule specifications"], ["1", "2.0", "2.0"], [1, 1, 100, '', 15, None],
+            [
+                "INFO", "%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s",
+                "NOTSET", "%(name)s %(levelname)5s> %(message)s"
+            ],
+            [False, True, True, False, True, False, '0']
+        ])
+        self.client.post('/jobs/ajax/run_decision/', {'job_id': self.job.pk, 'data': run_conf})
         DecideJobs('service', 'service', CHUNKS1)
-        self.safe_archive = 'test_safemark.tar.gz'
-        self.unsafe_archive = 'test_unsafemark.tar.gz'
-        self.unknown_archive = 'test_unknownmark.tar.gz'
+        self.safe_archive = 'test_safemark.zip'
+        self.unsafe_archive = 'test_unsafemark.zip'
+        self.unknown_archive = 'test_unknownmark.zip'
         self.test_tagsfile = 'test_tags.json'
-        self.all_marks_arch = 'All-marks.tar.gz'
+        self.all_marks_arch = 'All-marks.zip'
 
+    @override_settings(ENABLE_SAFE_MARKS=True)
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
@@ -153,6 +166,13 @@ class TestMarks(KleverTestCase):
         # Tags tree page
         response = self.client.post(reverse('marks:tags', args=['safe']))
         self.assertEqual(response.status_code, 200)
+
+        # Enable safe marks for the job
+        self.assertFalse(self.job.safe_marks)
+        response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get report
         try:
@@ -299,10 +319,10 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['safe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.safe_archive), mode='wb') as fp:
-            fp.write(response.content)
-            fp.close()
+            for content in response.streaming_content:
+                fp.write(content)
 
         # Delete mark
         response = self.client.get(reverse('marks:delete_mark', args=['safe', mark.pk]))
@@ -318,8 +338,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
-        self.assertEqual(res.get('status', None), True)
-        self.assertEqual(res.get('mark_type', None), 'safe')
+        self.assertEqual(res.get('status'), True)
+        self.assertEqual(res.get('mark_type'), 'safe')
         self.assertEqual(len(MarkSafe.objects.all()), 1)
         try:
             newmark = MarkSafe.objects.get(pk=res.get('mark_id', 0))
@@ -395,22 +415,23 @@ class TestMarks(KleverTestCase):
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
         response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[0].pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[1].pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'safes', newmark.pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_verdict', args=[root_comp.pk, 'safes', SAFE_VERDICTS[0][0]]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_verdict', args=[root_comp.pk, 'safes', SAFE_VERDICTS[2][0]]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
 
         # Download all marks
         response = self.client.get('/marks/download-all/')
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
         with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
-            fp.write(response.content)
+            for content in response.streaming_content:
+                fp.write(content)
 
         # Delete all safe marks
         self.assertEqual(response.status_code, 200)
@@ -648,6 +669,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Edit mark
+        with mark_version.error_trace.file as fp:
+            error_trace = fp.read().decode('utf8')
         response = self.client.post('/marks/ajax/save_mark/', {
             'savedata': json.dumps({
                 'mark_id': mark.pk,
@@ -659,7 +682,8 @@ class TestMarks(KleverTestCase):
                 'status': MARK_STATUS[2][0],
                 'tags': [created_tags[1].pk],
                 'attrs': compare_attrs,
-                'comment': 'Change 1'
+                'comment': 'Change 1',
+                'error_trace': error_trace
             })
         })
         self.assertEqual(response.status_code, 200)
@@ -712,10 +736,10 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unsafe', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.unsafe_archive), mode='wb') as fp:
-            fp.write(response.content)
-            fp.close()
+            for content in response.streaming_content:
+                fp.write(content)
 
         # Delete mark
         response = self.client.get(reverse('marks:delete_mark', args=['unsafe', mark.pk]))
@@ -755,9 +779,10 @@ class TestMarks(KleverTestCase):
         self.assertEqual(len(MarkUnsafeReport.objects.filter(report=unsafe)), 1)
         self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[0])), 1)
         self.assertEqual(len(MarkUnsafeTag.objects.filter(mark_version=newmark_version, tag=created_tags[1])), 1)
+        # The tag has parent which is also added to mark
         self.assertEqual(
             len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)),
-            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0]))
+            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0])) * 2
         )
         self.assertEqual(len(ReportUnsafeTag.objects.filter(
             report__root__job=self.job, report__id=unsafe.parent_id
@@ -776,12 +801,17 @@ class TestMarks(KleverTestCase):
                     'status': MARK_STATUS[2][0],
                     'tags': [created_tags[0].pk],
                     'attrs': compare_attrs,
-                    'comment': 'Change %s' % i
+                    'comment': 'Change %s' % i,
+                    'error_trace': error_trace
                 })
             })
             self.assertEqual(response.status_code, 200)
             self.assertEqual(response['Content-Type'], 'application/json')
             self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+        self.assertEqual(
+            len(ReportUnsafeTag.objects.filter(report__root__job=self.job, report__parent=None)),
+            len(ReportUnsafe.objects.filter(verdict=UNSAFE_VERDICTS[2][0]))
+        )
 
         self.assertEqual(len(MarkUnsafeHistory.objects.filter(mark=newmark)), 5)
 
@@ -814,19 +844,19 @@ class TestMarks(KleverTestCase):
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
         response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[0].pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[1].pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unsafes', newmark.pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(
             reverse('reports:list_verdict', args=[root_comp.pk, 'unsafes', UNSAFE_VERDICTS[0][0]])
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(
             reverse('reports:list_verdict', args=[root_comp.pk, 'unsafes', UNSAFE_VERDICTS[2][0]])
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
 
         # TODO: tests for 'reports:list_attr'
 
@@ -835,7 +865,8 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertNotEqual(response['Content-Type'], 'application/json')
         with open(os.path.join(MEDIA_ROOT, self.all_marks_arch), mode='wb') as fp:
-            fp.write(response.content)
+            for content in response.streaming_content:
+                fp.write(content)
 
         # Delete all unsafe marks
         response = self.client.post('/marks/ajax/delete/', {
@@ -869,13 +900,13 @@ class TestMarks(KleverTestCase):
         unknown = None
 
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            afc = ArchiveFileContent(u.archive, file_name=u.problem_description)
-            self.assertIsNone(afc.error)
-            if afc.content == "ValueError: got wrong attribute: 'rule'.":
+            afc = ArchiveFileContent(u, u.problem_description)
+            if afc.content == b'ValueError: got wrong attribute: \'rule\'.':
                 unknown = u
-        parent = ReportComponent.objects.get(pk=unknown.parent_id)
+                break
         if unknown is None:
             self.fail("Unknown with needed problem description was not found in test job decision")
+        parent = ReportComponent.objects.get(pk=unknown.parent_id)
 
         # Create mark page
         response = self.client.get(reverse('marks:create_mark', args=['unknown', unknown.pk]))
@@ -1014,10 +1045,10 @@ class TestMarks(KleverTestCase):
         # Download mark
         response = self.client.get(reverse('marks:download_mark', args=['unknown', mark.pk]))
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response['Content-Type'], 'application/x-tar-gz')
+        self.assertIn(response['Content-Type'], {'application/x-zip-compressed', 'application/zip'})
         with open(os.path.join(MEDIA_ROOT, self.unknown_archive), mode='wb') as fp:
-            fp.write(response.content)
-            fp.close()
+            for content in response.streaming_content:
+                fp.write(content)
 
         # Delete mark
         response = self.client.get(reverse('marks:delete_mark', args=['unknown', mark.pk]))
@@ -1115,9 +1146,9 @@ class TestMarks(KleverTestCase):
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
         response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unknowns', newmark.pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         response = self.client.get(reverse('reports:unknowns', args=[root_comp.pk, parent.component_id]))
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
         try:
             problem_id = UnknownProblem.objects.get(name='EVal: rule').pk
         except ObjectDoesNotExist:
@@ -1125,10 +1156,9 @@ class TestMarks(KleverTestCase):
         response = self.client.get(
             reverse('reports:unknowns_problem', args=[root_comp.pk, parent.component_id, problem_id])
         )
-        self.assertEqual(response.status_code, 200)
+        self.assertIn(response.status_code, {200, 302})
 
         # Delete all marks
-        self.assertEqual(response.status_code, 200)
         response = self.client.post('/marks/ajax/delete/', {
             'type': 'unknown', 'ids': json.dumps([newmark.pk])
         })

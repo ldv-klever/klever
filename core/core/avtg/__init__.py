@@ -22,7 +22,6 @@ import json
 import multiprocessing
 import os
 import re
-import string
 
 import core.components
 import core.utils
@@ -44,7 +43,7 @@ def after_set_shadow_src_tree(context):
     context.mqs['shadow src tree'].put(context.shadow_src_tree)
 
 
-def after_set_model_cc_opts(context):
+def after_fixup_model_cc_opts(context):
     context.mqs['model CC opts'].put(context.model_cc_opts)
 
 
@@ -102,7 +101,7 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
             'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
 
     # Get rid of useless information.
-    for attr in ('description', 'multi-aspect group'):
+    for attr in ('description',):
         if attr in rule_spec_desc:
             del (rule_spec_desc[attr])
 
@@ -146,11 +145,8 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
 
     # Add plugin options specific for rule specification.
     rule_spec_plugin_names = []
+    # Names of all remained attributes are considered as plugin names, values - as corresponding plugin options.
     for attr in rule_spec_desc:
-        # Names of all other attributes are considered as plugin names, values - as corresponding plugin options.
-        if attr == 'constituent rule specifications':
-            continue
-
         plugin_name = attr
         rule_spec_plugin_names.append(plugin_name)
         is_plugin_specified = False
@@ -175,44 +171,6 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     for plugin_name in rule_spec_plugin_names:
         del (rule_spec_desc[plugin_name])
 
-    if 'constituent rule specifications' in rule_spec_desc:
-        # Merge plugin options specific for constituent rule specifications.
-        for constituent_rule_spec_id in rule_spec_desc['constituent rule specifications']:
-            for constituent_rule_spec_plugin_desc in _extract_rule_spec_desc(logger, raw_rule_spec_descs,
-                                                                             constituent_rule_spec_id)['plugins']:
-                for plugin_desc in plugin_descs:
-                    # Specify rule specifications that are merged together for RSG.
-                    if plugin_desc['name'] == 'RSG':
-                        if 'options' not in plugin_desc:
-                            plugin_desc['options'] = []
-                        plugin_desc['options']['constituent rule specifications'] = \
-                            rule_spec_desc['constituent rule specifications']
-                    if constituent_rule_spec_plugin_desc['name'] == plugin_desc['name']:
-                        # Specify constituent rule specification identifier for RSG models. It will be used to generate
-                        # unique variable and function names.
-                        if constituent_rule_spec_plugin_desc['name'] == 'RSG' \
-                           and 'options' in constituent_rule_spec_plugin_desc \
-                           and 'models' in constituent_rule_spec_plugin_desc['options']:
-                            rsg_models = constituent_rule_spec_plugin_desc['options']['models']
-                            for model in rsg_models:
-                                rsg_models[model]['rule specification identifier'] = constituent_rule_spec_id
-                        if 'options' in plugin_desc and 'options' in constituent_rule_spec_plugin_desc:
-                            core.utils.merge_confs(plugin_desc['options'], constituent_rule_spec_plugin_desc['options'])
-                        elif 'options' in constituent_rule_spec_plugin_desc:
-                            plugin_desc['options'] = constituent_rule_spec_plugin_desc['options']
-                        break
-
-        # Specify additional aspect preprocessing options.
-        for plugin_desc in plugin_descs:
-            if plugin_desc['name'] == 'Weaver':
-                if 'options' not in plugin_desc:
-                    plugin_desc['options'] = {}
-                plugin_desc['options']['aspect preprocessing options'] = \
-                    ['-DLDV_' + re.sub(r'\W', '_', rule_spec_id).upper()
-                     for rule_spec_id in rule_spec_desc['constituent rule specifications']]
-
-        del (rule_spec_desc['constituent rule specifications'])
-
     rule_spec_desc['plugins'] = plugin_descs
 
     # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
@@ -220,55 +178,6 @@ def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
     rule_spec_desc['id'] = rule_spec_id
 
     return rule_spec_desc
-
-
-# Unite all rule specifications by multi-aspect groups by creating corresponding new rule specifications.
-def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
-    logger.info('Unite all rule specifications by multi-aspect groups')
-
-    # Find out multi-aspect groups of rule specifications. Respect order of rule specifications and corresponding
-    # multi-aspect groups.
-    multi_aspect_groups = collections.OrderedDict()
-    for rule_spec_id in conf['rule specifications']:
-        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
-        if 'multi-aspect group' in rule_spec_desc:
-            multi_aspect_group = rule_spec_desc['multi-aspect group']
-            del rule_spec_desc['multi-aspect group']
-        else:
-            # Use unique rule specification identifier to process rule specification description as is without merging.
-            multi_aspect_group = rule_spec_id
-        if multi_aspect_group not in multi_aspect_groups:
-            multi_aspect_groups[multi_aspect_group] = []
-        multi_aspect_groups[multi_aspect_group].append(rule_spec_id)
-        logger.debug(
-            'Add rule specification "{0}" to multi-aspect group "{1}"'.format(rule_spec_id, multi_aspect_group))
-
-    conf['rule specifications'] = []
-
-    for multi_aspect_group in multi_aspect_groups:
-        # Add rule specifications that don't belong to any multi-aspect group.
-        if multi_aspect_group in raw_rule_spec_descs['rule specifications']:
-            conf['rule specifications'].append(multi_aspect_group)
-        # Do not unite individual rule specifications that constitute corresponding multi-aspect group.
-        elif len(multi_aspect_groups[multi_aspect_group]) == 1:
-            conf['rule specifications'].append(multi_aspect_groups[multi_aspect_group][0])
-        else:
-            logger.info('Unite rule specifications of multi-aspect group "{0}"'.format(multi_aspect_group))
-
-            conf['rule specifications'].append(multi_aspect_group)
-
-            # Find out the most broad template for given multi-aspect group.
-            template = 'Linux kernel modules'
-            for rule_spec_id in multi_aspect_groups[multi_aspect_group]:
-                rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
-                if rule_spec_desc['template'] == 'Argument signatures for Linux kernel modules':
-                    template = 'Argument signatures for Linux kernel modules'
-                    break
-
-            raw_rule_spec_descs['rule specifications'][multi_aspect_group] = {
-                'template': template,
-                'constituent rule specifications': multi_aspect_groups[multi_aspect_group]
-            }
 
 
 # This function is invoked to collect plugin callbacks.
@@ -311,17 +220,14 @@ def _extract_rule_spec_descs(conf, logger):
         conf['rule specifications'] = rule_specs
         logger.debug('Following rule specifications will be checked "{0}"'.format(conf['rule specifications']))
 
-    if 'unite rule specifications' in conf and conf['unite rule specifications']:
-        _unite_rule_specifications(conf, logger, raw_rule_spec_descs)
-
     rule_spec_descs = []
 
     for rule_spec_id in conf['rule specifications']:
         rule_spec_descs.append(_extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id))
 
     if conf['keep intermediate files']:
-        #if os.path.isfile('rule spec descs.json'):
-        #    raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
+        if os.path.isfile('rule spec descs.json'):
+           raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
         logger.debug('Create rule specification descriptions file "rule spec descs.json"')
         with open('rule spec descs.json', 'w', encoding='utf8') as fp:
             json.dump(rule_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -375,11 +281,11 @@ class AVTG(core.components.Component):
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        self.get_shadow_src_tree()
-        self.get_model_cc_opts()
         # Rule specification descriptions were already extracted when getting AVTG callbacks.
         self.rule_spec_descs = _rule_spec_descs
         self.set_model_headers()
+        self.get_shadow_src_tree()
+        self.get_model_cc_opts()
         self.launch_subcomponents(('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
                                   ('AAVTDG', self.generate_all_abstract_verification_task_descs))
 
@@ -505,10 +411,10 @@ class AVTG(core.components.Component):
                           'data',
                           {
                               'id': self.id,
-                              'data': json.dumps({
-                                    'total number of abstract verification task descriptions to be generated in ideal':
-                                    self.abstract_task_descs_num.value
-                              }, ensure_ascii=False, sort_keys=True, indent=4)
+                              'data': {
+                                  'total number of abstract verification task descriptions to be generated in ideal':
+                                      self.abstract_task_descs_num.value
+                              }
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -619,10 +525,10 @@ class AVTG(core.components.Component):
                                   'data',
                                   {
                                       'id': self.id,
-                                      'data': json.dumps({
+                                      'data': {
                                           'faulty generated abstract verification task descriptions':
                                               self.failed_abstract_task_desc_num.value
-                                      }, ensure_ascii=False, sort_keys=True, indent=4)
+                                      }
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'],

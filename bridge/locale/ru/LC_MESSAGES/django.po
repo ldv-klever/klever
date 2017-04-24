@@ -2046,8 +2046,8 @@ msgid "Could not find the corresponding unsafe"
 msgstr "Не удалось найти соответствующие предупреждение об ошибке"
 
 #: reports/etv.py:392
-msgid "Could not find the source file"
-msgstr "Не удалось найти файл с исходным кодом"
+msgid "Could not get the source file"
+msgstr "Не удалось получить файл с исходным кодом"
 
 #: reports/templates/reports/AttrsFilters.html:8
 msgid "Order by"

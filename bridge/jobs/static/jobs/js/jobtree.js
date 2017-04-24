@@ -296,6 +296,7 @@ function compare_jobs() {
         err_notify($('#error__no_jobs_to_compare').text());
         return false;
     }
+    $('#dimmer_of_page').addClass('active');
     $.post(
         job_ajax_url + 'check_compare_access/',
         {
@@ -304,6 +305,7 @@ function compare_jobs() {
         },
         function (data) {
             if (data.error) {
+                $('#dimmer_of_page').removeClass('active');
                 err_notify(data.error);
             }
             else {
@@ -314,11 +316,12 @@ function compare_jobs() {
                         job2: selected_jobs[1]
                     },
                     function (data) {
+                        $('#dimmer_of_page').removeClass('active');
                         if (data.error) {
                             err_notify(data.error);
                         }
                         else {
-                            window.location.replace('/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1]);
+                            window.location.href = '/reports/comparison/' + selected_jobs[0] + '/' + selected_jobs[1] + '/';
                         }
                     },
                     'json'
@@ -331,7 +334,6 @@ function compare_jobs() {
 
 $(document).ready(function () {
     $('.ui.dropdown').dropdown();
-    $('.normal-popup').popup({position: 'bottom left'});
 
     $('#remove_jobs_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#show_remove_jobs_popup').click(function () {
@@ -351,11 +353,13 @@ $(document).ready(function () {
             confirm_delete_modal.modal('show');
             confirm_delete_btn.unbind();
             confirm_delete_btn.click(function () {
+                confirm_delete_modal.modal('hide');
+                $('#dimmer_of_page').addClass('active');
                 $.post(
                     job_ajax_url + 'removejobs/',
                     {jobs: JSON.stringify(jobs_for_delete)},
                     function (data) {
-                        confirm_delete_modal.modal('hide');
+                        $('#dimmer_of_page').removeClass('active');
                         data.error ? err_notify(data.error) : window.location.replace('');
                     },
                     'json'
@@ -364,10 +368,7 @@ $(document).ready(function () {
         }
     });
 
-    var max_table_height = $(window).height() - 150,
-        small_table_height = $(window).height() - 400;
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', false);
-    $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;');
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
     check_order_form();
     check_filters_form();
     fill_all_values();
@@ -396,14 +397,7 @@ $(document).ready(function () {
     fullscreen_btn.click(function () {
         fullscreen_btn.popup('hide');
         var tree_1_bigpart = $('#jobstree-first-big-part');
-        if (tree_1_bigpart.is(':visible')) {
-            tree_1_bigpart.hide();
-            $('#jobtable').attr('style', 'max-height: ' + max_table_height + 'px;')
-        }
-        else {
-            tree_1_bigpart.show();
-            $('#jobtable').attr('style', 'max-height: ' + small_table_height + 'px;')
-        }
+        tree_1_bigpart.is(':visible') ? tree_1_bigpart.hide() : tree_1_bigpart.show();
         return false;
     });
 
@@ -514,6 +508,26 @@ $(document).ready(function () {
                 }
                 else {
                     $('#available_views').children('option:selected').remove();
+                    success_notify(data.message)
+                }
+            }
+        });
+    });
+
+    $('#share_view_btn').click(function () {
+        $.ajax({
+            method: 'post',
+            url: job_ajax_url + 'share_view/',
+            dataType: 'json',
+            data: {
+                view_id: $('#available_views').children('option:selected').val(),
+                view_type: '1'
+            },
+            success: function(data) {
+                if (data.error) {
+                    err_notify(data.error)
+                }
+                else {
                     success_notify(data.message)
                 }
             }

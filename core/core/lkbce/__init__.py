@@ -127,7 +127,15 @@ class LKBCE(core.components.Component):
         # First of all collect all targets to be built.
         # Always prepare for building modules since it brings all necessary headers that can be included from ones
         # required for model headers that should be copied before any real module will be built.
-        build_targets = [('modules_prepare',)]
+        if 'conf file' not in self.linux_kernel:
+            config_modules = self.is_config_modules(os.path.join(self.linux_kernel['work src tree'], '.config'))
+        else:
+            config_modules = self.is_config_modules(self.linux_kernel['conf file'])
+
+        if config_modules:
+            build_targets = [('modules_prepare',)]
+        else:
+            build_targets = [('scripts/mod/empty.ko',)]
 
         if 'build kernel' in self.linux_kernel and self.linux_kernel['build kernel']:
             build_targets.append(('all',))
@@ -162,7 +170,7 @@ class LKBCE(core.components.Component):
             # Specially process building of all modules.
             if 'all' in self.linux_kernel['modules']:
                 build_targets.append(('M=ext-modules', 'modules')
-                                     if 'external modules' in self.conf['Linux kernel'] else ('modules',))
+                                     if 'external modules' in self.conf['Linux kernel'] else ('all',))
                 self.linux_kernel['modules'] = [module for module in self.linux_kernel['modules'] if module != 'all']
             # Check that module sets aren't intersect explicitly.
             for i, modules1 in enumerate(self.linux_kernel['modules']):
@@ -188,7 +196,7 @@ class LKBCE(core.components.Component):
                                 'There is not directory "{0}" inside "{1}"'.format(modules_dir,
                                                                                    self.linux_kernel['work src tree']))
 
-                        build_targets.append(('M=' + modules_dir, 'modules'))
+                        build_targets.append(('M=' + modules_dir, ))
         elif not self.linux_kernel['build kernel']:
             self.logger.warning('Nothing will be verified since modules are not specified')
 
@@ -199,26 +207,41 @@ class LKBCE(core.components.Component):
         jobs_num = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build')
 
         for build_target in build_targets:
-            if build_target[0] != 'modules_prepare' or not self.linux_kernel['prepared to build ext modules']:
-                self.__make(build_target,
-                            jobs_num=jobs_num,
-                            specify_arch=True, collect_build_cmds=True)
+            if build_target[0] == 'modules_prepare' or build_target[0] == 'scripts/mod/empty.ko':
+                # Clean up Linux kernel working source tree and prepare to build external modules just once - this
+                # considerably speeds up testing where many small external modules are built one by one.
+                if not self.linux_kernel['prepared to build ext modules']:
+                    self.__make(build_target, jobs_num=jobs_num, specify_arch=True, collect_build_cmds=True)
+                    # Dump model CC options to Linux kernel working source tree to be able to reuse them later.
+                    shutil.move('model CC opts.json',
+                                os.path.join(self.linux_kernel['work src tree'], 'model CC opts.json'))
 
-                if build_target[0] == 'modules_prepare' and 'external modules' in self.conf['Linux kernel'] and not \
-                        self.linux_kernel['prepared to build ext modules']:
-                    with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
-                              encoding='utf8') as fp:
-                        fp.write(self.linux_kernel['conf'])
+                    # Specify that Linux kernel working directory is prepared to build external modules for a given
+                    # configuration.
+                    if 'external modules' in self.conf['Linux kernel']:
+                        with open(os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf'), 'w',
+                                  encoding='utf8') as fp:
+                            fp.write(self.linux_kernel['conf'])
 
-            if build_target[0] == 'modules_prepare':
                 # We assume that after preparation for building modules was done model CC options are available, i.e.
-                # a CC command for which they are dumped was executed.
+                # a CC command for which they are dumped was executed and they were dumped to Linux kernel working
+                # source tree.
                 self.set_model_cc_opts()
                 self.copy_model_headers()
+                self.fixup_model_cc_opts()
+            else:
+                self.__make(build_target, jobs_num=jobs_num, specify_arch=True, collect_build_cmds=True)
 
         self.logger.info('Terminate Linux kernel build command decsriptions "message queue"')
         with core.utils.LockedOpen(self.linux_kernel['build cmd descs file'], 'a', encoding='utf8') as fp:
             fp.write('\n')
+
+    def is_config_modules(self, config_file):
+        with open(config_file, 'r', encoding='utf8') as fp:
+            for line in fp:
+                if line == 'CONFIG_MODULES=y\n':
+                    return True
+        return False
 
     def extract_all_linux_kernel_mod_deps_function(self):
         self.logger.info('Extract all Linux kernel module dependencies')
@@ -272,6 +295,7 @@ class LKBCE(core.components.Component):
         for line in lines:
             if remove_newline_symbol:
                 line = line[:-1]
+            line = re.subn(r'\.ko', '.o', line)[0]
             splts = line.split(' ')
             first = splts[0]
             if 'kernel' in first:
@@ -467,7 +491,7 @@ class LKBCE(core.components.Component):
     def set_model_cc_opts(self):
         self.logger.info('Set model CC options')
 
-        with open('model CC opts.json', encoding='utf8') as fp:
+        with open(os.path.join(self.linux_kernel['work src tree'], 'model CC opts.json'), encoding='utf8') as fp:
             self.model_cc_opts = json.load(fp)
 
     def copy_model_headers(self):
@@ -524,6 +548,12 @@ class LKBCE(core.components.Component):
                     self.logger.debug('Copy model header "{0}"'.format(dep))
                     os.makedirs(os.path.dirname(dest_dep).encode('utf8'), exist_ok=True)
                     shutil.copy2(dep if os.path.isabs(dep) else os.path.join(linux_kernel_work_src_tree, dep), dest_dep)
+
+    def fixup_model_cc_opts(self):
+        # After model headers were copied we should do the same replacement as for CC options of dumped build commands
+        # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
+        self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['work src tree']) + '/'), '', opt)
+                              for opt in self.model_cc_opts]
 
     def __make_canonical_work_src_tree(self, work_src_tree):
         work_src_tree_root = None

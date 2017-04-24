@@ -8,13 +8,11 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 3.14 (base)",
-    "unite rule specifications": false,
-    "RSG strategy": "instrumentation",
     "VTG strategy": {
-      "name": "single bug type",
+      "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
-        "version": "22517"
+        "version": "ldv-bam:24572"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -31,10 +29,24 @@
         "ideal verdict": "safe",
         "verification object": "ext-modules/safe.ko"
       },
+      {
+        "ideal verdict": "safe",
+        "verification object": "ext-modules/safe-2.ko"
+      },
       {"ideal verdict": "unsafe"}
     ]
   },
   "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/generic/memory",
+        "modules": [
+          "null-ptr-dereference.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["generic:memory"]
+    },
     {
       "Linux kernel": {
         "external modules": "tests/linux/empty",
@@ -308,6 +320,14 @@
     },
     {
       "Linux kernel": {
+        "config file": "configs/no-lockdep",
+        "external modules": "tests/linux/kernel/sched/completion",
+        "modules": ["safe-2.ko"]
+      },
+      "rule specifications": ["linux:kernel:sched:completion"]
+    },
+    {
+      "Linux kernel": {
         "external modules": "tests/linux/kernel/module",
         "modules": [
           "double-put.ko",
@@ -448,6 +468,18 @@
         ]
       },
       "rule specifications": ["linux:usb:urb"]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/sync/races",
+        "modules": [
+          "race.ko",
+          "race2.ko",
+          "race_10.ko",
+          "safe.ko"
+        ]
+      },
+      "rule specifications": ["sync:race"]
     }
   ]
 }

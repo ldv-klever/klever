@@ -7,7 +7,6 @@
         <option name="settingsModule" value="bridge/settings.py" />
         <option name="manageScript" value="manage.py" />
         <option name="environment" value="&lt;map/&gt;" />
-        <option name="commandsToSkip" value="" />
       </configuration>
     </facet>
   </component>
@@ -18,10 +17,21 @@
       <excludeFolder url="file://$MODULE_DIR$/static/images" />
       <excludeFolder url="file://$MODULE_DIR$/static/semantic" />
     </content>
-    <orderEntry type="jdk" jdkName="Python 3.4" jdkType="Python SDK" />
+    <orderEntry type="jdk" jdkName="Python 3" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
   <component name="TemplatesService">
     <option name="TEMPLATE_CONFIGURATION" value="Django" />
+    <option name="TEMPLATE_FOLDERS">
+      <list>
+        <option value="$MODULE_DIR$/jobs/templates" />
+        <option value="$MODULE_DIR$/marks/templates" />
+        <option value="$MODULE_DIR$/reports/templates" />
+        <option value="$MODULE_DIR$/tools/templates" />
+        <option value="$MODULE_DIR$/users/templates" />
+        <option value="$MODULE_DIR$/templates" />
+        <option value="$MODULE_DIR$/service/templates" />
+      </list>
+    </option>
   </component>
 </module>
