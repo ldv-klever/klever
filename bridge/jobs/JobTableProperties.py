@@ -708,22 +708,12 @@ class TableTree:
                 'tasks_pending': progress.tasks_pending,
                 'solutions': progress.solutions
             })
-            if progress.tasks_total == 0:
-                self._values_data[progress.job_id]['progress'] = '0%'
-            else:
-                finished_tasks = progress.tasks_cancelled + progress.tasks_error + progress.tasks_finished
-                self._values_data[progress.job_id]['progress'] = "%.0f%% (%s/%s)" % (
-                    100 * (finished_tasks / progress.tasks_total),
-                    finished_tasks,
-                    progress.tasks_total
-                )
             if progress.start_date is not None:
                 self._values_data[progress.job_id]['start_date'] = progress.start_date
                 if progress.finish_date is not None:
                     self._values_data[progress.job_id]['finish_date'] = progress.finish_date
                     self._values_data[progress.job_id]['solution_wall_time'] = get_user_time(
-                        self._user,
-                        int((progress.finish_date - progress.start_date).total_seconds() * 1000)
+                        self._user, int((progress.finish_date - progress.start_date).total_seconds() * 1000)
                     )
             jobs_with_progress.add(progress.job_id)
 
@@ -731,40 +721,39 @@ class TableTree:
         solving_jobs = set(j.id for j in Job.objects.filter(
             id__in=self._job_ids, status__in=[JOB_STATUS[1][0], JOB_STATUS[2][0]]
         ))
-        for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress)).select_related('user', 'job'):
+        for root in ReportRoot.objects.filter(job_id__in=list(jobs_with_progress & solving_jobs))\
+                .select_related('user', 'job'):
             self._values_data[root.job_id]['operator'] = (
-                root.user.get_full_name(),
-                reverse('users:show_profile', args=[root.user_id])
+                root.user.get_full_name(), reverse('users:show_profile', args=[root.user_id])
             )
-            if root.job_id in solving_jobs:
-                total_tasks = root.tasks_total
-                solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
-                    self._values_data[root.job_id]['tasks_finished']
+            total_tasks = root.tasks_total
+            solved_tasks = self._values_data[root.job_id]['tasks_error'] + \
+                self._values_data[root.job_id]['tasks_finished']
+            progress = '-'
+            if root.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
                 progress = '-'
-                if root.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
-                    progress = '-'
-                elif total_tasks > 0:
-                    curr_progress = int(solved_tasks / total_tasks * 100)
-                    if curr_progress < 100:
-                        progress = '%s%%' % curr_progress
+            elif total_tasks > 0:
+                curr_progress = int(solved_tasks / total_tasks * 100)
+                if curr_progress < 100:
+                    progress = '%s%% (%s/%s)' % (curr_progress, solved_tasks, total_tasks)
+            else:
+                progress = '0%'
+            if progress == '-':
+                self._values_data[root.job_id].update({
+                    'progress': '-', 'average_time': '-', 'local_average_time': '-',
+                })
+            else:
+                self._values_data[root.job_id]['progress'] = progress
+                atime = (total_tasks - solved_tasks) * stat_average_time
+                if atime <= 0:
+                    self._values_data[root.job_id]['average_time'] = '-'
                 else:
-                    progress = '0%'
-                if progress == '-':
-                    self._values_data[root.job_id].update({
-                        'progress': '-', 'average_time': '-', 'local_average_time': '-',
-                    })
+                    self._values_data[root.job_id]['average_time'] = get_user_time(self._user, atime)
+                local_atime = (total_tasks - solved_tasks) * root.average_time
+                if local_atime <= 0:
+                    self._values_data[root.job_id]['local_average_time'] = '-'
                 else:
-                    self._values_data[root.job_id]['progress'] = progress
-                    atime = (total_tasks - solved_tasks) * stat_average_time
-                    if atime <= 0:
-                        self._values_data[root.job_id]['average_time'] = '-'
-                    else:
-                        self._values_data[root.job_id]['average_time'] = get_user_time(self._user, atime)
-                    local_atime = (total_tasks - solved_tasks) * root.average_time
-                    if local_atime <= 0:
-                        self._values_data[root.job_id]['local_average_time'] = '-'
-                    else:
-                        self._values_data[root.job_id]['local_average_time'] = get_user_time(self._user, local_atime)
+                    self._values_data[root.job_id]['local_average_time'] = get_user_time(self._user, local_atime)
 
     def __collect_authors(self):
         for j in Job.objects.filter(id__in=self._job_ids) \

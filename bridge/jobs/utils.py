@@ -926,20 +926,15 @@ def get_job_progress(user, job):
     if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
         total_tasks = job.reportroot.tasks_total
         solved_tasks = job.solvingprogress.tasks_error + job.solvingprogress.tasks_finished
-        logger.info('The number of solved tasks: %s; total tasks: %s' % (solved_tasks, total_tasks))
         if total_tasks > 0:
             curr_progress = int(solved_tasks / total_tasks * 100)
-            logger.info('Progress: %s' % curr_progress)
             if curr_progress < 100:
                 progress = '%s%%' % curr_progress
         else:
             progress = '0%'
-            logger.info('Total number tasks <= 0 => p = 0%; t1 = "-", t2 = "-"')
         if progress != '-' and total_tasks > solved_tasks:
             average_time = get_user_time(
                 user, (total_tasks - solved_tasks) * TaskStatistic.objects.get_or_create()[0].average_time
             )
             local_average_time = get_user_time(user, (total_tasks - solved_tasks) * job.reportroot.average_time)
-    else:
-        logger.info('The job is not solving => p = "-"; at = "-", lat = "-"')
     return progress, average_time, local_average_time
