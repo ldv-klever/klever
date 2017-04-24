@@ -91,7 +91,7 @@ def normalize_fsa(automaton, composer):
     """
     new_states = list()
 
-    # Keep subprocess states as jumb points
+    # Keep subprocess states as jump points
     # Insert process and subprocess artificial single entry states
     for subprocess in (a for a in automaton.process.actions.values() if type(a) is Subprocess):
         new = automaton.fsa.new_state(None)
@@ -157,6 +157,7 @@ def normalize_fsa(automaton, composer):
         composer(state, automaton)
 
     return
+
 
 def __merge_points(initial_states):
     # Terminal marking
@@ -422,7 +423,7 @@ def __label_sequence(automaton, initial_state, ret_expression):
 
         # Close conditional statement
         if conditional_stack[-1]['len'] > 2:
-            f_code.append('\t' * tab + 'default: ldv_stop();')
+            f_code.append('\t' * tab + 'default: ldv_assume(0);')
             tab -= 1
             f_code.append('\t' * tab + '}')
         conditional_stack.pop()

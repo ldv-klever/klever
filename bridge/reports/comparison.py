@@ -22,6 +22,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
+from bridge.utils import BridgeException
 from jobs.utils import JobAccess, CompareFileSet
 from reports.models import *
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
@@ -122,7 +123,7 @@ class ReportTree(object):
         del self._leaves_data[l_type]
 
 
-class CompareTree(object):
+class CompareTree:
     def __init__(self, user, j1, j2):
         self.user = user
         self.tree1 = ReportTree(j1)
@@ -165,13 +166,12 @@ class CompareTree(object):
         ) for x in self.attr_values))
 
 
-class ComparisonTableData(object):
+class ComparisonTableData:
     def __init__(self, user, j1, j2):
         self.job1 = j1
         self.job2 = j2
         self.user = user
         self.data = []
-        self.error = None
         self.info = 0
         self.attrs = []
         self.__get_data()
@@ -180,8 +180,7 @@ class ComparisonTableData(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('The comparison cache was not found')
-            return
+            raise BridgeException(_('The comparison cache was not found'))
         self.info = info.pk
 
         numbers = {}
@@ -198,15 +197,9 @@ class ComparisonTableData(object):
             self.data.append(row_data)
         all_attrs = {}
         for compare in info.comparejobscache_set.all():
-            try:
-                attr_values = compare.attr_values.split('|')
-            except Exception as e:
-                logger.exception("Json parsing error: %s" % e, stack_info=True)
-                self.error = 'Unknown error'
-                return
+            attr_values = compare.attr_values.split('|')
             if len(attr_values) != len(JOBS_COMPARE_ATTRS[info.root1.job.type]):
-                self.error = 'Unknown error'
-                return
+                raise BridgeException(_('The comparison cache was corrupted'))
             for i in range(len(attr_values)):
                 if JOBS_COMPARE_ATTRS[info.root1.job.type][i] not in all_attrs:
                     all_attrs[JOBS_COMPARE_ATTRS[info.root1.job.type][i]] = []
@@ -219,14 +212,12 @@ class ComparisonTableData(object):
                 self.attrs.append({'name': a, 'values': values})
 
 
-class ComparisonData(object):
+class ComparisonData:
     def __init__(self, info_id, page_num, hide_attrs, hide_components, verdict=None, attrs=None):
-        self.error = None
         try:
             self.info = CompareJobsInfo.objects.get(pk=info_id)
         except ObjectDoesNotExist:
-            self.error = _("The comparison cache was not found")
-            return
+            raise BridgeException(_("The comparison cache was not found"))
         self.v1 = self.v2 = None
         self.hide_attrs = hide_attrs
         self.hide_components = hide_components
@@ -240,15 +231,14 @@ class ComparisonData(object):
         self.data = self.__get_data(verdict, attrs)
 
     def __get_verdicts(self, verdict):
+        self.__is_not_used()
         m = re.match('^(\d)_(\d)$', verdict)
         if m is None:
-            self.error = 'Unknown error'
-            return None, None
+            raise BridgeException()
         v1 = m.group(1)
         v2 = m.group(2)
         if any(v not in list(x[0] for x in COMPARE_VERDICT) for v in [v1, v2]):
-            self.error = 'Unknown error'
-            return None, None
+            raise BridgeException()
         return v1, v2
 
     def __get_data(self, verdict=None, search_attrs=None):
@@ -256,8 +246,7 @@ class ComparisonData(object):
             try:
                 search_attrs = '|'.join(json.loads(search_attrs))
             except ValueError:
-                self.error = 'Unknown error'
-                return None
+                raise BridgeException()
             if '__REGEXP_ANY__' in search_attrs:
                 search_attrs = re.escape(search_attrs)
                 search_attrs = search_attrs.replace('__REGEXP_ANY__', '\d+')
@@ -270,12 +259,10 @@ class ComparisonData(object):
             (v1, v2) = self.__get_verdicts(verdict)
             data = self.info.comparejobscache_set.filter(verdict1=v1, verdict2=v2).order_by('id')
         else:
-            self.error = 'Unknown error'
-            return None
+            raise BridgeException()
         self.pages['total'] = len(data)
         if self.pages['total'] < self.pages['num']:
-            self.error = _('Required reports were not found')
-            return None
+            raise BridgeException(_('Required reports were not found'))
         self.pages['backward'] = (self.pages['num'] > 1)
         self.pages['forward'] = (self.pages['num'] < self.pages['total'])
         data = data[self.pages['num'] - 1]
@@ -285,12 +272,9 @@ class ComparisonData(object):
         try:
             branches = self.__compare_reports(data)
         except ObjectDoesNotExist:
-            self.error = _('The report was not found, please recalculate the comparison cache')
-            return None
+            raise BridgeException(_('The report was not found, please recalculate the comparison cache'))
         if branches is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
+            raise BridgeException()
 
         final_data = []
         for branch in branches:
@@ -303,15 +287,7 @@ class ComparisonData(object):
 
     def __compare_reports(self, c):
         data1 = self.__get_reports_data(json.loads(c.reports1))
-        if data1 is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
         data2 = self.__get_reports_data(json.loads(c.reports2))
-        if data2 is None:
-            if self.error is None:
-                self.error = 'Unknown error'
-            return None
         for i in sorted(list(data1)):
             if i not in data2:
                 break
@@ -443,7 +419,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['unsafe', report.pk])
+        block.href = reverse('reports:unsafe', args=[report.pk])
         return block
 
     def __safe_data(self, report_id, parent_id):
@@ -459,7 +435,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['safe', report.pk])
+        block.href = reverse('reports:safe', args=[report.pk])
         return block
 
     def __unknown_data(self, report_id, parent_id):
@@ -482,7 +458,7 @@ class ComparisonData(object):
             if attr_data['name'] in JOBS_COMPARE_ATTRS[self.info.root1.job.type]:
                 attr_data['color'] = '#8bb72c'
             block.list.append(attr_data)
-        block.href = reverse('reports:leaf', args=['unknown', report.pk])
+        block.href = reverse('reports:unknown', args=[report.pk])
         return block
 
     def __unsafe_mark_data(self, report_id):

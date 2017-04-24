@@ -112,6 +112,9 @@ class CModel:
         self._function_declarations[file][function.name] = function.get_declaration(extern=extern)
 
     def add_global_variable(self, variable, file, extern=False):
+        if variable.scope == 'local':
+            raise ValueError("Cannot print local variable {!r} as a global one".format(variable.scope))
+
         if not file and variable.file:
             file = variable.file
         elif not file:
@@ -227,7 +230,9 @@ class CModel:
             "int {}(void)".format(self.entry_name),
             False
         )
-        body = []
+
+        body = ['/* LDV {' + '"thread": 1, "type": "CONTROL_FUNCTION_BEGIN", "comment": "Entry point \'{0}\'", '
+                '"function": "{0}"'.format(self.entry_name) + '} */']
 
         # Init external allocated pointers
         cnt = 0
@@ -261,6 +266,8 @@ class CModel:
 
         body += given_body
         body.append('return 0;')
+        body.append('/* LDV {' + '"comment": "Exit entry point \'{0}\'", "type": "CONTROL_FUNCTION_END",'
+                    ' "function": "{0}"'.format(self.entry_name) + '} */')
 
         ep.body = body
         self.add_function_definition(self.entry_file, ep)
@@ -271,12 +278,13 @@ class CModel:
 class Variable:
     name_re = re.compile("\(?\*?%s\)?")
 
-    def __init__(self, name, file, signature, export=False):
+    def __init__(self, name, file, signature, export=False, scope=None):
         self.name = name
         self.file = file
         self.export = export
         self.value = None
         self.use = 0
+        self.scope = scope
 
         if type(signature) is str:
             self.declaration = import_declaration(signature)
@@ -300,8 +308,10 @@ class Variable:
         expr = self.declaration.to_string(self.name, typedef='complex_and_params')
 
         # Add extern prefix
-        if extern:
+        if extern and self.scope == 'global':
             expr = "extern " + expr
+        elif extern and self.scope == 'local':
+            raise ValueError('Cannot print external declaration for local variable {!r}'.format(self.name))
 
         return expr
 

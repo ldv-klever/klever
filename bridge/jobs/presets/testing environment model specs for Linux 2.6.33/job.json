@@ -13,7 +13,7 @@
       "name": "rule specification bugs",
       "verifier": {
         "name": "CPAchecker",
-        "version": "trunk:24102"
+        "version": "ldv-bam:24572"
       },
       "resource limits": {
         "wall time": 1000000,
@@ -27,6 +27,33 @@
     }
   },
   "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/scsi_host_template",
+        "modules": [
+          "scsi_add_host.ko",
+          "scsi_add_host_with_dma.ko",
+          "scsi_host_alloc.ko",
+          "scsi_remove_host.ko",
+          "scsi_unregister.ko",
+          "scsi_host_alloc_invoke.ko",
+          "scsi_host_template_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/scsi_host_alloc_invoke.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "verification object": "ext-modules/scsi_host_template_invoke.ko"
+        },
+        {"ideal verdict": "safe"}
+      ]
+    }
+  ],
+  "~Sub-jobs": [
     {
       "Linux kernel": {
         "external modules": "tests/block_device_operations",
@@ -183,6 +210,20 @@
           "verification object": "ext-modules/double_invoke.ko"
         },
         {"ideal verdict": "safe"}
+      ]
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/get_sb",
+        "modules": [
+          "get_sb_nodev_invoke.ko",
+          "get_sb_bdev_invoke.ko",
+          "get_sb_ns_invoke.ko",
+          "get_sb_single_invoke.ko"
+        ]
+      },
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
       ]
     },
     {
@@ -367,21 +408,6 @@
         {
           "ideal verdict": "unsafe",
           "verification object": "ext-modules/rtc_class_ops_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/sb_nodev",
-        "modules": [
-          "get_sb_nodev_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/get_sb_nodev_invoke.ko"
         },
         {"ideal verdict": "safe"}
       ]

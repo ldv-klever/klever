@@ -56,7 +56,7 @@ class ProcessModel:
         # Del unnecessary reference
         self.entry = None
         for process in additional_processes:
-            self.__add_process(analysis, process, 'artificial')
+            self.__add_process(analysis, process, 'insmod')
 
         # Convert callback access according to container fields
         self.logger.info("Determine particular interfaces and their implementations for each label or its field")
@@ -144,8 +144,11 @@ class ProcessModel:
 
         self.logger.info("Choose process to call callbacks from category {}".format(category))
         # First random
-        best_process = self.__abstr_event_processes[[name for name in sorted(estimations) if estimations[name] and
-                                                     len(estimations[name]["matched calls"]) > 0][0]]
+        suits = [name for name in sorted(estimations) if estimations[name] and
+                 len(estimations[name]["matched calls"]) > 0 and len(estimations[name]["unmatched labels"]) == 0]
+        if len(suits) == 0:
+            raise RuntimeError("Cannot find any suitable process in specification for category {!r}".format(category))
+        best_process = self.__abstr_event_processes[suits[0]]
         best_map = estimations[best_process.name]
 
         for process in [self.__abstr_event_processes[name] for name in sorted(estimations)]:
@@ -530,6 +533,16 @@ class ProcessModel:
                             if intfs[-1].identifier in label_map["matched labels"][callback_label]:
                                 label_map["matched labels"][callback_label].remove(intfs[-1].identifier)
 
+        # todo: It is a workaraound but it helps to match random scenarios where a container is never used
+        for label in [l for l in label_map["unmatched labels"] if process.labels[l].container]:
+            # Check that label is not used except Dispatches and Receives
+            acceses = process.accesses(exclude=[Dispatch, Receive], no_labels=True)
+            containers = analysis.containers(category)
+            if "%{}%".format(label) not in acceses and len(containers) > 0:
+                # Try to match with random container
+                self.__add_label_match(analysis, label_map, process.labels[label], containers[0].identifier)
+                label_map["unmatched labels"].remove(label)
+
         self.logger.info("Matched labels and interfaces:")
         self.logger.info("Number of native interfaces: {}".format(label_map["native interfaces"]))
         self.logger.info("Matched labels:")
@@ -671,7 +684,7 @@ class ProcessModel:
                 success.comment = "Registration of {!r} callbacks has been successful.".format(process.category)
                 new.actions[success.name] = success
 
-                new.process = "<{}>.[{}].<{}> | <{}>".format(assign.name, dispatch.name, fail.name, success.name)
+                new.process = "<{}>.[{}].<{}> | <{}>".format(assign.name, dispatch.name, success.name, fail.name)
                 assign.comment = "Get {!r} callbacks to register.".format(process.category)
                 new.comment = "Register {!r} callbacks.".format(process.category)
 
@@ -856,7 +869,7 @@ class ProcessModel:
                                 new.complete_list_interface = new_tail
 
                             accesses[access].append(new)
-                    else:
+                    elif access not in accesses or len(accesses[access]) == 0:
                         new = Access(access)
                         new.label = label
                         new.list_access = [label.name]

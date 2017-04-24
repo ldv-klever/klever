@@ -19,13 +19,17 @@ from core.vtg.et.error_trace import get_original_file, get_original_start_line
 
 def envmodel_simplifications(logger, error_trace):
     logger.info('Start environment model driven error trace simplifications')
-    data = _collect_action_diaposons(error_trace)
+    data, main_data, main = _collect_action_diaposons(error_trace)
+    _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
     _remove_control_func_aux_code(data, error_trace)
     _wrap_actions(data, error_trace)
 
 
 def _collect_action_diaposons(error_trace):
+    main = None
+    main_data = None
+
     # Determine control functions and allowed intervals
     intervals = ['CONTROL_FUNCTION_INIT', 'CALL', 'DISPATCH', 'RECEIVE', 'SUBPROCESS', 'CONDITION']
     data = dict()
@@ -43,6 +47,12 @@ def _collect_action_diaposons(error_trace):
             if 'thread' in error_trace.emg_comments[file][line]:
                 data[file][error_trace.emg_comments[file][line]['function']]['thread'] = \
                     error_trace.emg_comments[file][line]['thread']
+
+                # Search for main function
+                if error_trace.emg_comments[file][line]['thread'] == 1:
+                    main_data = data[file][error_trace.emg_comments[file][line]['function']]
+                    main = error_trace.emg_comments[file][line]['function']
+
 
         # Set control function end point
         for line in (l for l in error_trace.emg_comments[file]
@@ -67,7 +77,7 @@ def _collect_action_diaposons(error_trace):
                     data[file][function]['actions'][-1]['end'] = line
                     inside_action = False
 
-    return data
+    return data, main_data, main
 
 
 def _inside_control_function(cf, file, line):
@@ -113,6 +123,24 @@ def _match_exit_function(edge, stack):
             return True
 
     return False
+
+
+def _set_main(data, main, error_trace):
+    if not data or not main:
+        return
+
+    for edge in error_trace.trace_iterator():
+        if _inside_control_function(data, edge['file'], edge['start line']):
+            # Got it!
+            identifier = error_trace.resolve_function_id(main)
+            new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
+            new_edge["enter"] = identifier
+            new_edge["file"] = data['file']
+            new_edge["line"] = data['begin'] - 1
+            new_edge["source"] = "Begin program execution"
+            return
+
+    raise RuntimeError("Cannot determine main function in the witness")
 
 
 def _set_thread(data, error_trace):

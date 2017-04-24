@@ -126,7 +126,7 @@ class Access:
 
 class Label:
 
-    def __init__(self, name):
+    def __init__(self, name, scope=None):
         self.container = False
         self.resource = False
         self.callback = False
@@ -135,9 +135,11 @@ class Label:
         self.parameters = []
         self.file = None
         self.value = None
-        self.name = name
         self.prior_signature = None
         self.__signature_map = {}
+
+        self.name = name
+        self.scope = scope
 
     @property
     def interfaces(self):
@@ -167,7 +169,7 @@ class Label:
                 return 'different'
         elif len(label.interfaces) > 0 or len(self.interfaces) > 0:
             if (self.container and label.container) or (self.resource and label.resource) or \
-               (self.callback and label.callback):
+                    (self.callback and label.callback):
                 return 'сompatible'
             else:
                 return 'different'
@@ -195,7 +197,7 @@ class Process:
         self.headers = list()
         self.comment = None
         self.__process_ast = None
-        self.__accesses = None
+        self.__accesses = dict()
         self.allowed_implementations = dict()
 
     @property
@@ -240,10 +242,11 @@ class Process:
     def calls(self):
         return [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Call]
 
-    def add_label(self, name, declaration, value):
-        lb = Label(name)
+    def add_label(self, name, declaration, value=None, scope=None):
+        lb = Label(name, scope)
         lb.prior_signature = declaration
-        lb.value = value
+        if value:
+            lb.value = value
 
         self.labels[name] = lb
         acc = Access('%{}%'.format(name))
@@ -310,7 +313,7 @@ class Process:
         # Replace subprocess entries
         processes = [self]
         processes.extend(
-            [self.actions[name] for name in sorted(self.actions.keys()) if type(self.actions[name]) is Subprocess])
+            [self.actions[name] for name in sorted(self.actions.keys()) if isinstance(self.actions[name], Subprocess)])
         regexes = generate_regex_set(name)
         for process in processes:
             for regex in regexes:
@@ -383,39 +386,47 @@ class Process:
 
         return ret
 
-    def accesses(self, accesses=None):
+    def accesses(self, accesses=None, exclude=list(), no_labels=False):
         if not accesses:
-            if not self.__accesses:
-                self.__accesses = {}
-
+            accss = dict()
+            
+            if not self.__accesses or len(exclude) > 0 or no_labels:
                 # Collect all accesses across process subprocesses
                 for action in [self.actions[name] for name in sorted(self.actions.keys())]:
-                    if type(action) is Call or type(action) is CallRetval and action.callback:
-                        self.__accesses[action.callback] = []
-                    if type(action) is Call:
-                        for index in range(len(action.parameters)):
-                            self.__accesses[action.parameters[index]] = []
-                    if type(action) is Receive or type(action) is Dispatch:
-                        for index in range(len(action.parameters)):
-                            self.__accesses[action.parameters[index]] = []
-                    if type(action) is CallRetval and action.retlabel:
-                        self.__accesses[action.retlabel] = []
-                    if type(action) is Condition:
-                        for statement in action.statements:
-                            for match in self.label_re.finditer(statement):
-                                self.__accesses[match.group()] = []
-                    if action.condition:
-                        for statement in action.condition:
-                            for match in self.label_re.finditer(statement):
-                                self.__accesses[match.group()] = []
+                    tp = type(action)
+                    if tp not in exclude:
+                        if type(action) is Call or type(action) is CallRetval and action.callback:
+                            accss[action.callback] = []
+                        if type(action) is Call:
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if type(action) is Receive or type(action) is Dispatch:
+                            for index in range(len(action.parameters)):
+                                accss[action.parameters[index]] = []
+                        if type(action) is CallRetval and action.retlabel:
+                            accss[action.retlabel] = []
+                        if type(action) is Condition:
+                            for statement in action.statements:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
+                        if action.condition:
+                            for statement in action.condition:
+                                for match in self.label_re.finditer(statement):
+                                    accss[match.group()] = []
 
                 # Add labels with interfaces
-                for label in [self.labels[name] for name in sorted(self.labels.keys())]:
-                    access = '%{}%'.format(label.name)
-                    if access not in self.__accesses:
-                        self.__accesses[access] = []
+                if not no_labels:
+                    for label in [self.labels[name] for name in sorted(self.labels.keys())]:
+                        access = '%{}%'.format(label.name)
+                        if access not in accss:
+                            accss[access] = []
 
-            return self.__accesses
+                if not self.__accesses and len(exclude) == 0 and not no_labels:
+                    self.__accesses = accss
+            else:
+                accss = self.__accesses
+            
+            return accss
         else:
             self.__accesses = accesses
 

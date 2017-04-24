@@ -478,7 +478,7 @@ class Automaton:
         :param value: Value string
         :return: Label object, Variable object
         """
-        lb = self.process.add_label(name, declaration, value)
+        lb = self.process.add_label(name, declaration, value, scope='local')
         lb.resource = True
         vb = self.determine_variable(lb)
         return lb, vb
@@ -496,8 +496,8 @@ class Automaton:
                 return self.__label_variables[label.name]["default"]
             else:
                 if label.prior_signature:
-                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"), None,
-                                   label.prior_signature, export=True)
+                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, "default"),
+                                   None, label.prior_signature, export=True, scope=label.scope)
                     if label.value:
                         var.value = label.value
                     if label.file:
@@ -519,8 +519,8 @@ class Automaton:
                     access = self.process.resolve_access(label, interface)
                     category, short_id = interface.split(".")
                     implementation = self.process.get_implementation(access)
-                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, short_id), None,
-                                   label.get_declaration(interface), export=True)
+                    var = Variable("ldv_{}_{}_{}".format(self.identifier, label.name, short_id),
+                                   None, label.get_declaration(interface), export=True, scope=label.scope)
 
                     if implementation:
                         var.value = implementation.adjusted_value(var.declaration)

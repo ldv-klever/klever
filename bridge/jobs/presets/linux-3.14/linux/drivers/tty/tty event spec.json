@@ -1,7 +1,7 @@
 {
   "Linux 3.14 (base)": {
     "kernel model": {
-      "alloc_tty_driver, __tty_alloc_driver": {
+      "__tty_alloc_driver": {
         "comment": "Allocate tty driver",
         "labels": {
           "tty_driver": {
@@ -29,6 +29,38 @@
             "comment": "Failed to allocate memory for tty_driver structure.",
             "statements": [
               "return ERR_PTR(-ENOMEM);"
+            ]
+          }
+        }
+      },
+      "alloc_tty_driver": {
+        "comment": "Allocate tty driver",
+        "labels": {
+          "tty_driver": {
+            "resource": true,
+            "interface": [
+              "tty.tty_driver"
+            ]
+          }
+        },
+        "process": "<alloc>.<success> | <fail>",
+        "actions": {
+          "alloc": {
+            "comment": "Allocate memory for tty_driver structure.",
+            "statements": [
+              "%tty_driver% = $ALLOC(%tty_driver%);"
+            ]
+          },
+          "success": {
+            "comment": "Successfully allocated memory for tty_driver structure.",
+            "statements": [
+              "return %tty_driver%;"
+            ]
+          },
+          "fail": {
+            "comment": "Failed to allocate memory for tty_driver structure.",
+            "statements": [
+              "return 0;"
             ]
           }
         }
@@ -381,7 +413,7 @@
   },
   "Linux 2.6.33": {
     "kernel model": {
-      "alloc_tty_driver, __tty_alloc_driver": {
+      "alloc_tty_driver": {
         "comment": "Allocate tty driver",
         "labels": {
           "tty_driver": {
@@ -408,7 +440,7 @@
           "fail": {
             "comment": "Failed to allocate memory for tty_driver structure.",
             "statements": [
-              "return ERR_PTR(-ENOMEM);"
+              "return 0;"
             ]
           }
         }

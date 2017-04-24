@@ -16,20 +16,25 @@
 #
 
 import os
-import time
 import shutil
 import logging
 import hashlib
 import tempfile
 import zipfile
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File
-from django.db.models.base import ModelBase
+
+from django.db.models import Q
+from django.http import HttpResponseBadRequest
+from django.template import loader
 from django.template.defaultfilters import filesizeformat
 from django.test import Client, TestCase, override_settings
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
-from bridge.settings import MAX_FILE_SIZE, MEDIA_ROOT, LOGGING
+
+from bridge.vars import UNKNOWN_ERROR, ERRORS
 
 BLOCKER = {}
 GROUP_BLOCKER = {}
@@ -52,80 +57,6 @@ for h in logger.handlers:
         h.addFilter(InfoFilter(logging.INFO))
 
 
-def print_exec_time(f):
-    def wrapper(*args, **kwargs):
-        start = now()
-        res = f(*args, **kwargs)
-        logger.info('%s: %s' % (f.__name__, now() - start))
-        return res
-    return wrapper
-
-
-def affected_models(model):
-    curr_name = getattr(model, '_meta').object_name
-    related_models = {curr_name}
-    for rel in [f for f in getattr(model, '_meta').get_fields()
-                if (f.one_to_one or f.one_to_many) and f.auto_created and not f.concrete]:
-        rel_model_name = getattr(rel.field.model, '_meta').object_name
-        if rel_model_name not in related_models and rel_model_name != curr_name:
-            related_models.add(rel_model_name)
-            related_models |= affected_models(rel.field.model)
-    return related_models
-
-
-def dump_statistic():
-    logger.info('=========FUNCTION CALL STATISTIC========')
-    for f_name in CALL_STATISTIC:
-        if CALL_STATISTIC[f_name][0] > 0 or CALL_STATISTIC[f_name][1] > 0:
-            logger.info(
-                '%s called %d times and waited for other functions for %0.1f seconds' % (
-                    f_name, CALL_STATISTIC[f_name][1], CALL_STATISTIC[f_name][0] / 10
-                )
-            )
-            CALL_STATISTIC[f_name][0] = 0
-            CALL_STATISTIC[f_name][1] = 0
-
-
-def unparallel_group(groups):
-    def unparallel_inner(f):
-        block = set()
-        for group in groups:
-            if isinstance(group, ModelBase):
-                block |= affected_models(group)
-            else:
-                block.add(str(group))
-
-        def block_access():
-            for g in block:
-                if g not in GROUP_BLOCKER:
-                    GROUP_BLOCKER[g] = 0
-                if GROUP_BLOCKER[g] == 1:
-                    return False
-            return True
-
-        def change_block(status):
-            for g in block:
-                GROUP_BLOCKER[g] = status
-
-        def wait(*args, **kwargs):
-            if f.__name__ not in CALL_STATISTIC:
-                CALL_STATISTIC[f.__name__] = [0, 0]
-            while not block_access():
-                time.sleep(0.1)
-                CALL_STATISTIC[f.__name__][0] += 1
-            change_block(1)
-            CALL_STATISTIC[f.__name__][1] += 1
-            res = f(*args, **kwargs)
-            if CALL_STATISTIC[f.__name__][0] > 36000:
-                dump_statistic()
-            change_block(0)
-            return res
-
-        return wait
-
-    return unparallel_inner
-
-
 def file_checksum(f):
     md5 = hashlib.md5()
     while True:
@@ -140,10 +71,10 @@ def file_checksum(f):
 def file_get_or_create(fp, filename, table, check_size=False):
     if check_size:
         file_size = fp.seek(0, os.SEEK_END)
-        if file_size > MAX_FILE_SIZE:
+        if file_size > settings.MAX_FILE_SIZE:
             raise ValueError(
                 _('Please keep the file size under {0} (the current file size is {1})'.format(
-                    filesizeformat(MAX_FILE_SIZE),
+                    filesizeformat(settings.MAX_FILE_SIZE),
                     filesizeformat(file_size)
                 ))
             )
@@ -180,29 +111,30 @@ def unique_id():
 
 
 def tests_logging_conf():
-    tests_logging = LOGGING.copy()
+    tests_logging = settings.LOGGING.copy()
     cnt = 1
     for handler in tests_logging['handlers']:
         if 'filename' in tests_logging['handlers'][handler]:
-            tests_logging['handlers'][handler]['filename'] = os.path.join(MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
+            tests_logging['handlers'][handler]['filename'] = os.path.join(
+                settings.MEDIA_ROOT, TESTS_DIR, 'log%s.log' % cnt)
             cnt += 1
     return tests_logging
 
 
 # Logging overriding does not work (does not override it for tests but override it after tests done)
 # Maybe it's Django's bug (LOGGING=tests_logging_conf())
-@override_settings(MEDIA_ROOT=os.path.join(MEDIA_ROOT, TESTS_DIR))
+@override_settings(MEDIA_ROOT=os.path.join(settings.MEDIA_ROOT, TESTS_DIR))
 class KleverTestCase(TestCase):
     def setUp(self):
-        if not os.path.exists(os.path.join(MEDIA_ROOT, TESTS_DIR)):
-            os.makedirs(os.path.join(MEDIA_ROOT, TESTS_DIR).encode("utf8"))
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, TESTS_DIR)):
+            os.makedirs(os.path.join(settings.MEDIA_ROOT, TESTS_DIR).encode("utf8"))
         self.client = Client()
         super(KleverTestCase, self).setUp()
 
     def tearDown(self):
         super(KleverTestCase, self).tearDown()
         try:
-            shutil.rmtree(os.path.join(MEDIA_ROOT, TESTS_DIR))
+            shutil.rmtree(os.path.join(settings.MEDIA_ROOT, TESTS_DIR))
         except PermissionError:
             pass
 
@@ -241,8 +173,6 @@ class RemoveFilesBeforeDelete:
             # Deleting of the job automatically send signals of deleting OneToOne fields
             # (ReportRoot and SolvingProgress), so we don't need to do here something
             pass
-        elif model_name == 'ReportComponent':
-            self.__remove_component_files(obj)
         elif model_name == 'Task':
             self.__remove_task_files(obj)
 
@@ -255,29 +185,14 @@ class RemoveFilesBeforeDelete:
 
     def __remove_reports_files(self, root):
         from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
-        for files in ReportSafe.objects.filter(root=root).values_list('archive'):
+        for files in ReportSafe.objects.filter(Q(root=root) & ~Q(archive=None)).values_list('archive'):
             self.__remove(files)
         for files in ReportUnsafe.objects.filter(root=root).values_list('archive'):
             self.__remove(files)
         for files in ReportUnknown.objects.filter(root=root).values_list('archive'):
             self.__remove(files)
-        for files in ReportComponent.objects.filter(root=root).values_list('archive', 'data'):
-            self.__remove(files)
-
-    def __remove_component_files(self, report):
-        from reports.models import ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown
-        reports = set()
-        parents = {report.parent_id}
-        while len(parents) > 0:
-            reports |= parents
-            parents = set(rc['id'] for rc in ReportComponent.objects.filter(parent_id__in=parents).values('id'))
-        for files in ReportUnsafe.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportSafe.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportUnknown.objects.filter(parent_id__in=reports).values_list('archive'):
-            self.__remove(files)
-        for files in ReportComponent.objects.filter(id__in=reports).values_list('archive', 'data'):
+        for files in ReportComponent.objects.filter(Q(root=root) & ~Q(archive=None, data=None))\
+                .values_list('archive', 'data'):
             self.__remove(files)
 
     def __remove_task_files(self, task):
@@ -295,7 +210,7 @@ class RemoveFilesBeforeDelete:
         self.__is_not_used()
         for f in files:
             if f:
-                path = os.path.join(MEDIA_ROOT, f)
+                path = os.path.join(settings.MEDIA_ROOT, f)
                 try:
                     os.remove(path)
                 except OSError:
@@ -305,3 +220,25 @@ class RemoveFilesBeforeDelete:
 
     def __is_not_used(self):
         pass
+
+
+class BridgeException(Exception):
+    def __init__(self, message=None):
+        self.message = message
+        if self.message is None:
+            self.message = UNKNOWN_ERROR
+        elif isinstance(self.message, int):
+            self.message = ERRORS.get(self.message, UNKNOWN_ERROR)
+
+    def __str__(self):
+        return str(self.message)
+
+
+class BridgeErrorResponse(HttpResponseBadRequest):
+    def __init__(self, response, *args, back=None, **kwargs):
+        if isinstance(response, int):
+            response = ERRORS.get(response, UNKNOWN_ERROR)
+        super(BridgeErrorResponse, self).__init__(
+            loader.get_template('error.html').render({'message': response, 'back': back}),
+            *args, **kwargs
+        )

@@ -32,7 +32,9 @@ urlpatterns = [
         views.report_list_by_mark, name='list_mark'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/attr/(?P<attr_id>[0-9]+)/$',
         views.report_list_by_attr, name='list_attr'),
-    url(r'^(?P<leaf_type>unsafe|safe|unknown)/(?P<report_id>[0-9]+)/$', views.report_leaf, name='leaf'),
+    url(r'^unsafe/(?P<report_id>[0-9]+)/$', views.report_unsafe, name='unsafe'),
+    url(r'^safe/(?P<report_id>[0-9]+)/$', views.report_safe, name='safe'),
+    url(r'^unknown/(?P<report_id>[0-9]+)/$', views.report_unknown, name='unknown'),
     url(r'^unsafe/(?P<report_id>[0-9]+)/etv/$', views.report_etv_full, name='etv'),
     url(r'^component/(?P<report_id>[0-9]+)/unknowns/(?P<component_id>[0-9]+)/$',
         views.report_unknowns, name='unknowns'),
@@ -45,5 +47,6 @@ urlpatterns = [
     url(r'^ajax/get_source/$', views.get_source_code),
     url(r'^ajax/fill_compare_cache/$', views.fill_compare_cache),
     url(r'^ajax/get_compare_jobs_data/$', views.get_compare_jobs_data),
+    url(r'^ajax/clear_verification_files/$', views.clear_verification_files),
     url(r'^component/(?P<report_id>[0-9]+)/download_files/$', views.download_report_files, name='download_files'),
 ]

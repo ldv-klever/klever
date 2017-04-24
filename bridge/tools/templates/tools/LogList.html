@@ -1,0 +1,50 @@
+{% load i18n %}
+
+{% if data %}
+    <table class="ui yellow compact selectable table">
+        <thead>
+            <tr>
+                <th>{% trans 'Function name' %}</th>
+                <th>{% trans 'Successfully finished' %}?</th>
+                <th>{% trans 'Enter' %}</th>
+                <th>{% trans 'Waiting lock' %}</th>
+                <th>{% trans 'Try lock' %}</th>
+                <th>{% trans 'Execution' %}</th>
+                <th>{% trans 'Execution time' %}</th>
+                <th>{% trans 'Return' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in data %}
+                <tr>
+                    <td><a class="func_name" href="#">{{ d.name }}</a></td>
+                    <td>
+                        {% if d.failed %}
+                            <i class="ui red remove icon"></i>
+                        {% else %}
+                            <i class="ui green checkmark icon"></i>
+                        {% endif %}
+                    </td>
+                    <td>{{ d.enter|date:'d.m.y H:i:s.u' }}</td>
+                    <td>
+                        {% if d.wait1.0 == 0 %}
+                            <span>-</span>
+                        {% else %}
+                            <span{% if d.wait1.1 %} style="color: red"{% endif %}>{{ d.wait1.0|floatformat:1 }} {% trans 's' %}</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if d.wait2.0 == 0 %}
+                            <span>-</span>
+                        {% else %}
+                            <span{% if d.wait2.1 %} style="color: red"{% endif %}>{{ d.wait2.0|floatformat:1 }} {% trans 's' %}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ d.exec|date:'H:i:s.u' }}</td>
+                    <td>{{ d.exec_time }} {% trans 's' %}</td>
+                    <td>{{ d.return|date:'H:i:s.u' }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endif %}

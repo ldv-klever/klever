@@ -24,10 +24,11 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, \
-    SAFE_LIST_DEF_VIEW, UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS
+from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, SAFE_LIST_DEF_VIEW,\
+    UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
+from users.models import View
 from jobs.utils import get_resource_data, get_user_time
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
     ReportRoot
@@ -136,19 +137,15 @@ class ReportTable(object):
         elif view_id == 'default':
             return def_views[self.type], 'default'
         else:
-            user_view = self.user.view_set.filter(id=int(view_id), type=self.type).first()
+            user_view = View.objects.filter(
+                Q(id=view_id, type=self.type) & (Q(shared=True) | Q(author=self.user))
+            ).first()
             if user_view:
                 return json.loads(user_view.view), user_view.id
         return def_views[self.type], 'default'
 
     def __views(self):
-        views = []
-        for view in self.user.view_set.filter(type=self.type):
-            views.append({
-                'id': view.pk,
-                'name': view.name
-            })
-        return views
+        return View.objects.filter(Q(type=self.type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_table_data(self):
         actions = {
@@ -328,7 +325,7 @@ class ReportTable(object):
                             break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf', args=['safe', rep_id])
+                    href = reverse('reports:safe', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':
@@ -435,7 +432,7 @@ class ReportTable(object):
                             break
                 elif col == 'number':
                     val = cnt
-                    href = reverse('reports:leaf', args=['unsafe', rep_id])
+                    href = reverse('reports:unsafe', args=[rep_id])
                 elif col == 'marks_number':
                     val = reports[rep_id]['marks_number']
                 elif col == 'report_verdict':
@@ -523,7 +520,7 @@ class ReportTable(object):
                         break
                 elif col == 'component':
                     val = components[rep_id]
-                    href = reverse('reports:leaf', args=['unknown', rep_id])
+                    href = reverse('reports:unknown', args=[rep_id])
                 values_row.append({
                     'value': val,
                     'href': href
@@ -711,3 +708,22 @@ class FilesForCompetitionArchive(object):
             if self.xml_root is None:
                 self.xml_root = xml_root
                 self.xml_root.find('tasks').clear()
+
+
+def report_attibutes(report):
+    return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
+
+
+def remove_verification_files(job):
+    root = job.reportroot
+    for report in ReportComponent.objects.filter(root=root, verification=True):
+        report.archive.delete()
+
+    core_report = ReportComponent.objects.get(root=root, parent=None)
+    if job.weight == JOB_WEIGHT[1][0]:
+        ReportSafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportUnsafe.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportUnknown.objects.filter(root=root).exclude(parent=core_report).update(parent=core_report)
+        ReportComponent.objects.filter(root=root, verification=True).delete()
+    else:
+        ReportComponent.objects.filter(root=root, verification=True).update(log=None)

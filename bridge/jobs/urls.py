@@ -32,6 +32,7 @@ urlpatterns = [
     # For ajax requests
     url(r'^ajax/save_view/$', views.save_view),
     url(r'^ajax/remove_view/$', views.remove_view),
+    url(r'^ajax/share_view/$', views.share_view),
     url(r'^ajax/preferable_view/$', views.preferable_view),
     url(r'^ajax/check_view_name/$', views.check_view_name),
     url(r'^ajax/removejobs/$', views.remove_jobs),
@@ -56,6 +57,7 @@ urlpatterns = [
     url(r'^ajax/get_def_start_job_val/$', views.get_def_start_job_val),
     url(r'^ajax/collapse_reports/$', views.collapse_reports),
     url(r'^ajax/do_job_has_children/$', views.do_job_has_children),
+    url(r'^ajax/enable_safe_marks/$', views.enable_safe_marks),
 
     # For Klever Core
     url(r'^decide_job/$', views.decide_job),

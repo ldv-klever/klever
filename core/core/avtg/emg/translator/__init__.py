@@ -16,7 +16,6 @@
 #
 from core.avtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
 from core.avtg.emg.translator.instances import yield_instances
-from core.avtg.emg.translator.fsa import Automaton
 from core.avtg.emg.translator.code import CModel
 from core.avtg.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
 from core.avtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator

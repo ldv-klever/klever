@@ -177,7 +177,8 @@
         "comment": "Character driver scenario.",
         "headers": [
           "linux/fs.h",
-          "linux/pagemap.h"
+          "linux/pagemap.h",
+          "linux/poll.h"
         ],
         "labels": {
           "container": {
@@ -194,7 +195,7 @@
           },
           "ret": {
             "signature": "int a",
-            "value": "1"
+            "value": "ldv_undef_int()"
           },
           "size_cnt": {
             "resource": true,
@@ -259,7 +260,11 @@
               "%size_cnt%"
             ],
             "pre-call": [
-              "ldv_assume(%size_cnt% <= (INT_MAX & PAGE_CACHE_MASK));"
+              "/* MAX_RW_COUNT moved to 'linux/fs.h' since 2.6.37, before it was defined in 'fs/read_write.c' */",
+              "#if !defined(MAX_RW_COUNT)",
+              "  #define MAX_RW_COUNT (INT_MAX & PAGE_CACHE_MASK)",
+              "#endif",
+              "ldv_assume(%size_cnt% <= MAX_RW_COUNT);"
             ]
           },
           "init": {

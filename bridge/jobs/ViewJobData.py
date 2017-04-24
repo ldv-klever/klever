@@ -21,6 +21,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
+from users.models import View
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 from reports.models import AttrStatistic
 
@@ -32,8 +33,7 @@ COLORS = {
 }
 
 
-class ViewJobData(object):
-
+class ViewJobData:
     def __init__(self, user, report, view=None, view_id=None):
         self.report = report
         self.user = user
@@ -63,19 +63,13 @@ class ViewJobData(object):
         elif view_id == 'default':
             return VIEWJOB_DEF_VIEW, 'default'
         else:
-            user_view = self.user.view_set.filter(pk=int(view_id), type='2')
-            if len(user_view):
-                return json.loads(user_view[0].view), user_view[0].pk
+            user_view = View.objects.filter(Q(id=view_id, type='2') & (Q(shared=True) | Q(author=self.user))).first()
+            if user_view:
+                return json.loads(user_view.view), user_view.pk
         return VIEWJOB_DEF_VIEW, 'default'
 
     def __views(self):
-        views = []
-        for view in self.user.view_set.filter(type='2'):
-            views.append({
-                'id': view.pk,
-                'name': view.name
-            })
-        return views
+        return View.objects.filter(Q(type='2') & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_view_data(self):
         if 'data' not in self.view:
@@ -159,7 +153,7 @@ class ViewJobData(object):
         res_data = {}
         resource_filters = {}
         resource_table = self.report.resources_cache
-        if self.report.parent is None and self.report.root.job.weight != JOB_WEIGHT[0][0]:
+        if self.report.parent is None and self.report.root.job.weight == JOB_WEIGHT[1][0]:
             resource_table = self.report.root.lightresource_set
 
         if 'resource_component' in self.view['filters']:
@@ -176,7 +170,7 @@ class ViewJobData(object):
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
         if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
-            if self.report.root.job.weight != JOB_WEIGHT[0][0] and self.report.parent is None:
+            if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
                 res_total = resource_table.filter(component=None, report=self.report.root).first()
             else:
                 res_total = resource_table.filter(component=None).first()
@@ -264,9 +258,6 @@ class ViewJobData(object):
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
-        if self.report.root.safes > 0 and self.report.parent is None:
-            self.safes_total = [self.report.root.safes]
-
         safes_data = []
         try:
             verdicts = self.report.verdict
@@ -323,9 +314,7 @@ class ViewJobData(object):
             else:
                 if a_s.name.name not in attr_stat_data:
                     attr_stat_data[a_s.name.name] = []
-                href = None
-                if self.report.root.job.weight != JOB_WEIGHT[2][0]:
-                    href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
+                href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
                 attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.safes, href))
         attrs_statistic = []
         for a_name in sorted(attr_names):

@@ -18,18 +18,21 @@ views(list of dictionaries: [{'name': <name>, 'id': <view_id>}, ...])
     </div>
 </div>
 <div class="ui divider"></div>
-<label for="{{ view_type }}__available_views"></label>
-<select id="{{ view_type }}__available_views" class="ui small dropdown">
-    <option value="default">{% trans 'Default' %}</option>
-    {% for v in views %}
-        <option title="{{ v.name }}" value="{{ v.id }}"{% if view_id == v.id %} selected{% endif %}>{{ v.name }}</option>
-    {% endfor %}
-</select>
-<br><br>
-<div class="ui small buttons">
-    <button id="{{ view_type }}__show_view_btn" type="button" class="ui teal button">{% trans 'Show' %}</button>
-    <button id="{{ view_type }}__prefer_view_btn" type="button" class="ui green button">{% trans 'Make preferred' %}</button>
-    <button id="{{ view_type }}__update_view_btn" type="button" class="ui pink button">{% trans 'Update' %}</button>
-    <button id="{{ view_type }}__remove_view_btn" type="button" class="ui orange button">{% trans 'Delete' %}</button>
+<div class="ui action input">
+    <label for="{{ view_type }}__available_views"></label>
+    <select id="{{ view_type }}__available_views" class="ui dropdown">
+        <option value="default">{% trans 'Default' %}</option>
+        {% for v in views %}
+            <option title="{{ v.name }}" value="{{ v.id }}"{% if view_id == v.id %} selected{% endif %}>{{ v.name }}
+                {% if v.shared %} ({% if v.author_id == user.id %}{% trans 'shared' %}{% else %}{{ v.author.get_full_name }}{% endif %}){% endif %}
+            </option>
+        {% endfor %}
+    </select>
+    <br><br>
+    <button id="{{ view_type }}__show_view_btn" type="button" class="ui teal icon button note-popup" data-content="{% trans 'Show' %}"><i class="unhide icon"></i></button>
+    <button id="{{ view_type }}__prefer_view_btn" type="button" class="ui green icon button note-popup" data-content="{% trans 'Make preferred' %}"><i class="thumbs up icon"></i></button>
+    <button id="{{ view_type }}__update_view_btn" type="button" class="ui pink icon button note-popup" data-content="{% trans 'Update' %}"><i class="refresh icon"></i></button>
+    <button id="{{ view_type }}__share_view_btn" type="button" class="ui yellow icon button note-popup" data-content="{% trans 'Share' %}/{% trans 'Hide' %}"><i class="unhide icon"></i></button>
+    <button id="{{ view_type }}__remove_view_btn" type="button" class="ui red icon button note-popup" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
 </div>
 <input class="buttons-view-type" type="hidden" value="{{ view_type }}">

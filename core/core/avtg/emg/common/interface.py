@@ -14,9 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.avtg.emg.common.signature import Function, Pointer, InterfaceReference
+
 
 class Interface:
-    def _common_declaration(self, category, identifier, manually_specified=False):
+
+    def __init__(self, category, identifier, manually_specified=False):
         self.category = category
         self.short_identifier = identifier
         self.identifier = "{}.{}".format(category, identifier)
@@ -25,10 +28,14 @@ class Interface:
         self.header = None
         self.implemented_in_kernel = False
 
+    def update_declaration(self, declaration):
+        if not self.declaration.clean_declaration:
+            self.declaration = declaration
+
 
 class Container(Interface):
     def __init__(self, category, identifier, manually_specified=False):
-        self._common_declaration(category, identifier, manually_specified)
+        super(Container, self).__init__(category, identifier, manually_specified)
         self.element_interface = None
         self.field_interfaces = {}
 
@@ -45,38 +52,80 @@ class Container(Interface):
         return self.declaration.weak_contains(target)
 
 
-class Callback(Interface):
+class Resource(Interface):
+
     def __init__(self, category, identifier, manually_specified=False):
-        self._common_declaration(category, identifier, manually_specified)
+        super(Resource, self).__init__(category, identifier, manually_specified)
+
+
+class FunctionInterface(Interface):
+
+    def __init__(self, category, identifier, manually_specified=False):
+        super(FunctionInterface, self).__init__(category, identifier, manually_specified)
         self.param_interfaces = []
-        self.rv_interface = False
+        self.rv_interface = None
+
+    def update_declaration(self, declaration):
+        if isinstance(self.declaration, Function):
+            self_declaration = self.declaration
+        elif isinstance(self.declaration, Pointer) and isinstance(self.declaration.points, Function):
+            self_declaration = self.declaration.points
+        else:
+            raise TypeError("As a type of {!r} interface expect a function or a function pointer but have: {!r}".
+                            format(self.identifier, self.declaration.identifier))
+
+        if isinstance(declaration, Pointer) and isinstance(declaration.points, Function):
+            declaration = declaration.points
+        elif not isinstance(declaration, Function):
+            raise TypeError("To update function interface a function type expected but have: {!r}".
+                            format(declaration.identifier))
+
+        if self.rv_interface:
+            if type(self_declaration.return_value) is InterfaceReference and \
+                    self_declaration.return_value.pointer:
+                self.rv_interface.update_declaration(declaration.return_value.points)
+            else:
+                self.rv_interface.update_declaration(declaration.return_value)
+
+        for index in range(len(self_declaration.parameters)):
+            p_declaration = declaration.parameters[index]
+
+            if self.param_interfaces[index]:
+                if type(self_declaration.parameters[index]) is InterfaceReference and \
+                        self_declaration.parameters[index].pointer:
+                    self.param_interfaces[index].update_declaration(p_declaration.points)
+                else:
+                    self.param_interfaces[index].update_declaration(p_declaration)
+
+        super(FunctionInterface, self).update_declaration(declaration)
+
+
+class Callback(FunctionInterface):
+
+    def __init__(self, category, identifier, manually_specified=False):
+        super(Callback, self).__init__(category, identifier, manually_specified)
         self.called = False
         self.interrupt_context = False
 
 
-class Resource(Interface):
-    def __init__(self, category, identifier, manually_specified=False):
-        self._common_declaration(category, identifier, manually_specified)
+class SourceFunction(FunctionInterface):
 
-
-class KernelFunction(Interface):
     def __init__(self, identifier, header):
+        super(SourceFunction, self).__init__(None, identifier, False)
+        self.functions_called_at = {}
+        self.files_called_at = set()
+
         self.identifier = identifier
         if type(header) is list:
             self.header = header
         else:
             self.header = [header]
 
-        self.declaration = None
-        self.param_interfaces = []
-        self.rv_interface = False
-        self.functions_called_at = {}
-        self.files_called_at = set()
-
     def add_call(self, caller):
         if caller not in self.functions_called_at:
             self.functions_called_at[caller] = 1
         else:
             self.functions_called_at[caller] += 1
+
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

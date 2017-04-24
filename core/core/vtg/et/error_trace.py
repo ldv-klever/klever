@@ -188,7 +188,7 @@ class ErrorTrace:
                 else:
                     yield current
 
-    def insert_edge_and_target_node(self, edge):
+    def insert_edge_and_target_node(self, edge, after=True):
         new_edge = {
             'target node': None,
             'source node': None,
@@ -196,13 +196,22 @@ class ErrorTrace:
         }
         new_node = self.add_node(int(len(self._nodes)))
 
-        edge['target node']['in'].remove(edge)
-        edge['target node']['in'].append(new_edge)
-        new_edge['target node'] = edge['target node']
-        edge['target node'] = new_node
-        new_node['in'] = [edge]
-        new_node['out'] = [new_edge]
-        new_edge['source node'] = new_node
+        if after:
+            edge['target node']['in'].remove(edge)
+            edge['target node']['in'].append(new_edge)
+            new_edge['target node'] = edge['target node']
+            edge['target node'] = new_node
+            new_node['in'] = [edge]
+            new_node['out'] = [new_edge]
+            new_edge['source node'] = new_node
+        else:
+            edge['source node']['out'].remove(edge)
+            edge['source node']['out'].append(new_edge)
+            new_edge['source node'] = edge['source node']
+            edge['source node'] = new_node
+            new_node['out'] = [edge]
+            new_node['in'] = [new_edge]
+            new_edge['target node'] = new_node
 
         return new_edge
 
@@ -444,12 +453,18 @@ class ErrorTrace:
         del self._violation_edges, self._model_funcs, self._notes, self._asserts
 
     def get_func_return_edge(self, func_enter_edge):
+        next_edge = self.next_edge(func_enter_edge)
+
+        # Do not proceed if function call terminates error trace.
+        if not next_edge:
+            return None
+
         # Keep in mind that each pair enter-return has identifier (function name), but such identifier is not unique
         # across error trace, so we need to ignore all intermediate calls to the same function.
         func_id = func_enter_edge['enter']
 
         subcalls = 0
-        for edge in self.trace_iterator(begin=self.next_edge(func_enter_edge)):
+        for edge in self.trace_iterator(begin=next_edge):
             if edge.get('enter') == func_id:
                 subcalls += 1
             if edge.get('return') == func_id:

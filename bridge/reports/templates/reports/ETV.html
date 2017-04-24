@@ -1,62 +1,4 @@
 {% load i18n %}
-{% load staticfiles %}
-
-{% block reports_head_block %}
-    <script src="{% static 'reports/js/jquery-ui.min.js' %}"></script>
-    <script src="{% static 'reports/js/ETV.js' %}"></script>
-    <script src="{% static 'reports/js/ETV-windows.js' %}"></script>
-    <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
-{% endblock %}
-<div class="ui grid">
-    <div class="thirteen wide column">
-        <div class="ui icon orange small buttons right attached">
-            <button id="etv_start" class="ui button normal-popup"><i class="forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space:nowrap">{% trans 'Play' %}</p>
-            </div>
-            <button id="etv_play_forward" class="ui button normal-popup"><i class="fast forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play from the selected line' %}</p>
-            </div>
-            <button id="etv_start_backward" class="ui button normal-popup"><i class="backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space:nowrap">{% trans 'Play backward' %}</p>
-            </div>
-            <button id="etv_play_backward" class="ui button normal-popup"><i class="fast backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play backward from the selected line' %}</p>
-            </div>
-            <button id="etv_next_step" class="ui button normal-popup"><i class="step forward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play one line forward' %}</p>
-            </div>
-            <button id="etv_prev_step" class="ui button normal-popup"><i class="step backward icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Play one line backward' %}</p>
-            </div>
-            <button id="etv_pause_play" class="ui button normal-popup"><i class="pause icon"></i></button>
-            <div class="ui popup">
-                <p style="white-space: nowrap">{% trans 'Pause' %}</p>
-            </div>
-        </div>
-        <div class="ui small input">
-        <select id="select_speed" class="ui dropdown attached">
-            <option value="1">1 {% trans 'second per a line' %}</option>
-            <option value="2">2 {% trans 'seconds per a line' %}</option>
-            <option value="3">3 {% trans 'seconds per a line' %}</option>
-            <option value="4">4 {% trans 'seconds per a line' %}</option>
-            <option value="5">5 {% trans 'seconds per a line' %}</option>
-            <option value="10">10 {% trans 'seconds per a line' %}</option>
-        </select>
-        </div>
-        <label for="select_speed"></label>
-    </div>
-    <div class="three wide column right aligned">
-        <a class="ui icon basic tiny button" href="{% if fullscreen %}{% url 'reports:leaf' 'unsafe' report.pk %}{% else %}{% url 'reports:etv' report.pk %}{% endif %}">
-            <i class="{% if fullscreen %}remove{% else %}maximize{% endif %} icon"></i>
-        </a>
-    </div>
-</div>
 
 <div id="etv" class="ui orange segment {% if fullscreen %} fullscreen{% endif %}">
     <div id="etv-trace">
@@ -66,44 +8,12 @@
                     <h3><a id="error_trace_options" href="{% url 'reports:download_error_trace' report.pk %}">{% trans 'Error trace' %}</a></h3>
                 </div>
             </div>
-            <div id="ETV_error_trace">
-                {% for l in etv.html_trace %}
-                    {% if l.hide_id == 'global' %}
-                        <span data-thread="{{ l.thread_id }}">
-                            <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}</span>
-                            <span class="ETV_LC">{{ l.offset }}<a class="ETV_GlobalExpanderLink"><i class="mini icon unhide"></i> <span class="ETV_GlobalExpander">{% trans 'Global variable declarations' %}</span></a></span>
-                            <br>
-                        </span>
-                    {% else %}
-                        {% if l.note %}
-                            <span class="{{ l.scope }}"{% if l.note_hidden %} style="display: none"{% endif %} data-thread="{{ l.thread_id }}">
-                                <span class="ETV_LN ETV_LN_Note"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
-                                <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_NoteText">{{ l.note }}</a></span><br>
-                            </span>
-                        {% endif %}
-                        {% if l.warning %}
-                            <span class="{{ l.scope }}" data-thread="{{ l.thread_id }}">
-                                <span class="ETV_LN ETV_LN_Warning"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.note_line_offset }}</span>
-                                <span class="ETV_LC">{{ l.offset }}<a class="ETV_ShowCommentCode ETV_WarnText">{{ l.warning }}</a></span><br>
-                            </span>
-                        {% endif %}
-                        <span class="{{ l.scope }}{% if l.commented %} commented{% endif %}{% if l.collapsed %} func_collapsed{% endif %}"{% if l.hidden %} style="display:none"{% endif %} data-thread="{{ l.thread_id }}" data-type="{{ l.type }}"{% if l.type == 'hidden-return' %} hidden{% endif %}>
-                            <span class="ETV_LN"><span class="ETV_THREAD">{{ l.thread|safe }}</span>{{ l.line_offset }}{% if l.line %}<a class="ETV_La">{{ l.line }}</a><span class="ETV_File" hidden>{{ l.file }}</span>{% endif %}</span>
-                            <span class="ETV_LC">{{ l.offset }}{% include 'reports/ETV_HideLink.html' %}{% if l.func %}<span class="ETV_FuncName ETV_Fname">{{ l.func }}</span><span class="ETV_FuncCode" style="display: none">{{ l.code|safe }}</span>{% else %}{{ l.code|safe }}{% endif %}</span>
-                            {% if l.assumptions %}
-                                <span class="ETV_Assumptions" hidden>{{ l.assumptions }}</span>
-                            {% endif %}
-                            {% if l.current_assumptions %}
-                                <span class="ETV_CurrentAssumptions" hidden>{{ l.current_assumptions }}</span>
-                            {% endif %}
-                            <br>
-                        </span>
-                    {% endif %}
-                {% endfor %}
-                {% for assumption in etv.assumes %}
-                    <span id="{{ assumption.0 }}" hidden>{{ assumption.1 }}</span>
-                {% endfor %}
-            </div>
+            {% if etv %}
+                {% include 'reports/ErrorTrace.html' with etv=etv %}
+            {% else %}
+                <div class="ui divider"></div>
+                <h2 class="ui red header" style="margin: 10px;">{% trans "Couldn't visualize the error trace" %}</h2>
+            {% endif %}
         </div>
     </div>
     <div id="etv-source"{% if include_assumptions %} style="height:70%;"{% endif %}>
@@ -127,18 +37,20 @@
     {% endif %}
 </div>
 
-{% if etv.attributes|length %}
-    <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
-        <div class="ui grid">
-            <div class="sixteen wide column left aligned">
-                {% for attribute in etv.attributes %}
-                    <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
-                {% endfor %}
+{% if etv %}
+    {% if etv.attributes|length %}
+        <div id="etv-attributes" class="ui popup very wide" style="white-space: nowrap;">
+            <div class="ui grid">
+                <div class="sixteen wide column left aligned">
+                    {% for attribute in etv.attributes %}
+                        <span class="ui violet header small">{{ attribute.0 }}</span>: <span class="small">{{ attribute.1 }}</span><br>
+                    {% endfor %}
+                </div>
             </div>
         </div>
-    </div>
-{% endif %}
+    {% endif %}
 
-<span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
-<span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>
-<span id="play_finished" hidden>{% trans 'Play of the error trace was completed' %}</span>
+    <span id="error___line_not_found" hidden>{% trans 'Could not find the specified line' %}</span>
+    <span id="error___no_selected_line" hidden>{% trans 'Please, select the line first' %}</span>
+    <span id="play_finished" hidden>{% trans 'Play of the error trace was completed' %}</span>
+{% endif %}

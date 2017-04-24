@@ -21,8 +21,8 @@ from io import BytesIO
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import F, Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import USER_ROLES, JOB_ROLES
-from bridge.utils import logger, unique_id, ArchiveFileContent, file_checksum, file_get_or_create
+from bridge.vars import USER_ROLES, JOB_ROLES, MARKS_COMPARE_ATTRS, UNKNOWN_ERROR
+from bridge.utils import logger, unique_id, ArchiveFileContent, file_checksum, file_get_or_create, BridgeException
 from marks.models import *
 from reports.models import Verdict, ReportComponentLeaf
 from marks.ConvertTrace import GetConvertedErrorTrace, ET_FILE_NAME
@@ -66,19 +66,18 @@ class NewMark:
         self.cnt = 0
         if not isinstance(args, dict) or not isinstance(user, User):
             logger.error('Wrong arguments', stack_info=True)
-            self.error = 'Unknown error'
+            raise BridgeException()
         elif self.type == 'safe' and isinstance(inst, ReportSafe) or \
                 self.type == 'unsafe' and isinstance(inst, ReportUnsafe) or \
                 self.type == 'unknown' and isinstance(inst, ReportUnknown):
-            self.error = self.__create_mark(inst, args)
+            self.__create_mark(inst, args)
         elif self.type == 'unsafe' and isinstance(inst, MarkUnsafe) or \
                 self.type == 'safe' and isinstance(inst, MarkSafe) or \
                 self.type == 'unknown' and isinstance(inst, MarkUnknown):
-            self.error = self.__change_mark(inst, args)
+            self.__change_mark(inst, args)
         else:
-            logger.error('Wrong arguments', stack_info=True)
-            self.error = 'Unknown error'
-            return
+            logger.error('Wrong arguments')
+            raise BridgeException()
 
     def __create_mark(self, report, args):
         init_args = {
@@ -100,43 +99,39 @@ class NewMark:
         error_trace = None
         if self.type == 'unsafe':
             if any(x not in args for x in ['convert_id', 'compare_id']):
-                logger.error('Not enough data to create unsafe mark', stack_info=True)
-                return 'Unknown error'
+                raise BridgeException(_('Not enough data to create an unsafe mark'))
             try:
                 func = MarkUnsafeConvert.objects.get(pk=int(args['convert_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeConvert(pk=%s)" % args['convert_id'], stack_info=True)
-                return _('The error traces conversion function was not found')
-            res = GetConvertedErrorTrace(func, report)
-            if res.error is not None:
-                return res.error
-            error_trace = res.converted
+                raise BridgeException(_('The error traces conversion function was not found'))
+            error_trace = GetConvertedErrorTrace(func, report).converted
             try:
                 mark.function = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
-                return _('The error traces comparison function was not found')
+                raise BridgeException(_('The error traces comparison function was not found'))
         elif self.type == 'unknown':
             mark.component = report.component
 
             if 'function' not in args or len(args['function']) == 0:
-                return _('The pattern is required')
+                raise BridgeException(_('The pattern is required'))
             mark.function = args['function']
             try:
                 re.search(mark.function, '')
             except Exception as e:
                 logger.exception("Wrong mark function (%s): %s" % (mark.function, e), stack_info=True)
-                return _('The pattern is wrong, please refer to documentation on the standard Python '
-                         'library for processing reqular expressions')
+                raise BridgeException(_('The pattern is wrong, please refer to documentation on the standard Python '
+                                        'library for processing reqular expressions'))
 
             if 'problem' not in args or len(args['problem']) == 0:
-                return _('The problem is required')
+                raise BridgeException(_('The problem is required'))
             elif len(args['problem']) > 15:
-                return _('The problem length must be less than 15 characters')
+                raise BridgeException(_('The problem length must be less than 15 characters'))
             mark.problem_pattern = args['problem']
 
             if MarkUnknown.objects.filter(component=mark.component, problem_pattern=mark.problem_pattern).count() > 0:
-                return _('Could not create a new mark since the similar mark exists already')
+                raise BridgeException(_('Could not create a new mark since the similar mark exists already'))
 
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
@@ -149,46 +144,46 @@ class NewMark:
             mark.verdict = args['verdict']
         elif self.type != 'unknown':
             logger.error('Verdict is wrong: %s' % args.get('verdict'), stack_info=True)
-            return 'Unknown error'
+            raise BridgeException()
 
         if args.get('status') not in set(x[0] for x in MARK_STATUS):
             logger.error('Unknown mark status: %s' % args.get('status'), stack_info=True)
-            return 'Unknown error'
+            raise BridgeException()
         mark.status = args['status']
 
         try:
             mark.save()
         except Exception as e:
             logger.exception('Saving mark failed: %s' % e, stack_info=True)
-            return 'Unknown error'
-        res = self.__update_mark(mark, args.get('tags'), error_trace)
-        if res is not None:
+            raise BridgeException(_('Saving the mark failed'))
+        try:
+            self.__update_mark(mark, args.get('tags'), error_trace)
+        except Exception:
             mark.delete()
-            return res
+            raise
 
         if self.type != 'unknown':
             try:
                 self.__create_attributes(report, args.get('attrs'))
             except Exception as e:
-                logger.exception(e, stack_info=True)
+                logger.exception(e)
                 mark.delete()
-                return 'Unknown error'
+                raise BridgeException()
         self.mark = mark
         self.changes = ConnectMarkWithReports(self.mark).changes
 
         for leaf in self.changes:
             RecalculateTags(leaf)
-        return None
 
     def __change_mark(self, mark, args):
         recalc_verdicts = False
 
         if 'comment' not in args or len(args['comment']) == 0:
-            return _('Change comment is required')
+            raise BridgeException(_('Change comment is required'))
         last_v = mark.versions.order_by('-version').first()
         if last_v is None:
             logger.error('No mark versions found', stack_info=True)
-            return 'Unknown error'
+            raise BridgeException()
 
         mark.author = self.user
         error_trace = None
@@ -197,44 +192,47 @@ class NewMark:
                 new_func = MarkUnsafeCompare.objects.get(pk=int(args['compare_id']))
             except ObjectDoesNotExist:
                 logger.exception("Get MarkUnsafeCompare(pk=%s)" % args['compare_id'], stack_info=True)
-                return _('The error traces comparison function was not found')
+                raise BridgeException(_('The error traces comparison function was not found'))
             if mark.function != new_func:
                 mark.function = new_func
                 self.do_recalk = True
 
-            error_trace = BytesIO(
-                json.dumps(json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-            )
-            if file_checksum(error_trace) != last_v.error_trace.hash_sum:
-                self.do_recalk = True
-                error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+            if 'error_trace' in args and isinstance(args['error_trace'], str):
+                error_trace = BytesIO(json.dumps(
+                    json.loads(args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
+                ).encode('utf8'))
+                if file_checksum(error_trace) != last_v.error_trace.hash_sum:
+                    self.do_recalk = True
+                    error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
+                else:
+                    error_trace = last_v.error_trace
             else:
                 error_trace = last_v.error_trace
 
         if self.type == 'unknown':
             if 'function' not in args or len(args['function']) == 0:
-                return _('The pattern is required')
+                raise BridgeException(_('The pattern is required'))
             if args['function'] != mark.function:
                 try:
                     re.search(args['function'], '')
                 except Exception as e:
                     logger.exception("Wrong mark function (%s): %s" % (args['function'], e), stack_info=True)
-                    return _('The pattern is wrong, please refer to documentation on the standard Python '
-                             'library for processing reqular expressions')
+                    raise BridgeException(_('The pattern is wrong, please refer to documentation on the standard '
+                                            'Python library for processing reqular expressions'))
                 mark.function = args['function']
                 self.do_recalk = True
 
             if 'problem' not in args or len(args['problem']) == 0:
-                return _('The problem is required')
+                raise BridgeException(_('The problem is required'))
             elif len(args['problem']) > 15:
-                return _('The problem length must be less than 15 characters')
+                raise BridgeException(_('The problem length must be less than 15 characters'))
             if args['problem'] != mark.problem_pattern:
                 self.do_recalk = True
                 mark.problem_pattern = args['problem']
 
             if MarkUnknown.objects.filter(component=mark.component, problem_pattern=mark.problem_pattern)\
                     .exclude(id=mark.id).count() > 0:
-                return _('Could not change the mark since it would be similar to the existing mark')
+                raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
 
             if 'link' in args and len(args['link']) > 0:
                 mark.link = args['link']
@@ -246,13 +244,13 @@ class NewMark:
                 recalc_verdicts = True
         elif self.type != 'unknown':
             logger.error('Verdict is wrong: %s' % args.get('verdict'), stack_info=True)
-            return 'Unknown error'
+            raise BridgeException()
 
         if args.get('status') in list(x[0] for x in MARK_STATUS):
             mark.status = args['status']
         else:
             logger.error('Unknown mark status: %s' % args.get('status'), stack_info=True)
-            return 'Unknown error'
+            raise BridgeException()
 
         if isinstance(args.get('is_modifiable'), bool) and self.user.extended.role == USER_ROLES[2][0]:
             mark.is_modifiable = args['is_modifiable']
@@ -260,15 +258,18 @@ class NewMark:
             mark.description = str(args['description'])
         mark.version += 1
 
-        res = self.__update_mark(mark, args.get('tags', []), error_trace=error_trace, comment=args['comment'])
-        if res is not None:
+        try:
+            self.__update_mark(mark, args.get('tags', []), error_trace=error_trace, comment=args['comment'])
+        except Exception:
             self.mark_version.delete()
-            return res
+            raise
 
         if self.type != 'unknown':
-            if self.__update_attributes(last_v, args.get('attrs')):
+            try:
+                self.__update_attributes(last_v, args.get('attrs'))
+            except Exception:
                 self.mark_version.delete()
-                return 'Unknown error'
+                raise
         mark.save()
         self.mark = mark
 
@@ -278,11 +279,13 @@ class NewMark:
                 for r in self.changes:
                     RecalculateTags(r)
             elif self.type != 'unknown':
-                if recalc_verdicts:
-                    UpdateVerdict(mark)
+                self.changes = {}
                 for mr in self.mark.markreport_set.all():
-                    RecalculateTags(mr.report)
-        return None
+                    self.changes[mr.report] = {'kind': '=', 'verdict1': mr.report.verdict}
+                if recalc_verdicts:
+                    self.changes = UpdateVerdict(mark, self.changes).changes
+                for report in self.changes:
+                    RecalculateTags(report)
 
     def __update_mark(self, mark, tags, error_trace=None, comment=''):
         args = {
@@ -321,7 +324,7 @@ class NewMark:
             for t in tables[self.type][0].objects.all().only('id', 'parent_id'):
                 tags_in_db[t.id] = t.parent_id
             if any(t not in tags_in_db for t in tags):
-                return _('One of tags was not found')
+                raise BridgeException(_('One of tags was not found'))
             tags_parents = set()
             for t in tags:
                 parent = tags_in_db[t]
@@ -332,19 +335,21 @@ class NewMark:
             tables[self.type][1].objects.bulk_create(
                 list(tables[self.type][1](tag_id=t, mark_version=self.mark_version) for t in tags)
             )
-        return None
 
     def __update_attributes(self, old_mark, attrs):
         if old_mark is None:
             logger.error('Need previous mark version', stack_info=True)
-            return True
+            raise BridgeException()
         if not isinstance(attrs, list):
             logger.error('Attributes must be a list', stack_info=True)
-            return True
+            raise BridgeException()
+        if len(attrs) == 0:
+            for ma in old_mark.attrs.order_by('id').values_list('attr__name__name', 'is_compare'):
+                attrs.append({'attr': ma[0], 'is_compare': ma[1]})
         for a in attrs:
             if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
                 logger.error('Wrong attribute found: %s' % a, stack_info=True)
-                return True
+                raise BridgeException()
         attrs_table = {
             'safe': MarkSafeAttr,
             'unsafe': MarkUnsafeAttr
@@ -360,14 +365,20 @@ class NewMark:
                     break
             else:
                 logger.error('Attribute %s was not found in the new mark data' % a['attr__name__name'], stack_info=True)
-                return True
+                raise BridgeException()
             attrs_to_create.append(attrs_table[self.type](**create_args))
         attrs_table[self.type].objects.bulk_create(attrs_to_create)
-        return False
 
     def __create_attributes(self, report, attrs):
         if not isinstance(attrs, list):
             raise ValueError('Attributes must be a list')
+        if len(attrs) == 0:
+            job_type = report.root.job.type
+            for ra in report.attrs.order_by('id').values_list('attr__name__name'):
+                attrs.append({'attr': ra[0], 'is_compare': True})
+                if job_type in MARKS_COMPARE_ATTRS and ra[0] not in MARKS_COMPARE_ATTRS[job_type]:
+                    attrs[-1]['is_compare'] = False
+
         for a in attrs:
             if not isinstance(a, dict) or 'attr' not in a or not isinstance(a.get('is_compare'), bool):
                 raise ValueError('Wrong attribute found: %s' % a)
@@ -410,16 +421,18 @@ class ConnectReportWithMarks:
             last_v = mark.versions.get(version=mark.version)
             mark_attrs = set(last_v.attrs.filter(is_compare=True).values_list('attr__name__name', 'attr__value'))
             if all(x in mark_attrs for x in set(x for x in unsafe_attrs if x[0] in set(y[0] for y in mark_attrs))):
-                compare_failed = False
+                compare_error = None
                 with last_v.error_trace.file as fp:
-                    compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), self.report)
-                if compare.error is not None:
-                    logger.error("Error traces comparison failed: %s" % compare.error, stack_info=True)
-                    compare_failed = True
-                if compare.result > 0 or compare_failed:
+                    try:
+                        compare = CompareTrace(mark.function.name, fp.read().decode('utf8'), self.report)
+                    except BridgeException as e:
+                        compare_error = str(e)
+                    except Exception as e:
+                        logger.exception("Error traces comparison failed: %s" % e)
+                        compare_error = str(UNKNOWN_ERROR)
+                if compare.result > 0 or compare_error is not None:
                     new_markreports.append(MarkUnsafeReport(
-                        mark=mark, report=self.report, result=compare.result,
-                        broken=compare_failed, error=compare.error
+                        mark=mark, report=self.report, result=compare.result, error=compare_error
                     ))
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
@@ -456,8 +469,7 @@ class ConnectReportWithMarks:
             new_markreports.append(MarkUnknownReport(
                 mark=mark, report=self.report, problem=UnknownProblem.objects.get_or_create(name=problem)[0]
             ))
-        if len(new_markreports) > 0:
-            MarkUnknownReport.objects.bulk_create(new_markreports)
+        MarkUnknownReport.objects.bulk_create(new_markreports)
         if self.update_cache:
             update_unknowns_cache([self.report])
 
@@ -496,17 +508,21 @@ class ConnectMarkWithReports:
             ).values_list('attr__name__name', 'attr__value'))
             if any(x not in mark_attrs for x in unsafe_attrs):
                 continue
-            compare_failed = False
-            compare = CompareTrace(self.mark.function.name, pattern_error_trace, unsafe)
-            if compare.error is not None:
-                logger.error("Error traces comparison failed: %s" % compare.error)
-                compare_failed = True
-                if self.mark.prime == unsafe:
-                    self.mark.prime = None
-                    self.mark.save()
-            if compare.result > 0 or compare_failed:
+            compare_error = None
+            try:
+                compare = CompareTrace(self.mark.function.name, pattern_error_trace, unsafe)
+            except BridgeException as e:
+                compare_error = str(e)
+            except Exception as e:
+                logger.exception("Error traces comparison failed: %s" % e)
+                compare_error = str(UNKNOWN_ERROR)
+
+            if compare_error is not None and self.mark.prime == unsafe:
+                self.mark.prime = None
+                self.mark.save()
+            if compare.result > 0 or compare_error is not None:
                 new_markreports.append(MarkUnsafeReport(
-                    mark=self.mark, report=unsafe, result=compare.result, broken=compare_failed, error=compare.error
+                    mark=self.mark, report=unsafe, result=compare.result, error=compare_error
                 ))
                 if unsafe in self.changes:
                     self.changes[unsafe]['kind'] = '='
@@ -732,6 +748,8 @@ class MarkAccess(object):
         if isinstance(self.report, (ReportUnsafe, ReportSafe, ReportUnknown)):
             if not self.report.archive and not isinstance(self.report, ReportSafe):
                 return False
+            if isinstance(self.report, ReportSafe) and not self.report.root.job.safe_marks:
+                return False
             if self.user.extended.role in [USER_ROLES[2][0], USER_ROLES[3][0]]:
                 return True
             first_v = self.report.root.job.versions.order_by('version').first()
@@ -793,8 +811,6 @@ class TagsInfo:
 class RecalculateTags:
     def __init__(self, report):
         self.report = report
-        self._safes = set()
-        self._unsafes = set()
         self.__fill_leaves_cache()
         if isinstance(self.report, ReportSafe):
             self.__fill_reports_safe_cache()
@@ -927,9 +943,9 @@ class DeleteMark(object):
 
 
 class MatchUnknown(object):
-    def __init__(self, description, function, pattern):
+    def __init__(self, description, func, pattern):
         self.description = str(description)
-        self.function = str(function)
+        self.function = str(func)
         self.pattern = str(pattern)
         self.max_pn = None
         self.numbers = []

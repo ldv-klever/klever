@@ -23,7 +23,7 @@ from core.avtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Co
     get_common_parameter
 from core.avtg.emg.translator.code import FunctionDefinition
 from core.avtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
-    extract_relevant_automata, choose_file, registration_intf_check
+    extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables
 
 
 class FSATranslator(metaclass=abc.ABCMeta):
@@ -187,8 +187,8 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             subprocesses = {}
             for state in automaton.fsa.states:
-                label = "Action {}: {}\n".format(state.identifier, state.desc['label'])
-                label += '\n'.join(state.code[1])
+                label = "Action {}: {}\l".format(state.identifier, state.desc['label'])
+                label += '\l'.join(state.code[1])
 
                 if type(state.action) is not Subprocess or state.action.name not in subprocesses:
                     graph.node(str(state.identifier), label)
@@ -290,10 +290,14 @@ class FSATranslator(metaclass=abc.ABCMeta):
             # Add conditions on base of dispatches
             checks = self._relevant_checks(automata_peers)
             if len(checks) > 0:
-                # Convert conditions into assume, because according to signals semantics process could not proceed until
-                # it sends a signal and condition describes precondition to prevent signal sending to a wrong process.
-                if len(checks) > 0:
-                    code.append('ldv_assume({});'.format(' || '.join(checks)))
+                if automaton in self._model_fsa:
+                    conditions.append("({})".format(' || '.join(checks)))
+                else:
+                    # Convert conditions into assume, because according to signals semantics process could not proceed
+                    # until it sends a signal and condition describes precondition to prevent signal sending to a
+                    # wrong process.
+                    if len(checks) > 0:
+                        code.append('ldv_assume({});'.format(' || '.join(checks)))
 
             # Generate artificial function
             body = []
@@ -359,7 +363,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                         body.extend(['\t\t' + stm for stm in blocks[index]])
                         body.append('\t\tbreak;')
                         body.append('\t};')
-                    body.append('\tdefault: ldv_stop();')
+                    body.append('\tdefault: ldv_assume(0);')
                     body.append('};')
 
             if len(function_parameters) > 0:
@@ -469,8 +473,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                          (access.interface and
                           access.interface.declaration.compare(signature.points.return_value)) or
                          (not access.interface and access.label and
-                          signature.points.return_value.identifier in (d.identifier for d
-                                                                       in access.label.declarations))]
+                          any((signature.points.return_value.compare(d) for d in access.label.declarations)))]
                 if len(suits) > 0:
                     if suits[0].interface:
                         label_var = automaton.determine_variable(suits[0].label, suits[0].interface.identifier)
@@ -641,10 +644,17 @@ class FSATranslator(metaclass=abc.ABCMeta):
 
             return inv
 
+        def reinitialize_variables(code):
+            reinitialization_action_set = get_conf_property(self._conf, 'callback actions with reinitialization', list)
+            if reinitialization_action_set and state.action.name in reinitialization_action_set:
+                statements = initialize_automaton_variables(self._conf, automaton)
+                code.extend(statements)
+
         # Determine callback implementations
         accesses = automaton.process.resolve_access(state.action.callback)
         generated_callbacks = []
         for access in accesses:
+            reinitialize_vars_flag = False
             if access.interface:
                 signature = access.interface.declaration
                 implementation = automaton.process.get_implementation(access)
@@ -665,6 +675,7 @@ class FSATranslator(metaclass=abc.ABCMeta):
                     check = True
                     file = self._cmodel.entry_file
                     func_variable = invoke
+                    reinitialize_vars_flag = True
                 else:
                     # Avoid call if neither implementation and pointer call are known
                     invoke = None
@@ -724,13 +735,13 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                             invoke)
 
                 conditions = list()
-                if not get_necessary_conf_property(self._conf, 'nested automata'):
-                    checks = self._relevant_checks(relevant_automata)
-                    if len(checks) > 0:
-                        code.append('ldv_assume({});'.format(' || '.join(checks)))
 
                 inv = make_action(st, signature, invoke, file, check, func_variable)
                 code.extend(inv)
+
+                # If necessary reinitialize variables, for instance, if probe skipped
+                if reinitialize_vars_flag:
+                    reinitialize_variables(code)
                 
                 generated_callbacks.append((st, code, list(), conditions, comments))
 
@@ -745,6 +756,10 @@ class FSATranslator(metaclass=abc.ABCMeta):
                                                  begin=True))
             comments.append(action_model_comment(state.action, None, begin=False))
             code.append('/* Skip callback without implementations */')
+
+            # If necessary reinitialize variables, for instance, if probe skipped
+            reinitialize_variables(code)
+
             generated_callbacks.append((state, code, list(), list(), comments))
 
         return generated_callbacks

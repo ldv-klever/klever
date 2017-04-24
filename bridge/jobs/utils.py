@@ -21,19 +21,18 @@ import json
 import hashlib
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.db.models import Q, Case, When, IntegerField
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now
 from bridge.settings import KLEVER_CORE_PARALLELISM_PACKS, KLEVER_CORE_LOG_FORMATTERS, LOGGING_LEVELS,\
-    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES
-from bridge.utils import logger
+    DEF_KLEVER_CORE_MODE, DEF_KLEVER_CORE_MODES, ENABLE_SAFE_MARKS
 from bridge.vars import JOB_STATUS, AVTG_PRIORITY, KLEVER_CORE_PARALLELISM, KLEVER_CORE_FORMATTERS,\
     USER_ROLES, JOB_ROLES, SCHEDULER_TYPE, PRIORITY, START_JOB_DEFAULT_MODES, SCHEDULER_STATUS, JOB_WEIGHT
+from bridge.utils import logger, BridgeException
 from jobs.models import Job, JobHistory, FileSystem, UserRole, JobFile, RunHistory
 from users.notifications import Notify
-from reports.models import CompareJobsInfo, TaskStatistic
+from reports.models import CompareJobsInfo, TaskStatistic, ReportComponent
 from service.models import SchedulerUser, Scheduler
 
 
@@ -181,7 +180,15 @@ class JobAccess(object):
         if self.job is None:
             return False
         return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) \
-            and self.job.weight != JOB_WEIGHT[2][0]
+            and self.job.weight == JOB_WEIGHT[0][0]
+
+    def can_clear_verifications(self):
+        if self.job is None or self.job.status not in {JOB_STATUS[3][0], JOB_STATUS[4][0]}:
+            return False
+        if not (self.__is_author or self.__is_manager):
+            return False
+        return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
+            .exclude(archive='').count() > 0
 
     def can_dfc(self):
         return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
@@ -427,9 +434,11 @@ def create_version(job, kwargs):
 
 def create_job(kwargs):
     if 'name' not in kwargs or len(kwargs['name']) == 0:
-        raise ValueError('The job title is required')
+        logger.error('The job name was not got')
+        raise BridgeException()
     if 'author' not in kwargs or not isinstance(kwargs['author'], User):
-        raise ValueError('The job author is required')
+        logger.error('The job author was not got')
+        raise BridgeException()
     newjob = Job(name=kwargs['name'], change_author=kwargs['author'])
     if 'parent' in kwargs:
         newjob.parent = kwargs['parent']
@@ -437,13 +446,15 @@ def create_job(kwargs):
     elif 'type' in kwargs:
         newjob.type = kwargs['type']
     else:
-        raise ValueError('The parent or the job class is required')
+        logger.error('The parent or the job class are required')
+        raise BridgeException()
 
     if 'identifier' in kwargs and kwargs['identifier'] is not None:
         newjob.identifier = kwargs['identifier']
     else:
         time_encoded = now().strftime("%Y%m%d%H%M%S%f%z").encode('utf-8')
         newjob.identifier = hashlib.md5(time_encoded).hexdigest()
+    newjob.safe_marks = bool(kwargs.get('safe_marks', ENABLE_SAFE_MARKS))
     newjob.save()
 
     new_version = create_version(newjob, kwargs)
@@ -452,21 +463,16 @@ def create_job(kwargs):
         try:
             SaveFileData(kwargs['filedata'], new_version)
         except Exception as e:
+            logger.exception(e)
             newjob.delete()
-            raise e
+            raise BridgeException()
     if 'absolute_url' in kwargs:
-        newjob_url = reverse('jobs:job', args=[newjob.pk])
-        try:
-            Notify(newjob, 0, {
-                'absurl': kwargs['absolute_url'] + newjob_url
-            })
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # newjob_url = reverse('jobs:job', args=[newjob.pk])
+        # Notify(newjob, 0, {'absurl': kwargs['absolute_url'] + newjob_url})
+        pass
     else:
-        try:
-            Notify(newjob, 0)
-        except Exception as e:
-            logger.exception("Can't notify users: %s" % e)
+        # Notify(newjob, 0)
+        pass
     return newjob
 
 
@@ -658,8 +664,7 @@ class GetFilesComparison(object):
         try:
             info = CompareJobsInfo.objects.get(user=self.user, root1=self.job1.reportroot, root2=self.job2.reportroot)
         except ObjectDoesNotExist:
-            self.error = _('The comparison cache was not found')
-            return
+            raise BridgeException(_('The comparison cache was not found'))
         return json.loads(info.files_diff)
 
 
@@ -697,6 +702,7 @@ class GetConfiguration(object):
         elif user_conf is not None:
             self.__get_user_conf(user_conf)
         if not self.__check_conf():
+            logger.error("The configuration didn't pass checks")
             self.configuration = None
 
     def __get_default_conf(self, name):
@@ -730,6 +736,7 @@ class GetConfiguration(object):
         for sch in SCHEDULER_TYPE:
             if sch[1] == filedata['task scheduler']:
                 scheduler = sch[0]
+                break
         if scheduler is None:
             logger.error('Scheduler %s is not supported' % filedata['task scheduler'], stack_info=True)
             return
@@ -866,16 +873,11 @@ class GetConfiguration(object):
         return True
 
 
-class StartDecisionData(object):
+class StartDecisionData:
     def __init__(self, user, data):
-        self.error = None
         self.default = data
-
         self.job_sch_err = None
         self.schedulers = self.__get_schedulers()
-        if self.error is not None:
-            return
-
         self.priorities = list(reversed(PRIORITY))
         self.logging_levels = LOGGING_LEVELS
         self.parallelism = KLEVER_CORE_PARALLELISM
@@ -894,18 +896,15 @@ class StartDecisionData(object):
         try:
             klever_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[0][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         try:
             cloud_sch = Scheduler.objects.get(type=SCHEDULER_TYPE[1][0])
         except ObjectDoesNotExist:
-            self.error = 'Unknown error'
-            return []
+            raise BridgeException(_('Population has to be done first'))
         if klever_sch.status == SCHEDULER_STATUS[1][0]:
             self.job_sch_err = _("The Klever scheduler is ailing")
         elif klever_sch.status == SCHEDULER_STATUS[2][0]:
-            self.error = _("The Klever scheduler is disconnected")
-            return []
+            raise BridgeException(_('The Klever scheduler is disconnected'))
         schedulers.append([
             klever_sch.type,
             string_concat(klever_sch.get_type_display(), ' (', klever_sch.get_status_display(), ')')
@@ -915,6 +914,8 @@ class StartDecisionData(object):
                 cloud_sch.type,
                 string_concat(cloud_sch.get_type_display(), ' (', cloud_sch.get_status_display(), ')')
             ])
+        elif self.default[0][1] == SCHEDULER_TYPE[1][0]:
+            raise BridgeException(_('The scheduler for tasks is disconnected'))
         return schedulers
 
 

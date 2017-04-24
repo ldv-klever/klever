@@ -30,10 +30,10 @@ class StateTranslator(FSATranslator):
         self.__state_chains_memoization = dict()
         self.__switchers_cache = dict()
 
-        check_or_set_conf_property(conf, 'no actions composition', default_value=['Condition'], expected_type=list)
-        self.__jump_types = set([t for t in [Dispatch, CallRetval, Call, Condition, Subprocess]
+        check_or_set_conf_property(conf, 'actions composition', default_value=[], expected_type=list)
+        self.__jump_types = set([t for t in [Dispatch, Receive, CallRetval, Call, Condition, Subprocess]
                                  if t.__name__ not in
-                                 get_necessary_conf_property(conf, 'no actions composition')])
+                                 get_necessary_conf_property(conf, 'actions composition')])
 
         super(StateTranslator, self).__init__(logger, conf, analysis, cmodel, entry_fsa, model_fsa, event_fsa)
 
@@ -138,9 +138,14 @@ class StateTranslator(FSATranslator):
                         f_code.append('\t' * tab + 'break;')
                         tab -= 1
                         f_code.append('\t' * tab + '}')
-                    f_code.append('\t' * tab + 'default: ldv_stop;')
+                    f_code.append('\t' * tab + 'default: ldv_assume(0);')
                     tab -= 1
                     f_code.append('\t' * tab + '}')
+
+            # Add declaration of local functions
+            for var in (v for v in automaton.variables() if v.scope == 'local'):
+                # To declare and initialize
+                v_code.append(var.declare_with_init() + ";")
 
             # Add comments
             v_code = [model_comment('CONTROL_FUNCTION_INIT_BEGIN', 'Declare auxiliary variables.')] + \
@@ -167,7 +172,7 @@ class StateTranslator(FSATranslator):
             for file in self._analysis.get_kernel_function(automaton.process.name).files_called_at:
                 self._cmodel.add_function_declaration(file, cf, extern=True)
         else:
-            for var in automaton.variables():
+            for var in (v for v in automaton.variables() if v.scope != 'local'):
                 # To declare and initialize
                 self._cmodel.add_global_variable(var, None)
                 # To allow useing it in dispatches
@@ -200,7 +205,7 @@ class StateTranslator(FSATranslator):
             )
         body.extend(
             [
-                "\t\tdefault: ldv_stop();",
+                "\t\tdefault: ldv_assume(0);",
                 "\t}",
                 "}"
             ]
@@ -228,7 +233,7 @@ class StateTranslator(FSATranslator):
 
     def __state_variable(self, automaton):
         if automaton.identifier not in self.__state_variables:
-            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  None, 'int a', True)
+            var = Variable('ldv_statevar_{}'.format(automaton.identifier),  None, 'int a', True, 'global')
             var.use += 1
             self.__state_variables[automaton.identifier] = var
 
@@ -345,7 +350,7 @@ class StateTranslator(FSATranslator):
             code.append('\t\treturn {};'.format(states[index]))
             code.append('\t\tbreak;')
             code.append('\t}')
-        code.append('\tdefault: ldv_stop();')
+        code.append('\tdefault: ldv_assume(0);')
         code.append('}')
         function.body.extend(code)
 
@@ -385,7 +390,7 @@ class StateTranslator(FSATranslator):
                 body.append('\t\tbreak;'.format(self.__state_variable(automaton).name,
                                                 initial_states[index].identifier))
                 body.append('\t}')
-                body.append('\tdefault: ldv_stop();')
+                body.append('\tdefault: ldv_assume(0);')
                 body.append('}')
 
         return body
