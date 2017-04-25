@@ -19,7 +19,6 @@ import json
 from django.db import transaction
 from django.db.models import ProtectedError, F
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import ATTR_STATISTIC
 from bridge.utils import BridgeException
@@ -41,15 +40,11 @@ def objects_without_relations(table):
     return table.objects.filter(**filters)
 
 
-def disable_safe_marks_for_job(job):
-    try:
-        root = ReportRoot.objects.get(job=job)
-    except ObjectDoesNotExist:
-        return
+def disable_safe_marks_for_job(root):
     ReportSafeTag.objects.filter(report__root=root).delete()
     SafeReportTag.objects.filter(report__root=root).delete()
     MarkSafeReport.objects.filter(report__root=root).delete()
-    Verdict.objects.filter(report__root=job.reportroot).update(
+    Verdict.objects.filter(report__root=root).update(
         safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
     )
     ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
@@ -183,7 +178,7 @@ class RecalculateSafeMarkConnections:
     def __get_safes(self):
         for safe_id, in ReportSafe.objects.filter(root__in=self._roots).values_list('id'):
             self._safes[safe_id] = {'attrs': set(), 'marks': set(), 'reports': set()}
-        for safe_id, attr_id in ReportAttr.objects.filter(report__root__in=self._roots, report_id__in=self._safes)\
+        for safe_id, attr_id in ReportAttr.objects.filter(report_id__in=self._safes)\
                 .values_list('report_id', 'attr_id'):
             self._safes[safe_id]['attrs'].add(attr_id)
 
