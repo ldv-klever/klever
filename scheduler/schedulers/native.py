@@ -131,7 +131,6 @@ class Scheduler(schedulers.SchedulerExchange):
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
-        max_processes -= 1
         logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
         if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
             self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
