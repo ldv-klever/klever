@@ -37,7 +37,7 @@ class Session:
         self.session = requests.Session()
 
         # Get CSRF token via GET request.
-        self.__request('users/signin/')
+        self.__request('users/service_signin/')
 
         # Prepare data
         parameters["username"] = user
