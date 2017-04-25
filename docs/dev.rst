@@ -113,14 +113,11 @@ Installation
 ^^^^^^^^^^^^
 
 #. Download PyCharm Professional from `<https://www.jetbrains.com/pycharm/download/>`_ (below all settings are given
-   for version 4.5.3, you have to adapt them for your version by yourself).
+   for version 2017.1.1, you have to adapt them for your version by yourself).
 #. Follow installation instructions provided at that site.
 #. Activate the PyCharm license using your JetBrains account (request for the license from Evgeny Novikov
    novikov@ispras.ru).
 #. Specify your preferences at the "Welcome to PyCharm" window.
-
-.. note:: At least on openSUSE 13.2 to run PyCharm one may need to specify environment variable :envvar:`JDK_HOME`,
-          e.g. *JDK_HOME=/usr/lib64/jvm/java-1.8.0-openjdk-1.8.0/jre/*.
 
 Setting project
 ^^^^^^^^^^^^^^^
@@ -177,11 +174,7 @@ This run/debug configuration is only useful if you are going to debug Klever Cor
 Documentation run/debug configuration
 """""""""""""""""""""""""""""""""""""
 
-* Specify another representation of documenation in field :guilabel:`Command` if you need it.
-
-.. note:: To build documentation by means of PyCharm 5.0.3 one has to remove :file:`pycharm-5.0.3/helpers/roman.py`::
-
-    $ mv pycharm-5.0.3/helpers/roman.py pycharm-5.0.3/helpers/roman.py.old
+Specify another representation of documenation in field :guilabel:`Command` if you need it.
 
 Testing
 ^^^^^^^
