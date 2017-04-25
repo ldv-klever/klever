@@ -102,9 +102,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
     wi = None
 
-    def init_scheduler(self):
+    def __init__(self, conf, work_dir):
         """Do VerifierCloud specific initialization"""
-        super(Scheduler, self).init_scheduler()
+        super(Scheduler, self).__init__(conf, work_dir)
 
         # Perform sanity checks before initializing scheduler
         if "web-interface address" not in self.conf["scheduler"] or not self.conf["scheduler"]["web-interface address"]:
