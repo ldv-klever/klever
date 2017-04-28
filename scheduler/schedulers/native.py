@@ -444,29 +444,6 @@ class Scheduler(schedulers.SchedulerExchange):
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def __yield_future_result(self, future, identifier, mode):
-        """
-        Try to get result yielded by a future object.
-
-        :param future: Future object.
-        :param identifier: Identifier string.
-        :param mode: 'job' ot 'task'
-        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        """
-        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
-        try:
-            result = future.result()
-            if result == 0:
-                return "FINISHED"
-            else:
-                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier, result)
-                logging.warning(error_msg)
-                raise schedulers.SchedulerException(error_msg)
-        except Exception as err:
-            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
-            logging.warning(error_msg)
-            raise schedulers.SchedulerException(error_msg)
-
     def __check_solution(self, identifier, future, mode='task'):
         """
         Process results of task or job solution.
@@ -476,8 +453,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        self.__postprocess_solution(identifier, mode)
-        return self.__yield_future_result(future, identifier, mode)
+        return self.__postprocess_solution(identifier, future, mode)
 
     def __cancel_solution(self, identifier, future, mode='task'):
         """
@@ -500,12 +476,9 @@ class Scheduler(schedulers.SchedulerExchange):
                 process.join()
             except Exception as err:
                 logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
-        self.__postprocess_solution(identifier, mode)
+        return self.__postprocess_solution(identifier, future, mode)
 
-        # Get result of the future object
-        return self.__yield_future_result(future, identifier, mode)
-
-    def __postprocess_solution(self, identifier, mode):
+    def __postprocess_solution(self, identifier, future, mode):
         """
         Mark resources as released, clean working directory
 
@@ -525,12 +498,47 @@ class Scheduler(schedulers.SchedulerExchange):
         self.__reserved_ram_memory -= self.__reserved[subdir][identifier]["memory size"]
         del self.__reserved[subdir][identifier]
 
-        # Clean working directory
-        if "keep working directory" not in self.conf["scheduler"] or \
-                not self.conf["scheduler"]["keep working directory"]:
-            work_dir = os.path.join(self.work_dir, subdir, identifier)
-            logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
-            shutil.rmtree(work_dir)
+        # Include logs into total scheduler logs
+        work_dir = os.path.join(self.work_dir, subdir, identifier)
+
+        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
+        try:
+            result = future.result()
+            if result != 0:
+                logfile = "{}/client-log.log".format(work_dir)
+                if os.path.isfile(logfile):
+                    with open(logfile, mode='r', encoding="utf8") as f:
+                        logging.debug("Scheduler client log: {}".format(f.read()))
+                else:
+                    raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+
+                errors_file = "{}/client-critical.log".format(work_dir)
+                if os.path.isfile(errors_file):
+                    with open(errors_file, mode='r', encoding="utf8") as f:
+                        errors = f.readlines()
+                else:
+                    errors = []
+
+                if len(errors) > 0:
+                    error_msg = errors[-1]
+                else:
+                    error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
+                                                                                                 result)
+
+                logging.warning(error_msg)
+                raise schedulers.SchedulerException(error_msg)
+        except Exception as err:
+            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
+        finally:
+            # Clean working directory
+            if "keep working directory" not in self.conf["scheduler"] or \
+                    not self.conf["scheduler"]["keep working directory"]:
+                logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
+                shutil.rmtree(work_dir)
+
+        return "FINISHED"
 
     @staticmethod
     def __execute(process):
@@ -554,14 +562,7 @@ class Scheduler(schedulers.SchedulerExchange):
             logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
                           format(process.name, process.pid, str(ec)))
             if ec is not None:
-                if ec == 0:
-                    return 0
-                else:
-                    if ec < 0:
-                        error_msg = 'Process {!r} killed by a signal {!r}'.format(process.pid, str(-ec))
-                    else:
-                        error_msg = 'Process {!r} exited with a non-zero exit code {!r}'.format(process.pid, str(ec))
-                    raise schedulers.SchedulerException(error_msg)
+                return ec
             else:
                 error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
                 raise schedulers.SchedulerException(error_msg)
