@@ -21,16 +21,18 @@ import abc
 class AbstractServer(metaclass=abc.ABCMeta):
     """Start exchange with verification gate."""
 
-    def __init__(self, conf, work_dir):
+    def __init__(self, logger, conf, work_dir):
         """
         Save relevant configuration, authorize at remote verification
         gateway and register there as scheduler.
         :param conf: Dictionary with relevant configuration.
-        :param work_dir: PAth to the working directory.
+        :param work_dir: Path to the working directory.
         :return:
         """
         self.conf = conf
-        self.work_dir = work_dir
+        self.work_dir = work_dir,
+        self.logger = logger
+
 
     @abc.abstractmethod
     def register(self, scheduler_type):

@@ -16,14 +16,12 @@
 #
 
 import uuid
-import logging
 import shutil
 import os
 import json
 import random
 
 import server as server
-import utils as utils
 
 task_description_filename = "verification task desc.json"
 
@@ -50,12 +48,12 @@ class Server(server.AbstractServer):
 
         archives = [file for file in os.listdir(work_dir) if os.path.isfile(os.path.join(work_dir, file)) and
                     os.path.splitext(file)[-1] == ".zip"]
-        logging.info("Found {} tasks in {}".format(len(archives), work_dir))
+        self.logger.info("Found {} tasks in {}".format(len(archives), work_dir))
 
         for archive in archives:
             identifier = os.path.splitext(archive)[0]
             description_file = os.path.join(work_dir, identifier, task_description_filename)
-            logging.debug("Import task {} from description file {}".format(identifier, description_file))
+            self.logger.debug("Import task {} from description file {}".format(identifier, description_file))
 
             with open(description_file, encoding="utf8") as desc:
                 description = json.loads(desc.read())
@@ -82,9 +80,9 @@ class Server(server.AbstractServer):
         # Get files
         c_files = [file for file in os.listdir(location) if os.path.isfile(os.path.join(location, file)) and
                    os.path.splitext(file)[1] == ".c"]
-        logging.info("Found {0} C files".format(str(len(c_files))))
+        self.logger.info("Found {0} C files".format(str(len(c_files))))
         prop_file = os.path.join(location, base_description["property"])
-        logging.info("Going to use property file {0}".format(prop_file))
+        self.logger.info("Going to use property file {0}".format(prop_file))
 
         # Generate packages
         for source in c_files:
@@ -106,12 +104,12 @@ class Server(server.AbstractServer):
             description_file = os.path.join(task_dir, task_description_filename)
             with open(description_file, "w", encoding="utf8") as fh:
                 fh.write(json_description)
-            logging.debug("Generated JSON base_description {0}".format(description_file))
+            self.logger.debug("Generated JSON base_description {0}".format(description_file))
 
             # Make archive package
             archive = os.path.join(work_dir, task_id)
             shutil.make_archive(archive, 'gztar', task_dir)
-            logging.debug("Generated archive with task {0}.zip".format(archive))
+            self.logger.debug("Generated archive with task {0}.zip".format(archive))
 
             # Add task to the pending list
             self.tasks[task_id] = {
@@ -130,7 +128,7 @@ class Server(server.AbstractServer):
         :param password: Scheduler password
         :return:
         """
-        logging.info("Skip user step step.")
+        self.logger.info("Skip user step step.")
 
     def register(self, scheduler_type):
         """
@@ -139,41 +137,41 @@ class Server(server.AbstractServer):
         :param scheduler_type: Scheduler scheduler type.
         authorize to send tasks.
         """
-        logging.info("Initialize test generator")
+        self.logger.info("Initialize test generator")
 
         if "exchange task number" not in self.conf:
             self.conf["exchange task number"] = 10
-        logging.debug("Exchange rate is {} tasks per request".format(self.conf["exchange task number"]))
+        self.logger.debug("Exchange rate is {} tasks per request".format(self.conf["exchange task number"]))
 
         # Prepare tasks
         task_work_dir = os.path.join(self.work_dir, "tasks")
         if "keep task dir" in self.conf and self.conf["keep task dir"] and os.path.isdir(task_work_dir):
-            logging.info("Use existing task directory {} and import tasks from there".format(task_work_dir))
+            self.logger.info("Use existing task directory {} and import tasks from there".format(task_work_dir))
             self.__import_tasks(task_work_dir)
-            logging.info("Tasks are successfully imported")
+            self.logger.info("Tasks are successfully imported")
         else:
-            logging.info("Clean working dir for the test generator: {0}".format(self.work_dir))
+            self.logger.info("Clean working dir for the test generator: {0}".format(self.work_dir))
             shutil.rmtree(self.work_dir, True)
 
-            logging.info("Make directory for tasks {0}".format(task_work_dir))
+            self.logger.info("Make directory for tasks {0}".format(task_work_dir))
             os.makedirs(task_work_dir.encode("utf8"), exist_ok=True)
 
-            logging.debug("Create working dir for the test generator: {0}".format(self.work_dir))
+            self.logger.debug("Create working dir for the test generator: {0}".format(self.work_dir))
             os.makedirs(self.work_dir.encode("utf8"), exist_ok=True)
 
-            logging.info("Begin task preparation")
+            self.logger.info("Begin task preparation")
             for task_set in self.conf["task prototypes"]:
                 src_dir = self.conf["sv-comp repo location"] + task_set
-                logging.debug("Prepare tasks from the directory {0}".format(src_dir))
+                self.logger.debug("Prepare tasks from the directory {0}".format(src_dir))
                 self.__make_tasks(task_work_dir, src_dir, self.conf["task prototypes"][task_set])
 
-            logging.info("Tasks are generated in the directory {0}".format(task_work_dir))
+            self.logger.info("Tasks are generated in the directory {0}".format(task_work_dir))
 
         # Prepare directory for solutions
         self.solution_dir = os.path.join(self.work_dir, "solutions")
-        logging.info("Clean solution dir for the test generator: {0}".format(self.solution_dir))
+        self.logger.info("Clean solution dir for the test generator: {0}".format(self.solution_dir))
         shutil.rmtree(self.solution_dir, True)
-        logging.info("Make directory for solutions {0}".format(task_work_dir))
+        self.logger.info("Make directory for solutions {0}".format(task_work_dir))
         os.makedirs(self.solution_dir.encode("utf8"), exist_ok=True)
 
     def exchange(self, tasks):
@@ -184,7 +182,7 @@ class Server(server.AbstractServer):
         :param tasks: Get dictionary with scheduler task statuses.
         :return: Return dictionary with new tasks, descriptions and users.
         """
-        logging.info("Start updating statuses according to received task list")
+        self.logger.info("Start updating statuses according to received task list")
         report = {
             "tasks": {
                 "pending": [],
@@ -201,7 +199,7 @@ class Server(server.AbstractServer):
             "task descriptions": {},
         }
 
-        logging.debug("Update statuses in testgenerator")
+        self.logger.debug("Update statuses in testgenerator")
         # Update PENDING -> ERROR
         for task_id in [task_id for task_id in tasks["tasks"]["error"] if self.tasks[task_id]["status"] == "PENDING"]:
             self.tasks[task_id]["status"] = "ERROR"
@@ -250,7 +248,7 @@ class Server(server.AbstractServer):
             if "solution" not in self.tasks[task_id] or not self.tasks[task_id]["solution"]:
                 raise RuntimeError("Solution is required before FINISHED status can be assigned: {}".format(task_id))
 
-        logging.debug("Generate new status report for scheduler")
+        self.logger.debug("Generate new status report for scheduler")
         report["tasks"]["pending"] = [task_id for task_id in self.tasks if self.tasks[task_id]["status"] == "PENDING"]
         report["tasks"]["processing"] = [task_id for task_id in self.tasks
                                          if self.tasks[task_id]["status"] == "PROCESSING"]
@@ -265,7 +263,7 @@ class Server(server.AbstractServer):
                 report["task descriptions"][task_id]["scheduler user name"] = self.conf["scheduler user name"]
                 report["task descriptions"][task_id]["scheduler password"] = self.conf["scheduler password"]
 
-        logging.debug("Test-generator state: PENDING: {}, PROCESSING: {}, ERROR: {}, FINISHED: {}".
+        self.logger.debug("Test-generator state: PENDING: {}, PROCESSING: {}, ERROR: {}, FINISHED: {}".
                       format(self.pending_cnt, self.processing_cnt, self.error_cnt, self.finished_cnt))
         return report
 
@@ -275,7 +273,7 @@ class Server(server.AbstractServer):
         :param identifier: Verification task identifier.
         :param archive: Path to the zip archive to save.
         """
-        logging.debug("Copy task from {} to {}".format(self.tasks[identifier]["data"], archive))
+        self.logger.debug("Copy task from {} to {}".format(self.tasks[identifier]["data"], archive))
         shutil.copyfile(self.tasks[identifier]["data"], archive)
 
     def submit_solution(self, identifier, archive, description):
@@ -288,10 +286,10 @@ class Server(server.AbstractServer):
         """
         if self.tasks[identifier]["status"] in ["PENDING", "PROCESSING"]:
             data_file = os.path.join(self.solution_dir, "{}.zip".format(identifier))
-            logging.debug("Copy the solution {} to {}".format(archive, data_file))
+            self.logger.debug("Copy the solution {} to {}".format(archive, data_file))
             shutil.copyfile(archive, data_file)
 
-            logging.debug("Save solution result for the task {}".format(identifier))
+            self.logger.debug("Save solution result for the task {}".format(identifier))
             self.tasks[identifier]["solution"] = description
             self.tasks[identifier]["result"] = data_file
         else:

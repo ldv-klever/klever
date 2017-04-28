@@ -36,9 +36,9 @@ def get_gateway(conf, work_dir):
     :return: Return object of the implementation of Session abstract class.
     """
     if "debug with testgenerator" in conf["scheduler"] and conf["scheduler"]["debug with testgenerator"]:
-        return testgenerator.Server(conf["testgenerator"], work_dir)
+        return testgenerator.Server(logging, conf["testgenerator"], work_dir)
     else:
-        return bridge.Server(conf["Klever Bridge"], work_dir)
+        return bridge.Server(logging, conf["Klever Bridge"], work_dir)
 
 
 class SchedulerException(RuntimeError):
