@@ -91,6 +91,8 @@ class Scheduler(schedulers.SchedulerExchange):
     __reserved = {"jobs": {}, "tasks": {}}
     __job_processes = dict()
     __task_processes = dict()
+    __cached_tools_data = None
+    __cached_nodes_data = None
 
     def __init__(self, conf, work_dir):
         """Do native scheduler specific initialization"""
@@ -341,7 +343,9 @@ class Scheduler(schedulers.SchedulerExchange):
                 }
             }
         }]
-        self.server.submit_nodes(configurations)
+        if not self.__cached_nodes_data or self.__cached_nodes_data != str(configurations):
+            self.__cached_nodes_data = str(configurations)
+            self.server.submit_nodes(configurations)
 
         # Fill available resources
         if self.__cpu_model != node_status["CPU model"] or \
@@ -361,10 +365,12 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Dictionary with available verification tools.
         """
         data = self.__get_task_configuration()
-        verification_tools = data['client']['verification tools']
+        if not self.__cached_tools_data or str(data) != self.__cached_tools_data:
+            self.__cached_tools_data = str(data)
+            verification_tools = data['client']['verification tools']
 
-        # Submit tools
-        self.server.submit_tools(verification_tools)
+            # Submit tools
+            self.server.submit_tools(verification_tools)
 
     def __prepare_solution(self, identifier, configuration, mode='task'):
         """
