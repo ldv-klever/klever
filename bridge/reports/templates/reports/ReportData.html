@@ -8,15 +8,23 @@
         {% with test_stats=data|calculate_test_stats %}
             <tr>
                 <td><span style="color: #20d467">{% trans 'Passed tests' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"passed tests" }} ({% widthratio test_stats|get_dict_val:"passed tests" test_stats|get_dict_val:"tests" 100 %}%)</td>
+                <td>{{ test_stats|get_dict_val:"passed tests" }} ({% widthratio test_stats|get_dict_val:"passed tests" test_stats.tests 100 %}%)</td>
             </tr>
             <tr>
                 <td><span style="color: #ff3463">{% trans 'Failed tests' %}</span></td>
-                <td>{{ test_stats|get_dict_val:"failed tests" }} ({% widthratio test_stats|get_dict_val:"failed tests" test_stats|get_dict_val:"tests" 100 %}%)</td>
+                <td>{{ test_stats|get_dict_val:"failed tests" }} ({% widthratio test_stats|get_dict_val:"failed tests" test_stats.tests 100 %}%)</td>
             </tr>
             <tr>
                 <td>{% trans 'Total number of tests' %}</td>
-                <td>{{ test_stats|get_dict_val:"tests" }}</td>
+                <td>{{ test_stats.tests }}</td>
+            </tr>
+            <tr>
+                <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
+                <td>{{ test_stats|get_dict_val:"missed comments" }}</td>
+            </tr>
+            <tr>
+                <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
+                <td>{{ test_stats|get_dict_val:"excessive comments" }}</td>
             </tr>
         {% endwith %}
     </table>
@@ -59,11 +67,11 @@
                 <td>{{ validation_stats|get_dict_val:"found bug before fix and safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found bug before fix and safe after fix" validation_stats.bugs 100 %}%)</td>
             </tr>
             <tr>
-                <td><span style="color: #ff9731">{% trans 'Found bug before fix and non-safe after fix' %}</span></td>
+                <td><span style="color: #ff832e">{% trans 'Found bug before fix and non-safe after fix' %}</span></td>
                 <td>{{ validation_stats|get_dict_val:"found bug before fix and non-safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found bug before fix and non-safe after fix" validation_stats.bugs 100 %}%)</td>
             </tr>
             <tr>
-                <td><span style="color: #ff9731">{% trans 'Found non-bug before fix and safe after fix' %}</span></td>
+                <td><span style="color: #ff832e">{% trans 'Found non-bug before fix and safe after fix' %}</span></td>
                 <td>{{ validation_stats|get_dict_val:"found non-bug before fix and safe after fix" }} ({% widthratio validation_stats|get_dict_val:"found non-bug before fix and safe after fix" validation_stats.bugs 100 %}%)</td>
             </tr>
             <tr>
@@ -75,12 +83,12 @@
                 <td>{{ validation_stats.bugs }}</td>
             </tr>
             <tr>
-                <td><span style="color: #ffda06">{% trans 'Missed comments' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"missed comments" }} ({% widthratio validation_stats|get_dict_val:"missed comments" validation_stats.bugs 100 %}%)</td>
+                <td><span style="color: #ffb03f">{% trans 'Missed comments' %}</span></td>
+                <td>{{ validation_stats|get_dict_val:"missed comments" }}</td>
             </tr>
             <tr>
-                <td><span style="color: #ffda06">{% trans 'Excessive comments' %}</span></td>
-                <td>{{ validation_stats|get_dict_val:"excessive comments" }} ({% widthratio validation_stats|get_dict_val:"excessive comments" validation_stats.bugs 100 %}%)</td>
+                <td><span style="color: #ffb03f">{% trans 'Excessive comments' %}</span></td>
+                <td>{{ validation_stats|get_dict_val:"excessive comments" }}</td>
             </tr>
         {% endwith %}
     </table>
