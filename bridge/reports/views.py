@@ -81,6 +81,55 @@ def calculate_test_stats(test_results):
     return test_stats
 
 
+@register.filter
+def calculate_validation_stats(validation_results):
+    validation_stats = {
+        "found bug before fix and safe after fix": 0,
+        "found bug before fix and non-safe after fix": 0,
+        "found non-bug before fix and safe after fix": 0,
+        "found non-bug before fix and non-safe after fix": 0,
+        "missed comments": 0,
+        "excessive comments": 0,
+        "bugs": 0
+    }
+
+    for result in validation_results.values():
+        validation_stats["bugs"] += 1
+
+        is_found_bug_before_fix = False
+
+        if result["before fix"]:
+            if result["before fix"]["verification status"] == "unsafe":
+                is_found_bug_before_fix = True
+                if result["before fix"]["comment"]:
+                    validation_stats["excessive comments"] += 1
+            elif not result["before fix"]["comment"]:
+                validation_stats["missed comments"] += 1
+
+        is_found_safe_after_fix = False
+
+        if result["after fix"]:
+            if result["after fix"]["verification status"] == "safe":
+                is_found_safe_after_fix = True
+                if result["after fix"]["comment"]:
+                    validation_stats["excessive comments"] += 1
+            elif not result["after fix"]["comment"]:
+                validation_stats["missed comments"] += 1
+
+        if is_found_bug_before_fix:
+            if is_found_safe_after_fix:
+                validation_stats["found bug before fix and safe after fix"] += 1
+            else:
+                validation_stats["found bug before fix and non-safe after fix"] += 1
+        else:
+            if is_found_safe_after_fix:
+                validation_stats["found non-bug before fix and safe after fix"] += 1
+            else:
+                validation_stats["found non-bug before fix and non-safe after fix"] += 1
+
+    return validation_stats
+
+
 @login_required
 @unparallel_group(['ReportComponent'])
 def report_component(request, job_id, report_id):
