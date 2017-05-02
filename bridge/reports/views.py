@@ -63,6 +63,24 @@ def sort_bugs_list(l):
     return sorted(l, key=lambda bug: bug[12:].lstrip('~'))
 
 
+@register.filter
+def calculate_test_stats(test_results):
+    test_stats = {
+        "passed tests": 0,
+        "failed tests": 0,
+        "tests": 0
+    }
+
+    for result in test_results.values():
+        test_stats["tests"] += 1
+        if result["ideal verdict"] == result["verification status"]:
+            test_stats["passed tests"] += 1
+        else:
+            test_stats["failed tests"] += 1
+
+    return test_stats
+
+
 @login_required
 @unparallel_group(['ReportComponent'])
 def report_component(request, job_id, report_id):

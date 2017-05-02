@@ -5,6 +5,22 @@
 {% if component == 'Core' and type == '0' %}
     <h5 class="ui brown header">{% trans 'Testing results' %}</h5>
     <table class="ui compact brown table">
+        {% with test_stats=data|calculate_test_stats %}
+            <tr>
+                <td><span style="color: #20d467">{% trans 'Passed tests' %}</span></td>
+                <td>{{ test_stats|get_dict_val:"passed tests" }} ({% widthratio test_stats|get_dict_val:"passed tests" test_stats|get_dict_val:"tests" 100 %}%)</td>
+            </tr>
+            <tr>
+                <td><span style="color: #ff3463">{% trans 'Failed tests' %}</span></td>
+                <td>{{ test_stats|get_dict_val:"failed tests" }} ({% widthratio test_stats|get_dict_val:"failed tests" test_stats|get_dict_val:"tests" 100 %}%)</td>
+            </tr>
+            <tr>
+                <td>{% trans 'Total number of tests' %}</td>
+                <td>{{ test_stats|get_dict_val:"tests" }}</td>
+            </tr>
+        {% endwith %}
+    </table>
+    <table class="ui compact brown table">
         <thead>
             <tr>
                 <th>{% trans 'Test' %}</th>
