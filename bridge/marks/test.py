@@ -168,7 +168,11 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
         # Enable safe marks for the job
-        self.assertFalse(self.job.safe_marks)
+        response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
+
         response = self.client.post('/jobs/ajax/enable_safe_marks/', {'job_id': self.job.id})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -188,7 +192,7 @@ class TestMarks(KleverTestCase):
         compare_attrs = []
         for a in safe.attrs.all():
             attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name in MARKS_COMPARE_ATTRS[self.job.type]:
+            if a.attr.name.name in MARKS_COMPARE_ATTRS[self.job.type]:
                 attr_data['is_compare'] = True
             compare_attrs.append(attr_data)
         response = self.client.post('/marks/ajax/save_mark/', {
@@ -326,7 +330,10 @@ class TestMarks(KleverTestCase):
 
         # Delete mark
         response = self.client.post('/marks/ajax/delete/', {'type': 'safe', 'ids': json.dumps([mark.id])})
-        self.assertRedirects(response, reverse('marks:mark_list', args=['safe']))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
         self.assertEqual(len(MarkSafe.objects.all()), 0)
         self.assertEqual(len(MarkSafeReport.objects.all()), 0)
         self.assertEqual(ReportSafe.objects.all().first().verdict, SAFE_VERDICTS[4][0])
@@ -597,7 +604,7 @@ class TestMarks(KleverTestCase):
         compare_attrs = []
         for a in unsafe.attrs.all():
             attr_data = {'is_compare': False, 'attr': a.attr.name.name}
-            if a.attr.name in MARKS_COMPARE_ATTRS[self.job.type]:
+            if a.attr.name.name in MARKS_COMPARE_ATTRS[self.job.type]:
                 attr_data['is_compare'] = True
             compare_attrs.append(attr_data)
         response = self.client.post('/marks/ajax/save_mark/', {
@@ -743,7 +750,10 @@ class TestMarks(KleverTestCase):
 
         # Delete mark
         response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps([mark.id])})
-        self.assertRedirects(response, reverse('marks:mark_list', args=['unsafe']))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
         self.assertEqual(len(MarkUnsafe.objects.all()), 0)
         self.assertEqual(len(MarkUnsafeReport.objects.all()), 0)
         self.assertEqual(ReportUnsafe.objects.all().first().verdict, UNSAFE_VERDICTS[5][0])
@@ -1052,7 +1062,10 @@ class TestMarks(KleverTestCase):
 
         # Delete mark
         response = self.client.post('/marks/ajax/delete/', {'type': 'unknown', 'ids': json.dumps([mark.id])})
-        self.assertRedirects(response, reverse('marks:mark_list', args=['unknown']))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+        res = json.loads(str(response.content, encoding='utf8'))
+        self.assertNotIn('error', res)
         self.assertEqual(len(MarkUnknown.objects.filter(prime=unknown)), 0)
         self.assertEqual(len(MarkUnknownReport.objects.all()), 0)
         self.assertEqual(len(ComponentMarkUnknownProblem.objects.filter(problem__name='EVal: rule')), 0)

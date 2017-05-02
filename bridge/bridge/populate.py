@@ -16,19 +16,15 @@
 #
 
 import os
-import re
 import json
 from types import FunctionType
-from io import BytesIO
 
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
-from django.utils.translation import override, ungettext_lazy, ugettext_lazy as _
-from django.utils.timezone import now
+from django.utils.translation import override, ungettext_lazy
 
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE, SAFE_VERDICTS, \
-    UNSAFE_VERDICTS
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
 from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import file_get_or_create, unique_id, BridgeException
 
@@ -38,14 +34,12 @@ import marks.UnknownUtils as UnknownUtils
 
 from users.models import Extended
 from jobs.models import Job, JobFile
-from reports.models import TaskStatistic, AttrName, Attr
-from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert,\
-    ErrorTraceConvertionCache, MarkSafeTag, MarkSafeHistory, MarkSafeAttr, MarkSafe, SafeTag, \
-    MarkUnsafeAttr, UnsafeTag, MarkUnsafe, MarkUnsafeHistory, MarkUnsafeTag, ConvertedTraces
+from reports.models import TaskStatistic
+from marks.models import MarkUnsafeCompare, MarkUnsafeConvert,ErrorTraceConvertionCache
 from service.models import Scheduler
 
 from jobs.utils import create_job
-from marks.ConvertTrace import ConvertTrace, ET_FILE_NAME
+from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
 from marks.tags import CreateTagsFromFile
 
@@ -260,75 +254,18 @@ class Population(object):
         return get_fdata(d)
 
     def __populate_unknown_marks(self):
-        presets_dir = os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns')
-        total = 0
-        created = 0
-        for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
-            component = os.path.basename(component_dir)
-            if not 0 < len(component) <= 15:
-                raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
-            for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
-                data = None
-                with open(mark_settings, encoding='utf8') as fp:
-                    try:
-                        data = json.load(fp)
-                    except Exception as e:
-                        fp.seek(0)
-                        try:
-                            path_to_json = os.path.abspath(os.path.join(component_dir, fp.read()))
-                            with open(path_to_json, encoding='utf8') as fp2:
-                                data = json.load(fp2)
-                        except Exception:
-                            raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
-                                e, os.path.relpath(mark_settings, presets_dir)
-                            ))
-                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
-                try:
-                    re.compile(data['function'])
-                except re.error:
-                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
-                if 'link' not in data:
-                    data['link'] = ''
-                if 'description' not in data:
-                    data['description'] = ''
-                if 'status' not in data:
-                    data['status'] = MARK_STATUS[0][0]
-                if 'is_modifiable' not in data:
-                    data['is_modifiable'] = True
-                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
-                    raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
-                total += 1
-                try:
-                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
-                except ObjectDoesNotExist:
-                    mark = MarkUnknown.objects.create(
-                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
-                        author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
-                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
-                    )
-                    MarkUnknownHistory.objects.create(
-                        mark=mark, version=mark.version, author=mark.author, status=mark.status,
-                        function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                        change_date=mark.change_date, description=mark.description, comment=''
-                    )
-                    UnknownUtils.ConnectMark(mark)
-                    created += 1
-                except MultipleObjectsReturned:
-                    raise Exception('There are similar unknown marks in the system')
-        if created > 0:
-            self.changes['marks']['unknown'] = (created, total)
+        res = UnknownUtils.PopulateMarks(self.manager)
+        if res.created > 0:
+            self.changes['marks']['unknown'] = (res.created, res.total)
 
     def __populate_safe_marks(self):
-        res = PopulateSafeMarks(self.manager)
+        res = SafeUtils.PopulateMarks(self.manager)
         new_num = len(res.created)
         if new_num > 0:
             self.changes['marks']['safe'] = (new_num, res.total)
 
     def __populate_unsafe_marks(self):
-        res = PopulateUnsafeMarks(self.manager)
+        res = UnsafeUtils.PopulateMarks(self.manager)
         new_num = len(res.created)
         if new_num > 0:
             self.changes['marks']['unsafe'] = (new_num, res.total)
@@ -426,324 +363,3 @@ def populate_users(admin=None, manager=None, service=None):
             newuser.save()
             Extended.objects.create(user=newuser, role=USER_ROLES[4][0])
     return None
-
-
-def populate_safe_marks():
-    from marks.models import MarkSafe
-    manager = User.objects.filter(extended__role=USER_ROLES[2][0]).first()
-    if not manager:
-        return
-    MarkSafe.objects.filter(versions=None).delete()
-    res = PopulateSafeMarks(manager)
-    print('Number of created safe marks: %s/%s' % (len(res.created), res.total))
-
-
-class PopulateSafeMarks:
-    def __init__(self, manager):
-        self.total = 0
-        self._author = manager
-        self._dbtags = {}
-        self._tagnames = {}
-        self._marktags = {}
-        self._markattrs = {}
-        self.__current_tags()
-        self._marks = self.__get_data()
-        self.__get_attrnames()
-        self.__get_attrs()
-        self.created = self.__create_marks()
-        self.__create_related()
-        SafeUtils.ConnectMarks(self.created.values())
-
-    def __current_tags(self):
-        for t_id, parent_id, t_name in SafeTag.objects.values_list('id', 'parent_id', 'tag'):
-            self._dbtags[t_id] = parent_id
-            self._tagnames[t_name] = t_id
-
-    def __get_tags(self, tags_data):
-        tags = set()
-        for t in tags_data:
-            if t not in self._tagnames:
-                raise BridgeException(_('Corrupted preset safe mark: not enough tags in the system'))
-            t_id = self._tagnames[t]
-            tags.add(t_id)
-            while self._dbtags[t_id] is not None:
-                t_id = self._dbtags[t_id]
-                tags.add(t_id)
-        return tags
-
-    def __get_attrnames(self):
-        attrnames = {}
-        for a in AttrName.objects.all():
-            attrnames[a.name] = a.id
-        for mid in self._markattrs:
-            for a in self._markattrs[mid]:
-                if a['attr'] in attrnames:
-                    a['attr'] = attrnames[a['attr']]
-                else:
-                    a['attr'] = AttrName.objects.create(name=a['attr']).id
-
-    def __get_attrs(self):
-        attrs_in_db = {}
-        for a in Attr.objects.all():
-            attrs_in_db[(a.name_id, a.value)] = a.id
-        attrs_to_create = []
-        for mid in self._markattrs:
-            for a in self._markattrs[mid]:
-                if (a['attr'], a['value']) not in attrs_in_db:
-                    attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
-        if len(attrs_to_create) > 0:
-            Attr.objects.bulk_create(attrs_to_create)
-            self.__get_attrs()
-        else:
-            for mid in self._markattrs:
-                for a in self._markattrs[mid]:
-                    a['attr'] = attrs_in_db[(a['attr'], a['value'])]
-                    del a['value']
-
-    def __create_marks(self):
-        marks_in_db = {}
-        for ma in MarkSafeAttr.objects.values('mark_id', 'attr_id', 'is_compare'):
-            if ma['mark_id'] not in marks_in_db:
-                marks_in_db[ma['mark_id']] = set()
-            marks_in_db[ma['mark_id']].add((ma['attr_id'], ma['is_compare']))
-        marks_to_create = []
-        for mark in self._marks:
-            attr_set = set((a['attr'], a['is_compare']) for a in self._markattrs[mark.identifier])
-            if any(attr_set == marks_in_db[x] for x in marks_in_db):
-                del self._markattrs[mark.identifier]
-                del self._marktags[mark.identifier]
-                continue
-            marks_to_create.append(mark)
-        MarkSafe.objects.bulk_create(marks_to_create)
-
-        created_marks = {}
-        marks_versions = []
-        for mark in MarkSafe.objects.filter(versions=None):
-            created_marks[mark.identifier] = mark
-            marks_versions.append(MarkSafeHistory(
-                mark=mark, verdict=mark.verdict, status=mark.status, description=mark.description,
-                version=mark.version, author=mark.author, change_date=now(), comment=''
-            ))
-        MarkSafeHistory.objects.bulk_create(marks_versions)
-        return created_marks
-
-    def __create_related(self):
-        versions = {}
-        for mh in MarkSafeHistory.objects.filter(mark__in=self.created.values()).select_related('mark'):
-            versions[mh.mark.identifier] = mh.id
-
-        new_tags = []
-        for mid in self._marktags:
-            for tid in self._marktags[mid]:
-                new_tags.append(MarkSafeTag(tag_id=tid, mark_version_id=versions[mid]))
-        MarkSafeTag.objects.bulk_create(new_tags)
-        new_attrs = []
-        for mid in self._markattrs:
-            for a in self._markattrs[mid]:
-                new_attrs.append(MarkSafeAttr(mark_id=versions[mid], attr_id=a['attr'], is_compare=a['is_compare']))
-        MarkSafeAttr.objects.bulk_create(new_attrs)
-
-    def __get_data(self):
-        presets_dir = os.path.join(BASE_DIR, 'marks', 'presets', 'safes')
-        new_marks = []
-        for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
-            with open(mark_settings, encoding='utf8') as fp:
-                data = json.load(fp)
-            if not isinstance(data, dict):
-                raise BridgeException(_('Corrupted preset safe mark: wrong format'))
-            if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
-                raise BridgeException(_('Corrupted preset safe mark: not enough data'))
-            if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
-                raise BridgeException(_('Corrupted preset safe mark: attributes or tags is ot a list'))
-            if any(not isinstance(x, dict) for x in data['attrs']):
-                raise BridgeException(_('Corrupted preset safe mark: one of attributes has wrong format'))
-            if any(x not in y for x in ['attr', 'value', 'is_compare'] for y in data['attrs']):
-                raise BridgeException(_('Corrupted preset safe mark: one of attributes does not have enough data'))
-            if data['status'] not in list(x[0] for x in MARK_STATUS):
-                raise BridgeException(_('Corrupted preset safe mark: wrong mark status'))
-            if data['verdict'] not in list(x[0] for x in SAFE_VERDICTS):
-                raise BridgeException(_('Corrupted preset safe mark: wrong mark verdict'))
-            if not isinstance(data['description'], str):
-                raise BridgeException(_('Corrupted preset safe mark: wrong description'))
-            if not isinstance(data['is_modifiable'], bool):
-                raise BridgeException(_('Corrupted preset safe mark: is_modifiable must be bool'))
-            identifier = unique_id()
-            new_marks.append(MarkSafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
-            ))
-            self._marktags[identifier] = self.__get_tags(data['tags'])
-            self._markattrs[identifier] = data['attrs']
-            self.total += 1
-        return new_marks
-
-
-class PopulateUnsafeMarks:
-    def __init__(self, manager):
-        self.total = 0
-        self._author = manager
-        self._dbtags = {}
-        self._functions = {}
-        self._tagnames = {}
-        self._marks_data = {}
-        self.__current_tags()
-        self._marks = self.__get_data()
-        self.__get_attrnames()
-        self.__get_attrs()
-        self.created = self.__create_marks()
-        self.__create_related()
-        UnsafeUtils.ConnectMarks(self.created.values())
-
-    def __current_tags(self):
-        for t_id, parent_id, t_name in UnsafeTag.objects.values_list('id', 'parent_id', 'tag'):
-            self._dbtags[t_id] = parent_id
-            self._tagnames[t_name] = t_id
-
-    def __get_functions(self):
-        for f_id, fname in MarkUnsafeCompare.objects.values_list('id', 'name'):
-            self._functions[fname] = f_id
-
-    def __get_tags(self, tags_data):
-        tags = set()
-        for t in tags_data:
-            if t not in self._tagnames:
-                raise BridgeException(_('Corrupted preset unsafe mark: not enough tags in the system'))
-            t_id = self._tagnames[t]
-            tags.add(t_id)
-            while self._dbtags[t_id] is not None:
-                t_id = self._dbtags[t_id]
-                tags.add(t_id)
-        return tags
-
-    def __get_attrnames(self):
-        attrnames = {}
-        for a in AttrName.objects.all():
-            attrnames[a.name] = a.id
-        for mid in self._marks_data:
-            for a in self._marks_data[mid]['attrs']:
-                if a['attr'] in attrnames:
-                    a['attr'] = attrnames[a['attr']]
-                else:
-                    a['attr'] = AttrName.objects.create(name=a['attr']).id
-
-    def __get_attrs(self):
-        attrs_in_db = {}
-        for a in Attr.objects.all():
-            attrs_in_db[(a.name_id, a.value)] = a.id
-        attrs_to_create = []
-        for mid in self._marks_data:
-            for a in self._marks_data[mid]['attrs']:
-                if (a['attr'], a['value']) not in attrs_in_db:
-                    attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
-        if len(attrs_to_create) > 0:
-            Attr.objects.bulk_create(attrs_to_create)
-            self.__get_attrs()
-        else:
-            for mid in self._marks_data:
-                for a in self._marks_data[mid]['attrs']:
-                    a['attr'] = attrs_in_db[(a['attr'], a['value'])]
-                    del a['value']
-
-    def __create_marks(self):
-        marks_in_db = {}
-        for ma in MarkUnsafeAttr.objects.values('mark_id', 'attr_id', 'is_compare'):
-            if ma['mark_id'] not in marks_in_db:
-                marks_in_db[ma['mark_id']] = set()
-            marks_in_db[ma['mark_id']].add((ma['attr_id'], ma['is_compare']))
-        marks_to_create = []
-        for mark in self._marks:
-            attr_set = set((a['attr'], a['is_compare']) for a in self._marks_data[mark.identifier]['attrs'])
-            if any(attr_set == marks_in_db[x] for x in marks_in_db):
-                del self._marks_data[mark.identifier]
-                continue
-            marks_to_create.append(mark)
-        MarkUnsafe.objects.bulk_create(marks_to_create)
-
-        created_marks = {}
-        marks_versions = []
-        for mark in MarkUnsafe.objects.filter(versions=None):
-            created_marks[mark.identifier] = mark
-            marks_versions.append(MarkUnsafeHistory(
-                mark=mark, verdict=mark.verdict, status=mark.status, description=mark.description,
-                version=mark.version, author=mark.author, change_date=now(), comment='',
-                function_id=self._marks_data[mark.identifier]['f_id'],
-                error_trace=file_get_or_create(
-                    self._marks_data[mark.identifier]['error trace'], ET_FILE_NAME, ConvertedTraces
-                )[0]
-            ))
-        MarkUnsafeHistory.objects.bulk_create(marks_versions)
-        return created_marks
-
-    def __create_related(self):
-        versions = {}
-        for mh in MarkUnsafeHistory.objects.filter(mark__in=self.created.values()).select_related('mark'):
-            versions[mh.mark.identifier] = mh.id
-
-        new_tags = []
-        for mid in self._marks_data:
-            for tid in self._marks_data[mid]['tags']:
-                new_tags.append(MarkUnsafeTag(tag_id=tid, mark_version_id=versions[mid]))
-        MarkUnsafeTag.objects.bulk_create(new_tags)
-        new_attrs = []
-        for mid in self._marks_data:
-            for a in self._marks_data[mid]['attrs']:
-                new_attrs.append(MarkUnsafeAttr(mark_id=versions[mid], attr_id=a['attr'], is_compare=a['is_compare']))
-        MarkUnsafeAttr.objects.bulk_create(new_attrs)
-
-    def __get_data(self):
-        presets_dir = os.path.join(BASE_DIR, 'marks', 'presets', 'unsafes')
-
-        new_marks = []
-        for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
-            with open(mark_settings, encoding='utf8') as fp:
-                data = json.load(fp)
-            if not isinstance(data, dict):
-                raise BridgeException(_('Corrupted preset unsafe mark: wrong format'))
-            if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
-                raise BridgeException(_('Corrupted preset unsafe mark: not enough data'))
-            if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
-                raise BridgeException(_('Corrupted preset unsafe mark: attributes or tags is ot a list'))
-            if any(not isinstance(x, dict) for x in data['attrs']):
-                raise BridgeException(_('Corrupted preset unsafe mark: one of attributes has wrong format'))
-            if any(x not in y for x in ['attr', 'value', 'is_compare'] for y in data['attrs']):
-                raise BridgeException(_('Corrupted preset unsafe mark: one of attributes does not have enough data'))
-            if data['status'] not in list(x[0] for x in MARK_STATUS):
-                raise BridgeException(_('Corrupted preset unsafe mark: wrong mark status'))
-            if data['verdict'] not in list(x[0] for x in UNSAFE_VERDICTS):
-                raise BridgeException(_('Corrupted preset unsafe mark: wrong mark verdict'))
-            if not isinstance(data['description'], str):
-                raise BridgeException(_('Corrupted preset unsafe mark: wrong description'))
-            if not isinstance(data['is_modifiable'], bool):
-                raise BridgeException(_('Corrupted preset unsafe mark: is_modifiable must be bool'))
-            if 'error trace' not in data:
-                raise BridgeException(_('Corrupted preset unsafe mark: error trace is required'))
-            if 'comparison' not in data:
-                raise BridgeException(_('Corrupted preset unsafe mark: comparison function name is required'))
-            if data['comparison'] not in self._functions:
-                raise BridgeException(_('Preset unsafe mark comparison fucntion is not supported'))
-            identifier = unique_id()
-            new_marks.append(MarkUnsafe(
-                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
-            ))
-            self._marks_data[identifier] = {
-                'f_id': self._functions[data['comparison']],
-                'tags': self.__get_tags(data['tags']),
-                'attrs': data['attrs'],
-                'error trace': self.__read_pattern(data['error trace'])
-            }
-            self.total += 1
-        return new_marks
-
-    def __read_pattern(self, filename):
-        self.__is_not_used()
-        et_file = os.path.join(BASE_DIR, 'marks', 'presets', 'error-traces', filename)
-        if not os.path.isfile(et_file):
-            raise BridgeException(
-                _("Pattern error trace %(filename)s for preset unsafe mark was not found") % {'filename': filename}
-            )
-        with open(et_file, mode='r', encoding='utf8') as fp:
-            return BytesIO(json.dumps(json.load(fp), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
-
-    def __is_not_used(self):
-        pass

@@ -44,9 +44,9 @@ from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision
-from tools.utils import disable_safe_marks_for_job, RecalculateSafeMarkConnections
 
 import jobs.utils
+import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -1067,7 +1067,7 @@ def enable_safe_marks(request):
         pass
     else:
         if job.safe_marks:
-            RecalculateSafeMarkConnections([root])
+            SafeUtils.RecalculateConnections([root])
         else:
-            disable_safe_marks_for_job(root)
+            SafeUtils.disable_safe_marks_for_job(root)
     return JsonResponse({})

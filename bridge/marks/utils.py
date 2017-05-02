@@ -189,11 +189,12 @@ class NewMark:
             res = UnknownUtils.NewMark(self._user, self._data)
         else:
             raise ValueError('Unsupported type: %s' % type(self._inst))
-        self.changes = res.changes
         if isinstance(self._inst, (ReportSafe, ReportUnsafe, ReportUnknown)):
-            return res.create_mark(self._inst)
+            mark = res.create_mark(self._inst)
         else:
-            return res.change_mark(self._inst)
+            mark = res.change_mark(self._inst)
+        self.changes = res.changes
+        return mark
 
 
 def delete_marks(user, marks_type, mark_ids):
@@ -204,7 +205,7 @@ def delete_marks(user, marks_type, mark_ids):
     elif marks_type == 'unknown':
         marks = MarkUnknown.objects.filter(id__in=mark_ids)
     else:
-        raise ValueError('Unsupported amrks type: %s' % marks_type)
+        raise ValueError('Unsupported marks type: %s' % marks_type)
     if not all(MarkAccess(user, mark=mark).can_delete() for mark in marks):
         if len(marks) > 1:
             raise BridgeException(_("You can't delete one of the selected marks"))

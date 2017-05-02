@@ -15,12 +15,17 @@
 # limitations under the License.
 #
 
+import os
+import json
+
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
+from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.settings import ENABLE_SAFE_MARKS
-from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS
+from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARKS_COMPARE_ATTRS, MARK_TYPE
 from bridge.utils import unique_id, BridgeException
 
 from users.models import User
@@ -86,7 +91,8 @@ class NewMark:
         except Exception:
             mark.delete()
             raise
-        RecalculateTags(list(ConnectMarks([mark]).changes.get(mark.id, {})))
+        self.changes = ConnectMarks([mark]).changes.get(mark.id, {})
+        RecalculateTags(list(self.changes))
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
@@ -137,9 +143,9 @@ class NewMark:
         else:
             self._args['identifier'] = unique_id()
         mark = MarkSafe.objects.create(
-            identifier=self._args['identifier'], author=self._user, description=str(self._args.get('description', '')),
-            verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable'],
-            format=self._args['format']
+            identifier=self._args['identifier'], author=self._user, format=self._args['format'], type=MARK_TYPE[2][0],
+            description=str(self._args.get('description', '')), is_modifiable=self._args['is_modifiable'],
+            verdict=self._args['verdict'], status=self._args['status']
         )
 
         try:
@@ -168,41 +174,56 @@ class NewMark:
         return markversion
 
     def __create_attributes(self, markversion_id, inst=None):
-        if 'attrs' not in self._args or not isinstance(self._args['attrs'], list) or len(self._args['attrs']) == 0:
-            raise ValueError('Attributes are needed: %s' % self._args.get('attrs'))
-        for a in self._args['attrs']:
-            if not isinstance(a, dict) or not isinstance(a.get('attr'), str) \
-                    or not isinstance(a.get('is_compare'), bool):
-                raise ValueError('Wrong attribute found: %s' % a)
-            if inst is None and not isinstance(a.get('value'), str):
-                raise ValueError('Wrong attribute found: %s' % a)
+        if 'attrs' in self._args and (not isinstance(self._args['attrs'], list) or len(self._args['attrs']) == 0):
+            del self._args['attrs']
+        if 'attrs' in self._args:
+            for a in self._args['attrs']:
+                if not isinstance(a, dict) or not isinstance(a.get('attr'), str) \
+                        or not isinstance(a.get('is_compare'), bool):
+                    raise ValueError('Wrong attribute found: %s' % a)
+                if inst is None and not isinstance(a.get('value'), str):
+                    raise ValueError('Wrong attribute found: %s' % a)
 
         need_recalc = False
         new_attrs = []
         if isinstance(inst, ReportSafe):
             for a_id, a_name in inst.attrs.order_by('id').values_list('attr_id', 'attr__name__name'):
-                for a in self._args['attrs']:
-                    if a['attr'] == a_name:
-                        new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=a['is_compare']))
-                        break
+                if 'attrs' in self._args:
+                    for a in self._args['attrs']:
+                        if a['attr'] == a_name:
+                            new_attrs.append(MarkSafeAttr(
+                                mark_id=markversion_id, attr_id=a_id, is_compare=a['is_compare']
+                            ))
+                            break
+                    else:
+                        raise ValueError('Not enough attributes in args')
                 else:
-                    raise ValueError('Not enough attributes in args')
+                    is_compare = (inst.root.job.type not in MARKS_COMPARE_ATTRS
+                                  or a_name in MARKS_COMPARE_ATTRS[inst.root.job.type])
+                    new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=is_compare))
         elif isinstance(inst, MarkSafeHistory):
             for a_id, a_name, is_compare in inst.attrs.order_by('id')\
                     .values_list('attr_id', 'attr__name__name', 'is_compare'):
-                for a in self._args['attrs']:
-                    if a['attr'] == a_name:
-                        new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=a['is_compare']))
-                        if a['is_compare'] != is_compare:
-                            need_recalc = True
-                        break
+                if 'attrs' in self._args:
+                    for a in self._args['attrs']:
+                        if a['attr'] == a_name:
+                            new_attrs.append(MarkSafeAttr(
+                                mark_id=markversion_id, attr_id=a_id, is_compare=a['is_compare']
+                            ))
+                            if a['is_compare'] != is_compare:
+                                need_recalc = True
+                            break
+                    else:
+                        raise ValueError('Not enough attributes in args')
                 else:
-                    raise ValueError('Not enough attributes in args')
+                    new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr_id=a_id, is_compare=is_compare))
         else:
+            if 'attrs' not in self._args:
+                raise ValueError('Attributes are required')
             for a in self._args['attrs']:
                 attr = Attr.objects.get_or_create(
                     name=AttrName.objects.get_or_create(name=a['attr'])[0], value=a['value']
-                )
+                )[0]
                 new_attrs.append(MarkSafeAttr(mark_id=markversion_id, attr=attr, is_compare=a['is_compare']))
         MarkSafeAttr.objects.bulk_create(new_attrs)
         return need_recalc
@@ -214,7 +235,7 @@ class NewMark:
 class ConnectMarks:
     def __init__(self, marks):
         self._marks = marks
-        # Keys are marks' ids values are dictionaries with reports as keys
+        # Keys are marks' ids; values are dictionaries with reports as keys
         self.changes = {}
 
         self.__clear_connections()
@@ -231,7 +252,10 @@ class ConnectMarks:
         for safe in ReportSafe.objects.all():
             safes[safe] = set()
         for attr in ReportAttr.objects.filter(report__in=safes):
-            safes[attr.report].add(attr.attr_id)
+            for s in safes:
+                if s.id == attr.report_id:
+                    safes[s].add(attr.attr_id)
+                    break
         return safes
 
     def __get_marks_attrs(self):
@@ -321,6 +345,8 @@ class ConnectMarks:
     def __check_prime(self):
         marks_to_update = set()
         for mark in self._marks:
+            if mark.id not in self.changes:
+                continue
             if mark.prime not in self.changes[mark.id] or self.changes[mark.id][mark.prime]['kind'] == '-':
                 marks_to_update.add(mark.id)
         MarkSafe.objects.filter(id__in=marks_to_update).update(prime=None)
@@ -630,6 +656,150 @@ class RecalculateConnections:
             verdict.safe_inconclusive = self._reports[verdict.report_id].get(SAFE_VERDICTS[3][0], 0)
             verdict.safe_unassociated = self._reports[verdict.report_id].get(SAFE_VERDICTS[4][0], 0)
             verdict.save()
+
+
+class PopulateMarks:
+    def __init__(self, manager):
+        self.total = 0
+        self._author = manager
+        self._dbtags = {}
+        self._tagnames = {}
+        self._marktags = {}
+        self._markattrs = {}
+        self.__current_tags()
+        self._marks = self.__get_data()
+        self.__get_attrnames()
+        self.__get_attrs()
+        self.created = self.__create_marks()
+        self.__create_related()
+        changes = ConnectMarks(self.created.values()).changes
+        reports = []
+        for m_id in changes:
+            reports.extend(changes[m_id])
+        RecalculateTags(reports)
+
+    def __current_tags(self):
+        for t_id, parent_id, t_name in SafeTag.objects.values_list('id', 'parent_id', 'tag'):
+            self._dbtags[t_id] = parent_id
+            self._tagnames[t_name] = t_id
+
+    def __get_tags(self, tags_data):
+        tags = set()
+        for t in tags_data:
+            if t not in self._tagnames:
+                raise BridgeException(_('Corrupted preset safe mark: not enough tags in the system'))
+            t_id = self._tagnames[t]
+            tags.add(t_id)
+            while self._dbtags[t_id] is not None:
+                t_id = self._dbtags[t_id]
+                tags.add(t_id)
+        return tags
+
+    def __get_attrnames(self):
+        attrnames = {}
+        for a in AttrName.objects.all():
+            attrnames[a.name] = a.id
+        for mid in self._markattrs:
+            for a in self._markattrs[mid]:
+                if a['attr'] in attrnames:
+                    a['attr'] = attrnames[a['attr']]
+                else:
+                    a['attr'] = AttrName.objects.create(name=a['attr']).id
+
+    def __get_attrs(self):
+        attrs_in_db = {}
+        for a in Attr.objects.all():
+            attrs_in_db[(a.name_id, a.value)] = a.id
+        attrs_to_create = []
+        for mid in self._markattrs:
+            for a in self._markattrs[mid]:
+                if (a['attr'], a['value']) not in attrs_in_db:
+                    attrs_to_create.append(Attr(name_id=a['attr'], value=a['value']))
+        if len(attrs_to_create) > 0:
+            Attr.objects.bulk_create(attrs_to_create)
+            self.__get_attrs()
+        else:
+            for mid in self._markattrs:
+                for a in self._markattrs[mid]:
+                    a['attr'] = attrs_in_db[(a['attr'], a['value'])]
+                    del a['value']
+
+    def __create_marks(self):
+        marks_in_db = {}
+        for ma in MarkSafeAttr.objects.values('mark_id', 'attr_id', 'is_compare'):
+            if ma['mark_id'] not in marks_in_db:
+                marks_in_db[ma['mark_id']] = set()
+            marks_in_db[ma['mark_id']].add((ma['attr_id'], ma['is_compare']))
+        marks_to_create = []
+        for mark in self._marks:
+            attr_set = set((a['attr'], a['is_compare']) for a in self._markattrs[mark.identifier])
+            if any(attr_set == marks_in_db[x] for x in marks_in_db):
+                del self._markattrs[mark.identifier]
+                del self._marktags[mark.identifier]
+                continue
+            marks_to_create.append(mark)
+        MarkSafe.objects.bulk_create(marks_to_create)
+
+        created_marks = {}
+        marks_versions = []
+        for mark in MarkSafe.objects.filter(versions=None):
+            created_marks[mark.identifier] = mark
+            marks_versions.append(MarkSafeHistory(
+                mark=mark, verdict=mark.verdict, status=mark.status, description=mark.description,
+                version=mark.version, author=mark.author, change_date=now(), comment=''
+            ))
+        MarkSafeHistory.objects.bulk_create(marks_versions)
+        return created_marks
+
+    def __create_related(self):
+        versions = {}
+        for mh in MarkSafeHistory.objects.filter(mark__in=self.created.values()).select_related('mark'):
+            versions[mh.mark.identifier] = mh.id
+
+        new_tags = []
+        for mid in self._marktags:
+            for tid in self._marktags[mid]:
+                new_tags.append(MarkSafeTag(tag_id=tid, mark_version_id=versions[mid]))
+        MarkSafeTag.objects.bulk_create(new_tags)
+        new_attrs = []
+        for mid in self._markattrs:
+            for a in self._markattrs[mid]:
+                new_attrs.append(MarkSafeAttr(mark_id=versions[mid], attr_id=a['attr'], is_compare=a['is_compare']))
+        MarkSafeAttr.objects.bulk_create(new_attrs)
+
+    def __get_data(self):
+        presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'safes')
+        new_marks = []
+        for mark_settings in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
+            with open(mark_settings, encoding='utf8') as fp:
+                data = json.load(fp)
+            if not isinstance(data, dict):
+                raise BridgeException(_('Corrupted preset safe mark: wrong format'))
+            if any(x not in data for x in ['status', 'verdict', 'is_modifiable', 'description', 'attrs', 'tags']):
+                raise BridgeException(_('Corrupted preset safe mark: not enough data'))
+            if not isinstance(data['attrs'], list) or not isinstance(data['tags'], list):
+                raise BridgeException(_('Corrupted preset safe mark: attributes or tags is ot a list'))
+            if any(not isinstance(x, dict) for x in data['attrs']):
+                raise BridgeException(_('Corrupted preset safe mark: one of attributes has wrong format'))
+            if any(x not in y for x in ['attr', 'value', 'is_compare'] for y in data['attrs']):
+                raise BridgeException(_('Corrupted preset safe mark: one of attributes does not have enough data'))
+            if data['status'] not in list(x[0] for x in MARK_STATUS):
+                raise BridgeException(_('Corrupted preset safe mark: wrong mark status'))
+            if data['verdict'] not in list(x[0] for x in SAFE_VERDICTS):
+                raise BridgeException(_('Corrupted preset safe mark: wrong mark verdict'))
+            if not isinstance(data['description'], str):
+                raise BridgeException(_('Corrupted preset safe mark: wrong description'))
+            if not isinstance(data['is_modifiable'], bool):
+                raise BridgeException(_('Corrupted preset safe mark: is_modifiable must be bool'))
+            identifier = unique_id()
+            new_marks.append(MarkSafe(
+                identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
+                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
+            ))
+            self._marktags[identifier] = self.__get_tags(data['tags'])
+            self._markattrs[identifier] = data['attrs']
+            self.total += 1
+        return new_marks
 
 
 def delete_marks(marks):

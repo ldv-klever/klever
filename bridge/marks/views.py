@@ -43,7 +43,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, Mar
 
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
-from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
+from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
 from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
 
 
@@ -397,7 +397,7 @@ def upload_marks(request):
     num_of_new_marks = 0
     for f in request.FILES.getlist('file'):
         try:
-            res = ReadMarkArchive(request.user, f)
+            res = UploadMark(request.user, f)
         except BridgeException as e:
             failed_marks.append([str(e), f.name])
         except Exception as e:
@@ -423,7 +423,7 @@ def delete_marks(request):
     if request.method != 'POST' or 'type' not in request.POST or 'ids' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        delete_marks(request.user, request.POST['type'], json.loads(request.POST['ids']))
+        mutils.delete_marks(request.user, request.POST['type'], json.loads(request.POST['ids']))
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

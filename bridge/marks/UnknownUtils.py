@@ -15,11 +15,16 @@
 # limitations under the License.
 #
 
+import os
 import re
-from django.utils.translation import ugettext_lazy as _
-from django.db.models import ProtectedError
+import json
 
-from bridge.vars import USER_ROLES, MARK_STATUS
+from django.db.models import ProtectedError
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import USER_ROLES, MARK_STATUS, MARK_TYPE
 from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 
 from users.models import User
@@ -129,9 +134,9 @@ class NewMark:
             raise BridgeException(_('Could not change the mark since it would be similar to the existing mark'))
         mark = MarkUnknown.objects.create(
             identifier=self._args['identifier'], author=self._user, description=str(self._args.get('description', '')),
-            verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable'],
+            status=self._args['status'], is_modifiable=self._args['is_modifiable'],
             problem_pattern=self._args['problem'], function=self._args['function'], link=self._args['link'],
-            component=component
+            component=component, format=self._args['format'], type=MARK_TYPE[2][0]
         )
         try:
             self.__create_version(mark)
@@ -142,9 +147,9 @@ class NewMark:
 
     def __create_changes(self, mark):
         self.__is_not_used()
-        changes = {mark.id: {}}
+        changes = {}
         for mr in mark.markreport_set.all().select_related('report'):
-            changes[mark.id][mr.report] = {'kind': '='}
+            changes[mr.report] = {'kind': '='}
         return changes
 
     def __create_version(self, mark):
@@ -292,6 +297,71 @@ class MatchUnknown:
         return None
 
 
+class PopulateMarks:
+    def __init__(self, manager):
+        self.total = 0
+        self.created = 0
+        self.__populate(manager)
+
+    def __populate(self, manager):
+        presets_dir = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'unknowns')
+        for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
+            component = os.path.basename(component_dir)
+            if not 0 < len(component) <= 15:
+                raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
+            for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
+                data = None
+                with open(mark_settings, encoding='utf8') as fp:
+                    try:
+                        data = json.load(fp)
+                    except Exception as e:
+                        fp.seek(0)
+                        try:
+                            path_to_json = os.path.abspath(os.path.join(component_dir, fp.read()))
+                            with open(path_to_json, encoding='utf8') as fp2:
+                                data = json.load(fp2)
+                        except Exception:
+                            raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
+                                e, os.path.relpath(mark_settings, presets_dir)
+                            ))
+                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
+                    raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
+                try:
+                    re.compile(data['function'])
+                except re.error:
+                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
+                if 'link' not in data:
+                    data['link'] = ''
+                if 'description' not in data:
+                    data['description'] = ''
+                if 'status' not in data:
+                    data['status'] = MARK_STATUS[0][0]
+                if 'is_modifiable' not in data:
+                    data['is_modifiable'] = True
+                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
+                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
+                    raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
+                self.total += 1
+                try:
+                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
+                except ObjectDoesNotExist:
+                    mark = MarkUnknown.objects.create(
+                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
+                        author=manager, status=data['status'], is_modifiable=data['is_modifiable'],
+                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
+                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
+                    )
+                    MarkUnknownHistory.objects.create(
+                        mark=mark, version=mark.version, author=mark.author, status=mark.status,
+                        function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
+                        change_date=mark.change_date, description=mark.description, comment=''
+                    )
+                    ConnectMark(mark)
+                    self.created += 1
+                except MultipleObjectsReturned:
+                    raise Exception('There are similar unknown marks in the system')
+
+
 def update_unknowns_cache(unknowns):
     reports = set()
     for leaf in ReportComponentLeaf.objects.filter(unknown__in=list(unknowns)):
@@ -340,7 +410,11 @@ def delete_marks(marks):
         changes[mark.id] = {}
     MarkUnknown.objects.filter(id__in=changes).update(version=0)
     for mr in MarkUnknownReport.objects.filter(mark__in=marks).select_related('report'):
-        changes[mr.report] = {'kind': '-', 'verdict1': mr.report.verdict}
+        changes[mr.mark_id][mr.report] = {'kind': '-'}
     MarkUnknown.objects.filter(id__in=changes).delete()
-    update_unknowns_cache(changes)
-    return changes
+    unknowns_changes = {}
+    for m_id in changes:
+        for report in changes[m_id]:
+            unknowns_changes[report] = changes[m_id][report]
+    update_unknowns_cache(unknowns_changes)
+    return unknowns_changes

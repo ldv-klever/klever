@@ -91,6 +91,7 @@ $(document).ready(function () {
 
     $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
     $('#cancel_remove_marks').click(function () {$('#remove_marks_popup').modal('hide')});
+    $('#show_remove_mark_popup').click(function () {$('#remove_marks_popup').modal('show')});
     $('#show_remove_marks_popup').click(function () {
         var ids_for_del = [];
         $('input[id^="mark_checkbox__"]').each(function () {
