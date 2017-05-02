@@ -115,7 +115,7 @@ def solve_job(conf):
     os.environ['LC_ALL'] = "en_US.UTF8"
     os.environ['LC_C'] = "en_US.UTF8"
 
-    result = executor.execute_run(args=[bin],
+    result = executor.execute_run(args=[sys.executable, bin],
                                   output_filename="output.log",
                                   softtimelimit=conf["resource limits"]["CPU time"],
                                   walltimelimit=conf["resource limits"]["wall time"],
