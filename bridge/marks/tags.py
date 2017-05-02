@@ -27,10 +27,10 @@ from marks.models import SafeTag, UnsafeTag
 def can_edit_tag(user, tag=None):
     if user is None:
         return False
-    if user.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
+    if user.extended.role == USER_ROLES[2][0]:
         return True
     if tag is not None and tag.author == user \
-            and tag.children.filter(author__extended__role__in={USER_ROLES[2][0], USER_ROLES[3][0]}).count() == 0:
+            and tag.children.filter(author__extended__role=USER_ROLES[2][0]).count() == 0:
         return True
     return False
 
@@ -38,12 +38,13 @@ def can_edit_tag(user, tag=None):
 def can_create_tag_child(user, parent):
     if user is None:
         return False
-    if user.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]}:
+    if user.extended.role == USER_ROLES[2][0]:
         return True
     if parent is None:
         return False
-    if parent.author.extended.role in {USER_ROLES[2][0], USER_ROLES[3][0]} \
-            and parent.children.filter(author__extended__role__in={USER_ROLES[2][0], USER_ROLES[3][0]}).count() == 0:
+    if parent.author.extended.role == USER_ROLES[2][0] \
+            and parent.children.filter(author__extended__role=USER_ROLES[2][0]).count() == 0 \
+            and user.extended.role in {USER_ROLES[1][0], USER_ROLES[3][0]}:
         return True
     return False
 
