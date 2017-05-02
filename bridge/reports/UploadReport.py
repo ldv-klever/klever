@@ -17,13 +17,23 @@
 
 import json
 from io import BytesIO
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
+from django.utils.timezone import now
+
 from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT, JOB_STATUS
-from marks.utils import ConnectReportWithMarks
-from service.utils import FinishJobDecision, KleverCoreStartDecision
+from bridge.utils import logger
+
+import marks.SafeUtils as SafeUtils
+import marks.UnsafeUtils as UnsafeUtils
+import marks.UnknownUtils as UnknownUtils
+
+from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
+    Component, ComponentUnknown, ComponentResource, ReportAttr, AttrStatistic, LightResource, TasksNumbers,\
+    ReportComponentLeaf, Computer
 from reports.utils import AttrData
-from reports.models import *
+from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
 
@@ -439,8 +449,13 @@ class UploadReport:
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
         self.__fill_attrs_statistic(leaf)
-        if self.data['type'] != 'safe' or self.job.safe_marks:
-            ConnectReportWithMarks(leaf)
+
+        if self.data['type'] == 'unknown':
+            UnknownUtils.ConnectReport(leaf)
+        elif self.data['type'] == 'unsafe':
+            UnsafeUtils.ConnectReport(leaf)
+        elif self.data['type'] == 'safe' and self.job.safe_marks:
+            SafeUtils.ConnectReport(leaf)
 
     def __cut_reports_branch(self, leaf):
         # Just Core report

@@ -21,13 +21,13 @@ function collect_filters_data() {
     $('input[id^="marks_filter_checkbox__"]:checked').each(function () {
         view_values['columns'].push($(this).attr('id').replace('marks_filter_checkbox__', ''));
     });
-    if (order_type == 'attribute') {
+    if (order_type === 'attribute') {
         var order = $('#filter__attr__order').val();
         if (order.length > 0) {
             view_values['order'] = order;
         }
     }
-    else if (order_type == 'num_of_links') {
+    else if (order_type === 'num_of_links') {
         view_values['order'] = 'num_of_links';
     }
 
@@ -88,13 +88,9 @@ $(document).ready(function () {
             $(this).dropdown();
         }
     });
-    $('#remove_mark_popup').modal({transition: 'fly up', autofocus: false, closable: false})
-        .modal('attach events', '#show_remove_mark_popup', 'show');
-    $('#cancel_remove_mark').click(function () {
-        $('#remove_mark_popup').modal('hide');
-    });
 
     $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#cancel_remove_marks').click(function () {$('#remove_marks_popup').modal('hide')});
     $('#show_remove_marks_popup').click(function () {
         var ids_for_del = [];
         $('input[id^="mark_checkbox__"]').each(function () {
@@ -109,9 +105,7 @@ $(document).ready(function () {
             err_notify($('#no_marks_selected').text())
         }
     });
-    $('#cancel_remove_marks').click(function () {
-        $('#remove_marks_popup').modal('hide');
-    });
+
     $('#confirm_remove_marks').click(function () {
         var ids_for_del = [];
         $('input[id^="mark_checkbox__"]').each(function () {
@@ -119,7 +113,7 @@ $(document).ready(function () {
                 ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
             }
         });
-        if (ids_for_del.length == 0) {
+        if (!ids_for_del.length) {
             $('#remove_marks_popup').modal('hide');
             err_notify($('#no_marks_selected').text());
         }
@@ -141,6 +135,31 @@ $(document).ready(function () {
                 }
             });
         }
+    });
+    $('#confirm_remove_mark').click(function () {
+        var mark_type = $('#mark_type').val();
+        $.ajax({
+            url: marks_ajax_url + 'delete/',
+            data: {
+                'type': mark_type,
+                ids: JSON.stringify([$('#mark_pk').val()])
+            },
+            type: 'POST',
+            success: function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    var report_id = $('#report_id');
+                    if (report_id.length) {
+                        window.location.replace('/reports/' + mark_type + '/' + report_id.val() + '/');
+                    }
+                    else {
+                        window.location.replace('/marks/' + mark_type + '/');
+                    }
+                }
+            }
+        });
     });
 
     $('#save_new_mark_btn').click(function () {

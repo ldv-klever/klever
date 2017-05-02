@@ -25,11 +25,12 @@ from django.utils.translation import ugettext as _, activate
 
 from bridge.vars import USER_ROLES, JOB_STATUS, UNKNOWN_ERROR
 from bridge.utils import BridgeException, logger
+
 from jobs.models import Job, JobFile
 from reports.models import Component, Computer
 from marks.models import UnknownProblem, ConvertedTraces
-
 from tools.models import LockTable
+
 from tools.utils import objects_without_relations, ClearFiles, Recalculation
 from tools.profiling import unparallel_group, ProfileData, clear_old_logs, ExecLocker
 

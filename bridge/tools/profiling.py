@@ -18,8 +18,10 @@
 import os
 import time
 from datetime import datetime
+
 from django.conf import settings
 from django.db.models.base import ModelBase
+
 from tools.models import LockTable, CallLogs
 
 # Waiting while other function try to lock with DB table + try to lock with DB table

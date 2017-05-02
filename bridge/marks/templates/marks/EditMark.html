@@ -19,6 +19,9 @@
                 </div>
                 <input id="mark_pk" type="hidden" value="{{ mark.pk }}">
                 <input id="mark_type" type="hidden" value="{{ type }}">
+                {% if report_id %}
+                    <input id="report_id" type="hidden" value="{{ report_id }}">
+                {% endif %}
                 <table class="ui selectable compact inverted violet table attached">
                     <thead>
                         <tr>
@@ -135,20 +138,20 @@
         </div>
     </form>
     <span id="error__comment_required" hidden>{% trans 'Change comment is required' %}</span>
-    <div id="remove_mark_popup" class="ui basic modal">
+    <div id="remove_marks_popup" class="ui basic modal">
         <div class="ui icon header">
             <i class="warning sign icon"></i>
             {% trans 'Are you sure' %}?
         </div>
         <div class="content">
             <div class="ui center aligned grid">
-                <p>{% trans 'All versions and all data of this mark will be deleted' %}!</p>
+                <p>{% trans 'The action is irreversible' %}!</p>
             </div>
         </div>
         <div class="actions">
             <div class="ui center aligned grid">
-                <button id="cancel_remove_mark" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
-                <a href="{% url 'marks:delete_mark' type mark.pk %}{% if report_id %}?report_to_redirect={{ report_id }}{% endif %}" class="ui red basic inverted button">{% trans 'Delete' %}</a>
+                <button id="cancel_remove_marks" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
+                <button id="confirm_remove_mark" type="button" class="ui red basic inverted button">{% trans 'Delete' %}</button>
             </div>
         </div>
     </div>

@@ -325,7 +325,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Delete mark
-        response = self.client.get(reverse('marks:delete_mark', args=['safe', mark.pk]))
+        response = self.client.post('/marks/ajax/delete/', {'type': 'safe', 'ids': json.dumps([mark.id])})
         self.assertRedirects(response, reverse('marks:mark_list', args=['safe']))
         self.assertEqual(len(MarkSafe.objects.all()), 0)
         self.assertEqual(len(MarkSafeReport.objects.all()), 0)
@@ -742,7 +742,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Delete mark
-        response = self.client.get(reverse('marks:delete_mark', args=['unsafe', mark.pk]))
+        response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps([mark.id])})
         self.assertRedirects(response, reverse('marks:mark_list', args=['unsafe']))
         self.assertEqual(len(MarkUnsafe.objects.all()), 0)
         self.assertEqual(len(MarkUnsafeReport.objects.all()), 0)
@@ -1051,7 +1051,7 @@ class TestMarks(KleverTestCase):
                 fp.write(content)
 
         # Delete mark
-        response = self.client.get(reverse('marks:delete_mark', args=['unknown', mark.pk]))
+        response = self.client.post('/marks/ajax/delete/', {'type': 'unknown', 'ids': json.dumps([mark.id])})
         self.assertRedirects(response, reverse('marks:mark_list', args=['unknown']))
         self.assertEqual(len(MarkUnknown.objects.filter(prime=unknown)), 0)
         self.assertEqual(len(MarkUnknownReport.objects.all()), 0)
