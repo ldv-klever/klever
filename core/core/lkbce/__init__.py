@@ -467,6 +467,18 @@ class LKBCE(core.components.Component):
                 # Read new lines from file.
                 for line in fp:
                     if line == '\n':
+                        builtin_modules = self.__get_builtin_modules()
+                        for builtin_module in builtin_modules:
+                            desc = {'type': 'LD',
+                                    'in files': builtin_module.replace('.ko', '.o'),
+                                    'out file': builtin_module}
+                            desc_file = os.path.join(os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file'])),
+                                                     '{0}.json'.format(builtin_module))
+                            os.makedirs(os.path.dirname(desc_file).encode('utf8'), exist_ok=True)
+                            with open(desc_file, 'w', encoding='utf8') as fp:
+                                json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                            self.linux_kernel['build cmd desc file'] = desc_file
+                            self.get_linux_kernel_build_cmd_desc()
                         self.logger.debug('Linux kernel build command decscriptions "message queue" was terminated')
                         return
                     elif line == 'KLEVER FATAL ERROR\n':
@@ -554,6 +566,26 @@ class LKBCE(core.components.Component):
         # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
         self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['work src tree']) + '/'), '', opt)
                               for opt in self.model_cc_opts]
+
+    def __get_builtin_modules(self):
+        for dir in os.listdir(self.linux_kernel['work src tree']):
+            if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], dir)) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Makefile')) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Kconfig')):
+                core.utils.execute(self.logger, ['make', '-f', os.path.join(
+                                                                            'scripts', 'Makefile.modbuiltin'),
+                                                 'obj={0}'.format(dir), 'srctree=.'],
+                                   cwd=self.linux_kernel['work src tree'])
+
+        result_modules = set()
+        for dir, dirs, files in os.walk(self.linux_kernel['work src tree']):
+            if os.path.samefile(self.linux_kernel['work src tree'], dir):
+                continue
+            if 'modules.builtin' in files:
+                with open(os.path.join(dir, 'modules.builtin')) as fp:
+                    for line in fp:
+                        result_modules.add(line[len('kernel/'):-1])
+        return result_modules
 
     def __make_canonical_work_src_tree(self, work_src_tree):
         work_src_tree_root = None

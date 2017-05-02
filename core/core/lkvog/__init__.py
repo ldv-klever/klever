@@ -67,7 +67,6 @@ class LKVOG(core.components.Component):
         self.cc_full_descs_files = {}
         self.verification_obj_desc_file = None
         self.verification_obj_desc_num = 0
-        self.not_head_out_files = set()
 
         self.extract_linux_kernel_verification_objs_gen_attrs()
         self.set_common_prj_attrs()
@@ -212,25 +211,23 @@ class LKVOG(core.components.Component):
         self.all_clusters = set([cluster for cluster in self.all_clusters if 'all' not in [module.id for module in cluster.modules]])
         cc_ready = set()
         while True:
-            module_info = self.linux_kernel_module_info_mq.get()
+            self.module = self.linux_kernel_module_info_mq.get()
 
-            if module_info is None:
+            if self.module is None:
                 self.logger.debug('Linux kernel module names message queue was terminated')
                 self.linux_kernel_module_info_mq.close()
                 break
 
-            self.module['name'], self.module['has init'] = module_info
+            self.logger.debug('Recieved module {0}'.format(self.module))
+            cc_ready.add(self.module)
 
-            self.logger.debug('Recieved module {0}'.format(self.module['name']))
-            cc_ready.add(self.module['name'])
-
-            if not self.module['name'] in self.all_modules:
+            if self.module not in self.all_modules:
                 module_clusters = []
-                if self.module['name'] in self.checked_modules:
-                    self.all_modules.add(self.module['name'])
+                if self.module in self.checked_modules:
+                    self.all_modules.add(self.module)
                     # Find clusters
                     for cluster in self.all_clusters:
-                        if self.module['name'] in [module.id for module in cluster.modules]:
+                        if self.module in [module.id for module in cluster.modules]:
                             for cluster_module in cluster.modules:
                                 if cluster_module.id not in cc_ready:
                                     break
@@ -240,14 +237,13 @@ class LKVOG(core.components.Component):
                     self.all_clusters = set(filter(lambda cluster: cluster not in module_clusters,
                                                    self.all_clusters))
                 else:
-                    if self.module['has init']:
-                        for subsystem in subsystems:
-                            if self.module['name'].startswith(subsystem) or \
-                                self.module['name'].startswith(os.path.join('ext-modules', subsystem)) or \
-                                            subsystem == 'all':
-                                self.all_modules.add(self.module['name'])
-                                self.checked_modules.add(strategy_utils.Module(self.module['name']))
-                                module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module['name'])]))
+                    for subsystem in subsystems:
+                        if self.module.startswith(subsystem) or \
+                                self.module.startswith(os.path.join('ext-modules', subsystem)) or \
+                                        subsystem == 'all':
+                            self.all_modules.add(self.module)
+                            self.checked_modules.add(strategy_utils.Module(self.module))
+                            module_clusters.append(strategy_utils.Graph([strategy_utils.Module(self.module)]))
 
                 for cluster in module_clusters:
                     self.cluster = cluster
@@ -266,7 +262,7 @@ class LKVOG(core.components.Component):
 
     def generate_verification_obj_desc(self):
         self.logger.info('Generate Linux kernel verification object description for module "{0}" ({1})'.
-                         format(self.module['name'], self.verification_obj_desc_num + 1))
+                         format(self.module, self.verification_obj_desc_num + 1))
 
         self.verification_obj_desc = {}
 
@@ -312,7 +308,7 @@ class LKVOG(core.components.Component):
             raise FileExistsError('Linux kernel verification object description file "{0}" already exists'.format(
                 self.verification_obj_desc_file))
         self.logger.debug('Dump Linux kernel verification object description for module "{0}" to file "{1}"'.format(
-            self.module['name'], self.verification_obj_desc_file))
+            self.module, self.verification_obj_desc_file))
         os.makedirs(os.path.dirname(self.verification_obj_desc_file).encode('utf8'), exist_ok=True)
         with open(self.verification_obj_desc_file, 'w', encoding='utf8') as fp:
             json.dump(self.verification_obj_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -331,15 +327,6 @@ class LKVOG(core.components.Component):
                 self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
 
-                for module in set(self.linux_kernel_build_cmd_out_file_desc.keys()) - self.not_head_out_files:
-                    if re.search(r'\.o$', module):
-                        has_init = False
-                        for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
-                            if desc['has init']:
-                                has_init = True
-                                break
-                        self.linux_kernel_module_info_mq.put((module, has_init))
-
                 self.linux_kernel_module_info_mq.put(None)
                 break
 
@@ -348,13 +335,6 @@ class LKVOG(core.components.Component):
     def process_linux_kernel_build_cmd_desc(self, desc_file):
         with open(os.path.join(self.conf['main working directory'], desc_file), encoding='utf8') as fp:
             desc = json.load(fp)
-
-        # Skip specific files
-        if re.match(r'.*/built-in\.o', desc['out file']) or desc['out file'] == 'vmlinux.o':
-            return
-
-        if desc['type'] == 'LD' and desc['out file'].endswith('.ko'):
-            return
 
         self.logger.info(
             'Process description of Linux kernel build command "{0}" {1}'.format(desc['type'],
@@ -372,7 +352,8 @@ class LKVOG(core.components.Component):
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
-        self.not_head_out_files |= set(desc['in files'])
+        if desc['type'] == 'LD' and desc['out file'].endswith('.ko'):
+            self.linux_kernel_module_info_mq.put(desc['out file'].replace('.ko', '.o'))
 
     def __find_cc_full_desc_files(self, out_file):
         self.logger.debug('Find CC full description files for "{0}"'.format(out_file))
@@ -414,3 +395,5 @@ class LKVOG(core.components.Component):
                           encoding='utf8', errors='ignore') as fp:
                     loc += sum(1 for _ in fp)
         return loc
+
+
