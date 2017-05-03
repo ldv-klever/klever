@@ -510,27 +510,26 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             result = future.result()
-            if result != 0:
-                logfile = "{}/client-log.log".format(work_dir)
-                if os.path.isfile(logfile):
-                    with open(logfile, mode='r', encoding="utf8") as f:
-                        logging.debug("Scheduler client log: {}".format(f.read()))
-                else:
-                    raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+            logfile = "{}/client-log.log".format(work_dir)
+            if os.path.isfile(logfile):
+                with open(logfile, mode='r', encoding="utf8") as f:
+                    logging.debug("Scheduler client log: {}".format(f.read()))
+            else:
+                raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
-                errors_file = "{}/client-critical.log".format(work_dir)
-                if os.path.isfile(errors_file):
-                    with open(errors_file, mode='r', encoding="utf8") as f:
-                        errors = f.readlines()
-                else:
-                    errors = []
+            errors_file = "{}/client-critical.log".format(work_dir)
+            if os.path.isfile(errors_file):
+                with open(errors_file, mode='r', encoding="utf8") as f:
+                    errors = f.readlines()
+            else:
+                errors = []
 
-                if len(errors) > 0:
-                    error_msg = errors[-1]
-                else:
-                    error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
-                                                                                                 result)
-
+            if len(errors) > 0:
+                error_msg = errors[-1]
+            else:
+                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
+                                                                                             result)
+            if len(errors) > 0 or result != 0:
                 logging.warning(error_msg)
                 raise schedulers.SchedulerException(error_msg)
         except Exception as err:
