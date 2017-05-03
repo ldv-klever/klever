@@ -384,7 +384,7 @@ class ConnectMarks:
         for mark_id in self.changes:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
-        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts).select_related('mark'):
+        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -496,7 +496,8 @@ class ConnectReport:
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
         new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in set(self._marks[m_id]['verdict'] for m_id in list(mr.mark_id for mr in new_markreports)):
+        for v in set(self._marks[m_id]['verdict'] for m_id in
+                     list(mr.mark_id for mr in new_markreports if mr.error is None)):
             if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
                 new_verdict = UNSAFE_VERDICTS[4][0]
                 break
@@ -532,7 +533,8 @@ class RecalculateTags:
     def __fill_leaves_cache(self):
         UnsafeReportTag.objects.filter(report__in=self.reports).delete()
         marks = {}
-        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports).values_list('mark_id', 'report_id'):
+        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None)\
+                .values_list('mark_id', 'report_id'):
             if m_id not in marks:
                 marks[m_id] = set()
             marks[m_id].add(r_id)
@@ -587,7 +589,7 @@ class UpdateVerdicts:
         for mark_id in self.changes:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
-        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts).select_related('mark'):
+        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -831,7 +833,7 @@ def delete_marks(marks):
     for mark in marks:
         changes[mark.id] = {}
     MarkUnsafe.objects.filter(id__in=changes).update(version=0)
-    for mr in MarkUnsafeReport.objects.filter(mark__in=marks).select_related('report'):
+    for mr in MarkUnsafeReport.objects.filter(mark__in=marks, error=None).select_related('report'):
         changes[mr.mark_id][mr.report] = {'kind': '-', 'verdict1': mr.report.verdict}
     MarkUnsafe.objects.filter(id__in=changes).delete()
     changes = UpdateVerdicts(changes).changes
@@ -841,3 +843,13 @@ def delete_marks(marks):
             unsafes_changes[report] = changes[m_id][report]
     RecalculateTags(unsafes_changes)
     return unsafes_changes
+
+
+def disassociate_mark(report_id, mark_id):
+    report_id = int(report_id)
+    mark_id = int(mark_id)
+    mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    mr.error = 'Disassociated'
+    mr.result = 0
+    mr.save()
+    return UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}).changes.get(mark_id, {})

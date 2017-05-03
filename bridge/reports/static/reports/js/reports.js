@@ -272,5 +272,22 @@ $(document).ready(function () {
             attr_table.hide();
         }
     });
+    $('button[id^="break_mark_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'disassociate/',
+            {
+                mark_id: $(this).attr('id').replace('break_mark_association_', ''),
+                report_id: $('#report_pk').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
 });
 

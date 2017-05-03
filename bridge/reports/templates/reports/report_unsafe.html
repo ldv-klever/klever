@@ -118,7 +118,14 @@
                     <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
                     <td>{{ v.description|safe }}</td>
                     {% if can_mark %}
-                        <td><button id="inline_edit_mark_{{ v.id }}" class="ui blue mini icon button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button></td>
+                        <td>
+                            <div class="ui mini icon buttons">
+                                <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                                {% if not v.similarity.2 %}
+                                    <button id="break_mark_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Disassociate' %}"><i class="trash icon"></i></button>
+                                {% endif %}
+                            </div>
+                        </td>
                     {% endif %}
                 </tr>
             {% endfor %}
