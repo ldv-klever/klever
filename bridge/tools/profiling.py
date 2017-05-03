@@ -31,7 +31,7 @@ else:
 
 
 class ExecLocker:
-    lockfile = os.path.join('media', '.lock')
+    lockfile = os.path.join(settings.BASE_DIR, 'media', '.lock')
 
     def __init__(self, groups):
         self.names = self.__get_affected_models(groups)
