@@ -284,8 +284,10 @@ class ConnectMarks:
         self._patterns = {}
         self._primes = {}
 
-        self.__clear_connections()
         self._unsafes_attrs = self.__get_unsafes_attrs()
+        if len(self._unsafes_attrs) == 0:
+            return
+        self.__clear_connections()
         self._marks_attrs = self.__get_marks_attrs()
 
         self.__connect()
@@ -468,7 +470,7 @@ class ConnectReport:
         new_markreports = []
         for mark_id in self._marks_attrs:
             if not self._marks_attrs[mark_id].issubset(self._unsafe_attrs):
-                del self._marks
+                del self._marks[mark_id]
                 continue
         patterns = {}
         for converted in ConvertedTraces.objects.filter(id__in=set(self._marks[mid]['pattern'] for mid in self._marks)):
@@ -494,7 +496,7 @@ class ConnectReport:
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
         new_verdict = UNSAFE_VERDICTS[5][0]
-        for v in set(self._marks[m_id]['verdict'] for m_id in self._marks):
+        for v in set(self._marks[m_id]['verdict'] for m_id in list(mr.mark_id for mr in new_markreports)):
             if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
                 new_verdict = UNSAFE_VERDICTS[4][0]
                 break
@@ -657,7 +659,7 @@ class PopulateMarks:
         self.total = 0
         self._author = manager
         self._dbtags = {}
-        self._functions = {}
+        self._functions = dict(MarkUnsafeCompare.objects.values_list('name', 'id'))
         self._tagnames = {}
         self._marks_data = {}
         self.__current_tags()
@@ -676,10 +678,6 @@ class PopulateMarks:
         for t_id, parent_id, t_name in UnsafeTag.objects.values_list('id', 'parent_id', 'tag'):
             self._dbtags[t_id] = parent_id
             self._tagnames[t_name] = t_id
-
-    def __get_functions(self):
-        for f_id, fname in MarkUnsafeCompare.objects.values_list('id', 'name'):
-            self._functions[fname] = f_id
 
     def __get_tags(self, tags_data):
         tags = set()
@@ -802,7 +800,8 @@ class PopulateMarks:
             identifier = unique_id()
             new_marks.append(MarkUnsafe(
                 identifier=identifier, author=self._author, verdict=data['verdict'], status=data['status'],
-                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0]
+                is_modifiable=data['is_modifiable'], description=data['description'], type=MARK_TYPE[1][0],
+                function_id=self._functions[data['comparison']]
             ))
             self._marks_data[identifier] = {
                 'f_id': self._functions[data['comparison']],

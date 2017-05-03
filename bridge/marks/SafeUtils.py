@@ -29,7 +29,7 @@ from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARKS
 from bridge.utils import unique_id, BridgeException
 
 from users.models import User
-from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportSafe, Attr, AttrName
+from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportSafe, Attr, AttrName, ReportRoot
 from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport, MarkSafeAttr,\
     SafeTag, MarkSafeTag, SafeReportTag, ReportSafeTag
 
@@ -235,11 +235,12 @@ class NewMark:
 class ConnectMarks:
     def __init__(self, marks):
         self._marks = marks
-        # Keys are marks' ids; values are dictionaries with reports as keys
         self.changes = {}
 
-        self.__clear_connections()
         self._safes_attrs = self.__get_safes_attrs()
+        if len(self._safes_attrs) == 0:
+            return
+        self.__clear_connections()
         self._marks_attrs = self.__get_marks_attrs()
 
         self.__connect()
@@ -249,7 +250,8 @@ class ConnectMarks:
     def __get_safes_attrs(self):
         self.__is_not_used()
         safes = {}
-        for safe in ReportSafe.objects.all():
+        roots = set(root_id for root_id, in ReportRoot.objects.filter(job__safe_marks=True).values_list('id'))
+        for safe in ReportSafe.objects.filter(root_id__in=roots):
             safes[safe] = set()
         for attr in ReportAttr.objects.filter(report__in=safes):
             for s in safes:
@@ -271,7 +273,8 @@ class ConnectMarks:
         return marks_attrs
 
     def __clear_connections(self):
-        for mr in MarkSafeReport.objects.filter(mark__in=self._marks).select_related('report'):
+        for mr in MarkSafeReport.objects.filter(mark__in=self._marks, report__in=self._safes_attrs)\
+                .select_related('report'):
             if mr.mark_id not in self.changes:
                 self.changes[mr.mark_id] = {}
             self.changes[mr.mark_id][mr.report] = {'kind': '-', 'verdict1': mr.report.verdict}
@@ -560,7 +563,7 @@ class RecalculateConnections:
 
     def __get_marks(self):
         for mark_id, attr_id, verdict in MarkSafeAttr.objects.filter(is_compare=True)\
-                .values_list('mark_id', 'attr_id', 'mark__verdict'):
+                .values_list('mark__mark_id', 'attr_id', 'mark__verdict'):
             if mark_id not in self._marks:
                 self._marks[mark_id] = {'attrs': set(), 'tags': set(), 'verdict': verdict}
             self._marks[mark_id]['attrs'].add(attr_id)

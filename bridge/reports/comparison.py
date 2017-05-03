@@ -17,15 +17,22 @@
 
 import re
 import json
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
+
+from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS, COMPARE_VERDICT
 from bridge.utils import BridgeException
-from jobs.utils import JobAccess, CompareFileSet
-from reports.models import *
+
+from users.models import User
+from jobs.models import Job
+from reports.models import AttrName, Attr, ReportAttr, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+    ReportComponentLeaf, CompareJobsInfo, CompareJobsCache
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
+
+from jobs.utils import JobAccess, CompareFileSet
 from marks.tables import UNSAFE_COLOR, SAFE_COLOR
 
 

@@ -1,1 +1,15 @@
-[]
+[
+    [
+        {
+            "usbdev_open": [
+                {
+                    "ldv_usb_put_dev": [
+                        {
+                            "ldv_assert_linux_usb_dev__unincremented_counter_decrement": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+]

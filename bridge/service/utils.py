@@ -17,17 +17,22 @@
 
 import json
 from io import BytesIO
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import F
-from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
+from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE, TASK_STATUS
 from bridge.utils import file_checksum, logger, BridgeException
-from jobs.models import RunHistory, JobFile
-from jobs.utils import JobAccess, change_job_status
+
+from jobs.models import Job, RunHistory, JobFile
 from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
-from service.models import *
+from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
+    SchedulerUser, Workload
+
+from jobs.utils import JobAccess, change_job_status
 
 
 class ServiceError(Exception):

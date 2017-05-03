@@ -77,11 +77,11 @@ def calculate_test_stats(test_results):
         test_stats["tests"] += 1
         if result["ideal verdict"] == result["verification status"]:
             test_stats["passed tests"] += 1
-            if result["comment"]:
+            if result.get('comment'):
                 test_stats["excessive comments"] += 1
         else:
             test_stats["failed tests"] += 1
-            if not result["comment"]:
+            if not result.get('comment'):
                 test_stats["missed comments"] += 1
 
     return test_stats

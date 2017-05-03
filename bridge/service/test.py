@@ -17,16 +17,23 @@
 
 import os
 import json
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.test import Client
-from bridge.populate import populate_users
-from bridge.settings import BASE_DIR
-from bridge.vars import JOB_STATUS
+
+from bridge.vars import JOB_STATUS, SCHEDULER_TYPE, SCHEDULER_STATUS, PRIORITY, TASK_STATUS, NODE_STATUS
 from bridge.utils import KleverTestCase
+from bridge.populate import populate_users
+
+from users.models import User
+from jobs.models import Job
+from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
+    SchedulerUser, Workload
+
 from reports.test import COMPUTER
-from service.models import *
 
 
 TEST_NODES_DATA = [
@@ -119,7 +126,7 @@ TEST_JSON = {
     'job configurations': {}
 }
 
-ARCHIVE_PATH = os.path.join(BASE_DIR, 'service', 'test_files')
+ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'service', 'test_files')
 
 
 class TestService(KleverTestCase):
@@ -364,7 +371,7 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=task_ids)), 0)
 
         # Upload finish report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
@@ -503,7 +510,7 @@ class TestService(KleverTestCase):
         self.assertEqual(len(Task.objects.filter(id__in=[task_ids[0], task_ids[1], task_ids[3]])), 0)
 
         # Upload finish report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {
@@ -675,7 +682,7 @@ class TestService(KleverTestCase):
         })
 
         # Check that after job is corrupted you can't upload report
-        with open(os.path.join(BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
+        with open(os.path.join(settings.BASE_DIR, 'reports', 'test_files', 'report.zip'), mode='rb') as fp:
             response = self.core.post('/reports/upload/', {
                 'report': json.dumps({
                     'id': '/', 'type': 'finish', 'resources': {

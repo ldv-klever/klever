@@ -19,13 +19,13 @@ import os
 import json
 from types import FunctionType
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
 
 from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
-from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
 from bridge.utils import file_get_or_create, unique_id, BridgeException
 
 import marks.SafeUtils as SafeUtils
@@ -35,7 +35,7 @@ import marks.UnknownUtils as UnknownUtils
 from users.models import Extended
 from jobs.models import Job, JobFile
 from reports.models import TaskStatistic
-from marks.models import MarkUnsafeCompare, MarkUnsafeConvert,ErrorTraceConvertionCache
+from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
 from service.models import Scheduler
 
 from jobs.utils import create_job
@@ -58,7 +58,7 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.save()
 
 
-class Population(object):
+class Population:
     def __init__(self, user=None, manager=None, service=None):
         self.changes = {'marks': {}}
         self.user = user
@@ -85,6 +85,9 @@ class Population(object):
         self.__populate_default_jobs()
         self.__populate_unknown_marks()
         self.__populate_tags()
+        self.__populate_unsafe_marks()
+        if settings.ENABLE_SAFE_MARKS:
+            self.__populate_safe_marks()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
@@ -172,7 +175,7 @@ class Population(object):
             try:
                 Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
             except ObjectDoesNotExist:
-                with override(DEFAULT_LANGUAGE):
+                with override(settings.DEFAULT_LANGUAGE):
                     args['name'] = JOB_CLASSES[i][1]
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
                     args['type'] = JOB_CLASSES[i][0]
@@ -180,7 +183,7 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
+        default_jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
                 raise BridgeException('There is default job without settings file (%s)' % jobdir)
@@ -284,8 +287,8 @@ class Population(object):
             ) % {'count': num_of_new})
 
     def __create_tags(self, tag_type):
-        self.ccc = 0
-        preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
+        self.__is_not_used()
+        preset_tags = os.path.join(settings.BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
         if not os.path.isfile(preset_tags):
             return 0
         with open(preset_tags, mode='rb') as fp:

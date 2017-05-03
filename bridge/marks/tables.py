@@ -16,15 +16,22 @@
 #
 
 import json
+
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
+
 from bridge.tableHead import Header
-from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS
+from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS,\
+    MARK_SAFE, MARK_UNSAFE, MARK_STATUS
 from bridge.utils import unique_id
+
 from users.models import View
-from marks.models import *
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
+    MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
+
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT

@@ -17,14 +17,18 @@
 
 import os
 import json
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db.models import Q
-from bridge.populate import populate_users
-from bridge.settings import MEDIA_ROOT
+
+from bridge.vars import JOB_CLASSES, JOB_ROLES, JOB_STATUS
 from bridge.utils import KleverTestCase
-from users.models import View, PreferableView
-from jobs.models import *
+from bridge.populate import populate_users
+
+from users.models import User, View, PreferableView
+from jobs.models import Job, JobHistory, JobFile, FileSystem, RunHistory
 
 
 class TestJobs(KleverTestCase):
@@ -283,10 +287,10 @@ class TestJobs(KleverTestCase):
         })
         newjob_pk = int(json.loads(str(response.content, encoding='utf8'))['job_id'])
 
-        with open(os.path.join(MEDIA_ROOT, self.test_filename), mode='wb') as fp:
+        with open(os.path.join(settings.MEDIA_ROOT, self.test_filename), mode='wb') as fp:
             fp.write(b'My test text')
             fp.close()
-        with open(os.path.join(MEDIA_ROOT, self.test_filename), mode='rb') as fp:
+        with open(os.path.join(settings.MEDIA_ROOT, self.test_filename), mode='rb') as fp:
             response = self.client.post('/jobs/ajax/upload_file/', {'file': fp})
 
         self.assertEqual(response.status_code, 200)
@@ -351,7 +355,7 @@ class TestJobs(KleverTestCase):
         # Try to download new job
         response = self.client.get('/jobs/ajax/downloadjob/%s/' % newjob_pk)
         self.assertEqual(response.status_code, 200)
-        with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='wb') as fp:
+        with open(os.path.join(settings.MEDIA_ROOT, self.test_archive), mode='wb') as fp:
             for content in response.streaming_content:
                 fp.write(content)
 
@@ -362,7 +366,7 @@ class TestJobs(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Upload downloaded job
-        with open(os.path.join(MEDIA_ROOT, self.test_archive), mode='rb') as fp:
+        with open(os.path.join(settings.MEDIA_ROOT, self.test_archive), mode='rb') as fp:
             response = self.client.post('/jobs/ajax/upload_job/%s/' % job_template.identifier, {
                 'file': fp
             })
@@ -449,8 +453,8 @@ class TestJobs(KleverTestCase):
         self.assertEqual(response.status_code, 200)
 
     def tearDown(self):
-        if os.path.exists(os.path.join(MEDIA_ROOT, self.test_filename)):
-            os.remove(os.path.join(MEDIA_ROOT, self.test_filename))
-        if os.path.exists(os.path.join(MEDIA_ROOT, self.test_archive)):
-            os.remove(os.path.join(MEDIA_ROOT, self.test_archive))
+        if os.path.exists(os.path.join(settings.MEDIA_ROOT, self.test_filename)):
+            os.remove(os.path.join(settings.MEDIA_ROOT, self.test_filename))
+        if os.path.exists(os.path.join(settings.MEDIA_ROOT, self.test_archive)):
+            os.remove(os.path.join(settings.MEDIA_ROOT, self.test_archive))
         super(TestJobs, self).tearDown()

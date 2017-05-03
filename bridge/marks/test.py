@@ -26,13 +26,20 @@ from django.test import override_settings
 from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
 from bridge.utils import KleverTestCase, ArchiveFileContent
-from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE,\
+    MARK_STATUS, MARK_TYPE
+
+from users.models import User
+from jobs.models import Job
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
+    SafeTag, UnsafeTag, ReportSafeTag, ReportUnsafeTag, MarkSafeTag, MarkUnsafeTag, SafeReportTag, UnsafeReportTag,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport, MarkUnsafeCompare, MarkUnsafeConvert,\
+    UnknownProblem, ComponentMarkUnknownProblem
 
 from reports.test import DecideJobs, CHUNKS1
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
-from marks.models import *
-
 
 REPORT_ARCHIVES = os.path.join(BASE_DIR, 'reports', 'test_files')
 
@@ -73,6 +80,16 @@ class TestMarks(KleverTestCase):
     @override_settings(ENABLE_SAFE_MARKS=True)
     def test_safe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Delete populated marks
+        oldmarks = list(m['id'] for m in MarkSafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'safe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnsafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
 
         # Create 5 safe tags
         created_tags = []
@@ -468,6 +485,16 @@ class TestMarks(KleverTestCase):
 
     def test_unsafe(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
+
+        # Delete populated marks
+        oldmarks = list(m['id'] for m in MarkSafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'safe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnsafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
 
         # Create 5 unsafe tags
         created_tags = []

@@ -53,16 +53,16 @@
                 </ul>
             </div>
         {% endif %}
-        {% if changes.marks.length %}
+        {% if changes.marks %}
             <div class="ui green segment">
                 {% if changes.marks.unknown.0 > 0 %}
-                    <h2 class="ui green header">{% blocktrans %}{{ changes.marks.unknown.0 }} of {{ changes.marks.unknown.1 }} unknown marks were uploaded{% endblocktrans %}</h2>
+                    <h2 class="ui green header">{% blocktrans with n0=changes.marks.unknown.0 n1=changes.marks.unknown.1 %}{{ n0 }} of {{ n1 }} unknown marks were uploaded{% endblocktrans %}</h2>
                 {% endif %}
                 {% if changes.marks.unsafe.0 > 0 %}
-                    <h2 class="ui green header">{% blocktrans %}{{ changes.marks.unsafe.0 }} of {{ changes.marks.unsafe.1 }} unsafe marks were uploaded{% endblocktrans %}</h2>
+                    <h2 class="ui green header">{% blocktrans  with n0=changes.marks.unsafe.0 n1=changes.marks.unsafe.1 %}{{ n0 }} of {{ n1 }} unsafe marks were uploaded{% endblocktrans %}</h2>
                 {% endif %}
                 {% if changes.marks.safe.0 > 0 %}
-                    <h2 class="ui green header">{% blocktrans %}{{ changes.marks.safe.0 }} of {{ changes.marks.safe.1 }} safe marks were uploaded{% endblocktrans %}</h2>
+                    <h2 class="ui green header">{% blocktrans  with n0=changes.marks.safe.0 n1=changes.marks.safe.1 %}{{ n0 }} of {{ n1 }} safe marks were uploaded{% endblocktrans %}</h2>
                 {% endif %}
             </div>
         {% endif %}

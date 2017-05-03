@@ -15,20 +15,25 @@
 # limitations under the License.
 #
 
+import os
 import re
 import json
 from io import BytesIO
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
+
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, JOB_WEIGHT
-from bridge.utils import file_get_or_create, BridgeException
+from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
-from .models import RunHistory, JobFile
-from .utils import create_job, update_job, change_job_status
-from reports.models import *
+
+from jobs.models import Job, RunHistory, JobFile
+from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+    Component, Computer, AttrName, Attr, ReportAttr, AttrStatistic, LightResource
+from jobs.utils import create_job, update_job, change_job_status
 from reports.utils import AttrData
 from tools.utils import Recalculation
 

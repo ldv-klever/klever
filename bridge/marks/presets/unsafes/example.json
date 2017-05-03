@@ -27,7 +27,7 @@
     {
       "attr": "Verification object",
       "is_compare": true,
-      "value": "drivers/usb/core/usb2.ko"
+      "value": "drivers/usb/core/usb1.ko"
     },
     {
       "attr": "Rule specification",

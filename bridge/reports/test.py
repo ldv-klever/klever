@@ -15,17 +15,24 @@
 # limitations under the License.
 #
 
+import os
 import json
 import random
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.test import Client
-from bridge.populate import populate_users
-from bridge.settings import BASE_DIR
-from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES, FORMAT
+
+from bridge.vars import SCHEDULER_TYPE, JOB_STATUS, JOB_ROLES, JOB_CLASSES, FORMAT, COMPARE_VERDICT
 from bridge.utils import KleverTestCase
-from reports.models import *
+from bridge.populate import populate_users
+
+from users.models import User
+from jobs.models import Job
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent, ReportComponentLeaf,\
+    CompareJobsInfo, CompareJobsCache
 
 
 # TODO: test 'jobs:download_file_for_compet', 'upload_job' after decision
@@ -175,7 +182,7 @@ CHUNKS3 = [
     }
 ]
 
-ARCHIVE_PATH = os.path.join(BASE_DIR, 'reports', 'test_files')
+ARCHIVE_PATH = os.path.join(settings.BASE_DIR, 'reports', 'test_files')
 
 
 def resources():
