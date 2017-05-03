@@ -264,7 +264,7 @@ class RSB(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-        self.verification_status = None
+        self.verdict = None
 
         if not self.task_desc['property file']:
             self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
@@ -296,7 +296,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-                self.verification_status = 'unknown'
+                self.verdict = 'unknown'
                 break
 
             if task_status == 'FINISHED':
@@ -461,7 +461,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-        self.verification_status = decision_results['status']
+        self.verdict = decision_results['status']
 
     def create_verification_finish_report(self, verification_report_id):
         core.utils.report(self.logger,
