@@ -15,8 +15,10 @@
 # limitations under the License.
 #
 
+import os
 import json
 from io import BytesIO
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import F
@@ -455,7 +457,7 @@ class GetTasks:
         except ObjectDoesNotExist:
             return {}
         try:
-            with open(tasks.file.file.name, mode='r', encoding='utf8') as fp:
+            with open(os.path.join(settings.MEDIA_ROOT, tasks.file.file.name), mode='r', encoding='utf8') as fp:
                 return json.load(fp)
         except Exception as e:
             logger.exception(e)
