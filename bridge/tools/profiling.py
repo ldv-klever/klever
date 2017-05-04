@@ -52,14 +52,20 @@ class ExecLocker:
                 self.waiting_time[0] += 0.1
                 if self.waiting_time[0] > MAX_WAITING:
                     if settings.UNLOCK_FAILED_REQUESTS:
-                        os.remove(self.lockfile)
+                        try:
+                            os.remove(self.lockfile)
+                        except FileNotFoundError:
+                            pass
                     else:
                         raise RuntimeError('Not enough time to lock execution of view')
 
         try:
             self.__lock_names()
         finally:
-            os.remove(self.lockfile)
+            try:
+                os.remove(self.lockfile)
+            except FileNotFoundError:
+                pass
 
     def unlock(self):
         if len(self.lock_ids) > 0:
