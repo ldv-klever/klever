@@ -455,6 +455,7 @@ class GetTasks:
         try:
             tasks = FileSystem.objects.get(job__job_id=job_id, name='tasks.json', parent=None)
         except ObjectDoesNotExist:
+            logger.error("The tasks.json file doesn't exists")
             return {}
         try:
             with open(os.path.join(settings.MEDIA_ROOT, tasks.file.file.name), mode='r', encoding='utf8') as fp:
