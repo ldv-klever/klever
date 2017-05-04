@@ -18,7 +18,7 @@ Documentation
 
 To build this documentation you need:
 
-* `Python 3.4 or higher <https://www.python.org/>`_.
+* `Python 3.6.x <https://www.python.org/>`_.
 * `Sphinx <http://sphinx-doc.org>`_
 
 Klever Bridge
@@ -26,7 +26,7 @@ Klever Bridge
 
 To run Klever Bridge you need:
 
-* `Python 3.4 or higher <https://www.python.org/>`_ and its packages:
+* `Python 3.6.x <https://www.python.org/>`_ and its packages:
 
   * `Django <https://www.djangoproject.com/>`_.
   * `pytz <http://pythonhosted.org/pytz/>`_.
@@ -53,7 +53,7 @@ Klever Core
 
 To run Klever Core you need:
 
-* `Python 3.4 or higher <https://www.python.org/>`_ and its packages:
+* `Python 3.6.x <https://www.python.org/>`_ and its packages:
 
   * `Jinja2 <http://jinja.pocoo.org/>`_ (just if you are going to verify source code against rule specifications using
     argument signatures).
@@ -74,7 +74,7 @@ TODO: Klever Scheduler
 
 If you are going to execute on your machine scheduler or the other Klever Cloud tools you need:
 
-* `Python 3.4 or higher <https://www.python.org/>`_ and its packages:
+* `Python 3.6.x <https://www.python.org/>`_ and its packages:
 
   * `consulate <https://pypi.python.org/pypi/consulate>`_.
   * `requests <https://pypi.python.org/pypi/requests/>`_.

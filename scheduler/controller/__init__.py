@@ -19,6 +19,7 @@ import os
 import json
 import logging.config
 import subprocess
+import sys
 
 import utils as utils
 
@@ -111,7 +112,7 @@ def setup_consul(conf):
             check_desc = {
                 "id": "{} {}".format(conf["node configuration"]["node name"], check["name"]),
                 "name": check["name"],
-                "script": check_file,
+                "script": "{} {}".format(sys.executable, check_file),
                 "interval": check["interval"]
             }
             consul_config["checks"].append(check_desc)

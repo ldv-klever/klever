@@ -324,7 +324,7 @@ class Population(object):
             return 0
         with open(preset_tags, mode='rb') as fp:
             try:
-                res = CreateTagsFromFile(fp, tag_type, True)
+                res = CreateTagsFromFile(self.manager, fp, tag_type, True)
             except Exception as e:
                 raise BridgeException("Error while creating tags: %s" % str(e))
             return res.number_of_created

@@ -25,6 +25,7 @@ import subprocess
 import requests
 import consulate
 import signal
+import sys
 
 import schedulers as schedulers
 
@@ -383,13 +384,14 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         self.__check_resource_limits(configuration)
+        args = [sys.executable, self.__client_bin]
         if mode == 'task':
             subdir = 'tasks'
-            args = [self.__client_bin, "TASK"]
+            args.append("TASK")
             client_conf = self.__get_task_configuration()
         else:
             subdir = 'jobs'
-            args = [self.__client_bin, "JOB"]
+            args.append("JOB")
             client_conf = self.__job_conf_prototype.copy()
 
         self.__create_work_dir(subdir, identifier)
