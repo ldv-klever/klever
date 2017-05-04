@@ -24,7 +24,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
 from bridge.vars import JOB_STATUS
 from bridge.utils import file_checksum, logger, BridgeException
-from jobs.models import RunHistory, JobFile
+from jobs.models import RunHistory, JobFile, FileSystem
 from jobs.utils import JobAccess, change_job_status
 from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
 from service.models import *
@@ -310,6 +310,8 @@ class GetTasks:
                 else:
                     self._data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
+                    self._data['job configurations'][progress.job.identifier]['task resource limits'] = \
+                        self.__get_tasks_limits(progress.job_id)
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
@@ -445,6 +447,19 @@ class GetTasks:
             self._progresses[progress_id].save()
         for solution in Solution.objects.filter(task_id__in=self._solution_req):
             self._data['task solutions'][str(solution.task_id)] = json.loads(solution.description.decode('utf8'))
+
+    def __get_tasks_limits(self, job_id):
+        self.__is_not_used()
+        try:
+            tasks = FileSystem.objects.get(job__job_id=job_id, name='tasks.json', parent=None)
+        except ObjectDoesNotExist:
+            return {}
+        try:
+            with open(tasks.file.file.name, mode='r', encoding='utf8') as fp:
+                return json.load(fp)
+        except Exception as e:
+            logger.exception(e)
+            return {}
 
     def __is_not_used(self):
         pass
