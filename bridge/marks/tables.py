@@ -31,7 +31,7 @@ from users.models import View
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
     MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
-    MarkSafeTag, MarkUnsafeTag
+    MarkSafeTag, MarkUnsafeTag, UnsafeAssociationLike
 
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -356,6 +356,19 @@ class ReportMarkTable:
         else:
             orders = ['-mark__change_date']
         marks_ids = set()
+
+        likes = {}
+        dislikes = {}
+        for ass_like in UnsafeAssociationLike.objects.filter(association__report=self.report):
+            if ass_like.dislike:
+                if ass_like.association_id not in dislikes:
+                    dislikes[ass_like.association_id] = []
+                dislikes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
+            else:
+                if ass_like.association_id not in likes:
+                    likes[ass_like.association_id] = []
+                likes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
+
         for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
             marks_ids.add(mark_rep.mark_id)
             cnt += 1
@@ -372,6 +385,8 @@ class ReportMarkTable:
                     row_data['similarity'] = (mark_rep.error, result_color(0))
                 else:
                     row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result))
+                row_data['likes'] = list(sorted(likes.get(mark_rep.id, [])))
+                row_data['dislikes'] = list(sorted(dislikes.get(mark_rep.id, [])))
             elif self.type == 'safe':
                 row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
             else:

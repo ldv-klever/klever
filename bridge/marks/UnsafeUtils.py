@@ -26,7 +26,6 @@ from django.db.models import F
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
-
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARKS_COMPARE_ATTRS,\
     MARK_TYPE
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
@@ -35,7 +34,7 @@ from users.models import User
 from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, MarkUnsafeAttr,\
     MarkUnsafeTag, UnsafeTag, UnsafeReportTag, ReportUnsafeTag,\
-    MarkUnsafeCompare, MarkUnsafeConvert, ConvertedTraces
+    MarkUnsafeCompare, MarkUnsafeConvert, ConvertedTraces, UnsafeAssociationLike
 from marks.ConvertTrace import GetConvertedErrorTrace, ET_FILE_NAME
 from marks.CompareTrace import CompareTrace
 
@@ -850,3 +849,12 @@ def confirm_mark_association(author, report_id, mark_id):
     mr.author = author
     mr.manual = True
     mr.save()
+
+
+def like_association(author, report_id, mark_id, dislike):
+    try:
+        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    UnsafeAssociationLike.objects.filter(association=mr, author=author).delete()
+    UnsafeAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))

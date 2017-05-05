@@ -184,6 +184,15 @@ class MarkUnsafeReport(models.Model):
         db_table = "cache_mark_unsafe_report"
 
 
+class UnsafeAssociationLike(models.Model):
+    association = models.ForeignKey(MarkUnsafeReport)
+    author = models.ForeignKey(User)
+    dislike = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "mark_association_like"
+
+
 # Tags tables
 class SafeTag(models.Model):
     author = models.ForeignKey(User)

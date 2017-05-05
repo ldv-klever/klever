@@ -47,6 +47,7 @@ urlpatterns = [
     url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
     url(r'^ajax/disassociate/$', views.disassociate_mark),
     url(r'^ajax/confirm-association/$', views.confirm_association),
+    url(r'^ajax/like-association/$', views.like_association),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

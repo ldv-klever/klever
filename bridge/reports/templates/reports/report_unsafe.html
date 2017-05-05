@@ -103,6 +103,7 @@
                     <th>{% trans 'Automatic association' %}</th>
                     <th>{% trans 'Association author' %}</th>
                     <th>{% trans 'Description' %}</th>
+                    <th>{% trans 'Like' %}/{% trans 'Dislike' %}</th>
                     {% if can_mark %}
                         <th>&nbsp;</th>
                     {% endif %}
@@ -119,6 +120,31 @@
                     <td>{% if v.automatic %}<span>{% trans 'Yes' %}</span>{% else %}<span style="color:#B12EAF;">{% trans 'No' %}</span>{% endif %}</td>
                     <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                     <td>{{ v.description|safe }}</td>
+                    <td style="min-width: 130px;">
+                        <div id="like_association_{{ v.id }}" class="like-association{% if v.likes|length %} like-popup{% endif %}">
+                            <i class="ui thumbs up green icon"></i>
+                            <span id="likes_num">{{ v.likes|length }}</span>
+                        </div>
+                        {% if v.likes|length %}
+                            <div class="ui popup">
+                                {% for like in v.likes %}
+                                    <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div id="dislike_association_{{ v.id }}" class="dislike-association{% if v.dislikes|length %} like-popup{% endif %}">
+                            <i id="like_association_{{ v.id }}" class="ui thumbs down red icon"></i>
+                            <span id="dislikes_num">{{ v.dislikes|length }}</span>
+                        </div>
+                        {% if v.dislikes|length %}
+                            <div class="ui popup">
+                                {% for dislike in v.dislikes %}
+                                    <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </td>
                     {% if can_mark %}
                         <td>
                             <div class="ui mini icon buttons">
