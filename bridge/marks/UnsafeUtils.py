@@ -128,7 +128,7 @@ class NewMark:
             json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
         ).encode('utf8'))
 
-        last_v = MarkUnsafeHistory.objects.get(version=F('mark__version'))
+        last_v = MarkUnsafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
         mark.status = self._args['status']
@@ -801,20 +801,12 @@ class PopulateMarks:
                 'f_id': self._functions[data['comparison']],
                 'tags': self.__get_tags(data['tags']),
                 'attrs': data['attrs'],
-                'error trace': self.__read_pattern(data['error trace'])
+                'error trace': BytesIO(json.dumps(
+                    data['error trace'], ensure_ascii=False, sort_keys=True, indent=4
+                ).encode('utf8'))
             }
             self.total += 1
         return new_marks
-
-    def __read_pattern(self, filename):
-        self.__is_not_used()
-        et_file = os.path.join(settings.BASE_DIR, 'marks', 'presets', 'error-traces', filename)
-        if not os.path.isfile(et_file):
-            raise BridgeException(
-                _("Pattern error trace %(filename)s for preset unsafe mark was not found") % {'filename': filename}
-            )
-        with open(et_file, mode='r', encoding='utf8') as fp:
-            return BytesIO(json.dumps(json.load(fp), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
 
     def __is_not_used(self):
         pass
