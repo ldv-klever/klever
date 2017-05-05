@@ -80,8 +80,8 @@
                         <th>№</th>
                         <th>{% trans 'Problem' %}</th>
                         <th>{% trans 'Status' %}</th>
-                        <th>{% trans 'Last change author' %}</th>
                         <th>{% trans 'Automatic association' %}</th>
+                        <th>{% trans 'Association author' %}</th>
                         <th>{% trans 'Description' %}</th>
                     </tr>
                 </thead>
@@ -97,8 +97,8 @@
                             {% endif %}
                         </td>
                         <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                        <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                        <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                        <td>{% if v.automatic %}<span>{% trans 'Yes' %}</span>{% else %}<span style="color:#B12EAF;">{% trans 'No' %}</span>{% endif %}</td>
+                        <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                         <td>{{ v.description|safe }}</td>
                     </tr>
                 {% endfor %}

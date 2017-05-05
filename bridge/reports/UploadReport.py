@@ -454,6 +454,7 @@ class UploadReport:
             UnknownUtils.ConnectReport(leaf)
         elif self.data['type'] == 'unsafe':
             UnsafeUtils.ConnectReport(leaf)
+            UnsafeUtils.RecalculateTags([leaf])
         elif self.data['type'] == 'safe' and self.job.safe_marks:
             SafeUtils.ConnectReport(leaf)
 

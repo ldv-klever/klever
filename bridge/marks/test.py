@@ -90,6 +90,10 @@ class TestMarks(KleverTestCase):
         if len(oldmarks) > 0:
             response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
             self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnknown.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unknown', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
 
         # Create 5 safe tags
         created_tags = []
@@ -233,7 +237,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkSafe.objects.get(prime=safe, job=self.job, author__username='manager')
+            mark = MarkSafe.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.type, MARK_TYPE[0][0])
@@ -302,7 +306,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkSafe.objects.get(prime=safe, job=self.job, author__username='manager')
+            mark = MarkSafe.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.verdict, MARK_SAFE[2][0])
@@ -495,6 +499,10 @@ class TestMarks(KleverTestCase):
         if len(oldmarks) > 0:
             response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
             self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnknown.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unknown', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
 
         # Create 5 unsafe tags
         created_tags = []
@@ -657,7 +665,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkUnsafe.objects.get(prime=unsafe, job=self.job, author__username='manager')
+            mark = MarkUnsafe.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.type, MARK_TYPE[0][0])
@@ -729,7 +737,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkUnsafe.objects.get(prime=unsafe, job=self.job, author__username='manager')
+            mark = MarkUnsafe.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.verdict, MARK_UNSAFE[2][0])
@@ -933,6 +941,20 @@ class TestMarks(KleverTestCase):
     def test_unknown(self):
         self.assertEqual(Job.objects.get(pk=self.job.pk).status, JOB_STATUS[3][0])
 
+        # Delete populated marks
+        oldmarks = list(m['id'] for m in MarkSafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'safe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnsafe.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unsafe', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
+        oldmarks = list(m['id'] for m in MarkUnknown.objects.values('id'))
+        if len(oldmarks) > 0:
+            response = self.client.post('/marks/ajax/delete/', {'type': 'unknown', 'ids': json.dumps(oldmarks)})
+            self.assertEqual(response.status_code, 200)
+
         # Get report
         unknown = None
 
@@ -971,7 +993,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkUnknown.objects.get(prime=unknown, job=self.job, author__username='manager')
+            mark = MarkUnknown.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.type, MARK_TYPE[0][0])
@@ -1039,7 +1061,7 @@ class TestMarks(KleverTestCase):
 
         # Check mark's tables
         try:
-            mark = MarkUnknown.objects.get(prime=unknown, job=self.job, author__username='manager')
+            mark = MarkUnknown.objects.get(job=self.job, author__username='manager')
         except ObjectDoesNotExist:
             self.fail('Mark was not created')
         self.assertEqual(mark.version, 2)
@@ -1093,7 +1115,7 @@ class TestMarks(KleverTestCase):
         self.assertEqual(response['Content-Type'], 'application/json')
         res = json.loads(str(response.content, encoding='utf8'))
         self.assertNotIn('error', res)
-        self.assertEqual(len(MarkUnknown.objects.filter(prime=unknown)), 0)
+        self.assertEqual(len(MarkUnknown.objects.all()), 0)
         self.assertEqual(len(MarkUnknownReport.objects.all()), 0)
         self.assertEqual(len(ComponentMarkUnknownProblem.objects.filter(problem__name='EVal: rule')), 0)
 

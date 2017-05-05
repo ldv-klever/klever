@@ -11,7 +11,5 @@ def set_manual(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [
-        ('marks', '0006_mr_manual')
-    ]
+    dependencies = [('marks', '0006_mr_manual')]
     operations = [migrations.RunPython(set_manual)]

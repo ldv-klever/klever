@@ -104,7 +104,7 @@ class NewMark:
             raise ValueError('Not enough args')
         error_trace = GetConvertedErrorTrace(self._conversion, report).converted
         mark = MarkUnsafe.objects.create(
-            identifier=unique_id(), author=self._user, prime=report, format=report.root.job.format,
+            identifier=unique_id(), author=self._user, format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')), function=self._comparison,
             verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable']
         )
@@ -115,7 +115,7 @@ class NewMark:
         except Exception:
             mark.delete()
             raise
-        self.changes = ConnectMarks([mark]).changes.get(mark.id, {})
+        self.changes = ConnectMarks([mark], prime_id=report.id).changes.get(mark.id, {})
         RecalculateTags(list(self.changes))
         return mark
 
@@ -277,22 +277,22 @@ class NewMark:
 
 
 class ConnectMarks:
-    def __init__(self, marks):
+    def __init__(self, marks, prime_id=None):
         self._marks = marks
+        self._prime_id = prime_id
         self.changes = {}
         self._functions = {}
         self._patterns = {}
-        self._primes = {}
 
         self._unsafes_attrs = self.__get_unsafes_attrs()
         if len(self._unsafes_attrs) == 0:
             return
         self.__clear_connections()
         self._marks_attrs = self.__get_marks_attrs()
+        self._author = dict((m.id, m.author) for m in self._marks)
 
         self.__connect()
         self.__update_verdicts()
-        self.__check_prime()
 
     def __get_unsafes_attrs(self):
         self.__is_not_used()
@@ -316,11 +316,10 @@ class ConnectMarks:
             if mark_id not in marks_attrs:
                 marks_attrs[mark_id] = set()
             marks_attrs[mark_id].add(attr_id)
-        for m_id, f_name, pattern_id, prime_id in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
-                .values_list('mark_id', 'function__name', 'error_trace_id', 'mark__prime_id'):
+        for m_id, f_name, pattern_id in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
+                .values_list('mark_id', 'function__name', 'error_trace_id'):
             self._functions[m_id] = f_name
             self._patterns[m_id] = pattern_id
-            self._primes[m_id] = prime_id
         return marks_attrs
 
     def __clear_connections(self):
@@ -348,9 +347,10 @@ class ConnectMarks:
         for m_id in self._patterns:
             self._patterns[m_id] = patterns[self._patterns[m_id]]
 
-        prime_lost = set()
         for unsafe in self._unsafes_attrs:
             for mark_id in self._patterns:
+                if not self._marks_attrs[mark_id].issubset(self._unsafes_attrs[unsafe]):
+                    continue
                 compare_error = None
                 try:
                     compare = CompareTrace(self._functions[mark_id], self._patterns[mark_id], unsafe)
@@ -360,23 +360,19 @@ class ConnectMarks:
                     logger.exception("Error traces comparison failed: %s" % e)
                     compare_error = str(UNKNOWN_ERROR)
 
-                if compare_error is not None and self._primes[mark_id] == unsafe.id:
-                    prime_lost.add(mark_id)
-
-                if compare.result > 0 or compare_error is not None:
-                    new_markreports.append(MarkUnsafeReport(
-                        mark_id=mark_id, report=unsafe, result=compare.result, error=compare_error
-                    ))
-                    if mark_id not in self.changes:
-                        self.changes[mark_id] = {}
-                    if unsafe in self.changes[mark_id]:
-                        self.changes[mark_id][unsafe]['kind'] = '='
-                        self.changes[mark_id][unsafe]['result2'] = compare.result
-                    else:
-                        self.changes[mark_id][unsafe] = {
-                            'kind': '+', 'result2': compare.result, 'verdict1': unsafe.verdict
-                        }
-        MarkUnsafe.objects.filter(id__in=prime_lost).update(prime=None)
+                new_markreports.append(MarkUnsafeReport(
+                    mark_id=mark_id, report=unsafe, result=compare.result, error=compare_error,
+                    manual=(self._prime_id == unsafe.id), author=self._author[mark_id]
+                ))
+                if mark_id not in self.changes:
+                    self.changes[mark_id] = {}
+                if unsafe in self.changes[mark_id]:
+                    self.changes[mark_id][unsafe]['kind'] = '='
+                    self.changes[mark_id][unsafe]['result2'] = compare.result
+                else:
+                    self.changes[mark_id][unsafe] = {
+                        'kind': '+', 'result2': compare.result, 'verdict1': unsafe.verdict
+                    }
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
     def __update_verdicts(self):
@@ -384,7 +380,8 @@ class ConnectMarks:
         for mark_id in self.changes:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
-        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None).select_related('mark'):
+        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
+                .select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -430,15 +427,6 @@ class ConnectMarks:
             unsafe.verdict = unsafes[unsafe]
             unsafe.save()
 
-    def __check_prime(self):
-        marks_to_update = set()
-        for mark in self._marks:
-            if mark.id not in self.changes:
-                continue
-            if mark.prime not in self.changes[mark.id] or self.changes[mark.id][mark.prime]['kind'] == '-':
-                marks_to_update.add(mark.id)
-        MarkUnsafe.objects.filter(id__in=marks_to_update).update(prime=None)
-
     def __is_not_used(self):
         pass
 
@@ -461,8 +449,8 @@ class ConnectReport:
             if mark_id not in marks_attrs:
                 marks_attrs[mark_id] = set()
             marks_attrs[mark_id].add(attr_id)
-        for m_id, f_name, pattern_id, prime_id, verdict in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
-                .values_list('mark_id', 'function__name', 'error_trace_id', 'mark__prime_id', 'verdict'):
+        for m_id, f_name, pattern_id, verdict in MarkUnsafeHistory.objects.filter(mark_id__in=marks_attrs)\
+                .values_list('mark_id', 'function__name', 'error_trace_id', 'verdict'):
             self._marks[m_id] = {'function': f_name, 'pattern': pattern_id, 'verdict': verdict}
         return marks_attrs
 
@@ -497,7 +485,7 @@ class ConnectReport:
 
         new_verdict = UNSAFE_VERDICTS[5][0]
         for v in set(self._marks[m_id]['verdict'] for m_id in
-                     list(mr.mark_id for mr in new_markreports if mr.error is None)):
+                     list(mr.mark_id for mr in new_markreports if mr.error is None and mr.result > 0)):
             if new_verdict != UNSAFE_VERDICTS[5][0] and new_verdict != v:
                 new_verdict = UNSAFE_VERDICTS[4][0]
                 break
@@ -533,7 +521,7 @@ class RecalculateTags:
     def __fill_leaves_cache(self):
         UnsafeReportTag.objects.filter(report__in=self.reports).delete()
         marks = {}
-        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None)\
+        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None, result__gt=0)\
                 .values_list('mark_id', 'report_id'):
             if m_id not in marks:
                 marks[m_id] = set()
@@ -589,7 +577,8 @@ class UpdateVerdicts:
         for mark_id in self.changes:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
-        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None).select_related('mark'):
+        for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
+                .select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -652,8 +641,11 @@ class RecalculateConnections:
             unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
             unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
         )
+        unsafes = []
         for unsafe in ReportUnsafe.objects.filter(root__in=self._roots):
             ConnectReport(unsafe)
+            unsafes.append(unsafe)
+        RecalculateTags(unsafes)
 
 
 class PopulateMarks:
@@ -845,15 +837,19 @@ def delete_marks(marks):
     return unsafes_changes
 
 
-def disassociate_mark(report_id, mark_id):
+def disassociate_mark(author, report_id, mark_id):
     report_id = int(report_id)
     mark_id = int(mark_id)
     mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
     mr.error = 'Disassociated'
     mr.result = 0
+    mr.author = author
     mr.save()
     return UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}).changes.get(mark_id, {})
 
 
-def confirm_mark_association(report_id, mark_id):
+def confirm_mark_association(author, report_id, mark_id):
     mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    mr.author = author
+    mr.manual = True
+    mr.save()

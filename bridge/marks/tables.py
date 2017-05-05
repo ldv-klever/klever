@@ -39,13 +39,13 @@ from marks.ConvertTrace import DEFAULT_CONVERT
 
 MARK_TITLES = {
     'mark_num': '№',
-    'report_num': _('Number of reports'),
     'change_kind': _('Change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
     'result': _('Similarity'),
     'status': _('Status'),
     'author': _('Last change author'),
+    'association_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
     'format': _('Format'),
@@ -56,8 +56,7 @@ MARK_TITLES = {
     'pattern': _('Problem pattern'),
     'checkbox': '',
     'type': _('Source'),
-    'is_prime': _('Automatic association'),
-    'has_prime': _('Has non-automatic association'),
+    'automatic': _('Automatic association'),
     'tags': _('Tags')
 }
 
@@ -351,20 +350,25 @@ class ReportMarkTable:
     def __get_values(self):
         value_data = []
         cnt = 0
-        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by('mark__change_date'):
+        if self.type == 'unsafe':
+            orders = ['-result', '-mark__change_date']
+        else:
+            orders = ['-mark__change_date']
+        for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
             cnt += 1
             row_data = {
                 'id': mark_rep.mark_id,
                 'number': cnt,
                 'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
-                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
+                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status])
             }
             if self.type == 'unsafe':
+                row_data['broken'] = (mark_rep.error is not None)
                 row_data['verdict'] = (mark_rep.mark.get_verdict_display(), UNSAFE_COLOR[mark_rep.mark.verdict])
                 if mark_rep.error is not None:
-                    row_data['similarity'] = (_("Comparison failed"), result_color(0), mark_rep.error)
+                    row_data['similarity'] = (mark_rep.error, result_color(0))
                 else:
-                    row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result), None)
+                    row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result))
             elif self.type == 'safe':
                 row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
             else:
@@ -373,14 +377,10 @@ class ReportMarkTable:
                     problem_link = 'http://' + mark_rep.mark.link
                 row_data['problem'] = (mark_rep.problem.name, problem_link)
 
-            if mark_rep.mark.prime == self.report:
-                row_data['is_prime'] = (_('No'), '#B12EAF')
-            else:
-                row_data['is_prime'] = (_('Yes'), '#000000')
-            if mark_rep.mark.author is not None:
+            row_data['automatic'] = not mark_rep.manual
+            if mark_rep.author is not None:
                 row_data['author'] = (
-                    mark_rep.mark.author.get_full_name(),
-                    reverse('users:show_profile', args=[mark_rep.mark.author_id])
+                    mark_rep.author.get_full_name(), reverse('users:show_profile', args=[mark_rep.author_id])
                 )
             if len(mark_rep.mark.description) > 0:
                 row_data['description'] = mark_rep.mark.description
@@ -740,13 +740,13 @@ class MarkReportsTable(object):
         self.user = user
         if isinstance(mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result', 'is_prime']
+            self.columns = ['report', 'job', 'result', 'automatic', 'association_author']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['job', 'report_num', 'has_prime']
+            self.columns = ['report', 'job', 'automatic', 'association_author']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['job', 'report_num', 'has_prime']
+            self.columns = ['report', 'job', 'automatic', 'association_author']
         else:
             return
         self.mark = mark
@@ -756,63 +756,39 @@ class MarkReportsTable(object):
     def __get_values(self):
         values = []
         cnt = 0
-        if self.type == 'unsafe':
-            for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job'):
-                report = mark_report.report
-                cnt += 1
-                values_str = []
-                for col in self.columns:
-                    val = '-'
-                    color = None
-                    href = None
-                    comment = None
-                    if col == 'report':
-                        val = cnt
-                        if JobAccess(self.user, report.root.job).can_view():
-                            href = reverse('reports:%s' % self.type, args=[report.id])
-                    elif col == 'result':
-                        if mark_report.error is not None:
-                            val = _("Comparison failed")
-                            color = result_color(0)
-                            if mark_report.error is not None:
-                                comment = mark_report.error
-                        else:
-                            val = "{:.0%}".format(mark_report.result)
-                            color = result_color(mark_report.result)
-                    elif col == 'job':
-                        val = report.root.job.name
-                        if JobAccess(self.user, report.root.job).can_view():
-                            href = reverse('jobs:job', args=[report.root.job_id])
-                    elif col == 'is_prime':
-                        if self.mark.prime == mark_report.report:
-                            val = _('No')
-                            color = '#B12EAF'
-                        else:
-                            val = _('Yes')
-                    values_str.append({'value': val, 'href': href, 'color': color, 'comment': comment})
-                values.append(values_str)
-        else:
-            report_filters = {
-                'parent': None,
-                'leaves__%s__markreport_set__mark' % self.type: self.mark
-            }
-            for report in ReportComponent.objects.filter(**report_filters).distinct().order_by('root__job__name')\
-                    .select_related('root', 'root__job'):
-                len_filter = {self.type + '__markreport_set__mark': self.mark}
-                mark_leaves = report.leaves.filter(**len_filter)
-
-                if self.mark.prime is not None and len(mark_leaves.filter(**{self.type: self.mark.prime})) > 0:
-                    color = '#B12EAF'
-                    has_primary = _('Yes')
-                else:
-                    has_primary = _('No')
-                    color = None
-                values.append([
-                    {'value': report.root.job.name, 'href': reverse('jobs:job', args=[report.root.job_id])},
-                    {
-                        'value': len(mark_leaves),
-                        'href': reverse('reports:list_mark', args=[report.id, self.type + 's', self.mark.id])
-                    },
-                    {'value': has_primary, 'color': color}
-                ])
+        for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job'):
+            report = mark_report.report
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if col == 'report':
+                    val = cnt
+                    if JobAccess(self.user, report.root.job).can_view():
+                        href = reverse('reports:%s' % self.type, args=[report.id])
+                elif col == 'result':
+                    if mark_report.error is not None:
+                        val = mark_report.error
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(mark_report.result)
+                        color = result_color(mark_report.result)
+                elif col == 'job':
+                    val = report.root.job.name
+                    if JobAccess(self.user, report.root.job).can_view():
+                        href = reverse('jobs:job', args=[report.root.job_id])
+                elif col == 'automatic':
+                    if mark_report.manual:
+                        val = _('No')
+                        color = '#B12EAF'
+                    else:
+                        val = _('Yes')
+                elif col == 'association_author':
+                    if mark_report.author:
+                        val = mark_report.author.get_full_name()
+                        href = reverse('users:show_profile', args=[mark_report.author_id])
+                values_str.append({'value': val, 'href': href, 'color': color})
+            values.append(values_str)
         return values

@@ -99,8 +99,8 @@
                     <th>{% trans 'Verdict' %}</th>
                     <th>{% trans 'Similarity' %}</th>
                     <th>{% trans 'Status' %}</th>
-                    <th>{% trans 'Last change author' %}</th>
                     <th>{% trans 'Automatic association' %}</th>
+                    <th>{% trans 'Association author' %}</th>
                     <th>{% trans 'Description' %}</th>
                     {% if can_mark %}
                         <th>&nbsp;</th>
@@ -112,17 +112,19 @@
                 <tr>
                     <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
                     <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
-                    <td><span style="color:{{ v.similarity.1 }}"{% if v.similarity.2 %} class="note-popup" data-content="{{ v.similarity.2 }}"{% endif %}>{{ v.similarity.0 }}</span></td>
+                    <td><span style="color:{{ v.similarity.1 }}">{{ v.similarity.0 }}</span></td>
                     <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                    <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                    <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                    <td>{% if v.automatic %}<span>{% trans 'Yes' %}</span>{% else %}<span style="color:#B12EAF;">{% trans 'No' %}</span>{% endif %}</td>
+                    <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                     <td>{{ v.description|safe }}</td>
                     {% if can_mark %}
                         <td>
                             <div class="ui mini icon buttons">
                                 <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
-                                <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
-                                {% if not v.similarity.2 %}
+                                {% if v.automatic %}
+                                    <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
+                                {% endif %}
+                                {% if not v.broken %}
                                     <button id="break_mark_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Disassociate' %}"><i class="trash icon"></i></button>
                                 {% endif %}
                             </div>

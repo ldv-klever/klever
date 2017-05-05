@@ -80,7 +80,7 @@ class NewMark:
         if not report.root.job.safe_marks:
             raise BridgeException(_('Safe marks are disabled'))
         mark = MarkSafe.objects.create(
-            identifier=unique_id(), author=self._user, prime=report, format=report.root.job.format,
+            identifier=unique_id(), author=self._user, format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')),
             verdict=self._args['verdict'], status=self._args['status'], is_modifiable=self._args['is_modifiable']
         )
@@ -91,7 +91,7 @@ class NewMark:
         except Exception:
             mark.delete()
             raise
-        self.changes = ConnectMarks([mark]).changes.get(mark.id, {})
+        self.changes = ConnectMarks([mark], prime_id=report.id).changes.get(mark.id, {})
         RecalculateTags(list(self.changes))
         return mark
 
@@ -233,8 +233,9 @@ class NewMark:
 
 
 class ConnectMarks:
-    def __init__(self, marks):
+    def __init__(self, marks, prime_id=None):
         self._marks = marks
+        self._prime_id = prime_id
         self.changes = {}
 
         self._safes_attrs = self.__get_safes_attrs()
@@ -242,10 +243,10 @@ class ConnectMarks:
             return
         self.__clear_connections()
         self._marks_attrs = self.__get_marks_attrs()
+        self._author = dict((m.id, m.author) for m in self._marks)
 
         self.__connect()
         self.__update_verdicts()
-        self.__check_prime()
 
     def __get_safes_attrs(self):
         self.__is_not_used()
@@ -286,7 +287,9 @@ class ConnectMarks:
             for mark_id in self._marks_attrs:
                 if not self._marks_attrs[mark_id].issubset(self._safes_attrs[safe]):
                     continue
-                new_markreports.append(MarkSafeReport(mark_id=mark_id, report=safe))
+                new_markreports.append(MarkSafeReport(
+                    mark_id=mark_id, report=safe, manual=(self._prime_id == safe.id), author=self._author[mark_id]
+                ))
                 if mark_id not in self.changes:
                     self.changes[mark_id] = {}
                 if safe in self.changes[mark_id]:
@@ -344,15 +347,6 @@ class ConnectMarks:
             else:
                 new_verdict = v
         return new_verdict
-
-    def __check_prime(self):
-        marks_to_update = set()
-        for mark in self._marks:
-            if mark.id not in self.changes:
-                continue
-            if mark.prime not in self.changes[mark.id] or self.changes[mark.id][mark.prime]['kind'] == '-':
-                marks_to_update.add(mark.id)
-        MarkSafe.objects.filter(id__in=marks_to_update).update(prime=None)
 
     def __is_not_used(self):
         pass

@@ -289,5 +289,22 @@ $(document).ready(function () {
             }
         );
     });
+    $('button[id^="confirm_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'confirm-association/',
+            {
+                mark_id: $(this).attr('id').replace('confirm_association_', ''),
+                report_id: $('#report_pk').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
 });
 

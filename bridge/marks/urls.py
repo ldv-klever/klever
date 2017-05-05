@@ -19,6 +19,7 @@ from django.conf.urls import url
 from marks import views
 
 
+
 urlpatterns = [
     url(r'^(?P<mark_type>unsafe|safe|unknown)/create/(?P<report_id>[0-9]+)/$', views.create_mark, name='create_mark'),
     url(r'^(?P<mark_type>unsafe|safe|unknown)/edit/(?P<mark_id>[0-9]+)/$', views.edit_mark, name='edit_mark'),
@@ -45,6 +46,7 @@ urlpatterns = [
     url(r'^ajax/upload_tags/$', views.upload_tags),
     url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
     url(r'^ajax/disassociate/$', views.disassociate_mark),
+    url(r'^ajax/confirm-association/$', views.confirm_association),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

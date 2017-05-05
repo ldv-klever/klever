@@ -76,7 +76,7 @@ class NewMark:
             raise BridgeException(_('Could not create a new mark since the similar mark exists already'))
 
         mark = MarkUnknown.objects.create(
-            identifier=unique_id(), author=self._user, prime=report, format=report.root.job.format,
+            identifier=unique_id(), author=self._user, format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')), status=self._args['status'],
             is_modifiable=self._args['is_modifiable'], component=report.component, function=self._args['function'],
             problem_pattern=self._args['problem'], link=self._args['link']
@@ -86,7 +86,7 @@ class NewMark:
         except Exception:
             mark.delete()
             raise
-        self.changes = ConnectMark(mark).changes
+        self.changes = ConnectMark(mark, prime_id=report.id).changes
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
@@ -164,13 +164,11 @@ class NewMark:
 
 
 class ConnectMark:
-    def __init__(self, mark):
+    def __init__(self, mark, prime_id=None):
         self.mark = mark
+        self._prime_id = prime_id
         self.changes = {}
         self.__connect_unknown_mark()
-        if self.mark.prime not in self.changes or self.changes[self.mark.prime]['kind'] == '-':
-            self.mark.prime = None
-            self.mark.save()
 
     def __connect_unknown_mark(self):
         for mark_unknown in self.mark.markreport_set.all():
@@ -192,7 +190,10 @@ class ConnectMark:
                 logger.error("Problem '%s' for mark %s is too long" % (problem, self.mark.identifier), stack_info=True)
             if problem not in problems:
                 problems[problem] = UnknownProblem.objects.get_or_create(name=problem)[0]
-            new_markreports.append(MarkUnknownReport(mark=self.mark, report=unknown, problem=problems[problem]))
+            new_markreports.append(MarkUnknownReport(
+                mark=self.mark, report=unknown, problem=problems[problem],
+                manual=(self._prime_id == unknown.id), author=self.mark.author
+            ))
             if unknown in self.changes:
                 self.changes[unknown]['kind'] = '='
             else:

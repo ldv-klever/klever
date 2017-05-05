@@ -111,7 +111,6 @@ class MarkHistory(models.Model):
 
 # Safes tables
 class MarkSafe(Mark):
-    prime = models.ForeignKey(ReportSafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_SAFE, default='0')
 
     class Meta:
@@ -138,6 +137,8 @@ class MarkSafeAttr(models.Model):
 class MarkSafeReport(models.Model):
     mark = models.ForeignKey(MarkSafe, related_name='markreport_set')
     report = models.ForeignKey(ReportSafe, related_name='markreport_set')
+    manual = models.BooleanField(default=False)
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = "cache_mark_safe_report"
@@ -145,7 +146,6 @@ class MarkSafeReport(models.Model):
 
 # Unsafes tables
 class MarkUnsafe(Mark):
-    prime = models.ForeignKey(ReportUnsafe, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
     function = models.ForeignKey(MarkUnsafeCompare)
 
@@ -178,6 +178,7 @@ class MarkUnsafeReport(models.Model):
     result = models.FloatField()
     manual = models.BooleanField(default=False)
     error = models.TextField(null=True)
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = "cache_mark_unsafe_report"
@@ -272,7 +273,6 @@ class SafeReportTag(models.Model):
 
 # For unknowns
 class MarkUnknown(Mark):
-    prime = models.ForeignKey(ReportUnknown, related_name='prime_marks', on_delete=models.SET_NULL, null=True)
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
     function = models.TextField()
     problem_pattern = models.CharField(max_length=15)
@@ -297,6 +297,8 @@ class MarkUnknownReport(models.Model):
     mark = models.ForeignKey(MarkUnknown, related_name='markreport_set')
     report = models.ForeignKey(ReportUnknown, related_name='markreport_set')
     problem = models.ForeignKey(UnknownProblem, on_delete=models.PROTECT)
+    manual = models.BooleanField(default=False)
+    author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta:
         db_table = 'cache_mark_unknown_report'
