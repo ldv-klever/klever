@@ -443,3 +443,9 @@ REPORT_FILES_ARCHIVE = 'data.zip'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'
+
+ASSOCIATION_TYPE = (
+    ('0', _('Automatic')),
+    ('1', _('Confirmed')),
+    ('2', _('Unconfirmed'))
+)

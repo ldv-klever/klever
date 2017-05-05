@@ -19,7 +19,7 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
 from jobs.models import Job
 
@@ -137,7 +137,7 @@ class MarkSafeAttr(models.Model):
 class MarkSafeReport(models.Model):
     mark = models.ForeignKey(MarkSafe, related_name='markreport_set')
     report = models.ForeignKey(ReportSafe, related_name='markreport_set')
-    manual = models.BooleanField(default=False)
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta:
@@ -175,8 +175,8 @@ class MarkUnsafeAttr(models.Model):
 class MarkUnsafeReport(models.Model):
     mark = models.ForeignKey(MarkUnsafe, related_name='markreport_set')
     report = models.ForeignKey(ReportUnsafe, related_name='markreport_set')
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
     result = models.FloatField()
-    manual = models.BooleanField(default=False)
     error = models.TextField(null=True)
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
@@ -306,7 +306,7 @@ class MarkUnknownReport(models.Model):
     mark = models.ForeignKey(MarkUnknown, related_name='markreport_set')
     report = models.ForeignKey(ReportUnknown, related_name='markreport_set')
     problem = models.ForeignKey(UnknownProblem, on_delete=models.PROTECT)
-    manual = models.BooleanField(default=False)
+    type = models.CharField(max_length=1, choices=ASSOCIATION_TYPE, default='0')
     author = models.ForeignKey(User, null=True, on_delete=models.SET_NULL)
 
     class Meta:

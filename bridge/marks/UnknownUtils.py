@@ -24,7 +24,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, MARK_STATUS, MARK_TYPE
+from bridge.vars import USER_ROLES, MARK_STATUS, MARK_TYPE, ASSOCIATION_TYPE
 from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 
 from users.models import User
@@ -190,9 +190,11 @@ class ConnectMark:
                 logger.error("Problem '%s' for mark %s is too long" % (problem, self.mark.identifier), stack_info=True)
             if problem not in problems:
                 problems[problem] = UnknownProblem.objects.get_or_create(name=problem)[0]
+            ass_type = ASSOCIATION_TYPE[0][0]
+            if self._prime_id == unknown.id:
+                ass_type = ASSOCIATION_TYPE[1][0]
             new_markreports.append(MarkUnknownReport(
-                mark=self.mark, report=unknown, problem=problems[problem],
-                manual=(self._prime_id == unknown.id), author=self.mark.author
+                mark=self.mark, report=unknown, problem=problems[problem], type=ass_type, author=self.mark.author
             ))
             if unknown in self.changes:
                 self.changes[unknown]['kind'] = '='

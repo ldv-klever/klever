@@ -27,7 +27,7 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, UNSAFE_VERDICTS, MARK_UNSAFE, MARK_STATUS, MARKS_COMPARE_ATTRS,\
-    MARK_TYPE
+    MARK_TYPE, ASSOCIATION_TYPE
 from bridge.utils import logger, unique_id, file_checksum, file_get_or_create, BridgeException
 
 from users.models import User
@@ -359,9 +359,12 @@ class ConnectMarks:
                     logger.exception("Error traces comparison failed: %s" % e)
                     compare_error = str(UNKNOWN_ERROR)
 
+                ass_type = ASSOCIATION_TYPE[0][0]
+                if self._prime_id == unsafe.id:
+                    ass_type = ASSOCIATION_TYPE[1][0]
                 new_markreports.append(MarkUnsafeReport(
                     mark_id=mark_id, report=unsafe, result=compare.result, error=compare_error,
-                    manual=(self._prime_id == unsafe.id), author=self._author[mark_id]
+                    type=ass_type, author=self._author[mark_id]
                 ))
                 if mark_id not in self.changes:
                     self.changes[mark_id] = {}
@@ -520,8 +523,8 @@ class RecalculateTags:
     def __fill_leaves_cache(self):
         UnsafeReportTag.objects.filter(report__in=self.reports).delete()
         marks = {}
-        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None, result__gt=0)\
-                .values_list('mark_id', 'report_id'):
+        for m_id, r_id in MarkUnsafeReport.objects.filter(report__in=self.reports, error=None, result__gt=0) \
+                .exclude(type=ASSOCIATION_TYPE[2][0]).values_list('mark_id', 'report_id'):
             if m_id not in marks:
                 marks[m_id] = set()
             marks[m_id].add(r_id)
@@ -577,7 +580,7 @@ class UpdateVerdicts:
             for unsafe in self.changes[mark_id]:
                 unsafe_verdicts[unsafe] = set()
         for mr in MarkUnsafeReport.objects.filter(report__in=unsafe_verdicts, error=None, result__gt=0)\
-                .select_related('mark'):
+                .exclude(type=ASSOCIATION_TYPE[2][0]).select_related('mark'):
             unsafe_verdicts[mr.report].add(mr.mark.verdict)
 
         unsafes_to_update = {}
@@ -829,12 +832,11 @@ def delete_marks(marks):
     return unsafes_changes
 
 
-def disassociate_mark(author, report_id, mark_id):
+def unconfirm_association(author, report_id, mark_id):
     report_id = int(report_id)
     mark_id = int(mark_id)
     mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
-    mr.error = 'Disassociated'
-    mr.result = 0
+    mr.type = ASSOCIATION_TYPE[2][0]
     mr.author = author
     mr.save()
 
@@ -847,8 +849,13 @@ def disassociate_mark(author, report_id, mark_id):
 def confirm_mark_association(author, report_id, mark_id):
     mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
     mr.author = author
-    mr.manual = True
+    old_type = mr.type
+    mr.type = ASSOCIATION_TYPE[1][0]
     mr.save()
+    if old_type == ASSOCIATION_TYPE[2][0]:
+        changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
+            .changes.get(mark_id, {})
+        RecalculateTags(list(changes))
 
 
 def like_association(author, report_id, mark_id, dislike):

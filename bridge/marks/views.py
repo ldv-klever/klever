@@ -799,14 +799,14 @@ def get_inline_mark_form(request):
 
 
 @unparallel_group(['MarkUnsafe', 'ReportUnsafe'])
-def disassociate_mark(request):
+def unconfirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
 
     if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mutils.UnsafeUtils.disassociate_mark(request.user, request.POST['report_id'], request.POST['mark_id'])
+        mutils.UnsafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})

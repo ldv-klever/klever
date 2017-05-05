@@ -272,11 +272,11 @@ $(document).ready(function () {
             attr_table.hide();
         }
     });
-    $('button[id^="break_mark_association_"]').click(function () {
+    $('button[id^="unconfirm_association_"]').click(function () {
         $.post(
-            marks_ajax_url + 'disassociate/',
+            marks_ajax_url + 'unconfirm-association/',
             {
-                mark_id: $(this).attr('id').replace('break_mark_association_', ''),
+                mark_id: $(this).attr('id').replace('unconfirm_association_', ''),
                 report_id: $('#report_pk').val()
             },
             function (data) {
@@ -307,10 +307,11 @@ $(document).ready(function () {
         );
     });
     $('.like-popup').popup({
-        hoverable: true
+        hoverable: true,
+        position: 'top right'
     });
 
-    $('div[id^="like_association_"]').click(function () {
+    $('button[id^="like_association_"]').click(function () {
         $.post(
             marks_ajax_url + 'like-association/',
             {
@@ -328,7 +329,7 @@ $(document).ready(function () {
             }
         );
     });
-    $('div[id^="dislike_association_"]').click(function () {
+    $('button[id^="dislike_association_"]').click(function () {
         $.post(
             marks_ajax_url + 'like-association/',
             {

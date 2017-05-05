@@ -45,7 +45,7 @@ urlpatterns = [
     url(r'^ajax/get_tags_data/$', views.get_tags_data),
     url(r'^ajax/upload_tags/$', views.upload_tags),
     url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
-    url(r'^ajax/disassociate/$', views.disassociate_mark),
+    url(r'^ajax/unconfirm-association/$', views.unconfirm_association),
     url(r'^ajax/confirm-association/$', views.confirm_association),
     url(r'^ajax/like-association/$', views.like_association),
 

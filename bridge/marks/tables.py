@@ -350,25 +350,23 @@ class ReportMarkTable:
 
     def __get_values(self):
         value_data = []
+        likes = {}
+        dislikes = {}
         cnt = 0
         if self.type == 'unsafe':
             orders = ['-result', '-mark__change_date']
+            for ass_like in UnsafeAssociationLike.objects.filter(association__report=self.report):
+                if ass_like.dislike:
+                    if ass_like.association_id not in dislikes:
+                        dislikes[ass_like.association_id] = []
+                    dislikes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
+                else:
+                    if ass_like.association_id not in likes:
+                        likes[ass_like.association_id] = []
+                    likes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
         else:
             orders = ['-mark__change_date']
         marks_ids = set()
-
-        likes = {}
-        dislikes = {}
-        for ass_like in UnsafeAssociationLike.objects.filter(association__report=self.report):
-            if ass_like.dislike:
-                if ass_like.association_id not in dislikes:
-                    dislikes[ass_like.association_id] = []
-                dislikes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
-            else:
-                if ass_like.association_id not in likes:
-                    likes[ass_like.association_id] = []
-                likes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
-
         for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
             marks_ids.add(mark_rep.mark_id)
             cnt += 1
@@ -376,7 +374,8 @@ class ReportMarkTable:
                 'id': mark_rep.mark_id,
                 'number': cnt,
                 'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
-                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status])
+                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
+                'type': (mark_rep.type, mark_rep.get_type_display())
             }
             if self.type == 'unsafe':
                 row_data['broken'] = (mark_rep.error is not None)
@@ -395,7 +394,6 @@ class ReportMarkTable:
                     problem_link = 'http://' + mark_rep.mark.link
                 row_data['problem'] = (mark_rep.problem.name, problem_link)
 
-            row_data['automatic'] = not mark_rep.manual
             if mark_rep.author is not None:
                 row_data['author'] = (
                     mark_rep.author.get_full_name(), reverse('users:show_profile', args=[mark_rep.author_id])
@@ -778,13 +776,13 @@ class MarkReportsTable(object):
         self.user = user
         if isinstance(mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result', 'automatic', 'association_author']
+            self.columns = ['report', 'job', 'result', 'type', 'association_author']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['report', 'job', 'automatic', 'association_author']
+            self.columns = ['report', 'job', 'type', 'association_author']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['report', 'job', 'automatic', 'association_author']
+            self.columns = ['report', 'job', 'type', 'association_author']
         else:
             return
         self.mark = mark
@@ -817,12 +815,8 @@ class MarkReportsTable(object):
                     val = report.root.job.name
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'automatic':
-                    if mark_report.manual:
-                        val = _('No')
-                        color = '#B12EAF'
-                    else:
-                        val = _('Yes')
+                elif col == 'type':
+                    val = mark_report.get_type_display()
                 elif col == 'association_author':
                     if mark_report.author:
                         val = mark_report.author.get_full_name()

@@ -25,7 +25,8 @@ from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.settings import ENABLE_SAFE_MARKS
-from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARKS_COMPARE_ATTRS, MARK_TYPE
+from bridge.vars import USER_ROLES, SAFE_VERDICTS, MARK_SAFE, MARK_STATUS, MARKS_COMPARE_ATTRS, MARK_TYPE, \
+    ASSOCIATION_TYPE
 from bridge.utils import unique_id, BridgeException
 
 from users.models import User
@@ -287,8 +288,11 @@ class ConnectMarks:
             for mark_id in self._marks_attrs:
                 if not self._marks_attrs[mark_id].issubset(self._safes_attrs[safe]):
                     continue
+                ass_type = ASSOCIATION_TYPE[0][0]
+                if self._prime_id == safe.id:
+                    ass_type = ASSOCIATION_TYPE[1][0]
                 new_markreports.append(MarkSafeReport(
-                    mark_id=mark_id, report=safe, manual=(self._prime_id == safe.id), author=self._author[mark_id]
+                    mark_id=mark_id, report=safe, type=ass_type, author=self._author[mark_id]
                 ))
                 if mark_id not in self.changes:
                     self.changes[mark_id] = {}
