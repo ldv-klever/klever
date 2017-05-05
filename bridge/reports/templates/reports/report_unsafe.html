@@ -120,7 +120,8 @@
                     {% if can_mark %}
                         <td>
                             <div class="ui mini icon buttons">
-                                <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="left center" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                                <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                                <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
                                 {% if not v.similarity.2 %}
                                     <button id="break_mark_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Disassociate' %}"><i class="trash icon"></i></button>
                                 {% endif %}

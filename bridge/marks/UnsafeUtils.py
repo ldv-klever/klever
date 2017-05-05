@@ -853,3 +853,7 @@ def disassociate_mark(report_id, mark_id):
     mr.result = 0
     mr.save()
     return UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}).changes.get(mark_id, {})
+
+
+def confirm_mark_association(report_id, mark_id):
+    mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
