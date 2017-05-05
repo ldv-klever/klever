@@ -128,7 +128,7 @@ class NewMark:
             json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
         ).encode('utf8'))
 
-        last_v = MarkUnsafeHistory.objects.get(version=F('mark__version'))
+        last_v = MarkUnsafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
         mark.status = self._args['status']

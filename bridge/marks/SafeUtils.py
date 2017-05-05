@@ -99,7 +99,7 @@ class NewMark:
         if len(self._args['comment']) == 0:
             raise BridgeException(_('Change comment is required'))
 
-        last_v = MarkSafeHistory.objects.get(version=F('mark__version'))
+        last_v = MarkSafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
         mark.author = self._user
         mark.status = self._args['status']
