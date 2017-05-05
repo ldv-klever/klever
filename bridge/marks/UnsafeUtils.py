@@ -468,19 +468,19 @@ class ConnectReport:
             self._marks[m_id]['pattern'] = patterns[self._marks[m_id]['pattern']]
 
         for mark_id in self._marks:
+            compare_result = 0
             compare_error = None
             try:
                 compare = CompareTrace(self._marks[mark_id]['function'], self._marks[mark_id]['pattern'], self._unsafe)
+                compare_result = compare.result
             except BridgeException as e:
                 compare_error = str(e)
             except Exception as e:
                 logger.exception("Error traces comparison failed: %s" % e)
                 compare_error = str(UNKNOWN_ERROR)
-
-            if compare.result > 0 or compare_error is not None:
-                new_markreports.append(MarkUnsafeReport(
-                    mark_id=mark_id, report=self._unsafe, result=compare.result, error=compare_error
-                ))
+            new_markreports.append(MarkUnsafeReport(
+                mark_id=mark_id, report=self._unsafe, result=compare_result, error=compare_error
+            ))
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 
         new_verdict = UNSAFE_VERDICTS[5][0]
