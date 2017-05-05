@@ -837,7 +837,11 @@ def disassociate_mark(author, report_id, mark_id):
     mr.result = 0
     mr.author = author
     mr.save()
-    return UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}).changes.get(mark_id, {})
+
+    changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
+        .changes.get(mark_id, {})
+    RecalculateTags(list(changes))
+    return changes
 
 
 def confirm_mark_association(author, report_id, mark_id):
