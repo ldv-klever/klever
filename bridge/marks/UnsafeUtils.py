@@ -122,11 +122,11 @@ class NewMark:
     def change_mark(self, mark, recalculate_cache=True):
         if len(self._args['comment']) == 0:
             raise BridgeException(_('Change comment is required'))
-        if 'error_trace' not in self._args and not isinstance(self._args['error_trace'], str):
-            raise ValueError('error_trace is required')
-        error_trace = BytesIO(json.dumps(
-            json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
-        ).encode('utf8'))
+        error_trace = None
+        if 'error_trace' in self._args and isinstance(self._args['error_trace'], str):
+            error_trace = BytesIO(json.dumps(
+                json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
+            ).encode('utf8'))
 
         last_v = MarkUnsafeHistory.objects.get(mark=mark, version=F('mark__version'))
 
@@ -146,7 +146,7 @@ class NewMark:
             mark.function = self._comparison
             do_recalc = True
 
-        if file_checksum(error_trace) != last_v.error_trace.hash_sum:
+        if error_trace is not None and file_checksum(error_trace) != last_v.error_trace.hash_sum:
             do_recalc = True
             error_trace = file_get_or_create(error_trace, ET_FILE_NAME, ConvertedTraces)[0]
         else:
@@ -637,6 +637,7 @@ class RecalculateConnections:
         ReportUnsafeTag.objects.filter(report__root__in=self._roots).delete()
         UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
+        ReportUnsafe.objects.filter(root__in=self._roots).update(verdict=UNSAFE_VERDICTS[5][0])
         Verdict.objects.filter(report__root__in=self._roots).update(
             unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
             unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
