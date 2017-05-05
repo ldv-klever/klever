@@ -28,9 +28,10 @@ from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, 
 from bridge.utils import unique_id
 
 from users.models import View
-from reports.models import ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
-    MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory
+    MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
+    MarkSafeTag, MarkUnsafeTag
 
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -354,7 +355,9 @@ class ReportMarkTable:
             orders = ['-result', '-mark__change_date']
         else:
             orders = ['-mark__change_date']
+        marks_ids = set()
         for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
+            marks_ids.add(mark_rep.mark_id)
             cnt += 1
             row_data = {
                 'id': mark_rep.mark_id,
@@ -386,6 +389,26 @@ class ReportMarkTable:
                 row_data['description'] = mark_rep.mark.description
 
             value_data.append(row_data)
+
+        if self.type == 'unknown':
+            return value_data
+
+        tags_filters = {
+            'mark_version__mark_id__in': marks_ids,
+            'mark_version__version': F('mark_version__mark__version')
+        }
+        tags_data = {}
+        tags_model = {'safe': MarkSafeTag, 'unsafe': MarkUnsafeTag}
+        for m_id, tag in tags_model[self.type].objects.filter(**tags_filters)\
+                .values_list('mark_version__mark_id', 'tag__tag'):
+            if m_id not in tags_data:
+                tags_data[m_id] = set()
+            tags_data[m_id].add(tag)
+        for i in range(len(value_data)):
+            if value_data[i]['id'] in tags_data:
+                value_data[i]['tags'] = '; '.join(sorted(tags_data[value_data[i]['id']]))
+            else:
+                value_data[i]['tags'] = '-'
         return value_data
 
 

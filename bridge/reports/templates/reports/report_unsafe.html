@@ -99,6 +99,7 @@
                     <th>{% trans 'Verdict' %}</th>
                     <th>{% trans 'Similarity' %}</th>
                     <th>{% trans 'Status' %}</th>
+                    <th>{% trans 'Tags' %}</th>
                     <th>{% trans 'Automatic association' %}</th>
                     <th>{% trans 'Association author' %}</th>
                     <th>{% trans 'Description' %}</th>
@@ -114,6 +115,7 @@
                     <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
                     <td><span style="color:{{ v.similarity.1 }}">{{ v.similarity.0 }}</span></td>
                     <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
+                    <td>{{ v.tags }}</td>
                     <td>{% if v.automatic %}<span>{% trans 'Yes' %}</span>{% else %}<span style="color:#B12EAF;">{% trans 'No' %}</span>{% endif %}</td>
                     <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                     <td>{{ v.description|safe }}</td>
