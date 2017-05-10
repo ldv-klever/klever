@@ -22,12 +22,11 @@ import json
 import concurrent.futures
 import multiprocessing
 import subprocess
-import requests
-import consulate
 import signal
 import sys
 
 import schedulers as schedulers
+from utils.common_scheduler import ResourceManager
 
 
 def executor(timeout, args):
@@ -121,9 +120,6 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             logging.debug("Use provided in configuration prototype 'common' settings for jobs")
 
-        # Check first time node
-        self.update_nodes()
-
         # init process pull
         if "processes" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''processes' to set "
@@ -142,6 +138,13 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
+
+        if "concurrent jobs" in self.conf["scheduler"]:
+            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
+        else:
+            concurrent_jobs = 1
+        self.__manager = ResourceManager(logging, concurrent_jobs)
+
 
     @staticmethod
     def scheduler_type():
@@ -305,60 +308,8 @@ class Scheduler(schedulers.SchedulerExchange):
         Update statuses and configurations of available nodes.
         :return: Return True if nothing has changes
         """
-        # Determine node name
-        url = self.__kv_url + "/v1/catalog/nodes"
-        response = requests.get(url)
-        if not response.ok:
-            raise "Cannot get list of connected nodes requesting {} (got status code: {} due to: {})". \
-                format(url, response.status_code, response.reason)
-        nodes = response.json()
-        if len(nodes) != 1:
-            raise ValueError("Native scheduler expects always 1 node to be connected, but got {}". format(len(nodes)))
-        self.__node_name = nodes[0]["Node"]
-
-        # Fetch node configuration
-        url = self.__kv_url + "/v1/kv/states/" + self.__node_name
-        session = consulate.Consul()
-        string = session.kv["states/" + self.__node_name]
-        node_status = json.loads(string)
-
-        # Submit nodes
-        # TODO: Properly set node status
-        configurations = [{
-            "CPU model": node_status["CPU model"],
-            "CPU number": node_status["available CPU number"],
-            "RAM memory": node_status["available RAM memory"],
-            "disk memory": node_status["available disk memory"],
-            "nodes": {
-                node_status["node name"]: {
-                    "status": "HEALTHY",
-                    "workload": {
-                        "reserved CPU number": 0,
-                        "reserved RAM memory": self.__reserved_ram_memory,
-                        "reserved disk memory": 0,
-                        "running verification jobs": self.__running_jobs,
-                        "running verification tasks": self.__running_tasks,
-                        "available for jobs": node_status["available for jobs"],
-                        "available for tasks": node_status["available for tasks"],
-                    }
-                }
-            }
-        }]
-        if not self.__cached_nodes_data or self.__cached_nodes_data != str(configurations):
-            self.__cached_nodes_data = str(configurations)
-            self.server.submit_nodes(configurations)
-
-        # Fill available resources
-        if self.__cpu_model != node_status["CPU model"] or \
-                        self.__cpu_cores != node_status["available CPU number"] or \
-                        self.__ram_memory != node_status["available RAM memory"] or \
-                        self.__disk_memory != node_status["available disk memory"]:
-            self.__cpu_model = node_status["CPU model"]
-            self.__cpu_cores = node_status["available CPU number"]
-            self.__ram_memory = node_status["available RAM memory"]
-            self.__disk_memory = node_status["available disk memory"]
-            return False
-        return True
+        self.__manager.request_from_consul(self.__kv_url)
+        return self.__manager.submit_status(self.server)
 
     def update_tools(self):
         """
