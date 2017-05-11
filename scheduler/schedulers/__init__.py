@@ -26,6 +26,7 @@ import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
+from utils import higher_priority
 
 
 def get_gateway(conf, work_dir):
@@ -103,24 +104,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         logging.info("Scheduler base initialization has been successful")
 
-    @staticmethod
-    def __sort_priority(task):
-        """
-        Use the function to sort tasks by their priorities. For higher priority return higher integer.
-        :param task: Task.
-        :return: 3, 2, 1, 0
-        """
-        priority = task["priority"]
-        if priority == "IDLE":
-            return 3
-        elif priority == "LOW":
-            return 2
-        elif priority == "HIGH":
-            return 1
-        elif priority == "URGENT":
-            return 0
-        else:
-            raise ValueError("Unknown priority: {}".format(priority))
 
     def launch(self):
         """Start scheduler loop."""
@@ -392,16 +375,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     logging.info("Start scheduling new tasks")
                     pending_tasks = [self.__tasks[task_id] for task_id in self.__tasks
                                      if self.__tasks[task_id]["status"] == "PENDING"]
-                    processing_tasks = [self.__tasks[task_id] for task_id in self.__tasks
-                                        if self.__tasks[task_id]["status"] == "PROCESSING"]
                     pending_jobs = [self.__jobs[job_id] for job_id in self.__jobs
                                     if self.__jobs[job_id]["status"] == "PENDING"
                                     and "future" not in self.__jobs[job_id]]
-                    processing_jobs = [self.__jobs[job_id] for job_id in self.__jobs
-                                       if self.__jobs[job_id]["status"] in ["PENDING", "PROCESSING"]
-                                       and "future" in self.__jobs[job_id]]
-                    tasks_to_start, jobs_to_start = self.schedule(pending_tasks, pending_jobs, processing_tasks,
-                                                                  processing_jobs, self.__sort_priority)
+                    pending_jobs = sorted(pending_jobs,
+                                          lambda i, j: higher_priority(i['configuration']['priority'],
+                                                                       j['configuration']['priority']))
+                    pending_tasks = sorted(pending_tasks,
+                                           lambda i, j: higher_priority(i['configuration']['priority'],
+                                                                        j['configuration']['priority']))
+                    tasks_to_start, jobs_to_start = self.schedule(pending_tasks, pending_jobs)
                     logging.info("Going to start {} new tasks and {} jobs".
                                  format(len(tasks_to_start), len(jobs_to_start)))
 
@@ -464,15 +447,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     exit(1)
 
     @abc.abstractmethod
-    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
+    def schedule(self, pending_tasks, pending_jobs):
         """
-        Get list of new tasks which can be launched during current scheduler iteration.
+        Get list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end.
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :param processing_tasks: List with currently ongoing tasks.
-        :param processing_jobs: List with currently ongoing jobs.
-        :param sorter: Function which can by used for sorting tasks according to their priorities.
         :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
         return []

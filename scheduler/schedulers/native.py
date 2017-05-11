@@ -169,37 +169,18 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             return False
 
-    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
+    def schedule(self, pending_tasks, pending_jobs):
         """
-        Get list of new tasks which can be launched during current scheduler iteration.
+        Get list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end.
+
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :param processing_tasks: List with currently ongoing tasks.
-        :param processing_jobs: List with currently ongoing jobs.
-        :param sorter: Function which can by used for sorting tasks according to their priorities.
-        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
+        :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
-        new_tasks = []
-        new_jobs = []
+        new_tasks, new_jobs= self.__manager.schedule(pending_tasks, pending_jobs)
 
-        # Plan tasks first
-        if len(pending_tasks) > 0:
-            # Sort to get high priority tasks at the beginning
-            pending_tasks = sorted(pending_tasks, key=sorter)
-            for task in pending_tasks:
-                if self.__try_to_schedule("task", task["id"], task["description"]["resource limits"]):
-                    new_tasks.append(task["id"])
-                    self.__running_tasks += 1
-                    # Plan jobs
-
-        if len(pending_jobs) > 0:
-            # Sort to get high priority tasks at the beginning
-            for job in [job for job in pending_jobs if job["id"] not in self.__reserved]:
-                if self.__try_to_schedule("job", job["id"], job["configuration"]["resource limits"]):
-                    new_jobs.append(job["id"])
-                    self.__running_jobs += 1
-
-        return new_tasks, new_jobs
+        return [t[0] for t in new_tasks], [j[0] for j in new_jobs]
 
     def prepare_task(self, identifier, configuration):
         """
@@ -334,7 +315,6 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: None
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        self.__check_resource_limits(configuration)
         args = [sys.executable, self.__client_bin]
         if mode == 'task':
             subdir = 'tasks'
@@ -526,28 +506,6 @@ class Scheduler(schedulers.SchedulerExchange):
                 raise schedulers.SchedulerException(error_msg)
         else:
             raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
-
-    def __check_resource_limits(self, desc):
-        """
-        Check resource limitations provided with a job or a task configuration to be sure that it can be launched.
-
-        :param desc: Configuration dictionary.
-        :return: None
-        """
-        logging.debug("Check resource limits")
-
-        if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
-            raise schedulers.SchedulerException(
-                "Host CPU model is not {} (has only {})".
-                    format(desc["resource limits"]["CPU model"], self.__cpu_model))
-
-        if desc["resource limits"]["memory size"] > self.__ram_memory:
-            raise schedulers.SchedulerException(
-                "Host does not have {} bytes of RAM memory (has only {} bytes)".
-                    format(desc["resource limits"]["memory size"], self.__ram_memory))
-
-            # TODO: Disk space check
-            # TODO: number of CPU cores check
 
     def __create_work_dir(self, entities, identifier):
         """

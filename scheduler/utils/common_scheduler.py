@@ -17,6 +17,8 @@
 import requests
 import consulate
 import json
+import copy
+from utils import higher_priority
 
 
 class InvariantException(RuntimeError):
@@ -98,11 +100,11 @@ class ResourceManager:
                                   .format(missing))
             cancel_jobs.extend(self.__system_status[missing]["running verification jobs"])
             cancel_tasks.extend(self.__system_status[missing]["running verification tasks"])
-            self.__system_status[missing]["status"] == "DISCONNECTED"
+            self.__system_status[missing]["status"] = "DISCONNECTED"
 
         # Check ailing status
-        for name, node in ([n, self.__system_status[n]] for n in self.__system_status
-                            if self.__system_status[n]["status"] != "DISCONNECTED"):
+        for name, node in [[n, self.__system_status[n]] for n in self.__system_status
+                           if self.__system_status[n]["status"] != "DISCONNECTED"]:
             if node["reserved CPU number"] > node["available CPU number"] or \
                     node["reserved RAM memory"] > node["available RAM memory"] or \
                     node["reserved disk memory"] > node["available disk memory"]:
@@ -162,13 +164,41 @@ class ResourceManager:
 
         return False
 
-    def schedule(self, configs, pending_jobs, pending_tasks):
-        # todo: Check high priority pending jobs
-        # todo: Try to  schedule it
-        # todo: Schedule all avialable tasks
-        # todo: Try schedule rest jobs until N
-        # return run
-        raise NotImplementedError
+    def schedule(self, pending_jobs, pending_tasks):
+        def schedule_jobs(jobs):
+            while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) <= self.__max_running_jobs:
+                candidate = jobs.pop()
+
+                n = self.__schedule_job(candidate)
+                if n:
+                    jobs_to_run.append([candidate, n])
+
+        jobs_to_run = []
+        tasks_to_run = []
+
+        # Check high priority running jobs
+        highest_priority = 'IDLE'
+        running_jobs = self.__processing_jobs()
+        for job, node in running_jobs:
+            if higher_priority(self.__jobs_config[job]['priority'], highest_priority, strictly=True):
+                highest_priority = self.__jobs_config[job]['priority']
+
+        # Filter jobs that have a higher priority than the current highest priority
+        filtered_jobs = [j for j in pending_jobs if higher_priority(j['configuration']['priority'], highest_priority,
+                                                                    True)]
+        schedule_jobs(filtered_jobs)
+
+        # Schedule all posible tasks
+        for task in pending_tasks:
+            node = self.__schedule_task(task)
+            if node:
+                tasks_to_run.append([task, node])
+
+        # Filter jobs that have the same or a higher priority than the current highest priority
+        filtered_jobs = [j for j in pending_jobs if higher_priority(j['configuration']['priority'], highest_priority)]
+        schedule_jobs(filtered_jobs)
+
+        return tasks_to_run, jobs_to_run
 
     def claim_resources(self, avialable, identifier, job=False):
         # todo: get actial resources
@@ -189,48 +219,86 @@ class ResourceManager:
         # return True
         raise NotImplementedError
 
-    def __schedule_job(self):
-        # todo: ranking of available resources
-        # todo: ranking of theoretically available resources
-        # todo: check invariant
-        # todo: on base of new rankings choose a node
-        # return node
-        raise NotImplementedError
+    def __schedule_job(self, job):
+        # Ranking of available resources
+        nodes = self.__nodes_ranking(self.__system_status, job)
 
-    def __schedule_task(self):
-        # todo: ranking of available resources
-        # todo: choose the mostly used machine
-        # return node
-        raise NotImplementedError
+        # Ranking of theoretically available resources
+        if len(nodes) > 0:
+            success, inv_nodes = self.__check_invariant(job)
+            if success:
+                # On base of new rankings choose a node
+                suits = [n for n in nodes if n in inv_nodes]
+                if len(suits) > 0:
+                    return suits[0]
+
+        return None
+
+    def __schedule_task(self, task):
+        # Ranking of available resources
+        nodes = self.__nodes_ranking(self.__system_status, task)
+        if len(nodes) > 0:
+            return nodes[0]
+        else:
+            return None
 
     def __check_invariant(self, job=None):
-        # todo: for each CPU determine max task resources
-        # todo: make ranking of potentially available resources and reserve max task resources
-        # todo: if all is fine return the last obtain ranking and resources
-        # todo: if it is violated with provided job provide None
-        # todo: if it is violated without provided job raise an Exception
-        # todo: if it is not violated with provided job provide nodes ranking where job can be started
-        # return True, ranking if job
-        #        True, None if not job
-        #        False, [cancel jobs] including job if it violates invariant
-        #raise NotImplementedError
-        return True, []
+        jobs = self.__processing_jobs()
+        jobs = [self.__jobs_config[j[0]] for j in jobs] if not job else \
+               [self.__jobs_config[j[0]] for j in jobs] + job
 
-    def __nodes_ranking(self, available, required):
-        # todo: sort machines from the mostly used to free avialable
-        # todo: exclude machines that do not have enough resources according to requirements
-        # return ranking
-        raise NotImplementedError
+        if len(jobs) > 0:
+            # Now check the invariant
 
-    def __yield_max_task(self, cpu_model):
-        # todo: choose all jobs
-        # todo: get all tasks restrictions
-        # todo: for each parameter determine max
-        # todo: provide such dictionary
-        # return restrictions
-        raise NotImplementedError
+            # Collect maximum task restrictions for each CPU model cpecified for tasks
+            required_cpu_models = sorted({j['task resource limits']['CPU model'] for j in jobs})
+            max_tasks = []
+            for model in required_cpu_models:
+                mx = self.__yield_max_task(model, job)
+                max_tasks.append(mx)
 
-    def __reserve_resources(self, avialable, amount, node=None):
+            # Copy system status to calculatepotentially available resources
+            par = copy.deepcopy(self.__system_status)
+
+            # todo Free there all task resources but reserve all max task resources
+            #for task, node in __processing_tasks
+
+            # todo: make ranking of potentially available resources and reserve max task resources
+            # todo: if all is fine return the last obtain ranking and resources
+            # todo: if it is violated with provided job provide None
+            # todo: if it is violated without provided job raise an Exception
+            # todo: if it is not violated with provided job provide nodes ranking where job can be started
+            # return True, ranking if job
+            #        True, None if not job
+            #        False, [cancel jobs] including job if it violates invariant
+        else:
+            return True, None
+
+    def __nodes_ranking(self, system_status, restriction, job=True):
+        suitable = [n for n in system_status.keys() if self.__fulfill_requirement(system_status[n], restriction, job)]
+        return sorted(suitable, self.__free_resources)
+
+    def __yield_max_task(self, cpu_model, job=None):
+        # Choose all jobs
+        jobs = self.__processing_jobs()
+        jobs = [self.__jobs_config[j[0]] for j in jobs] if not job else \
+               [self.__jobs_config[j[0]] for j in jobs] + job
+
+        # Get all tasks restrictions
+        restrictions = [j['task resource limits'] for j in jobs if not j['task resource limits']['CPU model'] or
+                        not cpu_model or (cpu_model and j['task resource limits']['CPU model'] == cpu_model)]
+
+        # For each parameter determine max
+        restriction = {
+            'CPU model': cpu_model
+        }
+        for r in ["number of CPU cores", "memory size", "disk memory size"]:
+            m = max(restrictions, key=lambda e: e[r])
+            restriction[r] = m
+
+        return restriction
+
+    def __reserve_resources(self, system_status, amount, node=None):
         # todo: get dictionary with all nodes and required amount
         # todo: filter out nodes
         # todo: minus resources
@@ -238,12 +306,58 @@ class ResourceManager:
         # return True
         raise NotImplementedError
 
-    def __release_resources(self, avialable, amount, node):
+    def __release_resources(self, system_status, amount, node):
         # todo: get dictionary with all nodes and required amount
         # todo: filter out nodes
         # todo: plus resources
         # todo: return chosen node
         # return True
         raise NotImplementedError
+
+    def __processing_jobs(self):
+        jobs = []
+        for node in self.__system_status:
+            for job in self.__system_status[node]["running verification jobs"]:
+                jobs.append([job, node])
+
+        return jobs
+
+    def __processing_tasks(self):
+        tasks = []
+        for node in self.__system_status:
+            for task in self.__system_status[node]["running verification tasks"]:
+                tasks.append([task, node])
+
+        return tasks
+
+    @staticmethod
+    def __fulfill_requirement(self, node, restriction, job=True):
+        # Check condition
+        if job and not node['available for jobs']:
+            return False
+        if not job and not node['available for tasks']:
+            return False
+
+        # Check CPU model
+        if restriction['CPU model'] and restriction['CPU model'] != node['CPU model']:
+            return False
+
+        # Check rest resources
+        cpu_number, ram_memory, disk_memory = self.__free_resources(node)
+
+        if cpu_number >= restriction["memory size"] and ram_memory >= restriction["number of CPU cores"] and \
+                disk_memory >= restriction["disk memory size"]:
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def __free_resources(self, conf):
+        cpu_number = conf["available CPU number"] - conf["reserved CPU number"]
+        ram_memory = conf["available RAM memory"] - conf["reserved RAM memory"]
+        disk_memory = conf["available disk memory"] - conf["reserved disk memory"]
+
+        f = lambda x: x if x > 0 else 0
+        return [f(cpu_number), f(ram_memory), f(disk_memory)]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
