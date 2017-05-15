@@ -118,11 +118,12 @@ def solve(logger, conf, job=True, server=None):
         os.environ['LC_C'] = "en_US.UTF8"
 
         logger.info("Start job execution")
-        result = executor.execute_run(args=[bin],
+        result = executor.execute_run(args=[sys.executable, bin],
                                       output_filename="output.log",
                                       softtimelimit=conf["resource limits"]["CPU time"],
                                       walltimelimit=conf["resource limits"]["wall time"],
-                                      memlimit=conf["resource limits"]["memory size"])
+                                      memlimit=conf["resource limits"]["memory size"],
+                                      files_size_limit=conf["resource limits"]["disk memory size"])
         exit_code = int(result["exitcode"]) % 255
         logger.info("Job solution has finished with exit code {}".format(exit_code))
     else:
@@ -169,6 +170,7 @@ def solve(logger, conf, job=True, server=None):
         # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
         statuses_map = {
             'false(reach)': 'unsafe',
+            'false(unreach-call)': 'unsafe',
             'false(valid-free)': 'unsafe',
             'false(valid-deref)': 'unsafe',
             'false(valid-memtrack)': 'unsafe',
