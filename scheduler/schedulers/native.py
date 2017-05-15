@@ -15,18 +15,19 @@
 # limitations under the License.
 #
 
+import concurrent.futures
+import json
 import logging
+import multiprocessing
 import os
 import shutil
-import json
-import concurrent.futures
-import multiprocessing
-import subprocess
 import signal
+import subprocess
 import sys
 
 import schedulers as schedulers
-from utils.common_scheduler import ResourceManager
+import schedulers.resource_scheduler
+import utils
 
 
 def executor(timeout, args):
@@ -77,17 +78,9 @@ class Scheduler(schedulers.SchedulerExchange):
     """
     __kv_url = None
     __node_name = None
-    __cpu_model = None
     __cpu_cores = None
-    __ram_memory = None
-    __disk_memory = None
-    __disk_memory = None
     __pool = None
     __job_conf_prototype = dict()
-    __reserved_ram_memory = 0
-    __reserved_disk_memory = 0
-    __running_tasks = 0
-    __running_jobs = 0
     __reserved = {"jobs": {}, "tasks": {}}
     __job_processes = dict()
     __task_processes = dict()
@@ -97,7 +90,15 @@ class Scheduler(schedulers.SchedulerExchange):
     def __init__(self, conf, work_dir):
         """Do native scheduler specific initialization"""
         super(Scheduler, self).__init__(conf, work_dir)
+        self.__kv_url = None
+        self.__job_conf_prototype = None
+        self.__pool = None
+        self.__client_bin = None
+        self.__manager = None
+        self.init_scheduler()
 
+    def init_scheduler(self):
+        super(Scheduler, self).init_scheduler()
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
@@ -120,6 +121,21 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             logging.debug("Use provided in configuration prototype 'common' settings for jobs")
 
+        # Check node first time
+        if "concurrent jobs" in self.conf["scheduler"]:
+            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
+        else:
+            concurrent_jobs = 1
+        self.__manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
+        self.update_nodes()
+        nodes = self.__manager.active_nodes
+        if len(nodes) != 1:
+            raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
+        else:
+            self.__node_name = nodes[0]
+            data = self.__manager.node_info(self.__node_name)
+            self.__cpu_cores = data["CPU model"]
+
         # init process pull
         if "processes" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''processes' to set "
@@ -139,35 +155,10 @@ class Scheduler(schedulers.SchedulerExchange):
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
-        if "concurrent jobs" in self.conf["scheduler"]:
-            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
-        else:
-            concurrent_jobs = 1
-        self.__manager = ResourceManager(logging, concurrent_jobs)
-
-
     @staticmethod
     def scheduler_type():
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "Klever"
-
-    def __try_to_schedule(self, task_or_job, identifier, limits):
-        """
-        Try to find slot to scheduler task or job with provided limits.
-        :param identifier: Identifier of the task or job.
-        :param limits: Dictionary with resource limits.
-        :return: True if task or job can be scheduled, False - otherwise.
-        """
-        # TODO: Check disk space also
-        if limits["memory size"] <= (self.__ram_memory - self.__reserved_ram_memory):
-            if task_or_job == "task":
-                self.__reserved["tasks"][identifier] = limits
-            else:
-                self.__reserved["jobs"][identifier] = limits
-            self.__reserved_ram_memory += limits["memory size"]
-            return True
-        else:
-            return False
 
     def schedule(self, pending_tasks, pending_jobs):
         """
@@ -178,9 +169,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :param pending_jobs: List with all pending jobs.
         :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
         """
-        new_tasks, new_jobs= self.__manager.schedule(pending_tasks, pending_jobs)
-
-        return [t[0] for t in new_tasks], [j[0] for j in new_jobs]
+        new_tasks, new_jobs = self.__manager.schedule(pending_tasks, pending_jobs)
+        return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
     def prepare_task(self, identifier, configuration):
         """
@@ -211,6 +201,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.debug("Start solution of task {!r}".format(identifier))
+        self.__manager.claim_resources(identifier, configuration, self.__node_name, job=False)
         return self.__pool.submit(self.__execute, self.__task_processes[identifier])
 
     def solve_job(self, identifier, configuration):
@@ -222,6 +213,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.debug("Start solution of job {!r}".format(identifier))
+        self.__manager.claim_resources(identifier, configuration, self.__node_name, job=True)
         return self.__pool.submit(self.__execute, self.__job_processes[identifier])
 
     def flush(self):
@@ -427,18 +419,22 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         if mode == 'task':
             subdir = 'tasks'
-            self.__running_tasks -= 1
             del self.__task_processes[identifier]
         else:
             subdir = 'jobs'
-            self.__running_jobs -= 1
             del self.__job_processes[identifier]
         # Mark resources as released
-        self.__reserved_ram_memory -= self.__reserved[subdir][identifier]["memory size"]
         del self.__reserved[subdir][identifier]
 
         # Include logs into total scheduler logs
         work_dir = os.path.join(self.work_dir, subdir, identifier)
+
+        # Release resources
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            reserved_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+        else:
+            reserved_space = 0
+        self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False, reserved_space)
 
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:

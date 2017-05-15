@@ -18,7 +18,7 @@ import requests
 import consulate
 import json
 import copy
-from utils import higher_priority
+from utils import higher_priority, sort_priority
 
 
 class InvariantException(RuntimeError):
@@ -42,8 +42,8 @@ class ResourceManager:
         self.__max_running_jobs = max_jobs
         self.__system_status = {}
         self.__cached_system_status = None
-        # {identifier -> {job resources}, {task resources}, priority}
         self.__jobs_config = {}
+        self.__tasks_config = {}
 
     def request_from_consul(self, address):
         self.__logger.debug("Try to receive information about resources from controller")
@@ -164,7 +164,7 @@ class ResourceManager:
 
         return False
 
-    def schedule(self, pending_jobs, pending_tasks):
+    def schedule(self, pending_tasks, pending_jobs):
         def schedule_jobs(jobs):
             while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) <= self.__max_running_jobs:
                 candidate = jobs.pop()
@@ -178,9 +178,9 @@ class ResourceManager:
 
         # Check high priority running jobs
         highest_priority = 'IDLE'
-        running_jobs = self.__processing_jobs()
+        running_jobs = self.__processing_jobs
         for job, node in running_jobs:
-            if higher_priority(self.__jobs_config[job]['priority'], highest_priority, strictly=True):
+            if higher_priority(self.__jobs_config[job]['configuration']['priority'], highest_priority, strictly=True):
                 highest_priority = self.__jobs_config[job]['priority']
 
         # Filter jobs that have a higher priority than the current highest priority
@@ -200,28 +200,82 @@ class ResourceManager:
 
         return tasks_to_run, jobs_to_run
 
-    def claim_resources(self, avialable, identifier, job=False):
-        # todo: get actial resources
-        # todo: get information about job or task by an identifier and job key
-        # todo: claim resources
-        # todo: save that it is runnning there
-        # return True
-        raise NotImplementedError
+    def claim_resources(self, identifier, conf, node, job=False):
+        if job and identifier in self.__processing_jobs:
+            raise KeyError("Verification job {!r} should be already running")
+        elif identifier in self.__processing_tasks:
+            raise KeyError("Verification task {!r} should be already running")
 
-    def release_resources(self, identifier, job=False, KeepDisk=0):
-        # todo: get actual resources
-        # todo: get information about job or task by an identifier and job key
-        # todo: check that it is actually running on the node
-        # todo: minus resources
-        # todo: remove running task or job and delete config of task or job
-        # todo: if KeepDisk
-        # todo: plus back keepDisk space and check invariant
-        # return True
-        raise NotImplementedError
+        if job:
+            self.__jobs_config[identifier] = conf
+            tag = "running verification jobs"
+            conf = conf['configuration']['resource limits']
+        else:
+            self.__tasks_config[identifier] = conf
+            tag = "running verification tasks"
+            conf = conf['resource limits']
+
+        self.__reserve_resources(self.__system_status, conf, node)
+        self.__system_status[node][tag].append(identifier)
+
+    def release_resources(self, identifier, node, job=False, KeepDisk=0):
+        if job:
+            collection = self.__jobs_config
+            tag = "running verification jobs"
+            conf = collection[identifier]['configuration']['resource limits']
+        else:
+            collection = self.__tasks_config
+            tag = "running verification tasks"
+            conf = collection[identifier]['resource limits']
+
+        # Check that it is actually running on the node
+        if identifier not in collection or identifier not in self.__system_status[node][tag]:
+            raise KeyError("Cannot find {!r} together with {} at node {!r}".format(identifier, tag, node))
+
+        # Minus resources
+        self.__release_resources(self.__system_status, conf, node)
+
+        # Remove running task or job and delete config of task or job
+        del collection[identifier]
+        self.__system_status[node][tag].remove(identifier)
+
+        if KeepDisk:
+            diff = self.__system_status[node]["available disk memory"] - \
+                   self.__system_status[node]["reserved disk memory"]
+            if KeepDisk > diff:
+                raise ValueError('Cannot reserve amount of disk memory {} which is higher than rest amount {} at node '
+                                 '{}'.format(KeepDisk, diff, node))
+
+            self.__system_status[node]["reserved disk memory"] += KeepDisk
+
+    @property
+    def __processing_jobs(self):
+        jobs = []
+        for node in self.__system_status:
+            for job in self.__system_status[node]["running verification jobs"]:
+                jobs.append([job, node])
+
+        return jobs
+
+    @property
+    def __processing_tasks(self):
+        tasks = []
+        for node in self.__system_status:
+            for task in self.__system_status[node]["running verification tasks"]:
+                tasks.append([task, node])
+
+        return tasks
+
+    @property
+    def active_nodes(self):
+        return [n for n in self.__system_status.keys() if self.__system_status[n]['status'] != 'DISCONNECTED']
+
+    def node_info(self, node):
+        return copy.deepcopy(self.__system_status[node])
 
     def __schedule_job(self, job):
         # Ranking of available resources
-        nodes = self.__nodes_ranking(self.__system_status, job)
+        nodes = self.__nodes_ranking(self.__system_status, job['configuration']['resource limits'])
 
         # Ranking of theoretically available resources
         if len(nodes) > 0:
@@ -236,101 +290,108 @@ class ResourceManager:
 
     def __schedule_task(self, task):
         # Ranking of available resources
-        nodes = self.__nodes_ranking(self.__system_status, task)
+        nodes = self.__nodes_ranking(self.__system_status, task['description']['resource limits'])
         if len(nodes) > 0:
             return nodes[0]
         else:
             return None
 
     def __check_invariant(self, job=None):
-        jobs = self.__processing_jobs()
-        jobs = [self.__jobs_config[j[0]] for j in jobs] if not job else \
-               [self.__jobs_config[j[0]] for j in jobs] + job
+        def yield_max_task(given_model, jobs):
+            # Get all tasks restrictions
+            restrictions = [j[1]['configuration']['task resource limits'] for j in jobs
+                            if not j[1]['configuration']['task resource limits']['CPU model'] or
+                            not cpu_model or
+                            (cpu_model and j[1]['configuration']['task resource limits']['CPU model'] == given_model)]
+
+            # For each parameter determine max
+            restriction = {
+                'CPU model': given_model
+            }
+            for r in ["number of CPU cores", "memory size", "disk memory size"]:
+                m = max(restrictions, key=lambda e: e[r])
+                restriction[r] = m[r]
+
+            return restriction
+
+        def check_invariant_for_jobs(jobs_list):
+            # Copy system status to calculatepotentially available resources
+            par = copy.deepcopy(self.__system_status)
+
+            # Free there all task resources but reserve all max task resources
+            for task, node in self.__processing_tasks:
+                self.__release_resources(par, self.__tasks_config[task]['resource limits'], node)
+            # Free resources of jobs that are not in given list
+            for j, node in (j for j in self.__processing_jobs if j not in [e[0] for e in jobs_list]):
+                self.__release_resources(par, self.__jobs_config[j], node)
+
+            # Collect maximum task restrictions for each CPU model cpecified for tasks
+            required_cpu_models = \
+                sorted({j[1]['configuration']['task resource limits']['CPU model'] for j in jobs_list})
+            for model in required_cpu_models:
+                mx = yield_max_task(model, jobs_list)
+
+                r = self.__nodes_ranking(par, mx, job=False)
+                if len(r) > 0:
+                    self.__reserve_resources(par, mx, r[0])
+                else:
+                    # Invariant is violated
+                    return par, model, mx
+
+            # Invariant is preserved
+            return par, None, None
+
+        jobs = self.__processing_jobs
+        jobs = [[j, self.__jobs_config[j[0]]] for j in jobs] if not job else \
+               [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
 
         if len(jobs) > 0:
             # Now check the invariant
 
-            # Collect maximum task restrictions for each CPU model cpecified for tasks
-            required_cpu_models = sorted({j['task resource limits']['CPU model'] for j in jobs})
-            max_tasks = []
-            for model in required_cpu_models:
-                mx = self.__yield_max_task(model, job)
-                max_tasks.append(mx)
+            sysinfo, cpu_model, mx_task = check_invariant_for_jobs(jobs)
+            if cpu_model and mx_task and job:
+                # invariant is violated, try to determine jobs to cancel
+                # Sort jibs by priority
+                cancel = []
+                jobs = sorted(jobs, key=lambda x: sort_priority(x[1]['priority']))
+                while cpu_model and mx_task and len(jobs) > 0:
+                    # First try to cancel job with given CPU model and max requirements
+                    suitable = \
+                        [j for j in jobs if
+                         (not cpu_model or j[1]['configuration']['task resource limits']['CPU model'] == cpu_model) and
+                         (j[1]['configuration']['task resource limits']['memory size'] >= mx_task['memory size'] or
+                          j[1]['configuration']['task resource limits']['disk memory size'] >=
+                          mx_task['disk memory size'] or
+                          j[1]['configuration']['task resource limits']['number of CPU cores'] >=
+                             mx_task['number of CPU cores'])]
 
-            # Copy system status to calculatepotentially available resources
-            par = copy.deepcopy(self.__system_status)
+                    if len(suitable) == 0:
+                        raise ValueError("Cannot determine job with CPU model {!r} given for tasks to cancel".
+                                         format(cpu_model))
 
-            # todo Free there all task resources but reserve all max task resources
-            #for task, node in __processing_tasks
+                    candidate = suitable.pop()
+                    cancel.append(candidate[0])
+                    jobs.remove(candidate)
+                    sysinfo, cpu_model, mx_task = check_invariant_for_jobs(jobs)
 
-            # todo: make ranking of potentially available resources and reserve max task resources
-            # todo: if all is fine return the last obtain ranking and resources
-            # todo: if it is violated with provided job provide None
-            # todo: if it is violated without provided job raise an Exception
-            # todo: if it is not violated with provided job provide nodes ranking where job can be started
-            # return True, ranking if job
-            #        True, None if not job
-            #        False, [cancel jobs] including job if it violates invariant
+                return False, cancel
+            elif cpu_model and mx_task:
+                return False, None
+
+            # Invariant is preserved, return ranking for the given job
+            if job:
+                ranking = self.__nodes_ranking(sysinfo, job["configuration"]["resource limits"], job=True)
+                return True, ranking
+            else:
+                return True, None
+
         else:
             return True, None
 
     def __nodes_ranking(self, system_status, restriction, job=True):
         suitable = [n for n in system_status.keys() if self.__fulfill_requirement(system_status[n], restriction, job)]
-        return sorted(suitable, self.__free_resources)
+        return sorted(suitable, key=lambda x: self.__free_resources(system_status[x]))
 
-    def __yield_max_task(self, cpu_model, job=None):
-        # Choose all jobs
-        jobs = self.__processing_jobs()
-        jobs = [self.__jobs_config[j[0]] for j in jobs] if not job else \
-               [self.__jobs_config[j[0]] for j in jobs] + job
-
-        # Get all tasks restrictions
-        restrictions = [j['task resource limits'] for j in jobs if not j['task resource limits']['CPU model'] or
-                        not cpu_model or (cpu_model and j['task resource limits']['CPU model'] == cpu_model)]
-
-        # For each parameter determine max
-        restriction = {
-            'CPU model': cpu_model
-        }
-        for r in ["number of CPU cores", "memory size", "disk memory size"]:
-            m = max(restrictions, key=lambda e: e[r])
-            restriction[r] = m
-
-        return restriction
-
-    def __reserve_resources(self, system_status, amount, node=None):
-        # todo: get dictionary with all nodes and required amount
-        # todo: filter out nodes
-        # todo: minus resources
-        # todo: return chosen node
-        # return True
-        raise NotImplementedError
-
-    def __release_resources(self, system_status, amount, node):
-        # todo: get dictionary with all nodes and required amount
-        # todo: filter out nodes
-        # todo: plus resources
-        # todo: return chosen node
-        # return True
-        raise NotImplementedError
-
-    def __processing_jobs(self):
-        jobs = []
-        for node in self.__system_status:
-            for job in self.__system_status[node]["running verification jobs"]:
-                jobs.append([job, node])
-
-        return jobs
-
-    def __processing_tasks(self):
-        tasks = []
-        for node in self.__system_status:
-            for task in self.__system_status[node]["running verification tasks"]:
-                tasks.append([task, node])
-
-        return tasks
-
-    @staticmethod
     def __fulfill_requirement(self, node, restriction, job=True):
         # Check condition
         if job and not node['available for jobs']:
@@ -345,19 +406,53 @@ class ResourceManager:
         # Check rest resources
         cpu_number, ram_memory, disk_memory = self.__free_resources(node)
 
-        if cpu_number >= restriction["memory size"] and ram_memory >= restriction["number of CPU cores"] and \
+        if cpu_number >= restriction["number of CPU cores"] and ram_memory >= restriction["memory size"] and \
                 disk_memory >= restriction["disk memory size"]:
             return True
         else:
             return False
 
     @staticmethod
-    def __free_resources(self, conf):
+    def __reserve_resources(system_status, amount, node=None):
+        if node not in system_status:
+            raise KeyError("There is no node {!r} in the system".format(node))
+
+        # Minus resources
+        for st, vt, at in [["reserved CPU number", "number of CPU cores", "available CPU number"],
+                           ["reserved RAM memory", "memory size", "available RAM memory"],
+                           ["reserved disk memory", "disk memory size", "available disk memory"]]:
+            system_status[node][st] += amount[vt]
+            if system_status[node][st] > system_status[node][at]:
+                raise ValueError("{}, equal to {}, cannot be more than {} which is {}".
+                                 format(st.capitalize(), system_status[node][st], at, system_status[node][at]))
+
+        return
+
+    @staticmethod
+    def __release_resources(system_status, amount, node):
+        if node not in system_status:
+            raise KeyError("There is no node {!r} in the system".format(node))
+
+        # Plus resources
+        for st, vt, at in [["reserved CPU number", "number of CPU cores", "available CPU number"],
+                           ["reserved RAM memory", "memory size", "available RAM memory"],
+                           ["reserved disk memory", "disk memory size", "available disk memory"]]:
+            system_status[node][st] -= amount[vt]
+            if system_status[node][st] < 0:
+                raise ValueError("{} cannot be negative {}".
+                                 format(st.capitalize(), system_status[node][st]))
+
+        return
+
+    @staticmethod
+    def __free_resources(conf):
+        def f(x):
+            return x if x > 0 else 0
+
         cpu_number = conf["available CPU number"] - conf["reserved CPU number"]
         ram_memory = conf["available RAM memory"] - conf["reserved RAM memory"]
         disk_memory = conf["available disk memory"] - conf["reserved disk memory"]
 
-        f = lambda x: x if x > 0 else 0
         return [f(cpu_number), f(ram_memory), f(disk_memory)]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

@@ -26,7 +26,7 @@ import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
-from utils import higher_priority
+from utils import sort_priority
 
 
 def get_gateway(conf, work_dir):
@@ -62,7 +62,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         Get configuration and prepare working directory.
         :param conf: Dictionary with relevant configuration.
         :param work_dir: PAth to the working directory.
-        :param server: Session object.
         """
         self.conf = conf
         self.work_dir = os.path.abspath(work_dir)
@@ -70,10 +69,21 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         self.__jobs = {}
         self.__nodes = None
         self.__tools = None
+        self.__iteration_period = None
+        self.__last_exchange = None
+        self.server = get_gateway(self.conf, os.path.join(self.work_dir, "requests"))
+        self.production = None
+        self.__current_period = None
+
+    def init_scheduler(self):
+        self.__tasks = {}
+        self.__jobs = {}
+        self.__nodes = None
+        self.__tools = None
         self.__iteration_period = {
-          "short": 5,
-          "medium": 10,
-          "long": 20
+            "short": 5,
+            "medium": 10,
+            "long": 20
         }
         self.__last_exchange = None
         self.server = get_gateway(self.conf, os.path.join(self.work_dir, "requests"))
@@ -103,7 +113,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         self.__current_period = self.__iteration_period['short']
 
         logging.info("Scheduler base initialization has been successful")
-
 
     def launch(self):
         """Start scheduler loop."""
@@ -168,7 +177,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         for task_id in [task_id for task_id in self.__tasks
                                         if self.__tasks[task_id]["status"] in ["FINISHED", "ERROR"]]:
                             if task_id in server_state["tasks"]["pending"]:
-                                logging.debug("Ignore PENDING task {}, since it has been processed recently".format(task_id))
+                                logging.debug("Ignore PENDING task {}, since it has been processed recently".
+                                              format(task_id))
                                 server_state["tasks"]["pending"].remove(task_id)
                             if task_id in server_state["tasks"]["processing"]:
                                 logging.debug("Ignore PROCESSING task {}, since it has been processed recently")
@@ -178,7 +188,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         for job_id in [job_id for job_id in self.__jobs
                                        if self.__jobs[job_id]["status"] in ["FINISHED", "ERROR"]]:
                             if job_id in server_state["jobs"]["pending"]:
-                                logging.debug("Ignore PENDING job {}, since it has been processed recently".format(job_id))
+                                logging.debug("Ignore PENDING job {}, since it has been processed recently".
+                                              format(job_id))
                                 server_state["jobs"]["pending"].remove(job_id)
                             if job_id in server_state["jobs"]["processing"]:
                                 logging.debug("Ignore PROCESSING job {}, since it has been processed recently")
@@ -201,7 +212,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         del self.__jobs[job_id]
 
                     # Add new PENDING tasks
-                    for task_id in [task_id for task_id in server_state["tasks"]["pending"] if task_id not in self.__tasks]:
+                    for task_id in [task_id for task_id in server_state["tasks"]["pending"]
+                                    if task_id not in self.__tasks]:
                         logging.debug("Add new PENDING task {}".format(task_id))
                         try:
                             self.__tasks[task_id] = {
@@ -211,7 +223,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 "priority": server_state["task descriptions"][task_id]["description"]["priority"]
                             }
 
-                            # TODO: VerifierCloud user name and password are specified in task description and shouldn't be extracted from it here.
+                            # Add missing restrictions
+                            self.__add_missing_restrictions(self.__tasks[task_id]["description"]["resource limits"])
+
+                            # TODO: VerifierCloud user name and password are specified in task description and
+                            # shouldn't be extracted from it here.
                             if self.scheduler_type() == "VerifierCloud":
                                 self.__tasks[task_id]["user"] = \
                                     server_state["task descriptions"][task_id]["VerifierCloud user name"]
@@ -243,6 +259,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             "configuration": server_state["job configurations"][job_id]
                         }
 
+                        # Check and set necessary restrictions for further scheduling
+                        for collection in [self.__jobs[job_id]["configuration"]["resource limits"],
+                                           self.__jobs[job_id]["configuration"]["task resource limits"]]:
+                            self.__add_missing_restrictions(collection)
+
                         # Prepare jobs before launching
                         logging.debug("Prepare new job {} before launching".format(job_id))
                         try:
@@ -267,7 +288,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     # Cancel jobs
                     for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"] in
                                    ["PENDING", "PROCESSING"] and
-                                   (job_id not in set(server_state["jobs"]["pending"]+server_state["jobs"]["processing"])
+                                   (job_id not in set(server_state["jobs"]["pending"] +
+                                    server_state["jobs"]["processing"])
                                     or job_id in server_state["jobs"]["cancelled"])]:
                         logging.debug("Cancel job {} with status {}".format(job_id, self.__jobs[job_id]['status']))
                         if "future" in self.__jobs[job_id]:
@@ -294,7 +316,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             self.__jobs[job_id] = {
                                 "id": job_id,
                                 "status": "ERROR",
-                                "error": "Job {} has status PROCESSING but it was not running actually".\
+                                "error": "Job {} has status PROCESSING but it was not running actually".
                                          format(job_id)
                             }
 
@@ -310,7 +332,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             self.__tasks[task_id] = {
                                 "id": task_id,
                                 "status": "ERROR",
-                                "error": "task {} has status PROCESSING but it was not running actually".\
+                                "error": "task {} has status PROCESSING but it was not running actually".
                                          format(task_id)
                             }
 
@@ -378,12 +400,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                     pending_jobs = [self.__jobs[job_id] for job_id in self.__jobs
                                     if self.__jobs[job_id]["status"] == "PENDING"
                                     and "future" not in self.__jobs[job_id]]
-                    pending_jobs = sorted(pending_jobs,
-                                          lambda i, j: higher_priority(i['configuration']['priority'],
-                                                                       j['configuration']['priority']))
-                    pending_tasks = sorted(pending_tasks,
-                                           lambda i, j: higher_priority(i['configuration']['priority'],
-                                                                        j['configuration']['priority']))
+                    pending_jobs = sorted(pending_jobs, key=lambda i: sort_priority(i['configuration']['priority']))
+                    pending_tasks = sorted(pending_tasks, key=lambda i: sort_priority(i['description']['priority']))
                     tasks_to_start, jobs_to_start = self.schedule(pending_tasks, pending_jobs)
                     logging.info("Going to start {} new tasks and {} jobs".
                                  format(len(tasks_to_start), len(jobs_to_start)))
@@ -395,7 +413,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             self.__jobs[job_id]["future"]\
                                 = self.__attempts(self.solve_job, 3, 'start job {}'.format(job_id),
                                                   (job_id,
-                                                   self.__jobs[job_id]["configuration"]))
+                                                   self.__jobs[job_id]))
                         except SchedulerException as err:
                             msg = "Cannot start job {}: {}".format(job_id, err)
                             logging.warning(msg)
@@ -561,7 +579,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
         # stop jobs
         for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"]
-                        in ["PENDING", "PROCESSING"] and "future" in self.__jobs[job_id]]:
+                       in ["PENDING", "PROCESSING"] and "future" in self.__jobs[job_id]]:
             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
     @abc.abstractmethod
@@ -635,7 +653,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         new_period(self.__iteration_period['medium'])
 
-    def __process_future(self, handler, item, identifier):
+    def __cancel_job_tasks(self, job_id):
+        for task_id in [task_id for task_id in self.__tasks
+                        if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
+                        self.__tasks[task_id]["description"]["job id"] == job_id]:
+            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
+
+    @staticmethod
+    def __process_future(handler, item, identifier):
         try:
             item["status"] = handler(identifier, item["future"])
             logging.debug("Task {} new status is {}".format(identifier, item["status"]))
@@ -647,7 +672,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             item["status"] = "ERROR"
             item["error"] = err
 
-    def __attempts(self, handler, attempts, action, args):
+    @staticmethod
+    def __attempts(handler, attempts, action, args):
         result = None
         error = None
         while attempts > 0:
@@ -665,13 +691,8 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         return result
 
-    def __cancel_job_tasks(self, job_id):
-        for task_id in [task_id for task_id in self.__tasks
-                        if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
-                        self.__tasks[task_id]["description"]["job id"] == job_id]:
-            self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
-
-    def __report_error_server_state(self, server_state, message):
+    @staticmethod
+    def __report_error_server_state(server_state, message):
         # Save server state file
         state_file_name = time.strftime("%d-%m-%Y %H:%M:%S server state.json")
         error_file = os.path.join(os.path.curdir, state_file_name)
@@ -681,5 +702,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         # Raise an exception
         raise RuntimeError("Received invalid server state (printed at {!r}): {!r}".
                            format(os.path.abspath(error_file), message))
+
+    @staticmethod
+    def __add_missing_restrictions(collection):
+        for tag in ['memory size', 'number of CPU cores', 'disk memory size']:
+            if tag not in collection:
+                collection[tag] = 0
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
