@@ -266,8 +266,7 @@ class SaveFileData(object):
         saved_files = {}
         for lvl in self.filedata_by_lvl:
             for lvl_elem in lvl:
-                fs_elem = FileSystem()
-                fs_elem.job = self.job
+                fs_elem = FileSystem(job=self.job)
                 if lvl_elem['parent']:
                     fs_elem.parent = saved_files[lvl_elem['parent']]
                 if lvl_elem['type'] == '1':
