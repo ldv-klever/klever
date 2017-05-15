@@ -453,7 +453,9 @@ class GetTasks:
     def __get_tasks_limits(self, job_id):
         self.__is_not_used()
         try:
-            tasks = FileSystem.objects.get(job__job_id=job_id, name='tasks.json', parent=None)
+            tasks = FileSystem.objects.get(
+                job__job_id=job_id, job__version=F('job__job__version'), name='tasks.json', parent=None
+            )
         except ObjectDoesNotExist:
             logger.error("The tasks.json file doesn't exists")
             return {}
