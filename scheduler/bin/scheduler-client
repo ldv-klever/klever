@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #
 # Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
 # Institute for System Programming of the Russian Academy of Sciences
@@ -22,7 +21,7 @@ import logging
 import os
 import sys
 
-sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir))
 os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
                                            ':{0}'.format(os.environ['PYTHONPATH'])
                                            if os.environ.get('PYTHONPATH') else '')

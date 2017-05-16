@@ -20,6 +20,8 @@ import multiprocessing
 import os
 import re
 import shutil
+import stat
+import sys
 import tarfile
 import time
 import urllib.parse
@@ -41,6 +43,9 @@ def after_set_model_headers(context):
 class LKBCE(core.components.Component):
     def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {'prepared to build ext modules': None}
+
+        self.create_wrappers()
+
         # Prepare Linux kernel source code and extract build commands exclusively but just with other sub-jobs of a
         # given job. It would be more properly to lock working source trees especially if different sub-jobs use
         # different trees (https://forge.ispras.ru/issues/6647).
@@ -86,6 +91,21 @@ class LKBCE(core.components.Component):
 
             if not self.conf['keep intermediate files']:
                 os.remove(self.linux_kernel['build cmd descs file'])
+
+    def create_wrappers(self):
+        os.makedirs('wrappers')
+
+        for cmd in ('gcc', 'ld', 'mv'):
+            cmd_path = os.path.join('wrappers', cmd)
+            with open(cmd_path, 'w', encoding='utf8') as fp:
+                fp.write("""#!{0}
+import sys
+
+from core.lkbce.wrappers.common import Command
+
+sys.exit(Command(sys.argv).launch())
+""".format(sys.executable))
+            os.chmod(cmd_path, os.stat(cmd_path).st_mode | stat.S_IEXEC)
 
     def extract_module_deps_and_sizes(self):
         if self.linux_kernel['build kernel']:
@@ -616,8 +636,7 @@ class LKBCE(core.components.Component):
         env = dict(os.environ)
 
         env.update({
-            'PATH': '{0}:{1}'.format(os.path.join(os.path.dirname(os.path.realpath(__file__)), 'wrappers'),
-                                     os.environ['PATH']),
+            'PATH': '{0}:{1}'.format(os.path.realpath('wrappers'), os.environ['PATH']),
             'KLEVER_RULE_SPECS_DIR': os.path.abspath(os.path.dirname(
                 core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                             self.conf['rule specifications DB'])))

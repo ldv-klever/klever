@@ -103,3 +103,9 @@ body {
     color: #4b09b5;
     cursor: pointer;
 }
+
+.small-text {
+    color: #9d7ac9;
+    font-size: 0.9em;
+    font-style: italic;
+}

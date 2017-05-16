@@ -184,6 +184,7 @@ class MarkUnsafeReport(models.Model):
 
 # Tags tables
 class SafeTag(models.Model):
+    author = models.ForeignKey(User)
     parent = models.ForeignKey('self', null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
@@ -194,6 +195,7 @@ class SafeTag(models.Model):
 
 
 class UnsafeTag(models.Model):
+    author = models.ForeignKey(User)
     parent = models.ForeignKey('self', null=True, related_name='children')
     tag = models.CharField(max_length=32, db_index=True)
     description = models.TextField(default='')
