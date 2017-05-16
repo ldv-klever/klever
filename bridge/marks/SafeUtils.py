@@ -19,8 +19,9 @@ import os
 import json
 
 from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils.timezone import now
 from django.utils.translation import ugettext_lazy as _
 
@@ -422,7 +423,8 @@ class RecalculateTags:
 
         # Get marks that are connected with reprots
         marks = {}
-        for m_id, r_id in MarkSafeReport.objects.filter(report__in=self.reports).values_list('mark_id', 'report_id'):
+        for m_id, r_id in MarkSafeReport.objects.filter(report__in=self.reports).exclude(type=ASSOCIATION_TYPE[2][0])\
+                .values_list('mark_id', 'report_id'):
             if m_id not in marks:
                 marks[m_id] = set()
             marks[m_id].add(r_id)
@@ -488,7 +490,8 @@ class UpdateVerdicts:
         for mark_id in self.changes:
             for safe in self.changes[mark_id]:
                 safe_verdicts[safe] = set()
-        for mr in MarkSafeReport.objects.filter(report__in=safe_verdicts).select_related('mark'):
+        for mr in MarkSafeReport.objects.filter(Q(report__in=safe_verdicts) & ~Q(type=ASSOCIATION_TYPE[2][0]))\
+                .select_related('mark'):
             safe_verdicts[mr.report].add(mr.mark.verdict)
 
         safes_to_update = {}
@@ -828,3 +831,34 @@ def disable_safe_marks_for_job(root):
         safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
     )
     ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
+
+
+def unconfirm_association(author, report_id, mark_id):
+    mark_id = int(mark_id)
+    try:
+        mr = MarkSafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    mr.type = ASSOCIATION_TYPE[2][0]
+    mr.author = author
+    mr.save()
+
+    changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
+        .changes.get(mark_id, {})
+    RecalculateTags(list(changes))
+
+
+def confirm_association(author, report_id, mark_id):
+    mark_id = int(mark_id)
+    try:
+        mr = MarkSafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    mr.author = author
+    old_type = mr.type
+    mr.type = ASSOCIATION_TYPE[1][0]
+    mr.save()
+    if old_type == ASSOCIATION_TYPE[2][0]:
+        changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
+            .changes.get(mark_id, {})
+        RecalculateTags(list(changes))

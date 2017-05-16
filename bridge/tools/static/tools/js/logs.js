@@ -74,7 +74,6 @@ $(document).ready(function () {
         $.post(
             url, args,
             function (data) {
-                console.log(123);
                 if (list_type == '0') {
                     $('#result').html(data);
                     activate_result();

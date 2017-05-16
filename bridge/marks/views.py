@@ -684,6 +684,8 @@ def download_tags(request, tags_type):
 @login_required
 @unparallel_group([UnsafeTag, SafeTag])
 def upload_tags(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tag(request.user):
@@ -752,6 +754,7 @@ def upload_all(request):
 def get_inline_mark_form(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
 
     obj_model = {
         'safe': (MarkSafeHistory, ReportSafe),
@@ -798,30 +801,46 @@ def get_inline_mark_form(request):
     })
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe'])
+@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
 def unconfirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
 
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id']):
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mutils.UnsafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe'])
+@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
 def confirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
 
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id']):
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mutils.UnsafeUtils.confirm_mark_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -832,11 +851,13 @@ def confirm_association(request):
 def like_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
 
     if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'dislike']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mutils.UnsafeUtils.like_association(request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        mutils.UnsafeUtils.like_association(
+            request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

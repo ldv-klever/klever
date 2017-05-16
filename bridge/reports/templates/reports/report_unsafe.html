@@ -12,6 +12,7 @@
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -117,7 +118,7 @@
                     <td><span style="color:{{ v.similarity.1 }}">{{ v.similarity.0 }}</span></td>
                     <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
                     <td>{{ v.tags }}</td>
-                    <td>{{ v.type.1 }}</td>
+                    <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
                     <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                     <td>{{ v.description|safe }}</td>
                     <td>

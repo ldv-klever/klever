@@ -9,6 +9,7 @@
     <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -113,13 +114,19 @@
                         <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
                         <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
                         <td>{{ v.tags }}</td>
-                        <td>{{ v.type.1 }}</td>
+                        <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
                         <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                         <td>{{ v.description|safe }}</td>
                         {% if can_mark %}
                             <td>
                                 <div class="ui mini icon buttons">
                                     <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
+                                    {% if v.type.0 != '1' %}
+                                        <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
+                                    {% endif %}
+                                    {% if v.type.0 != '2' %}
+                                        <button id="unconfirm_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
+                                    {% endif %}
                                 </div>
                             </td>
                         {% endif %}

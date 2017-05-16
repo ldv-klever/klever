@@ -277,7 +277,8 @@ $(document).ready(function () {
             marks_ajax_url + 'unconfirm-association/',
             {
                 mark_id: $(this).attr('id').replace('unconfirm_association_', ''),
-                report_id: $('#report_pk').val()
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val()
             },
             function (data) {
                 if (data.error) {
@@ -294,7 +295,8 @@ $(document).ready(function () {
             marks_ajax_url + 'confirm-association/',
             {
                 mark_id: $(this).attr('id').replace('confirm_association_', ''),
-                report_id: $('#report_pk').val()
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val()
             },
             function (data) {
                 if (data.error) {

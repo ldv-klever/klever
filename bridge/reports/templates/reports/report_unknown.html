@@ -5,6 +5,10 @@
 
 {% block title %}{% trans 'Unknown' %}{% endblock %}
 
+{% block reports_head_block %}
+    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block body_block %}
     <div class="ui grid">
         <div class="five wide column">
@@ -83,6 +87,9 @@
                         <th>{% trans 'Association type' %}</th>
                         <th>{% trans 'Association author' %}</th>
                         <th>{% trans 'Description' %}</th>
+                        {% if can_mark %}
+                            <th></th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -97,9 +104,21 @@
                             {% endif %}
                         </td>
                         <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                        <td>{{ v.type.1 }}</td>
+                        <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
                         <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                         <td>{{ v.description|safe }}</td>
+                        {% if can_mark %}
+                            <td>
+                                <div class="ui mini icon buttons">
+                                    {% if v.type.0 != '1' %}
+                                        <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
+                                    {% endif %}
+                                    {% if v.type.0 != '2' %}
+                                        <button id="unconfirm_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>

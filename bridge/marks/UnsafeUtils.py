@@ -833,9 +833,11 @@ def delete_marks(marks):
 
 
 def unconfirm_association(author, report_id, mark_id):
-    report_id = int(report_id)
     mark_id = int(mark_id)
-    mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    try:
+        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
     mr.type = ASSOCIATION_TYPE[2][0]
     mr.author = author
     mr.save()
@@ -843,11 +845,14 @@ def unconfirm_association(author, report_id, mark_id):
     changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
         .changes.get(mark_id, {})
     RecalculateTags(list(changes))
-    return changes
 
 
-def confirm_mark_association(author, report_id, mark_id):
-    mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+def confirm_association(author, report_id, mark_id):
+    mark_id = int(mark_id)
+    try:
+        mr = MarkUnsafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
     mr.author = author
     old_type = mr.type
     mr.type = ASSOCIATION_TYPE[1][0]

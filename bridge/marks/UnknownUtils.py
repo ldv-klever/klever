@@ -386,7 +386,7 @@ def update_unknowns_cache(unknowns):
         unknowns_ids = unknowns_ids | all_unknowns[rc_id]
     marked_unknowns = set()
     problems_data = {}
-    for mr in MarkUnknownReport.objects.filter(report_id__in=unknowns_ids):
+    for mr in MarkUnknownReport.objects.filter(report_id__in=unknowns_ids).exclude(type=ASSOCIATION_TYPE[2][0]):
         if mr.problem_id not in problems_data:
             problems_data[mr.problem_id] = set()
         problems_data[mr.problem_id].add(mr.report_id)
@@ -421,3 +421,29 @@ def delete_marks(marks):
             unknowns_changes[report] = changes[m_id][report]
     update_unknowns_cache(unknowns_changes)
     return unknowns_changes
+
+
+def unconfirm_association(author, report_id, mark_id):
+    mark_id = int(mark_id)
+    try:
+        mr = MarkUnknownReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    mr.type = ASSOCIATION_TYPE[2][0]
+    mr.author = author
+    mr.save()
+    update_unknowns_cache([mr.report])
+
+
+def confirm_association(author, report_id, mark_id):
+    mark_id = int(mark_id)
+    try:
+        mr = MarkUnknownReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    mr.author = author
+    old_type = mr.type
+    mr.type = ASSOCIATION_TYPE[1][0]
+    mr.save()
+    if old_type == ASSOCIATION_TYPE[2][0]:
+        update_unknowns_cache([mr.report])
