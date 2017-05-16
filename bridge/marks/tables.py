@@ -31,7 +31,7 @@ from users.models import View
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
     MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
-    MarkSafeTag, MarkUnsafeTag, UnsafeAssociationLike
+    MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
@@ -353,17 +353,19 @@ class ReportMarkTable:
         likes = {}
         dislikes = {}
         cnt = 0
+
+        likes_model = {'safe': SafeAssociationLike, 'unsafe': UnsafeAssociationLike, 'unknown': UnknownAssociationLike}
+        for ass_like in likes_model[self.type].objects.filter(association__report=self.report):
+            if ass_like.dislike:
+                if ass_like.association_id not in dislikes:
+                    dislikes[ass_like.association_id] = []
+                dislikes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
+            else:
+                if ass_like.association_id not in likes:
+                    likes[ass_like.association_id] = []
+                likes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
         if self.type == 'unsafe':
             orders = ['-result', '-mark__change_date']
-            for ass_like in UnsafeAssociationLike.objects.filter(association__report=self.report):
-                if ass_like.dislike:
-                    if ass_like.association_id not in dislikes:
-                        dislikes[ass_like.association_id] = []
-                    dislikes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
-                else:
-                    if ass_like.association_id not in likes:
-                        likes[ass_like.association_id] = []
-                    likes[ass_like.association_id].append((ass_like.author.get_full_name(), ass_like.author_id))
         else:
             orders = ['-mark__change_date']
         marks_ids = set()
@@ -375,7 +377,9 @@ class ReportMarkTable:
                 'number': cnt,
                 'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
                 'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
-                'type': (mark_rep.type, mark_rep.get_type_display())
+                'type': (mark_rep.type, mark_rep.get_type_display()),
+                'likes': list(sorted(likes.get(mark_rep.id, []))),
+                'dislikes': list(sorted(dislikes.get(mark_rep.id, [])))
             }
             if self.type == 'unsafe':
                 row_data['broken'] = (mark_rep.error is not None)
@@ -384,8 +388,6 @@ class ReportMarkTable:
                     row_data['similarity'] = (mark_rep.error, result_color(0))
                 else:
                     row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result))
-                row_data['likes'] = list(sorted(likes.get(mark_rep.id, [])))
-                row_data['dislikes'] = list(sorted(dislikes.get(mark_rep.id, [])))
             elif self.type == 'safe':
                 row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
             else:

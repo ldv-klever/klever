@@ -847,17 +847,29 @@ def confirm_association(request):
     return JsonResponse({})
 
 
-@unparallel_group(['UnsafeAssociationLike', 'MarkUnsafeReport'])
+@unparallel_group(['UnsafeAssociationLike', 'MarkUnsafeReport', 'SafeAssociationLike', 'MarkSafeReport',
+                   'UnknownAssociationLike', 'MarkUnknownReport'])
 def like_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
     activate(request.user.extended.language)
 
-    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'dislike']):
+    if request.method != 'POST' \
+            or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type', 'dislike']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mutils.UnsafeUtils.like_association(
-            request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:

@@ -144,6 +144,15 @@ class MarkSafeReport(models.Model):
         db_table = "cache_mark_safe_report"
 
 
+class SafeAssociationLike(models.Model):
+    association = models.ForeignKey(MarkSafeReport)
+    author = models.ForeignKey(User)
+    dislike = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "mark_safe_association_like"
+
+
 # Unsafes tables
 class MarkUnsafe(Mark):
     verdict = models.CharField(max_length=1, choices=MARK_UNSAFE, default='0')
@@ -190,7 +199,7 @@ class UnsafeAssociationLike(models.Model):
     dislike = models.BooleanField(default=False)
 
     class Meta:
-        db_table = "mark_association_like"
+        db_table = "mark_unsafe_association_like"
 
 
 # Tags tables
@@ -311,6 +320,15 @@ class MarkUnknownReport(models.Model):
 
     class Meta:
         db_table = 'cache_mark_unknown_report'
+
+
+class UnknownAssociationLike(models.Model):
+    association = models.ForeignKey(MarkUnknownReport)
+    author = models.ForeignKey(User)
+    dislike = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "mark_unknown_association_like"
 
 
 class ComponentMarkUnknownProblem(models.Model):

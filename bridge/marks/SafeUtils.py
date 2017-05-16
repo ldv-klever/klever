@@ -33,7 +33,7 @@ from bridge.utils import unique_id, BridgeException
 from users.models import User
 from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportSafe, Attr, AttrName, ReportRoot
 from marks.models import MarkSafe, MarkSafeHistory, MarkSafeReport, MarkSafeAttr,\
-    SafeTag, MarkSafeTag, SafeReportTag, ReportSafeTag
+    SafeTag, MarkSafeTag, SafeReportTag, ReportSafeTag, SafeAssociationLike
 
 
 class NewMark:
@@ -862,3 +862,12 @@ def confirm_association(author, report_id, mark_id):
         changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
             .changes.get(mark_id, {})
         RecalculateTags(list(changes))
+
+
+def like_association(author, report_id, mark_id, dislike):
+    try:
+        mr = MarkSafeReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    SafeAssociationLike.objects.filter(association=mr, author=author).delete()
+    SafeAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))

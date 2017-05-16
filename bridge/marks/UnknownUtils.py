@@ -29,7 +29,8 @@ from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 
 from users.models import User
 from reports.models import ReportUnknown, ReportComponentLeaf, Component
-from marks.models import MarkUnknown, MarkUnknownHistory, MarkUnknownReport, UnknownProblem, ComponentMarkUnknownProblem
+from marks.models import MarkUnknown, MarkUnknownHistory, MarkUnknownReport, UnknownProblem,\
+    ComponentMarkUnknownProblem, UnknownAssociationLike
 
 
 class NewMark:
@@ -447,3 +448,12 @@ def confirm_association(author, report_id, mark_id):
     mr.save()
     if old_type == ASSOCIATION_TYPE[2][0]:
         update_unknowns_cache([mr.report])
+
+
+def like_association(author, report_id, mark_id, dislike):
+    try:
+        mr = MarkUnknownReport.objects.get(report_id=report_id, mark_id=mark_id)
+    except ObjectDoesNotExist:
+        raise BridgeException(_('The mark association was not found'))
+    UnknownAssociationLike.objects.filter(association=mr, author=author).delete()
+    UnknownAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))

@@ -109,29 +109,3 @@ body {
     font-size: 0.9em;
     font-style: italic;
 }
-.like-association {
-    margin-left: 4px;
-    padding: 3px;
-    border: 1px solid rgba(54, 215, 109, 0.4);
-    border-radius: 3px;
-    float: left;
-    cursor: pointer;
-    color: #458535;
-}
-.like-association:hover {
-    border: 1px solid rgba(10, 133, 14, 0.4);
-}
-
-.dislike-association {
-    margin-left: 4px;
-    margin-right: 4px;
-    padding: 3px;
-    border: 1px solid rgba(215, 82, 99, 0.3);
-    border-radius: 3px;
-    float: right;
-    cursor: pointer;
-    color: #851629;
-}
-.dislike-association:hover {
-    border: 1px solid rgba(133, 15, 37, 0.3);
-}

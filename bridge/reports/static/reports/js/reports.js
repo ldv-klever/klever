@@ -319,6 +319,7 @@ $(document).ready(function () {
             {
                 mark_id: $(this).attr('id').replace('like_association_', ''),
                 report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val(),
                 dislike: false
             },
             function (data) {
@@ -337,6 +338,7 @@ $(document).ready(function () {
             {
                 mark_id: $(this).attr('id').replace('dislike_association_', ''),
                 report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val(),
                 dislike: true
             },
             function (data) {
