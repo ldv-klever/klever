@@ -14,14 +14,6 @@
         "name": "CPAchecker",
         "version": "ldv-bam:24572"
       },
-      "resource limits": {
-        "wall time": 1000000,
-        "CPU time": 900000,
-        "memory size": 10000000000,
-        "CPU model": null,
-        "number of CPU cores": 1,
-        "result size": 1000000
-      },
       "merge source files": true
     },
     "ideal verdicts": [
