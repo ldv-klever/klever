@@ -15,28 +15,28 @@
 # limitations under the License.
 #
 
+import concurrent.futures
+import json
 import logging
+import multiprocessing
 import os
 import shutil
-import json
-import concurrent.futures
-import multiprocessing
-import subprocess
-import requests
-import consulate
 import signal
+import subprocess
 import sys
 
 import schedulers as schedulers
+import schedulers.resource_scheduler
+import utils
 
 
 def executor(timeout, args):
     """
-    Function just executes native scheduler client and waits until its termination.
+    Function just executes native scheduler client and waits until it terminates.
 
     :param timeout: Check that tool will exit definetly within this period of time.
     :param args: Native scheduler client execution command arguments.
-    :return: It exits with the exit code returne by a client.
+    :return: It exits with the exit code returned by a client.
     """
     # todo: implement proper logging here, since usage of logging.debug lead to hanging of threads dont know why
 
@@ -74,29 +74,40 @@ def executor(timeout, args):
 
 class Scheduler(schedulers.SchedulerExchange):
     """
-    Implement scheduler which is used to run tasks and jobs on the system locally.
+    Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
     __kv_url = None
     __node_name = None
-    __cpu_model = None
     __cpu_cores = None
-    __ram_memory = None
-    __disk_memory = None
-    __disk_memory = None
     __pool = None
     __job_conf_prototype = dict()
-    __reserved_ram_memory = 0
-    __reserved_disk_memory = 0
-    __running_tasks = 0
-    __running_jobs = 0
     __reserved = {"jobs": {}, "tasks": {}}
     __job_processes = dict()
     __task_processes = dict()
+    __cached_tools_data = None
+    __cached_nodes_data = None
+
+    @staticmethod
+    def scheduler_type():
+        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
+        return "Klever"
+
+    def __init__(self, conf, work_dir):
+        """Do native scheduler specific initialization"""
+        super(Scheduler, self).__init__(conf, work_dir)
+        self.__kv_url = None
+        self.__job_conf_prototype = None
+        self.__pool = None
+        self.__client_bin = None
+        self.__manager = None
+        self.init_scheduler()
 
     def init_scheduler(self):
-        """Do VerifierCloud specific initialization"""
+        """
+        Initialize scheduler completely. This method should be called both at constructing stage and scheduler
+        reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
+        """
         super(Scheduler, self).init_scheduler()
-
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
         if "controller address" not in self.conf["scheduler"]:
@@ -119,8 +130,20 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             logging.debug("Use provided in configuration prototype 'common' settings for jobs")
 
-        # Check first time node
+        # Check node first time
+        if "concurrent jobs" in self.conf["scheduler"]:
+            concurrent_jobs = self.conf["scheduler"]["concurrent jobs"]
+        else:
+            concurrent_jobs = 1
+        self.__manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
         self.update_nodes()
+        nodes = self.__manager.active_nodes
+        if len(nodes) != 1:
+            raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
+        else:
+            self.__node_name = nodes[0]
+            data = self.__manager.node_info(self.__node_name)
+            self.__cpu_cores = data["CPU model"]
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:
@@ -132,7 +155,6 @@ class Scheduler(schedulers.SchedulerExchange):
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
-        max_processes -= 1
         logging.info("Initialize pool with {} processes to run tasks and jobs".format(max_processes))
         if "process pool" in self.conf["scheduler"] and self.conf["scheduler"]["process pool"]:
             self.__pool = concurrent.futures.ProcessPoolExecutor(max_processes)
@@ -142,90 +164,52 @@ class Scheduler(schedulers.SchedulerExchange):
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
-    @staticmethod
-    def scheduler_type():
-        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
-        return "Klever"
+    def schedule(self, pending_tasks, pending_jobs):
+        """
+        Get a list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end. Each task and job in arguments are dictionaries with full
+        configuration or description.
 
-    def __try_to_schedule(self, task_or_job, identifier, limits):
-        """
-        Try to find slot to scheduler task or job with provided limits.
-        :param identifier: Identifier of the task or job.
-        :param limits: Dictionary with resource limits.
-        :return: True if task or job can be scheduled, False - otherwise.
-        """
-        # TODO: Check disk space also
-        if limits["memory size"] <= (self.__ram_memory - self.__reserved_ram_memory):
-            if task_or_job == "task":
-                self.__reserved["tasks"][identifier] = limits
-            else:
-                self.__reserved["jobs"][identifier] = limits
-            self.__reserved_ram_memory += limits["memory size"]
-            return True
-        else:
-            return False
-
-    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
-        """
-        Get list of new tasks which can be launched during current scheduler iteration.
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :param processing_tasks: List with currently ongoing tasks.
-        :param processing_jobs: List with currently ongoing jobs.
-        :param sorter: Function which can by used for sorting tasks according to their priorities.
         :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
-        new_tasks = []
-        new_jobs = []
+        # Use resource manager to determine which jobs or task we can run t the moment.
+        new_tasks, new_jobs = self.__manager.schedule(pending_tasks, pending_jobs)
+        return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
-        # Plan tasks first
-        if len(pending_tasks) > 0:
-            # Sort to get high priority tasks at the beginning
-            pending_tasks = sorted(pending_tasks, key=sorter)
-            for task in pending_tasks:
-                if self.__try_to_schedule("task", task["id"], task["description"]["resource limits"]):
-                    new_tasks.append(task["id"])
-                    self.__running_tasks += 1
-                    # Plan jobs
-
-        if len(pending_jobs) > 0:
-            # Sort to get high priority tasks at the beginning
-            for job in [job for job in pending_jobs if job["id"] not in self.__reserved]:
-                if self.__try_to_schedule("job", job["id"], job["configuration"]["resource limits"]):
-                    new_jobs.append(job["id"])
-                    self.__running_jobs += 1
-
-        return new_tasks, new_jobs
-
-    def prepare_task(self, identifier, configuration):
+    def prepare_task(self, identifier, description):
         """
-        Prepare working directory with input files before starting a solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
-        :param configuration: Task configuration.
+        :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        self.__prepare_solution(identifier, configuration, mode='task')
+        self.__prepare_solution(identifier, description, mode='task')
 
     def prepare_job(self, identifier, configuration):
         """
-        Prepare working directory with input files before starting a solution.
+        Prepare a working directory before starting the solution.
 
-        :param identifier: Job identifier.
+        :param identifier: Verification task identifier.
         :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
         self.__prepare_solution(identifier, configuration, mode='job')
 
-    def solve_task(self, identifier, configuration, user, password):
+    def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
 
-        :param identifier: Task identifier.
-        :param configuration: Task configuration.
-        :param user: Username.
+        :param identifier: Verification task identifier.
+        :param description: Verification task description dictionary.
+        :param user: User name.
         :param password: Password.
         :return: Return Future object.
         """
         logging.debug("Start solution of task {!r}".format(identifier))
+        self.__manager.claim_resources(identifier, description, self.__node_name, job=False)
         return self.__pool.submit(self.__execute, self.__task_processes[identifier])
 
     def solve_job(self, identifier, configuration):
@@ -237,6 +221,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :return: Return Future object.
         """
         logging.debug("Start solution of job {!r}".format(identifier))
+        self.__manager.claim_resources(identifier, configuration, self.__node_name, job=True)
         return self.__pool.submit(self.__execute, self.__job_processes[identifier])
 
     def flush(self):
@@ -245,48 +230,51 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def process_task_result(self, identifier, future):
         """
-        Process task execution result, clean working directory and mark resources as released.
+        Process result and send results to the server.
 
-        :param identifier: Job identifier.
+        :param identifier: Task identifier string.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return self.__check_solution(identifier, future, mode='task')
 
     def process_job_result(self, identifier, future):
         """
-        Process job execution result, clean working directory and mark resources as released.
+        Process future object status and send results to the server.
 
-        :param identifier: Job identifier.
+        :param identifier: Job identifier string.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return self.__check_solution(identifier, future, mode='job')
 
-    def cancel_task(self, identifier, future):
-        """
-        Cancel task and then get result, clean working directory and mark resources as released.
-
-        :param identifier: Task identifier.
-        :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        """
-        return self.__cancel_solution(identifier, future, mode='task')
-
     def cancel_job(self, identifier, future):
         """
-        Cancel job and then get result, clean working directory and mark resources as released.
+        Stop the job solution.
 
-        :param identifier: Task identifier.
+        :param identifier: Verification task ID.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
         """
         return self.__cancel_solution(identifier, future, mode='job')
 
+    def cancel_task(self, identifier, future):
+        """
+        Stop the task solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self.__cancel_solution(identifier, future, mode='task')
+
     def terminate(self):
         """
-        Abort solution of all running tasks and any other actions before
-        termination.
+        Abort solution of all running tasks and any other actions before termination.
         """
         # Submit an empty configuration
         logging.debug("Submit an empty configuration list before shutting down")
@@ -301,93 +289,52 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes.
-        :return: Return True if nothing has changes
+        Update statuses and configurations of available nodes and push them to the server.
+
+        :return: Return True if nothing has changes.
         """
-        # Determine node name
-        url = self.__kv_url + "/v1/catalog/nodes"
-        response = requests.get(url)
-        if not response.ok:
-            raise "Cannot get list of connected nodes requesting {} (got status code: {} due to: {})". \
-                format(url, response.status_code, response.reason)
-        nodes = response.json()
-        if len(nodes) != 1:
-            raise ValueError("Native scheduler expects always 1 node to be connected, but got {}". format(len(nodes)))
-        self.__node_name = nodes[0]["Node"]
-
-        # Fetch node configuration
-        url = self.__kv_url + "/v1/kv/states/" + self.__node_name
-        session = consulate.Consul()
-        string = session.kv["states/" + self.__node_name]
-        node_status = json.loads(string)
-
-        # Submit nodes
-        # TODO: Properly set node status
-        configurations = [{
-            "CPU model": node_status["CPU model"],
-            "CPU number": node_status["available CPU number"],
-            "RAM memory": node_status["available RAM memory"],
-            "disk memory": node_status["available disk memory"],
-            "nodes": {
-                node_status["node name"]: {
-                    "status": "HEALTHY",
-                    "workload": {
-                        "reserved CPU number": 0,
-                        "reserved RAM memory": self.__reserved_ram_memory,
-                        "reserved disk memory": 0,
-                        "running verification jobs": self.__running_jobs,
-                        "running verification tasks": self.__running_tasks,
-                        "available for jobs": node_status["available for jobs"],
-                        "available for tasks": node_status["available for tasks"],
-                    }
-                }
-            }
-        }]
-        self.server.submit_nodes(configurations)
-
-        # Fill available resources
-        if self.__cpu_model != node_status["CPU model"] or \
-                        self.__cpu_cores != node_status["available CPU number"] or \
-                        self.__ram_memory != node_status["available RAM memory"] or \
-                        self.__disk_memory != node_status["available disk memory"]:
-            self.__cpu_model = node_status["CPU model"]
-            self.__cpu_cores = node_status["available CPU number"]
-            self.__ram_memory = node_status["available RAM memory"]
-            self.__disk_memory = node_status["available disk memory"]
-            return False
-        return True
+        # Use resource mamanger to manage resources
+        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url)
+        # todo: how to provide jobs or tasks to cancel?
+        if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
+            logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
+                            "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
+        return self.__manager.submit_status(self.server)
 
     def update_tools(self):
         """
-        Generate dictionary with verification tools available.
-        :return: Dictionary with available verification tools.
+        Generate a dictionary with available verification tools and push it to the server.
         """
         data = self.__get_task_configuration()
-        verification_tools = data['client']['verification tools']
+        if not self.__cached_tools_data or str(data) != self.__cached_tools_data:
+            self.__cached_tools_data = str(data)
+            verification_tools = data['client']['verification tools']
 
-        # Submit tools
-        self.server.submit_tools(verification_tools)
+            # Submit tools
+            self.server.submit_tools(verification_tools)
 
     def __prepare_solution(self, identifier, configuration, mode='task'):
         """
-        Generate working directory, configuration files and multiprocessing Process object to be ready to just run it.
+        Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
 
         :param identifier: Job or task identifier.
-        :param configuration: Dictionary.
+        :param configuration: A dictionary with a cinfiguration or description.
         :param mode: 'task' or 'job'.
-        :return: None
+        :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        self.__check_resource_limits(configuration)
         args = [sys.executable, self.__client_bin]
+        node_status = self.__manager.node_info(self.__node_name)
         if mode == 'task':
             subdir = 'tasks'
             args.append("TASK")
             client_conf = self.__get_task_configuration()
+            self.__manager.check_resources(configuration, job=False)
         else:
             subdir = 'jobs'
             args.append("JOB")
             client_conf = self.__job_conf_prototype.copy()
+            self.__manager.check_resources(configuration, job=True)
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -412,6 +359,13 @@ class Scheduler(schedulers.SchedulerExchange):
                 json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
             for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
+
+            # Add particular
+            first_cpu = node_status["available CPU number"] - node_status["reserved CPU number"] - \
+                        client_conf["resource limits"]["number of CPU cores"]
+            last_cpu = node_status["available CPU number"] - node_status["reserved CPU number"]
+            client_conf["resource limits"]["CPU cores"] = [x for x in range(first_cpu, last_cpu)]
+
             # Property file may not be specified.
             if "property file" in configuration:
                 client_conf["property file"] = configuration["property file"]
@@ -447,40 +401,17 @@ class Scheduler(schedulers.SchedulerExchange):
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    def __yield_future_result(self, future, identifier, mode):
-        """
-        Try to get result yielded by a future object.
-
-        :param future: Future object.
-        :param identifier: Identifier string.
-        :param mode: 'job' ot 'task'
-        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        """
-        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
-        try:
-            result = future.result()
-            if result == 0:
-                return "FINISHED"
-            else:
-                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier, result)
-                logging.warning(error_msg)
-                raise schedulers.SchedulerException(error_msg)
-        except Exception as err:
-            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
-            logging.warning(error_msg)
-            raise schedulers.SchedulerException(error_msg)
-
     def __check_solution(self, identifier, future, mode='task'):
         """
-        Process results of task or job solution.
+        Process results of the task or job solution.
 
-        :param identifier: Job or task identifier.
-        :param future: Future object.
-        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :param identifier: A job or task identifier.
+        :param future: A future object.
+        :return: Status after solution: FINISHED.
+        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        self.__postprocess_solution(identifier, mode)
-        return self.__yield_future_result(future, identifier, mode)
+        return self.__postprocess_solution(identifier, future, mode)
 
     def __cancel_solution(self, identifier, future, mode='task'):
         """
@@ -490,6 +421,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param future: Future object.
         :param mode: 'task' or 'job'.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: raise if an exception occured during solution or results are inconsistent.
         """
         logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
@@ -503,45 +435,80 @@ class Scheduler(schedulers.SchedulerExchange):
                 process.join()
             except Exception as err:
                 logging.warning('Cannot terminate process {}: {}'.format(process.pid, err))
-        self.__postprocess_solution(identifier, mode)
+        return self.__postprocess_solution(identifier, future, mode)
 
-        # Get result of the future object
-        return self.__yield_future_result(future, identifier, mode)
-
-    def __postprocess_solution(self, identifier, mode):
+    def __postprocess_solution(self, identifier, future, mode):
         """
-        Mark resources as released, clean working directory
+        Mark resources as released, clean the working directory.
 
-        :param identifier: Job or task identifier
+        :param identifier: A job or task identifier
         :param mode: 'task' or 'job'.
-        :return: None
+        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
         if mode == 'task':
             subdir = 'tasks'
-            self.__running_tasks -= 1
             del self.__task_processes[identifier]
         else:
             subdir = 'jobs'
-            self.__running_jobs -= 1
             del self.__job_processes[identifier]
         # Mark resources as released
-        self.__reserved_ram_memory -= self.__reserved[subdir][identifier]["memory size"]
         del self.__reserved[subdir][identifier]
 
-        # Clean working directory
-        if "keep working directory" not in self.conf["scheduler"] or \
-                not self.conf["scheduler"]["keep working directory"]:
-            work_dir = os.path.join(self.work_dir, subdir, identifier)
-            logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
-            shutil.rmtree(work_dir)
+        # Include logs into total scheduler logs
+        work_dir = os.path.join(self.work_dir, subdir, identifier)
+
+        # Release resources
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
+            reserved_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+        else:
+            reserved_space = 0
+        self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False, reserved_space)
+
+        logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
+        try:
+            result = future.result()
+            logfile = "{}/client-log.log".format(work_dir)
+            if os.path.isfile(logfile):
+                with open(logfile, mode='r', encoding="utf8") as f:
+                    logging.debug("Scheduler client log: {}".format(f.read()))
+            else:
+                raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+
+            errors_file = "{}/client-critical.log".format(work_dir)
+            if os.path.isfile(errors_file):
+                with open(errors_file, mode='r', encoding="utf8") as f:
+                    errors = f.readlines()
+            else:
+                errors = []
+
+            if len(errors) > 0:
+                error_msg = errors[-1]
+            else:
+                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
+                                                                                             result)
+            if len(errors) > 0 or result != 0:
+                logging.warning(error_msg)
+                raise schedulers.SchedulerException(error_msg)
+        except Exception as err:
+            error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
+            logging.warning(error_msg)
+            raise schedulers.SchedulerException(error_msg)
+        finally:
+            # Clean working directory
+            if "keep working directory" not in self.conf["scheduler"] or \
+                    not self.conf["scheduler"]["keep working directory"]:
+                logging.debug("Clean task working directory {} for {}".format(work_dir, identifier))
+                shutil.rmtree(work_dir)
+
+        return "FINISHED"
 
     @staticmethod
     def __execute(process):
         """
-        Common implementation for running of a multiprocessing process and waiting till its termination.
+        Common implementation for running of a multiprocessing process and for waiting until it terminates.
 
-        :param process: multiprocessing.Process
-        :return: None
+        :param process: multiprocessing.Process object.
+        :raise SchedulerException: Raised if process cannot be executed or if its exit code cannot be determined.
         """
         logging.debug("Future task {!r}: Going to start a new process which will start native scheduler client".
                       format(process.name))
@@ -557,49 +524,19 @@ class Scheduler(schedulers.SchedulerExchange):
             logging.debug("Future task {!r}: exit code of the process {!r} is {!r}".
                           format(process.name, process.pid, str(ec)))
             if ec is not None:
-                if ec == 0:
-                    return 0
-                else:
-                    if ec < 0:
-                        error_msg = 'Process {!r} killed by a signal {!r}'.format(process.pid, str(-ec))
-                    else:
-                        error_msg = 'Process {!r} exited with a non-zero exit code {!r}'.format(process.pid, str(ec))
-                    raise schedulers.SchedulerException(error_msg)
+                return ec
             else:
                 error_msg = 'Cannot determine exit code of process {!r}'.format(process.pid)
                 raise schedulers.SchedulerException(error_msg)
         else:
             raise schedulers.SchedulerException("Cannot launch process to run a job or a task")
 
-    def __check_resource_limits(self, desc):
-        """
-        Check resource limitations provided with a job or a task configuration to be sure that it can be launched.
-
-        :param desc: Configuration dictionary.
-        :return: None
-        """
-        logging.debug("Check resource limits")
-
-        if desc["resource limits"]["CPU model"] and desc["resource limits"]["CPU model"] != self.__cpu_model:
-            raise schedulers.SchedulerException(
-                "Host CPU model is not {} (has only {})".
-                    format(desc["resource limits"]["CPU model"], self.__cpu_model))
-
-        if desc["resource limits"]["memory size"] > self.__ram_memory:
-            raise schedulers.SchedulerException(
-                "Host does not have {} bytes of RAM memory (has only {} bytes)".
-                    format(desc["resource limits"]["memory size"], self.__ram_memory))
-
-            # TODO: Disk space check
-            # TODO: number of CPU cores check
-
     def __create_work_dir(self, entities, identifier):
         """
-        Create working directory for a job or a task.
+        Create the working directory for a job or a task.
 
-        :param entities: Internal subdirectory name.
-        :param identifier: Job or task identifier string.
-        :return: None
+        :param entities: Internal subdirectory name string.
+        :param identifier: A job or task identifier string.
         """
         work_dir = os.path.join(self.work_dir, entities, identifier)
         logging.debug("Create working directory {}/{}".format(entities, identifier))
@@ -610,9 +547,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __get_task_configuration(self):
         """
-        Read scheduler task configuration JSON file to keep it updated.
+        Read the scheduler task configuration JSON file to keep it updated.
 
-        :return: Dictionary with configuration.
+        :return: Dictionary with the updated configuration.
         """
         name = self.conf["scheduler"]["task client configuration"]
         with open(name, encoding="utf8") as fh:

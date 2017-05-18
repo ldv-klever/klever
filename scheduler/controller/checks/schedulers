@@ -25,14 +25,24 @@ sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir))
 
 import utils.bridge as bridge
 
+
+def set_status(st):
+    session = bridge.Session(conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"],
+                             conf["Klever Bridge"]["password"])
+    data = {
+        "statuses": json.dumps(st, ensure_ascii=False, sort_keys=True, indent=4)
+    }
+    session.json_exchange("service/set_schedulers_status/", data)
+    session.sign_out()
+
 expect_file = os.environ["CONTROLLER_NODE_CONFIG"]
 with open(expect_file, encoding="utf8") as fh:
     conf = json.load(fh)
 
 # Sign in
-session = bridge.Session(conf["Klever Bridge"]["name"], conf["Klever Bridge"]["user"], conf["Klever Bridge"]["password"])
+consul = consulate.Consul()
 
-# Submit scheduler status
+# Update scheduler status
 status = {
     "VerifierCloud": "DISCONNECTED",
     "Klever": "DISCONNECTED"
@@ -45,22 +55,17 @@ vc_out = subprocess.getoutput('ps -aux | grep [v]erifiercloud-scheduler')
 if vc_out and vc_out != '':
     status["VerifierCloud"] = "HEALTHY"
 
-data = {
-    "statuses": json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
-}
-
-session.json_exchange("service/set_schedulers_status/", data)
+# Check the last submit
+if "schedulers" in consul.kv:
+    kv_status = json.loads(consul.kv["schedulers"])
+    if kv_status["Klever"] != status["Klever"] or kv_status["VerifierCloud"] != status["VerifierCloud"]:
+        set_status(status)
+        consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
+else:
+    consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
+    set_status(status)
 
 # Sign out
-session.sign_out()
-
-# Submit scheduler status to kv storage for debug
-session = consulate.Consul()
-try:
-    session.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
-    exit(0)
-except KeyError:
-    print("Key-value storage is inaccessible.")
-    exit(2)
+exit(0)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
