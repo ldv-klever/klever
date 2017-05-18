@@ -40,12 +40,16 @@ def solve(logger, conf, job=True, server=None):
         raise KeyError("Configuration section 'resource limits' has not been provided")
 
     # Import runexec from BenchExec
+    # todo: make it if the option is set otherwise import the package from pip
     bench_exec_location = os.path.join(conf["client"]["benchexec location"])
     sys.path.append(bench_exec_location)
 
     # Import RunExec
     if job:
         from benchexec.runexecutor import RunExecutor
+        # todo: implement support of container mode
+        # todo: switch to benchexec
+        #executor = RunExecutor(use_namespaces=True)
         executor = RunExecutor()
         # Add CIF path
         if "cif location" in conf["client"]:
@@ -106,7 +110,12 @@ def solve(logger, conf, job=True, server=None):
         logger.debug("Memory limit will not be set")
     else:
         logger.debug("Memory limit: {} bytes".format(conf["resource limits"]["memory size"]))
-    # TODO: How to choose proper CPU core numbers?
+    if "CPU cores" not in conf["resource limits"] or not conf["resource limits"]["CPU cores"]:
+        conf["resource limits"]["CPU cores"] = None
+        logger.debug("CPU cores limit will not be set")
+    if "number of CPU cores" not in conf["resource limits"] or not not conf["resource limits"]["number of CPU cores"]:
+        conf["resource limits"]["number of CPU cores"] = None
+        logger.debug("CPU cores limit will not be set")
 
     # Last preparations before run
     if job:
@@ -123,7 +132,11 @@ def solve(logger, conf, job=True, server=None):
                                       softtimelimit=conf["resource limits"]["CPU time"],
                                       walltimelimit=conf["resource limits"]["wall time"],
                                       memlimit=conf["resource limits"]["memory size"],
-                                      files_size_limit=conf["resource limits"]["disk memory size"])
+        # todo: does not work without container mode
+        #                             files_size_limit=conf["resource limits"]["disk memory size"],
+        # todo: do not set the option until both runexec and benchexec accepts both virtual CPU identifiers
+        #                             cores=conf["resource limits"]["CPU cores"]
+                                      )
         exit_code = int(result["exitcode"]) % 255
         logger.info("Job solution has finished with exit code {}".format(exit_code))
     else:
@@ -158,9 +171,17 @@ def solve(logger, conf, job=True, server=None):
         #  files around its binary.
         os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
 
+        # todo: set container mode
+        args = ["--debug", "--no-container", "--no-compress-results", "--outputpath", "output"]
+        # todo: BenchExec cannot get identifiers, so setting particular cores is inefficient
+        #if conf["resource limits"]["number of CPU cores"]:
+        #    args.extend(["--limitCores", conf["resource limits"]["number of CPU cores"]])
+        # todo: without container mode it is not working
+        #if conf["resource limits"]["disk memory size"]:
+        #    args.extend(["--filesSizeLimit", conf["resource limits"]["disk memory size"]])
+
         logger.info("Start task execution")
-        exit_code = executor.start(["--debug", "--no-container", "--no-compress-results", "--outputpath", "output",
-                                    "benchmark.xml"])
+        exit_code = executor.start(args + ["benchmark.xml"])
         logger.info("Task solution has finished with exit code {}".format(exit_code))
 
         logger.debug("Translate benchexec output into our results format")
