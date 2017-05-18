@@ -19,24 +19,23 @@ import consulate
 import json
 import copy
 from utils import higher_priority, sort_priority
-
-
-class InvariantException(RuntimeError):
-    """
-    Exception is used to determine when deadlock is possible or not
-    (Invariant is not satisfied or satidfied correspondingly).
-    """
-    pass
+from schedulers import SchedulerException
 
 
 class ResourceManager:
+    """
+    The class is in charge of resource management. It tracks all resources of the system consisting of several
+    nodes running the scheduler controller. It provides means for other schedulers to calculate resources,
+    reserve resources, checking whether it possible to run a job or task and even choosing appropriate nodes for it.
+    It requests data from the shceduler controller and submits the current system workload to Bridge. It does not do
+    any specific actions to prepare, start or cancel jobs or tasks.
+    """
 
     def __init__(self, logger, max_jobs=1):
         """
-        Initiaize abstract scheduler that allows to track resources and do planning but ignores any resl statuses of
-        verification jobs and tasks. It also does not run or stop solution of jobs and tasks.
+        Initiaize the manager of resources.
 
-        :param max_jobs: Maximum number of running jobs of the same or higher priority.
+        :param max_jobs: The maximum number of running jobs with the same or higher priority.
         """
         self.__logger = logger
         self.__max_running_jobs = max_jobs
@@ -45,13 +44,23 @@ class ResourceManager:
         self.__jobs_config = {}
         self.__tasks_config = {}
 
-    def request_from_consul(self, address):
+        self.__logger.info("Resource manager is live now")
+
+    def update_system_status(self, address):
+        """
+        Get an information about connected nodes from a scheduler controller. If a user reduces an amount of available
+        resources the method checks the invariant and reports jobs and tasks to cancel to prevent scheduling deadlocks.
+
+        :param address: Controllers address to make the request.
+        :raise ValueError: If the request to controller fails then raise the exception.
+        :return: [list of identifiers of jobs to cancel], [list of identifiers of tasks to cancel].
+        """
         self.__logger.debug("Try to receive information about resources from controller")
         url = address + "/v1/catalog/nodes"
         response = requests.get(url)
         if not response.ok:
-            raise "Cannot get list of connected nodes requesting {} (got status code: {} due to: {})". \
-                format(url, response.status_code, response.reason)
+            raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
+                             format(url, response.status_code, response.reason))
         nodes = response.json()
         nodes = [data["Node"] for data in nodes]
 
@@ -66,6 +75,8 @@ class ResourceManager:
             # Get dictionary and compare it with existing one
             if node in self.__system_status and self.__system_status[node]["status"] != "DISCONNECTED":
                 if self.__system_status[node]["available for jobs"] and not node_status["available for jobs"]:
+                    self.__logger.warning("Cancel jobs: {}".
+                                          format(str(self.__system_status[node]["running verification jobs"])))
                     cancel_jobs.extend(self.__system_status[node]["running verification jobs"])
                 self.__system_status[node]["available for jobs"] = node_status["available for jobs"]
 
@@ -81,6 +92,7 @@ class ResourceManager:
                         self.__logger.warning("Deadlock can happen after amount of resources available at {!r} reduced"
                                               ", cancelling running tasks and jobs there".format(node))
                         # Remove jobs
+                        self.__logger.warning("Cancel jobs: {}".format(str(data)))
                         cancel_jobs.extend(data)
                 self.__system_status[node]["available CPU number"] = node_status["available CPU number"]
                 self.__system_status[node]["available RAM memory"] = node_status["available RAM memory"]
@@ -98,6 +110,9 @@ class ResourceManager:
         for missing in (n for n in self.__system_status if n not in nodes):
             self.__logger.warning("Seems that node {!r} is disconnected, cancel all running tasks and jobs there"
                                   .format(missing))
+            self.__logger.warning('Node {!r} is disconnected. Cancel tasks and jobs: {} and {}'.
+                                  format(missing, str(self.__system_status[missing]["running verification jobs"]),
+                                         str(self.__system_status[missing]["running verification tasks"])))
             cancel_jobs.extend(self.__system_status[missing]["running verification jobs"])
             cancel_tasks.extend(self.__system_status[missing]["running verification tasks"])
             self.__system_status[missing]["status"] = "DISCONNECTED"
@@ -116,6 +131,13 @@ class ResourceManager:
         return cancel_jobs, cancel_tasks
 
     def submit_status(self, server):
+        """
+        Caclulate an available configuration of all nodes, nodes with particular configuration and the current workload,
+        and send it all to Bridge. Does not send any data if nothing has been changed from the previous dispatch.
+
+        :param server: {'node name': {node status}} - the system status.
+        :return: True if status has been submitted to Bridge and False if nothing to sent.
+        """
         def equal(name1, name2, parameter):
             """Compare nodes parameters"""
             return self.__system_status[name1][parameter] == self.__system_status[name2][parameter]
@@ -158,30 +180,47 @@ class ResourceManager:
 
         # Submit nodes
         if not self.__cached_system_status or self.__cached_system_status != str(configurations):
+            self.__logger.info("Submit information about the workload to Bridge")
             self.__cached_system_status = str(configurations)
             server.submit_nodes(configurations)
             return True
 
+        self.__logger.debug("Do not submit information about the workload to Bridge as nothing has been changed")
         return False
 
     def schedule(self, pending_tasks, pending_jobs):
+        """
+        Get two sorted by priorities lists of pending tasks and jobs and determine which can be started now and at which
+        nodes.
+
+        :param pending_tasks: A list of dictionaries with the description for pending tasks sorted increasing the
+                              priority.
+        :param pending_jobs: A list of dictionaries with configuration for pending jobs sorted increasing the priority.
+        :return: [{task desc}, "node name"], [{job desc}, "node name"] - lists of runnable pending tasks and jobs.
+        """
         def schedule_jobs(jobs):
             while len(jobs) > 0 and len(running_jobs) + len(jobs_to_run) <= self.__max_running_jobs:
                 candidate = jobs.pop()
 
-                n = self.__schedule_job(candidate)
-                if n:
-                    jobs_to_run.append([candidate, n])
+                if candidate not in (j[0] for j in jobs_to_run):
+                    n = self.__schedule_job(candidate, status=status)
+                    if n:
+                        jobs_to_run.append([candidate, n])
+                        # Remove these resources from status
+                        self.__reserve_resources(status, candidate['configuration']['resource limits'], n)
 
         jobs_to_run = []
         tasks_to_run = []
+
+        # Prepare copy of current system status
+        status = self.__create_system_status(delete_jobs=False, delete_tasks=False)
 
         # Check high priority running jobs
         highest_priority = 'IDLE'
         running_jobs = self.__processing_jobs
         for job, node in running_jobs:
             if higher_priority(self.__jobs_config[job]['configuration']['priority'], highest_priority, strictly=True):
-                highest_priority = self.__jobs_config[job]['priority']
+                highest_priority = self.__jobs_config[job]['configuration']['priority']
 
         # Filter jobs that have a higher priority than the current highest priority
         filtered_jobs = [j for j in pending_jobs if higher_priority(j['configuration']['priority'], highest_priority,
@@ -189,10 +228,12 @@ class ResourceManager:
         schedule_jobs(filtered_jobs)
 
         # Schedule all posible tasks
-        for task in pending_tasks:
-            node = self.__schedule_task(task)
+        for task in reversed(pending_tasks):
+            node = self.__schedule_task(task, status=status)
             if node:
                 tasks_to_run.append([task, node])
+                # Remove these resources from status
+                self.__reserve_resources(status, task['description']['resource limits'], node)
 
         # Filter jobs that have the same or a higher priority than the current highest priority
         filtered_jobs = [j for j in pending_jobs if higher_priority(j['configuration']['priority'], highest_priority)]
@@ -201,9 +242,19 @@ class ResourceManager:
         return tasks_to_run, jobs_to_run
 
     def claim_resources(self, identifier, conf, node, job=False):
+        """
+        Reserve the resources for given task or job in the system. Call the method when you are about to run the job or
+        task and if 'schedule' method allowed it.
+
+        :param identifier: An identifier of given job or task.
+        :param conf: A dictionary with the job configuration or task description.
+        :param node: A node name string.
+        :param job: True if it is a job and False if it is a task.
+        :raise KeyError: if job or task is running and its identifier is found in a list of running jobs or tasks.
+        """
         if job and identifier in self.__processing_jobs:
             raise KeyError("Verification job {!r} should be already running")
-        elif identifier in self.__processing_tasks:
+        elif not job and identifier in self.__processing_tasks:
             raise KeyError("Verification task {!r} should be already running")
 
         if job:
@@ -218,7 +269,16 @@ class ResourceManager:
         self.__reserve_resources(self.__system_status, conf, node)
         self.__system_status[node][tag].append(identifier)
 
-    def release_resources(self, identifier, node, job=False, KeepDisk=0):
+    def release_resources(self, identifier, node, job=False, keep_disk=0):
+        """
+        Paried method with claim_resources. Call it if the task or job solution is finished and reserved resources
+        should become available again.
+
+        :param identifier: An identifier of the given job or task.
+        :param node: A node name string.
+        :param job: True if it is a job and False if it is a task.
+        :param keep_disk: An amount of a disk memory in bytes to reserve forever if the working directory is saved.
+        """
         if job:
             collection = self.__jobs_config
             tag = "running verification jobs"
@@ -239,17 +299,94 @@ class ResourceManager:
         del collection[identifier]
         self.__system_status[node][tag].remove(identifier)
 
-        if KeepDisk:
+        if keep_disk:
             diff = self.__system_status[node]["available disk memory"] - \
                    self.__system_status[node]["reserved disk memory"]
-            if KeepDisk > diff:
+            if keep_disk > diff:
                 raise ValueError('Cannot reserve amount of disk memory {} which is higher than rest amount {} at node '
-                                 '{}'.format(KeepDisk, diff, node))
+                                 '{}'.format(keep_disk, diff, node))
 
-            self.__system_status[node]["reserved disk memory"] += KeepDisk
+            self.__system_status[node]["reserved disk memory"] += keep_disk
+
+    def check_resources(self, conf, job=False):
+        """
+        Provide configuration of a job or description of a task to check that the system has enough resources to
+        reserve.
+
+        :param conf: A dictionary with a job configuration or task description.
+        :param job: True if it is a job and False if it is a task.
+        :return: True if all is right and job or task will not be pending forever.
+        :raise SchedulerException: Raised if the system cannot handle the job or task.
+        """
+        if job:
+            self.__logger.debug("Check the resource limits of pending job {!r}".format(conf['identifier']))
+            restrictions = conf['resource limits']
+        else:
+            self.__logger.debug("Check the resource limits of pending task {!r}".format(conf['id']))
+
+            if conf['job id'] not in self.__jobs_config:
+                raise SchedulerException("Job {!r} should be running as task {!r} is generated by it".
+                                         format(conf['job id'], conf['id']))
+
+            job_resources = self.__jobs_config[conf['job id']]['configuration']['task resource limits']
+            task_resources = conf['resource limits']
+            for restriction in ["number of CPU cores", "memory size", "disk memory size"]:
+                if job_resources[restriction] < task_resources[restriction]:
+                    raise SchedulerException("Task cannot have {!r} {!r} more than given with a job: {!r}".
+                                             format(restriction, task_resources[restriction],
+                                                    job_resources[restriction]))
+
+            # Check CPU model
+            if task_resources['CPU model'] != job_resources['CPU model']:
+                raise SchedulerException("Task cannot have CPU model {!r} different from one given with a job: {!r}".
+                                         format(task_resources['CPU model'],
+                                                job_resources['CPU model']))
+
+            restrictions = task_resources
+
+        # Create empty system status
+        status = self.__create_system_status(delete_tasks=True, delete_jobs=True)
+        nodes = self.__nodes_ranking(status, restrictions)
+
+        if len(nodes) > 0:
+            if job:
+                task_restrictions = conf['task resource limits']
+                self.__reserve_resources(status, restrictions, nodes[0])
+                nodes = self.__nodes_ranking(status, task_restrictions)
+                if len(nodes) > 0:
+                    return True
+                raise SchedulerException(
+                        "Given resource limits for job and tasks in sum are two high, we do not have such amount of "
+                        "resources")
+        else:
+            raise SchedulerException("Given resource limits are two high, we do not have such amount of resources")
+
+    def node_info(self, node):
+        """
+        Return the status of partucular node. It will be a copy of the particular object from the system status.
+        It prevents any modifications of the system status outside of the manager.
+
+        :param node: A node name string.
+        :return: A dictionary with node status.
+        """
+        return copy.deepcopy(self.__system_status[node])
+
+    @property
+    def active_nodes(self):
+        """
+        Returns a list of node names that currently connected to the system.
+
+        :return: A list with node names.
+        """
+        return [n for n in self.__system_status.keys() if self.__system_status[n]['status'] != 'DISCONNECTED']
 
     @property
     def __processing_jobs(self):
+        """
+        Collect identifiers of all processing jobs.
+
+        :return: A list of running jobs identifiers.
+        """
         jobs = []
         for node in self.__system_status:
             for job in self.__system_status[node]["running verification jobs"]:
@@ -259,6 +396,11 @@ class ResourceManager:
 
     @property
     def __processing_tasks(self):
+        """
+        Collect identifiers of all processing tasks.
+
+        :return: A list of running tasks identifiers.
+        """
         tasks = []
         for node in self.__system_status:
             for task in self.__system_status[node]["running verification tasks"]:
@@ -266,16 +408,19 @@ class ResourceManager:
 
         return tasks
 
-    @property
-    def active_nodes(self):
-        return [n for n in self.__system_status.keys() if self.__system_status[n]['status'] != 'DISCONNECTED']
+    def __schedule_job(self, job, status=None):
+        """
+        Check whether provided job can be started in the system.
 
-    def node_info(self, node):
-        return copy.deepcopy(self.__system_status[node])
+        :param job: A job configuration dictionary.
+        :param status: A custom status dictionary and if it the manager's system status should not be used.
+        :return: A node name where the job can be started or None if there is no such node.
+        """
+        # Available resources
+        if not status:
+            status = self.__system_status
 
-    def __schedule_job(self, job):
-        # Ranking of available resources
-        nodes = self.__nodes_ranking(self.__system_status, job['configuration']['resource limits'])
+        nodes = self.__nodes_ranking(status, job['configuration']['resource limits'])
 
         # Ranking of theoretically available resources
         if len(nodes) > 0:
@@ -288,18 +433,40 @@ class ResourceManager:
 
         return None
 
-    def __schedule_task(self, task):
+    def __schedule_task(self, task, status=None):
+        """
+        Check whether provided task can be started in the system.
+
+        :param task: A task description dictionary.
+        :param status: A custom status dictionary and if it the manager's system status should not be used.
+        :return: A node name where the task can be started or None if there is no such node.
+        """
+        # Available resources
+        if not status:
+            status = self.__system_status
+
         # Ranking of available resources
-        nodes = self.__nodes_ranking(self.__system_status, task['description']['resource limits'])
+        nodes = self.__nodes_ranking(status, task['description']['resource limits'])
         if len(nodes) > 0:
             return nodes[0]
         else:
             return None
 
     def __check_invariant(self, job=None):
-        def yield_max_task(given_model, jobs):
+        """
+        Check that the invariant is preserved in the system and no deadlocks will happen. If a job is provided check
+        the same thing but under the assumption that the job is running.
+
+        :param job: A job configuration dictionary or None.
+        :return: True, None - the invariant is preserved (job is not given).
+                 True, [nodes at which the job can be started] - the invariant is preserved (job given). The list is
+                                                                 sorted reducing workload.
+                 False [job identifiers to cancel] - the invariant is not preserved (job is not given).
+                 False, None - the invariant is not preserved (job is given).
+        """
+        def yield_max_task(given_model, jbs):
             # Get all tasks restrictions
-            restrictions = [j[1]['configuration']['task resource limits'] for j in jobs
+            restrictions = [j[1]['configuration']['task resource limits'] for j in jbs
                             if not j[1]['configuration']['task resource limits']['CPU model'] or
                             not cpu_model or
                             (cpu_model and j[1]['configuration']['task resource limits']['CPU model'] == given_model)]
@@ -315,15 +482,7 @@ class ResourceManager:
             return restriction
 
         def check_invariant_for_jobs(jobs_list):
-            # Copy system status to calculatepotentially available resources
-            par = copy.deepcopy(self.__system_status)
-
-            # Free there all task resources but reserve all max task resources
-            for task, node in self.__processing_tasks:
-                self.__release_resources(par, self.__tasks_config[task]['resource limits'], node)
-            # Free resources of jobs that are not in given list
-            for j, node in (j for j in self.__processing_jobs if j not in [e[0] for e in jobs_list]):
-                self.__release_resources(par, self.__jobs_config[j], node)
+            par = self.__create_system_status(delete_jobs=True, delete_tasks=True, keep_jobs=[j[0] for j in jobs_list])
 
             # Collect maximum task restrictions for each CPU model cpecified for tasks
             required_cpu_models = \
@@ -341,6 +500,8 @@ class ResourceManager:
             # Invariant is preserved
             return par, None, None
 
+        self.__logger.info("Going to check that deadlock are impossible" if not job else
+                            "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
         jobs = self.__processing_jobs
         jobs = [[j, self.__jobs_config[j[0]]] for j in jobs] if not job else \
                [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
@@ -388,11 +549,74 @@ class ResourceManager:
         else:
             return True, None
 
+    def __create_system_status(self, delete_jobs=True, delete_tasks=True, keep_jobs=None, keep_tasks=None):
+        """
+        Copy current system status and if necessary do not reserve resources for running jobs and tasks.
+
+        :param delete_jobs: If True release resources claimed for running jobs in the copy of system status.
+        :param delete_tasks: if True release resources claimed for running tasks in the copy of system status.
+        :param keep_jobs: [job identifiers] - do not release resources claimed by particular running jobs in the copy
+                          of system status.
+        :param keep_tasks: [task identifiers] - do not release resources claimed by particular running tasks in the
+                           copy of system status.
+        :return: The copy of system status that can be modified anyhow.
+        """
+
+        def relaease_all_tasks(s, kt=None):
+            if not kt:
+                kt = []
+
+            # Free resources of tasks that are not in given list
+            for j, node in (t for t in self.__processing_tasks if t not in kt):
+                self.__release_resources(s, self.__tasks_config[j]['resource limits'], node)
+
+        def release_all_jobs(s, kj=None):
+            if not kj:
+                kj = []
+
+            # Free resources of jobs that are not in given list
+            for j, node in (j for j in self.__processing_jobs if j not in kj):
+                self.__release_resources(s, self.__jobs_config[j]['configuration']['resource limits'], node)
+
+        # Copy system status to calculatepotentially available resources
+        status = copy.deepcopy(self.__system_status)
+
+        # Free there all task resources but reserve all max task resources
+        if not keep_tasks:
+            keep_tasks = []
+        if delete_tasks:
+            relaease_all_tasks(status, keep_tasks)
+
+        if not keep_jobs:
+            keep_jobs = []
+        if delete_jobs:
+            release_all_jobs(status, keep_jobs)
+
+        return status
+
     def __nodes_ranking(self, system_status, restriction, job=True):
+        """
+        Get restrictions and return list of nodes where such amount of resources can be reserved. Nodes are sorted
+        reducing workload.
+
+        :param system_status: A dictionary with system status.
+        :param restriction: A dictionary with the resource restrictions.
+        :param job: True if it is a job and False if it is a task.
+        :return: A list of node names sorted reducing the workload.
+        """
         suitable = [n for n in system_status.keys() if self.__fulfill_requirement(system_status[n], restriction, job)]
         return sorted(suitable, key=lambda x: self.__free_resources(system_status[x]))
 
     def __fulfill_requirement(self, node, restriction, job=True):
+        """
+        Check that given node has enough resources to run job or task according to given restrictions.
+
+        :param node: A node name.
+        :param restriction: A dictionary with the restrictions.
+        :param job: True if it is a job and False if it is a task.
+        :return: True if the node has enough free resources and False otherwise.
+        """
+
         # Check condition
         if job and not node['available for jobs']:
             return False
@@ -414,6 +638,13 @@ class ResourceManager:
 
     @staticmethod
     def __reserve_resources(system_status, amount, node=None):
+        """
+        Reserve given amount of resources in given system status.
+
+        :param system_status: A system status dictionary.
+        :param amount: A dictionary with resource restrictions.
+        :param node: Particular node name.
+        """
         if node not in system_status:
             raise KeyError("There is no node {!r} in the system".format(node))
 
@@ -430,6 +661,13 @@ class ResourceManager:
 
     @staticmethod
     def __release_resources(system_status, amount, node):
+        """
+        Release a reserved amount of resources in given system status.
+
+        :param system_status: A dictionary with the system status.
+        :param amount: A dictionary with the resource limits.
+        :param node: A particular node name.
+        """
         if node not in system_status:
             raise KeyError("There is no node {!r} in the system".format(node))
 
@@ -446,6 +684,12 @@ class ResourceManager:
 
     @staticmethod
     def __free_resources(conf):
+        """
+        Calculate the amount of free resources for given node.
+
+        :param conf: A node configuration.
+        :return: [available CPU cores number, available RAM memory, available disk space].
+        """
         def f(x):
             return x if x > 0 else 0
 
