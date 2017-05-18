@@ -32,11 +32,11 @@ import utils
 
 def executor(timeout, args):
     """
-    Function just executes native scheduler client and waits until its termination.
+    Function just executes native scheduler client and waits until it terminates.
 
     :param timeout: Check that tool will exit definetly within this period of time.
     :param args: Native scheduler client execution command arguments.
-    :return: It exits with the exit code returne by a client.
+    :return: It exits with the exit code returned by a client.
     """
     # todo: implement proper logging here, since usage of logging.debug lead to hanging of threads dont know why
 
@@ -74,7 +74,7 @@ def executor(timeout, args):
 
 class Scheduler(schedulers.SchedulerExchange):
     """
-    Implement scheduler which is used to run tasks and jobs on the system locally.
+    Implement the scheduler which is used to run tasks and jobs on this system locally.
     """
     __kv_url = None
     __node_name = None
@@ -87,6 +87,11 @@ class Scheduler(schedulers.SchedulerExchange):
     __cached_tools_data = None
     __cached_nodes_data = None
 
+    @staticmethod
+    def scheduler_type():
+        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
+        return "Klever"
+
     def __init__(self, conf, work_dir):
         """Do native scheduler specific initialization"""
         super(Scheduler, self).__init__(conf, work_dir)
@@ -98,6 +103,10 @@ class Scheduler(schedulers.SchedulerExchange):
         self.init_scheduler()
 
     def init_scheduler(self):
+        """
+        Initialize scheduler completely. This method should be called both at constructing stage and scheduler
+        reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
+        """
         super(Scheduler, self).init_scheduler()
         if "job client configuration" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''job client configuration' as path to json file")
@@ -155,53 +164,52 @@ class Scheduler(schedulers.SchedulerExchange):
         # Check client bin
         self.__client_bin = os.path.abspath(os.path.join(os.path.dirname(__file__), "../bin/scheduler-client"))
 
-    @staticmethod
-    def scheduler_type():
-        """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
-        return "Klever"
-
     def schedule(self, pending_tasks, pending_jobs):
         """
-        Get list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
-        should be sorted reducing the priority to the end.
+        Get a list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end. Each task and job in arguments are dictionaries with full
+        configuration or description.
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
-        :return: List with identifiers of pending tasks to launch and list with identifiers of jobs to launch.
+        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
+        # Use resource manager to determine which jobs or task we can run t the moment.
         new_tasks, new_jobs = self.__manager.schedule(pending_tasks, pending_jobs)
         return [t[0]['id'] for t in new_tasks], [j[0]['id'] for j in new_jobs]
 
-    def prepare_task(self, identifier, configuration):
+    def prepare_task(self, identifier, description):
         """
-        Prepare working directory with input files before starting a solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
-        :param configuration: Task configuration.
+        :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
-        self.__prepare_solution(identifier, configuration, mode='task')
+        self.__prepare_solution(identifier, description, mode='task')
 
     def prepare_job(self, identifier, configuration):
         """
-        Prepare working directory with input files before starting a solution.
+        Prepare a working directory before starting the solution.
 
-        :param identifier: Job identifier.
+        :param identifier: Verification task identifier.
         :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
         self.__prepare_solution(identifier, configuration, mode='job')
 
-    def solve_task(self, identifier, configuration, user, password):
+    def solve_task(self, identifier, description, user, password):
         """
         Solve given verification task.
 
-        :param identifier: Task identifier.
-        :param configuration: Task configuration.
-        :param user: Username.
+        :param identifier: Verification task identifier.
+        :param description: Verification task description dictionary.
+        :param user: User name.
         :param password: Password.
         :return: Return Future object.
         """
         logging.debug("Start solution of task {!r}".format(identifier))
-        self.__manager.claim_resources(identifier, configuration, self.__node_name, job=False)
+        self.__manager.claim_resources(identifier, description, self.__node_name, job=False)
         return self.__pool.submit(self.__execute, self.__task_processes[identifier])
 
     def solve_job(self, identifier, configuration):
@@ -222,48 +230,51 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def process_task_result(self, identifier, future):
         """
-        Process task execution result, clean working directory and mark resources as released.
+        Process result and send results to the server.
 
-        :param identifier: Job identifier.
+        :param identifier: Task identifier string.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return self.__check_solution(identifier, future, mode='task')
 
     def process_job_result(self, identifier, future):
         """
-        Process job execution result, clean working directory and mark resources as released.
+        Process future object status and send results to the server.
 
-        :param identifier: Job identifier.
+        :param identifier: Job identifier string.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return self.__check_solution(identifier, future, mode='job')
 
-    def cancel_task(self, identifier, future):
-        """
-        Cancel task and then get result, clean working directory and mark resources as released.
-
-        :param identifier: Task identifier.
-        :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        """
-        return self.__cancel_solution(identifier, future, mode='task')
-
     def cancel_job(self, identifier, future):
         """
-        Cancel job and then get result, clean working directory and mark resources as released.
+        Stop the job solution.
 
-        :param identifier: Task identifier.
+        :param identifier: Verification task ID.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
         """
         return self.__cancel_solution(identifier, future, mode='job')
 
+    def cancel_task(self, identifier, future):
+        """
+        Stop the task solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        return self.__cancel_solution(identifier, future, mode='task')
+
     def terminate(self):
         """
-        Abort solution of all running tasks and any other actions before
-        termination.
+        Abort solution of all running tasks and any other actions before termination.
         """
         # Submit an empty configuration
         logging.debug("Submit an empty configuration list before shutting down")
@@ -278,16 +289,21 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes.
-        :return: Return True if nothing has changes
+        Update statuses and configurations of available nodes and push them to the server.
+
+        :return: Return True if nothing has changes.
         """
-        self.__manager.request_from_consul(self.__kv_url)
+        # Use resource mamanger to manage resources
+        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url)
+        # todo: how to provide jobs or tasks to cancel?
+        if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
+            logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
+                            "decreased".format(str(cacnel_jobs), str(cancel_tasks)))
         return self.__manager.submit_status(self.server)
 
     def update_tools(self):
         """
-        Generate dictionary with verification tools available.
-        :return: Dictionary with available verification tools.
+        Generate a dictionary with available verification tools and push it to the server.
         """
         data = self.__get_task_configuration()
         if not self.__cached_tools_data or str(data) != self.__cached_tools_data:
@@ -299,23 +315,26 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __prepare_solution(self, identifier, configuration, mode='task'):
         """
-        Generate working directory, configuration files and multiprocessing Process object to be ready to just run it.
+        Generate a working directory, configuration files and multiprocessing Process object to be ready to just run it.
 
         :param identifier: Job or task identifier.
-        :param configuration: Dictionary.
+        :param configuration: A dictionary with a cinfiguration or description.
         :param mode: 'task' or 'job'.
-        :return: None
+        :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         args = [sys.executable, self.__client_bin]
+        node_status = self.__manager.node_info(self.__node_name)
         if mode == 'task':
             subdir = 'tasks'
             args.append("TASK")
             client_conf = self.__get_task_configuration()
+            self.__manager.check_resources(configuration, job=False)
         else:
             subdir = 'jobs'
             args.append("JOB")
             client_conf = self.__job_conf_prototype.copy()
+            self.__manager.check_resources(configuration, job=True)
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -340,6 +359,13 @@ class Scheduler(schedulers.SchedulerExchange):
                 json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
             for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
+
+            # Add particular
+            first_cpu = node_status["available CPU number"] - node_status["reserved CPU number"] - \
+                        client_conf["resource limits"]["number of CPU cores"]
+            last_cpu = node_status["available CPU number"] - node_status["reserved CPU number"]
+            client_conf["resource limits"]["CPU cores"] = [x for x in range(first_cpu, last_cpu)]
+
             # Property file may not be specified.
             if "property file" in configuration:
                 client_conf["property file"] = configuration["property file"]
@@ -377,11 +403,12 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __check_solution(self, identifier, future, mode='task'):
         """
-        Process results of task or job solution.
+        Process results of the task or job solution.
 
-        :param identifier: Job or task identifier.
-        :param future: Future object.
-        :return: Status after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :param identifier: A job or task identifier.
+        :param future: A future object.
+        :return: Status after solution: FINISHED.
+        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
         return self.__postprocess_solution(identifier, future, mode)
@@ -394,6 +421,7 @@ class Scheduler(schedulers.SchedulerExchange):
         :param future: Future object.
         :param mode: 'task' or 'job'.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: raise if an exception occured during solution or results are inconsistent.
         """
         logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
@@ -411,11 +439,11 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __postprocess_solution(self, identifier, future, mode):
         """
-        Mark resources as released, clean working directory
+        Mark resources as released, clean the working directory.
 
-        :param identifier: Job or task identifier
+        :param identifier: A job or task identifier
         :param mode: 'task' or 'job'.
-        :return: None
+        :raise SchedulerException: Raised if an exception occured during the solution or if results are inconsistent.
         """
         if mode == 'task':
             subdir = 'tasks'
@@ -477,10 +505,10 @@ class Scheduler(schedulers.SchedulerExchange):
     @staticmethod
     def __execute(process):
         """
-        Common implementation for running of a multiprocessing process and waiting till its termination.
+        Common implementation for running of a multiprocessing process and for waiting until it terminates.
 
-        :param process: multiprocessing.Process
-        :return: None
+        :param process: multiprocessing.Process object.
+        :raise SchedulerException: Raised if process cannot be executed or if its exit code cannot be determined.
         """
         logging.debug("Future task {!r}: Going to start a new process which will start native scheduler client".
                       format(process.name))
@@ -505,11 +533,10 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __create_work_dir(self, entities, identifier):
         """
-        Create working directory for a job or a task.
+        Create the working directory for a job or a task.
 
-        :param entities: Internal subdirectory name.
-        :param identifier: Job or task identifier string.
-        :return: None
+        :param entities: Internal subdirectory name string.
+        :param identifier: A job or task identifier string.
         """
         work_dir = os.path.join(self.work_dir, entities, identifier)
         logging.debug("Create working directory {}/{}".format(entities, identifier))
@@ -520,9 +547,9 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def __get_task_configuration(self):
         """
-        Read scheduler task configuration JSON file to keep it updated.
+        Read the scheduler task configuration JSON file to keep it updated.
 
-        :return: Dictionary with configuration.
+        :return: Dictionary with the updated configuration.
         """
         name = self.conf["scheduler"]["task client configuration"]
         with open(name, encoding="utf8") as fh:

@@ -32,6 +32,7 @@ from utils import sort_priority
 def get_gateway(conf, work_dir):
     """
     Check which implementation of Session object to choose to get tasks
+
     :param conf: Configuration dictionary.
     :param work_dir: Path to the working directory.
     :return: Return object of the implementation of Session abstract class.
@@ -60,6 +61,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     def __init__(self, conf, work_dir):
         """
         Get configuration and prepare working directory.
+
         :param conf: Dictionary with relevant configuration.
         :param work_dir: PAth to the working directory.
         """
@@ -76,6 +78,10 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         self.__current_period = None
 
     def init_scheduler(self):
+        """
+        Initialize scheduler completely. This method should be called both at constructing stage and scheduler
+        reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
+        """
         self.__tasks = {}
         self.__jobs = {}
         self.__nodes = None
@@ -115,7 +121,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         logging.info("Scheduler base initialization has been successful")
 
     def launch(self):
-        """Start scheduler loop."""
+        """
+        Start scheduler loop. This is an infinite loop that exchange data with Bridge to fetch new jobs and tasks and
+        upload result of solution previously received tasks and jobs. After data exchange it prepares for solution
+        new jobs and tasks, updates statuses of running jobs and tasks and schedule for solution pending ones.
+        This is just an algorythm, and all particular logic and resource management should be implemented in classes
+        that inherits this one.
+        """
         logging.info("Start scheduler loop")
         while True:
             try:
@@ -246,7 +258,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         try:
                             self.prepare_task(task_id, self.__tasks[task_id]["description"])
                         except SchedulerException as err:
-                            logging.error("Cannot prepare task {} for submission: {}".format(task_id, err))
+                            logging.error("Cannot prepare task {!r} for submission: {!r}".format(task_id, err))
                             self.__tasks[task_id]["status"] = "ERROR"
                             self.__tasks[task_id]["error"] = err
 
@@ -467,8 +479,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def schedule(self, pending_tasks, pending_jobs):
         """
-        Get list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
-        should be sorted reducing the priority to the end.
+        Get a list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end. Each task and job in arguments are dictionaries with full
+        configuration or description.
 
         :param pending_tasks: List with all pending tasks.
         :param pending_jobs: List with all pending jobs.
@@ -479,20 +492,22 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def prepare_task(self, identifier, description):
         """
-        Prepare working directory before starting solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
         return
 
     @abc.abstractmethod
     def prepare_job(self, identifier, configuration):
         """
-        Prepare working directory before starting solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
         return
 
@@ -512,7 +527,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def solve_job(self, identifier, configuration):
         """
-        Solve given verification task.
+        Solve given verification job.
 
         :param identifier: Job identifier.
         :param configuration: Job configuration.
@@ -529,42 +544,46 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         Process result and send results to the server.
 
-        :param identifier:
+        :param identifier: Task identifier string.
         :param future: Future object.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return
 
     @abc.abstractmethod
     def process_job_result(self, identifier, future):
         """
-        Process result and send results to the server.
+        Process future object status and send results to the server.
 
-        :param identifier:
+        :param identifier: Job identifier string.
         :param future: Future object.
-        :return: Status of the job after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         return
 
     @abc.abstractmethod
     def cancel_job(self, identifier, future):
         """
-        Stop task solution.
+        Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
         """
         return
 
     @abc.abstractmethod
     def cancel_task(self, identifier, future):
         """
-        Stop task solution.
+        Stop the task solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
         """
         return
 
@@ -585,16 +604,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes and push it to the server.
+        Update statuses and configurations of available nodes and push them to the server.
 
-        :return: Return True if nothing has changes
+        :return: Return True if nothing has changes.
         """
         return True
 
     @abc.abstractmethod
     def update_tools(self):
         """
-        Generate dictionary with verification tools available and push it to the verification gate.
+        Generate a dictionary with available verification tools and push it to the server.
         """
         return
 
@@ -604,7 +623,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         Calculate how many seconds passed since the last data exchange. If that value is more than chosen currently
         exchange period then do exchange, otherwise skip it.
 
-        :return:
+        :return: True if we should send data to Bridge now and False otherwise.
         """
         if not self.__last_exchange:
             self.__last_exchange = int(time.time())
@@ -617,6 +636,10 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             return False
 
     def __update_iteration_period(self):
+        """
+        Calculates the period of data exchange between Bridge and this scheduler. It tries dynamically adjust the value
+        to not repeatedly send the same information but increasing the period if new tasks or jobs are expected.
+        """
         def new_period(new):
             if self.__current_period < new:
                 logging.info("Increase data exchange period from {}s to {}s".format(self.__current_period, new))
@@ -654,6 +677,13 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         new_period(self.__iteration_period['medium'])
 
     def __cancel_job_tasks(self, job_id):
+        """
+        Cancel all running and pending tasks for given job id.
+
+        :param job_id: Job identifier string.
+        :raise SchedulerException: Raised this in case of an exception occured in the future task.
+        """
+
         for task_id in [task_id for task_id in self.__tasks
                         if self.__tasks[task_id]["status"] in ["PENDING", "PROCESSING"] and
                         self.__tasks[task_id]["description"]["job id"] == job_id]:
@@ -661,6 +691,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
     @staticmethod
     def __process_future(handler, item, identifier):
+        """
+        Perform given method for given future object of solving job or task. It can be solving, canceling or anything
+        else. It catches SchedulerException and update status to ERROR or in case of success set a new status provided
+        by called handler.
+
+        :param handler: Handler to do something with the job or task. It receives an identifier and future argument as
+                        an input and returns new status.
+        :param item: It is a value from either self.__tasks or self.__jobs collection.
+        :param identifier: Identifier of a job or a task.
+        """
         try:
             item["status"] = handler(identifier, item["future"])
             logging.debug("Task {} new status is {}".format(identifier, item["status"]))
@@ -674,6 +714,15 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
     @staticmethod
     def __attempts(handler, attempts, action, args):
+        """
+        Just performs N attempts of calling given handler until no exceptions arise. All exceptions are ignored.
+
+        :param handler: Given handler method.
+        :param attempts: Integer.
+        :param action: String name of the action for logging.
+        :param args: Arguments for the handler.
+        :return: Result returned by the handler.
+        """
         result = None
         error = None
         while attempts > 0:
@@ -681,6 +730,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 logging.info("Try to {}".format(action))
                 result = handler(*args)
                 break
+            # todo: ignore particular exceptions
             except Exception as err:
                 logging.error("Failed to {}: {}".format(action, err))
                 time.sleep(30)
@@ -693,6 +743,16 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
     @staticmethod
     def __report_error_server_state(server_state, message):
+        """
+        If an inconsistent server state json has been received from Bridge the method saves it to the disk with
+        necessary additional information.
+
+        :param server_state: Dictionary obtained from Bridge.
+        :param message: String with a message intended for the log.
+        :raise RuntimeError: At the end always rises the exception since the scheduler should not proceed with broken
+                             Bridge.
+        :return:
+        """
         # Save server state file
         state_file_name = time.strftime("%d-%m-%Y %H:%M:%S server state.json")
         error_file = os.path.join(os.path.curdir, state_file_name)
@@ -705,6 +765,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
     @staticmethod
     def __add_missing_restrictions(collection):
+        """
+        If resource limits are incomplete the method adds to given json all necessary fields filled with zeroes.
+
+        :param collection: 'resource limits' dictionary from a task description or job configuration.
+        """
         for tag in ['memory size', 'number of CPU cores', 'disk memory size']:
             if tag not in collection:
                 collection[tag] = 0
