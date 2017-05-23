@@ -22,7 +22,7 @@ import xml.etree.ElementTree as ETree
 from xml.dom import minidom
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q, Count
+from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import REPORT_ATTRS_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, SAFE_LIST_DEF_VIEW,\
     UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT
@@ -253,21 +253,32 @@ class ReportTable(object):
             columns.append(col)
         if self.verdict is not None:
             leaves_set = self.report.leaves.filter(Q(safe__verdict=self.verdict) & ~Q(safe=None))\
-                .annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
+                .annotate(
+                marks_number=Count('safe__markreport_set'),
+                confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
+            ).select_related('safe')
         elif self.mark is not None:
             leaves_set = self.report.leaves.filter(safe__markreport_set__mark=self.mark).distinct()\
-                .exclude(safe=None).annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
+                .exclude(safe=None).annotate(
+                marks_number=Count('safe__markreport_set'),
+                confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
+            ).select_related('safe')
         elif self.attr is not None:
             leaves_set = self.report.leaves.filter(safe__attrs__attr=self.attr).distinct()\
-                .exclude(safe=None).annotate(marks_number=Count('safe__markreport_set')).select_related('safe')
+                .exclude(safe=None).annotate(
+                marks_number=Count('safe__markreport_set'),
+                confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
+            ).select_related('safe')
         else:
-            leaves_set = self.report.leaves.exclude(safe=None).annotate(marks_number=Count('safe__markreport_set'))\
-                .select_related('safe')
+            leaves_set = self.report.leaves.exclude(safe=None).annotate(
+                marks_number=Count('safe__markreport_set'),
+                confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
+            ).select_related('safe')
 
         reports = {}
         for leaf in leaves_set:
             reports[leaf.safe_id] = {
-                'marks_number': leaf.marks_number,
+                'marks_number': "%s (%s)" % (leaf.confirmed, leaf.marks_number),
                 'verdict': leaf.safe.verdict,
                 'parent_id': leaf.safe.parent_id,
                 'parent_cpu': leaf.safe.verifier_time,
@@ -359,22 +370,36 @@ class ReportTable(object):
             columns.append(col)
 
         if self.verdict is not None:
-            leaves_set = self.report.leaves.filter(Q(unsafe__verdict=self.verdict) & ~Q(unsafe=None))\
-                .annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+            leaves_set = self.report.leaves.filter(Q(unsafe__verdict=self.verdict) & ~Q(unsafe=None)).annotate(
+                marks_number=Count('unsafe__markreport_set'), confirmed=Count(Case(When(
+                    unsafe__markreport_set__type='1', unsafe__markreport_set__result__gt=0, then=1
+                )))
+            ).select_related('unsafe')
         elif self.mark is not None:
-            leaves_set = self.report.leaves.filter(unsafe__markreport_set__mark=self.mark).distinct()\
-                .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+            leaves_set = self.report.leaves.filter(unsafe__markreport_set__mark=self.mark)\
+                .distinct().exclude(unsafe=None).annotate(
+                marks_number=Count('unsafe__markreport_set'), confirmed=Count(Case(When(
+                    unsafe__markreport_set__type='1', unsafe__markreport_set__result__gt=0, then=1
+                )))
+            ).select_related('unsafe')
         elif self.attr is not None:
             leaves_set = self.report.leaves.filter(unsafe__attrs__attr=self.attr).distinct()\
-                .exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set')).select_related('unsafe')
+                .exclude(unsafe=None).annotate(
+                marks_number=Count('unsafe__markreport_set'), confirmed=Count(Case(When(
+                    unsafe__markreport_set__type='1', unsafe__markreport_set__result__gt=0, then=1
+                )))
+            ).select_related('unsafe')
         else:
-            leaves_set = self.report.leaves.exclude(unsafe=None).annotate(marks_number=Count('unsafe__markreport_set'))\
-                .select_related('unsafe')
+            leaves_set = self.report.leaves.exclude(unsafe=None).annotate(
+                marks_number=Count('unsafe__markreport_set'), confirmed=Count(Case(When(
+                    unsafe__markreport_set__type='1', unsafe__markreport_set__result__gt=0, then=1
+                )))
+            ).select_related('unsafe')
 
         reports = {}
         for leaf in leaves_set:
             reports[leaf.unsafe_id] = {
-                'marks_number': leaf.marks_number,
+                'marks_number': "%s (%s)" % (leaf.confirmed, leaf.marks_number),
                 'verdict': leaf.unsafe.verdict,
                 'parent_id': leaf.unsafe.parent_id,
                 'parent_cpu': leaf.unsafe.verifier_time,
