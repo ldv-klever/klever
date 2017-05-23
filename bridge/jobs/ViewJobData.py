@@ -20,10 +20,14 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q
 from django.utils.translation import ugettext_lazy as _
+
 from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
+from bridge.utils import logger, BridgeException
+
 from users.models import View
+from reports.models import ReportComponentLeaf, ReportAttr, AttrName
+
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
-from reports.models import AttrStatistic
 
 
 COLORS = {
@@ -301,31 +305,6 @@ class ViewJobData:
                 })
         return safes_data
 
-    def __safes_attrs_statistic(self):
-        attr_stat_data = {}
-        others_data = {}
-        attr_names = []
-        for a_s in AttrStatistic.objects.filter(report=self.report, safes__gt=0).order_by('attr__value')\
-                .select_related('name', 'attr'):
-            if a_s.name.name not in attr_names:
-                attr_names.append(a_s.name.name)
-            if a_s.attr is None:
-                others_data[a_s.name.name] = a_s.safes
-            else:
-                if a_s.name.name not in attr_stat_data:
-                    attr_stat_data[a_s.name.name] = []
-                href = reverse('reports:list_attr', args=[self.report.pk, 'safes', a_s.attr_id])
-                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.safes, href))
-        attrs_statistic = []
-        for a_name in sorted(attr_names):
-            a_n_s = []
-            if a_name in attr_stat_data:
-                a_n_s = attr_stat_data[a_name]
-            if a_name in others_data:
-                a_n_s.append((_('Others'), others_data[a_name]))
-            attrs_statistic.append((a_name, a_n_s))
-        return attrs_statistic
-
     def __unsafes_info(self):
         try:
             verdicts = self.report.verdict
@@ -374,52 +353,45 @@ class ViewJobData:
                 })
         return unsafes_data
 
+    def __safes_attrs_statistic(self):
+        try:
+            return self.__attr_statistic('safe')
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException()
+
     def __unsafes_attrs_statistic(self):
-        attr_stat_data = {}
-        others_data = {}
-        attr_names = []
-        for a_s in AttrStatistic.objects.filter(report=self.report, unsafes__gt=0).order_by('attr__value')\
-                .select_related('name', 'attr'):
-            if a_s.name.name not in attr_names:
-                attr_names.append(a_s.name.name)
-            if a_s.attr is None:
-                others_data[a_s.name.name] = a_s.unsafes
-            else:
-                if a_s.name.name not in attr_stat_data:
-                    attr_stat_data[a_s.name.name] = []
-                href = reverse('reports:list_attr', args=[self.report.pk, 'unsafes', a_s.attr_id])
-                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unsafes, href))
-        attrs_statistic = []
-        for a_name in sorted(attr_names):
-            a_n_s = []
-            if a_name in attr_stat_data:
-                a_n_s = attr_stat_data[a_name]
-            if a_name in others_data:
-                a_n_s.append((_('Others'), others_data[a_name]))
-            attrs_statistic.append((a_name, a_n_s))
-        return attrs_statistic
+        try:
+            return self.__attr_statistic('unsafe')
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException()
 
     def __unknowns_attrs_statistic(self):
+        try:
+            return self.__attr_statistic('unknown')
+        except Exception as e:
+            logger.exception(e)
+            raise BridgeException()
+
+    def __attr_statistic(self, report_type):
+        reports = set(rid for rid, in ReportComponentLeaf.objects.filter(report=self.report)
+                      .exclude(**{report_type: None}).values_list('%s_id' % report_type))
+        if 'stat_attr_name' in self.view['filters'] \
+                and isinstance(self.view['filters']['stat_attr_name'].get('value'), str):
+            attr_name = self.view['filters']['stat_attr_name'].get('value')
+        else:
+            return []
+        try:
+            name_id = AttrName.objects.get(name=attr_name).id
+        except ObjectDoesNotExist:
+            return []
         attr_stat_data = {}
-        others_data = {}
-        attr_names = []
-        for a_s in AttrStatistic.objects.filter(report=self.report, unknowns__gt=0).order_by('attr__value')\
-                .select_related('name', 'attr'):
-            if a_s.name.name not in attr_names:
-                attr_names.append(a_s.name.name)
-            if a_s.attr is None:
-                others_data[a_s.name.name] = a_s.unknowns
-            else:
-                if a_s.name.name not in attr_stat_data:
-                    attr_stat_data[a_s.name.name] = []
-                href = reverse('reports:list_attr', args=[self.report.pk, 'unknowns', a_s.attr_id])
-                attr_stat_data[a_s.name.name].append((a_s.attr.value, a_s.unknowns, href))
-        attrs_statistic = []
-        for a_name in sorted(attr_names):
-            a_n_s = []
-            if a_name in attr_stat_data:
-                a_n_s = attr_stat_data[a_name]
-            if a_name in others_data:
-                a_n_s.append((_('Others'), others_data[a_name]))
-            attrs_statistic.append((a_name, a_n_s))
-        return attrs_statistic
+        for a_id, ra_val in ReportAttr.objects.filter(report_id__in=list(reports), attr__name_id=name_id)\
+                .values_list('attr_id', 'attr__value'):
+            if ra_val not in attr_stat_data:
+                attr_stat_data[ra_val] = {
+                    'num': 0, 'href': reverse('reports:list_attr', args=[self.report.id, report_type + 's', a_id])
+                }
+            attr_stat_data[ra_val]['num'] += 1
+        return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))

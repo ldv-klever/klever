@@ -55,11 +55,6 @@ JOB_CLASSES = (
     ('3', _('Validation on commits in Linux kernel Git repositories')),
 )
 
-ATTR_STATISTIC = {
-    '0': ['Rule specification'],
-    '3': ['Rule specification']
-}
-
 COMPARE_VERDICT = (
     ('0', _('Total safe')),
     ('1', _('Found all unsafes')),
@@ -237,6 +232,9 @@ VIEWJOB_DEF_VIEW = {
         # 'resource_total': {
         #     'type': 'hide'
         # },
+        'stat_attr_name': {
+            'value': 'Rule specification'
+        }
     }
 }
 

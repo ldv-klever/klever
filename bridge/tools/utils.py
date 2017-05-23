@@ -21,7 +21,7 @@ import json
 from django.conf import settings
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import ATTR_STATISTIC, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import BridgeException, logger
 
 import marks.SafeUtils as SafeUtils
@@ -32,7 +32,7 @@ from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR, ConvertedTraces
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ComponentUnknown, Verdict, ReportAttr, AttrStatistic, AttrName, ComponentResource
+    ComponentUnknown, Verdict, ComponentResource
 
 
 def objects_without_relations(table):
@@ -122,84 +122,6 @@ class RecalculateVerdicts:
         data.upload()
 
 
-class RecalculateAttrStatistic:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__recalc()
-
-    def __recalc(self):
-        AttrStatistic.objects.filter(report__root__in=self._roots).delete()
-        attrs_data = []
-        for j_type in ATTR_STATISTIC:
-            root_ids = [root.id for root in self._roots if root.job.type == j_type]
-            if len(root_ids) == 0:
-                continue
-            attr_names = set(a['id'] for a in AttrName.objects.filter(name__in=ATTR_STATISTIC[j_type]).values('id'))
-
-            safes = {}
-            unsafes = {}
-            unknowns = {}
-            for leaf in ReportComponentLeaf.objects.filter(report__root_id__in=root_ids):
-                if leaf.safe_id is not None:
-                    if leaf.safe_id not in safes:
-                        safes[leaf.safe_id] = set()
-                    safes[leaf.safe_id].add(leaf.report_id)
-                elif leaf.unsafe_id is not None:
-                    if leaf.unsafe_id not in unsafes:
-                        unsafes[leaf.unsafe_id] = set()
-                    unsafes[leaf.unsafe_id].add(leaf.report_id)
-                elif leaf.unknown_id is not None:
-                    if leaf.unknown_id not in unknowns:
-                        unknowns[leaf.unknown_id] = set()
-                    unknowns[leaf.unknown_id].add(leaf.report_id)
-
-            report_attrs = {}
-            for ra in ReportAttr.objects.filter(report_id__in=safes, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('s', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unsafes, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('u', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unknowns, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('f', ra[0], ra[1])] = ra[2]
-
-            for r_id in list(r[0] for r in ReportComponent.objects.filter(root_id__in=root_ids).values_list('id')):
-                for n_id in attr_names:
-                    safes_num = {}
-                    unsafes_num = {}
-                    unknowns_num = {}
-                    for s_id in safes:
-                        if r_id not in safes[s_id]:
-                            continue
-                        a_id = report_attrs.get(('s', s_id, n_id), None)
-                        if a_id not in safes_num:
-                            safes_num[a_id] = 0
-                        safes_num[a_id] += 1
-                    for u_id in unsafes:
-                        if r_id not in unsafes[u_id]:
-                            continue
-                        a_id = report_attrs.get(('u', u_id, n_id), None)
-                        if a_id not in unsafes_num:
-                            unsafes_num[a_id] = 0
-                        unsafes_num[a_id] += 1
-                    for f_id in unknowns:
-                        if r_id not in unknowns[f_id]:
-                            continue
-                        a_id = report_attrs.get(('f', f_id, n_id), None)
-                        if a_id not in unknowns_num:
-                            unknowns_num[a_id] = 0
-                        unknowns_num[a_id] += 1
-                    for a_id in set(safes_num) | set(unsafes_num) | set(unknowns_num):
-                        attrs_data.append(AttrStatistic(
-                            report_id=r_id, attr_id=a_id, name_id=n_id,
-                            safes=safes_num.get(a_id, 0),
-                            unsafes=unsafes_num.get(a_id, 0),
-                            unknowns=unknowns_num.get(a_id, 0)
-                        ))
-        AttrStatistic.objects.bulk_create(attrs_data)
-
-
 class Recalculation:
     def __init__(self, rec_type, jobs=None):
         self.type = rec_type
@@ -231,8 +153,6 @@ class Recalculation:
             UnknownUtils.RecalculateConnections(self._roots)
         elif self.type == 'resources':
             RecalculateResources(self._roots)
-        elif self.type == 'attrs_stat':
-            RecalculateAttrStatistic(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
             UnsafeUtils.RecalculateConnections(self._roots)
@@ -240,7 +160,6 @@ class Recalculation:
             UnknownUtils.RecalculateConnections(self._roots)
             RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
-            RecalculateAttrStatistic(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()

@@ -33,23 +33,13 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.view_data.unsafes_attr_stat|length %}
-                    <h5 class="header">{% trans 'Statistics' %}</h5>
+                {% if reportdata.view_data.unsafes_attr_stat|length and reportdata.view.filters.stat_attr_name %}
+                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
                     <div class="ui small list">
                         {% for uas in reportdata.view_data.unsafes_attr_stat %}
                             <div class="item">
-                                <i class="cube mini icon"></i>
-                                <div class="content">{{ uas.0 }}</div>
-                            </div>
-                            <div class="item">
-                                <div class="ui list">
-                                    {% for uas_a in uas.1 %}
-                                        <div class="item" style="margin-left: 20px;">
-                                            <i class="pointing right mini icon"></i>
-                                            <div class="content">{{ uas_a.0 }}: {% if uas_a.2 %}<a href="{{ uas_a.2 }}">{{ uas_a.1 }}</a>{% else %}{{ uas_a.1 }}{% endif %}</div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                                <i class="pointing right mini icon"></i>
+                                <div class="content">{{ uas.0 }}: <a href="{{ uas.2 }}">{{ uas.1 }}</a></div>
                             </div>
                         {% endfor %}
                     </div>
@@ -87,23 +77,13 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.view_data.safes_attr_stat|length %}
-                    <h5 class="header">{% trans 'Statistics' %}</h5>
+                {% if reportdata.view_data.safes_attr_stat|length and reportdata.view.filters.stat_attr_name %}
+                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
                     <div class="ui small list">
                         {% for sas in reportdata.view_data.safes_attr_stat %}
                             <div class="item">
-                                <i class="cube mini icon"></i>
-                                <div class="content">{{ sas.0 }}</div>
-                            </div>
-                            <div class="item">
-                                <div class="ui list">
-                                    {% for sas_a in sas.1 %}
-                                        <div class="item" style="margin-left: 20px;">
-                                            <i class="pointing right mini icon"></i>
-                                            <div class="content">{{ sas_a.0 }}: {% if sas_a.2 %}<a href="{{ sas_a.2 }}">{{ sas_a.1 }}</a>{% else %}{{ sas_a.1 }}{% endif %}</div>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                                <i class="pointing right mini icon"></i>
+                                <div class="content">{{ sas.0 }}: <a href="{{ sas.2 }}">{{ sas.1 }}</a></div>
                             </div>
                         {% endfor %}
                     </div>
@@ -158,23 +138,13 @@
                     </div>
                 {% endfor %}
             </div>
-            {% if reportdata.view_data.unknowns_attr_stat|length %}
-                <h5 class="header">{% trans 'Statistics' %}</h5>
+            {% if reportdata.view_data.unknowns_attr_stat|length and reportdata.view.filters.stat_attr_name %}
+                <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
                 <div class="ui small list">
-                    {% for uas in reportdata.view_data.unknowns_attr_stat %}
+                    {% for fas in reportdata.view_data.unknowns_attr_stat %}
                         <div class="item">
-                            <i class="cube mini icon"></i>
-                            <div class="content">{{ uas.0 }}</div>
-                        </div>
-                        <div class="item">
-                            <div class="ui list">
-                                {% for uas_a in uas.1 %}
-                                    <div class="item" style="margin-left: 20px;">
-                                        <i class="pointing right mini icon"></i>
-                                        <div class="content">{{ uas_a.0 }}: {% if uas_a.2 %}<a href="{{ uas_a.2 }}">{{ uas_a.1 }}</a>{% else %}{{ uas_a.1 }}{% endif %}</div>
-                                    </div>
-                                {% endfor %}
-                            </div>
+                            <i class="pointing right mini icon"></i>
+                            <div class="content">{{ fas.0 }}: <a href="{{ fas.2 }}">{{ fas.1 }}</a></div>
                         </div>
                     {% endfor %}
                 </div>

@@ -819,15 +819,16 @@ class DecideJobs(object):
                     'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 after fix'},
                 },
                 'module2': {
-                    'before fix': {'verification status': 'safe'},
+                    'before fix': {'verification status': 'safe', 'comment': '1'},
                     'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module2 after fix'},
                 },
                 'module3': {
                     'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module3 before fix'},
-                    'after fix': {'verification status': 'safe'},
+                    'after fix': {'verification status': 'safe', 'comment': '1'},
                 },
                 'module4': {
-                    'before fix': {'verification status': 'unsafe'}, 'after fix': {'verification status': 'unknown'},
+                    'before fix': {'verification status': 'unsafe', 'comment': '1'},
+                    'after fix': {'verification status': 'unknown', 'comment': '1'},
                 }
             }
 

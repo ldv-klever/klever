@@ -22,7 +22,7 @@ window.collect_jobview_data = function() {
             'unsafes_attr_stat', 'safes_attr_stat', 'unknowns_attr_stat'
         ],
         available_filter_checkboxes = ['unknowns_total', 'unknowns_nomark', 'resource_total'],
-        available_filters = ['unknown_component', 'unknown_problem', 'resource_component', 'safe_tag', 'unsafe_tag'];
+        available_filters = ['unknown_component', 'unknown_problem', 'resource_component', 'safe_tag', 'unsafe_tag', 'stat_attr_name'];
 
     $("input[id^='job_filter_checkbox__']").each(function () {
         var curr_name = $(this).attr('id').replace('job_filter_checkbox__', '');
