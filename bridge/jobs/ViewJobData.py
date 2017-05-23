@@ -25,7 +25,7 @@ from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
 from bridge.utils import logger, BridgeException
 
 from users.models import View
-from reports.models import ReportComponentLeaf, ReportAttr, AttrName
+from reports.models import ReportComponentLeaf, ReportAttr
 
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 
@@ -50,6 +50,7 @@ class ViewJobData:
         self.unsafes_total = None
         self.view_data = {}
         self.problems = []
+        self.attr_names = []
         try:
             self.__get_view_data()
         except ObjectDoesNotExist:
@@ -382,16 +383,18 @@ class ViewJobData:
             attr_name = self.view['filters']['stat_attr_name'].get('value')
         else:
             return []
-        try:
-            name_id = AttrName.objects.get(name=attr_name).id
-        except ObjectDoesNotExist:
-            return []
+
         attr_stat_data = {}
-        for a_id, ra_val in ReportAttr.objects.filter(report_id__in=list(reports), attr__name_id=name_id)\
-                .values_list('attr_id', 'attr__value'):
+        attr_names = set()
+        for a_id, ra_val, a_name in ReportAttr.objects.filter(report_id__in=list(reports))\
+                .values_list('attr_id', 'attr__value', 'attr__name__name'):
+            attr_names.add(a_name)
+            if a_name != attr_name:
+                continue
             if ra_val not in attr_stat_data:
                 attr_stat_data[ra_val] = {
                     'num': 0, 'href': reverse('reports:list_attr', args=[self.report.id, report_type + 's', a_id])
                 }
             attr_stat_data[ra_val]['num'] += 1
+        self.attr_names = list(sorted(attr_names | set(self.attr_names)))
         return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))

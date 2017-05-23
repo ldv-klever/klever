@@ -168,8 +168,12 @@
         <div class="ui divider"></div>
         <h4 class="header">{% trans 'Statistic attribute name' %}</h4>
         <div class="fluid">
-            <input id="filter__value__stat_attr_name" type="text" value="{{ reportdata.view.filters.stat_attr_name.value }}">
             <label for="filter__value__stat_attr_name"></label>
+            <select id="filter__value__stat_attr_name" class="ui dropdown fluid">
+                {% for aname in reportdata.attr_names %}
+                    <option value="{{ aname }}"{% if reportdata.view.filters.stat_attr_name.value == aname %} selected{% endif %}>{{ aname }}</option>
+                {% endfor %}
+            </select>
         </div>
         <div class="ui divider"></div>
         {% include 'viewButtons.html' with view_type='2' view_id=reportdata.view_id views=reportdata.views %}
