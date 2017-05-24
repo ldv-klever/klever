@@ -135,7 +135,20 @@ class Command:
                                        'model CC opts.json'), 'w', encoding='utf8') as fp:
                     json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file}
+        provided_functions = []
+        required_functions = []
+        elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
+        if elf_out and elf_out[0].startswith('ELF'):
+            symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
+            for table_entry in symbol_table[4:]:
+                symbol_entities = re.split(r'\s*|\t', table_entry)
+                if len(symbol_entities) > 3 and symbol_entities[1] == '*UND*':
+                    required_functions.append(symbol_entities[3])
+                elif len(symbol_entities) > 5 and symbol_entities[1] == 'g':
+                    provided_functions.append(symbol_entities[5])
+
+        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file,
+                'provided functions': provided_functions, 'required functions': required_functions}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 

@@ -497,10 +497,17 @@ sys.exit(Command(sys.argv).launch())
                                 # That builtin module hasn't been build
                                 continue
 
+                            with open(obj_desc_file) as fp:
+                                obj_info = json.load(fp)
+                                required_functions = obj_info['required functions']
+                                provided_functions = obj_info['provided functions']
                             desc = {'type': 'LD',
                                     'in files': builtin_module.replace('.ko', '.o'),
-                                    'out file': builtin_module}
-                            desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module))
+                                    'out file': builtin_module,
+                                    'required functions': required_functions,
+                                    'provided functions': provided_functions}
+                            desc_file = os.path.join(os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file'])),
+                                                     '{0}.json'.format(builtin_module))
                             os.makedirs(os.path.dirname(desc_file).encode('utf8'), exist_ok=True)
                             with open(desc_file, 'w', encoding='utf8') as fp:
                                 json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)

@@ -157,7 +157,8 @@ class LKVOG(core.components.Component):
                                                           'modules': self.conf['Linux kernel']['modules']})
 
                 module_deps_function = self.mqs['Linux kernel module dependencies'].get()
-                module_sizes = self.mqs['Linux kernel module sizes'].get()
+                if self.conf['Linux kernel']['configuration'] == 'allmodconfig':
+                    module_sizes = self.mqs['Linux kernel module sizes'].get()
 
         self.mqs['Linux kernel module dependencies'].close()
         self.mqs['Linux kernel module sizes'].close()
@@ -319,6 +320,8 @@ class LKVOG(core.components.Component):
     def process_all_linux_kernel_build_cmd_descs(self):
         self.logger.info('Process all Linux kernel build command decriptions')
 
+        self.list_modules = set()
+
         while True:
             desc_file = self.mqs['Linux kernel build cmd desc files'].get()
 
@@ -326,6 +329,9 @@ class LKVOG(core.components.Component):
                 self.logger.debug('Linux kernel build command descriptions message queue was terminated')
                 self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
+
+                #if self.conf['Linux kernel']['configuration'] != 'allmodconfig':
+                self.mqs['Linux kernel module dependencies'].put(self.__build_dependencies())
 
                 self.linux_kernel_module_info_mq.put(None)
                 break
@@ -353,6 +359,8 @@ class LKVOG(core.components.Component):
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
         if desc['type'] == 'LD' and desc['out file'].endswith('.ko'):
+            self.list_modules.add(desc['out file'])
+            #.replace('.ko', '.o'))
             self.linux_kernel_module_info_mq.put(desc['out file'].replace('.ko', '.o'))
 
     def __find_cc_full_desc_files(self, out_file):
@@ -396,4 +404,25 @@ class LKVOG(core.components.Component):
                     loc += sum(1 for _ in fp)
         return loc
 
+    def __build_dependencies(self):
+        reverse_provided = {}
+        dependencies = []
+        for module in self.list_modules:
+            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
+                i = 1
+                for provided_function in desc.get('provided functions', tuple()):
+                    reverse_provided[provided_function] = module
 
+        for module in self.list_modules:
+            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
+                for required_function in desc.get('required functions', tuple()):
+                    if required_function in reverse_provided:
+                        dependencies.append((reverse_provided[required_function], required_function, module))
+
+        self.logger.debug("Going to write deps")
+        with open("dependencies.txt", 'w') as fp:
+            for m1, f, m2 in dependencies:
+                fp.write('{0} needs "{1}": {2}\n'.format(m2, f, m1))
+                self.logger.debug('{0} needs "{1}": {2}\n'.format(m2, f, m1))
+
+        return list(sorted(dependencies))
