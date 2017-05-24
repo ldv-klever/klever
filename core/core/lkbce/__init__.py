@@ -487,13 +487,20 @@ sys.exit(Command(sys.argv).launch())
                 # Read new lines from file.
                 for line in fp:
                     if line == '\n':
+                        # Reads modules from 'builtin' files
                         builtin_modules = self.__get_builtin_modules()
                         for builtin_module in builtin_modules:
+                            obj_dir = os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file']))
+                            obj_desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module.replace('.ko',
+                                                                                                           '.o')))
+                            if not os.path.exists(obj_desc_file):
+                                # That builtin module hasn't been build
+                                continue
+
                             desc = {'type': 'LD',
                                     'in files': builtin_module.replace('.ko', '.o'),
                                     'out file': builtin_module}
-                            desc_file = os.path.join(os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file'])),
-                                                     '{0}.json'.format(builtin_module))
+                            desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module))
                             os.makedirs(os.path.dirname(desc_file).encode('utf8'), exist_ok=True)
                             with open(desc_file, 'w', encoding='utf8') as fp:
                                 json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
