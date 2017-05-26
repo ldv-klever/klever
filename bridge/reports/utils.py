@@ -102,7 +102,7 @@ def report_resources(report, user):
 class ReportTable(object):
 
     def __init__(self, user, report, view=None, view_id=None, table_type='0',
-                 component_id=None, verdict=None, tag=None, problem=None, mark=None, attr=None):
+                 component_id=None, verdict=None, tag=None, problem=None, mark=None, attr=None, confirmed=None):
         self.component_id = component_id
         self.report = report
         self.user = user
@@ -112,6 +112,7 @@ class ReportTable(object):
         self.problem = problem
         self.mark = mark
         self.attr = attr
+        self.confirmed = confirmed
         self.columns = []
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -252,7 +253,10 @@ class ReportTable(object):
                 continue
             columns.append(col)
         if self.verdict is not None:
-            leaves_set = self.report.leaves.filter(Q(safe__verdict=self.verdict) & ~Q(safe=None))\
+            filters = {'safe__verdict': self.verdict}
+            if isinstance(self.confirmed, bool) and self.confirmed:
+                filters['safe__has_confirmed'] = True
+            leaves_set = self.report.leaves.filter(Q(**filters) & ~Q(safe=None))\
                 .annotate(
                 marks_number=Count('safe__markreport_set'),
                 confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
@@ -370,7 +374,10 @@ class ReportTable(object):
             columns.append(col)
 
         if self.verdict is not None:
-            leaves_set = self.report.leaves.filter(Q(unsafe__verdict=self.verdict) & ~Q(unsafe=None)).annotate(
+            filters = {'unsafe__verdict': self.verdict}
+            if isinstance(self.confirmed, bool) and self.confirmed:
+                filters['unsafe__has_confirmed'] = True
+            leaves_set = self.report.leaves.filter(Q(**filters) & ~Q(unsafe=None)).annotate(
                 marks_number=Count('unsafe__markreport_set'), confirmed=Count(Case(When(
                     unsafe__markreport_set__type='1', unsafe__markreport_set__result__gt=0, then=1
                 )))

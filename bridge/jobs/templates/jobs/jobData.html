@@ -11,10 +11,9 @@
                             <i class="pointing right mini icon"></i>
                             <div class="content">
                                 <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                                {% if v.href %}
-                                    <a href="{{ v.href }}">{{ v.value }}</a>
-                                {% else %}
-                                    <a href="#">{{ v.value }}</a>
+                                {% if v.href.0 %}<a href="{{ v.href.0 }}">{{ v.value.0 }}</a>{% else %}<span>{{ v.value.0 }}</span>{% endif %}
+                                {% if v.value|length == 2 %}
+                                    ({% if v.href.1 %}<a href="{{ v.href.1 }}">{{ v.value.1 }}</a>{% else %}<span>{{ v.value.1 }}</span>{% endif %})
                                 {% endif %}
                             </div>
                         </div>
@@ -55,10 +54,9 @@
                             <i class="pointing right mini icon"></i>
                             <div class="content">
                                 <span{% if v.color %} style="color:{{ v.color }};"{% endif %}>{{ v.title }}: </span>
-                                {% if v.href %}
-                                    <a href="{{ v.href }}">{{ v.value }}</a>
-                                {% else %}
-                                    <a href="#">{{ v.value }}</a>
+                                {% if v.href.0 %}<a href="{{ v.href.0 }}">{{ v.value.0 }}</a>{% else %}<span>{{ v.value.0 }}</span>{% endif %}
+                                {% if v.value|length == 2 %}
+                                    ({% if v.href.1 %}<a href="{{ v.href.1 }}">{{ v.value.1 }}</a>{% else %}<span>{{ v.value.1 }}</span>{% endif %})
                                 {% endif %}
                             </div>
                         </div>

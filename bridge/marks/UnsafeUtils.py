@@ -116,6 +116,7 @@ class NewMark:
             raise
         self.changes = ConnectMarks([mark], prime_id=report.id).changes.get(mark.id, {})
         RecalculateTags(list(self.changes))
+        update_confirmed_cache([report])
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
@@ -171,6 +172,7 @@ class NewMark:
                     changes = UpdateVerdicts(changes).changes
             self.changes = changes.get(mark.id, {})
             RecalculateTags(list(self.changes))
+            update_confirmed_cache(list(self.changes))
         return mark
 
     def upload_mark(self):
@@ -641,7 +643,7 @@ class RecalculateConnections:
         ReportUnsafeTag.objects.filter(report__root__in=self._roots).delete()
         UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
-        ReportUnsafe.objects.filter(root__in=self._roots).update(verdict=UNSAFE_VERDICTS[5][0])
+        ReportUnsafe.objects.filter(root__in=self._roots).update(verdict=UNSAFE_VERDICTS[5][0], has_confirmed=False)
         Verdict.objects.filter(report__root__in=self._roots).update(
             unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
             unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
@@ -847,6 +849,7 @@ def unconfirm_association(author, report_id, mark_id):
     changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
         .changes.get(mark_id, {})
     RecalculateTags(list(changes))
+    update_confirmed_cache([mr.report])
 
 
 def confirm_association(author, report_id, mark_id):
@@ -863,6 +866,7 @@ def confirm_association(author, report_id, mark_id):
         changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
             .changes.get(mark_id, {})
         RecalculateTags(list(changes))
+    update_confirmed_cache([mr.report])
 
 
 def like_association(author, report_id, mark_id, dislike):
@@ -872,3 +876,11 @@ def like_association(author, report_id, mark_id, dislike):
         raise BridgeException(_('The mark association was not found'))
     UnsafeAssociationLike.objects.filter(association=mr, author=author).delete()
     UnsafeAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))
+
+
+def update_confirmed_cache(unsafes):
+    unsafes = list(safe.id for safe in unsafes)
+    with_confirmed = set(r_id for r_id, in MarkUnsafeReport.objects.filter(
+        report_id__in=unsafes, type=ASSOCIATION_TYPE[1][0], error=None, result__gt=0).values_list('report_id'))
+    ReportUnsafe.objects.filter(id__in=unsafes).update(has_confirmed=False)
+    ReportUnsafe.objects.filter(id__in=with_confirmed).update(has_confirmed=True)

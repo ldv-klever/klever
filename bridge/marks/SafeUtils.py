@@ -95,6 +95,7 @@ class NewMark:
             raise
         self.changes = ConnectMarks([mark], prime_id=report.id).changes.get(mark.id, {})
         RecalculateTags(list(self.changes))
+        update_confirmed_cache([report])
         return mark
 
     def change_mark(self, mark, recalculate_cache=True):
@@ -134,6 +135,7 @@ class NewMark:
                     changes = UpdateVerdicts(changes).changes
             self.changes = changes.get(mark.id, {})
             RecalculateTags(list(self.changes))
+            update_confirmed_cache(list(self.changes))
         return mark
 
     def upload_mark(self):
@@ -559,7 +561,7 @@ class RecalculateConnections:
         ReportSafeTag.objects.filter(report__root__in=self._roots).delete()
         SafeReportTag.objects.filter(report__root__in=self._roots).delete()
         MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
-        ReportSafe.objects.filter(root__in=self._roots).update(verdict=SAFE_VERDICTS[4][0])
+        ReportSafe.objects.filter(root__in=self._roots).update(verdict=SAFE_VERDICTS[4][0], has_confirmed=False)
         Verdict.objects.filter(report__root__in=self._roots).update(
             safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
         )
@@ -822,6 +824,7 @@ def delete_marks(marks):
         for report in changes[m_id]:
             safes_changes[report] = changes[m_id][report]
     RecalculateTags(safes_changes)
+    update_confirmed_cache(list(safes_changes))
     return safes_changes
 
 
@@ -848,6 +851,7 @@ def unconfirm_association(author, report_id, mark_id):
     changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}})\
         .changes.get(mark_id, {})
     RecalculateTags(list(changes))
+    update_confirmed_cache([mr.report])
 
 
 def confirm_association(author, report_id, mark_id):
@@ -864,6 +868,7 @@ def confirm_association(author, report_id, mark_id):
         changes = UpdateVerdicts({mark_id: {mr.report: {'kind': '=', 'verdict1': mr.report.verdict}}}) \
             .changes.get(mark_id, {})
         RecalculateTags(list(changes))
+    update_confirmed_cache([mr.report])
 
 
 def like_association(author, report_id, mark_id, dislike):
@@ -873,3 +878,11 @@ def like_association(author, report_id, mark_id, dislike):
         raise BridgeException(_('The mark association was not found'))
     SafeAssociationLike.objects.filter(association=mr, author=author).delete()
     SafeAssociationLike.objects.create(association=mr, author=author, dislike=json.loads(dislike))
+
+
+def update_confirmed_cache(safes):
+    safes = list(safe.id for safe in safes)
+    with_confirmed = set(r_id for r_id, in MarkSafeReport.objects.filter(
+        report_id__in=safes, type=ASSOCIATION_TYPE[1][0]).values_list('report_id'))
+    ReportSafe.objects.filter(id__in=safes).update(has_confirmed=False)
+    ReportSafe.objects.filter(id__in=with_confirmed).update(has_confirmed=True)

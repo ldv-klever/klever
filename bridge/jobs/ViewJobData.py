@@ -18,10 +18,10 @@
 import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, F, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT
+from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import logger, BridgeException
 
 from users.models import View
@@ -263,95 +263,106 @@ class ViewJobData:
         return unknowns_sorted_by_comp
 
     def __safes_info(self):
-        safes_data = []
-        try:
-            verdicts = self.report.verdict
-        except ObjectDoesNotExist:
-            return safes_data
+        safes_numbers = {}
+        total_safes = 0
+        for verdict, confirmed, total in self.report.leaves.exclude(safe=None).annotate(
+                verdict=F('safe__verdict'), total=Count('id'),
+                confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
+        ).distinct().values_list('verdict', 'confirmed', 'total'):
+            total_safes += total
 
-        for s in SAFES:
-            safe_name = 'safe:' + s
+            href = [None, None]
+            if total > 0:
+                href[1] = reverse('reports:list_verdict', args=[self.report.pk, 'safes', verdict])
+            if confirmed > 0:
+                href[0] = reverse('reports:list_verdict_confirmed', args=[self.report.pk, 'safes', verdict])
+
             color = None
-            val = '-'
-            href = None
-            if s == 'missed_bug':
-                val = verdicts.safe_missed_bug
-                color = COLORS['red']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '2'])
-            elif s == 'incorrect':
-                val = verdicts.safe_incorrect_proof
-                color = COLORS['orange']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '1'])
-            elif s == 'unknown':
-                val = verdicts.safe_unknown
+            value = [confirmed, total]
+            safe_name = 'safe:'
+            if verdict == SAFE_VERDICTS[0][0]:
+                safe_name += SAFES[2]
                 color = COLORS['purple']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '0'])
-            elif s == 'inconclusive':
-                val = verdicts.safe_inconclusive
+            elif verdict == SAFE_VERDICTS[1][0]:
+                safe_name += SAFES[1]
+                color = COLORS['orange']
+            elif verdict == SAFE_VERDICTS[2][0]:
+                safe_name += SAFES[0]
                 color = COLORS['red']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '3'])
-            elif s == 'unassociated':
-                val = verdicts.safe_unassociated
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'safes', '4'])
-            elif s == 'total':
-                if verdicts.safe > 0:
-                    self.safes_total = (verdicts.safe, reverse('reports:list', args=[self.report.pk, 'safes']))
-                continue
-            if val != 0:
-                safes_data.append({
+            elif verdict == SAFE_VERDICTS[3][0]:
+                safe_name += SAFES[3]
+                color = COLORS['red']
+            elif verdict == SAFE_VERDICTS[4][0]:
+                safe_name += SAFES[4]
+                value = [total]
+                del href[0]
+
+            if total > 0:
+                safes_numbers[safe_name] = {
                     'title': TITLES[safe_name],
-                    'value': val,
+                    'value': value,
                     'color': color,
                     'href': href
-                })
+                }
+
+        safes_data = []
+        for safe_name in SAFES:
+            safe_name = 'safe:' + safe_name
+            if safe_name in safes_numbers:
+                safes_data.append(safes_numbers[safe_name])
+        self.safes_total = (total_safes, reverse('reports:list', args=[self.report.pk, 'safes']))
         return safes_data
 
     def __unsafes_info(self):
-        try:
-            verdicts = self.report.verdict
-        except ObjectDoesNotExist:
-            return None
+        unsafes_numbers = {}
+        total_unsafes = 0
+        for verdict, confirmed, total in self.report.leaves.exclude(unsafe=None).values('unsafe__verdict').annotate(
+                total=Count('id'), confirmed=Count(Case(When(unsafe__has_confirmed=True, then=1)))
+        ).values_list('unsafe__verdict', 'confirmed', 'total'):
+            total_unsafes += total
 
-        unsafes_data = []
-        for s in UNSAFES:
-            unsafe_name = 'unsafe:' + s
+            href = [None, None]
+            if total > 0:
+                href[1] = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', verdict])
+            if confirmed > 0:
+                href[0] = reverse('reports:list_verdict_confirmed', args=[self.report.pk, 'unsafes', verdict])
+
             color = None
-            val = '-'
-            href = None
-            if s == 'bug':
-                val = verdicts.unsafe_bug
-                color = COLORS['red']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '1'])
-            elif s == 'target_bug':
-                val = verdicts.unsafe_target_bug
-                color = COLORS['red']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '2'])
-            elif s == 'false_positive':
-                val = verdicts.unsafe_false_positive
-                color = COLORS['orange']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '3'])
-            elif s == 'unknown':
-                val = verdicts.unsafe_unknown
+            value = [confirmed, total]
+            unsafe_name = 'unsafe:'
+            if verdict == UNSAFE_VERDICTS[0][0]:
+                unsafe_name += UNSAFES[3]
                 color = COLORS['purple']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '0'])
-            elif s == 'inconclusive':
-                val = verdicts.unsafe_inconclusive
+            elif verdict == UNSAFE_VERDICTS[1][0]:
+                unsafe_name += UNSAFES[0]
                 color = COLORS['red']
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '4'])
-            elif s == 'unassociated':
-                val = verdicts.unsafe_unassociated
-                href = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', '5'])
-            elif s == 'total':
-                if verdicts.unsafe > 0:
-                    self.unsafes_total = (verdicts.unsafe, reverse('reports:list', args=[self.report.pk, 'unsafes']))
-                continue
-            if val != 0:
-                unsafes_data.append({
+            elif verdict == UNSAFE_VERDICTS[2][0]:
+                unsafe_name += UNSAFES[1]
+                color = COLORS['red']
+            elif verdict == UNSAFE_VERDICTS[3][0]:
+                unsafe_name += UNSAFES[2]
+                color = COLORS['orange']
+            elif verdict == UNSAFE_VERDICTS[4][0]:
+                unsafe_name += UNSAFES[4]
+                color = COLORS['red']
+            elif verdict == UNSAFE_VERDICTS[5][0]:
+                unsafe_name += UNSAFES[5]
+                value = [total]
+                del href[0]
+
+            if total > 0:
+                unsafes_numbers[unsafe_name] = {
                     'title': TITLES[unsafe_name],
-                    'value': val,
+                    'value': value,
                     'color': color,
                     'href': href
-                })
+                }
+        unsafes_data = []
+        for unsafe_name in UNSAFES:
+            unsafe_name = 'unsafe:' + unsafe_name
+            if unsafe_name in unsafes_numbers:
+                unsafes_data.append(unsafes_numbers[unsafe_name])
+        self.unsafes_total = (total_unsafes, reverse('reports:list', args=[self.report.pk, 'unsafes']))
         return unsafes_data
 
     def __safes_attrs_statistic(self):
