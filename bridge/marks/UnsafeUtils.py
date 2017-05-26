@@ -162,6 +162,7 @@ class NewMark:
 
         if recalculate_cache:
             MarkUnsafeReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
+            UnsafeAssociationLike.objects.filter(association__mark=mark).delete()
             if do_recalc:
                 changes = ConnectMarks([mark]).changes
             else:
