@@ -112,6 +112,7 @@ class NewMark:
         mark.save()
 
         if recalculate_cache:
+            MarkUnknownReport.objects.filter(mark_id=mark.id).update(type=ASSOCIATION_TYPE[0][0])
             if do_recalc:
                 self.changes = ConnectMark(mark).changes
             else:
