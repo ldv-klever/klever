@@ -58,10 +58,10 @@ function collect_filters_data() {
             value: parseInt($('#filter__value__author').children(':selected').val())
         }
     }
-    if ($('#filter__enable__type').is(':checked')) {
-        filter_values['type'] = {
-            type: $('#filter__type__type').val(),
-            value: $('#filter__value__type').val()
+    if ($('#filter__enable__source').is(':checked')) {
+        filter_values['source'] = {
+            type: $('#filter__type__source').val(),
+            value: $('#filter__value__source').val()
         }
     }
     if ($('#filter__enable__component').is(':checked')) {

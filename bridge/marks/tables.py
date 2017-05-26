@@ -56,7 +56,8 @@ MARK_TITLES = {
     'component': _('Component'),
     'pattern': _('Problem pattern'),
     'checkbox': '',
-    'type': _('Source'),
+    'source': _('Source'),
+    'assc_type': _('Association type'),
     'automatic': _('Automatic association'),
     'tags': _('Tags')
 }
@@ -475,11 +476,11 @@ class MarksList:
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
         if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern', 'type']:
+            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern', 'source']:
                 if col in self.view['columns']:
                     columns.append(col)
         else:
-            for col in ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format', 'type']:
+            for col in ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format', 'source']:
                 if col in self.view['columns']:
                     columns.append(col)
         return columns
@@ -505,11 +506,11 @@ class MarksList:
                     filters['component__name__istartswith'] = self.view['filters']['component']['value']
             if 'author' in self.view['filters']:
                 filters['author_id'] = self.view['filters']['author']['value']
-            if 'type' in self.view['filters']:
-                if self.view['filters']['type']['type'] == 'is':
-                    filters['type'] = self.view['filters']['type']['value']
+            if 'source' in self.view['filters']:
+                if self.view['filters']['source']['type'] == 'is':
+                    filters['type'] = self.view['filters']['source']['value']
                 else:
-                    unfilter['type'] = self.view['filters']['type']['value']
+                    unfilter['type'] = self.view['filters']['source']['value']
 
         table_filters = Q(**filters)
         for uf in unfilter:
@@ -608,7 +609,7 @@ class MarksList:
                     val = mark.component.name
                 elif col == 'pattern':
                     val = mark.problem_pattern
-                elif col == 'type':
+                elif col == 'source':
                     val = mark.get_type_display()
                 elif col == 'tags':
                     last_v = mark.versions.get(version=mark.version)
@@ -778,13 +779,13 @@ class MarkReportsTable(object):
         self.user = user
         if isinstance(mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result', 'type', 'association_author']
+            self.columns = ['report', 'job', 'result', 'assc_type', 'association_author']
         elif isinstance(mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['report', 'job', 'type', 'association_author']
+            self.columns = ['report', 'job', 'assc_type', 'association_author']
         elif isinstance(mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['report', 'job', 'type', 'association_author']
+            self.columns = ['report', 'job', 'assc_type', 'association_author']
         else:
             return
         self.mark = mark
@@ -817,7 +818,7 @@ class MarkReportsTable(object):
                     val = report.root.job.name
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'type':
+                elif col == 'assc_type':
                     val = mark_report.get_type_display()
                 elif col == 'association_author':
                     if mark_report.author:
