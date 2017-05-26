@@ -54,7 +54,7 @@
                 <br>
             {% endif %}
                 <div class="ui checkbox">
-                    <input type="checkbox" id="marks_filter_checkbox__source"{% if 'type' in tabledata.view.columns %} checked{% endif %}>
+                    <input type="checkbox" id="marks_filter_checkbox__source"{% if 'source' in tabledata.view.columns %} checked{% endif %}>
                     <label for="marks_filter_checkbox__source">{% trans 'Source' %}</label>
                 </div>
                 <br>
@@ -194,22 +194,22 @@
                 <div class="ui grid">
                     <div class="five wide column">
                         <div class="ui checkbox">
-                            <input type="checkbox" id="filter__enable__source"{% if 'type' in tabledata.view.filters %} checked{% endif %}>
+                            <input type="checkbox" id="filter__enable__source"{% if 'source' in tabledata.view.filters %} checked{% endif %}>
                             <label for="filter__enable__source">{% trans 'Source' %}</label>
                         </div>
                     </div>
                     <div class="four wide column">
                         <label for="filter__type__source"></label>
                         <select id="filter__type__source" class="ui dropdown fluid">
-                            <option value="is"{% if tabledata.view.filters.type.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
-                            <option value="isnot"{% if tabledata.view.filters.type.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                            <option value="is"{% if tabledata.view.filters.source.type == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                            <option value="isnot"{% if tabledata.view.filters.source.type == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
                         </select>
                     </div>
                     <div class="seven wide column">
                         <label for="filter__value__source"></label>
                         <select id="filter__value__source" class="ui dropdown fluid">
                             {% for mtype in mark_types %}
-                                <option value="{{ mtype.0 }}"{% if tabledata.view.filters.type.value == mtype.0 %} selected{% endif %}>{{ mtype.1 }}</option>
+                                <option value="{{ mtype.0 }}"{% if tabledata.view.filters.source.value == mtype.0 %} selected{% endif %}>{{ mtype.1 }}</option>
                             {% endfor %}
                         </select>
                     </div>
