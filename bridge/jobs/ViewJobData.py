@@ -384,6 +384,9 @@ class ViewJobData:
         else:
             return []
 
+        if 'attr' in self.view['filters']:
+            a_tmpl = self.view['filters']['attr']['value'].lower()
+
         attr_stat_data = {}
         attr_names = set()
         for a_id, ra_val, a_name in ReportAttr.objects.filter(report_id__in=list(reports))\
@@ -391,6 +394,13 @@ class ViewJobData:
             attr_names.add(a_name)
             if a_name != attr_name:
                 continue
+            if 'attr' in self.view['filters']:
+                a_low = ra_val.lower()
+                if self.view['filters']['attr']['type'] == 'iexact' and a_low != a_tmpl \
+                        or self.view['filters']['attr']['type'] == 'istartswith' and not a_low.startswith(a_tmpl) \
+                        or self.view['filters']['attr']['type'] == 'icontains' and not a_low.__contains__(a_tmpl):
+                    continue
+
             if ra_val not in attr_stat_data:
                 attr_stat_data[ra_val] = {
                     'num': 0, 'href': reverse('reports:list_attr', args=[self.report.id, report_type + 's', a_id])
