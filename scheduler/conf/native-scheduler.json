@@ -7,13 +7,18 @@
   "scheduler": {
     "production": true,
     "type": "native",
+    "concurrent jobs": 2,
     "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
     "keep working directory": false,
     "job client configuration": "/abs/path/to/job-client.json",
     "task client configuration": "/abs/path/to/task-client.json",
-    "iteration timeout": 3
+    "iteration timeout": {
+      "short": 5,
+      "medium": 10,
+      "long": 20
+    }
   },
   "common": {
     "working directory": "native-scheduler-work-dir",

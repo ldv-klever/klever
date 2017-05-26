@@ -175,16 +175,16 @@ class Job(core.utils.CallbacksCaller):
                     def after_generate_abstact_verification_task_desc(context):
                         if not context.abstract_task_desc_file:
                             context.mqs['verification statuses'].put({
-                                "verification object": context.verification_obj,
-                                "rule specification": context.rule_spec,
-                                "verification status": 'unknown'
+                                'verification object': context.verification_obj,
+                                'rule specification': context.rule_spec,
+                                'verdict': 'unknown'
                             })
 
                     def after_process_single_verdict(context):
                         context.mqs['verification statuses'].put({
-                            "verification object": context.conf['abstract task desc']['attrs'][0]['verification object'],
-                            "rule specification": context.rule_specification,
-                            "verification status": context.verification_status
+                            'verification object': context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            'rule specification': context.rule_specification,
+                            'verdict': context.verdict
                         })
 
                     def after_generate_all_verification_tasks(context):
@@ -406,11 +406,12 @@ class Job(core.utils.CallbacksCaller):
             if self.reporting_results_process:
                 self.logger.info('Wait for reporting all results')
                 self.reporting_results_process.join()
+                if self.reporting_results_process.exitcode:
+                    raise RuntimeError('Reporting results failed')
 
     def report_results(self):
         # Process exceptions like for uploading reports.
         try:
-            verification_statuses = []
             while True:
                 verification_status = self.mqs['verification statuses'].get()
 
@@ -420,172 +421,175 @@ class Job(core.utils.CallbacksCaller):
                     del self.mqs['verification statuses']
                     break
 
-                verification_statuses.append(verification_status)
+                # Block several sub-jobs from each other to reliably produce outcome.
+                with self.data_lock:
+                    name_suffix, verification_result = self.__match_ideal_verdict(verification_status)
 
-            # There is no verification statuses when some (sub)component failed prior to VTG strategy
-            # receives some abstract verification tasks.
-            if not verification_statuses:
-                verification_statuses.append({
-                    'verification object': None,
-                    'rule specification': None,
-                    'verification status': 'unknown'
-                })
+                    name = os.path.join(self.name_prefix, name_suffix)
 
-            with self.data_lock:
-                # Common processing of new results.
-                self.data.update(self.__match_verification_statuses_and_ideal_verdicts(
-                    verification_statuses, self.components_common_conf['ideal verdicts']))
-                # Without this we won't be able to reliably iterate over data since it is
-                # multiprocessing.Manager().dict().
-                results = self.data.copy()
+                    if self.parent['type'] == 'Verification of Linux kernel modules':
+                        self.logger.info('Ideal/obtained verdict for test "{0}" is "{1}"/"{2}"{3}'.format(
+                            name, verification_result['ideal verdict'], verification_result['verdict'],
+                            ' ("{0}")'.format(verification_result['comment'])
+                            if verification_result['comment'] else ''))
+                    elif self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
+                        name, verification_result = self.__process_validation_results(name, verification_result)
+                    else:
+                        raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
 
-                if self.parent['type'] == 'Validation on commits in Linux kernel Git repositories':
-                    results = self.process_validation_results(results)
-                elif self.parent['type'] == 'Verification of Linux kernel modules':
-                    results = self.process_testing_results(results)
-                else:
-                    raise NotImplementedError('Job class "{0}" is not supported'.format(self.parent['type']))
-
-                core.utils.report(self.logger,
-                                  'data',
-                                  {
-                                      'id': self.parent['id'],
-                                      'data': results
-                                  },
-                                  self.mqs['report files'],
-                                  self.components_common_conf['main working directory'])
+                    core.utils.report(self.logger,
+                                      'data',
+                                      {
+                                          'id': self.parent['id'],
+                                          'data': {name: verification_result}
+                                      },
+                                      self.mqs['report files'],
+                                      self.components_common_conf['main working directory'],
+                                      re.sub(r'/', '-', name_suffix))
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
             exit(1)
 
-    def process_testing_results(self, results):
-        self.logger.info('Check whether tests passed')
+    def __match_ideal_verdict(self, verification_status):
+        verification_object = verification_status['verification object']
+        rule_specification = verification_status['rule specification']
+        ideal_verdicts = self.components_common_conf['ideal verdicts']
 
-        for test in results:
-            self.logger.info('Expected/obtained verification status for test "{0}" is "{1}"/"{2}"{3}'.format(
-                test, results[test]['ideal verdict'], results[test]['verification status'],
-                ' ("{0}")'.format(results[test]['comment']) if results[test]['comment'] else ''))
+        is_matched = False
 
-        # Report results as is.
-        return results
+        # Try to match exactly by both verification object and rule specification.
+        for ideal_verdict in ideal_verdicts:
+            if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
+                    and ideal_verdict['verification object'] == verification_object \
+                    and ideal_verdict['rule specification'] == rule_specification:
+                is_matched = True
+                break
 
-    def process_validation_results(self, results):
-        self.logger.info('Relate validation results on commits before and after corresponding bug fixes if so')
-
-        new_results = {}
-
-        bug_results = {}
-        bug_fix_results = {}
-        for name, results in results.items():
-            # Corresponds to validation result before bug fix.
-            if results['ideal verdict'] == 'unsafe':
-                bug_results[name] = results
-            # Corresponds to validation result after bug fix.
-            elif results['ideal verdict'] == 'safe':
-                bug_fix_results[name] = results
-            else:
-                raise ValueError(
-                    'Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'.format(results['ideal verdict']))
-
-        for bug_id, bug_result in bug_results.items():
-            found_bug_fix_result = None
-            for bug_fix_id, bug_fix_result in bug_fix_results.items():
-                # Commit hash before/after corresponding bug fix is considered to be "hash~"/"hash" or v.v. Also it is
-                # taken into account that all commit hashes have exactly 12 symbols.
-                if bug_id[:12] == bug_fix_id[:12] and (bug_id[13:] == bug_fix_id[12:]
-                                                       if len(bug_id) > 12 and bug_id[12] == '~'
-                                                       else bug_id[12:] == bug_fix_id[13:]):
-                    found_bug_fix_result = bug_fix_result
+        # Try to match just by verification object.
+        if not is_matched:
+            for ideal_verdict in ideal_verdicts:
+                if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
+                        and ideal_verdict['verification object'] == verification_object:
+                    is_matched = True
                     break
 
-            validation_res_msg = 'Verification status for bug "{0}" before fix is "{1}"{2}'.format(
-                bug_id, bug_result['verification status'],
-                ' ("{0}")'.format(bug_result['comment'])
-                if bug_result['comment']
+        # Try to match just by rule specification.
+        if not is_matched:
+            for ideal_verdict in ideal_verdicts:
+                if 'verification object' not in ideal_verdict and 'rule specification' in ideal_verdict \
+                        and ideal_verdict['rule specification'] == rule_specification:
+                    is_matched = True
+                    break
+
+        # If nothing of above matched.
+        if not is_matched:
+            for ideal_verdict in ideal_verdicts:
+                if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
+                    is_matched = True
+                    break
+
+        if not is_matched:
+            raise ValueError(
+                'Could not match ideal verdict for verification object "{0}" and rule specification "{1}"'
+                .format(verification_object, rule_specification))
+
+        # Refine name (it can contain hashes if several modules or/and rule specifications are checked within one
+        # sub-job).
+        name_suffix = os.path.join(verification_object, rule_specification)\
+            if verification_object and rule_specification else ''
+
+        return name_suffix, {
+            'verdict': verification_status['verdict'],
+            'ideal verdict': ideal_verdict['ideal verdict'],
+            'comment': ideal_verdict.get('comment')
+        }
+
+    def __process_validation_results(self, name, verification_result):
+        # Relate verificaiton results on commits before and after corresponding bug fixes if so.
+        # Without this we won't be able to reliably iterate over data since it is
+        # multiprocessing.Manager().dict().
+        # Data is intended to keep verification results that weren't bound still. For such the results
+        # we will need to update corresponding data sent before.
+        data = self.data.copy()
+
+        # Try to find out previous verification result. Commit hash before/after corresponding bug fix
+        # is considered to be "hash~"/"hash" or v.v. Also it is taken into account that all commit
+        # hashes have exactly 12 symbols.
+        is_prev_found = False
+        for prev_name, prev_verification_result in data.items():
+            if name[:12] == prev_name[:12] and (name[13:] == prev_name[12:]
+                                                if len(name) > 12 and name[12] == '~'
+                                                else name[12:] == prev_name[13:]):
+                is_prev_found = True
+                break
+
+        bug_verification_result = None
+        bug_fix_verification_result = None
+        if verification_result['ideal verdict'] == 'unsafe':
+            bug_name = name
+            bug_verification_result = verification_result
+
+            if is_prev_found:
+                if prev_verification_result['ideal verdict'] != 'safe':
+                    raise ValueError(
+                        'Ideal verdict for bug "{0}" after fix is "{1}" ("safe" is expected)'
+                            .format(bug_name, prev_verification_result['ideal verdict']))
+
+                bug_fix_verification_result = prev_verification_result
+        elif verification_result['ideal verdict'] == 'safe':
+            bug_fix_verification_result = verification_result
+
+            if is_prev_found:
+                bug_name = prev_name
+
+                if prev_verification_result['ideal verdict'] != 'unsafe':
+                    raise ValueError(
+                        'Ideal verdict for bug "{0}" before fix is "{1}" ("unsafe" is expected)'
+                            .format(bug_name, prev_verification_result['ideal verdict']))
+
+                bug_verification_result = prev_verification_result
+            else:
+                # Verification result after bug fix was found while verification result before bug fix
+                # wasn't found yet. So construct bug name on the basis of bug fix name. To do that
+                # either remove or add "~" after commit hash.
+                if name[12] == '~':
+                    bug_name = name[:12] + name[13:]
+                else:
+                    bug_name = name[:12] + '~' + name[12:]
+        else:
+            raise ValueError('Ideal verdict is "{0}" (either "safe" or "unsafe" is expected)'
+                             .format(verification_result['ideal verdict']))
+
+        validation_status_msg = 'Verdict for bug "{0}"'.format(bug_name)
+
+        new_verification_result = {}
+
+        if bug_verification_result:
+            new_verification_result.update({'before fix': bug_verification_result})
+            validation_status_msg += ' before fix is "{0}"{1}'.format(
+                bug_verification_result['verdict'],
+                ' ("{0}")'.format(bug_verification_result['comment'])
+                if bug_verification_result['comment']
                 else '')
 
-            # At least save validation result before bug fix.
-            new_results[bug_id] = {'before fix': bug_result}
+        if bug_fix_verification_result:
+            new_verification_result.update({'after fix': bug_fix_verification_result})
+            if bug_verification_result:
+                validation_status_msg += ','
+            validation_status_msg += ' after fix is "{0}"{1}'.format(
+                bug_fix_verification_result['verdict'],
+                ' ("{0}")'.format(
+                    bug_fix_verification_result['comment'])
+                if bug_fix_verification_result['comment'] else '')
 
-            if not found_bug_fix_result:
-                self.logger.warning('Could not find validation result after fix of bug "{0}"'.format(bug_id))
-                new_results[bug_id]['after fix'] = None
-            else:
-                validation_res_msg += ', after fix is "{0}"{1}'.format(found_bug_fix_result['verification status'],
-                                                                       ' ("{0}")'.format(
-                                                                           found_bug_fix_result['comment'])
-                                                                       if found_bug_fix_result['comment'] else '')
-                new_results[bug_id]['after fix'] = found_bug_fix_result
+        self.logger.info(validation_status_msg)
 
-            self.logger.info(validation_res_msg)
+        if is_prev_found:
+            # We don't need to keep previously obtained verification results since we found both
+            # verification results before and after bug fix.
+            del self.data[prev_name]
+        else:
+            # Keep obtained verification results to relate them later.
+            self.data.update({name: verification_result})
 
-        return new_results
-
-    def __match_verification_statuses_and_ideal_verdicts(self, verification_statuses, ideal_verdicts):
-        results = {}
-
-        for verification_status in verification_statuses:
-            verification_object = verification_status['verification object']
-            rule_specification = verification_status['rule specification']
-            verification_status = verification_status['verification status']
-
-            if verification_object and rule_specification:
-                # Refine name (it can contain hashes if several modules or/and rule specifications are checked within
-                # one sub-job).
-                name = os.path.join(self.name_prefix, verification_object, rule_specification)
-            else:
-                name = self.name_prefix
-
-            # Try to match exactly by both verification object and rule specification.
-            for ideal_verdict in ideal_verdicts:
-                if 'verification object' in ideal_verdict and 'rule specification' in ideal_verdict \
-                        and ideal_verdict['verification object'] == verification_object \
-                        and ideal_verdict['rule specification'] == rule_specification:
-                    results[name] = {
-                        'ideal verdict': ideal_verdict['ideal verdict'],
-                        'verification status': verification_status,
-                        'comment': ideal_verdict.get('comment')
-                    }
-                    break
-
-            # Try to match just by verification object.
-            if name not in results:
-                for ideal_verdict in ideal_verdicts:
-                    if 'verification object' in ideal_verdict and 'rule specification' not in ideal_verdict \
-                            and ideal_verdict['verification object'] == verification_object:
-                        results[name] = {
-                            'ideal verdict': ideal_verdict['ideal verdict'],
-                            'verification status': verification_status,
-                            'comment': ideal_verdict.get('comment')
-                        }
-                        break
-
-            # Try to match just by rule specification.
-            if name not in results:
-                for ideal_verdict in ideal_verdicts:
-                    if 'verification object' not in ideal_verdict and 'rule specification' in ideal_verdict \
-                            and ideal_verdict['rule specification'] == rule_specification:
-                        results[name] = {
-                            'ideal verdict': ideal_verdict['ideal verdict'],
-                            'verification status': verification_status,
-                            'comment': ideal_verdict.get('comment')
-                        }
-                        break
-
-            # If nothing of above matched.
-            if name not in results:
-                for ideal_verdict in ideal_verdicts:
-                    if 'verification object' not in ideal_verdict and 'rule specification' not in ideal_verdict:
-                        results[name] = {
-                            'ideal verdict': ideal_verdict['ideal verdict'],
-                            'verification status': verification_status,
-                            'comment': ideal_verdict.get('comment')
-                        }
-                        break
-
-            if name not in results:
-                raise ValueError('Could not find appropriate ideal verdict for verification status "{0}", '
-                                 'verification object "{1}" and rule specification "{2}"'.
-                                 format(verification_status, verification_object, rule_specification))
-
-        return results
+        return bug_name, new_verification_result

@@ -182,6 +182,7 @@ class ParseErrorTrace:
         self.max_line_length = 5
         self.assume_scopes = {}
         self.double_return = set()
+        self._amp_replaced = False
 
     def add_line(self, edge):
         line = str(edge['start line']) if 'start line' in edge else None
@@ -382,6 +383,7 @@ class ParseErrorTrace:
             else:
                 self.lines[i]['line_offset'] = ' ' * (self.max_line_length - len(self.lines[i]['line']))
             self.lines[i]['code'] = self.__parse_code(self.lines[i]['code'])
+            self._amp_replaced = False
 
             if not self.scope.is_main(self.lines[i]['scope']):
                 if self.lines[i]['type'] == 'normal' and self.scope.is_shown(self.lines[i]['scope']):
@@ -421,7 +423,9 @@ class ParseErrorTrace:
                 m.group(2),
                 self.__parse_code(m.group(3))
             )
-        code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if not self._amp_replaced:
+            code = code.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+            self._amp_replaced = True
         m = re.match('^(.*?)(/\*.*?\*/)(.*)$', code)
         if m is not None:
             return "%s%s%s" % (

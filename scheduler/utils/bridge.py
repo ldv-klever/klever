@@ -37,7 +37,7 @@ class Session:
         self.session = requests.Session()
 
         # Get CSRF token via GET request.
-        self.__request('users/signin/')
+        self.__request('users/service_signin/')
 
         # Prepare data
         parameters["username"] = user
@@ -58,16 +58,19 @@ class Session:
         :param kwargs: Additional arguments.
         :return:
         """
+        if data:
+            data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
+
         while True:
             try:
                 url = 'http://' + self.name + '/' + path_url
 
                 logging.debug('Send "{0}" request to "{1}"'.format(method, url))
 
-                if data:
-                    data.update({'csrfmiddlewaretoken': self.session.cookies['csrftoken']})
-
-                resp = self.session.get(url, **kwargs) if method == 'GET' else self.session.post(url, data, **kwargs)
+                if method == 'GET':
+                    resp = self.session.get(url, **kwargs)
+                else:
+                    resp = self.session.post(url, data, **kwargs)
 
                 if resp.status_code != 200:
                     with open('response error.html', 'w', encoding='utf8') as fp:

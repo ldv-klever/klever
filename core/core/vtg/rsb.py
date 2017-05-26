@@ -31,6 +31,11 @@ class RSB(core.components.Component):
     def generate_verification_tasks(self):
         if 'verifier version' in self.conf['abstract task desc']:
             self.conf['VTG strategy']['verifier']['version'] = self.conf['abstract task desc']['verifier version']
+        # Read max restrictions for tasks
+        restrictions_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], "tasks.json")
+        with open(restrictions_file, 'r', encoding='utf8') as fp:
+            self.restrictions = json.loads(fp.read())
+
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
@@ -73,7 +78,7 @@ class RSB(core.components.Component):
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
-                round(self.conf['VTG strategy']['resource limits']['CPU time'] / 1000))})
+                round(self.restrictions['CPU time'] / 1000))})
 
             # To refer to original source files rather than to CIL ones.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'parser.readLineDirectives=true'})
@@ -90,7 +95,7 @@ class RSB(core.components.Component):
             # general memory size limit if users don't specify their own sizes.
             if '-heap' not in [list(opt.keys())[0] for opt in self.conf['VTG strategy']['verifier']['options']]:
                 self.conf['VTG strategy']['verifier']['options'].append({'-heap': '{0}m'.format(
-                    round(3 * self.conf['VTG strategy']['resource limits']['memory size'] / (4 * 1000 ** 2)))})
+                    round(3 * self.restrictions['memory size'] / (4 * 1000 ** 2)))})
 
             if 'bit precision analysis' in self.conf['VTG strategy']:
                 self.conf['VTG strategy']['verifier']['options'].extend([
@@ -135,7 +140,8 @@ class RSB(core.components.Component):
                 self.rule_specification = attr_val
 
         # Use resource limits and verifier specified in job configuration.
-        self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
+        self.task_desc.update({'verifier': self.conf['VTG strategy']['verifier'],
+                               'resource limits': self.restrictions})
 
     def prepare_bug_kind_functions_file(self):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
@@ -264,7 +270,7 @@ class RSB(core.components.Component):
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
-        self.verification_status = None
+        self.verdict = None
 
         if not self.task_desc['property file']:
             self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
@@ -296,7 +302,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-                self.verification_status = 'unknown'
+                self.verdict = 'unknown'
                 break
 
             if task_status == 'FINISHED':
@@ -461,7 +467,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-        self.verification_status = decision_results['status']
+        self.verdict = decision_results['status']
 
     def create_verification_finish_report(self, verification_report_id):
         core.utils.report(self.logger,

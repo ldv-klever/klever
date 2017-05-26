@@ -75,7 +75,7 @@ def calculate_test_stats(test_results):
 
     for result in test_results.values():
         test_stats["tests"] += 1
-        if result["ideal verdict"] == result["verification status"]:
+        if result["ideal verdict"] == result["verdict"]:
             test_stats["passed tests"] += 1
             if result.get('comment'):
                 test_stats["excessive comments"] += 1
@@ -104,8 +104,8 @@ def calculate_validation_stats(validation_results):
 
         is_found_bug_before_fix = False
 
-        if result["before fix"]:
-            if result["before fix"]["verification status"] == "unsafe":
+        if "before fix" in result:
+            if result["before fix"]["verdict"] == "unsafe":
                 is_found_bug_before_fix = True
                 if result["before fix"]["comment"]:
                     validation_stats["excessive comments"] += 1
@@ -114,8 +114,8 @@ def calculate_validation_stats(validation_results):
 
         is_found_safe_after_fix = False
 
-        if result["after fix"]:
-            if result["after fix"]["verification status"] == "safe":
+        if "after fix" in result:
+            if result["after fix"]["verdict"] == "safe":
                 is_found_safe_after_fix = True
                 if result["after fix"]["comment"]:
                     validation_stats["excessive comments"] += 1
