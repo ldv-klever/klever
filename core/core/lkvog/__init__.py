@@ -144,21 +144,28 @@ class LKVOG(core.components.Component):
         if 'module sizes file' in self.conf['Linux kernel']:
             module_sizes = self.mqs['Linux kernel module sizes'].get()
 
+        to_build = None
+
         if 'module dependencies file' not in self.conf['Linux kernel']:
             if strategy_name == 'separate modules':
-                self.mqs['Linux kernel modules'].put({'build kernel': False,
-                                                      'modules': self.conf['Linux kernel']['modules']})
+                to_build = {'build kernel': False,
+                            'modules': self.conf['Linux kernel']['modules']}
             elif strategy_name != 'manual':
                 if 'external modules' not in self.conf['Linux kernel']:
-                    self.mqs['Linux kernel modules'].put({'build kernel': True})
+                    to_build = {'build kernel': True,
+                                'modules': []}
 
                 else:
-                    self.mqs['Linux kernel modules'].put({'build kernel': True,
-                                                          'modules': self.conf['Linux kernel']['modules']})
+                    to_build = {'build kernel': True,
+                                'modules': self.conf['Linux kernel']['modules']}
 
                 module_deps_function = self.mqs['Linux kernel module dependencies'].get()
                 if self.conf['Linux kernel']['configuration'] == 'allmodconfig':
                     module_sizes = self.mqs['Linux kernel module sizes'].get()
+
+        if to_build:
+            self.mqs['Linux kernel modules'].put(to_build)
+            self.mqs['Linux kernel additional modules'].put(to_build['modules'])
 
         self.mqs['Linux kernel module dependencies'].close()
         self.mqs['Linux kernel module sizes'].close()
@@ -199,12 +206,17 @@ class LKVOG(core.components.Component):
 
         if 'module dependencies file' in self.conf['Linux kernel'] or strategy_name == 'manual':
             if 'all' in self.conf['Linux kernel']['modules']:
+                to_build = {'build kernel': False,
+                            'modules': ('all',)}
                 self.mqs['Linux kernel modules'].put({'build kernel': False,
                                                       'modules': ('all',)})
             else:
+                prefix = 'ext-modules/'
                 modules_to_build = [re.sub(r'\.o$', '.ko', module) for module in build_modules] + subsystems
-                self.mqs['Linux kernel modules'].put({'build kernel': False, 'modules':
-                    [module if not module.startswith('ext-modules/') else module[12:] for module in modules_to_build]})
+                to_build = {'build kernel': False, 'modules':
+                            [m if not m.startswith(prefix) else m[len(prefix):] for m in modules_to_build]}
+            self.mqs['Linux kernel modules'].put(to_build)
+            self.mqs['Linux kernel additional modules'].put(to_build['modules'])
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
@@ -322,6 +334,21 @@ class LKVOG(core.components.Component):
 
         self.list_modules = set()
 
+        if 'module dependencies file' in self.conf['Linux kernel']:
+            deps_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                     self.conf['Linux kernel']['module dependencies file'])
+            with open(deps_file, encoding='utf-8') as fp:
+                dependencies = self.parse_linux_kernel_mod_function_deps(fp)
+                self.mqs['Linux kernel module dependencies'].put(dependencies)
+
+        if 'module sizes file' in self.conf['Linux kernel']:
+            sizes_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
+                                                     self.conf['Linux kernel']['module sizes file'])
+            with open(sizes_file, encoding='utf8') as fp:
+                self.mqs['Linux kernel module sizes'].put(json.load(fp))
+
+        self.force_modules = set((m.replace('.ko', '.o') for m in self.mqs['Linux kernel additional modules'].get()))
+
         while True:
             desc_file = self.mqs['Linux kernel build cmd desc files'].get()
 
@@ -330,8 +357,10 @@ class LKVOG(core.components.Component):
                 self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
 
-                #if self.conf['Linux kernel']['configuration'] != 'allmodconfig':
-                self.mqs['Linux kernel module dependencies'].put(self.__build_dependencies())
+                if 'module dependencies file' not in self.conf['Linux kernel']:
+                    self.mqs['Linux kernel module dependencies'].put(self.__build_dependencies())
+                if 'module sizes file' not in self.conf['Linux kernel']:
+                    self.mqs['Linux kernel module sizes'].put(self.__get_module_sizes())
 
                 self.linux_kernel_module_info_mq.put(None)
                 break
@@ -358,9 +387,9 @@ class LKVOG(core.components.Component):
         else:
             self.linux_kernel_build_cmd_out_file_desc[desc['out file']] = [desc]
 
-        if desc['type'] == 'LD' and desc['out file'].endswith('.ko'):
+        if (desc['type'] == 'LD' and desc['out file'].endswith('.ko') and desc['out file'].replace('.ko', '.o') not in self.force_modules) \
+                or (desc['out file'].endswith('.o') and desc['out file'].replace('ext-modules/', '') in self.force_modules):
             self.list_modules.add(desc['out file'])
-            #.replace('.ko', '.o'))
             self.linux_kernel_module_info_mq.put(desc['out file'].replace('.ko', '.o'))
 
     def __find_cc_full_desc_files(self, out_file):
@@ -404,6 +433,27 @@ class LKVOG(core.components.Component):
                     loc += sum(1 for _ in fp)
         return loc
 
+    def parse_linux_kernel_mod_function_deps(self, lines):
+        dependencies = []
+        for line in lines:
+            if line[-1] == '\n':
+                line = line[:-1]
+            line = re.subn(r'\.ko', '.o', line)[0]
+            splts = line.split(' ')
+            first = splts[0]
+            if 'kernel' in first:
+                first = first[first.find('kernel') + 7:]
+            elif 'extra' in first:
+                first = 'ext-modules/' + first[first.find('extra') + 6:]
+            second = splts[3]
+            if 'kernel' in second:
+                second = second[second.find('kernel') + 7:]
+            elif 'extra' in second:
+                second = 'ext-modules/' + second[second.find('extra') + 6:]
+            func = splts[2][1:-2]
+            dependencies.append((second, func, first))
+        return dependencies
+
     def __build_dependencies(self):
         reverse_provided = {}
         dependencies = []
@@ -411,18 +461,27 @@ class LKVOG(core.components.Component):
             for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
                 i = 1
                 for provided_function in desc.get('provided functions', tuple()):
-                    reverse_provided[provided_function] = module
+                    reverse_provided[provided_function] = module.replace('.ko', '.o')
 
         for module in self.list_modules:
             for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
                 for required_function in desc.get('required functions', tuple()):
                     if required_function in reverse_provided:
-                        dependencies.append((reverse_provided[required_function], required_function, module))
+                        dependencies.append((reverse_provided[required_function], required_function,
+                                             module.replace('.ko', '.o')))
 
         self.logger.debug("Going to write deps")
         with open("dependencies.txt", 'w') as fp:
             for m1, f, m2 in dependencies:
                 fp.write('{0} needs "{1}": {2}\n'.format(m2, f, m1))
-                self.logger.debug('{0} needs "{1}": {2}\n'.format(m2, f, m1))
 
         return list(sorted(dependencies))
+
+    def __get_module_sizes(self):
+        sizes = {}
+
+        for module in self.list_modules:
+            for desc in self.linux_kernel_build_cmd_out_file_desc[module]:
+                sizes[module.replace('.ko', '.o')] = desc.get('output size', 0)
+
+        return sizes

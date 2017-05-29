@@ -137,6 +137,7 @@ class Command:
 
         provided_functions = []
         required_functions = []
+        output_size = 0
         elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
         if elf_out and elf_out[0].startswith('ELF'):
             symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
@@ -146,9 +147,11 @@ class Command:
                     required_functions.append(symbol_entities[3])
                 elif len(symbol_entities) > 5 and symbol_entities[1] == 'g':
                     provided_functions.append(symbol_entities[5])
+            output_size = os.path.getsize(self.out_file)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file,
-                'provided functions': provided_functions, 'required functions': required_functions}
+                'provided functions': provided_functions, 'required functions': required_functions,
+                'output size': output_size}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 
