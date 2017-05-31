@@ -18,35 +18,42 @@
 import os
 import subprocess
 
-os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
-
 
 def execute_cmd(*args):
     print('Execute command "{0}"'.format(' '.join(args)))
     subprocess.check_call(args)
 
+# Do not require users input.
+os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+
+print('Update packages list')
 execute_cmd('apt-get', 'update')
 
+print('Upgrade installed packages')
 execute_cmd('apt-get', 'upgrade', '-y')
 
+print('Install new packages')
 execute_cmd(
     'apt-get', 'install', '-y',
+    # For Python packages.
+    'libpq-dev', 'python3-dev', 'python3-pip',
     # For Klever Bridge.
-    'postgresql', 'libpq-dev', 'python3-dev', 'python3-pip', 'nginx', 'gettext',
+    'gettext', 'nginx', 'postgresql',
     # For Klever Core.
-    'bc', 'git', 'make', 'graphviz',
+    'bc', 'git', 'graphviz',
     # For building the Linux kernel.
-    'libc6-dev-i386',
+    'make', 'libc6-dev-i386',
     # For CPAchecker 1.6+.
     'openjdk-8-jre-headless'
 )
 
+print('Install Python packages')
 execute_cmd(
     'pip3', 'install', '-U',
     # For Klever Bridge.
-    'Django', 'psycopg2', 'gunicorn', 'pytz',
+    'Django', 'gunicorn', 'psycopg2', 'pytz',
     # For Klever Core.
-    'jinja2', 'graphviz', 'ply', 'requests', 'setuptools_scm', 'pympler',
+    'jinja2', 'graphviz', 'ply', 'requests', 'setuptools_scm',
     # For Klever Scheduler.
     'consulate'
 )
