@@ -160,12 +160,12 @@ class LKVOG(core.components.Component):
                                 'modules': self.conf['Linux kernel']['modules']}
 
                 module_deps_function = self.mqs['Linux kernel module dependencies'].get()
-                if self.conf['Linux kernel']['configuration'] == 'allmodconfig':
-                    module_sizes = self.mqs['Linux kernel module sizes'].get()
+                module_sizes = self.mqs['Linux kernel module sizes'].get()
 
         if to_build:
             self.mqs['Linux kernel modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].put(to_build['modules'])
+            self.mqs['Linux kernel additional modules'].put(to_build)
+            self.mqs['Linux kernel additional modules'].close()
 
         self.mqs['Linux kernel module dependencies'].close()
         self.mqs['Linux kernel module sizes'].close()
@@ -216,7 +216,8 @@ class LKVOG(core.components.Component):
                 to_build = {'build kernel': False, 'modules':
                             [m if not m.startswith(prefix) else m[len(prefix):] for m in modules_to_build]}
             self.mqs['Linux kernel modules'].put(to_build)
-            self.mqs['Linux kernel additional modules'].put(to_build['modules'])
+            self.mqs['Linux kernel additional modules'].put(to_build)
+            self.mqs['Linux kernel additional modules'].close()
         else:
             self.mqs['Linux kernel module dependencies'].close()
         self.logger.info('Generate all Linux kernel verification object decriptions')
@@ -340,14 +341,17 @@ class LKVOG(core.components.Component):
             with open(deps_file, encoding='utf-8') as fp:
                 dependencies = self.parse_linux_kernel_mod_function_deps(fp)
                 self.mqs['Linux kernel module dependencies'].put(dependencies)
+                self.mqs['Linux kernel module dependencies'].close()
 
         if 'module sizes file' in self.conf['Linux kernel']:
             sizes_file = core.utils.find_file_or_dir(self.logger, self.conf['main working directory'],
                                                      self.conf['Linux kernel']['module sizes file'])
             with open(sizes_file, encoding='utf8') as fp:
                 self.mqs['Linux kernel module sizes'].put(json.load(fp))
+                self.mqs['Linux kernel module sizes'].close()
 
-        self.force_modules = set((m.replace('.ko', '.o') for m in self.mqs['Linux kernel additional modules'].get()))
+        to_build = self.mqs['Linux kernel additional modules'].get()
+        self.force_modules = set((m.replace('.ko', '.o') for m in to_build['modules']))
 
         while True:
             desc_file = self.mqs['Linux kernel build cmd desc files'].get()
@@ -357,10 +361,12 @@ class LKVOG(core.components.Component):
                 self.mqs['Linux kernel build cmd desc files'].close()
                 self.logger.info('Terminate Linux kernel module names message queue')
 
-                if 'module dependencies file' not in self.conf['Linux kernel']:
+                if 'module dependencies file' not in self.conf['Linux kernel'] and to_build['build kernel']:
                     self.mqs['Linux kernel module dependencies'].put(self.__build_dependencies())
-                if 'module sizes file' not in self.conf['Linux kernel']:
+                    self.mqs['Linux kernel module dependencies'].close()
+                if 'module sizes file' not in self.conf['Linux kernel'] and to_build['build kernel']:
                     self.mqs['Linux kernel module sizes'].put(self.__get_module_sizes())
+                    self.mqs['Linux kernel module sizes'].close()
 
                 self.linux_kernel_module_info_mq.put(None)
                 break
