@@ -84,12 +84,12 @@ class SSH:
                 while chan.recv_stderr_ready():
                     stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
                 if stderr:
-                    logging.info('Executed command STDERR:{0}'.format(stderr.rstrip()))
+                    logging.info('Executed command STDERR:\n{0}'.format(stderr.rstrip()))
                 stdout = ''
                 while chan.recv_ready():
                     stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
                 if stdout:
-                    logging.info('Executed command STDOUT:{0}'.format(stdout.rstrip()))
+                    logging.info('Executed command STDOUT:\n{0}'.format(stdout.rstrip()))
             time.sleep(self.COMMAND_EXECUTION_CHECK_INTERVAL)
 
         retcode = chan.recv_exit_status()
