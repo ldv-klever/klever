@@ -23,7 +23,8 @@ from kopenstack.kopenstack import execute_os_entity_action
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=logging.INFO,
+                        format='%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)5s> %(message)s')
 
     logging.info('Parse command-line arguments')
     parser = argparse.ArgumentParser()
@@ -40,7 +41,8 @@ def main():
     parser.add_argument('--ssh-username', default='root',
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
-                        help='Path to SSH RSA private key file. The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv"')
+                        help='Path to SSH RSA private key file.'
+                             'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv"')
     parser.add_argument('--name', help='Entity name.')
     parser.add_argument('--base-image', default='openSUSE Leap 42.2',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
