@@ -67,7 +67,8 @@ class SSH:
         self.ssh.close()
 
     def execute_cmd(self, cmd):
-        logging.info('Execute command over SSH on instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        logging.info('Execute command over SSH on instance "{0}" (IP: {1})\n{2}'
+                     .format(self.name, self.floating_ip, cmd))
 
         chan = self.ssh.get_transport().open_session()
         chan.setblocking(0)
