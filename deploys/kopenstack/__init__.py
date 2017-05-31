@@ -38,13 +38,13 @@ def main():
                         help='OpenStack username for authentication (default: "%(default)s").')
     parser.add_argument('--os-tenant-name', default='computations',
                         help='OpenStack tenant name (default: "%(default)s").')
-    parser.add_argument('--ssh-username', default='ubuntu',
+    parser.add_argument('--ssh-username', default='debian',
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
                         help='Path to SSH RSA private key file.'
                              'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv"')
     parser.add_argument('--name', help='Entity name.')
-    parser.add_argument('--base-image', default='Ubuntu 16.04 Xenial x86_64 cloud image',
+    parser.add_argument('--base-image', default='Debian 8.8.0 64-bit',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default='Klever Base',
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')

@@ -19,12 +19,19 @@ import os
 import subprocess
 
 
-def execute_cmd(*args):
+def execute_cmd(*args, get_output=False):
     print('Execute command "{0}"'.format(' '.join(args)))
-    subprocess.check_call(args)
+    if get_output:
+        return subprocess.check_output(args).decode('utf8')
+    else:
+        subprocess.check_call(args)
 
 # Do not require users input.
 os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
+
+# For openjdk-8-jre-headless required for CPAchecker 1.6+.
+with open('/etc/apt/sources.list', 'a') as fp:
+    fp.write('deb http://http.debian.net/debian jessie-backports main')
 
 print('Update packages list')
 execute_cmd('apt-get', 'update')
@@ -42,10 +49,10 @@ execute_cmd(
     # For Klever Core.
     'bc', 'git', 'graphviz',
     # For building the Linux kernel.
-    'make', 'libc6-dev-i386',
-    # For CPAchecker 1.6+.
-    'openjdk-8-jre-headless'
+    'make', 'libc6-dev-i386'
 )
+# For CPAchecker 1.6+.
+execute_cmd('apt-get', 'install', '-y', '-t', 'jessie-backports', 'openjdk-8-jre-headless')
 
 print('Install Python packages')
 execute_cmd(
