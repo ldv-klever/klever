@@ -18,20 +18,7 @@
 import os
 import subprocess
 
-
-PYTHON_VERSION = '3.6.1'
-
-
-class Cd:
-    def __init__(self, path):
-        self.new_path = path
-
-    def __enter__(self):
-        self.prev_path = os.getcwd()
-        os.chdir(self.new_path)
-
-    def __exit__(self, etype, value, traceback):
-        os.chdir(self.prev_path)
+os.environ['DEBIAN_FRONTEND'] = 'noninteractive'
 
 
 def execute_cmd(*args):
@@ -55,17 +42,6 @@ execute_cmd(
     'java-1_8_0-openjdk-headless'
 )
 
-print('Install Python')
-execute_cmd('wget', '-q', 'https://www.python.org/ftp/python/{0}/Python-{0}.tar.xz'.format(PYTHON_VERSION))
-execute_cmd('tar', '-xf', 'Python-{0}.tar.xz'.format(PYTHON_VERSION))
-with Cd('Python-{0}'.format(PYTHON_VERSION)):
-    # TODO: --enable-optimizations takes very much time but likely speeds up Python slightly.
-    execute_cmd('./configure')
-    execute_cmd('make', '-j8')
-    execute_cmd('make', 'install')
-execute_cmd('rm', '-rf', 'Python-{0}*'.format(PYTHON_VERSION))
-
-print('Install Python packages')
 execute_cmd(
     'pip3', 'install', '-U',
     # For Klever Bridge.
