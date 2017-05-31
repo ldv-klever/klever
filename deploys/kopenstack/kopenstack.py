@@ -197,7 +197,7 @@ class OSKleverBaseImage(OSEntity):
                 finally:
                     sftp.close()
 
-                ssh.execute_cmd('python install-deps')
+                ssh.execute_cmd('sudo python3 install-deps')
 
             instance.create_image()
 

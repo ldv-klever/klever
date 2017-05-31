@@ -25,29 +25,28 @@ def execute_cmd(*args):
     print('Execute command "{0}"'.format(' '.join(args)))
     subprocess.check_call(args)
 
+execute_cmd('apt-get', 'update')
 
-print('Install RPM packages')
+execute_cmd('apt-get', 'upgrade', '-y')
+
 execute_cmd(
-    'zypper', 'install', '-y',
-    # For Python.
-    'make', 'gcc', 'gdbm-devel', 'libbz2-devel', 'libopenssl-devel', 'readline-devel', 'sqlite3-devel', 'tk-devel',
-    'xz-devel', 'zlib-devel',
+    'apt-get', 'install', '-y',
     # For Klever Bridge.
-    'nginx', 'postgresql',
+    'postgresql', 'libpq-dev', 'python3-dev', 'python3-pip', 'nginx', 'gettext',
     # For Klever Core.
-    'graphviz',
+    'bc', 'git', 'make', 'graphviz',
     # For building the Linux kernel.
-    'glibc-devel-32bit',
+    'libc6-dev-i386',
     # For CPAchecker 1.6+.
-    'java-1_8_0-openjdk-headless'
+    'openjdk-8-jre-headless'
 )
 
 execute_cmd(
     'pip3', 'install', '-U',
     # For Klever Bridge.
-    'Django', 'gunicorn', 'psycopg2', 'pytz',
+    'Django', 'psycopg2', 'gunicorn', 'pytz',
     # For Klever Core.
-    'jinja2', 'graphviz', 'ply', 'requests', 'setuptools_scm',
+    'jinja2', 'graphviz', 'ply', 'requests', 'setuptools_scm', 'pympler',
     # For Klever Scheduler.
     'consulate'
 )
