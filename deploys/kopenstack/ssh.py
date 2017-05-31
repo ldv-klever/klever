@@ -106,6 +106,9 @@ class SSH:
 
     def open_shell(self):
         logging.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        logging.warning('Just simple operations can be peformed, for the complex ones, please, run "{0}"'
+                        .format('ssh -o StrictHostKeyChecking=no -i {0} {1}@{2}'
+                                .format(self.args.ssh_rsa_private_key_file, self.args.ssh_username, self.floating_ip)))
 
         chan = self.ssh.get_transport().open_session()
         chan.get_pty()
