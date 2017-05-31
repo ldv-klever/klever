@@ -194,6 +194,7 @@ class RSB(core.components.Component):
 
     def prepare_src_files(self):
         self.task_desc['files'] = []
+        regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
 
         if self.conf['VTG strategy']['merge source files']:
             self.logger.info('Merge source files by means of CIL')
@@ -208,11 +209,25 @@ class RSB(core.components.Component):
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
                 with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
                           encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
+                    trigger = False
+
                     # Specify original location to avoid references to *.trimmed.i files in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
-                        fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
+
+                        # Asm volatile goto
+                        l = re.sub(r'asm volatile goto.*;', '', line)
+
+                        if not trigger and regex.match(line):
+                            trigger = True
+                        elif trigger:
+                            l = line.replace('typedef __va_list __gnuc_va_list;',
+                                             'typedef __builtin_va_list __gnuc_va_list;')
+                            trigger = False
+
+                        fp_out.write(l)
+
                 extra_c_file['new C file'] = trimmed_c_file
                 c_files += (trimmed_c_file, )
 
