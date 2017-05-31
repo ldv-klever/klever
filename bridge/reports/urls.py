@@ -28,6 +28,8 @@ urlpatterns = [
         views.report_list_tag, name='list_tag'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes)/(?P<verdict>[0-9])/$',
         views.report_list_by_verdict, name='list_verdict'),
+    url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes)/(?P<verdict>[0-9])/confirmed/$',
+        views.report_list_by_verdict_confirmed, name='list_verdict_confirmed'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/mark/(?P<mark_id>[0-9]+)/$',
         views.report_list_by_mark, name='list_mark'),
     url(r'^component/(?P<report_id>[0-9]+)/(?P<ltype>unsafes|safes|unknowns)/attr/(?P<attr_id>[0-9]+)/$',

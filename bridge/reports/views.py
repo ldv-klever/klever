@@ -77,11 +77,11 @@ def calculate_test_stats(test_results):
         test_stats["tests"] += 1
         if result["ideal verdict"] == result["verdict"]:
             test_stats["passed tests"] += 1
-            if result["comment"]:
+            if result.get('comment'):
                 test_stats["excessive comments"] += 1
         else:
             test_stats["failed tests"] += 1
-            if not result["comment"]:
+            if not result.get('comment'):
                 test_stats["missed comments"] += 1
 
     return test_stats
@@ -211,7 +211,7 @@ def report_component(request, job_id, report_id):
 @login_required
 @unparallel_group(['ReportComponent', 'ReportSafe', 'ReportUnsafe', 'ReportUnknown'])
 def report_list(request, report_id, ltype, component_id=None,
-                verdict=None, tag=None, problem=None, mark=None, attr=None):
+                verdict=None, tag=None, problem=None, mark=None, attr=None, confirmed=None):
     activate(request.user.extended.language)
 
     try:
@@ -275,7 +275,7 @@ def report_list(request, report_id, ltype, component_id=None,
 
     table_data = reports.utils.ReportTable(
         *report_attrs_data, table_type=list_types[ltype],
-        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr
+        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr, confirmed=confirmed
     )
     # If there is only one element in table, and first column of table is link, redirect to this link
     if len(table_data.table_data['values']) == 1 and isinstance(table_data.table_data['values'][0], list) \
@@ -311,6 +311,11 @@ def report_list_tag(request, report_id, ltype, tag_id):
 @login_required
 def report_list_by_verdict(request, report_id, ltype, verdict):
     return report_list(request, report_id, ltype, verdict=verdict)
+
+
+@login_required
+def report_list_by_verdict_confirmed(request, report_id, ltype, verdict):
+    return report_list(request, report_id, ltype, verdict=verdict, confirmed=True)
 
 
 @login_required

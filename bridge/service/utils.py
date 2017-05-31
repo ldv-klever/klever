@@ -15,19 +15,26 @@
 # limitations under the License.
 #
 
+import os
 import json
 from io import BytesIO
+
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.files import File as NewFile
 from django.db.models import F
-from django.utils.translation import ugettext_lazy as _
 from django.utils.timezone import now
-from bridge.vars import JOB_STATUS
+from django.utils.translation import ugettext_lazy as _
+
+from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE, TASK_STATUS
 from bridge.utils import file_checksum, logger, BridgeException
-from jobs.models import RunHistory, JobFile
-from jobs.utils import JobAccess, change_job_status
+
+from jobs.models import RunHistory, JobFile, FileSystem, Job
 from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
-from service.models import *
+from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
+    SchedulerUser, Workload
+
+from jobs.utils import JobAccess, change_job_status
 
 
 class ServiceError(Exception):
@@ -310,6 +317,8 @@ class GetTasks:
                 else:
                     self._data['job configurations'][progress.job.identifier] = \
                         json.loads(progress.configuration.decode('utf8'))
+                    self._data['job configurations'][progress.job.identifier]['task resource limits'] = \
+                        self.__get_tasks_limits(progress.job_id)
                     self._data['jobs']['pending'].append(progress.job.identifier)
             for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[2][0]).select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
@@ -445,6 +454,22 @@ class GetTasks:
             self._progresses[progress_id].save()
         for solution in Solution.objects.filter(task_id__in=self._solution_req):
             self._data['task solutions'][str(solution.task_id)] = json.loads(solution.description.decode('utf8'))
+
+    def __get_tasks_limits(self, job_id):
+        self.__is_not_used()
+        try:
+            tasks = FileSystem.objects.get(
+                job__job_id=job_id, job__version=F('job__job__version'), name='tasks.json', parent=None
+            )
+        except ObjectDoesNotExist:
+            logger.error("The tasks.json file doesn't exists")
+            return {}
+        try:
+            with open(os.path.join(settings.MEDIA_ROOT, tasks.file.file.name), mode='r', encoding='utf8') as fp:
+                return json.load(fp)
+        except Exception as e:
+            logger.exception(e)
+            return {}
 
     def __is_not_used(self):
         pass

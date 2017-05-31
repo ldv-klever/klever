@@ -15,20 +15,25 @@
 # limitations under the License.
 #
 
+import os
 import re
 import json
 from io import BytesIO
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
+
 from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, JOB_WEIGHT
-from bridge.utils import file_get_or_create, BridgeException
+from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
-from .models import RunHistory, JobFile
-from .utils import create_job, update_job, change_job_status
-from reports.models import *
+
+from jobs.models import Job, RunHistory, JobFile
+from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+    Component, Computer, AttrName, Attr, ReportAttr, LightResource
+from jobs.utils import create_job, update_job, change_job_status
 from reports.utils import AttrData
 from tools.utils import Recalculation
 
@@ -185,7 +190,6 @@ class LightWeightCache:
             return
         if job.weight == JOB_WEIGHT[1][0]:
             self.data['resources'] = self.__get_light_resources()
-            self.data['attrs_data'] = self.__get_attrs_statistic()
 
     def __get_light_resources(self):
         res_data = []
@@ -195,15 +199,6 @@ class LightWeightCache:
                 'wall_time': r.wall_time, 'cpu_time': r.cpu_time, 'memory': r.memory
             })
         return res_data
-
-    def __get_attrs_statistic(self):
-        attrs_data = []
-        for a_c in AttrStatistic.objects.filter(report__root=self.root, report__parent=None):
-            if a_c.attr is None:
-                attrs_data.append([a_c.name.name, None, a_c.safes, a_c.unsafes, a_c.unknowns])
-            else:
-                attrs_data.append([a_c.name.name, a_c.attr.value, a_c.safes, a_c.unsafes, a_c.unknowns])
-        return attrs_data
 
 
 class ReportsData(object):
@@ -485,17 +480,6 @@ class UploadJob(object):
                 component=Component.objects.get_or_create(name=d['component'])[0]
                 if d['component'] is not None else None
             ) for d in light_cache['resources']))
-        if 'attrs_data' in light_cache:
-            root_report = ReportComponent.objects.get(root=root, parent=None)
-            AttrStatistic.objects.filter(report=root_report).delete()
-            AttrStatistic.objects.bulk_create(list(AttrStatistic(
-                report=root_report,
-                name=AttrName.objects.get_or_create(name=a_data[0])[0],
-                attr=Attr.objects.get_or_create(
-                    name=AttrName.objects.get_or_create(name=a_data[0])[0], value=a_data[1]
-                )[0] if a_data[1] is not None else None,
-                safes=a_data[2], unsafes=a_data[3], unknowns=a_data[4]
-            ) for a_data in light_cache['attrs_data']))
 
 
 class UploadReports:

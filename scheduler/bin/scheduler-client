@@ -20,15 +20,15 @@ import argparse
 import logging
 import os
 import sys
+import traceback
 
 sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), os.path.pardir))
 os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.pardir),
                                            ':{0}'.format(os.environ['PYTHONPATH'])
                                            if os.environ.get('PYTHONPATH') else '')
 
-import utils as utils
 import client as client
-
+from server.bridge import Server
 
 # Parse configuration
 parser = argparse.ArgumentParser(description='Start cloud Klever scheduler client according to the provided '
@@ -42,19 +42,72 @@ if args.file and os.path.isfile(args.file):
         conf = json.loads(fh.read())
 else:
     conf = json.loads(str(args.conf))
-conf = utils.common_initialization("Client controller", conf)
 
-if args.mode == "JOB":
-    logging.info("Proceed to job solution")
-    exit_code = client.solve_job(conf)
-    logging.info("Exiting with Klever Core exit code {}".format(exit_code))
+# Check common configuration
+if "common" not in conf:
+    raise KeyError("Provide configuration property 'common' as an JSON-object")
+
+# Prepare working directory
+if "working directory" not in conf["common"]:
+    raise KeyError("Provide configuration property 'common''working directory'")
+
+# Go to the working directory to avoid creating files elsewhere
+os.chdir(conf["common"]['working directory'])
+
+# Initialize logger
+# create logger
+root_logger = logging.getLogger('')
+root_logger.setLevel(logging.DEBUG)
+
+# create console handler and set level to debug
+ch = logging.StreamHandler(sys.stdout)
+fh = logging.FileHandler("client-log.log", mode='w', encoding='utf8')
+eh = logging.FileHandler("client-critical.log", mode='w', encoding='utf8')
+
+ch.setLevel(logging.INFO)
+fh.setLevel(logging.DEBUG)
+eh.setLevel(logging.WARNING)
+
+# create formatter
+cf_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)5s> %(message)s')
+fh_formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s')
+eh_formatter = logging.Formatter('%(message)s')
+
+# add formatter to ch
+ch.setFormatter(cf_formatter)
+fh.setFormatter(fh_formatter)
+eh.setFormatter(eh_formatter)
+
+# add ch to logger
+root_logger.addHandler(ch)
+root_logger.addHandler(fh)
+root_logger.addHandler(eh)
+
+logger = logging.getLogger('SchedulerClient')
+
+# Try to report single short line message to error log to forward it to Bridge
+server = None
+exit_code = 0
+try:
+    if args.mode == "JOB":
+        logger.info("Going to solve a verification job")
+        mode = True
+    elif args.mode == "TASK":
+        logger.info("Going to solve a verification task")
+        mode = False
+        server = Server(logger, conf["Klever Bridge"], os.curdir)
+        server.register()
+    else:
+        NotImplementedError("Provided mode {} is not supported by the client".format(args.mode))
+
+    exit_code = client.solve(logger, conf, mode, server)
+    logger.info("Exiting with exit code {}".format(exit_code))
+except:
+    logger.warning(traceback.format_exc().rstrip())
+    exit_code = -1
+finally:
+    if server:
+        server.stop()
     exit(int(exit_code))
-elif args.mode == "TASK":
-    logging.info("Proceed to task solution")
-    exit_code = client.solve_task(conf)
-    logging.info("Exiting with exit code {}".format(exit_code))
-    exit(int(exit_code))
-else:
-    NotImplementedError("Provided mode {} is not supported by the client".format(args.mode))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

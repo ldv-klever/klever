@@ -35,9 +35,9 @@ function component_filters_data() {
         }
     }
     var order_type = $('input[name="order_type"]:checked').val();
-    if (order_type == 'attr') {
+    if (order_type === 'attr') {
         order_type = $('#order__attr__name').val();
-        if (order_type.length == 0) {
+        if (!order_type.length) {
             order_type = 'component';
         }
     }
@@ -271,6 +271,85 @@ $(document).ready(function () {
         else {
             attr_table.hide();
         }
+    });
+    $('button[id^="unconfirm_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'unconfirm-association/',
+            {
+                mark_id: $(this).attr('id').replace('unconfirm_association_', ''),
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
+    $('button[id^="confirm_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'confirm-association/',
+            {
+                mark_id: $(this).attr('id').replace('confirm_association_', ''),
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val()
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
+    $('.like-popup').popup({
+        hoverable: true,
+        position: 'top right'
+    });
+
+    $('button[id^="like_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'like-association/',
+            {
+                mark_id: $(this).attr('id').replace('like_association_', ''),
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val(),
+                dislike: false
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
+    });
+    $('button[id^="dislike_association_"]').click(function () {
+        $.post(
+            marks_ajax_url + 'like-association/',
+            {
+                mark_id: $(this).attr('id').replace('dislike_association_', ''),
+                report_id: $('#report_pk').val(),
+                report_type: $('#report_type').val(),
+                dislike: true
+            },
+            function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    window.location.replace('');
+                }
+            }
+        );
     });
 });
 

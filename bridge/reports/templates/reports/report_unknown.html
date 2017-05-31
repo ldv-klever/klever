@@ -5,6 +5,10 @@
 
 {% block title %}{% trans 'Unknown' %}{% endblock %}
 
+{% block reports_head_block %}
+    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block body_block %}
     <div class="ui grid">
         <div class="five wide column">
@@ -80,9 +84,13 @@
                         <th>№</th>
                         <th>{% trans 'Problem' %}</th>
                         <th>{% trans 'Status' %}</th>
-                        <th>{% trans 'Last change author' %}</th>
-                        <th>{% trans 'Automatic association' %}</th>
+                        <th>{% trans 'Association type' %}</th>
+                        <th>{% trans 'Association author' %}</th>
                         <th>{% trans 'Description' %}</th>
+                        <th>{% trans 'Like' %}/{% trans 'Dislike' %}</th>
+                        {% if can_mark %}
+                            <th></th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
@@ -97,9 +105,45 @@
                             {% endif %}
                         </td>
                         <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                        <td><a href="{{ v.author.1 }}">{{ v.author.0 }}</a></td>
-                        <td><span style="color:{{ v.is_prime.1 }}">{{ v.is_prime.0 }}</span></td>
+                        <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
+                        <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
                         <td>{{ v.description|safe }}</td>
+                        <td>
+                            <div class="ui mini basic buttons">
+                                <button id="like_association_{{ v.id }}" class="ui green basic icon button {% if v.likes|length %} like-popup{% endif %}">
+                                    <i class="ui thumbs up icon"></i>{{ v.likes|length }}
+                                </button>
+                                {% if v.likes|length %}
+                                    <div class="ui popup">
+                                        {% for like in v.likes %}
+                                            <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <button id="dislike_association_{{ v.id }}" class="ui red icon basic right attached button {% if v.dislikes|length %} like-popup{% endif %}">
+                                    <i class="ui thumbs down icon"></i>{{ v.dislikes|length }}
+                                </button>
+                                {% if v.dislikes|length %}
+                                    <div class="ui popup">
+                                        {% for dislike in v.dislikes %}
+                                            <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        {% if can_mark %}
+                            <td>
+                                <div class="ui mini icon buttons">
+                                    {% if v.type.0 != '1' %}
+                                        <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
+                                    {% endif %}
+                                    {% if v.type.0 != '2' %}
+                                        <button id="unconfirm_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        {% endif %}
                     </tr>
                 {% endfor %}
                 </tbody>

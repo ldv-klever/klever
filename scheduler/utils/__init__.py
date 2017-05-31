@@ -119,4 +119,42 @@ def extract_system_information():
     system_conf["arch"] = get_output('uname -m')
     return system_conf
 
+
+def sort_priority(priority):
+    """
+    Use the function to sort tasks by their priorities. For higher priority return higher integer.
+    :param priority: String.
+    :return: 3, 2, 1, 0
+    """
+    if priority == "IDLE":
+        return 0
+    elif priority == "LOW":
+        return 1
+    elif priority == "HIGH":
+        return 2
+    elif priority == "URGENT":
+        return 3
+    else:
+        raise ValueError("Unknown priority: {}".format(priority))
+
+
+def higher_priority(one, two, strictly=False):
+    """
+    Compare that one priority is higher than second priority. If the third argument is True (False by default) than
+    comparison is strict.
+
+    :param one: 'IDLE', 'LOW', 'HIGH' or 'URGENT'
+    :param two: 'IDLE', 'LOW', 'HIGH' or 'URGENT'
+    :param strictly: False or True
+    :return: one > two or one >= two (default)
+    """
+
+    one_priority = sort_priority(one)
+    two_priority = sort_priority(two)
+
+    if strictly:
+        return one_priority > two_priority
+    else:
+        return one_priority >= two_priority
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

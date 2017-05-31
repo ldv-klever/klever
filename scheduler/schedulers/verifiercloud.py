@@ -27,15 +27,16 @@ import client.executils as executils
 
 
 class Run:
-    """Class represents VerifierCloud task to solve"""
+    """Class represents VerifierCloud scheduler for task forwarding to the cloud."""
 
     def __init__(self, work_dir, description, user, password):
         """
         Initialize Run object.
-        :param work_dir: Path to the directory from which paths given in description are relative.
-        :param description: Dictionary with task description.
-        :param user: VerifierCloud username.
-        :param password: VerifierCloud password.
+
+        :param work_dir: A path to the directory from which paths given in description are relative.
+        :param description: Dictionary with a task description.
+        :param user: A VerifierCloud username.
+        :param password: A VerifierCloud password.
         """
         # Save user credentials
         self.user_pwd = "{}:{}".format(user, password)
@@ -96,14 +97,23 @@ class Run:
 
 class Scheduler(schedulers.SchedulerExchange):
     """
-    Implement scheduler which is based on VerifierCloud web-interface cloud. Scheduler forwards task to the remote
+    Implement scheduler which is based on VerifierCloud web-interface. The scheduler forwards task to the remote
     VerifierCloud and fetch results from there.
     """
 
     wi = None
 
-    def init_scheduler(self):
+    def __init__(self, conf, work_dir):
         """Do VerifierCloud specific initialization"""
+        super(Scheduler, self).__init__(conf, work_dir)
+        self.wi = None
+        self.init_scheduler()
+
+    def init_scheduler(self):
+        """
+        Initialize scheduler completely. This method should be called both at constructing stage and scheduler
+        reinitialization. Thus, all object attribute should be cleaned up and set as it is a newly created object.
+        """
         super(Scheduler, self).init_scheduler()
 
         # Perform sanity checks before initializing scheduler
@@ -122,36 +132,25 @@ class Scheduler(schedulers.SchedulerExchange):
         """Return type of the scheduler: 'VerifierCloud' or 'Klever'."""
         return "VerifierCloud"
 
-    def schedule(self, pending_tasks, pending_jobs, processing_tasks, processing_jobs, sorter):
+    def schedule(self, pending_tasks, pending_jobs):
         """
-        Get list of new tasks which can be launched during the current scheduler iteration.
+        Get a list of new tasks which can be launched during current scheduler iteration. All pending jobs and tasks
+        should be sorted reducing the priority to the end. Each task and job in arguments are dictionaries with full
+        configuration or description.
 
         :param pending_tasks: List with all pending tasks.
-        :param processing_tasks: List with currently ongoing tasks.
-        :param sorter: Function which can by used for sorting tasks according to their priorities.
-        :return: List with identifiers of pending tasks to launch.
+        :param pending_jobs: List with all pending jobs.
+        :return: List with identifiers of pending tasks to launch and list woth identifiers of jobs to launch.
         """
-        pending_tasks = sorted(pending_tasks, key=sorter)
-        if "max concurrent tasks" in self.conf["scheduler"] and self.conf["scheduler"]["max concurrent tasks"]:
-            if len(processing_tasks) < self.conf["scheduler"]["max concurrent tasks"]:
-                diff = self.conf["scheduler"]["max concurrent tasks"] - len(processing_tasks)
-                if diff <= len(pending_tasks):
-                    new_tasks = pending_tasks[0:diff]
-                else:
-                    new_tasks = pending_tasks
-            else:
-                new_tasks = []
-        else:
-            new_tasks = pending_tasks
+        return [pending_tasks["id"] for pending_tasks in pending_tasks], []
 
-        return [new_task["id"] for new_task in new_tasks], []
-
-    def prepare_task(self, identifier, description=None):
+    def prepare_task(self, identifier, description):
         """
-        Prepare working directory before starting solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
         :param description: Dictionary with task description.
+        :raise SchedulerException: If a task cannot be scheduled or preparation failed.
         """
         # Prepare working directory
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
@@ -168,13 +167,14 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def prepare_job(self, identifier, configuration):
         """
-        Prepare working directory before starting solution.
+        Prepare a working directory before starting the solution.
 
         :param identifier: Verification task identifier.
         :param configuration: Job configuration.
+        :raise SchedulerException: If a job cannot be scheduled or preparation failed.
         """
         # Cannot be called
-        pass
+        raise NotImplementedError("VerifierCloud cannot handle jobs.")
 
     def solve_task(self, identifier, description, user, password):
         """
@@ -221,16 +221,15 @@ class Scheduler(schedulers.SchedulerExchange):
                               svn_revision=revision,
                               meta_information=json.dumps({'Verification tasks produced by Klever': None}))
 
-    def solve_job(self, configuration):
+    def solve_job(self, identifier, configuration):
         """
-        Solve given verification task.
+        Solve given verification job.
 
         :param identifier: Job identifier.
         :param configuration: Job configuration.
         :return: Return Future object.
         """
-        # Cannot be called
-        pass
+        raise NotImplementedError('VerifierCloud cannot start jobs.')
 
     def flush(self):
         """Start solution explicitly of all recently submitted tasks."""
@@ -238,10 +237,12 @@ class Scheduler(schedulers.SchedulerExchange):
 
     def process_task_result(self, identifier, future):
         """
-        Process result and send results to the verification gateway.
+        Process result and send results to the server.
 
-        :param identifier:
-        :return: Status of the task after solution: FINISHED or ERROR.
+        :param identifier: Task identifier string.
+        :param future: Future object.
+        :return: status of the task after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         solution_file = os.path.join(task_work_dir, "solution.zip")
@@ -301,61 +302,61 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.debug("Task {} has been processed successfully".format(identifier))
         return "FINISHED"
 
-    def process_job_result(self, identifier, result):
+    def process_job_result(self, identifier, future):
         """
-        Process result and send results to the server.
+        Process future object status and send results to the server.
 
-        :param identifier:
-        :return: Status of the task after solution: FINISHED or ERROR.
+        :param identifier: Job identifier string.
+        :param future: Future object.
+        :return: status of the job after solution: FINISHED.
+        :raise SchedulerException: in case of ERROR status.
         """
-        # Cannot be called
-        pass
+        raise NotImplementedError('There cannot be any running jobs in VerifierCloud')
 
-    def cancel_task(self, identifier, future):
+    def cancel_job(self, identifier, future):
         """
-        Stop task solution.
+        Stop the job solution.
 
         :param identifier: Verification task ID.
         :param future: Future object.
         :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
+        """
+        raise NotImplementedError('VerifierCloud cannot have running jobs, so they cannot be cancelled')
+
+    def cancel_task(self, identifier, future):
+        """
+        Stop the task solution.
+
+        :param identifier: Verification task ID.
+        :param future: Future object.
+        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
+        :raise SchedulerException: In case of exception occured in future task.
         """
         logging.debug("Cancel task {}".format(identifier))
+        # todo: Implement proper task cancellation
         super(Scheduler, self).cancel_task(identifier)
         task_work_dir = os.path.join(self.work_dir, "tasks", identifier)
         shutil.rmtree(task_work_dir)
 
-    def cancel_job(self, identifier, future):
-        """
-        Stop task solution.
-
-        :param identifier: Verification task ID.
-        :param future: Future object.
-        :return: Status of the task after solution: FINISHED. Rise SchedulerException in case of ERROR status.
-        """
-        # Cannot be called
-        pass
-
     def terminate(self):
         """
-        Abort solution of all running tasks and any other actions before
-        termination.
+        Abort solution of all running tasks and any other actions before termination.
         """
         logging.info("Terminate all runs")
         self.wi.shutdown()
 
     def update_nodes(self):
         """
-        Update statuses and configurations of available nodes.
-        :return: Return True if nothing has changes
+        Update statuses and configurations of available nodes and push them to the server.
+
+        :return: Return True if nothing has changes.
         """
         return super(Scheduler, self).update_nodes()
 
     def update_tools(self):
         """
-        Generate dictionary with verification tools available and
-        push it to the verification gate.
-
-        :return: Dictionary with available verification tools.
+        Generate a dictionary with available verification tools and push it to the server.
         """
         # TODO: Implement proper revisions sending
         return super(Scheduler, self)._udate_tools()

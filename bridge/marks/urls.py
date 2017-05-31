@@ -19,6 +19,7 @@ from django.conf.urls import url
 from marks import views
 
 
+
 urlpatterns = [
     url(r'^(?P<mark_type>unsafe|safe|unknown)/create/(?P<report_id>[0-9]+)/$', views.create_mark, name='create_mark'),
     url(r'^(?P<mark_type>unsafe|safe|unknown)/edit/(?P<mark_id>[0-9]+)/$', views.edit_mark, name='edit_mark'),
@@ -26,7 +27,6 @@ urlpatterns = [
     url(r'^(?P<marks_type>unsafe|safe|unknown)/$', views.mark_list, name='mark_list'),
     url(r'^download/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$',
         views.download_mark, name='download_mark'),
-    url(r'^delete/(?P<mark_type>unsafe|safe|unknown)/(?P<mark_id>[0-9]+)/$', views.delete_mark, name='delete_mark'),
     url(r'^association_changes/(?P<association_id>.*)/$', views.association_changes),
     url(r'^tags/(?P<tags_type>unsafe|safe)/$', views.show_tags, name='tags'),
     url(r'^tags/download/(?P<tags_type>unsafe|safe)/$', views.download_tags, name='download_tags'),
@@ -45,6 +45,9 @@ urlpatterns = [
     url(r'^ajax/get_tags_data/$', views.get_tags_data),
     url(r'^ajax/upload_tags/$', views.upload_tags),
     url(r'^ajax/inline_mark_form/$', views.get_inline_mark_form),
+    url(r'^ajax/unconfirm-association/$', views.unconfirm_association),
+    url(r'^ajax/confirm-association/$', views.confirm_association),
+    url(r'^ajax/like-association/$', views.like_association),
 
     # For service requests
     url(r'^download-all/$', views.download_all, name='download_all'),

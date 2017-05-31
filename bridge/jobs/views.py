@@ -39,14 +39,14 @@ from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROL
 from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
-from reports.models import ReportComponent
+from reports.models import ReportComponent, ReportRoot
 from reports.UploadReport import UploadReport, CollapseReports
 from reports.comparison import can_compare
 from reports.utils import FilesForCompetitionArchive
 from service.utils import StartJobDecision, StopDecision
-from tools.utils import disable_safe_marks_for_job, RecalculateSafeMarkConnections
 
 import jobs.utils
+import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
 from jobs.JobTableProperties import FilterForm, TableTree
@@ -1061,8 +1061,13 @@ def enable_safe_marks(request):
         return JsonResponse({'error': _("You don't have an access to edit this job")})
     job.safe_marks = not job.safe_marks
     job.save()
-    if job.safe_marks:
-        RecalculateSafeMarkConnections([job])
+    try:
+        root = ReportRoot.objects.get(job=job)
+    except ObjectDoesNotExist:
+        pass
     else:
-        disable_safe_marks_for_job(job)
+        if job.safe_marks:
+            SafeUtils.RecalculateConnections([root])
+        else:
+            SafeUtils.disable_safe_marks_for_job(root)
     return JsonResponse({})

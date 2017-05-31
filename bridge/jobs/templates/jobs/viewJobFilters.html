@@ -166,6 +166,38 @@
             </div>
         </div>
         <div class="ui divider"></div>
+        <h4 class="header">{% trans 'Statistic attribute name' %}</h4>
+        <div class="fluid">
+            <label for="filter__value__stat_attr_name"></label>
+            <select id="filter__value__stat_attr_name" class="ui dropdown fluid">
+                {% for aname in reportdata.attr_names %}
+                    <option value="{{ aname }}"{% if reportdata.view.filters.stat_attr_name.value == aname %} selected{% endif %}>{{ aname }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="job_filter_enable_attr"{% if 'attr' in reportdata.view.filters %} checked{% endif %}>
+            <label for="job_filter_enable_attr">{% trans 'Calculate statistic just if attribute' %}</label>
+        </div>
+        <br><br>
+        <div class="ui grid">
+            <div class="six wide column">
+                <label for="filter__type__attr"></label>
+                <select id="filter__type__attr" class="ui dropdown fluid">
+                    <option value="iexact"{% if reportdata.view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if reportdata.view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if reportdata.view.filters.attr.type == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="ten wide column">
+                <div class="fluid">
+                    <input id="filter__value__attr" type="text" value="{{ reportdata.view.filters.attr.value }}">
+                    <label for="filter__value__attr"></label>
+                </div>
+            </div>
+        </div>
+        <div class="ui divider"></div>
         {% include 'viewButtons.html' with view_type='2' view_id=reportdata.view_id views=reportdata.views %}
     </div>
 </div>

@@ -99,4 +99,10 @@ class Server(server.AbstractServer):
         data = {"tools data": json.dumps(tools_list, ensure_ascii=False, sort_keys=True, indent=4)}
         self.session.json_exchange("service/update_tools/", data)
 
+    def stop(self):
+        """
+        Log out if necessary.
+        """
+        self.session.sign_out()
+
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
