@@ -29,7 +29,7 @@ import novaclient.client
 import neutronclient.v2_0.client
 import cinderclient.client
 
-from openstack.ssh import SSH
+from kopenstack.ssh import SSH
 
 
 class NotImplementedOSEntityAction(NotImplementedError):

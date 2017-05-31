@@ -19,7 +19,7 @@ import argparse
 import getpass
 import logging
 
-from openstack.openstack import execute_os_entity_action
+from kopenstack.kopenstack import execute_os_entity_action
 
 
 def main():
