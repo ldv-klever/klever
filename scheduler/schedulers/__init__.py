@@ -235,9 +235,6 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                                 "priority": server_state["task descriptions"][task_id]["description"]["priority"]
                             }
 
-                            # Add missing restrictions
-                            self.__add_missing_restrictions(self.__tasks[task_id]["description"]["resource limits"])
-
                             # TODO: VerifierCloud user name and password are specified in task description and
                             # shouldn't be extracted from it here.
                             if self.scheduler_type() == "VerifierCloud":
@@ -256,6 +253,9 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                         # Try to prepare task
                         logging.debug("Prepare new task {} before launching".format(task_id))
                         try:
+                            # Add missing restrictions
+                            self.__add_missing_restrictions(self.__tasks[task_id]["description"]["resource limits"])
+
                             self.prepare_task(task_id, self.__tasks[task_id]["description"])
                         except SchedulerException as err:
                             logging.error("Cannot prepare task {!r} for submission: {!r}".format(task_id, err))
@@ -271,14 +271,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             "configuration": server_state["job configurations"][job_id]
                         }
 
-                        # Check and set necessary restrictions for further scheduling
-                        for collection in [self.__jobs[job_id]["configuration"]["resource limits"],
-                                           self.__jobs[job_id]["configuration"]["task resource limits"]]:
-                            self.__add_missing_restrictions(collection)
-
                         # Prepare jobs before launching
                         logging.debug("Prepare new job {} before launching".format(job_id))
                         try:
+                            # Check and set necessary restrictions for further scheduling
+                            for collection in [self.__jobs[job_id]["configuration"]["resource limits"],
+                                               self.__jobs[job_id]["configuration"]["task resource limits"]]:
+                                self.__add_missing_restrictions(collection)
+
                             self.prepare_job(job_id, self.__jobs[job_id]["configuration"])
                         except SchedulerException as err:
                             logging.error("Cannot prepare job {} for submission: {}".format(job_id, err))
@@ -770,8 +770,14 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
 
         :param collection: 'resource limits' dictionary from a task description or job configuration.
         """
+        if len(collection.keys()) == 0:
+            raise SchedulerException("Resource limitations are missing: upload filled tasks.json file and properly "
+                                     "set job resource limitiations")
+
         for tag in ['memory size', 'number of CPU cores', 'disk memory size']:
             if tag not in collection:
                 collection[tag] = 0
+        if 'CPU model' not in collection:
+            collection['CPU model'] = None
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
