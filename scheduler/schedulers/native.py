@@ -143,7 +143,7 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             self.__node_name = nodes[0]
             data = self.__manager.node_info(self.__node_name)
-            self.__cpu_cores = data["CPU model"]
+            self.__cpu_cores = data["CPU number"]
 
         # init process pull
         if "processes" not in self.conf["scheduler"]:
