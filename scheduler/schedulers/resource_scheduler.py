@@ -349,14 +349,14 @@ class ResourceManager:
         nodes = self.__nodes_ranking(status, restrictions)
 
         if len(nodes) > 0:
-            if job:
+            if job and conf['task scheduler'] != 'VerifierCloud':
                 task_restrictions = conf['task resource limits']
                 self.__reserve_resources(status, restrictions, nodes[0])
                 nodes = self.__nodes_ranking(status, task_restrictions)
                 if len(nodes) > 0:
                     return True
                 raise SchedulerException(
-                        "Given resource limits for job and tasks in sum are two high, we do not have such amount of "
+                        "Given resource limits for job and tasks in sum are too high, we do not have such amount of "
                         "resources")
         else:
             raise SchedulerException("Given resource limits are two high, we do not have such amount of resources")
@@ -467,17 +467,26 @@ class ResourceManager:
         def yield_max_task(given_model, jbs):
             # Get all tasks restrictions
             restrictions = [j[1]['configuration']['task resource limits'] for j in jbs
-                            if not j[1]['configuration']['task resource limits']['CPU model'] or
-                            not cpu_model or
-                            (cpu_model and j[1]['configuration']['task resource limits']['CPU model'] == given_model)]
+                            if j[1]['configuration']['task scheduler'] != 'VerifierCloud' and
+                            (not j[1]['configuration']['task resource limits']['CPU model'] or
+                             not cpu_model or
+                             (cpu_model and j[1]['configuration']['task resource limits']['CPU model'] == given_model))]
 
             # For each parameter determine max
-            restriction = {
-                'CPU model': given_model
-            }
-            for r in ["number of CPU cores", "memory size", "disk memory size"]:
-                m = max(restrictions, key=lambda e: e[r])
-                restriction[r] = m[r]
+            if len(restrictions) > 0:
+                restriction = {
+                    'CPU model': given_model
+                }
+                for r in ["number of CPU cores", "memory size", "disk memory size"]:
+                    m = max(restrictions, key=lambda e: e[r])
+                    restriction[r] = m[r]
+            else:
+                restriction = {
+                    'CPU model': given_model,
+                    "number of CPU cores": 0,
+                    "memory size": 0,
+                    "disk memory size": 0
+                }
 
             return restriction
 
