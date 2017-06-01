@@ -17,12 +17,12 @@
       "merge source files": true
     }
   },
-  "Sub-jobs_": [
+  "Sub-jobs": [
       {
       "Linux kernel": {
-        "external modules": "tests/load_order/",
-        "modules": ["advanced-unsafe/init.ko"],
-        "module dependencies file": "tests/load_order/advanced-unsafe/dep_file"
+        "external modules": "tests/several_groups/",
+        "modules": ["advanced/init.ko"],
+        "module dependencies file": "tests/several_groups/dep_file"
       },
       "LKVOG strategy": {
         "name": "advanced",
@@ -30,11 +30,60 @@
       },
       "rule specifications": ["linux:kernel:locking:mutex"],
       "ideal verdicts": [
-        {"ideal verdict": "unsafe"}
+        {
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/advanced/init.koc9dcb38bb29b"
+        },
+        {
+            "ideal verdict": "unsafe",
+            "verification object": "ext-modules/advanced/init.kof9ddddb7d986"
+        }
         ]
-    }
-    ],
-  "Sub-jobs": [
+    },
+    {
+      "Linux kernel": {
+        "external modules": "tests/several_groups/",
+        "modules": ["closure/init.ko"],
+        "module dependencies file": "tests/several_groups/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "closure",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/closure/init.ko62e7f25e623d"
+        },
+        {
+            "ideal verdict": "unsafe",
+            "verification object": "ext-modules/closure/init.ko3a368968acb1"
+        }
+        ]
+    },    
+    {
+      "Linux kernel": {
+        "external modules": "tests/several_groups/",
+        "modules": ["manual/init.ko"],
+        "module dependencies file": "tests/several_groups/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "groups": {"manual/init.ko": [["manual/library1.ko", "manual/init.ko"], ["manual/library2.ko", "manual/init.ko"]]}
+      },
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/manual/init.koaa76e14c482c"
+        },
+        {
+            "ideal verdict": "unsafe",
+            "verification object": "ext-modules/manual/init.koa300380214e6"
+        }
+        ]
+    }, 
     {
       "Linux kernel": {
         "external modules": "tests/kernel_library/",
