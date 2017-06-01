@@ -17,7 +17,42 @@
       "merge source files": true
     }
   },
+  "Sub-jobs_": [
+      {
+      "Linux kernel": {
+        "external modules": "tests/load_order/",
+        "modules": ["advanced-unsafe/init.ko"],
+        "module dependencies file": "tests/load_order/advanced-unsafe/dep_file"
+      },
+      "LKVOG strategy": {
+        "name": "advanced",
+        "cluster size": 2
+      },
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
+    }
+    ],
   "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/kernel_library/",
+        "modules": ["manual/init.o"]
+      },
+      "LKVOG strategy": {
+        "name": "manual",
+        "cluster size": 2,
+        "groups": {"manual/init.o": [[
+          "manual/init.o",
+          "manual/external.ko"
+        ]]}
+      },
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
+    },
     {
       "Linux kernel": {
         "external modules": "tests/load_order/",
@@ -31,8 +66,10 @@
           "manual-unsafe/external.ko"
         ]]}
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -47,8 +84,10 @@
           "manual-safe/init.ko"
         ]]}
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -60,8 +99,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -73,8 +114,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -86,8 +129,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -99,8 +144,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -113,8 +160,10 @@
         "cluster size": 2,
         "priority on calls": false
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -126,8 +175,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -140,8 +191,10 @@
         "cluster size": 2,
         "priority on export function": false
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -153,8 +206,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -167,8 +222,10 @@
         "cluster size": 2,
         "maximize subsystems": false
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -181,8 +238,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -195,8 +254,10 @@
         "cluster size": 2,
         "priority on module size": false
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -207,8 +268,10 @@
         "name": "separate modules",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -220,8 +283,10 @@
         "name": "closure",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -235,8 +300,10 @@
           "manual/external.ko", "manual/init.ko"
         ]]}
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -248,8 +315,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -260,8 +329,10 @@
         "name": "separate modules",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "safe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "safe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -273,8 +344,10 @@
         "name": "closure",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -289,8 +362,10 @@
           "manual/init.ko"
         ]]}
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     },
     {
       "Linux kernel": {
@@ -302,24 +377,10 @@
         "name": "advanced",
         "cluster size": 2
       },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/kernel_library/",
-        "modules": ["manual/init.o"]
-      },
-      "LKVOG strategy": {
-        "name": "manual",
-        "cluster size": 2,
-        "groups": {"manual/init.o": [[
-          "manual/init.o",
-          "manual/external.ko"
-        ]]}
-      },
-      "rule specifications": ["linux:mutex"],
-      "ideal verdict": "unsafe"
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {"ideal verdict": "unsafe"}
+        ]
     }
   ]
 }
