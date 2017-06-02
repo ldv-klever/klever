@@ -26,6 +26,7 @@ import traceback
 from xml.etree import ElementTree
 from xml.dom import minidom
 from server.bridge import Server
+from client.executils import execute
 
 
 def run_benchexec(mode, file=None, configuration=None):
@@ -244,6 +245,11 @@ def solve(logger, conf, mode='job', server=None):
         # Property file may not be specified.
         if "property file" in conf:
             ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
+        if "extra benchexec options" in conf['client']:
+            additional_opts = conf['client']["extra benchexec options"]
+        else:
+            additional_opts = []
+
         tasks = ElementTree.SubElement(benchmark, "tasks")
         # TODO: in this case verifier is invoked per each such file rather than per all of them.
         for file in conf["files"]:
@@ -258,7 +264,7 @@ def solve(logger, conf, mode='job', server=None):
         os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
 
         # todo: set container mode
-        args = ["--debug", "--no-container", "--no-compress-results", "--outputpath", "output"]
+        args = ["--no-compress-results", "--outputpath", "./output/", "--container"]
         # todo: BenchExec cannot get identifiers, so setting particular cores is inefficient
         #if conf["resource limits"]["number of CPU cores"]:
         #    args.extend(["--limitCores", conf["resource limits"]["number of CPU cores"]])
@@ -266,26 +272,14 @@ def solve(logger, conf, mode='job', server=None):
         #if conf["resource limits"]["disk memory size"]:
         #    args.extend(["--filesSizeLimit", conf["resource limits"]["disk memory size"]])
 
-        logger.info("Start task execution")
-        exit_code = executor.start(args + ["benchmark.xml"])
+        args = ['benchexec'] + args + additional_opts + ["benchmark.xml"]
+        logger.info("Start task execution with the following options: {}".format(str(args)))
+        exit_code = execute(logger, args)
         logger.info("Task solution has finished with exit code {}".format(exit_code))
 
         logger.debug("Translate benchexec output into our results format")
         decision_results = {
             "resources": {}
-        }
-        # Well known statuses of CPAchecker. First two statuses are likely appropriate for all verifiers.
-        statuses_map = {
-            'false(reach)': 'unsafe',
-            'false(unreach-call)': 'unsafe',
-            'false(valid-free)': 'unsafe',
-            'false(valid-deref)': 'unsafe',
-            'false(valid-memtrack)': 'unsafe',
-            'true': 'safe',
-            'EXCEPTION': 'error',
-            'ERROR': 'error',
-            'TIMEOUT': 'CPU time exhausted',
-            'OUT OF MEMORY': 'memory exhausted'
         }
         # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
         solutions = glob.glob(os.path.join("output", "benchmark*results.xml"))
@@ -313,13 +307,7 @@ def solve(logger, conf, mode='job', server=None):
                         decision_results["resources"]["memory size"] = int(value)
                     elif name == "exitcode":
                         decision_results["exit code"] = int(value)
-                    elif name == "status":
-                        # Either get our status if so or use status as is.
-                        if value in statuses_map:
-                            decision_results["status"] = statuses_map[value]
-                        else:
-                            decision_results["status"] = value
-        # TODO: how to find exit code and signal number? decision_results["exit code"] = exit_code
+
         with open("decision results.json", "w", encoding="utf8") as fp:
             json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 

@@ -21,6 +21,104 @@ import uuid
 import re
 import os
 import json
+import subprocess
+import queue
+import threading
+import time
+
+
+class CommandError(ChildProcessError):
+    pass
+
+
+class StreamQueue:
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.traceback = None
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        try:
+            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+            # execution of command will be completed.
+            for line in self.stream:
+                line = line.decode('utf8').rstrip()
+                self.queue.put(line)
+                if self.collect_all_output:
+                    self.output.append(line)
+
+            # Nothing will be put to queue from now.
+            self.finished = True
+        except Exception:
+            import traceback
+            self.traceback = traceback.format_exc().rstrip()
+
+
+def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False):
+    cmd = args[0]
+    logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                              '' if len(args) == 1 else ' ',
+                                              ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+
+    p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+
+    out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
+
+    for stream_q in (out_q, err_q):
+        stream_q.start()
+
+    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+    # print last messages queued before command finishes.
+    last_try = True
+    while not out_q.finished or not err_q.finished or last_try:
+        if out_q.traceback:
+            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'. format(out_q.traceback))
+        if err_q.traceback:
+            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'. format(err_q.traceback))
+        last_try = not out_q.finished or not err_q.finished
+        time.sleep(timeout)
+
+        for stream_q in (out_q, err_q):
+            output = []
+            while True:
+                line = stream_q.get()
+                if line is None:
+                    break
+                output.append(line)
+            if output:
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, stream_q.stream_name, '\n'.join(output))
+                if stream_q is out_q:
+                    logger.debug(m)
+                else:
+                    logger.warning(m)
+
+    for stream_q in (out_q, err_q):
+        stream_q.join()
+
+    if p.poll():
+        logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+        with open('problem desc.txt', 'a', encoding='utf8') as fp:
+            fp.write('\n'.join(err_q.output))
+        raise CommandError('"{0}" failed'.format(cmd))
+
+    return p.returncode
 
 
 def extract_description(solution_dir, description_file):
