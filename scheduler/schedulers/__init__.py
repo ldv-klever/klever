@@ -594,11 +594,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         """
         # Stop tasks
         for task_id in [task_id for task_id in self.__tasks if self.__tasks[task_id]["status"]
-                        in ["PENDING", "PROCESSING"] and 'future' in self.__tasks[task_id]]:
+                        in ["PENDING", "PROCESSING"]]:
             self.__process_future(self.cancel_task, self.__tasks[task_id], task_id)
         # stop jobs
         for job_id in [job_id for job_id in self.__jobs if self.__jobs[job_id]["status"]
-                       in ["PENDING", "PROCESSING"] and "future" in self.__jobs[job_id]]:
+                       in ["PENDING", "PROCESSING"]]:
             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
     @abc.abstractmethod
@@ -702,7 +702,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
         :param identifier: Identifier of a job or a task.
         """
         try:
-            item["status"] = handler(identifier, item["future"])
+            item["status"] = handler(identifier, item["future"] if "future" in item else None)
             logging.debug("Task {} new status is {}".format(identifier, item["status"]))
             if item["status"] not in ["FINISHED", "ERROR"]:
                 raise ValueError("Scheduler got non-finished status {} for finished task {}".

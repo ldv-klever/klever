@@ -38,7 +38,13 @@ def executor(timeout, args):
     :param args: Native scheduler client execution command arguments.
     :return: It exits with the exit code returned by a client.
     """
-    # todo: implement proper logging here, since usage of logging.debug lead to hanging of threads dont know why
+    # todo: implement proper logging here, since usage of logging lead to hanging of threads dont know why
+    ####### !!!! #######
+    # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
+    # This is because bug in logging library. After an attempt to start the client with logging in a separate
+    # process and then kill it and start it again logging will HANG and you WILL NOT able to start the client again.
+    # This is known bug in logging, so do not waste your time here until it is fixed.
+    ####### !!!! #######
 
     # Kill handler
     mypid = os.getpid()
@@ -327,14 +333,13 @@ class Scheduler(schedulers.SchedulerExchange):
         node_status = self.__manager.node_info(self.__node_name)
         if mode == 'task':
             subdir = 'tasks'
-            args.append("TASK")
             client_conf = self.__get_task_configuration()
             self.__manager.check_resources(configuration, job=False)
         else:
             subdir = 'jobs'
-            args.append("JOB")
             client_conf = self.__job_conf_prototype.copy()
             self.__manager.check_resources(configuration, job=True)
+        args.append(mode)
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -425,9 +430,9 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
-            process = self.__task_processes[identifier]
+            process = self.__task_processes[identifier] if identifier in self.__task_processes else None
         else:
-            process = self.__job_processes[identifier]
+            process = self.__job_processes[identifier] if identifier in self.__job_processes else None
         if process and process.pid:
             try:
                 os.kill(process.pid, signal.SIGTERM)
@@ -466,29 +471,32 @@ class Scheduler(schedulers.SchedulerExchange):
 
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
-            result = future.result()
-            logfile = "{}/client-log.log".format(work_dir)
-            if os.path.isfile(logfile):
-                with open(logfile, mode='r', encoding="utf8") as f:
-                    logging.debug("Scheduler client log: {}".format(f.read()))
-            else:
-                raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+            if future:
+                result = future.result()
+                logfile = "{}/client-log.log".format(work_dir)
+                if os.path.isfile(logfile):
+                    with open(logfile, mode='r', encoding="utf8") as f:
+                        logging.debug("Scheduler client log: {}".format(f.read()))
+                else:
+                    raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
-            errors_file = "{}/client-critical.log".format(work_dir)
-            if os.path.isfile(errors_file):
-                with open(errors_file, mode='r', encoding="utf8") as f:
-                    errors = f.readlines()
-            else:
-                errors = []
+                errors_file = "{}/client-critical.log".format(work_dir)
+                if os.path.isfile(errors_file):
+                    with open(errors_file, mode='r', encoding="utf8") as f:
+                        errors = f.readlines()
+                else:
+                    errors = []
 
-            if len(errors) > 0:
-                error_msg = errors[-1]
+                if len(errors) > 0:
+                    error_msg = errors[-1]
+                else:
+                    error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
+                                                                                                 result)
+                if len(errors) > 0 or result != 0:
+                    logging.warning(error_msg)
+                    raise schedulers.SchedulerException(error_msg)
             else:
-                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
-                                                                                             result)
-            if len(errors) > 0 or result != 0:
-                logging.warning(error_msg)
-                raise schedulers.SchedulerException(error_msg)
+                logging.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
             logging.warning(error_msg)

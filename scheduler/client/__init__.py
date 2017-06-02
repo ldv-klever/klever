@@ -22,11 +22,97 @@ import re
 import zipfile
 import sys
 import signal
+import traceback
 from xml.etree import ElementTree
 from xml.dom import minidom
+from server.bridge import Server
 
 
-def solve(logger, conf, job=True, server=None):
+def run_benchexec(mode, file=None, configuration=None):
+    """
+    This is the main routine of the native scheduler client that runs locally BenchExec for given job or task and upload
+    results to Bridge.
+
+    :param mode: Either "job" or "task".
+    :param file: File with the configuration. Do not set the option alongside with the configuration one.
+    :param configuration: The configuration dictionary. Do not set the option alongside with the file one.
+    :return: It always exits at the end.
+    """
+    import logging
+
+    if configuration and file:
+        raise ValueError('Provide either file or configuration string')
+    elif file:
+        with open(file, encoding="utf8") as fh:
+            conf = json.loads(fh.read())
+    else:
+        conf = configuration
+
+    # Check common configuration
+    if "common" not in conf:
+        raise KeyError("Provide configuration property 'common' as an JSON-object")
+
+    # Prepare working directory
+    if "working directory" not in conf["common"]:
+        raise KeyError("Provide configuration property 'common''working directory'")
+
+    # Go to the working directory to avoid creating files elsewhere
+    os.chdir(conf["common"]['working directory'])
+
+    # Initialize logger
+    # create logger
+    root_logger = logging.getLogger('')
+    root_logger.setLevel(logging.DEBUG)
+
+    # create console handler and set level to debug
+    ch = logging.StreamHandler(sys.stdout)
+    fh = logging.FileHandler("client-log.log", mode='w', encoding='utf8')
+    eh = logging.FileHandler("client-critical.log", mode='w', encoding='utf8')
+
+    ch.setLevel(logging.INFO)
+    fh.setLevel(logging.DEBUG)
+    eh.setLevel(logging.WARNING)
+
+    # create formatter
+    cf_formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)5s> %(message)s')
+    fh_formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(name)s %(levelname)5s> %(message)s')
+    eh_formatter = logging.Formatter('%(message)s')
+
+    # add formatter to ch
+    ch.setFormatter(cf_formatter)
+    fh.setFormatter(fh_formatter)
+    eh.setFormatter(eh_formatter)
+
+    # add ch to logger
+    root_logger.addHandler(ch)
+    root_logger.addHandler(fh)
+    root_logger.addHandler(eh)
+
+    logger = logging.getLogger('SchedulerClient')
+
+    # Try to report single short line message to error log to forward it to Bridge
+    server = None
+    exit_code = 0
+    try:
+        logger.info("Going to solve a verification {}".format(mode))
+        if mode == "task":
+            server = Server(logger, conf["Klever Bridge"], os.curdir)
+            server.register()
+        elif mode not in ('job', 'task'):
+            NotImplementedError("Provided mode {} is not supported by the client".format(mode))
+
+        exit_code = solve(logger, conf, mode, server)
+        logger.info("Exiting with exit code {}".format(exit_code))
+    except:
+        logger.warning(traceback.format_exc().rstrip())
+        exit_code = -1
+    finally:
+        if server:
+            server.stop()
+        os._exit(int(exit_code))
+
+
+def solve(logger, conf, mode='job', server=None):
     logger.debug("Create configuration file \"conf.json\"")
     with open("conf.json", "w", encoding="utf8") as fp:
         json.dump(conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -45,7 +131,7 @@ def solve(logger, conf, job=True, server=None):
     sys.path.append(bench_exec_location)
 
     # Import RunExec
-    if job:
+    if mode == 'job':
         from benchexec.runexecutor import RunExecutor
         # todo: implement support of container mode
         # todo: switch to benchexec
@@ -118,7 +204,7 @@ def solve(logger, conf, job=True, server=None):
         logger.debug("CPU cores limit will not be set")
 
     # Last preparations before run
-    if job:
+    if mode == 'job':
         # Do this for deterministic python in job
         os.environ['PYTHONHASHSEED'] = "0"
         os.environ['PYTHONIOENCODING'] = "utf8"
@@ -277,7 +363,7 @@ def set_signal_handler(executor):
     """
     def handler(a, b):
         executor.stop()
-        exit(-1)
+        os._exit(-1)
 
     # Set custom handler
     signal.signal(signal.SIGTERM, handler)
