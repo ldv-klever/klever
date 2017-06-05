@@ -18,6 +18,22 @@
     }
   },
   "Sub-jobs": [
+    {
+      "Linux kernel": {
+        "external modules": "tests/several_groups/",
+        "modules": ["separate/init.ko"]
+      },
+      "LKVOG strategy": {
+        "name": "separate modules"
+      },
+      "rule specifications": ["linux:kernel:locking:mutex"],
+      "ideal verdicts": [
+        {
+          "ideal verdict": "safe",
+          "verification object": "ext-modules/separate/init.ko"
+        }
+        ]
+    },
       {
       "Linux kernel": {
         "external modules": "tests/several_groups/",
