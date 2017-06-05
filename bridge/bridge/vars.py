@@ -87,66 +87,6 @@ JOB_WEIGHT = (
     ('1', _('Lightweight'))
 )
 
-# Default view of the table
-JOB_DEF_VIEW = {
-    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
-    # Available orders: ['date', 'status', 'name', 'author']
-    'orders': ['-date'],
-
-    # Available filters (id [types], (example value)):
-    # name [iexact, istartswith, icontains] (<any text>)
-    # change_author [is] (<id in the table>)
-    # change_date [younger, older] (weeks|days|hours|minutes: <number>)
-    # status ([status identifiers])
-    # resource:component [iexact, istartswith, icontains] (<any text>)
-    # problem:component [iexact, istartswith, icontains] (<any text>)
-    # problem:problem [iexact, istartswith, icontains] (<any text>)
-    # format [is] (<number>)
-    # finish_date [is, older, younger] (<month:year>)
-    'filters': {
-        # 'name': {
-        #     'type': 'istartswith',
-        #     'value': 'Title of the job',
-        # },
-        # 'change_author': {
-        #     'type': 'is',
-        #     'value': '1',
-        # },
-        # 'change_date': {
-        #     'type': 'younger',
-        #     'value': 'weeks:2',
-        # },
-        # 'resource_component': {
-        #     'type': 'istartswith',
-        #     'value': 'D',
-        # },
-        # 'problem_problem': {
-        #     'type': 'icontains',
-        #     'value': '1',
-        # },
-        # 'format': {
-        #     'type': 'is',
-        #     'value': '1',
-        # },
-        # 'finish_date': {
-        #     'type': 'is',
-        #     'value': '1:2016',
-        # },
-    },
-}
-
-VIEW_TYPES = (
-    ('1', 'job tree'),
-    ('2', 'job view'),
-    ('3', 'component children list'),
-    ('4', 'unsafes list'),
-    ('5', 'safes list'),
-    ('6', 'unknowns list'),
-    ('7', 'unsafe marks'),
-    ('8', 'safe marks'),
-    ('9', 'unknown marks')
-)
-
 MARK_TYPE = (
     ('0', _('Created')),
     ('1', _('Preset')),
@@ -190,181 +130,158 @@ SAFE_VERDICTS = (
     ('4', _('Without marks')),
 )
 
-VIEWJOB_DEF_VIEW = {
-    # Available data: 'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe'
-    'data': ['unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe', 'safes_attr_stat',
-             'unsafes_attr_stat', 'unknowns_attr_stat'],
-    # Available filters (id [types], (example value)):
-    # unknown_component [iexact, istartswith, icontains] (<any text>)
-    # unknown_problem [iexact, istartswith, icontains] (<any text>)
-    # resource_component [iexact, istartswith, icontains] (<any text>)
-    # safe_tag [iexact, istartswith, icontains] (<any text>)
-    # unsafe_tag [iexact, istartswith, icontains] (<any text>)
-    # unknowns_total [hide, show]
-    # unknowns_nomark [hide, show]
-    'filters': {
-        # 'unknown_component': {
-        #     'type': 'istartswith',
-        #     'value': 'D'
-        # },
-        # 'unknown_problem': {
-        #     'type': 'icontains',
-        #     'value': 'Problem'
-        # },
-        # 'resource_component': {
-        #     'type': 'icontains',
-        #     'value': 'S'
-        # },
-        # 'safe_tag': {
-        #     'type': 'iexact',
-        #     'value': 'my:safe:tag:4'
-        # },
-        # 'unsafe_tag': {
-        #     'type': 'istartswith',
-        #     'value': 'my:unsafe:'
-        # },
-        # 'unknowns_total': {
-        #     'type': 'hide'
-        # },
-        # 'unknowns_nomark': {
-        #     'type': 'hide'
-        # },
-        # 'resource_total': {
-        #     'type': 'hide'
-        # },
-        'stat_attr_name': {
-            'value': 'Rule specification'
-        }
-    }
+DEF_NUMBER_OF_ELEMENTS = 30
+
+VIEW_TYPES = (
+    ('0', 'component attributes'),
+    ('1', 'job tree'),
+    ('2', 'job view'),
+    ('3', 'component children list'),
+    ('4', 'unsafes list'),
+    ('5', 'safes list'),
+    ('6', 'unknowns list'),
+    ('7', 'unsafe marks'),
+    ('8', 'safe marks'),
+    ('9', 'unknown marks')
+)
+
+JOB_TREE_DEF_VIEW = {
+    'columns': ['name', 'role', 'author', 'date', 'status', 'unsafe:total', 'problem:total', 'safe:total'],
+    # order: [up|down, title|date|start|finish]
+    'order': ['up', 'date'],
+
+    # FILTERS:
+    # title: [iexact|istartswith|icontains, <any text>]
+    # change_author: [is|isnot, <id from User model>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
+    # status: <list of identifiers from JOB_STATUS>
+    # resource_component: [iexact|istartswith|icontains, <any text>]
+    # problem_component: [iexact|istartswith|icontains, <any text>]
+    # problem_problem: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # priority: [le|e|me, <identifier from PRIORITY>]
+    # finish_date: [is|older|younger, <month number>, <year>]
+
+    # EXAMPLES:
+    # 'title': ['istartswith', 'Title of the job'],
+    # 'change_author': ['is', '1'],
+    # 'change_date': ['younger', '2', 'weeks'],
+    # 'status': ['2', '5', '1'],
+    # 'resource_component': ['istartswith', 'D'],
+    # 'problem_component': ['iexact', 'BLAST'],
+    # 'problem_problem': ['icontains', '1'],
+    # 'format': ['is', '1'],
+    # 'priority': ['me', 'LOW'],
+    # 'finish_date': ['is', '1', '2016'],
 }
 
-REPORT_ATTRS_DEF_VIEW = {
-    # Available filters (id [types], (example attr), (example value)):
-    # component [iexact, istartswith, icontains] (<any text>)
-    # attr [iexact, istartswith] (<attribute name separated by ':'>) (<any text>)
-    # Available oreders:
-    # (<attribute name>|component|date, down|up) - tuple
-    'filters': {
-        # 'component': {
-        #     'type': 'istartswith',
-        #     'value': 'v',
-        # },
-        # 'attr': {
-        #     'attr': 'LKVOG strategy:Name',
-        #     'type': 'istartswith',
-        #     'value': 'Separate'
-        # }
-    },
-    'order': ('component', 'down')
+VIEWJOB_DEF_VIEW = {
+    'data': [
+        'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
+        'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
+    ],
+    # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total'],
+    'attr_stat': ['Rule specification']
+
+    # FILTERS:
+    # unknown_component: [iexact|istartswith|icontains, <any text>]
+    # unknown_problem: [iexact|istartswith|icontains, <any text>]
+    # resource_component: [iexact|istartswith|icontains, <any text>]
+    # safe_tag: [iexact|istartswith|icontains, <any text>]
+    # unsafe_tag: [iexact|istartswith|icontains, <any text>]
+    # attr_stat_filter: [iexact|istartswith|icontains, <any text>]
+}
+
+REPORT_CHILDREN_DEF_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
+    # order: [attr|component|date, down|up, <attribute name in case of attr or any>]
+    'order': ['component', 'down', ''],
+
+    # FILTERS:
+    # component: [<iexact|istartswith|icontains>, <any string>]
+    # attr: [<attribute name separated by ':'>, <iexact|istartswith>, <any string>]
+
+    # EXAMPLES:
+    # 'component': ['istartswith', 'v'],
+    # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 UNSAFE_LIST_DEF_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
-    'order': ('default', 'down'),
-    'filters': {
-        # 'attr': {
-        #     'attr': 'LKVOG strategy:Name',
-        #     'type': 'istartswith',
-        #     'value': 'Separate'
-        # }
-    }
+    # 'order': ['down', 'Rule specification'],
+    # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 SAFE_LIST_DEF_VIEW = {
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
-    'order': ('default', 'down'),
-    'filters': {
-        # 'attr': {
-        #     'attr': 'LKVOG strategy:Name',
-        #     'type': 'istartswith',
-        #     'value': 'Separate'
-        # }
-    }
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
+    # 'order': ['down', 'Rule specification'],
+    # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 UNKNOWN_LIST_DEF_VIEW = {
-    'order': ('component', 'down'),
-    'filters': {
-        # 'component': {
-        #     'type': 'istartswith',
-        #     'value': 'v',
-        # },
-        # 'attr': {
-        #     'attr': 'LKVOG strategy:Name',
-        #     'type': 'istartswith',
-        #     'value': 'Separate'
-        # }
-    }
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
+    # 'order': ['up', 'Rule specification'],
+    # 'component': ['istartswith', 'v'],
+    # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
-# Available filters (id [types], (example value)):
-# verdict [is, isnot] (<verdict id>)
-# status [is, isnot] (<status id>)
-# author [is] (<author id>)
 MARKS_SAFE_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # 'order': 'num_of_links',
-    'filters': {
-        # 'verdict': {
-        #     'type': 'is',
-        #     'value': '0',
-        # },
-        # 'status': {
-        #     'type': 'is',
-        #     'value': '1'
-        # },
-        # 'author': {
-        #     'type': 'is',
-        #     'value': 0
-        # }
-    }
+    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # 'order': ['attr', 'Rule specification']
+
+    # FILTERS:
+    # status: [is|isnot, <id from MARK_STATUS>]
+    # verdict: [is|isnot, <id from UNSAFE_VERDICTS>]
+    # author: [<author id>]
+    # source: [is|isnot, <id from MARK_TYPE>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+
+    # EXAMPLES:
+    # 'status': ['is', '0'],
+    # 'verdict': ['is', '0'],
+    # 'author': [1]
+    # 'source': ['is', '2'],
+    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
 }
 
-# Available filters (id [types], (example value)):
-# verdict [is, isnot] (<verdict id>)
-# status [is, isnot] (<status id>)
-# author [is] (<author id>)
 MARKS_UNSAFE_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # 'order': 'num_of_links',
-    'filters': {
-        # 'verdict': {
-        #     'type': 'is',
-        #     'value': '2',
-        # },
-        # 'status': {
-        #     'type': 'is',
-        #     'value': '1',
-        # },
-        # 'author': {
-        #     'type': 'is',
-        #     'value': 1,
-        # },
-        # 'attr': {
-        #     'attr': 'Entry point',
-        #     'type': 'istartswith',
-        #     'value': 'ldv_entry_POINT_1'
-        # }
-    }
+    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # 'order': ['attr', 'Rule specification']
+
+    # FILTERS:
+    # status: [is|isnot, <id from MARK_STATUS>]
+    # verdict: [is|isnot, <id from UNSAFE_VERDICTS>]
+    # author: [<author id>]
+    # source: [is|isnot, <id from MARK_TYPE>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+
+    # EXAMPLES:
+    # 'status': ['is', '0'],
+    # 'verdict': ['is', '0'],
+    # 'author': [1]
+    # 'source': ['is', '2'],
+    # 'attr': ['Rule specification', 'iexact', 'linux:mutex'],
 }
 
-# Available filters (id [types], (example value)):
-# status [is, isnot] (<status id>)
-# author [is] (<author id>)
 MARKS_UNKNOWN_VIEW = {
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
-    # 'order': 'num_of_links',
-    'filters': {
-        # 'status': {
-        #     'type': 'is',
-        #     'value': '0',
-        # },
-        # 'author': {
-        #     'type': 'is',
-        #     'value': 1,
-        # },
+    # 'order': ['num_of_links'],
 
-    }
+    # FILTERS:
+    # status: [is|isnot, <id from MARK_STATUS>]
+    # component: [is|startswith, <any text>]
+    # author: [<author id>]
+    # source: [is|isnot, <id from MARK_TYPE>]
+
+    # EXAMPLES:
+    # 'status': ['is', '0'],
+    # 'component': ['startswith', '0'],
+    # 'author': [1]
+    # 'source': ['is', '2'],
 }
 
 SCHEDULER_STATUS = (

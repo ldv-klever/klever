@@ -153,8 +153,17 @@
         </div>
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
-            {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
+            {% include 'reports/ChildrenComponentsFilters.html' with view_type=TableData.view_type view=TableData.view view_id=TableData.view_id views=TableData.views %}
             {% if TableData.table_data.values|length %}
+                <div>
+                    {% if TableData.table_data.values.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+                    {% endif %}
+                    <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if TableData.table_data.values.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+                    {% endif %}
+                </div>
                 <div style="overflow: auto;max-height: 40vh;">
                     <table class="ui celled compact teal table">
                         <thead>
@@ -184,7 +193,7 @@
         </div>
         <div class="ui orange segment">
             <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
-            {% include 'jobs/viewJobFilters.html' %}
+            {% include 'jobs/viewJobFilters.html' with view_type=reportdata.view_type %}
             <br>
             {% include 'jobs/jobData.html' %}
         </div>

@@ -19,12 +19,13 @@ import json
 
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS,\
-    MARK_SAFE, MARK_UNSAFE, MARK_STATUS
+    MARK_SAFE, MARK_UNSAFE, MARK_STATUS, DEF_NUMBER_OF_ELEMENTS
 from bridge.utils import unique_id
 
 from users.models import View
@@ -429,23 +430,25 @@ class ReportMarkTable:
 
 
 class MarksList:
-    def __init__(self, user, marks_type, view=None, view_id=None):
+    def __init__(self, user, marks_type, view=None, view_id=None, page=1):
         self.user = user
         self.type = marks_type
         if self.type not in {'unsafe', 'safe', 'unknown'}:
             return
+        self.authors = []
+
         view_types = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
         self.view_type = view_types[self.type]
-
-        self.authors = []
         self.view, self.view_id = self.__get_view(view, view_id)
         self.views = self.__views()
+
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
         if self.type != 'unknown':
             self.attr_values = self.__get_attrs()
+
         self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
+        self.values = self.__get_page(page, self.__get_values())
 
     def __views(self):
         return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
@@ -488,30 +491,28 @@ class MarksList:
     def __get_marks(self):
         filters = {}
         unfilter = {'version': 0}
-        if 'filters' in self.view:
-            if 'status' in self.view['filters']:
-                if self.view['filters']['status']['type'] == 'is':
-                    filters['status'] = self.view['filters']['status']['value']
-                else:
-                    unfilter['status'] = self.view['filters']['status']['value']
-            if self.type != 'unknown' and 'verdict' in self.view['filters']:
-                if self.view['filters']['verdict']['type'] == 'is':
-                    filters['verdict'] = self.view['filters']['verdict']['value']
-                else:
-                    unfilter['verdict'] = self.view['filters']['verdict']['value']
-            if 'component' in self.view['filters']:
-                if self.view['filters']['component']['type'] == 'is':
-                    filters['component__name'] = self.view['filters']['component']['value']
-                elif self.view['filters']['component']['type'] == 'startswith':
-                    filters['component__name__istartswith'] = self.view['filters']['component']['value']
-            if 'author' in self.view['filters']:
-                filters['author_id'] = self.view['filters']['author']['value']
-            if 'source' in self.view['filters']:
-                if self.view['filters']['source']['type'] == 'is':
-                    filters['type'] = self.view['filters']['source']['value']
-                else:
-                    unfilter['type'] = self.view['filters']['source']['value']
-
+        if 'status' in self.view:
+            if self.view['status'][0] == 'is':
+                filters['status'] = self.view['status'][1]
+            else:
+                unfilter['status'] = self.view['status'][1]
+        if 'verdict' in self.view:
+            if self.view['verdict'][0] == 'is':
+                filters['verdict'] = self.view['verdict'][1]
+            else:
+                unfilter['verdict'] = self.view['verdict'][1]
+        if 'component' in self.view:
+            if self.view['component'][0] == 'is':
+                filters['component__name'] = self.view['component'][1]
+            elif self.view['component'][0] == 'startswith':
+                filters['component__name__istartswith'] = self.view['component'][1]
+        if 'author' in self.view:
+            filters['author_id'] = self.view['author'][0]
+        if 'source' in self.view:
+            if self.view['source'][0] == 'is':
+                filters['type'] = self.view['source'][1]
+            else:
+                unfilter['type'] = self.view['source'][1]
         table_filters = Q(**filters)
         for uf in unfilter:
             table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
@@ -573,16 +574,16 @@ class MarksList:
                 href = None
                 if self.type != 'unknown' and col in self.attr_values[mark]:
                     val = self.attr_values[mark][col]
-                    if 'order' in self.view and self.view['order'] == col:
+                    if self.__get_order() == col:
                         order_by_value = val
-                    if 'filters' in self.view and not self.__filter_attr(col, val):
+                    if not self.__filter_attr(col, val):
                         break
                 elif col == 'mark_num':
                     val = cnt
                     href = reverse('marks:view_mark', args=[self.type, mark.id])
                 elif col == 'num_of_links':
                     val = mark.markreport_set.count()
-                    if 'order' in self.view and self.view['order'] == 'num_of_links':
+                    if self.__get_order() == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
                         broken = mark.markreport_set.exclude(error=None).count()
@@ -627,10 +628,10 @@ class MarksList:
                 values.append((order_by_value, values_str))
 
         ordered_values = []
-        if 'order' in self.view and self.view['order'] == 'num_of_links':
+        if self.__get_order() == 'num_of_links':
             for ord_by, val_str in reversed(sorted(values, key=lambda x: x[0])):
                 ordered_values.append(val_str)
-        elif 'order' in self.view:
+        elif isinstance(self.__get_order(), str):
             for ord_by, val_str in sorted(values, key=lambda x: x[0]):
                 ordered_values.append(val_str)
         else:
@@ -638,14 +639,35 @@ class MarksList:
         return ordered_values
 
     def __filter_attr(self, attribute, value):
-        if 'attr' in self.view['filters'] and self.view['filters']['attr']['attr'] == attribute:
-            fvalue = self.view['filters']['attr']['value']
-            ftype = self.view['filters']['attr']['type']
+        if 'attr' in self.view and self.view['attr'][0] == attribute:
+            ftype = self.view['attr'][1]
+            fvalue = self.view['attr'][2]
             if ftype == 'iexact' and fvalue.lower() != value.lower():
                 return False
             elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
                 return False
         return True
+
+    def __get_order(self):
+        if 'order' in self.view and len(self.view['order']) == 2:
+            if self.view['order'][0] == 'attr' and len(self.view['order'][1]) > 0:
+                return self.view['order'][1]
+            elif self.view['order'][0] == 'num_of_links':
+                return 'num_of_links'
+        return None
+
+    def __get_page(self, page, values):
+        num_per_page = DEF_NUMBER_OF_ELEMENTS
+        if 'elements' in self.view:
+            num_per_page = int(self.view['elements'][0])
+        self.paginator = Paginator(values, num_per_page)
+        try:
+            values = self.paginator.page(page)
+        except PageNotAnInteger:
+            values = self.paginator.page(1)
+        except EmptyPage:
+            values = self.paginator.page(self.paginator.num_pages)
+        return values
 
 
 class MarkData(object):

@@ -21,7 +21,8 @@ from django.db.models import Q, F
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from bridge.vars import JOB_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT
+from bridge.vars import JOB_TREE_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS,\
+    VIEW_TYPES
 from users.models import View
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
@@ -88,29 +89,30 @@ def get_view(user, view=None, view_id=None):
     if view is not None:
         return json.loads(view), None
     if view_id is None:
-        pref_view = user.preferableview_set.filter(view__type='1').select_related('view').first()
+        pref_view = user.preferableview_set.filter(view__type=VIEW_TYPES[1][0]).select_related('view').first()
         if pref_view:
             return json.loads(pref_view.view.view), pref_view.view_id
     elif view_id == 'default':
-        return JOB_DEF_VIEW, 'default'
+        return JOB_TREE_DEF_VIEW, 'default'
     else:
-        user_view = View.objects.filter(Q(id=view_id, type='1') & (Q(shared=True) | Q(author=user))).first()
+        user_view = View.objects.filter(
+            Q(id=view_id, type=VIEW_TYPES[1][0]) & (Q(shared=True) | Q(author=user))
+        ).first()
         if user_view:
             return json.loads(user_view.view), user_view.pk
-    return JOB_DEF_VIEW, 'default'
+    return JOB_TREE_DEF_VIEW, 'default'
 
 
 class FilterForm:
     def __init__(self, user, view=None, view_id=None):
         self.user = user
+
+        self.view_type = VIEW_TYPES[1][0]
         (self.view, self.view_id) = get_view(user, view, view_id)
         self.user_views = self.__user_views()
+
         self.selected_columns = self.__selected()
         self.available_columns = self.__available()
-        self.selected_orders = self.__selected_orders()
-        self.available_orders = self.__available_orders()
-        self.available_filters = []
-        self.selected_filters = self.__view_filters()
 
     def __column_title(self, column):
         self.__is_not_used()
@@ -131,81 +133,17 @@ class FilterForm:
         all_columns = all_user_columns()
         for col in self.view['columns']:
             if col in all_columns:
-                columns.append({
-                    'value': col,
-                    'title': self.__column_title(col)
-                })
+                columns.append({'value': col, 'title': self.__column_title(col)})
         return columns
 
     def __available(self):
         columns = []
         for col in all_user_columns():
-            columns.append({
-                'value': col,
-                'title': self.__column_title(col)
-            })
+            columns.append({'value': col, 'title': self.__column_title(col)})
         return columns
 
-    def __available_orders(self):
-        available_orders = []
-        user_orders = self.view['orders']
-        for o in [x[1] for x in ORDERS]:
-            if not(o in user_orders or ('-%s' % o) in user_orders):
-                available_orders.append({
-                    'value': o,
-                    'title': ORDER_TITLES[o]
-                })
-        return available_orders
-
-    def __selected_orders(self):
-        new_orders = []
-        user_orders = self.view['orders']
-        for o in user_orders:
-            if o in [x[1] for x in ORDERS]:
-                new_orders.append({
-                    'value': o,
-                    'title': ORDER_TITLES[o],
-                    'up': 0
-                })
-            elif o.startswith('-') and o[1:] in [x[1] for x in ORDERS]:
-                new_orders.append({
-                    'value': o[1:],
-                    'title': ORDER_TITLES[o[1:]],
-                    'up': 1
-                })
-        return new_orders
-
     def __user_views(self):
-        return View.objects.filter(Q(type='1') & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __view_filters(self):
-        view_filters = []
-        selected_filters = []
-        for f_name in self.view['filters']:
-            if f_name in ALL_FILTERS:
-                f = self.view['filters'][f_name]
-                if f_name == 'change_date':
-                    date_vals = f['value'].split(':', 1)
-                    f_val = {'valtype': date_vals[0], 'valval': date_vals[1]}
-                elif f_name == 'finish_date':
-                    date_vals = f['value'].split(':', 1)
-                    f_val = {'val_0': int(date_vals[0]), 'val_1': int(date_vals[1])}
-                else:
-                    f_val = f['value']
-                selected_filters.append(f_name)
-                view_filters.append({
-                    'name': f_name,
-                    'name_title': FILTER_TITLES[f_name],
-                    'type': f['type'],
-                    'value': f_val,
-                })
-        for f_name in ALL_FILTERS:
-            if f_name not in selected_filters:
-                self.available_filters.append({
-                    'name': f_name,
-                    'name_title': FILTER_TITLES[f_name],
-                })
-        return view_filters
+        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __is_not_used(self):
         pass
@@ -334,21 +272,30 @@ class TableTree:
         return footer
 
     def __collect_jobdata(self):
-        orders = []
         rowdata = []
 
-        for order in self._view['orders']:
-            for o in ORDERS:
-                if o[1] == order:
-                    orders.append(o[0])
-                elif order.startswith('-') and o[1] == order[1:]:
-                    orders.append('-%s' % o[0])
+        jobs_order = 'id'
+        if 'order' in self._view:
+            if self._view['order'][1] == 'title':
+                jobs_order = 'name'
+            elif self._view['order'][1] == 'date':
+                jobs_order = 'change_date'
+            elif self._view['order'][1] == 'start':
+                jobs_order = 'solvingprogress__start_date'
+            elif self._view['order'][1] == 'finish':
+                jobs_order = 'solvingprogress__finish_date'
+            if self._view['order'][0] == 'up':
+                jobs_order = '-' + jobs_order
 
         tree_struct = {}
         for job in Job.objects.all().only('id', 'parent_id', 'name'):
             tree_struct[job.id] = (job.parent_id, job.name, job.identifier)
 
-        for job in Job.objects.filter(**self.__view_filters()).order_by(*orders):
+        filters, unfilters = self.__view_filters()
+        filters = Q(**filters)
+        for unf_v in unfilters:
+            filters &= ~Q(**{unf_v: unfilters[unf_v]})
+        for job in Job.objects.filter(filters).order_by(jobs_order):
             if JobAccess(self._user, job).can_view():
                 if job.weight == JOB_WEIGHT[1][0]:
                     self._light_jobs.append(job.id)
@@ -403,91 +350,75 @@ class TableTree:
 
     def __head_filters(self):
         head_filters = {}
-        allowed_types = ['iexact', 'istartswith', 'icontains']
-        for f in self._view['filters']:
-            f_data = self._view['filters'][f]
-            if f_data['type'] not in allowed_types:
-                continue
-            if f == 'resource_component':
-                head_filters['resource_component'] = {'component__name__' + f_data['type']: f_data['value']}
-            elif f == 'problem_component':
-                head_filters['problem_component'] = {'component__name__' + f_data['type']: f_data['value']}
-            elif f == 'problem_problem':
-                head_filters['problem_problem'] = {'problem__name__' + f_data['type']: f_data['value']}
+        if 'resource_component' in self._view:
+            head_filters['resource_component'] = {
+                'component__name__' + self._view['resource_component'][0]: self._view['resource_component'][1]
+            }
+        elif 'problem_component' in self._view:
+            head_filters['problem_component'] = {
+                'component__name__' + self._view['problem_component'][0]: self._view['problem_component'][1]
+            }
+        elif 'problem_problem' in self._view:
+            head_filters['problem_problem'] = {
+                'problem__name__' + self._view['problem_problem'][0]: self._view['problem_problem'][1]
+            }
         return head_filters
 
     def __view_filters(self):
+        filters = {}
+        unfilters = {}
 
-        def name_filter(fdata):
-            if fdata['type'] in {'iexact', 'istartswith', 'icontains'}:
-                return {'name__' + fdata['type']: fdata['value']}
-            return {}
+        if 'title' in self._view:
+            filters['name__' + self._view['title'][0]] = self._view['title'][1]
 
-        def author_filter(fdata):
-            if fdata['type'] == 'is':
-                try:
-                    return {'change_author__pk': int(fdata['value'])}
-                except ValueError:
-                    return {}
-            return {}
+        if 'change_author' in self._view:
+            if self._view['change_author'][0] == 'is':
+                filters['change_author__id'] = int(self._view['change_author'][1])
+            else:
+                unfilters['change_author__id'] = int(self._view['change_author'][1])
 
-        def date_filter(fdata):
-            (measure, value) = fdata['value'].split(':', 1)
-            try:
-                value = int(value)
-            except ValueError:
-                return {}
-            if measure in {'minutes', 'hours', 'days', 'weeks'}:
-                limit_time = now() - timedelta(**{measure: value})
-                if fdata['type'] == 'older':
-                    return {'change_date__lt': limit_time}
-                elif fdata['type'] == 'younger':
-                    return {'change_date__gt': limit_time}
-            return {}
+        if 'change_date' in self._view:
+            filters['name__' + self._view['title'][0]] = self._view['title'][1]
+            limit_time = now() - timedelta(**{self._view['change_date'][2]: int(self._view['change_date'][1])})
+            if self._view['change_date'][0] == 'older':
+                filters['change_date__lt'] = limit_time
+            elif self._view['change_date'][0] == 'younger':
+                filters['change_date__gt'] = limit_time
 
-        def priority_filter(fdata):
-            if fdata['type'] == 'e':
-                return {'solvingprogress__priority': fdata['value']}
-            elif fdata['type'] == 'me':
+        if 'status' in self._view:
+            filters['status__in'] = self._view['status']
+
+        if 'format' in self._view:
+            if self._view['format'][0] == 'is':
+                filters['format'] = int(self._view['format'][1])
+            elif self._view['format'][0] == 'isnot':
+                unfilters['format'] = int(self._view['format'][1])
+
+        if 'priority' in self._view:
+            if self._view['priority'][0] == 'e':
+                filters['solvingprogress__priority'] = self._view['priority'][1]
+            elif self._view['priority'][0] == 'me':
                 priorities = []
                 for pr in PRIORITY:
                     priorities.append(pr[0])
-                    if pr[0] == fdata['value']:
-                        return {'solvingprogress__priority__in': priorities}
-            elif fdata['type'] == 'le':
+                    if pr[0] == self._view['priority'][1]:
+                        filters['solvingprogress__priority__in'] = priorities
+                        break
+            elif self._view['priority'][0] == 'le':
                 priorities = []
                 for pr in reversed(PRIORITY):
                     priorities.append(pr[0])
-                    if pr[0] == fdata['value']:
-                        return {'solvingprogress__priority__in': priorities}
-            return {}
+                    if pr[0] == self._view['priority'][1]:
+                        filters['solvingprogress__priority__in'] = priorities
+                        break
 
-        def finish_date_filter(fdata):
-            (month, year) = fdata['value'].split(':', 1)
-            try:
-                (month, year) = (int(month), int(year))
-            except ValueError:
-                return {}
-            return {
-                'solvingprogress__finish_date__month__' + fdata['type']: month,
-                'solvingprogress__finish_date__year__' + fdata['type']: year
-            }
+        if 'finish_date' in self._view:
+            filters['solvingprogress__finish_date__month__' + self._view['finish_date'][0]] = \
+                int(self._view['finish_date'][1])
+            filters['solvingprogress__finish_date__year__' + self._view['finish_date'][0]] = \
+                int(self._view['finish_date'][2])
 
-        action = {
-            'name': name_filter,
-            'change_author': author_filter,
-            'change_date': date_filter,
-            'status': lambda fdata: {'status__in': fdata['value']},
-            'format': lambda fdata: {'format': fdata['value']} if fdata['type'] == 'is' else {},
-            'priority': priority_filter,
-            'finish_date': finish_date_filter
-        }
-
-        filters = {}
-        for f in self._view['filters']:
-            if f in action:
-                filters.update(action[f](self._view['filters'][f]))
-        return filters
+        return filters, unfilters
 
     def __table_columns(self):
         extend_action = {
@@ -786,63 +717,32 @@ class TableTree:
     def __collect_verdicts(self):
         for verdict in Verdict.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
+            safes_url = reverse('reports:safes', args=[verdict.report_id])
+            unsafes_url = reverse('reports:unsafes', args=[verdict.report_id])
             self._values_data[verdict.job_id].update({
-                'unsafe:total': (
-                    verdict.unsafe,
-                    reverse('reports:list', args=[verdict.report_id, 'unsafes'])
-                ),
-                'unsafe:bug': (
-                    verdict.unsafe_bug,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '1'])
-                ),
+                'unsafe:total': (verdict.unsafe, unsafes_url),
+                'unsafe:unknown': (verdict.unsafe_unknown, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[0][0])),
+                'unsafe:bug': (verdict.unsafe_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[1][0])),
                 'unsafe:target_bug': (
-                    verdict.unsafe_target_bug,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '2'])
+                    verdict.unsafe_target_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[2][0])
                 ),
                 'unsafe:false_positive': (
-                    verdict.unsafe_false_positive,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '3'])
+                    verdict.unsafe_false_positive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[3][0])
                 ),
-                'unsafe:unknown': (
-                    verdict.unsafe_unknown,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '0'])
-                ),
+
                 'unsafe:unassociated': (
-                    verdict.unsafe_unassociated,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '5'])
+                    verdict.unsafe_unassociated, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[5][0])
                 ),
                 'unsafe:inconclusive': (
-                    verdict.unsafe_inconclusive,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'unsafes', '4'])
+                    verdict.unsafe_inconclusive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[4][0])
                 ),
-                'safe:total': (
-                    verdict.safe,
-                    reverse('reports:list', args=[verdict.report_id, 'safes'])
-                ),
-                'safe:missed_bug': (
-                    verdict.safe_missed_bug,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'safes', '2'])
-                ),
-                'safe:unknown': (
-                    verdict.safe_unknown,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'safes', '0'])
-                ),
-                'safe:inconclusive': (
-                    verdict.safe_inconclusive,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'safes', '3'])
-                ),
-                'safe:unassociated': (
-                    verdict.safe_unassociated,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'safes', '4'])
-                ),
-                'safe:incorrect': (
-                    verdict.safe_incorrect_proof,
-                    reverse('reports:list_verdict', args=[verdict.report_id, 'safes', '1'])
-                ),
-                'problem:total': (
-                    verdict.unknown,
-                    reverse('reports:list', args=[verdict.report_id, 'unknowns'])
-                )
+                'safe:total': (verdict.safe, safes_url),
+                'safe:unknown': (verdict.safe_unknown, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[0][0])),
+                'safe:incorrect': (verdict.safe_incorrect_proof, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[1][0])),
+                'safe:missed_bug': (verdict.safe_missed_bug, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[2][0])),
+                'safe:inconclusive': (verdict.safe_inconclusive, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[3][0])),
+                'safe:unassociated': (verdict.safe_unassociated, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[4][0])),
+                'problem:total': (verdict.unknown, reverse('reports:unknowns', args=[verdict.report_id]))
             })
 
     def __collect_roles(self):
@@ -878,14 +778,14 @@ class TableTree:
         for st in ReportSafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             self._values_data[st.job_id]['tag:safe:tag_' + str(st.tag_id)] = (
-                st.number, reverse('reports:list_tag', args=[st.report_id, 'safes', st.tag_id])
+                st.number, '%s?tag=%s' % (reverse('reports:safes', args=[st.report_id]), st.tag_id)
             )
 
     def __collect_unsafe_tags(self):
         for ut in ReportUnsafeTag.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             self._values_data[ut.job_id]['tag:unsafe:tag_' + str(ut.tag_id)] = (
-                ut.number, reverse('reports:list_tag', args=[ut.report_id, 'unsafes', ut.tag_id])
+                ut.number, '%s?tag=%s' % (reverse('reports:unsafes', args=[ut.report_id]), ut.tag_id)
             )
 
     def __collect_resourses(self):
@@ -914,21 +814,20 @@ class TableTree:
                 .annotate(job_id=F('report__root__job_id')):
             if cmup.problem_id is None:
                 self._values_data[cmup.job_id]['problem:pr_component_' + str(cmup.component_id) + ':z_no_mark'] = (
-                    cmup.number,
-                    reverse('reports:unknowns_problem', args=[cmup.report_id, cmup.component_id, 0])
+                    cmup.number, '%s?component=%s&problem=%s' % (
+                        reverse('reports:unknowns', args=[cmup.report_id]), cmup.component_id, 0
+                    )
                 )
             else:
                 self._values_data[cmup.job_id][
                     'problem:pr_component_%s:problem_%s' % (cmup.component_id, cmup.problem_id)
-                ] = (
-                    cmup.number, reverse(
-                        'reports:unknowns_problem', args=[cmup.report_id, cmup.component_id, cmup.problem_id]
-                    )
-                )
+                ] = (cmup.number, '%s?component=%s&problem=%s' % (
+                    reverse('reports:unknowns', args=[cmup.report_id]), cmup.component_id, cmup.problem_id
+                ))
         for cu in ComponentUnknown.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
                 .annotate(job_id=F('report__root__job_id')):
             self._values_data[cu.job_id]['problem:pr_component_' + str(cu.component_id) + ':z_total'] = (
-                cu.number, reverse('reports:unknowns', args=[cu.report_id, cu.component_id])
+                cu.number, '%s?component=%s' % (reverse('reports:unknowns', args=[cu.report_id]), cu.component_id)
             )
 
     def __is_not_used(self):

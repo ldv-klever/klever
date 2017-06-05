@@ -330,25 +330,19 @@ def get_mark_version_data(request):
 @unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
-    titles = {
-        'unsafe': _('Unsafe marks'),
-        'safe': _('Safe marks'),
-        'unknown': _('Unknown marks'),
-    }
-    verdicts = {
-        'unsafe': MARK_UNSAFE,
-        'safe': MARK_SAFE,
-        'unknown': []
-    }
-    view_type = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
-    table_args = [request.user, marks_type]
-    if request.method == 'POST':
-        if request.POST.get('view_type', None) == view_type[marks_type]:
-            table_args.append(request.POST.get('view', None))
-            table_args.append(request.POST.get('view_id', None))
+
+    titles = {'unsafe': _('Unsafe marks'), 'safe': _('Safe marks'), 'unknown': _('Unknown marks')}
+    verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
+
+    view_type_map = {'7': 'unsafe', '8': 'safe', '9': 'unknown'}
+    view_add_args = {'page': request.GET.get('page', 1)}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == marks_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
 
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(*table_args),
+        'tabledata': MarksList(request.user, marks_type, **view_add_args),
         'type': marks_type,
         'title': titles[marks_type],
         'statuses': MARK_STATUS,

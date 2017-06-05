@@ -182,7 +182,7 @@
                     </div>
                 {% endif %}
                 <br>
-                {% include 'jobs/viewJobFilters.html' %}
+                {% include 'jobs/viewJobFilters.html' with view_type=reportdata.view_type %}
                 <br>
                 <div id="job_data_div">
                     {% if reportdata %}

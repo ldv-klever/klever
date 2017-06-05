@@ -21,7 +21,7 @@ from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
 from users.models import View
@@ -39,18 +39,21 @@ COLORS = {
 
 class ViewJobData:
     def __init__(self, user, report, view=None, view_id=None):
-        self.report = report
         self.user = user
+        self.report = report
+
+        self.view_type = VIEW_TYPES[2][0]
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
-        if self.report is None:
-            return
-        self.unknowns_total = None
+
         self.safes_total = None
         self.unsafes_total = None
-        self.view_data = {}
+        self.unknowns_total = None
+        self.data = {}
         self.problems = []
-        self.attr_names = []
+
+        if self.report is None:
+            return
         try:
             self.__get_view_data()
         except ObjectDoesNotExist:
@@ -62,19 +65,20 @@ class ViewJobData:
         if view is not None:
             return json.loads(view), None
         if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type='2')
+            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
             if len(pref_view):
                 return json.loads(pref_view[0].view.view), pref_view[0].view_id
         elif view_id == 'default':
             return VIEWJOB_DEF_VIEW, 'default'
         else:
-            user_view = View.objects.filter(Q(id=view_id, type='2') & (Q(shared=True) | Q(author=self.user))).first()
+            user_view = View.objects.filter(
+                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))).first()
             if user_view:
                 return json.loads(user_view.view), user_view.pk
         return VIEWJOB_DEF_VIEW, 'default'
 
     def __views(self):
-        return View.objects.filter(Q(type='2') & (Q(author=self.user) | Q(shared=True))).order_by('name')
+        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_view_data(self):
         if 'data' not in self.view:
@@ -92,14 +96,12 @@ class ViewJobData:
         }
         for d in self.view['data']:
             if d in actions:
-                self.view_data[d] = actions[d]()
+                self.data[d] = actions[d]()
 
     def __safe_tags_info(self):
         safe_tag_filter = {}
-        if 'safe_tag' in self.view['filters']:
-            ft = 'tag__tag__' + self.view['filters']['safe_tag']['type']
-            fv = self.view['filters']['safe_tag']['value']
-            safe_tag_filter = {ft: fv}
+        if 'safe_tag' in self.view:
+            safe_tag_filter['tag__tag__%s' % self.view['safe_tag'][0]] = self.view['safe_tag'][1]
 
         tree_data = []
         for st in self.report.safe_tags.filter(**safe_tag_filter).order_by('tag__tag').select_related('tag'):
@@ -108,7 +110,7 @@ class ViewJobData:
                 'parent': st.tag.parent_id,
                 'name': st.tag.tag,
                 'number': st.number,
-                'href': reverse('reports:list_tag', args=[self.report.pk, 'safes', st.tag_id]),
+                'href': '%s?tag=%s' % (reverse('reports:safes', args=[st.report_id]), st.tag_id),
                 'description': st.tag.description
             })
 
@@ -126,10 +128,8 @@ class ViewJobData:
 
     def __unsafe_tags_info(self):
         unsafe_tag_filter = {}
-        if 'unsafe_tag' in self.view['filters']:
-            ft = 'tag__tag__' + self.view['filters']['unsafe_tag']['type']
-            fv = self.view['filters']['unsafe_tag']['value']
-            unsafe_tag_filter = {ft: fv}
+        if 'unsafe_tag' in self.view:
+            unsafe_tag_filter['tag__tag__%s' % self.view['unsafe_tag'][0]] = self.view['unsafe_tag'][1]
 
         tree_data = []
         for ut in self.report.unsafe_tags.filter(**unsafe_tag_filter).order_by('tag__tag').select_related('tag'):
@@ -138,7 +138,7 @@ class ViewJobData:
                 'parent': ut.tag.parent_id,
                 'name': ut.tag.tag,
                 'number': ut.number,
-                'href': reverse('reports:list_tag', args=[self.report.pk, 'unsafes', ut.tag_id]),
+                'href': '%s?tag=%s' % (reverse('reports:unsafes', args=[ut.report_id]), ut.tag_id),
                 'description': ut.tag.description
             })
 
@@ -161,10 +161,9 @@ class ViewJobData:
         if self.report.parent is None and self.report.root.job.weight == JOB_WEIGHT[1][0]:
             resource_table = self.report.root.lightresource_set
 
-        if 'resource_component' in self.view['filters']:
-            ft = 'component__name__' + self.view['filters']['resource_component']['type']
-            fv = self.view['filters']['resource_component']['value']
-            resource_filters = {ft: fv}
+        if 'resource_component' in self.view:
+            resource_filters['component__name__%s' % self.view['resource_component'][0]] = \
+                self.view['resource_component'][1]
 
         for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)).select_related('component'):
             if cr.component.name not in res_data:
@@ -174,7 +173,7 @@ class ViewJobData:
 
         resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
 
-        if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
+        if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
                 res_total = resource_table.filter(component=None, report=self.report.root).first()
             else:
@@ -188,16 +187,13 @@ class ViewJobData:
 
         unknowns_filters = {}
         components_filters = {}
-        if 'unknown_component' in self.view['filters']:
-            ft = 'component__name__' + self.view['filters']['unknown_component']['type']
-            fv = self.view['filters']['unknown_component']['value']
-            components_filters[ft] = fv
+        if 'unknown_component' in self.view:
+            components_filters['component__name__' + self.view['unknown_component'][0]] = \
+                self.view['unknown_component'][1]
             unknowns_filters.update(components_filters)
 
-        if 'unknown_problem' in self.view['filters']:
-            ft = 'problem__name__' + self.view['filters']['unknown_problem']['type']
-            fv = self.view['filters']['unknown_problem']['value']
-            unknowns_filters[ft] = fv
+        if 'unknown_problem' in self.view:
+            unknowns_filters['problem__name__' + self.view['unknown_problem'][0]] = self.view['unknown_problem'][1]
 
         unknowns_data = {}
         for cmup in self.report.mark_unknowns_cache.filter(~Q(problem=None) & Q(**unknowns_filters))\
@@ -211,8 +207,9 @@ class ViewJobData:
             if problem_tuple not in self.problems:
                 self.problems.append(problem_tuple)
             unknowns_data[cmup.component.name][cmup.problem.name] = (
-                cmup.number,
-                reverse('reports:unknowns_problem', args=[self.report.pk, cmup.component_id, cmup.problem_id])
+                cmup.number, '%s?component=%s&problem=%s' % (
+                    reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id, cmup.problem_id
+                )
             )
 
         unknowns_sorted = {}
@@ -226,29 +223,31 @@ class ViewJobData:
                 })
             unknowns_sorted[comp] = problems_sorted
 
-        if 'unknowns_nomark' not in self.view['filters'] or self.view['filters']['unknowns_nomark']['type'] == 'show':
+        if 'hidden' not in self.view or 'unknowns_nomark' not in self.view['hidden']:
             for cmup in self.report.mark_unknowns_cache.filter(Q(problem=None) & Q(**components_filters)):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
                     'problem': _('Without marks'),
                     'num': cmup.number,
-                    'href': reverse('reports:unknowns_problem', args=[self.report.pk, cmup.component.pk, 0])
+                    'href': '%s?component=%s&problem=%s' % (
+                        reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id, 0
+                    )
                 })
 
-        if 'unknowns_total' not in self.view['filters'] or self.view['filters']['unknowns_total']['type'] == 'show':
+        if 'hidden' not in self.view or 'unknowns_total' not in self.view['hidden']:
             for cmup in self.report.unknowns_cache.filter(**components_filters):
                 if cmup.component.name not in unknowns_sorted:
                     unknowns_sorted[cmup.component.name] = []
                 unknowns_sorted[cmup.component.name].append({
                     'problem': 'total',
                     'num': cmup.number,
-                    'href': reverse('reports:unknowns', args=[self.report.pk, cmup.component.pk])
+                    'href': '%s?component=%s' % (reverse('reports:unknowns', args=[self.report.pk]), cmup.component_id)
                 })
             try:
                 self.unknowns_total = {
                     'num': self.report.verdict.unknown,
-                    'href': reverse('reports:list', args=[self.report.pk, 'unknowns'])
+                    'href': reverse('reports:unknowns', args=[self.report.pk])
                 }
             except ObjectDoesNotExist:
                 self.unknowns_total = None
@@ -273,9 +272,9 @@ class ViewJobData:
 
             href = [None, None]
             if total > 0:
-                href[1] = reverse('reports:list_verdict', args=[self.report.pk, 'safes', verdict])
+                href[1] = '%s?verdict=%s' % (reverse('reports:safes', args=[self.report.pk]), verdict)
             if confirmed > 0:
-                href[0] = reverse('reports:list_verdict_confirmed', args=[self.report.pk, 'safes', verdict])
+                href[0] = '%s?verdict=%s&confirmed=1' % (reverse('reports:safes', args=[self.report.pk]), verdict)
 
             color = None
             value = [confirmed, total]
@@ -310,7 +309,7 @@ class ViewJobData:
             safe_name = 'safe:' + safe_name
             if safe_name in safes_numbers:
                 safes_data.append(safes_numbers[safe_name])
-        self.safes_total = (total_safes, reverse('reports:list', args=[self.report.pk, 'safes']))
+        self.safes_total = (total_safes, reverse('reports:safes', args=[self.report.pk]))
         return safes_data
 
     def __unsafes_info(self):
@@ -323,9 +322,9 @@ class ViewJobData:
 
             href = [None, None]
             if total > 0:
-                href[1] = reverse('reports:list_verdict', args=[self.report.pk, 'unsafes', verdict])
+                href[1] = '%s?verdict=%s' % (reverse('reports:unsafes', args=[self.report.pk]), verdict)
             if confirmed > 0:
-                href[0] = reverse('reports:list_verdict_confirmed', args=[self.report.pk, 'unsafes', verdict])
+                href[0] = '%s?verdict=%s&confirmed=1' % (reverse('reports:unsafes', args=[self.report.pk]), verdict)
 
             color = None
             value = [confirmed, total]
@@ -362,7 +361,7 @@ class ViewJobData:
             unsafe_name = 'unsafe:' + unsafe_name
             if unsafe_name in unsafes_numbers:
                 unsafes_data.append(unsafes_numbers[unsafe_name])
-        self.unsafes_total = (total_unsafes, reverse('reports:list', args=[self.report.pk, 'unsafes']))
+        self.unsafes_total = (total_unsafes, reverse('reports:unsafes', args=[self.report.pk]))
         return unsafes_data
 
     def __safes_attrs_statistic(self):
@@ -389,33 +388,28 @@ class ViewJobData:
     def __attr_statistic(self, report_type):
         reports = set(rid for rid, in ReportComponentLeaf.objects.filter(report=self.report)
                       .exclude(**{report_type: None}).values_list('%s_id' % report_type))
-        if 'stat_attr_name' in self.view['filters'] \
-                and isinstance(self.view['filters']['stat_attr_name'].get('value'), str):
-            attr_name = self.view['filters']['stat_attr_name'].get('value')
-        else:
+        if 'attr_stat' not in self.view or len(self.view['attr_stat']) != 1 or len(self.view['attr_stat'][0]) == 0:
             return []
+        attr_name = self.view['attr_stat'][0]
 
-        if 'attr' in self.view['filters']:
-            a_tmpl = self.view['filters']['attr']['value'].lower()
+        if 'attr_stat_filter' in self.view:
+            a_tmpl = self.view['attr_stat_filter'][1].lower()
 
         attr_stat_data = {}
-        attr_names = set()
         for a_id, ra_val, a_name in ReportAttr.objects.filter(report_id__in=list(reports))\
                 .values_list('attr_id', 'attr__value', 'attr__name__name'):
-            attr_names.add(a_name)
             if a_name != attr_name:
                 continue
-            if 'attr' in self.view['filters']:
+            if 'attr_stat_filter' in self.view:
                 a_low = ra_val.lower()
-                if self.view['filters']['attr']['type'] == 'iexact' and a_low != a_tmpl \
-                        or self.view['filters']['attr']['type'] == 'istartswith' and not a_low.startswith(a_tmpl) \
-                        or self.view['filters']['attr']['type'] == 'icontains' and not a_low.__contains__(a_tmpl):
+                if self.view['attr_stat_filter'][0] == 'iexact' and a_low != a_tmpl \
+                        or self.view['attr_stat_filter'][0] == 'istartswith' and not a_low.startswith(a_tmpl) \
+                        or self.view['attr_stat_filter'][0] == 'icontains' and not a_low.__contains__(a_tmpl):
                     continue
 
             if ra_val not in attr_stat_data:
                 attr_stat_data[ra_val] = {
-                    'num': 0, 'href': reverse('reports:list_attr', args=[self.report.id, report_type + 's', a_id])
+                    'num': 0, 'href': '%s?attr=%s' % (reverse('reports:%ss' % report_type, args=[self.report.pk]), a_id)
                 }
             attr_stat_data[ra_val]['num'] += 1
-        self.attr_names = list(sorted(attr_names | set(self.attr_names)))
         return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))

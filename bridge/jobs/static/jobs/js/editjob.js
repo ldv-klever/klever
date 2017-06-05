@@ -1115,7 +1115,7 @@ $(document).ready(function () {
                 job_ajax_url + 'get_job_data/',
                 {
                     job_id: $('#job_pk').val(),
-                    view: collect_jobview_data(),
+                    view: collect_view_data('2')['view'],
                     checked_run_history: $('#run_history').val()
                 },
                 function (data) {

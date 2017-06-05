@@ -58,23 +58,24 @@ from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, 
 def tree_view(request):
     activate(request.user.extended.language)
 
-    tree_args = [request.user]
-    if request.method == 'POST':
-        tree_args.append(request.POST.get('view', None))
-        tree_args.append(request.POST.get('view_id', None))
+    view_args = {}
+    if request.GET.get('view_type') == VIEW_TYPES[1][0]:
+        view_args['view'] = request.GET.get('view')
+        view_args['view_id'] = request.GET.get('view_id')
+
     months_choices = []
     for i in range(1, 13):
         months_choices.append((i, datetime(2016, i, 1).strftime('%B')))
     curr_year = datetime.now().year
 
     return render(request, 'jobs/tree.html', {
-        'FF': FilterForm(*tree_args),
+        'FF': FilterForm(request.user, **view_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
         'priorities': list(reversed(PRIORITY)),
         'months': months_choices,
         'years': list(range(curr_year - 3, curr_year + 1)),
-        'TableData': TableTree(*tree_args)
+        'TableData': TableTree(request.user, **view_args)
     })
 
 
@@ -252,15 +253,16 @@ def show_job(request, job_id=None):
             'name': child.name,
         })
 
-    view_args = [request.user]
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
     except ObjectDoesNotExist:
         report = None
-    view_args.append(report)
-    if request.method == 'POST':
-        view_args.append(request.POST.get('view', None))
-        view_args.append(request.POST.get('view_id', None))
+
+    view_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type == VIEW_TYPES[2][0]:
+        view_args['view'] = request.GET.get('view')
+        view_args['view_id'] = request.GET.get('view_id')
 
     progress_data = jobs.utils.get_job_progress(request.user, job)\
         if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
@@ -273,7 +275,7 @@ def show_job(request, job_id=None):
             'parents': parents,
             'children': children,
             'progress_data': progress_data,
-            'reportdata': ViewJobData(*view_args),
+            'reportdata': ViewJobData(request.user, report, **view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),

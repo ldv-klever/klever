@@ -5,65 +5,74 @@
         <i class="filter icon"></i>{% trans 'View' %} ({% if view_id == 'default' %}{% trans 'Default' %}{% elif view_id %}{% for v in views %}{% if v.id == view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <div class="content ui small form">
+        <h5>{% trans 'Number of elements in table' %}</h5>
+        <input id="view_data_{{ view_type }}__elements" value="list" data-list="elements" type="hidden">
+        <label for="view_{{ view_type }}__elements"></label>
+        <div class="ui input"><input id="view_{{ view_type }}__elements" type="number"{% if 'elements' in view %} value="{{ view.elements.0 }}"{% endif %}></div>
+
         <h5>{% trans 'Columns' %}</h5>
+        <input id="view_data_{{ view_type }}__columns" value="checkboxes" type="hidden">
         <div class="ui checkbox">
-            <input type="checkbox" id="list_filter_checkbox__marks_number"{% if 'marks_number' in view.columns %} checked{% endif %}>
-            <label for="list_filter_checkbox__marks_number">{% trans 'Number of associated marks' %}</label>
+            <input type="checkbox" id="view_{{ view_type }}__columns__marks_number"{% if 'marks_number' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__marks_number">{% trans 'Number of associated marks' %}</label>
         </div><br>
         <div class="ui checkbox">
-            <input type="checkbox" id="list_filter_checkbox__report_verdict"{% if 'report_verdict' in view.columns %} checked{% endif %}>
-            <label for="list_filter_checkbox__report_verdict">{% trans 'Total verdict' %}</label>
+            <input type="checkbox" id="view_{{ view_type }}__columns__report_verdict"{% if 'report_verdict' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__report_verdict">{% trans 'Total verdict' %}</label>
         </div><br>
         <div class="ui checkbox">
-            <input type="checkbox" id="list_filter_checkbox__tags"{% if 'tags' in view.columns %} checked{% endif %}>
-            <label for="list_filter_checkbox__tags">{% trans 'Tags' %}</label>
+            <input type="checkbox" id="view_{{ view_type }}__columns__tags"{% if 'tags' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__tags">{% trans 'Tags' %}</label>
         </div><br>
         <div class="ui checkbox">
-            <input type="checkbox" id="list_filter_checkbox__parent_cpu"{% if 'parent_cpu' in view.columns %} checked{% endif %}>
-            <label for="list_filter_checkbox__parent_cpu">{% trans 'Verifiers time' %}</label>
-        </div><br>
+            <input type="checkbox" id="view_{{ view_type }}__columns__parent_cpu"{% if 'parent_cpu' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__parent_cpu">{% trans 'Verifiers time' %}</label>
+        </div>
+        <br>
+
         <h5 class="header">{% trans 'Order by attribute' %}</h5>
+        <input id="view_data_{{ view_type }}__order" value="list" data-list="radio_order_value__order_attr" type="hidden">
         <div class="ui grid">
             <div class="two wide column">
                 <div class="ui radio checkbox">
-                    <input id="order__value__up" name="order_value" type="radio" value="up" {% if view.order.1 == 'up' %} checked{% endif %}>
-                    <label for="order__value__up"><i class="ui arrow up icon"></i></label>
+                    <input id="order_value_up_{{ view_type }}" name="view_{{ view_type }}__radio_order_value" type="radio" value="up" {% if 'order' in view and view.order.0 == 'up' %} checked{% endif %}>
+                    <label for="order_value_up_{{ view_type }}"><i class="ui arrow up icon"></i></label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
-                    <input id="order__value__down" name="order_value" type="radio" value="down" {% if view.order.1 == 'down' %} checked{% endif %}>
-                    <label for="order__value__down"><i class="ui arrow down icon"></i></label>
+                    <input id="order_value_down_{{ view_type }}" name="view_{{ view_type }}__radio_order_value" type="radio" value="down" {% if 'order' in view and view.order.0 == 'down' %} checked{% endif %}>
+                    <label for="order_value_down_{{ view_type }}"><i class="ui arrow down icon"></i></label>
                 </div>
             </div>
             <div class="fourteen wide column">
-                <label for="filter__attr__order"></label>
+                <label for="view_{{ view_type }}__order_attr"></label>
                 <div class="fluid">
-                    <input id="filter__attr__order" type="text"{% if view.order.0 != 'default' %} value="{{ view.order.0 }}"{% endif %}>
+                    <input id="view_{{ view_type }}__order_attr" type="text"{% if 'order' in view and view.order.1 != 'default' %} value="{{ view.order.1 }}"{% endif %}>
                 </div>
                 <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i>. {% trans 'Leave empty for order by creation date' %}.</small>
             </div>
         </div>
         <div class="ui divider"></div>
+
         <h5 class="header">{% trans 'Value of attribute' %}</h5>
-        <label for="filter__attr__attr"></label>
-        <div class="fluid">
-            <input id="filter__attr__attr" type="text" value="{{ view.filters.attr.attr }}">
+        <input id="view_data_{{ view_type }}__attr" value="list" data-list="attr_name__attr_type__attr_value" type="hidden">
+        <div>
+            <label for="view_{{ view_type }}__attr_name"></label>
+            <div class="fluid"><input id="view_{{ view_type }}__attr_name" type="text"{% if 'attr' in view %} value="{{ view.attr.0 }}"{% endif %}></div>
+            <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
         </div>
-        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
-        <br><br>
+        <br>
         <div class="ui grid">
             <div class="six wide column">
-                <label for="filter__attr__type"></label>
-                <select id="filter__attr__type" class="ui dropdown">
-                    <option value="iexact"{% if view.filters.attr.type == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                    <option value="istartswith"{% if view.filters.attr.type == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                <label for="view_{{ view_type }}__attr_type"></label>
+                <select id="view_{{ view_type }}__attr_type" class="ui dropdown">
+                    <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
                 </select>
             </div>
             <div class="ten wide column">
-                <label for="filter__attr__value"></label>
-                <div class="fluid">
-                    <input id="filter__attr__value" type="text" value="{{ view.filters.attr.value }}">
-                </div>
+                <label for="view_{{ view_type }}__attr_value"></label>
+                <div class="fluid"><input id="view_{{ view_type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %}></div>
             </div>
         </div>
         <div class="ui divider"></div>

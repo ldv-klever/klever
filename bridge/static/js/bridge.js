@@ -20,7 +20,7 @@ window.marks_ajax_url = '/marks/ajax/';
 
 function getCookie(name) {
     var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
+    if (document.cookie && document.cookie !== '') {
         var cookies = document.cookie.split(';');
         for (var i = 0; i < cookies.length; i++) {
             var cookie = $.trim(cookies[i]);
@@ -101,40 +101,132 @@ window.isASCII = function (str) {
     return /^[\x00-\x7F]*$/.test(str);
 };
 
-window.set_actions_for_views = function(filter_type, data_collection) {
+window.encodeQueryData = function(data) {
+    return Object.keys(data).map(function(key) {
+        return [key, data[key]].map(encodeURIComponent).join("=");
+    }).join("&");
+};
 
-    function collect_data() {
-        return {
-            view: data_collection(),
-            view_type: filter_type
-        };
-    }
+window.collect_view_data = function(view_type) {
+    var data = {};
+    $('input[id^="view_data_' + view_type + '__"]').each(function () {
+        var data_name = $(this).attr('id').replace('view_data_' + view_type + '__', ''), data_type = $(this).val();
 
-    if (!data_collection) {
-        return;
-    }
-    $('#' + filter_type + '__show_unsaved_view_btn').click(function () {
-        $.redirectPost('', collect_data());
+        if (data_type === 'checkboxes') {
+            data[data_name] = [];
+            $('input[id^="view_' + view_type + '__' + data_name + '__"]').each(function () {
+                if ($(this).is(':checked')) {
+                    data[data_name].push($(this).attr('id').replace('view_' + view_type + '__' + data_name + '__', ''));
+                }
+            });
+        }
+        else if (data_type === 'list') {
+            data[data_name] = [];
+            $.each($(this).data('list').split('__'), function (i, val) {
+                if (val.startsWith('radio_')) {
+                    data[data_name].push($('input[name="view_' + view_type + '__' + val + '"]:checked').val());
+                }
+                else {
+                    var element_value = $('#view_' + view_type + '__' + val).val();
+                    if (!element_value.length) {
+                        delete data[data_name];
+                        return false;
+                    }
+                    data[data_name].push(element_value);
+                }
+            });
+        }
+        else if (data_type === 'list_null') {
+            data[data_name] = [];
+            $.each($(this).data('list').split('__'), function (i, val) {
+                if (val.startsWith('radio_')) {
+                    data[data_name].push($('input[name="view_' + view_type + '__' + val + '"]:checked').val());
+                }
+                else {
+                    data[data_name].push($('#view_' + view_type + '__' + val).val());
+                }
+            });
+        }
+        else if (data_type.startsWith('checkboxes_if_')) {
+            if ($('#view_condition_' + view_type + '__' + data_type.replace('checkboxes_if_', '')).is(':checked')) {
+                data[data_name] = [];
+                $('input[id^="view_' + view_type + '__' + data_name + '__"]').each(function () {
+                    if ($(this).is(':checked')) {
+                        data[data_name].push($(this).attr('id').replace('view_' + view_type + '__' + data_name + '__', ''));
+                    }
+                });
+            }
+        }
+        else if (data_type.startsWith('list_if_')) {
+            var condition = data_type.replace('list_if_', '');
+            if ($('#view_condition_' + view_type + '__' + condition).is(':checked')) {
+               data[data_name] = [];
+                $.each($(this).data('list').split('__'), function (i, val) {
+                    if (val.startsWith('radio_')) {
+                        data[data_name].push($('input[name="view_' + view_type + '__' + val + '"]:checked').val());
+                    }
+                    else {
+                        var element_value = $('#view_' + view_type + '__' + val).val();
+                        if (!element_value.length) {
+                            delete data[data_name];
+                            return false;
+                        }
+                        data[data_name].push(element_value);
+                    }
+                });
+            }
+        }
+        else if (data_type === 'multiselect') {
+            data[data_name] = [];
+            $('#view_' + view_type + '__' + data_name).children('option').each(function () {
+                data[data_name].push($(this).val());
+            });
+        }
+    });
+    return {view: JSON.stringify(data), view_type: view_type};
+};
+
+window.set_actions_for_views = function(view_type) {
+    var get_params_to_delete = ['page', 'view', 'view_id', 'view_type'];
+
+    $('#view_show_unsaved_btn__' + view_type).click(function () {
+        var current_url = window.location.href;
+        $.each(get_params_to_delete, function (i, get_param) {
+            var re = new RegExp('(' + get_param + '=).*?(&|$)');
+            if (current_url.indexOf(get_param + "=") > -1) {
+                current_url = current_url.replace(re, '');
+            }
+        });
+        if (current_url.indexOf('?') > -1) {
+            if (current_url.slice(-1) !== '&') {
+                current_url = current_url + '&';
+            }
+            current_url = current_url + encodeQueryData(collect_view_data(view_type));
+        }
+        else {
+            current_url = current_url + '?' + encodeQueryData(collect_view_data(view_type));
+        }
+        window.location.href = current_url;
     });
 
-    $('#' + filter_type + '__save_view_btn').click(function () {
-        var view_title = $('#' + filter_type + '__view_name_input').val();
+    $('#view_save_btn__' + view_type).click(function () {
+        var view_title = $('#view_name_input__' + view_type).val();
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'check_view_name/',
             dataType: 'json',
             data: {
                 view_title: view_title,
-                view_type: filter_type
+                view_type: view_type
             },
             success: function(data) {
                 if (data.error) {
                     err_notify(data.error);
                 }
                 else {
-                    var request_data = collect_data();
+                    var request_data = collect_view_data(view_type);
                     request_data['title'] = view_title;
-                    request_data['view_type'] = filter_type;
+                    request_data['view_type'] = view_type;
                     $.ajax({
                         method: 'post',
                         url: job_ajax_url + 'save_view/',
@@ -145,11 +237,11 @@ window.set_actions_for_views = function(filter_type, data_collection) {
                                 err_notify(data.error);
                             }
                             else {
-                                $('#' + filter_type + '__available_views').append($('<option>', {
+                                $('#view_list__' + view_type).append($('<option>', {
                                     text: save_data['view_name'],
                                     value: save_data['view_id']
                                 }));
-                                $('#' + filter_type + '__view_name_input').val('');
+                                $('#view_name_input__' + view_type).val('');
                                 success_notify(save_data.message);
                             }
                         }
@@ -159,10 +251,10 @@ window.set_actions_for_views = function(filter_type, data_collection) {
         });
     });
 
-    $('#' + filter_type + '__update_view_btn').click(function () {
-        var request_data = collect_data();
-        request_data['view_id'] = $('#' + filter_type + '__available_views').children('option:selected').val();
-        request_data['view_type'] = filter_type;
+    $('#view_update_btn__' + view_type).click(function () {
+        var request_data = collect_view_data(view_type);
+        request_data['view_id'] = $('#view_list__' + view_type).children('option:selected').val();
+        request_data['view_type'] = view_type;
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'save_view/',
@@ -174,41 +266,57 @@ window.set_actions_for_views = function(filter_type, data_collection) {
         });
     });
 
-    $('#' + filter_type + '__show_view_btn').click(function () {
-        $.redirectPost('', {
-            view_id: $('#' + filter_type + '__available_views').children('option:selected').val(),
-            view_type: filter_type
+    $('#view_show_btn__' + view_type).click(function () {
+        var current_url = window.location.href, get_data = {
+            view_id: $('#view_list__' + view_type).children('option:selected').val(),
+            view_type: view_type
+        };
+        $.each(get_params_to_delete, function (i, get_param) {
+            var re = new RegExp('(' + get_param + '=).*?(&|$)');
+            if (current_url.indexOf(get_param + "=") > -1) {
+                current_url = current_url.replace(re, '');
+            }
         });
+        if (current_url.indexOf('?') > -1) {
+            if (current_url.slice(-1) !== '&') {
+                current_url = current_url + '&';
+            }
+            current_url = current_url + encodeQueryData(get_data);
+        }
+        else {
+            current_url = current_url + '?' + encodeQueryData(get_data);
+        }
+        window.location.href = current_url;
     });
 
-    $('#' + filter_type + '__remove_view_btn').click(function () {
+    $('#view_remove_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'remove_view/',
             dataType: 'json',
             data: {
-                view_id: $('#' + filter_type + '__available_views').children('option:selected').val(),
-                view_type: filter_type
+                view_id: $('#view_list__' + view_type).children('option:selected').val(),
+                view_type: view_type
             },
             success: function(data) {
                 if (data.error) {
                     err_notify(data.error)
                 }
                 else {
-                    $('#' + filter_type + '__available_views').children('option:selected').remove();
+                    $('#view_list__' + view_type).children('option:selected').remove();
                     success_notify(data.message)
                 }
             }
         });
     });
-    $('#' + filter_type + '__share_view_btn').click(function () {
+    $('#view_share_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'share_view/',
             dataType: 'json',
             data: {
-                view_id: $('#' + filter_type + '__available_views').children('option:selected').val(),
-                view_type: filter_type
+                view_id: $('#view_list__' + view_type).children('option:selected').val(),
+                view_type: view_type
             },
             success: function(data) {
                 if (data.error) {
@@ -221,19 +329,36 @@ window.set_actions_for_views = function(filter_type, data_collection) {
         });
     });
 
-    $('#' + filter_type + '__prefer_view_btn').click(function () {
+    $('#view_prefer_btn__' + view_type).click(function () {
         $.ajax({
             method: 'post',
             url: job_ajax_url + 'preferable_view/',
             dataType: 'json',
             data: {
-                view_id: $('#' + filter_type + '__available_views').children('option:selected').val(),
-                view_type: filter_type
+                view_id: $('#view_list__' + view_type).children('option:selected').val(),
+                view_type: view_type
             },
             success: function(data) {
                 data.error ? err_notify(data.error) : success_notify(data.message);
             }
         });
+    });
+
+    $('#view_show_default_btn__' + view_type).click(function () {
+        var current_url = window.location.href;
+        $.each(get_params_to_delete, function (i, get_param) {
+            var re = new RegExp('(' + get_param + '=).*?(&|$)');
+            if (current_url.indexOf(get_param + "=") > -1) {
+                current_url = current_url.replace(re, '');
+            }
+        });
+        if (current_url.slice(-1) === '&') {
+            current_url = current_url.substring(0, current_url.length - 1);
+        }
+        if (current_url.slice(-1) === '?') {
+            current_url = current_url.substring(0, current_url.length - 1);
+        }
+        window.location.href = current_url;
     });
 };
 
@@ -257,6 +382,24 @@ $(document).ready(function () {
         else {
             $(this).popup();
         }
+    });
+
+    $('.page-link-icon').click(function () {
+        var current_url = window.location.href;
+        if (current_url.indexOf("page=") > -1) {
+            window.location.replace(current_url.replace(/(page=).*?(&|$)/, '$1' + $(this).data('page-number') + '$2'));
+        }
+        else if (current_url.indexOf('?') > -1) {
+            window.location.replace(current_url + '&page=' + $(this).data('page-number'));
+        }
+        else {
+            window.location.replace(current_url + '?page=' + $(this).data('page-number'));
+        }
+    });
+
+    $('.view-type-buttons').each(function () {
+        set_actions_for_views($(this).val());
+        return true;
     });
 
     if ($('#show_upload_marks_popup').length) {
@@ -352,7 +495,7 @@ $(document).ready(function () {
 
     $('#upload_jobs_start').click(function () {
         var parent_id = $('#upload_job_parent_id').val();
-        if (parent_id.length == 0) {
+        if (!parent_id.length) {
             err_notify($('#error__parent_required').text());
             return false;
         }
