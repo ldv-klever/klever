@@ -135,18 +135,27 @@ class Command:
                                        'model CC opts.json'), 'w', encoding='utf8') as fp:
                     json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
+        # Extract info for multimodule analysis
         provided_functions = []
         required_functions = []
         output_size = 0
+        HEADER_SIZE = 4
+
+        # Checks, that file is ELF object
         elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
         if elf_out and elf_out[0].startswith('ELF'):
+            # Process symbol table. We need to skip first 4 lines, since it is a useless header
             symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
-            for table_entry in symbol_table[4:]:
+            for table_entry in symbol_table[HEADER_SIZE:]:
+                # Split row into columns
                 symbol_entities = re.split(r'\s*|\t', table_entry)
                 if len(symbol_entities) > 3 and symbol_entities[1] == '*UND*':
+                    # Undefined symbol is an import function
                     required_functions.append(symbol_entities[3])
                 elif len(symbol_entities) > 5 and symbol_entities[1] == 'g':
+                    # Global symbol is an export functions
                     provided_functions.append(symbol_entities[5])
+            # Size of output file
             output_size = os.path.getsize(self.out_file)
 
         desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file,

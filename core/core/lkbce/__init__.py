@@ -419,27 +419,32 @@ sys.exit(Command(sys.argv).launch())
                         # Reads modules from 'builtin' files
                         builtin_modules = self.__get_builtin_modules()
                         for builtin_module in builtin_modules:
-                            obj_dir = os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file']))
-                            obj_desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module.replace('.ko',
-                                                                                                           '.o')))
+                            # Make a path to description file
+                            obj_dir = os.path.dirname(self.linux_kernel['build cmd descs file'])
+                            obj_desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module.replace('.ko', '.o')))
                             if not os.path.exists(obj_desc_file):
                                 # That builtin module hasn't been build
+                                self.logger.debug('Skip "{0}" module since it has not been built'.format(builtin_module))
                                 continue
 
-                            with open(obj_desc_file) as fp:
+                            # Read multimodule dependencies info
+                            with open(obj_desc_file, 'r', encoding='utf-8') as fp:
                                 obj_info = json.load(fp)
                                 required_functions = obj_info['required functions']
                                 provided_functions = obj_info['provided functions']
                                 output_size = obj_info['output size']
+
+                            # Put description
                             desc = {'type': 'LD',
                                     'in files': builtin_module.replace('.ko', '.o'),
                                     'out file': builtin_module,
                                     'required functions': required_functions,
                                     'provided functions': provided_functions,
                                     'output size': output_size}
-                            desc_file = os.path.join(os.path.dirname(os.path.abspath(self.linux_kernel['build cmd descs file'])),
-                                                     '{0}.json'.format(builtin_module))
+                            desc_file = os.path.join(os.path.dirname(os.path.abspath(
+                                self.linux_kernel['build cmd descs file'])), '{0}.json'.format(builtin_module))
                             os.makedirs(os.path.dirname(desc_file).encode('utf8'), exist_ok=True)
+                            self.logger.debug('Put description for "{0}" module'.format(builtin_module))
                             with open(desc_file, 'w', encoding='utf8') as fp:
                                 json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
                             self.linux_kernel['build cmd desc file'] = desc_file
@@ -534,20 +539,22 @@ sys.exit(Command(sys.argv).launch())
 
     def __get_builtin_modules(self):
         for dir in os.listdir(self.linux_kernel['work src tree']):
+            # Skip dirs that doesn't contain Makefile or Kconfig file
             if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], dir)) \
                     and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Makefile')) \
                     and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Kconfig')):
-                core.utils.execute(self.logger, ['make', '-f', os.path.join(
-                                                                            'scripts', 'Makefile.modbuiltin'),
+                # Run script that creates 'modules.builtin' file
+                core.utils.execute(self.logger, ['make', '-f', os.path.join('scripts', 'Makefile.modbuiltin'),
                                                  'obj={0}'.format(dir), 'srctree=.'],
                                    cwd=self.linux_kernel['work src tree'])
 
+        # Just walk through the dirs and process 'modules.builtin' files
         result_modules = set()
         for dir, dirs, files in os.walk(self.linux_kernel['work src tree']):
             if os.path.samefile(self.linux_kernel['work src tree'], dir):
                 continue
             if 'modules.builtin' in files:
-                with open(os.path.join(dir, 'modules.builtin')) as fp:
+                with open(os.path.join(dir, 'modules.builtin'), 'r', encoding='utf-8') as fp:
                     for line in fp:
                         result_modules.add(line[len('kernel/'):-1])
         return result_modules
