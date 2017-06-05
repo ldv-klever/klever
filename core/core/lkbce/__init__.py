@@ -81,13 +81,10 @@ class LKBCE(core.components.Component):
             with open(self.linux_kernel['build cmd descs file'], 'w', encoding='utf8'):
                 pass
 
-            self.extract_module_files()
             self.receive_modules_to_build()
 
             self.launch_subcomponents(('LKB', self.build_linux_kernel),
                                       ('ALKBCDG', self.get_all_linux_kernel_build_cmd_descs))
-
-            self.extract_module_deps_and_sizes()
 
             if not self.conf['keep intermediate files']:
                 os.remove(self.linux_kernel['build cmd descs file'])
@@ -107,16 +104,6 @@ sys.exit(Command(sys.argv).launch())
 """.format(sys.executable))
             os.chmod(cmd_path, os.stat(cmd_path).st_mode | stat.S_IEXEC)
 
-    def extract_module_deps_and_sizes(self):
-        if self.linux_kernel['build kernel']:
-            if 'module dependencies file' not in self.conf['Linux kernel']:
-                self.extract_all_linux_kernel_mod_deps_function()
-                self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
-
-            if 'module sizes file' not in self.conf['Linux kernel']:
-                self.extract_all_linux_kernel_mod_size()
-                self.mqs['Linux kernel module sizes'].put(self.linux_kernel['module sizes'])
-
     def receive_modules_to_build(self):
         linux_kernel_modules = self.mqs['Linux kernel modules'].get()
         self.mqs['Linux kernel modules'].close()
@@ -125,19 +112,6 @@ sys.exit(Command(sys.argv).launch())
         if 'external modules' in self.conf['Linux kernel'] and not self.linux_kernel['build kernel']:
             self.linux_kernel['modules'] = [module if not module.startswith('ext-modules/') else module[12:]
                                             for module in self.linux_kernel['modules']]
-
-    def extract_module_files(self):
-        if 'module dependencies file' in self.conf['Linux kernel']:
-            dependencies_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
-                                               self.conf['Linux kernel']['module dependencies file'])
-            with open(dependencies_file, encoding='utf8') as fp:
-                self.parse_linux_kernel_mod_function_deps(fp, True)
-                self.mqs['Linux kernel module dependencies'].put(self.linux_kernel['module dependencies'])
-        if 'module sizes file' in self.conf['Linux kernel']:
-            sizes_file = core.utils.find_file_or_dir(self.logger,self.conf['main working directory'],
-                                                     self.conf['Linux kernel']['module sizes file'])
-            with open(sizes_file, encoding='utf8') as fp:
-                self.mqs['Linux kernel module sizes'].put(json.load(fp))
 
     main = extract_linux_kernel_build_commands
 
@@ -263,31 +237,6 @@ sys.exit(Command(sys.argv).launch())
                     return True
         return False
 
-    def extract_all_linux_kernel_mod_deps_function(self):
-        self.logger.info('Extract all Linux kernel module dependencies')
-
-        self.logger.info('Install Linux kernel modules')
-
-        # Specify installed Linux kernel modules directory like Linux kernel working source tree in
-        # fetch_linux_kernel_work_src_tree().
-        self.linux_kernel['installed modules dir'] = os.path.abspath(os.path.join(os.path.pardir, 'linux-modules'))
-        os.mkdir(self.linux_kernel['installed modules dir'])
-        # TODO: whether parallel execution has some benefits here?
-        self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']), 'modules_install'],
-                    jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
-                    specify_arch=False, collect_build_cmds=False)
-        if 'external modules' in self.conf['Linux kernel']:
-            self.__make(['INSTALL_MOD_PATH={0}'.format(self.linux_kernel['installed modules dir']),
-                         'M=ext-modules', 'modules_install'],
-                        jobs_num=core.utils.get_parallel_threads_num(self.logger, self.conf, 'Build'),
-                        specify_arch=False, collect_build_cmds=False)
-
-        depmod_output = core.utils.execute(self.logger, ['/sbin/depmod', '-b',
-                                                         self.linux_kernel['installed modules dir'],
-                                                         self.linux_kernel['version'], '-v'],
-                                           collect_all_stdout=True)
-        self.parse_linux_kernel_mod_function_deps(depmod_output, False)
-
     def extract_all_linux_kernel_mod_size(self):
         all_modules = set()
         for module, _, module2 in self.linux_kernel['module dependencies']:
@@ -309,26 +258,6 @@ sys.exit(Command(sys.argv).launch())
                     os.path.getsize(os.path.join(self.linux_kernel['installed modules dir'], 'lib', 'modules',
                                                  self.linux_kernel['version'], 'extra', module.replace('ext-modules/',
                                                                                                        '')))
-
-    def parse_linux_kernel_mod_function_deps(self, lines, remove_newline_symbol):
-        self.linux_kernel['module dependencies'] = []
-        for line in lines:
-            if remove_newline_symbol:
-                line = line[:-1]
-            line = re.subn(r'\.ko', '.o', line)[0]
-            splts = line.split(' ')
-            first = splts[0]
-            if 'kernel' in first:
-                first = first[first.find('kernel') + 7:]
-            elif 'extra' in first:
-                first = 'ext-modules/' + first[first.find('extra') + 6:]
-            second = splts[3]
-            if 'kernel' in second:
-                second = second[second.find('kernel') + 7:]
-            elif 'extra' in second:
-                second = 'ext-modules/' + second[second.find('extra') + 6:]
-            func = splts[2][1:-2]
-            self.linux_kernel['module dependencies'].append((second, func, first))
 
     def check_preparation_for_building_external_modules(self):
         prepared_ext_modules_conf_file = os.path.join(self.linux_kernel['work src tree'], 'prepared ext modules conf')
@@ -487,6 +416,39 @@ sys.exit(Command(sys.argv).launch())
                 # Read new lines from file.
                 for line in fp:
                     if line == '\n':
+                        # Reads modules from 'builtin' files
+                        builtin_modules = self.__get_builtin_modules()
+                        for builtin_module in builtin_modules:
+                            # Make a path to description file
+                            obj_dir = os.path.dirname(self.linux_kernel['build cmd descs file'])
+                            obj_desc_file = os.path.join(obj_dir, '{0}.json'.format(builtin_module.replace('.ko', '.o')))
+                            if not os.path.exists(obj_desc_file):
+                                # That builtin module hasn't been build
+                                self.logger.debug('Skip "{0}" module since it has not been built'.format(builtin_module))
+                                continue
+
+                            # Read multimodule dependencies info
+                            with open(obj_desc_file, 'r', encoding='utf-8') as fp:
+                                obj_info = json.load(fp)
+                                required_functions = obj_info['required functions']
+                                provided_functions = obj_info['provided functions']
+                                output_size = obj_info['output size']
+
+                            # Put description
+                            desc = {'type': 'LD',
+                                    'in files': builtin_module.replace('.ko', '.o'),
+                                    'out file': builtin_module,
+                                    'required functions': required_functions,
+                                    'provided functions': provided_functions,
+                                    'output size': output_size}
+                            desc_file = os.path.join(os.path.dirname(os.path.abspath(
+                                self.linux_kernel['build cmd descs file'])), '{0}.json'.format(builtin_module))
+                            os.makedirs(os.path.dirname(desc_file).encode('utf8'), exist_ok=True)
+                            self.logger.debug('Put description for "{0}" module'.format(builtin_module))
+                            with open(desc_file, 'w', encoding='utf8') as fp:
+                                json.dump(desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                            self.linux_kernel['build cmd desc file'] = desc_file
+                            self.get_linux_kernel_build_cmd_desc()
                         self.logger.debug('Linux kernel build command decscriptions "message queue" was terminated')
                         return
                     elif line == 'KLEVER FATAL ERROR\n':
@@ -574,6 +536,28 @@ sys.exit(Command(sys.argv).launch())
         # (see Command.dump() in wrappers/common.py). Otherwise corresponding directories can be suddenly overwritten.
         self.model_cc_opts = [re.sub(re.escape(os.path.realpath(self.linux_kernel['work src tree']) + '/'), '', opt)
                               for opt in self.model_cc_opts]
+
+    def __get_builtin_modules(self):
+        for dir in os.listdir(self.linux_kernel['work src tree']):
+            # Skip dirs that doesn't contain Makefile or Kconfig file
+            if os.path.isdir(os.path.join(self.linux_kernel['work src tree'], dir)) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Makefile')) \
+                    and os.path.isfile(os.path.join(self.linux_kernel['work src tree'], dir, 'Kconfig')):
+                # Run script that creates 'modules.builtin' file
+                core.utils.execute(self.logger, ['make', '-f', os.path.join('scripts', 'Makefile.modbuiltin'),
+                                                 'obj={0}'.format(dir), 'srctree=.'],
+                                   cwd=self.linux_kernel['work src tree'])
+
+        # Just walk through the dirs and process 'modules.builtin' files
+        result_modules = set()
+        for dir, dirs, files in os.walk(self.linux_kernel['work src tree']):
+            if os.path.samefile(self.linux_kernel['work src tree'], dir):
+                continue
+            if 'modules.builtin' in files:
+                with open(os.path.join(dir, 'modules.builtin'), 'r', encoding='utf-8') as fp:
+                    for line in fp:
+                        result_modules.add(line[len('kernel/'):-1])
+        return result_modules
 
     def __make_canonical_work_src_tree(self, work_src_tree):
         work_src_tree_root = None
