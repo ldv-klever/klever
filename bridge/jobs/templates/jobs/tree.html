@@ -8,7 +8,7 @@
 {% block jobs_head_block %}<script src="{% static 'jobs/js/jobtree.js' %}"></script>{% endblock %}
 
 {% block body_block %}
-    <div id="jobstree-first-big-part" class="ui form violet segment" style="display: none">
+    <div id="view_form_segment_{{ FF.view_type }}" class="ui form yellow segment" style="display: none">
         {% include 'jobs/jobTreeView.html' with view_type=FF.view_type view_id=FF.view_id view=FF.view views=FF.user_views %}
     </div>
     <div class="ui mini basic icon buttons">
@@ -17,13 +17,12 @@
         <button class="ui red button note-popup" id="show_remove_jobs_popup" data-position="bottom left" data-content="{% trans 'Delete selected jobs' %}"><i class="ui remove icon"></i></button>
     </div>
 
-    <button type="button" class="ui mini violet icon basic button" id="jobstree-fullscreen-btn" style="float:right;margin-right: 10px;">
-        <i class="setting icon"></i>
-    </button>
+    <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ FF.view_type }}" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
     <div class="ui popup bottom right transition hidden">
         <span>{% trans 'View' %}</span> ({% if FF.view_id == 'default' %}{% trans 'Default' %}{% elif FF.view_id %}{% for v in FF.user_views %}{% if v.id == FF.view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
     </div>
     <br><br>
+
     <div class="tableScroll" id="jobtable">
         {% include 'jobs/treeTable.html' %}
     </div>

@@ -1,10 +1,9 @@
 {% load i18n %}
 
-<div class="ui styled accordion fluid">
-    <div class="title">
-        <i class="filter icon"></i>{% trans 'View' %} ({% if view_id == 'default' %}{% trans 'Default' %}{% elif view_id %}{% for v in views %}{% if v.id == view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
-    </div>
-    <div class="content ui small form">
+<div class="ui grid">
+    <div class="six wide column">
+        <h3>{% trans 'Columns' %}</h3>
+
         <h5>{% trans 'Number of elements in table' %}</h5>
         <input id="view_data_{{ view_type }}__elements" value="list" data-list="elements" type="hidden">
         <label for="view_{{ view_type }}__elements"></label>
@@ -32,12 +31,19 @@
                 <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i>. {% trans 'Leave empty for order by component' %}.</small>
             </div>
         </div>
-        <div class="ui divider"></div>
+    </div>
+    <div class="ten wide column">
+        <h3>{% trans 'Filters' %}</h3>
 
-        <h5 class="header">{% trans 'Component name' %}</h5>
-        <input id="view_data_{{ view_type }}__component" value="list" data-list="component_type__component_name" type="hidden">
-        <div class="ui grid">
-            <div class="six wide column">
+        {# Attribute #}
+        <input id="view_data_{{ view_type }}__component" value="list_if_component" data-list="component_type__component_name" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view_type }}__component"{% if 'component' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view_type }}__component">{% trans 'Component name' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
                 <label for="view_{{ view_type }}__component_type"></label>
                 <select id="view_{{ view_type }}__component_type" class="ui dropdown">
                     <option value="iexact"{% if 'component' in view and view.component.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
@@ -45,36 +51,46 @@
                     <option value="icontains"{% if 'component' in view and view.component.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
                 </select>
             </div>
-            <div class="ten wide column">
+            <div class="field">
                 <label for="view_{{ view_type }}__component_name"></label>
-                <div class="fluid"><input id="view_{{ view_type }}__component_name" type="text"{% if 'component' in view %} value="{{ view.component.1 }}"{% endif %}></div>
+                <input id="view_{{ view_type }}__component_name" type="text"{% if 'component' in view %} value="{{ view.component.1 }}"{% endif %} style="width: 20vw;">
             </div>
         </div>
         <div class="ui divider"></div>
 
-        <h5>{% trans 'Value of attribute' %}</h5>
-        <input id="view_data_{{ view_type }}__attr" value="list" data-list="attr_name__attr_type__attr_value" type="hidden">
-        <div>
-            <label for="view_{{ view_type }}__attr_name"></label>
-            <div class="fluid"><input id="view_{{ view_type }}__attr_name" type="text"{% if 'attr' in view %} value="{{ view.attr.0 }}"{% endif %}></div>
-            <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+        {# Attribute #}
+        <input id="view_data_{{ view_type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view_type }}__attr"{% if 'attr' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view_type }}__attr">{% trans 'Attribute' %}</label>
         </div>
-        <br>
-        <div class="ui grid">
-            <div class="six wide column">
-                <label for="view_{{ view_type }}__attr_type"></label>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <label for="view_{{ view_type }}__attr_name">&nbsp;</label>
+                <input id="view_{{ view_type }}__attr_name" type="text"{% if 'attr' in view %} value="{{ view.attr.0 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Attribute name' %}">
+            </div>
+            <div class="field">
+                <label for="view_{{ view_type }}__attr_type">&nbsp;</label>
                 <select id="view_{{ view_type }}__attr_type" class="ui dropdown">
                     <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="iendswith"{% if 'attr' in view and view.attr.1 == 'iendswith' %} selected{% endif %}>{% trans 'ends with' %}</option>
                 </select>
             </div>
-            <div class="ten wide column">
-                <label for="view_{{ view_type }}__attr_value"></label>
-                <div class="fluid"><input id="view_{{ view_type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %}></div>
+            <div class="field">
+                <label for="view_{{ view_type }}__attr_value">&nbsp;</label>
+                <input id="view_{{ view_type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Attribute value' %}">
             </div>
         </div>
-        <div class="ui divider"></div>
-
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+    </div>
+</div>
+<div class="ui divider"></div>
+<div class="ui grid">
+    <div class="ui four wide column"></div>
+    <div class="ui eight wide column">
         {% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}
     </div>
+    <div class="ui four wide column"></div>
 </div>

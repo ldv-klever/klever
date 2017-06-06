@@ -360,6 +360,15 @@ window.set_actions_for_views = function(view_type) {
         }
         window.location.href = current_url;
     });
+
+    var show_viewform_btn = $('#view_show_form_btn_' + view_type);
+    show_viewform_btn.popup();
+    show_viewform_btn.click(function () {
+        show_viewform_btn.popup('hide');
+        var view_segment = $('#view_form_segment_' + view_type);
+        view_segment.is(':visible') ? view_segment.hide() : view_segment.show();
+        return false;
+    });
 };
 
 $(document).ready(function () {

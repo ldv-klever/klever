@@ -220,10 +220,12 @@ def safes_list(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
+    allow_redirect = True
     additional_parameters = {'page': request.GET.get('page', 1)}
     if request.GET.get('view_type') == VIEW_TYPES[5][0]:
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
+        allow_redirect = False
 
     title = _("All safes")
     if 'verdict' in request.GET:
@@ -252,8 +254,10 @@ def safes_list(request, report_id):
     table_data = reports.utils.SafesTable(request.user, report, **additional_parameters)
 
     # If there is only one element in table, and first column of table is link, redirect to this link
-    if table_data.table_data['values'].paginator.count == 1 and isinstance(table_data.table_data['values'][0], list) \
-            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
             and table_data.table_data['values'][0][0]['href']:
         return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
 
@@ -275,8 +279,10 @@ def unsafes_list(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
+    allow_redirect = True
     additional_parameters = {'page': request.GET.get('page', 1)}
     if request.GET.get('view_type') == '4':
+        allow_redirect = False
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
 
@@ -309,8 +315,10 @@ def unsafes_list(request, report_id):
     table_data = reports.utils.UnsafesTable(request.user, report, **additional_parameters)
 
     # If there is only one element in table, and first column of table is link, redirect to this link
-    if table_data.table_data['values'].paginator.count == 1 and isinstance(table_data.table_data['values'][0], list) \
-            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
             and table_data.table_data['values'][0][0]['href']:
         return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
 
@@ -332,10 +340,12 @@ def unknowns_list(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
+    allow_redirect = True
     additional_parameters = {'component': request.GET.get('component'), 'page': request.GET.get('page', 1)}
     if request.GET.get('view_type') == '6':
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
+        allow_redirect = False
 
     title = _("All unknowns")
     if 'problem' in request.GET:
@@ -364,8 +374,10 @@ def unknowns_list(request, report_id):
     table_data = reports.utils.UnknownsTable(request.user, report, **additional_parameters)
 
     # If there is only one element in table, and first column of table is link, redirect to this link
-    if table_data.table_data['values'].paginator.count == 1 and isinstance(table_data.table_data['values'][0], list) \
-            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
             and table_data.table_data['values'][0][0]['href']:
         return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
 

@@ -132,6 +132,8 @@ class SafesTable:
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
 
+        self.verdicts = SAFE_VERDICTS
+
         columns, values = self.__safes_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
@@ -170,12 +172,31 @@ class SafesTable:
             safes_filters['safe__verdict'] = self.verdict
             if isinstance(self.confirmed, bool) and self.confirmed:
                 safes_filters['safe__has_confirmed'] = True
-        elif self.attr is not None:
-            safes_filters['safe__attrs__attr'] = self.attr
+        else:
+            if 'verdict' in self.view:
+                safes_filters['safe__verdict__in'] = self.view['verdict']
+            if self.attr is not None:
+                safes_filters['safe__attrs__attr'] = self.attr
+
+        if 'parent_cpu' in self.view:
+            parent_cpu_value = int(self.view['parent_cpu'][1])
+            if self.view['parent_cpu'][2] == 's':
+                parent_cpu_value *= 1000
+            elif self.view['parent_cpu'][2] == 'm':
+                parent_cpu_value *= 60000
+            safes_filters['safe__verifier_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+
         leaves_set = self.report.leaves.filter(**safes_filters).exclude(safe=None).annotate(
             marks_number=Count('safe__markreport_set'),
             confirmed=Count(Case(When(safe__markreport_set__type='1', then=1)))
         ).values('safe_id', 'confirmed', 'marks_number', 'safe__verdict', 'safe__parent_id', 'safe__verifier_time')
+
+        if 'marks_number' in self.view:
+            if self.view['marks_number'][0] == 'confirmed':
+                marknum_filter = 'confirmed__%s' % self.view['marks_number'][1]
+            else:
+                marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
+            leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
         reports = {}
         for leaf in leaves_set:
@@ -257,7 +278,14 @@ class SafesTable:
         return columns, values_data
 
     def __has_tag(self, tags):
-        return self.tag is None or self.tag in tags
+        if self.tag is None and 'tags' not in self.view:
+            return True
+        elif self.tag is not None and self.tag in tags:
+            return True
+        elif 'tags' in self.view:
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+            return all(t in tags for t in view_tags)
+        return False
 
     def __filter_attr(self, attribute, value):
         if 'attr' in self.view:
@@ -268,6 +296,8 @@ class SafesTable:
                 if ftype == 'iexact' and attr_val.lower() != value.lower():
                     return False
                 elif ftype == 'istartswith' and not value.lower().startswith(attr_val.lower()):
+                    return False
+                elif ftype == 'iendswith' and not value.lower().endswith(attr_val.lower()):
                     return False
         return True
 
@@ -298,6 +328,8 @@ class UnsafesTable:
         self.view_type = VIEW_TYPES[4][0]
         (self.view, self.view_id) = self.__get_view(view, view_id)
         self.views = self.__views()
+
+        self.verdicts = UNSAFE_VERDICTS
 
         columns, values = self.__unsafes_data()
         self.paginator = None
@@ -337,13 +369,32 @@ class UnsafesTable:
             unsafes_filters['unsafe__verdict'] = self.verdict
             if isinstance(self.confirmed, bool) and self.confirmed:
                 unsafes_filters['unsafe__has_confirmed'] = True
-        elif self.attr is not None:
-            unsafes_filters['unsafe__attrs__attr'] = self.attr
+        else:
+            if 'verdict' in self.view:
+                unsafes_filters['unsafe__verdict__in'] = self.view['verdict']
+            if self.attr is not None:
+                unsafes_filters['unsafe__attrs__attr'] = self.attr
+
+        if 'parent_cpu' in self.view:
+            parent_cpu_value = int(self.view['parent_cpu'][1])
+            if self.view['parent_cpu'][2] == 's':
+                parent_cpu_value *= 1000
+            elif self.view['parent_cpu'][2] == 'm':
+                parent_cpu_value *= 60000
+            unsafes_filters['unsafe__verifier_time__%s' % self.view['parent_cpu'][0]] = parent_cpu_value
+
         leaves_set = self.report.leaves.filter(**unsafes_filters).exclude(unsafe=None).annotate(
             marks_number=Count('unsafe__markreport_set'),
             confirmed=Count(Case(When(unsafe__markreport_set__type='1', then=1)))
         ).values('unsafe_id', 'confirmed', 'marks_number', 'unsafe__verdict',
                  'unsafe__parent_id', 'unsafe__verifier_time')
+
+        if 'marks_number' in self.view:
+            if self.view['marks_number'][0] == 'confirmed':
+                marknum_filter = 'confirmed__%s' % self.view['marks_number'][1]
+            else:
+                marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
+            leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
         reports = {}
         for leaf in leaves_set:
@@ -425,7 +476,14 @@ class UnsafesTable:
         return columns, values_data
 
     def __has_tag(self, tags):
-        return self.tag is None or self.tag in tags
+        if self.tag is None and 'tags' not in self.view:
+            return True
+        elif self.tag is not None and self.tag in tags:
+            return True
+        elif 'tags' in self.view:
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+            return all(t in tags for t in view_tags)
+        return False
 
     def __filter_attr(self, attribute, value):
         if 'attr' in self.view:
@@ -436,6 +494,8 @@ class UnsafesTable:
                 if ftype == 'iexact' and attr_val.lower() != value.lower():
                     return False
                 elif ftype == 'istartswith' and not value.lower().startswith(attr_val.lower()):
+                    return False
+                elif ftype == 'iendswith' and not value.lower().endswith(attr_val.lower()):
                     return False
         return True
 
@@ -564,6 +624,8 @@ class UnknownsTable:
                 if ftype == 'iexact' and attr_val.lower() != value.lower():
                     return False
                 elif ftype == 'istartswith' and not value.lower().startswith(attr_val.lower()):
+                    return False
+                elif ftype == 'iendswith' and not value.lower().endswith(attr_val.lower()):
                     return False
         return True
 

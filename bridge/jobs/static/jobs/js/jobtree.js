@@ -176,15 +176,6 @@ $(document).ready(function () {
         return false;
     });
 
-    var fullscreen_btn = $('#jobstree-fullscreen-btn');
-    fullscreen_btn.popup();
-    fullscreen_btn.click(function () {
-        fullscreen_btn.popup('hide');
-        var tree_1_bigpart = $('#jobstree-first-big-part');
-        tree_1_bigpart.is(':visible') ? tree_1_bigpart.hide() : tree_1_bigpart.show();
-        return false;
-    });
-
     $('#move_columns_up').click(function () {
         var $op = $('#view_1__columns').children('option:selected');
         if ($op.length) {

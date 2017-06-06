@@ -19,6 +19,12 @@
             </div>
         </div>
         <div class="nine wide column">
+            <button id="view_show_form_btn_{{ TableData.view_type }}" type="button" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+            <div class="ui popup bottom right transition hidden">
+                <span>{% trans 'View' %}</span> ({% if TableData.view_id == 'default' %}{% trans 'Default' %}{% elif TableData.view_id %}{% for v in TableData.views %}{% if v.id == TableData.view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
+            </div>
+
+
             <div class="ui breadcrumb">
                 <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
                 <div class="ui special popup">
@@ -42,15 +48,17 @@
                     </div>
                 {% endfor %}
             </div>
-            <br><br>
-            {% if TableData.view_type == '6' %}
-                {% include 'reports/UnknownsFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=TableData.view_type %}
-            {% else %}
-                {% include 'reports/ListFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=TableData.view_type %}
-            {% endif %}
         </div>
     </div>
     <br>
+    <div id="view_form_segment_{{ TableData.view_type }}" class="ui form yellow segment" style="display:none;">
+        {% if TableData.view_type == '6' %}
+            {% include 'reports/UnknownsFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=TableData.view_type %}
+        {% else %}
+            {% include 'reports/ListFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=TableData.view_type verdicts=TableData.verdicts %}
+        {% endif %}
+        <br>
+    </div>
     {% if TableData.table_data.values|length %}
         <div>
             {% if TableData.table_data.values.has_previous %}
