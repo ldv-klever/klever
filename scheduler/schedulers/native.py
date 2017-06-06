@@ -22,12 +22,12 @@ import multiprocessing
 import os
 import shutil
 import signal
-import subprocess
 import sys
 
 import schedulers as schedulers
 import schedulers.resource_scheduler
 import utils
+import utils.executils
 
 
 def executor(timeout, args):
@@ -49,33 +49,11 @@ def executor(timeout, args):
     # Kill handler
     mypid = os.getpid()
     print('Executor {!r}: establish signal handlers'.format(mypid))
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
-    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
-
-    def handler(arg1, arg2):
-        print('Somebody wants to kill me ({!r})!'.format(mypid))
-        signal.signal(signal.SIGTERM, original_sigtrm_handler)
-        signal.signal(signal.SIGINT, original_sigint_handler)
-        os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
-        os._exit(-1)
-
-    signal.signal(signal.SIGTERM, handler)
-    signal.signal(signal.SIGINT, handler)
-
-    print('Executor {!r}: Start command {!r}'.format(mypid, ' '.join(args)))
-    prc = subprocess.Popen(args, preexec_fn=os.setsid)
-    print('Executor {!r}: Waiting for termination of {!r}'.format(mypid, ' '.join(args)))
-    try:
-        prc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        print('Executor {!r}: expired timeout {!r} for command: {!r}'.
-              format(mypid, timeout, ' '.join(args)))
-        os._exit(-1)
-
+    ec = utils.executils.execute(args, timeout=timeout)
     print('executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)))
 
     # Be sure that process will exit
-    os._exit(prc.returncode)
+    os._exit(ec)
 
 
 class Scheduler(schedulers.SchedulerExchange):
@@ -467,11 +445,13 @@ class Scheduler(schedulers.SchedulerExchange):
             reserved_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
         else:
             reserved_space = 0
-        self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False, reserved_space)
 
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
             if future:
+                self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False,
+                                                 reserved_space)
+
                 result = future.result()
                 logfile = "{}/client-log.log".format(work_dir)
                 if os.path.isfile(logfile):

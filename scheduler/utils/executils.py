@@ -25,10 +25,7 @@ import subprocess
 import queue
 import threading
 import time
-
-
-class CommandError(ChildProcessError):
-    pass
+import signal
 
 
 class StreamQueue:
@@ -71,52 +68,71 @@ class StreamQueue:
             self.traceback = traceback.format_exc().rstrip()
 
 
-def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=False):
+def execute(args, env=None, cwd=None, timeout=None, logger=None):
+    def handler(arg1, arg2):
+        # Repeate until it dies
+        if p and p.pid:
+            unkilled = True
+            os.kill(p.pid, signal.SIGTERM)
+            while unkilled:
+                try:
+                    # Wait until program terminates
+                    p.wait(timeout=60)
+                    unkilled = False
+                except subprocess.TimeoutExpired:
+                    # Repeate sending signal if it is still alive
+                    os.kill(p.pid, signal.SIGTERM)
+        os._exit(-1)
+
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, handler)
+
     cmd = args[0]
-    logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
-                                              '' if len(args) == 1 else ' ',
-                                              ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+    if logger:
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
-    p = subprocess.Popen(args, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, cwd=cwd)
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
-    out_q, err_q = (StreamQueue(p.stdout, 'STDOUT', collect_all_stdout), StreamQueue(p.stderr, 'STDERR', True))
+        p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
 
-    for stream_q in (out_q, err_q):
-        stream_q.start()
+        err_q = StreamQueue(p.stderr, 'STDERR', True)
+        err_q.start()
 
-    # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
-    # print last messages queued before command finishes.
-    last_try = True
-    while not out_q.finished or not err_q.finished or last_try:
-        if out_q.traceback:
-            raise RuntimeError('STDOUT reader thread failed with the following traceback:\n{0}'. format(out_q.traceback))
-        if err_q.traceback:
-            raise RuntimeError('STDERR reader thread failed with the following traceback:\n{0}'. format(err_q.traceback))
-        last_try = not out_q.finished or not err_q.finished
-        time.sleep(timeout)
+        # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+        # print last messages queued before command finishes.
+        last_try = True
+        while not err_q.finished or last_try:
+            if err_q.traceback:
+                raise RuntimeError(
+                    'STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
+            last_try = not err_q.finished
+            time.sleep(timeout if isinstance(timeout, int) else 0)
 
-        for stream_q in (out_q, err_q):
             output = []
             while True:
-                line = stream_q.get()
+                line = err_q.get()
                 if line is None:
                     break
                 output.append(line)
             if output:
-                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, stream_q.stream_name, '\n'.join(output))
-                if stream_q is out_q:
-                    logger.debug(m)
-                else:
-                    logger.warning(m)
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
+                logger.warning(m)
 
-    for stream_q in (out_q, err_q):
-        stream_q.join()
+        err_q.join()
 
-    if p.poll():
-        logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
-        with open('problem desc.txt', 'a', encoding='utf8') as fp:
-            fp.write('\n'.join(err_q.output))
-        raise CommandError('"{0}" failed'.format(cmd))
+        if p.poll():
+            logger.error('"{0}" exitted with "{1}"'.format(cmd, p.poll()))
+    else:
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid)
+        p.wait(timeout)
+    signal.signal(signal.SIGTERM, original_sigtrm_handler)
+    signal.signal(signal.SIGINT, original_sigint_handler)
 
     return p.returncode
 

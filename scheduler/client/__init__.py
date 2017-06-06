@@ -19,14 +19,14 @@ import glob
 import json
 import os
 import re
-import zipfile
 import sys
-import signal
 import traceback
-from xml.etree import ElementTree
+import zipfile
 from xml.dom import minidom
+from xml.etree import ElementTree
+
 from server.bridge import Server
-from client.executils import execute
+from utils.executils import execute
 
 
 def run_benchexec(mode, file=None, configuration=None):
@@ -179,7 +179,6 @@ def solve(logger, conf, mode='job', server=None):
         path = conf['client']['verification tools'][tool][version]
         logger.debug("Add {!r} of version {!r} bin location {!r} to PATH".format(tool, version, path))
         os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
-    set_signal_handler(executor)
 
     # Check resource limitations
     if "CPU time" not in conf["resource limits"] or not conf["resource limits"]["CPU time"]:
@@ -274,8 +273,10 @@ def solve(logger, conf, mode='job', server=None):
 
         args = ['benchexec'] + args + additional_opts + ["benchmark.xml"]
         logger.info("Start task execution with the following options: {}".format(str(args)))
-        exit_code = execute(logger, args)
+        exit_code = execute(args, logger=logger)
         logger.info("Task solution has finished with exit code {}".format(exit_code))
+        if exit_code != 0:
+            raise RuntimeError("BenchExec termineated with exit code {}".format(exit_code))
 
         logger.debug("Translate benchexec output into our results format")
         decision_results = {
@@ -340,21 +341,5 @@ def split_archive_name(path):
         extension = split[1] + extension
 
     return name, extension
-
-
-def set_signal_handler(executor):
-    """
-    Set custom sigterm handler in order to terminate job/task execution with all process group.
-
-    :param executor: Object which corresponds RunExec or BenchExec. Should have method stop().
-    :return: None
-    """
-    def handler(a, b):
-        executor.stop()
-        os._exit(-1)
-
-    # Set custom handler
-    signal.signal(signal.SIGTERM, handler)
-
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
