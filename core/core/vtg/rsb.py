@@ -20,6 +20,7 @@ import os
 import re
 import time
 import zipfile
+from xml.etree import ElementTree
 
 import core.components
 import core.session
@@ -364,6 +365,26 @@ class RSB(core.components.Component):
                           self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, verification_report_id):
+        # Parse reports and determine status
+        benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
+        if len(benchexec_reports) != 1:
+            raise FileNotFoundError('Expect strictly single BenchExec XML report file, but found {}'.
+                                    format(len(benchexec_reports)))
+
+        # Expect single report file
+        with open(benchexec_reports[0], encoding="utf8") as fp:
+            result = ElementTree.parse(fp).getroot()
+
+            run = result.findall("run")[0]
+            for column in run.iter("column"):
+                name, value = [column.attrib.get(name) for name in ("title", "value")]
+                if name == "status":
+                    decision_results["status"] = value
+
+        # Check that we have set status
+        if "status" not in decision_results:
+            raise KeyError("There is no solution status in BenchExec XML report")
+
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
@@ -371,7 +392,7 @@ class RSB(core.components.Component):
         # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
         self.witness_processing_exception = None
 
-        if decision_results['status'] == 'safe':
+        if re.match('true', decision_results['status']):
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -383,8 +404,10 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
+
+            self.verdict = 'safe'
         else:
-            witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
+            witnesses = glob.glob(os.path.join('output', '*.files', 'cil.i', '*', 'witness.*.graphml'))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
@@ -424,7 +447,9 @@ class RSB(core.components.Component):
                         else:
                             self.witness_processing_exception = e
 
-            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
+                self.verdict = 'unsafe'
+
+            if re.match('false', decision_results['status']) and self.rule_specification != 'sync:race':
                 try:
                     if len(witnesses) != 1:
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
@@ -447,7 +472,9 @@ class RSB(core.components.Component):
                                       self.conf['main working directory'])
                 except Exception as e:
                     self.witness_processing_exception = e
-            elif decision_results['status'] != 'unsafe':
+
+                self.verdict = 'unsafe'
+            elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
@@ -467,7 +494,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-        self.verdict = decision_results['status']
+                self.verdict = 'unknown'
 
     def create_verification_finish_report(self, verification_report_id):
         core.utils.report(self.logger,
