@@ -309,7 +309,8 @@ class ViewJobData:
             safe_name = 'safe:' + safe_name
             if safe_name in safes_numbers:
                 safes_data.append(safes_numbers[safe_name])
-        self.safes_total = (total_safes, reverse('reports:safes', args=[self.report.pk]))
+        if total_safes > 0:
+            self.safes_total = (total_safes, reverse('reports:safes', args=[self.report.pk]))
         return safes_data
 
     def __unsafes_info(self):
@@ -361,7 +362,8 @@ class ViewJobData:
             unsafe_name = 'unsafe:' + unsafe_name
             if unsafe_name in unsafes_numbers:
                 unsafes_data.append(unsafes_numbers[unsafe_name])
-        self.unsafes_total = (total_unsafes, reverse('reports:unsafes', args=[self.report.pk]))
+        if total_unsafes > 0:
+            self.unsafes_total = (total_unsafes, reverse('reports:unsafes', args=[self.report.pk]))
         return unsafes_data
 
     def __safes_attrs_statistic(self):
