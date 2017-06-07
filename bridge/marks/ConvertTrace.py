@@ -21,7 +21,8 @@ from types import MethodType
 from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.utils import ArchiveFileContent, logger, file_get_or_create, BridgeException
-from reports.etv import error_trace_callstack, ErrorTraceCallstackTree, ErrorTraceForests
+from reports.etv import error_trace_callstack, error_trace_callstack_all_warnings, ErrorTraceCallstackTree,\
+    ErrorTraceForests
 from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 
 # To create new funciton:
@@ -60,7 +61,7 @@ class ConvertTrace:
     def call_stack(self):
         """
 This function is extracting the error trace call stack to first warning.
-Return list of lists of function names in json format.
+Return list of function names.
         """
         return error_trace_callstack(self.error_trace)
 
@@ -68,7 +69,7 @@ Return list of lists of function names in json format.
         """
 This function is extracting the error trace call stack tree.
 All its leaves are model functions.
-Return list of lists of levels of function names in json format.
+Return list of lists of levels of function names.
         """
 
         return ErrorTraceCallstackTree(self.error_trace).trace
@@ -90,6 +91,13 @@ Return list of forests. These forests includes callback actions as leaves.
         """
 
         return ErrorTraceForests(self.error_trace, True).trace
+
+    def call_stack_all_warnings(self):
+        """
+This function is extracting the error trace call stacks to all warnings.
+Return list of lists of function names in json format.
+        """
+        return error_trace_callstack_all_warnings(self.error_trace)
 
 
 class GetConvertedErrorTrace:

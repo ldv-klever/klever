@@ -661,6 +661,21 @@ def error_trace_callstack(error_trace):
     return call_stack
 
 
+def error_trace_callstack_all_warnings(error_trace):
+    call_stacks = []
+    data = json.loads(error_trace)
+    call_stack = []
+    for edge_id in get_error_trace_nodes(data):
+        edge_data = data['edges'][edge_id]
+        if 'enter' in edge_data:
+            call_stack.append(data['funcs'][edge_data['enter']])
+        if 'return' in edge_data:
+            call_stack.pop()
+        if 'warn' in edge_data:
+            call_stacks.append(list(call_stack))
+    return call_stacks
+
+
 class ErrorTraceCallstackTree:
     def __init__(self, error_trace):
         self.data = json.loads(error_trace)
