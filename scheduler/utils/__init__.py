@@ -14,14 +14,65 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import subprocess
 import logging
 import logging.config
 import argparse
 import os
 import json
 import shutil
+import subprocess
+import queue
+import threading
+import time
+import signal
+import zipfile
+import re
+import glob
+from xml.etree import ElementTree
+
+
+class StreamQueue:
+    """
+    Implements queue to work with output stream to catch stderr or stdout.
+    """
+
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.traceback = None
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        try:
+            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+            # execution of command will be completed.
+            for line in self.stream:
+                line = line.decode('utf8').rstrip()
+                self.queue.put(line)
+                if self.collect_all_output:
+                    self.output.append(line)
+
+            # Nothing will be put to queue from now.
+            self.finished = True
+        except Exception:
+            import traceback
+            self.traceback = traceback.format_exc().rstrip()
 
 
 def common_initialization(tool, conf=None):
@@ -156,5 +207,152 @@ def higher_priority(one, two, strictly=False):
         return one_priority > two_priority
     else:
         return one_priority >= two_priority
+
+
+def execute(args, env=None, cwd=None, timeout=None, logger=None):
+    """
+    Execute given command in a separate process catching its stderr if necessary.
+
+    :param args: Command erguments.
+    :param env: Environment variables.
+    :param cwd: Current working directory to run the command.
+    :param timeout: Timeout for the command.
+    :param logger: Logger object.
+    :return: subprocess.Popen.returncode.
+    """
+
+    def handler(arg1, arg2):
+        # Repeate until it dies
+        if p and p.pid:
+            unkilled = True
+            os.kill(p.pid, signal.SIGTERM)
+            while unkilled:
+                try:
+                    # Wait until program terminates
+                    p.wait(timeout=60)
+                    unkilled = False
+                except subprocess.TimeoutExpired:
+                    # Repeate sending signal if it is still alive
+                    os.kill(p.pid, signal.SIGTERM)
+        os._exit(-1)
+
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
+    signal.signal(signal.SIGTERM, handler)
+    signal.signal(signal.SIGINT, handler)
+
+    cmd = args[0]
+    if logger:
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+
+        p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
+
+        err_q = StreamQueue(p.stderr, 'STDERR', True)
+        err_q.start()
+
+        # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+        # print last messages queued before command finishes.
+        last_try = True
+        while not err_q.finished or last_try:
+            if err_q.traceback:
+                raise RuntimeError(
+                    'STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
+            last_try = not err_q.finished
+            time.sleep(timeout if isinstance(timeout, int) else 0)
+
+            output = []
+            while True:
+                line = err_q.get()
+                if line is None:
+                    break
+                output.append(line)
+            if output:
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
+                logger.warning(m)
+
+        err_q.join()
+
+    else:
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid)
+        p.wait(timeout)
+    signal.signal(signal.SIGTERM, original_sigtrm_handler)
+    signal.signal(signal.SIGINT, original_sigint_handler)
+
+    return p.returncode
+
+
+def process_task_results(logger):
+    """
+    Expect working directory after BenchExec finished its work. Then parse its generated files and read spent resources.
+
+    :param logger: Logger object.
+    :return:
+    """
+    logger.debug("Translate benchexec output into our results format")
+    decision_results = {
+        "resources": {}
+    }
+    # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
+    solutions = glob.glob(os.path.join("output", "benchmark*results.xml"))
+    if len(solutions) == 0:
+        raise FileNotFoundError("Cannot find any solution generated by BenchExec")
+
+    for benexec_output in solutions:
+        with open(benexec_output, encoding="utf8") as fp:
+            result = ElementTree.parse(fp).getroot()
+            decision_results["desc"] = '{0}\n{1} {2}'.format(result.attrib.get('generator'),
+                                                             result.attrib.get('tool'),
+                                                             result.attrib.get('version'))
+            run = result.findall("run")[0]
+            for column in run.iter("column"):
+                name, value = [column.attrib.get(name) for name in ("title", "value")]
+                if name == "cputime":
+                    match = re.search(r"^(\d+\.\d+)s$", value)
+                    if match:
+                        decision_results["resources"]["CPU time"] = int(float(match.groups()[0]) * 1000)
+                elif name == "walltime":
+                    match = re.search(r"^(\d+\.\d+)s$", value)
+                    if match:
+                        decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
+                elif name == "memUsage":
+                    decision_results["resources"]["memory size"] = int(value)
+                elif name == "exitcode":
+                    decision_results["exit code"] = int(value)
+
+    return decision_results
+
+
+def submit_task_results(logger, server, identifier, decision_results):
+    """
+    Pack output directory prepared by BenchExec and prepare report archive with decision results and
+    upload it to the server.
+
+    :param logger: Logger object.
+    :param server: server.AbstractServer object.
+    :param identifier: Task identifier.
+    :param decision_results: Dictionary with decision results and measured resources.
+    :return: None
+    """
+
+    results_file = "decision results.json"
+    logger.debug("Save decision results to the disk: {}".format(os.path.abspath(results_file)))
+    with open(results_file, "w", encoding="utf8") as fp:
+        json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+    results_archive = 'decision result files.zip'
+    logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
+    with zipfile.ZipFile(results_archive, mode='w') as zfp:
+        zfp.write("decision results.json")
+        for dirpath, dirnames, filenames in os.walk("output"):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename))
+
+    server.submit_solution(identifier, decision_results, results_archive)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

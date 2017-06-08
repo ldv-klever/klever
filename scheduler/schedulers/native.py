@@ -27,7 +27,6 @@ import sys
 import schedulers as schedulers
 import schedulers.resource_scheduler
 import utils
-import utils.executils
 
 
 def executor(timeout, args):
@@ -49,7 +48,7 @@ def executor(timeout, args):
     # Kill handler
     mypid = os.getpid()
     print('Executor {!r}: establish signal handlers'.format(mypid))
-    ec = utils.executils.execute(args, timeout=timeout)
+    ec = utils.execute(args, timeout=timeout)
     print('executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)))
 
     # Be sure that process will exit
@@ -340,13 +339,13 @@ class Scheduler(schedulers.SchedulerExchange):
             client_conf["common"]["working directory"] = work_dir
             with open(os.path.join(work_dir, "task.json"), "w", encoding="utf8") as fp:
                 json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
-            for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
+            for name in ("resource limits", "verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
 
             # Add particular
-            first_cpu = node_status["available CPU number"] - node_status["reserved CPU number"] - \
-                        client_conf["resource limits"]["number of CPU cores"]
-            last_cpu = node_status["available CPU number"] - node_status["reserved CPU number"]
+            first_cpu = int(node_status["available CPU number"]) - int(node_status["reserved CPU number"]) - \
+                        int(client_conf["resource limits"]["number of CPU cores"])
+            last_cpu = int(node_status["available CPU number"]) - int(node_status["reserved CPU number"])
             client_conf["resource limits"]["CPU cores"] = [x for x in range(first_cpu, last_cpu)]
 
             # Property file may not be specified.

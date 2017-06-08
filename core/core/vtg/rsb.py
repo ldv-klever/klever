@@ -21,6 +21,7 @@ import re
 import time
 import zipfile
 from xml.etree import ElementTree
+from xml.dom import minidom
 
 import core.components
 import core.session
@@ -40,8 +41,10 @@ class RSB(core.components.Component):
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
-        self.prepare_property_file()
-        self.prepare_src_files()
+        property_file = self.prepare_property_file()
+        files = self.prepare_src_files()
+        benchmark = self.prepare_benchmark_description(files, property_file)
+        self.files = files + [property_file] + [benchmark]
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -59,6 +62,27 @@ class RSB(core.components.Component):
                         os.remove(extra_c_file['C file'])
 
     main = generate_verification_tasks
+
+    def prepare_benchmark_description(self, files, property_file):
+        # Property file may not be specified.
+        self.logger.debug("Prepare benchmark.xml file")
+        benchmark = ElementTree.Element("benchmark", {
+            "tool": self.conf['VTG strategy']['verifier']['name'].lower()
+        })
+        rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
+        for opt in self.conf['VTG strategy']['verifier']['options']:
+            for name in opt:
+                ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
+        ElementTree.SubElement(benchmark, "propertyfile").text = property_file
+
+        tasks = ElementTree.SubElement(benchmark, "tasks")
+        # TODO: in this case verifier is invoked per each such file rather than per all of them.
+        for file in files:
+            ElementTree.SubElement(tasks, "include").text = file
+        with open("benchmark.xml", "w", encoding="utf8") as fp:
+            fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
+
+        return "benchmark.xml"
 
     def set_common_verifier_options(self):
         if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':
@@ -141,8 +165,15 @@ class RSB(core.components.Component):
                 self.rule_specification = attr_val
 
         # Use resource limits and verifier specified in job configuration.
-        self.task_desc.update({'verifier': self.conf['VTG strategy']['verifier'],
-                               'resource limits': self.restrictions})
+        self.task_desc.update(
+            {
+                'verifier': {
+                    'name': self.conf['VTG strategy']['verifier']['name'],
+                    'version': self.conf['VTG strategy']['verifier']['version']
+                },
+                'resource limits': self.restrictions
+            }
+        )
 
     def prepare_bug_kind_functions_file(self):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
@@ -179,7 +210,7 @@ class RSB(core.components.Component):
                     for spec in self.conf['abstract task desc']['verifier specifications']:
                         fp.write('CHECK( init({0}()), {1} )\n'.format(
                             self.conf['abstract task desc']['entry points'][0], spec))
-                self.task_desc['property file'] = 'spec.prp'
+                property_file = 'spec.prp'
 
                 self.logger.debug('Verifier property file was outputted to "spec.prp"')
             else:
@@ -187,14 +218,16 @@ class RSB(core.components.Component):
                     fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                     self.conf['abstract task desc']['entry points'][0]))
 
-                self.task_desc['property file'] = 'unreach-call.prp'
+                property_file = 'unreach-call.prp'
 
                 self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
         else:
-            self.logger.warning('Verifier property file was not prepared since entry points were not specified')
+            raise ValueError('Verifier property file was not prepared since entry points were not specified')
+
+        return property_file
 
     def prepare_src_files(self):
-        self.task_desc['files'] = []
+        files = []
 
         if self.conf['VTG strategy']['merge source files']:
             self.logger.info('Merge source files by means of CIL')
@@ -242,22 +275,21 @@ class RSB(core.components.Component):
                     if 'new C file' in extra_c_file:
                         os.remove(extra_c_file['new C file'])
 
-            self.task_desc['files'].append('cil.i')
+            files.append('cil.i')
 
             self.logger.debug('Merged source files was outputted to "cil.i"')
         else:
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                self.task_desc['files'].append(extra_c_file['C file'])
+                files.append(extra_c_file['C file'])
+
+        return files
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
         with zipfile.ZipFile('task files.zip', mode='w') as zfp:
-            if self.task_desc['property file']:
-                zfp.write(self.task_desc['property file'])
-            for file in self.task_desc['files']:
+            for file in self.files:
                 zfp.write(file)
-            self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
@@ -272,10 +304,6 @@ class RSB(core.components.Component):
                           self.conf['main working directory'])
 
         self.verdict = None
-
-        if not self.task_desc['property file']:
-            self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
-            return
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
@@ -355,8 +383,7 @@ class RSB(core.components.Component):
                               'resources': decision_results['resources'],
                               'log': None if self.logger.disabled else self.log_file,
                               'files': ([] if self.logger.disabled else [self.log_file]) + (
-                                  (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
-                                  [self.task_desc['property file']] + self.task_desc['files']
+                                  self.files
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
@@ -407,7 +434,7 @@ class RSB(core.components.Component):
 
             self.verdict = 'safe'
         else:
-            witnesses = glob.glob(os.path.join('output', '*.files', 'cil.i', '*', 'witness.*.graphml'))
+            witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".

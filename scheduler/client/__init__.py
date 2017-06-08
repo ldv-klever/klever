@@ -18,15 +18,13 @@
 import glob
 import json
 import os
-import re
 import sys
 import traceback
 import zipfile
-from xml.dom import minidom
-from xml.etree import ElementTree
+import shutil
 
+from utils import execute, process_task_results, submit_task_results
 from server.bridge import Server
-from utils.executils import execute
 
 
 def run_benchexec(mode, file=None, configuration=None):
@@ -103,7 +101,7 @@ def run_benchexec(mode, file=None, configuration=None):
             NotImplementedError("Provided mode {} is not supported by the client".format(mode))
 
         exit_code = solve(logger, conf, mode, server)
-        logger.info("Exiting with exit code {}".format(exit_code))
+        logger.info("Exiting with exit code {}".format(str(exit_code)))
     except:
         logger.warning(traceback.format_exc().rstrip())
         exit_code = -1
@@ -121,6 +119,7 @@ def solve(logger, conf, mode='job', server=None):
     # Check configuration
     logger.debug("Check configuration consistency")
 
+    # todo: remove
     if "benchexec location" not in conf["client"]:
         raise KeyError("Provide configuration option 'client''benchexec location' as path to benchexec sources")
     if "resource limits" not in conf:
@@ -128,6 +127,7 @@ def solve(logger, conf, mode='job', server=None):
 
     # Import runexec from BenchExec
     # todo: make it if the option is set otherwise import the package from pip
+    # todo: just remove
     bench_exec_location = os.path.join(conf["client"]["benchexec location"])
     sys.path.append(bench_exec_location)
 
@@ -199,7 +199,7 @@ def solve(logger, conf, mode='job', server=None):
     if "CPU cores" not in conf["resource limits"] or not conf["resource limits"]["CPU cores"]:
         conf["resource limits"]["CPU cores"] = None
         logger.debug("CPU cores limit will not be set")
-    if "number of CPU cores" not in conf["resource limits"] or not not conf["resource limits"]["number of CPU cores"]:
+    if "number of CPU cores" not in conf["resource limits"] or not conf["resource limits"]["number of CPU cores"]:
         conf["resource limits"]["number of CPU cores"] = None
         logger.debug("CPU cores limit will not be set")
 
@@ -231,115 +231,69 @@ def solve(logger, conf, mode='job', server=None):
         with zipfile.ZipFile('task files.zip') as zfp:
             zfp.extractall()
 
-        logger.debug("Prepare benchmark")
-        benchmark = ElementTree.Element("benchmark", {
-            "tool": conf["verifier"]["name"].lower(),
-            "timelimit": str(round(conf["resource limits"]["CPU time"] / 1000)),
-            "memlimit": str(conf["resource limits"]["memory size"]) + "B",
-        })
-        rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-        for opt in conf["verifier"]["options"]:
-            for name in opt:
-                ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
-        # Property file may not be specified.
-        if "property file" in conf:
-            ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
-        if "extra benchexec options" in conf['client']:
-            additional_opts = conf['client']["extra benchexec options"]
-        else:
-            additional_opts = []
-
-        tasks = ElementTree.SubElement(benchmark, "tasks")
-        # TODO: in this case verifier is invoked per each such file rather than per all of them.
-        for file in conf["files"]:
-            ElementTree.SubElement(tasks, "include").text = file
-        with open("benchmark.xml", "w", encoding="utf8") as fp:
-            fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
-
         os.makedirs("output".encode("utf8"))
 
-        # This is done because of CPAchecker is not clever enough to search for its configuration and specification
-        #  files around its binary.
-        os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
+        args = prepare_task_arguments(logger, conf)
 
-        # todo: set container mode
-        args = ["--no-compress-results", "--outputpath", "./output/", "--container"]
-        # todo: BenchExec cannot get identifiers, so setting particular cores is inefficient
-        #if conf["resource limits"]["number of CPU cores"]:
-        #    args.extend(["--limitCores", conf["resource limits"]["number of CPU cores"]])
-        # todo: without container mode it is not working
-        #if conf["resource limits"]["disk memory size"]:
-        #    args.extend(["--filesSizeLimit", conf["resource limits"]["disk memory size"]])
-
-        args = ['benchexec'] + args + additional_opts + ["benchmark.xml"]
         logger.info("Start task execution with the following options: {}".format(str(args)))
         exit_code = execute(args, logger=logger)
         logger.info("Task solution has finished with exit code {}".format(exit_code))
         if exit_code != 0:
-            raise RuntimeError("BenchExec termineated with exit code {}".format(exit_code))
+            # To keep the last warning exit without any exception
+            server.stop()
+            os._exit(int(exit_code))
 
-        logger.debug("Translate benchexec output into our results format")
-        decision_results = {
-            "resources": {}
-        }
-        # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
-        solutions = glob.glob(os.path.join("output", "benchmark*results.xml"))
-        if len(solutions) == 0:
-            raise FileNotFoundError("Cannot find any solution generated by BenchExec")
+        # Move tasks collected in container mode to expected place
+        if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
+            for entry in glob.glob(os.path.join('output', '*.files', 'cil.i', '*', '*')):
+                shutil.move(entry, 'output')
 
-        for benexec_output in solutions:
-            with open(benexec_output, encoding="utf8") as fp:
-                result = ElementTree.parse(fp).getroot()
-                decision_results["desc"] = '{0}\n{1} {2}'.format(result.attrib.get('generator'),
-                                                                 result.attrib.get('tool'),
-                                                                 result.attrib.get('version'))
-                run = result.findall("run")[0]
-                for column in run.iter("column"):
-                    name, value = [column.attrib.get(name) for name in ("title", "value")]
-                    if name == "cputime":
-                        match = re.search(r"^(\d+\.\d+)s$", value)
-                        if match:
-                            decision_results["resources"]["CPU time"] = int(float(match.groups()[0]) * 1000)
-                    elif name == "walltime":
-                        match = re.search(r"^(\d+\.\d+)s$", value)
-                        if match:
-                            decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
-                    elif name == "memUsage":
-                        decision_results["resources"]["memory size"] = int(value)
-                    elif name == "exitcode":
-                        decision_results["exit code"] = int(value)
-
-        with open("decision results.json", "w", encoding="utf8") as fp:
-            json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
-
-        with zipfile.ZipFile('decision result files.zip', mode='w') as zfp:
-            zfp.write("decision results.json")
-            for dirpath, dirnames, filenames in os.walk("output"):
-                for filename in filenames:
-                    zfp.write(os.path.join(dirpath, filename))
-            if conf["upload input files of static verifiers"]:
-                zfp.write("benchmark.xml")
-
-        server.submit_solution(conf["identifier"], decision_results, "decision result files.zip")
+        decision_results = process_task_results(logger)
+        submit_task_results(logger, server, conf["identifier"], decision_results)
 
     return exit_code
 
 
-def split_archive_name(path):
+def prepare_task_arguments(logger, conf):
     """
-    Split archive name into file name and extension. The difference with is.path.splitext is that this function can
-    properly parse double zipped archive names like myname.tar.gz providing "myname" and ".tar.gz". Would not work
-    properly with names which contain dots.
-    :param path: File path or file name.
-    :return: tuple with file name at the first position and extension within the second one.
-    """
-    name = path
-    extension = ""
-    while "." in name:
-        split = os.path.splitext(name)
-        name = split[0]
-        extension = split[1] + extension
+    Prepare arguments for solution of a verification task with BenchExec.
 
-    return name, extension
+    :param logger: Logger.
+    :param conf: Configuration dictionary.
+    :return: List with options.
+    """
+
+    # BenchExec arguments
+    if "benchexec location" in conf["client"]:
+        args = [os.path.join(conf["client"]["benchexec location"], 'benchexec')]
+    else:
+        args = ['benchexec']
+
+    if "CPU cores" in conf["resource limits"]:
+        args.extend(["--limitCores", str(conf["resource limits"]["number of CPU cores"])])
+        args.append("--allowedCores")
+        args.extend(list(map(str, conf["resource limits"]["CPU cores"])))
+
+    if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
+            conf['client']["benchexec measure disk"]:
+        args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
+
+    args.extend(['--memorylimit', str(conf["resource limits"]['memory size'])])
+    args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
+
+    # Check container mode
+    if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
+        args.append('--container')
+
+        if "benchexec container mode options" in conf['client']:
+            args.extend(conf['client']["benchexec container mode options"])
+    else:
+        args.append('--no-container')
+
+    args.extend(["--no-compress-results", "--outputpath", "./output/"])
+
+    args.append("benchmark.xml")
+
+    return args
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
