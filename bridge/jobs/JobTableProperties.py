@@ -21,8 +21,8 @@ from django.db.models import Q, F
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from bridge.vars import JOB_TREE_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS,\
-    VIEW_TYPES
+from bridge.vars import JOB_TREE_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS,\
+    UNSAFE_VERDICTS, VIEW_TYPES
 from users.models import View
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem

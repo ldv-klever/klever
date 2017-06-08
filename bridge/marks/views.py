@@ -331,7 +331,6 @@ def get_mark_version_data(request):
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
 
-    titles = {'unsafe': _('Unsafe marks'), 'safe': _('Safe marks'), 'unknown': _('Unknown marks')}
     verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
 
     view_type_map = {'7': 'unsafe', '8': 'safe', '9': 'unknown'}
@@ -344,7 +343,6 @@ def mark_list(request, marks_type):
     return render(request, 'marks/MarkList.html', {
         'tabledata': MarksList(request.user, marks_type, **view_add_args),
         'type': marks_type,
-        'title': titles[marks_type],
         'statuses': MARK_STATUS,
         'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],

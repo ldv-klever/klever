@@ -2,19 +2,20 @@
 
 {% load i18n %}
 {% block title %}{% if type == 'safe' %}{% trans 'Safe marks' %}{% elif type == 'unsafe' %}{% trans 'Unsafe marks' %}{% else %}{% trans 'Unknown marks' %}{% endif %}{% endblock %}
+
 {% block body_block %}
     <input id="marks_type" type="hidden" value="{{ type }}">
-    <div class="ui grid">
-        <div class="one wide column right aligned">
-            <button class="ui basic icon red button note-popup" id="show_remove_marks_popup" data-position="bottom left" data-content="{% trans 'Delete selected marks' %}"><i class="ui remove icon"></i></button>
-        </div>
-        <div class="fifteen wide column">
-            {% include 'marks/filters.html' with view_type=tabledata.view_type view=tabledata.view view_id=tabledata.view_id views=tabledata.views %}
-        </div>
+    <div id="view_form_segment_{{ tabledata.view_type }}" class="ui form yellow segment" style="display:none;">
+        {% include 'marks/filters.html' with view_type=tabledata.view_type view=tabledata.view view_id=tabledata.view_id views=tabledata.views %}
     </div>
+    <button id="view_show_form_btn_{{ tabledata.view_type }}" type="button" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+    <div class="ui popup bottom right transition hidden">
+        <span>{% trans 'View' %}</span> ({% if tabledata.view_id == 'default' %}{% trans 'Default' %}{% elif tabledata.view_id %}{% for v in tabledata.views %}{% if v.id == tabledata.view_id %}{{ v.name }}{% endif %}{% endfor %}{% else %}{% trans 'unsaved' %}{% endif %})
+    </div>
+    <button class="ui mini basic icon red button note-popup" id="show_remove_marks_popup" data-position="bottom left" data-content="{% trans 'Delete selected marks' %}"><i class="ui remove icon"></i></button>
+    <br><br>
 
     {% if tabledata.values|length %}
-        <h2 class="header" style="text-align:center">{{ title }}</h2>
         <div>
             {% if tabledata.values.has_previous %}
                 <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ tabledata.values.previous_page_number }}"></i>

@@ -21,11 +21,12 @@ from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F
+from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy
 
 from bridge.tableHead import Header
 from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS,\
-    MARK_SAFE, MARK_UNSAFE, MARK_STATUS, DEF_NUMBER_OF_ELEMENTS
+    MARK_SAFE, MARK_UNSAFE, MARK_STATUS, DEF_NUMBER_OF_ELEMENTS, VIEW_TYPES
 from bridge.utils import unique_id
 
 from users.models import View
@@ -47,6 +48,7 @@ MARK_TITLES = {
     'result': _('Similarity'),
     'status': _('Status'),
     'author': _('Last change author'),
+    'change_date': _('Last change date'),
     'association_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
@@ -437,7 +439,7 @@ class MarksList:
             return
         self.authors = []
 
-        view_types = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
+        view_types = {'unsafe': VIEW_TYPES[7][0], 'safe': VIEW_TYPES[8][0], 'unknown': VIEW_TYPES[9][0]}
         self.view_type = view_types[self.type]
         self.view, self.view_id = self.__get_view(view, view_id)
         self.views = self.__views()
@@ -478,14 +480,7 @@ class MarksList:
 
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
-        if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern', 'source']:
-                if col in self.view['columns']:
-                    columns.append(col)
-        else:
-            for col in ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format', 'source']:
-                if col in self.view['columns']:
-                    columns.append(col)
+        columns.extend(self.view['columns'])
         return columns
 
     def __get_marks(self):
@@ -516,11 +511,14 @@ class MarksList:
         table_filters = Q(**filters)
         for uf in unfilter:
             table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
+        order_field = 'id'
+        if self.view['order'][1] == 'change_date':
+            order_field = 'change_date'
         if self.type == 'unsafe':
-            return MarkUnsafe.objects.filter(table_filters)
+            return MarkUnsafe.objects.filter(table_filters).order_by(order_field)
         elif self.type == 'safe':
-            return MarkSafe.objects.filter(table_filters)
-        return MarkUnknown.objects.filter(table_filters)
+            return MarkSafe.objects.filter(table_filters).order_by(order_field)
+        return MarkUnknown.objects.filter(table_filters).order_by(order_field)
 
     def __get_attrs(self):
         if self.type == 'safe':
@@ -560,15 +558,19 @@ class MarksList:
         return values
 
     def __get_values(self):
+        view_tags = []
+        if 'tags' in self.view:
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+
         values = []
-        cnt = 0
         for mark in self.marks:
             if mark.author not in self.authors:
                 self.authors.append(mark.author)
-            cnt += 1
             values_str = []
             order_by_value = ''
             for col in self.columns:
+                if col in {'mark_num', 'checkbox'}:
+                    continue
                 val = '-'
                 color = None
                 href = None
@@ -578,9 +580,6 @@ class MarksList:
                         order_by_value = val
                     if not self.__filter_attr(col, val):
                         break
-                elif col == 'mark_num':
-                    val = cnt
-                    href = reverse('marks:view_mark', args=[self.type, mark.id])
                 elif col == 'num_of_links':
                     val = mark.markreport_set.count()
                     if self.__get_order() == 'num_of_links':
@@ -604,6 +603,10 @@ class MarksList:
                     if mark.author is not None:
                         val = mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark.author_id])
+                elif col == 'change_date':
+                    val = mark.change_date
+                    if self.user.extended.data_format == 'hum':
+                        val = Template('{% load humanize %}{{ date|naturaltime }}').render(Context({'date': val}))
                 elif col == 'format':
                     val = mark.format
                 elif col == 'component':
@@ -617,26 +620,36 @@ class MarksList:
                     if last_v is None:
                         val = '-'
                     else:
-                        val = '; '.join(tag['tag__tag'] for tag in last_v.tags.order_by('tag__tag').values('tag__tag'))
+                        tags = list(tag['tag__tag'] for tag in last_v.tags.order_by('tag__tag').values('tag__tag'))
+                        if 'tags' in self.view and any(t not in tags for t in view_tags):
+                            break
+                        val = '; '.join(tags)
                         if val == '':
                             val = '-'
-                if col == 'checkbox':
-                    values_str.append({'checkbox': mark.pk})
-                else:
-                    values_str.append({'color': color, 'value': val, 'href': href})
+                values_str.append({'color': color, 'value': val, 'href': href})
             else:
-                values.append((order_by_value, values_str))
+                values.append((order_by_value, mark.id, values_str))
 
         ordered_values = []
         if self.__get_order() == 'num_of_links':
-            for ord_by, val_str in reversed(sorted(values, key=lambda x: x[0])):
-                ordered_values.append(val_str)
+            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
+                ordered_values.append((mark_id, val_str))
         elif isinstance(self.__get_order(), str):
-            for ord_by, val_str in sorted(values, key=lambda x: x[0]):
-                ordered_values.append(val_str)
+            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
+                ordered_values.append((mark_id, val_str))
         else:
-            ordered_values = list(x[1] for x in values)
-        return ordered_values
+            ordered_values = list((x[1], x[2]) for x in values)
+        if self.view['order'][0] == 'up':
+            ordered_values = list(reversed(ordered_values))
+
+        final_values = []
+        cnt = 1
+        for mark_id, valstr in ordered_values:
+            valstr.insert(0, {'value': cnt, 'href': reverse('marks:view_mark', args=[self.type, mark_id])})
+            valstr.insert(0, {'checkbox': mark_id})
+            final_values.append(valstr)
+            cnt += 1
+        return final_values
 
     def __filter_attr(self, attribute, value):
         if 'attr' in self.view and self.view['attr'][0] == attribute:
@@ -649,11 +662,12 @@ class MarksList:
         return True
 
     def __get_order(self):
-        if 'order' in self.view and len(self.view['order']) == 2:
-            if self.view['order'][0] == 'attr' and len(self.view['order'][1]) > 0:
-                return self.view['order'][1]
-            elif self.view['order'][0] == 'num_of_links':
-                return 'num_of_links'
+        if self.view['order'][1] == 'attr' and len(self.view['order'][2]) > 0:
+            return self.view['order'][2]
+        elif self.view['order'][1] == 'num_of_links':
+            return 'num_of_links'
+        elif self.view['order'][1] == 'change_date':
+            return 'change_date'
         return None
 
     def __get_page(self, page, values):

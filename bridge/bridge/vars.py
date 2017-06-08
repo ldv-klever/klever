@@ -130,7 +130,7 @@ SAFE_VERDICTS = (
     ('4', _('Without marks')),
 )
 
-DEF_NUMBER_OF_ELEMENTS = 30
+DEF_NUMBER_OF_ELEMENTS = 18
 
 VIEW_TYPES = (
     ('0', 'component attributes'),
@@ -230,7 +230,7 @@ UNKNOWN_LIST_DEF_VIEW = {
 MARKS_SAFE_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
-    # 'order': ['attr', 'Rule specification']
+    'order': ['up', 'change_date', ''],
 
     # FILTERS:
     # status: [is|isnot, <id from MARK_STATUS>]
@@ -250,7 +250,7 @@ MARKS_SAFE_VIEW = {
 MARKS_UNSAFE_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
-    # 'order': ['attr', 'Rule specification']
+    'order': ['up', 'change_date', ''],
 
     # FILTERS:
     # status: [is|isnot, <id from MARK_STATUS>]
@@ -269,7 +269,7 @@ MARKS_UNSAFE_VIEW = {
 
 MARKS_UNKNOWN_VIEW = {
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
-    # 'order': ['num_of_links'],
+    'order': ['up', 'change_date'],
 
     # FILTERS:
     # status: [is|isnot, <id from MARK_STATUS>]
