@@ -1,0 +1,92 @@
+{% load i18n %}
+
+<div class="ui grid">
+    <div class="six wide column">
+        <h5>{% trans 'Columns' %}</h5>
+        <input id="view_data_{{ view_type }}__columns" value="checkboxes" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__verdict"{% if 'verdict' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__verdict">{% trans 'Verdict' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__status"{% if 'status' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__status">{% trans 'Status' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__mark_type"{% if 'mark_type' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__mark_type">{% trans 'Source' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__tags"{% if 'tags' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__tags">{% trans 'Tags' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__ass_type"{% if 'ass_type' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__ass_type">{% trans 'Association type' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__ass_author"{% if 'ass_author' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__ass_author">{% trans 'Association author' %}</label>
+        </div><br>
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view_type }}__columns__description"{% if 'description' in view.columns %} checked{% endif %}>
+            <label for="view_{{ view_type }}__columns__description">{% trans 'Description' %}</label>
+        </div>
+    </div>
+    <div class="ten wide column">
+        <h5>{% trans 'Filters' %}</h5>
+
+        {# Verdict #}
+        <input id="view_data_{{ view_type }}__verdict" value="checkboxes_if_verdict" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view_type }}__verdict"{% if 'verdict' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view_type }}__verdict">{% trans 'Verdict' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            {% for verdict in verdicts %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view_type }}__verdict__{{ verdict.0 }}" type="checkbox" value="{{ verdict.0 }}"{% if 'verdict' in view and verdict.0 in view.verdict %} checked{% endif %}>
+                    <label for="view_{{ view_type }}__verdict__{{ verdict.0 }}">{{ verdict.1 }}</label>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui divider"></div>
+
+        {# Status #}
+        <input id="view_data_{{ view_type }}__status" value="checkboxes_if_status" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view_type }}__status"{% if 'status' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view_type }}__status">{% trans 'Status' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            {% for status in statuses %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view_type }}__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'status' in view and status.0 in view.status %} checked{% endif %}>
+                    <label for="view_{{ view_type }}__status__{{ status.0 }}">{{ status.1 }}</label>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="ui divider"></div>
+
+        {# Association type #}
+        <input id="view_data_{{ view_type }}__ass_type" value="checkboxes_if_ass_type" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view_type }}__ass_type"{% if 'ass_type' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view_type }}__ass_type">{% trans 'Association type' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            {% for ass_type in ass_types %}
+                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                    <input id="view_{{ view_type }}__ass_type__{{ ass_type.0 }}" type="checkbox" value="{{ ass_type.0 }}"{% if 'ass_type' in view and ass_type.0 in view.ass_type %} checked{% endif %}>
+                    <label for="view_{{ view_type }}__ass_type__{{ ass_type.0 }}">{{ ass_type.1 }}</label>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="ui divider"></div>
+{% include 'viewButtons.html' with view_type=view_type view_id=view_id views=views %}

@@ -29,7 +29,8 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES, \
+    MARK_STATUS, ASSOCIATION_TYPE, MARK_UNSAFE, MARK_SAFE
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -399,6 +400,11 @@ def report_unsafe(request, report_id):
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[10][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
+
     main_file_content = None
     try:
         etv = GetETV(ArchiveFileContent(report, report.error_trace).content.decode('utf8'), request.user)
@@ -418,14 +424,17 @@ def report_unsafe(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'etv': etv,
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
                 'markdata': MarkData('unsafe', report=report),
                 'tags': tags,
-                'include_jquery_ui': True
+                'include_jquery_ui': True,
+                'statuses': MARK_STATUS,
+                'verdicts': MARK_UNSAFE,
+                'ass_types': ASSOCIATION_TYPE
             }
         )
     except Exception as e:
@@ -445,6 +454,11 @@ def report_safe(request, report_id):
 
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
+
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[11][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
 
     main_file_content = None
     if report.archive and report.proof:
@@ -466,11 +480,14 @@ def report_safe(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'markdata': MarkData('safe', report=report),
-                'tags': tags
+                'tags': tags,
+                'statuses': MARK_STATUS,
+                'verdicts': MARK_SAFE,
+                'ass_types': ASSOCIATION_TYPE
             }
         )
     except Exception as e:
@@ -489,6 +506,12 @@ def report_unknown(request, report_id):
         return BridgeErrorResponse(504)
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
+
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[12][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
+
     try:
         main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
     except Exception as e:
@@ -502,10 +525,12 @@ def report_unknown(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report)
+                'markdata': MarkData('unknown', report=report),
+                'statuses': MARK_STATUS,
+                'ass_types': ASSOCIATION_TYPE
             }
         )
     except Exception as e:

@@ -40,7 +40,7 @@ class Extended(models.Model):
 
 class View(models.Model):
     author = models.ForeignKey(User)
-    type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
+    type = models.CharField(max_length=2, choices=VIEW_TYPES, default='1')
     name = models.CharField(max_length=255)
     view = models.TextField()
     shared = models.BooleanField(default=False)

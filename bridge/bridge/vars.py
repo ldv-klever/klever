@@ -142,7 +142,10 @@ VIEW_TYPES = (
     ('6', 'unknowns list'),
     ('7', 'unsafe marks'),
     ('8', 'safe marks'),
-    ('9', 'unknown marks')
+    ('9', 'unknown marks'),
+    ('10', 'unsafe associated marks'),
+    ('11', 'safe associated marks'),
+    ('12', 'unknown associated marks')
 )
 
 JOB_TREE_DEF_VIEW = {
@@ -282,6 +285,48 @@ MARKS_UNKNOWN_VIEW = {
     # 'component': ['startswith', '0'],
     # 'author': [1]
     # 'source': ['is', '2'],
+}
+
+UNSAFE_MARKS_VIEW = {
+    'columns': ['verdict', 'similarity', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+
+    # FILTERS:
+    # verdict: <list of identifiers from MARK_UNSAFE>
+    # similarity: <sublist from ['0', '50', '100']>
+    # status: <list of identifiers from MARK_STATUS>
+    # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+
+    # EXAMPLES:
+    # 'verdict': ['0', '2'],
+    'similarity': ['50', '100'],
+    # 'status': ['1'],
+    # 'ass_type': ['0', '1'],
+}
+
+SAFE_MARKS_VIEW = {
+    'columns': ['verdict', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+
+    # FILTERS:
+    # verdict: <list of identifiers from MARK_UNSAFE>
+    # status: <list of identifiers from MARK_STATUS>
+    # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+
+    # EXAMPLES:
+    # 'verdict': ['0', '2'],
+    # 'status': ['1'],
+    # 'ass_type': ['0', '1'],
+}
+
+UNKNOWN_MARKS_VIEW = {
+    'columns': ['status', 'mark_type', 'ass_type', 'ass_author', 'description'],
+
+    # FILTERS:
+    # status: <list of identifiers from MARK_STATUS>
+    # ass_type: <list of identifiers from ASSOCIATION_TYPE>
+
+    # EXAMPLES:
+    # 'status': ['1'],
+    # 'ass_type': ['0', '1'],
 }
 
 SCHEDULER_STATUS = (
