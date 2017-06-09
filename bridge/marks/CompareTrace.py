@@ -136,7 +136,10 @@ Returns the number of similar call stacks divided by total number of call stacks
 
         converted_set = set(json.dumps(cs) for cs in err_trace_converted)
         pattern_set = set(json.dumps(cs) for cs in pattern)
-        return len(converted_set & pattern_set)/len(err_trace_converted)
+        if len(err_trace_converted) > 0:
+            return len(converted_set & pattern_set)/len(err_trace_converted)
+        else:
+            return 0
 
     def __get_converted_trace(self, conversion_function_name):
         return GetConvertedErrorTrace(
