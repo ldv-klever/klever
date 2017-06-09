@@ -141,6 +141,15 @@ Returns the number of similar call stacks divided by total number of call stacks
         else:
             return 0
 
+    def calltree_warnings_compare(self):
+        """
+If call stacks trees are identical returns 1 else returns 0.
+        """
+
+        err_trace_converted = self.__get_converted_trace('calltree_all_warnings')
+        pattern = self.pattern_error_trace
+        return int(err_trace_converted == pattern)
+
     def __get_converted_trace(self, conversion_function_name):
         return GetConvertedErrorTrace(
             MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe

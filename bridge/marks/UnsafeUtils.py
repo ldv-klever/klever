@@ -355,8 +355,9 @@ class ConnectMarks:
                 if not self._marks_attrs[mark_id].issubset(self._unsafes_attrs[unsafe]):
                     continue
                 compare_error = None
+                compare_result = 0
                 try:
-                    compare = CompareTrace(self._functions[mark_id], self._patterns[mark_id], unsafe)
+                    compare_result = CompareTrace(self._functions[mark_id], self._patterns[mark_id], unsafe).result
                 except BridgeException as e:
                     compare_error = str(e)
                 except Exception as e:
@@ -367,17 +368,17 @@ class ConnectMarks:
                 if self._prime_id == unsafe.id:
                     ass_type = ASSOCIATION_TYPE[1][0]
                 new_markreports.append(MarkUnsafeReport(
-                    mark_id=mark_id, report=unsafe, result=compare.result, error=compare_error,
+                    mark_id=mark_id, report=unsafe, result=compare_result, error=compare_error,
                     type=ass_type, author=self._author[mark_id]
                 ))
                 if mark_id not in self.changes:
                     self.changes[mark_id] = {}
                 if unsafe in self.changes[mark_id]:
                     self.changes[mark_id][unsafe]['kind'] = '='
-                    self.changes[mark_id][unsafe]['result2'] = compare.result
+                    self.changes[mark_id][unsafe]['result2'] = compare_result
                 else:
                     self.changes[mark_id][unsafe] = {
-                        'kind': '+', 'result2': compare.result, 'verdict1': unsafe.verdict
+                        'kind': '+', 'result2': compare_result, 'verdict1': unsafe.verdict
                     }
         MarkUnsafeReport.objects.bulk_create(new_markreports)
 

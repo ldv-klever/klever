@@ -99,6 +99,16 @@ Return list of lists of function names in json format.
         """
         return error_trace_callstack_all_warnings(self.error_trace)
 
+    def calltree_all_warnings(self):
+        """
+This function is extracting the error trace call stack tree.
+All its leaves are model functions.
+Warnings are considered as model functions too.
+Return list of lists of levels of function names.
+        """
+
+        return ErrorTraceCallstackTree(self.error_trace, include_warnings=True).trace
+
 
 class GetConvertedErrorTrace:
     def __init__(self, func, unsafe):

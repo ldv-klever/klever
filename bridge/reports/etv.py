@@ -677,8 +677,9 @@ def error_trace_callstack_all_warnings(error_trace):
 
 
 class ErrorTraceCallstackTree:
-    def __init__(self, error_trace):
+    def __init__(self, error_trace, include_warnings=False):
         self.data = json.loads(error_trace)
+        self._all_warnings = include_warnings
         self.trace = self.__get_tree(get_error_trace_nodes(self.data))
 
     def __get_tree(self, edge_trace):
@@ -700,6 +701,18 @@ class ErrorTraceCallstackTree:
                     'parent': call_stack[-2] if len(call_stack) > 1 else None
                 })
             if 'return' in edge_data:
+                call_stack.pop()
+                call_level -= 1
+            if self._all_warnings and 'enter' not in edge_data and 'return' not in edge_data and 'warn' in edge_data:
+                call_stack.append(edge_data['warn'])
+                call_level += 1
+                while len(tree) <= call_level:
+                    tree.append([])
+                model_functions.append(edge_data['warn'])
+                tree[call_level].append({
+                    'name': edge_data['warn'],
+                    'parent': call_stack[-2] if len(call_stack) > 1 else None
+                })
                 call_stack.pop()
                 call_level -= 1
 
