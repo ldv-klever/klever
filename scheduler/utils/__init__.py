@@ -162,7 +162,7 @@ def extract_system_information():
     system_conf = {}
     system_conf["node name"] = get_output('uname -n')
     system_conf["CPU model"] = get_output('cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"')
-    system_conf["CPU number"] = int(get_output('cat /proc/cpuinfo | grep processor | wc -l'))
+    system_conf["CPU number"] = len(extract_cpu_cores_info().keys())
     system_conf["RAM memory"] = \
         int(get_output('cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'))
     system_conf["disk memory"] = 1024 * int(get_output('df ./ | grep / | awk \'{ print $4 }\''))
@@ -354,5 +354,31 @@ def submit_task_results(logger, server, identifier, decision_results):
                 zfp.write(os.path.join(dirpath, filename))
 
     server.submit_solution(identifier, decision_results, results_archive)
+
+
+def extract_cpu_cores_info():
+    """
+    Read /proc/cpuinfo to get information about cores and virtual cores.
+
+    :return: {int(core id) -> int(virtual core id)}
+    """
+    with open('/proc/cpuinfo', encoding='utf8') as fp:
+        current_vc = None
+        for line in fp.readlines():
+            vc = re.match(r'processor\s*:\s*(\d+)', line)
+            pc = re.match(r'core\sid\s*:\s*(\d+)', line)
+
+            if vc:
+                current_vc = int(vc.group(1))
+            if pc:
+                pc = int(pc.group(1))
+                if pc in data:
+                    data[pc].append(current_vc)
+                else:
+                    data[pc] = [current_vc]
+
+    return data
+
+a = extract_cpu_cores_info()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
