@@ -170,9 +170,6 @@ def solve(logger, conf, mode='job', server=None):
         with open("core.json", "w", encoding="utf8") as fh:
             json.dump(conf["Klever Core conf"], fh, ensure_ascii=False, sort_keys=True, indent=4)
     else:
-        from benchexec.benchexec import BenchExec
-        executor = BenchExec()
-
         # Add verifiers path
         tool = conf['verifier']['name']
         version = conf['verifier']['version']
@@ -235,7 +232,7 @@ def solve(logger, conf, mode='job', server=None):
 
         args = prepare_task_arguments(logger, conf)
 
-        logger.info("Start task execution with the following options: {}".format(str(args)))
+        logger.info("Start task execution with the following options: {}".format(' '.join(args)))
         exit_code = execute(args, logger=logger)
         logger.info("Task solution has finished with exit code {}".format(exit_code))
         if exit_code != 0:
@@ -270,24 +267,29 @@ def prepare_task_arguments(logger, conf):
         args = ['benchexec']
 
     if "CPU cores" in conf["resource limits"]:
+        logger.debug('Going to set CPU cores limit')
         args.extend(["--limitCores", str(conf["resource limits"]["number of CPU cores"])])
         args.append("--allowedCores")
         args.extend(list(map(str, conf["resource limits"]["CPU cores"])))
 
     if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
             conf['client']["benchexec measure disk"]:
+        logger.debug('Going to set disk memory cores limit')
         args.extend(["--filesSizeLimit", str(conf["resource limits"]["disk memory size"]) + 'B'])
 
-    args.extend(['--memorylimit', str(conf["resource limits"]['memory size'])])
+    logger.debug('Going to set memory and time limits')
+    args.extend(['--memorylimit', str(conf["resource limits"]['memory size']) + 'B'])
     args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
+        logger.debug('Turn on container mode')
         args.append('--container')
 
         if "benchexec container mode options" in conf['client']:
             args.extend(conf['client']["benchexec container mode options"])
     else:
+        logger.debug('Turn off container mode')
         args.append('--no-container')
 
     args.extend(["--no-compress-results", "--outputpath", "./output/"])

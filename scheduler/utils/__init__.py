@@ -80,6 +80,7 @@ def common_initialization(tool, conf=None):
     Start execution of the corresponding cloud tool.
 
     :param tool: Tool name string.
+    :param conf: Configuration dictionary.
     :return: Configuration dictionary.
     """
 
@@ -159,7 +160,7 @@ def extract_system_information():
     Extract information about the system and return it as a dictionary.
     :return: dictionary with system info,
     """
-    system_conf = {}
+    system_conf = dict()
     system_conf["node name"] = get_output('uname -n')
     system_conf["CPU model"] = get_output('cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"')
     system_conf["CPU number"] = len(extract_cpu_cores_info().keys())
@@ -276,6 +277,8 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None):
                 m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
                 logger.warning(m)
 
+        p.poll()
+
         err_q.join()
 
     else:
@@ -362,6 +365,7 @@ def extract_cpu_cores_info():
 
     :return: {int(core id) -> int(virtual core id)}
     """
+    data = {}
     with open('/proc/cpuinfo', encoding='utf8') as fp:
         current_vc = None
         for line in fp.readlines():

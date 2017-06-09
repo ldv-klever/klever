@@ -343,14 +343,10 @@ class Scheduler(schedulers.SchedulerExchange):
                 client_conf[name] = configuration[name]
 
             # Add particular
-            first_cpu = int(node_status["available CPU number"]) - int(node_status["reserved CPU number"]) - \
-                        int(client_conf["resource limits"]["number of CPU cores"])
-            last_cpu = int(node_status["available CPU number"]) - int(node_status["reserved CPU number"])
-            client_conf["resource limits"]["CPU cores"] = [x for x in range(first_cpu, last_cpu)]
-
-            # Property file may not be specified.
-            if "property file" in configuration:
-                client_conf["property file"] = configuration["property file"]
+            client_conf["resource limits"]["CPU cores"] = \
+                self.__get_virtual_cores(int(node_status["available CPU number"]),
+                                         int(node_status["reserved CPU number"]),
+                                         int(client_conf["resource limits"]["number of CPU cores"]))
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
@@ -559,5 +555,22 @@ class Scheduler(schedulers.SchedulerExchange):
                                      format(data["client"]["verification tools"][tool][version], tool, version))
 
         return data
+
+    @staticmethod
+    def __get_virtual_cores(available, reserved, required):
+        # First get system info
+        si = utils.extract_cpu_cores_info()
+
+        # Get keys
+        pcores = sorted(si.keys())
+
+        if available > len(pcores):
+            raise ValueError('Host system has {} cores but expect {}'.format(len(pcores), available))
+
+        cores = []
+        for vcores in (si[pc] for pc in pcores[available - reserved - required:available - reserved]):
+            cores.extend(vcores)
+
+        return cores
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
