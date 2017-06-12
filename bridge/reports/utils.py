@@ -20,22 +20,25 @@ import json
 import zipfile
 import xml.etree.ElementTree as ETree
 from xml.dom import minidom
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.urlresolvers import reverse
 from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import REPORT_CHILDREN_DEF_VIEW, UNSAFE_LIST_DEF_VIEW, SAFE_LIST_DEF_VIEW,\
-    UNKNOWN_LIST_DEF_VIEW, UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, VIEW_TYPES, DEF_NUMBER_OF_ELEMENTS
+
+from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, VIEW_TYPES
+from bridge.tableHead import Header
 from bridge.utils import logger
 from bridge.ZipGenerator import ZipStream
-from users.models import View
-from jobs.utils import get_resource_data, get_user_time
+
 from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
     ReportRoot
-from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
-from bridge.tableHead import Header
+
+from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
+from jobs.utils import get_resource_data, get_user_time
+from marks.tables import SAFE_COLOR, UNSAFE_COLOR
 
 
 REP_MARK_TITLES = {
@@ -103,9 +106,6 @@ def report_resources(report, user):
 class ReportAttrsTable:
     def __init__(self, report):
         self.report = report
-        # This view type is not supported
-        self.view_type = VIEW_TYPES[0][0]
-
         columns, values = self.__self_data()
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': values}
 
@@ -128,35 +128,11 @@ class SafesTable:
         self.tag = tag
         self.attr = attr
 
-        self.view_type = VIEW_TYPES[5][0]
-        (self.view, self.view_id) = self.__get_view(view, view_id)
-        self.views = self.__views()
-
+        self.view = ViewData(self.user, VIEW_TYPES[5][0], view=view, view_id=view_id)
         self.verdicts = SAFE_VERDICTS
-
         columns, values = self.__safes_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
-
-    def __get_view(self, view, view_id):
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type).first()
-            if pref_view:
-                return json.loads(pref_view.view.view), pref_view.view_id
-        elif view_id == 'default':
-            return SAFE_LIST_DEF_VIEW, 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=int(view_id), type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.id
-        return SAFE_LIST_DEF_VIEW, 'default'
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __safes_data(self):
         data = {}
@@ -325,35 +301,11 @@ class UnsafesTable:
         self.tag = tag
         self.attr = attr
 
-        self.view_type = VIEW_TYPES[4][0]
-        (self.view, self.view_id) = self.__get_view(view, view_id)
-        self.views = self.__views()
-
+        self.view = ViewData(self.user, VIEW_TYPES[4][0], view=view, view_id=view_id)
         self.verdicts = UNSAFE_VERDICTS
-
         columns, values = self.__unsafes_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
-
-    def __get_view(self, view, view_id):
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type).first()
-            if pref_view:
-                return json.loads(pref_view.view.view), pref_view.view_id
-        elif view_id == 'default':
-            return UNSAFE_LIST_DEF_VIEW, 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=int(view_id), type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.id
-        return UNSAFE_LIST_DEF_VIEW, 'default'
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __unsafes_data(self):
         data = {}
@@ -521,33 +473,10 @@ class UnknownsTable:
         self.problem = problem
         self.attr = attr
 
-        self.view_type = VIEW_TYPES[6][0]
-        (self.view, self.view_id) = self.__get_view(view, view_id)
-        self.views = self.__views()
-
+        self.view = ViewData(self.user, VIEW_TYPES[6][0], view=view, view_id=view_id)
         columns, values = self.__unknowns_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
-
-    def __get_view(self, view, view_id):
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type).first()
-            if pref_view:
-                return json.loads(pref_view.view.view), pref_view.view_id
-        elif view_id == 'default':
-            return UNKNOWN_LIST_DEF_VIEW, 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=int(view_id), type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.id
-        return UNKNOWN_LIST_DEF_VIEW, 'default'
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __unknowns_data(self):
         data = {}
@@ -649,33 +578,11 @@ class ReportChildrenTable:
         self.report = report
         self.columns = []
 
-        self.view_type = VIEW_TYPES[3][0]
-        (self.view, self.view_id) = self.__get_view(view, view_id)
-        self.views = self.__views()
+        self.view = ViewData(self.user, VIEW_TYPES[3][0], view=view, view_id=view_id)
 
         columns, values = self.__component_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
-
-    def __get_view(self, view, view_id):
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type).first()
-            if pref_view:
-                return json.loads(pref_view.view.view), pref_view.view_id
-        elif view_id == 'default':
-            return REPORT_CHILDREN_DEF_VIEW, 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=int(view_id), type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.id
-        return REPORT_CHILDREN_DEF_VIEW, 'default'
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __component_data(self):
         data = {}

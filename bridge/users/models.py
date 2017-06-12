@@ -17,7 +17,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from bridge.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
+from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES
 from bridge.settings import DEF_USER
 
 

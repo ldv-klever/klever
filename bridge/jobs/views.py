@@ -49,7 +49,7 @@ import jobs.utils
 import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
-from jobs.JobTableProperties import FilterForm, TableTree
+from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 
 
@@ -69,7 +69,6 @@ def tree_view(request):
     curr_year = datetime.now().year
 
     return render(request, 'jobs/tree.html', {
-        'FF': FilterForm(request.user, **view_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
         'priorities': list(reversed(PRIORITY)),
@@ -126,7 +125,7 @@ def check_view_name(request):
     if view_name == '':
         return JsonResponse({'error': _("The view name is required")})
 
-    if view_name == _('Default') or len(request.user.view_set.filter(type=view_type, name=view_name)):
+    if view_name == str(_('Default')) or len(request.user.view_set.filter(type=view_type, name=view_name)):
         return JsonResponse({'error': _("Please choose another view name")})
     return JsonResponse({})
 

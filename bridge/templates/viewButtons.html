@@ -1,39 +1,33 @@
 {% load i18n %}
-<!--
-Include with variables:
-view_type (int/str),
-view_id (int/str),
-views(list of dictionaries: [{'name': <name>, 'id': <view_id>}, ...])
--->
 
 <div class="ui grid">
     <div class="ten wide column">
         <div class="ui small action input fluid">
-            <input id="view_name_input__{{ view_type }}" type="text" placeholder="{% trans 'New view name' %}">
-            <button id="view_save_btn__{{ view_type }}" type="button" class="ui olive button">{% trans 'Save' %}</button>
+            <input id="view_name_input__{{ view.type }}" type="text" placeholder="{% trans 'New view name' %}">
+            <button id="view_save_btn__{{ view.type }}" type="button" class="ui olive button">{% trans 'Save' %}</button>
         </div>
     </div>
     <div class="six wide column right aligned">
-        <button id="view_show_unsaved_btn__{{ view_type }}" type="button" class="ui violet button">{% trans 'Show' %}</button>
+        <button id="view_show_unsaved_btn__{{ view.type }}" type="button" class="ui violet button">{% trans 'Show' %}</button>
     </div>
 </div>
 <div class="ui divider"></div>
 <div class="ui action input">
-    <label for="view_list__{{ view_type }}"></label>
-    <select id="view_list__{{ view_type }}" class="ui dropdown">
+    <label for="view_list__{{ view.type }}"></label>
+    <select id="view_list__{{ view.type }}" class="ui dropdown">
         <option value="default">{% trans 'Default' %}</option>
-        {% for v in views %}
-            <option title="{{ v.name }}" value="{{ v.id }}"{% if view_id == v.id %} selected{% endif %}>{{ v.name }}
+        {% for v in view.views %}
+            <option title="{{ v.name }}" value="{{ v.id }}"{% if view.view_id == v.id %} selected{% endif %}>{{ v.name }}
                 {% if v.shared %} ({% if v.author_id == user.id %}{% trans 'shared' %}{% else %}{{ v.author.get_full_name }}{% endif %}){% endif %}
             </option>
         {% endfor %}
     </select>
     <br><br>
-    <button id="view_show_btn__{{ view_type }}" type="button" class="ui teal icon button note-popup" data-content="{% trans 'Show' %}"><i class="unhide icon"></i></button>
-    <button id="view_prefer_btn__{{ view_type }}" type="button" class="ui green icon button note-popup" data-content="{% trans 'Make preferred' %}"><i class="thumbs up icon"></i></button>
-    <button id="view_update_btn__{{ view_type }}" type="button" class="ui pink icon button note-popup" data-content="{% trans 'Update' %}"><i class="refresh icon"></i></button>
-    <button id="view_share_btn__{{ view_type }}" type="button" class="ui yellow icon button note-popup" data-content="{% trans 'Share' %}/{% trans 'Hide' %}"><i class="unhide icon"></i></button>
-    <button id="view_remove_btn__{{ view_type }}" type="button" class="ui red icon button note-popup" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
-    <button id="view_show_default_btn__{{ view_type }}" type="button" class="ui green icon button note-popup" data-content="{% trans 'Show preferred view' %}"><i class="reply icon"></i></button>
+    <button id="view_show_btn__{{ view.type }}" type="button" class="ui teal icon button note-popup" data-content="{% trans 'Show' %}"><i class="unhide icon"></i></button>
+    <button id="view_prefer_btn__{{ view.type }}" type="button" class="ui green icon button note-popup" data-content="{% trans 'Make preferred' %}"><i class="thumbs up icon"></i></button>
+    <button id="view_update_btn__{{ view.type }}" type="button" class="ui pink icon button note-popup" data-content="{% trans 'Update' %}"><i class="refresh icon"></i></button>
+    <button id="view_share_btn__{{ view.type }}" type="button" class="ui yellow icon button note-popup" data-content="{% trans 'Share' %}/{% trans 'Hide' %}"><i class="unhide icon"></i></button>
+    <button id="view_remove_btn__{{ view.type }}" type="button" class="ui red icon button note-popup" data-content="{% trans 'Delete' %}"><i class="remove icon"></i></button>
+    <button id="view_show_default_btn__{{ view.type }}" type="button" class="ui green icon button note-popup" data-content="{% trans 'Show preferred view' %}"><i class="reply icon"></i></button>
 </div>
-<input class="view-type-buttons" type="hidden" value="{{ view_type }}">
+<input class="view-type-buttons" type="hidden" value="{{ view.type }}">

@@ -163,10 +163,10 @@ def report_component(request, job_id, report_id):
     view_add_args = {}
     children_add_data = {'page': request.GET.get('page', 1)}
     view_type = request.GET.get('view_type')
-    if view_type == '2':
+    if view_type == VIEW_TYPES[2][0]:
         view_add_args['view_id'] = request.GET.get('view_id')
         view_add_args['view'] = request.GET.get('view')
-    elif view_type == '3':
+    elif view_type == VIEW_TYPES[3][0]:
         children_add_data['view_id'] = request.GET.get('view_id')
         children_add_data['view'] = request.GET.get('view')
 
@@ -282,7 +282,7 @@ def unsafes_list(request, report_id):
 
     allow_redirect = True
     additional_parameters = {'page': request.GET.get('page', 1)}
-    if request.GET.get('view_type') == '4':
+    if request.GET.get('view_type') == VIEW_TYPES[4][0]:
         allow_redirect = False
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
@@ -343,7 +343,7 @@ def unknowns_list(request, report_id):
 
     allow_redirect = True
     additional_parameters = {'component': request.GET.get('component'), 'page': request.GET.get('page', 1)}
-    if request.GET.get('view_type') == '6':
+    if request.GET.get('view_type') == VIEW_TYPES[6][0]:
         additional_parameters['view_id'] = request.GET.get('view_id')
         additional_parameters['view'] = request.GET.get('view')
         allow_redirect = False
@@ -431,10 +431,7 @@ def report_unsafe(request, report_id):
                 'include_assumptions': request.user.extended.assumptions,
                 'markdata': MarkData('unsafe', report=report),
                 'tags': tags,
-                'include_jquery_ui': True,
-                'statuses': MARK_STATUS,
-                'verdicts': MARK_UNSAFE,
-                'ass_types': ASSOCIATION_TYPE
+                'include_jquery_ui': True
             }
         )
     except Exception as e:
@@ -484,10 +481,7 @@ def report_safe(request, report_id):
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'markdata': MarkData('safe', report=report),
-                'tags': tags,
-                'statuses': MARK_STATUS,
-                'verdicts': MARK_SAFE,
-                'ass_types': ASSOCIATION_TYPE
+                'tags': tags
             }
         )
     except Exception as e:
@@ -528,9 +522,7 @@ def report_unknown(request, report_id):
                 'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report),
-                'statuses': MARK_STATUS,
-                'ass_types': ASSOCIATION_TYPE
+                'markdata': MarkData('unknown', report=report)
             }
         )
     except Exception as e:

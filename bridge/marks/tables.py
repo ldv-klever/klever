@@ -20,22 +20,20 @@ import json
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, F
+from django.db.models import Q, F, Count, Case, When
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
 
 from bridge.tableHead import Header
-from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS,\
-    MARK_SAFE, MARK_UNSAFE, MARK_STATUS, DEF_NUMBER_OF_ELEMENTS, VIEW_TYPES, UNSAFE_MARKS_VIEW, SAFE_MARKS_VIEW,\
-    UNKNOWN_MARKS_VIEW
+from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE
 from bridge.utils import unique_id
 
-from users.models import View
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
     MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
     MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
+from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
@@ -46,11 +44,11 @@ MARK_TITLES = {
     'change_kind': _('Change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
-    'result': _('Similarity'),
+    'similarity': _('Similarity'),
     'status': _('Status'),
     'author': _('Last change author'),
     'change_date': _('Last change date'),
-    'association_author': _('Association author'),
+    'ass_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
     'format': _('Format'),
@@ -61,9 +59,10 @@ MARK_TITLES = {
     'pattern': _('Problem pattern'),
     'checkbox': '',
     'source': _('Source'),
-    'assc_type': _('Association type'),
+    'ass_type': _('Association type'),
     'automatic': _('Automatic association'),
-    'tags': _('Tags')
+    'tags': _('Tags'),
+    'likes': string_concat(_('Likes'), '/', _('Dislikes'))
 }
 
 STATUS_COLOR = {
@@ -343,53 +342,22 @@ class ReportMarkTable:
     def __init__(self, user, report, view=None, view_id=None):
         self.report = report
         self.user = user
+        self.statuses = MARK_STATUS
+        self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):
             self.type = 'unsafe'
+            self.verdicts = MARK_UNSAFE
         elif isinstance(report, ReportSafe):
             self.type = 'safe'
+            self.verdicts = MARK_SAFE
         elif isinstance(report, ReportUnknown):
             self.type = 'unknown'
         else:
             return
 
         view_types = {'unsafe': VIEW_TYPES[10][0], 'safe': VIEW_TYPES[11][0], 'unknown': VIEW_TYPES[12][0]}
-        self.view_title = ''
-        self.view_type = view_types[self.type]
-        self.view, self.view_id = self.__get_view(view, view_id)
-        self.views = self.__views()
-
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
         self.values = self.__get_values()
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __get_view(self, view, view_id):
-        def_views = {
-            'unsafe': UNSAFE_MARKS_VIEW,
-            'safe': SAFE_MARKS_VIEW,
-            'unknown': UNKNOWN_MARKS_VIEW
-        }
-
-        if view is not None:
-            self.view_title = string_concat(_('View'), ' (', _('unsaved'), ')')
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
-            if len(pref_view) > 0:
-                self.view_title = string_concat(_('View'), ' (%s)' % pref_view[0].view.name)
-                return json.loads(pref_view[0].view.view), pref_view[0].view_id
-        elif view_id == 'default':
-            self.view_title = string_concat(_('View'), ' (', _('Default'), ')')
-            return def_views[self.type], 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                self.view_title = string_concat(_('View'), ' (%s)' % user_view.name)
-                return json.loads(user_view.view), user_view.pk
-        self.view_title = string_concat(_('View'), ' (', _('Default'), ')')
-        return def_views[self.type], 'default'
 
     def __get_values(self):
         value_data = []
@@ -420,13 +388,10 @@ class ReportMarkTable:
                 continue
             if 'similarity' in self.view:
                 if '0' not in self.view['similarity'] and mark_rep.result == 0:
-                    print('1', mark_rep.result)
                     continue
                 if '100' not in self.view['similarity'] and mark_rep.result == 1:
-                    print('2', mark_rep.result)
                     continue
                 if '50' not in self.view['similarity'] and 0 < mark_rep.result < 1:
-                    print('3', mark_rep.result)
                     continue
             if 'ass_type' in self.view and mark_rep.type not in self.view['ass_type']:
                 continue
@@ -496,9 +461,7 @@ class MarksList:
         self.authors = []
 
         view_types = {'unsafe': VIEW_TYPES[7][0], 'safe': VIEW_TYPES[8][0], 'unknown': VIEW_TYPES[9][0]}
-        self.view_type = view_types[self.type]
-        self.view, self.view_id = self.__get_view(view, view_id)
-        self.views = self.__views()
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
 
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
@@ -507,32 +470,6 @@ class MarksList:
 
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_page(page, self.__get_values())
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __get_view(self, view, view_id):
-        def_views = {
-            'unsafe': MARKS_UNSAFE_VIEW,
-            'safe': MARKS_SAFE_VIEW,
-            'unknown': MARKS_UNKNOWN_VIEW
-        }
-
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
-            if len(pref_view) > 0:
-                return json.loads(pref_view[0].view.view), pref_view[0].view_id
-        elif view_id == 'default':
-            return def_views[self.type], 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.pk
-        return def_views[self.type], 'default'
 
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
@@ -867,27 +804,58 @@ class MarkData(object):
 
 # Table data for showing links between the specified mark and reports
 class MarkReportsTable(object):
-    def __init__(self, user, mark):
+    def __init__(self, user, mark, view=None, view_id=None):
         self.user = user
-        if isinstance(mark, MarkUnsafe):
+        self.mark = mark
+
+        if isinstance(self.mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result', 'assc_type', 'association_author']
-        elif isinstance(mark, MarkSafe):
+        elif isinstance(self.mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['report', 'job', 'assc_type', 'association_author']
-        elif isinstance(mark, MarkUnknown):
+        elif isinstance(self.mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['report', 'job', 'assc_type', 'association_author']
         else:
             return
-        self.mark = mark
+
+        view_types = {'unsafe': VIEW_TYPES[13][0], 'safe': VIEW_TYPES[14][0], 'unknown': VIEW_TYPES[15][0]}
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+
+        self.columns = self.__get_columns()
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
 
+    def __get_columns(self):
+        columns = ['report']
+        columns.extend(self.view['columns'])
+        return columns
+
     def __get_values(self):
+        likes = {}
+        dislikes = {}
+        if 'likes' in self.columns:
+            likes_model = {
+                'safe': SafeAssociationLike, 'unsafe': UnsafeAssociationLike, 'unknown': UnknownAssociationLike
+            }
+            for ass_id, l_num, dl_num in likes_model[self.type].objects.values('association_id')\
+                    .annotate(dislikes=Count(Case(When(dislike=True, then=1))),
+                              likes=Count(Case(When(dislike=False, then=1))))\
+                    .values_list('association_id', 'likes', 'dislikes'):
+                likes[ass_id] = l_num
+                dislikes[ass_id] = dl_num
+
         values = []
         cnt = 0
-        for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job'):
+        for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job').order_by('id'):
+            if 'similarity' in self.view:
+                if '0' not in self.view['similarity'] and mark_report.result == 0:
+                    continue
+                if '100' not in self.view['similarity'] and mark_report.result == 1:
+                    continue
+                if '50' not in self.view['similarity'] and 0 < mark_report.result < 1:
+                    continue
+            if 'ass_type' in self.view and mark_report.type not in self.view['ass_type']:
+                continue
+
             report = mark_report.report
             cnt += 1
             values_str = []
@@ -899,7 +867,7 @@ class MarkReportsTable(object):
                     val = cnt
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('reports:%s' % self.type, args=[report.id])
-                elif col == 'result':
+                elif col == 'similarity':
                     if mark_report.error is not None:
                         val = mark_report.error
                         color = result_color(0)
@@ -910,12 +878,14 @@ class MarkReportsTable(object):
                     val = report.root.job.name
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'assc_type':
+                elif col == 'ass_type':
                     val = mark_report.get_type_display()
-                elif col == 'association_author':
+                elif col == 'ass_author':
                     if mark_report.author:
                         val = mark_report.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark_report.author_id])
+                elif col == 'likes':
+                    val = '%s/%s' % (likes.get(mark_report.id, 0), dislikes.get(mark_report.id, 0))
                 values_str.append({'value': val, 'href': href, 'color': color})
             values.append(values_str)
         return values

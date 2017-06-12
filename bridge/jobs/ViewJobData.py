@@ -15,18 +15,17 @@
 # limitations under the License.
 #
 
-import json
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import VIEWJOB_DEF_VIEW, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+from bridge.vars import JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
-from users.models import View
 from reports.models import ReportComponentLeaf, ReportAttr
 
+from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
 
 
@@ -42,9 +41,7 @@ class ViewJobData:
         self.user = user
         self.report = report
 
-        self.view_type = VIEW_TYPES[2][0]
-        (self.view, self.view_id) = self.__get_view(view, view_id)
-        self.views = self.__views()
+        self.view = ViewData(self.user, VIEW_TYPES[2][0], view=view, view_id=view_id)
 
         self.safes_total = None
         self.unsafes_total = None
@@ -60,25 +57,6 @@ class ViewJobData:
             return
         if len(self.problems) > 0:
             self.problems.append((_('Without marks'), '0_0'))
-
-    def __get_view(self, view, view_id):
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
-            if len(pref_view):
-                return json.loads(pref_view[0].view.view), pref_view[0].view_id
-        elif view_id == 'default':
-            return VIEWJOB_DEF_VIEW, 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.pk
-        return VIEWJOB_DEF_VIEW, 'default'
-
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
 
     def __get_view_data(self):
         if 'data' not in self.view:

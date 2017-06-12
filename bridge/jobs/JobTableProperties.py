@@ -15,19 +15,20 @@
 # limitations under the License.
 #
 
-import json
 from django.core.urlresolvers import reverse
 from django.db.models import Q, F
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, string_concat
 from django.utils.timezone import now, timedelta
-from bridge.vars import JOB_TREE_DEF_VIEW, USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS,\
-    UNSAFE_VERDICTS, VIEW_TYPES
-from users.models import View
+
+from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
+
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
 from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
     TaskStatistic
+
+from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data, JobAccess, get_user_time
 from service.models import SolvingProgress
 
@@ -85,75 +86,15 @@ def all_user_columns():
     return columns
 
 
-def get_view(user, view=None, view_id=None):
-    if view is not None:
-        return json.loads(view), None
-    if view_id is None:
-        pref_view = user.preferableview_set.filter(view__type=VIEW_TYPES[1][0]).select_related('view').first()
-        if pref_view:
-            return json.loads(pref_view.view.view), pref_view.view_id
-    elif view_id == 'default':
-        return JOB_TREE_DEF_VIEW, 'default'
-    else:
-        user_view = View.objects.filter(
-            Q(id=view_id, type=VIEW_TYPES[1][0]) & (Q(shared=True) | Q(author=user))
-        ).first()
-        if user_view:
-            return json.loads(user_view.view), user_view.pk
-    return JOB_TREE_DEF_VIEW, 'default'
-
-
-class FilterForm:
-    def __init__(self, user, view=None, view_id=None):
-        self.user = user
-
-        self.view_type = VIEW_TYPES[1][0]
-        (self.view, self.view_id) = get_view(user, view, view_id)
-        self.user_views = self.__user_views()
-
-        self.selected_columns = self.__selected()
-        self.available_columns = self.__available()
-
-    def __column_title(self, column):
-        self.__is_not_used()
-        col_parts = column.split(':')
-        column_starts = []
-        for i in range(0, len(col_parts)):
-            column_starts.append(':'.join(col_parts[:(i + 1)]))
-        titles = []
-        for col_st in column_starts:
-            titles.append(TITLES[col_st])
-        concated_title = titles[0]
-        for i in range(1, len(titles)):
-            concated_title = string_concat(concated_title, '/', titles[i])
-        return concated_title
-
-    def __selected(self):
-        columns = []
-        all_columns = all_user_columns()
-        for col in self.view['columns']:
-            if col in all_columns:
-                columns.append({'value': col, 'title': self.__column_title(col)})
-        return columns
-
-    def __available(self):
-        columns = []
-        for col in all_user_columns():
-            columns.append({'value': col, 'title': self.__column_title(col)})
-        return columns
-
-    def __user_views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
-
-    def __is_not_used(self):
-        pass
-
-
 class TableTree:
     def __init__(self, user, view=None, view_id=None):
         self._user = user
         self._columns = ['name']
-        self._view = get_view(user, view, view_id)[0]
+
+        self.view = ViewData(user, VIEW_TYPES[1][0], view=view, view_id=view_id)
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self._titles = TITLES
         self._head_filters = self.__head_filters()
         self._jobdata = []
@@ -248,6 +189,34 @@ class TableTree:
                 })
             return columns_data
 
+    def __column_title(self, column):
+        self.__is_not_used()
+        col_parts = column.split(':')
+        column_starts = []
+        for i in range(0, len(col_parts)):
+            column_starts.append(':'.join(col_parts[:(i + 1)]))
+        titles = []
+        for col_st in column_starts:
+            titles.append(TITLES[col_st])
+        concated_title = titles[0]
+        for i in range(1, len(titles)):
+            concated_title = string_concat(concated_title, '/', titles[i])
+        return concated_title
+
+    def __selected(self):
+        columns = []
+        all_columns = all_user_columns()
+        for col in self.view['columns']:
+            if col in all_columns:
+                columns.append({'value': col, 'title': self.__column_title(col)})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in all_user_columns():
+            columns.append({'value': col, 'title': self.__column_title(col)})
+        return columns
+
     def __is_countable(self, col):
         if col in {'unsafe', 'safe', 'tag', 'problem', 'tasks_pending', 'tasks_processing',
                    'tasks_finished', 'tasks_error', 'tasks_cancelled', 'tasks_total', 'solutions'}:
@@ -275,16 +244,16 @@ class TableTree:
         rowdata = []
 
         jobs_order = 'id'
-        if 'order' in self._view:
-            if self._view['order'][1] == 'title':
+        if 'order' in self.view:
+            if self.view['order'][1] == 'title':
                 jobs_order = 'name'
-            elif self._view['order'][1] == 'date':
+            elif self.view['order'][1] == 'date':
                 jobs_order = 'change_date'
-            elif self._view['order'][1] == 'start':
+            elif self.view['order'][1] == 'start':
                 jobs_order = 'solvingprogress__start_date'
-            elif self._view['order'][1] == 'finish':
+            elif self.view['order'][1] == 'finish':
                 jobs_order = 'solvingprogress__finish_date'
-            if self._view['order'][0] == 'up':
+            if self.view['order'][0] == 'up':
                 jobs_order = '-' + jobs_order
 
         tree_struct = {}
@@ -350,17 +319,17 @@ class TableTree:
 
     def __head_filters(self):
         head_filters = {}
-        if 'resource_component' in self._view:
+        if 'resource_component' in self.view:
             head_filters['resource_component'] = {
-                'component__name__' + self._view['resource_component'][0]: self._view['resource_component'][1]
+                'component__name__' + self.view['resource_component'][0]: self.view['resource_component'][1]
             }
-        elif 'problem_component' in self._view:
+        elif 'problem_component' in self.view:
             head_filters['problem_component'] = {
-                'component__name__' + self._view['problem_component'][0]: self._view['problem_component'][1]
+                'component__name__' + self.view['problem_component'][0]: self.view['problem_component'][1]
             }
-        elif 'problem_problem' in self._view:
+        elif 'problem_problem' in self.view:
             head_filters['problem_problem'] = {
-                'problem__name__' + self._view['problem_problem'][0]: self._view['problem_problem'][1]
+                'problem__name__' + self.view['problem_problem'][0]: self.view['problem_problem'][1]
             }
         return head_filters
 
@@ -368,55 +337,55 @@ class TableTree:
         filters = {}
         unfilters = {}
 
-        if 'title' in self._view:
-            filters['name__' + self._view['title'][0]] = self._view['title'][1]
+        if 'title' in self.view:
+            filters['name__' + self.view['title'][0]] = self.view['title'][1]
 
-        if 'change_author' in self._view:
-            if self._view['change_author'][0] == 'is':
-                filters['change_author__id'] = int(self._view['change_author'][1])
+        if 'change_author' in self.view:
+            if self.view['change_author'][0] == 'is':
+                filters['change_author__id'] = int(self.view['change_author'][1])
             else:
-                unfilters['change_author__id'] = int(self._view['change_author'][1])
+                unfilters['change_author__id'] = int(self.view['change_author'][1])
 
-        if 'change_date' in self._view:
-            filters['name__' + self._view['title'][0]] = self._view['title'][1]
-            limit_time = now() - timedelta(**{self._view['change_date'][2]: int(self._view['change_date'][1])})
-            if self._view['change_date'][0] == 'older':
+        if 'change_date' in self.view:
+            filters['name__' + self.view['title'][0]] = self.view['title'][1]
+            limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
+            if self.view['change_date'][0] == 'older':
                 filters['change_date__lt'] = limit_time
-            elif self._view['change_date'][0] == 'younger':
+            elif self.view['change_date'][0] == 'younger':
                 filters['change_date__gt'] = limit_time
 
-        if 'status' in self._view:
-            filters['status__in'] = self._view['status']
+        if 'status' in self.view:
+            filters['status__in'] = self.view['status']
 
-        if 'format' in self._view:
-            if self._view['format'][0] == 'is':
-                filters['format'] = int(self._view['format'][1])
-            elif self._view['format'][0] == 'isnot':
-                unfilters['format'] = int(self._view['format'][1])
+        if 'format' in self.view:
+            if self.view['format'][0] == 'is':
+                filters['format'] = int(self.view['format'][1])
+            elif self.view['format'][0] == 'isnot':
+                unfilters['format'] = int(self.view['format'][1])
 
-        if 'priority' in self._view:
-            if self._view['priority'][0] == 'e':
-                filters['solvingprogress__priority'] = self._view['priority'][1]
-            elif self._view['priority'][0] == 'me':
+        if 'priority' in self.view:
+            if self.view['priority'][0] == 'e':
+                filters['solvingprogress__priority'] = self.view['priority'][1]
+            elif self.view['priority'][0] == 'me':
                 priorities = []
                 for pr in PRIORITY:
                     priorities.append(pr[0])
-                    if pr[0] == self._view['priority'][1]:
+                    if pr[0] == self.view['priority'][1]:
                         filters['solvingprogress__priority__in'] = priorities
                         break
-            elif self._view['priority'][0] == 'le':
+            elif self.view['priority'][0] == 'le':
                 priorities = []
                 for pr in reversed(PRIORITY):
                     priorities.append(pr[0])
-                    if pr[0] == self._view['priority'][1]:
+                    if pr[0] == self.view['priority'][1]:
                         filters['solvingprogress__priority__in'] = priorities
                         break
 
-        if 'finish_date' in self._view:
-            filters['solvingprogress__finish_date__month__' + self._view['finish_date'][0]] = \
-                int(self._view['finish_date'][1])
-            filters['solvingprogress__finish_date__year__' + self._view['finish_date'][0]] = \
-                int(self._view['finish_date'][2])
+        if 'finish_date' in self.view:
+            filters['solvingprogress__finish_date__month__' + self.view['finish_date'][0]] = \
+                int(self.view['finish_date'][1])
+            filters['solvingprogress__finish_date__year__' + self.view['finish_date'][0]] = \
+                int(self.view['finish_date'][2])
 
         return filters, unfilters
 
@@ -431,7 +400,7 @@ class TableTree:
             'tag:unsafe': self.__unsafe_tags_columns
         }
         all_columns = all_user_columns()
-        for col in self._view['columns']:
+        for col in self.view['columns']:
             if col in all_columns:
                 if col in extend_action:
                     self._columns.extend(extend_action[col]())
