@@ -5,7 +5,10 @@
         "trunk:23430": "path to scripts/"
       }
     },
-    "benchexec location": "abs path to benchexec/"
+    "benchexec location": "abs path to benchexec/",
+    "benchexec container mode": true,
+    "benchexec container mode options": [],
+    "benchexec measure disk": false
   },
   "common": {
     "working directory": null,

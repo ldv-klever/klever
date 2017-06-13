@@ -333,6 +333,12 @@ class Scheduler(schedulers.SchedulerExchange):
             timeout = None
         process = multiprocessing.Process(None, executor, identifier, [timeout, args])
 
+        # Add particular
+        configuration["resource limits"]["CPU cores"] = \
+            self.__get_virtual_cores(int(node_status["available CPU number"]),
+                                     int(node_status["reserved CPU number"]),
+                                     int(configuration["resource limits"]["number of CPU cores"]))
+
         if mode == 'task':
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             client_conf["identifier"] = identifier
@@ -341,12 +347,6 @@ class Scheduler(schedulers.SchedulerExchange):
                 json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
             for name in ("resource limits", "verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
-
-            # Add particular
-            client_conf["resource limits"]["CPU cores"] = \
-                self.__get_virtual_cores(int(node_status["available CPU number"]),
-                                         int(node_status["reserved CPU number"]),
-                                         int(client_conf["resource limits"]["number of CPU cores"]))
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
