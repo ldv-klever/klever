@@ -347,7 +347,6 @@ class TableTree:
                 unfilters['change_author__id'] = int(self.view['change_author'][1])
 
         if 'change_date' in self.view:
-            filters['name__' + self.view['title'][0]] = self.view['title'][1]
             limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
             if self.view['change_date'][0] == 'older':
                 filters['change_date__lt'] = limit_time
