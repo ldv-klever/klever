@@ -64,7 +64,7 @@
         <div class="seven wide column">
             <div class="ui tiny buttons" style="float: right;">
                 <button id="show_leaf_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
-                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.title }}"><i class="setting icon"></i></button>
+                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.viewtitle }}"><i class="setting icon"></i></button>
                 {% if can_mark %}
                     <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
                     <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
