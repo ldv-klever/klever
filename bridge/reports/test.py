@@ -834,24 +834,19 @@ class DecideJobs(object):
                 }
             }
 
-        from time import sleep
         self.__upload_data_report('/', core_data)
-        sleep(1)
 
         lkbce = self.__upload_start_report('LKBCE', '/')
-        sleep(1)
         self.__upload_attrs_report(lkbce, [LINUX_ATTR])
         self.__upload_finish_report(lkbce)
 
         lkvog = self.__upload_start_report('LKVOG', '/', [LKVOG_ATTR])
-        sleep(1)
         self.__upload_finish_report(lkvog)
 
         avtg = self.__upload_start_report('AVTG', '/', [LINUX_ATTR])
         vtg = self.__upload_start_report('VTG', '/', [LINUX_ATTR, LKVOG_ATTR])
 
         for chunk in self.reports_data:
-            sleep(1)
             if job.type == JOB_CLASSES[1][0]:
                 chunk['attrs'].append({'Commit': 'HEAD'})
 
@@ -872,7 +867,6 @@ class DecideJobs(object):
             if 'fail' in chunk and chunk['fail'] == 'RSG':
                 self.__upload_unknown_report(rsg, chunk['unknown'])
                 continue
-            sleep(1)
             self.__upload_finish_report(rsg)
 
             abkm = self.__upload_start_report('ABKM', avtg, chunk['attrs'])
