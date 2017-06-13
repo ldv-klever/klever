@@ -237,6 +237,25 @@ window.set_actions_for_views = function(filter_type, data_collection) {
     });
 };
 
+window.update_colors = function (table) {
+    if (!table.hasClass('alternate-color')) {
+        return false;
+    }
+    var is_dark = false;
+    table.find('tbody').first().find('tr').each(function () {
+        if (!$(this).is(':hidden')) {
+            if (is_dark) {
+                $(this).css('background', '#e8f9fe');
+                is_dark = false;
+            }
+            else {
+                $(this).css('background', 'white');
+                is_dark = true;
+            }
+        }
+    });
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
@@ -352,7 +371,7 @@ $(document).ready(function () {
 
     $('#upload_jobs_start').click(function () {
         var parent_id = $('#upload_job_parent_id').val();
-        if (parent_id.length == 0) {
+        if (!parent_id.length) {
             err_notify($('#error__parent_required').text());
             return false;
         }
@@ -400,5 +419,8 @@ $(document).ready(function () {
             html: $(this).attr('data-content'),
             hoverable: true
         });
+    });
+    $('.alternate-color').each(function () {
+        update_colors($(this));
     });
 });

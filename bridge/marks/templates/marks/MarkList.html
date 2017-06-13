@@ -17,7 +17,7 @@
     {% if tabledata.values|length %}
         <h2 class="header" style="text-align:center">{{ title }}</h2>
         <div style="overflow-x:auto;max-height: 75vh;overflow-y:auto;">
-            <table class="ui compact celled table {% if tabledata.view_type == '7' %}orange{% elif tabledata.view_type == '8' %}green{% elif tabledata.view_type == '9' %}red{% endif %}">
+            <table class="ui compact selectable celled table alternate-color {% if tabledata.view_type == '7' %}orange{% elif tabledata.view_type == '8' %}green{% elif tabledata.view_type == '9' %}red{% endif %}">
                 <thead>
                     {% for column_row in tabledata.header %}
                         <tr>

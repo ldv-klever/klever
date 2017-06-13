@@ -368,7 +368,7 @@ $(document).ready(function () {
         }
     });
 
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
     check_order_form();
     check_filters_form();
     fill_all_values();
