@@ -30,7 +30,7 @@ from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE, 
 from bridge.utils import file_checksum, logger, BridgeException
 
 from jobs.models import RunHistory, JobFile, FileSystem, Job
-from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent, ComponentInstances
 from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
     SchedulerUser, Workload
 
@@ -181,6 +181,7 @@ class FinishJobDecision:
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
+        ComponentInstances.objects.filter(report__root__job=self.job, in_progress__gt=0).update(in_progress=0)
         change_job_status(self.job, self.status)
 
     def __remove_tasks(self):

@@ -17,8 +17,8 @@
 
 import json
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __, string_concat
-from users.models import View, PreferableView
+from django.utils.translation import ugettext_lazy as _, string_concat
+from users.models import View
 
 DEF_NUMBER_OF_ELEMENTS = 18
 
@@ -54,7 +54,7 @@ JOB_TREE_VIEW = {
 
 JOB_DATA_VIEW = {
     'data': [
-        'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
+        'unsafes', 'safes', 'unknowns', 'resources', 'compinst', 'tags_safe', 'tags_unsafe',
         'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
     ],
     # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total'],
@@ -64,6 +64,7 @@ JOB_DATA_VIEW = {
     # unknown_component: [iexact|istartswith|icontains, <any text>]
     # unknown_problem: [iexact|istartswith|icontains, <any text>]
     # resource_component: [iexact|istartswith|icontains, <any text>]
+    # compinst: [iexact|istartswith|icontains, <any text>]
     # safe_tag: [iexact|istartswith|icontains, <any text>]
     # unsafe_tag: [iexact|istartswith|icontains, <any text>]
     # attr_stat_filter: [iexact|istartswith|icontains, <any text>]

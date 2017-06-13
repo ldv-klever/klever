@@ -32,7 +32,7 @@ from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
 from marks.models import CONVERTED_DIR, ConvertedTraces
 from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
-    ComponentUnknown, Verdict, ComponentResource
+    ComponentUnknown, Verdict, ComponentResource, ComponentInstances
 
 
 def objects_without_relations(table):
@@ -122,6 +122,30 @@ class RecalculateVerdicts:
         data.upload()
 
 
+class RecalculateComponentInstances:
+    def __init__(self, roots):
+        self.roots = roots
+        self.__recalc()
+
+    def __recalc(self):
+        report_parents = {}
+        inst_cache = {}
+        for report in ReportComponent.objects.filter(root__in=self.roots).order_by('id'):
+            parent_id = report.parent_id
+            report_parents[report.id] = parent_id
+            cache_id = (report.id, report.component_id)
+            inst_cache[cache_id] = ComponentInstances(report=report, component=report.component, total=1)
+            while parent_id is not None:
+                cache_id = (parent_id, report.component_id)
+                if cache_id not in inst_cache:
+                    inst_cache[cache_id] = ComponentInstances(report_id=parent_id, component=report.component)
+                inst_cache[cache_id].total += 1
+                if parent_id not in report_parents:
+                    raise ValueError('Unknown parent found')
+                parent_id = report_parents[parent_id]
+        ComponentInstances.objects.bulk_create(list(inst_cache.values()))
+
+
 class Recalculation:
     def __init__(self, rec_type, jobs=None):
         self.type = rec_type
@@ -153,6 +177,8 @@ class Recalculation:
             UnknownUtils.RecalculateConnections(self._roots)
         elif self.type == 'resources':
             RecalculateResources(self._roots)
+        elif self.type == 'compinst':
+            RecalculateComponentInstances(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
             UnsafeUtils.RecalculateConnections(self._roots)
@@ -160,6 +186,7 @@ class Recalculation:
             UnknownUtils.RecalculateConnections(self._roots)
             RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
+            RecalculateComponentInstances(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()

@@ -27,6 +27,11 @@
                     <input type="checkbox" id="view_{{ view.type }}__data__resources"{% if 'resources' in view.data %} checked{% endif %}>
                     <label for="view_{{ view.type }}__data__resources">{% trans 'Consumed resources' %}</label>
                 </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__data__compinst"{% if 'compinst' in view.data %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__data__compinst">{% trans 'Instances of components' %}</label>
+                </div>
             </div>
             <div class="eight wide column">
                 <div class="ui checkbox">
@@ -135,6 +140,27 @@
                 <div class="fluid">
                     <input id="view_{{ view.type }}__resource_component_name" type="text"{% if 'resource_component' in view %} value="{{ view.resource_component.1 }}"{% endif %}>
                     <label for="view_{{ view.type }}__resource_component_name"></label>
+                </div>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
+        {# Filters for components' instances #}
+        <input id="view_data_{{ view.type }}__compinst" value="list" data-list="compinst_type__compinst_name" type="hidden">
+        <br>
+        <label for="view_{{ view.type }}__compinst_type"><strong>{% trans 'Instances where component name' %}</strong></label>
+        <div class="ui grid">
+            <div class="six wide column">
+                <select id="view_{{ view.type }}__compinst_type" class="ui dropdown fluid">
+                    <option value="iexact"{% if 'compinst' in view and view.compinst.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'compinst' in view and view.compinst.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if 'compinst' in view and view.compinst.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="ten wide column">
+                <div class="fluid">
+                    <input id="view_{{ view.type }}__compinst_name" type="text"{% if 'compinst' in view %} value="{{ view.compinst.1 }}"{% endif %}>
+                    <label for="view_{{ view.type }}__compinst_name"></label>
                 </div>
             </div>
         </div>

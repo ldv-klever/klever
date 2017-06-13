@@ -92,25 +92,52 @@
 {% endif %}
 
 <div class="ui grid">
-    {% if reportdata.data.resources|length %}
+    {% if reportdata.data.resources|length or reportdata.data.compinst|length %}
         <div class="ui nine wide column">
-            <h4 class="header ui violet">{% trans 'Consumed resources' %}
-                <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
-            </h4>
-            <div class="ui list">
-                {% for res_data in reportdata.data.resources %}
-                    <div class="item">
-                        <i class="laptop mini icon"></i>
-                        <div class="content">
-                            {% if reportdata.report.component.name == res_data.component %}
-                                <strong style="color: #86188c;">{{ res_data.component }}:</strong>
-                            {% else %}
-                                {{ res_data.component }}:
-                            {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
+            {% if reportdata.data.resources|length %}
+                <h4 class="header ui violet">{% trans 'Consumed resources' %}
+                    <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
+                </h4>
+                <div class="ui list">
+                    {% for res_data in reportdata.data.resources %}
+                        <div class="item">
+                            <i class="laptop mini icon"></i>
+                            <div class="content">
+                                {% if reportdata.report.component.name == res_data.component %}
+                                    <strong style="color: #86188c;">{{ res_data.component }}:</strong>
+                                {% else %}
+                                    {{ res_data.component }}:
+                                {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
+                            </div>
                         </div>
-                    </div>
-                {% endfor %}
-            </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            {% if reportdata.data.compinst|length %}
+                <h4 class="header ui violet">{% trans 'Instances of components' %}</h4>
+                <div class="ui list">
+                    {% for cinst in reportdata.data.compinst %}
+                        <div class="item">
+                            <i class="pointing right mini icon"></i>
+                            <div class="content">
+                                {% if reportdata.report.component.name == cinst.0 %}
+                                    <strong style="color: #86188c;">{{ cinst.0 }}:</strong>
+                                {% else %}
+                                    {{ cinst.0 }}:
+                                {% endif %}
+                                <span style="color: darkblue">
+                                    {{ cinst.1 }}
+                                    {% if cinst.2 == 1 %}
+                                        ({{ cinst.2 }} {% trans 'is still running' %})
+                                    {% elif cinst.2 > 1 %}
+                                        ({{ cinst.2 }} {% trans 'are still running' %})
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     {% endif %}
     {% if reportdata.data.unknowns|length %}

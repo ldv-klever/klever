@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
-from reports.models import ReportComponentLeaf, ReportAttr
+from reports.models import ReportComponentLeaf, ReportAttr, ComponentInstances
 
 from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
@@ -70,7 +70,8 @@ class ViewJobData:
             'tags_unsafe': self.__unsafe_tags_info,
             'safes_attr_stat': self.__safes_attrs_statistic,
             'unsafes_attr_stat': self.__unsafes_attrs_statistic,
-            'unknowns_attr_stat': self.__unknowns_attrs_statistic
+            'unknowns_attr_stat': self.__unknowns_attrs_statistic,
+            'compinst': self.__component_instances
         }
         for d in self.view['data']:
             if d in actions:
@@ -393,3 +394,11 @@ class ViewJobData:
                 }
             attr_stat_data[ra_val]['num'] += 1
         return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))
+
+    def __component_instances(self):
+        if 'compinst' in self.view:
+            return ComponentInstances.objects.filter(**{
+                'report': self.report, 'component__name__%s' % self.view['compinst'][0]: self.view['compinst'][1]
+            }).order_by('component__name').values_list('component__name', 'total', 'in_progress')
+        return ComponentInstances.objects.filter(report=self.report).order_by('component__name')\
+            .values_list('component__name', 'total', 'in_progress')
