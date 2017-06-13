@@ -24,7 +24,7 @@ var do_not_count = [
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!$.inArray(cell_id_data[1], do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) === -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
@@ -42,7 +42,7 @@ function fill_all_values() {
 function fill_checked_values() {
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!$.inArray(cell_id_data[1], do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) === -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false, is_checked = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
