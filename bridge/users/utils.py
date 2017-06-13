@@ -17,8 +17,8 @@
 
 import json
 from django.db.models import Q
-from django.utils.translation import ugettext_lazy as _, pgettext_lazy as __, string_concat
-from users.models import View, PreferableView
+from django.utils.translation import ugettext_lazy as _, string_concat
+from users.models import View
 
 DEF_NUMBER_OF_ELEMENTS = 18
 
@@ -86,14 +86,16 @@ REPORT_CHILDREN_VIEW = {
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
-    # 'order': ['down', 'Rule specification'],
+    # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
+    # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 SAFES_VIEW = {
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # 'order': ['down', 'Rule specification'],
+    # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
+    # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 

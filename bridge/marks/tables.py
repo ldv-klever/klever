@@ -553,7 +553,7 @@ class MarksList:
     def __get_values(self):
         view_tags = []
         if 'tags' in self.view:
-            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(';'))
 
         values = []
         for mark in self.marks:

@@ -1106,9 +1106,20 @@ $(document).ready(function () {
     }
 
     if ($('#job_data_div').length) {
-        var num_of_updates = 0;
+        var num_of_updates = 0, is_filters_open = false;
+        $('#job_filters_accordion').accordion({
+            onOpen: function() {
+                is_filters_open = true;
+            },
+            onClose: function() {
+                is_filters_open = false;
+            }
+        });
         var interval = setInterval(function () {
             if ($.active > 0) {
+                return false;
+            }
+            if (is_filters_open) {
                 return false;
             }
             $.post(

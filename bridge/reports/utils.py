@@ -139,8 +139,6 @@ class SafesTable:
 
         columns = ['number']
         for col in self.view['columns']:
-            if self.verdict is not None and col == 'report_verdict':
-                continue
             columns.append(col)
 
         safes_filters = {}
@@ -193,12 +191,19 @@ class SafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
-        if 'order' in self.view and self.view['order'][1] in data:
-            for rep_id in data[self.view['order'][1]]:
+        if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
+            for rep_id in data[self.view['order'][2]]:
                 if self.__has_tag(reports[rep_id]['tags']):
-                    reports_ordered.append(
-                        (data[self.view['order'][1]][rep_id], rep_id)
-                    )
+                    reports_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
+            reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+            if self.view['order'][0] == 'up':
+                reports_ordered = list(reversed(reports_ordered))
+        elif 'order' in self.view and self.view['order'][1] == 'parent_cpu':
+            for attr in data:
+                for rep_id in data[attr]:
+                    order_id = (reports[rep_id]['parent_cpu'], rep_id)
+                    if order_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
+                        reports_ordered.append(order_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -259,7 +264,7 @@ class SafesTable:
         elif self.tag is not None and self.tag in tags:
             return True
         elif 'tags' in self.view:
-            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(';'))
             return all(t in tags for t in view_tags)
         return False
 
@@ -312,8 +317,6 @@ class UnsafesTable:
 
         columns = ['number']
         for col in self.view['columns']:
-            if self.verdict is not None and col == 'report_verdict':
-                continue
             columns.append(col)
 
         unsafes_filters = {}
@@ -367,12 +370,21 @@ class UnsafesTable:
             data[a_name][r_id] = a_val
 
         reports_ordered = []
-        if 'order' in self.view and self.view['order'][1] in data:
-            for rep_id in data[self.view['order'][1]]:
+        if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
+            for rep_id in data[self.view['order'][2]]:
                 if self.__has_tag(reports[rep_id]['tags']):
                     reports_ordered.append(
-                        (data[self.view['order'][1]][rep_id], rep_id)
+                        (data[self.view['order'][2]][rep_id], rep_id)
                     )
+            reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
+            if self.view['order'][0] == 'up':
+                reports_ordered = list(reversed(reports_ordered))
+        elif 'order' in self.view and self.view['order'][1] == 'parent_cpu':
+            for attr in data:
+                for rep_id in data[attr]:
+                    order_id = (reports[rep_id]['parent_cpu'], rep_id)
+                    if order_id not in reports_ordered and self.__has_tag(reports[rep_id]['tags']):
+                        reports_ordered.append(order_id)
             reports_ordered = [x[1] for x in sorted(reports_ordered, key=lambda x: x[0])]
             if self.view['order'][0] == 'up':
                 reports_ordered = list(reversed(reports_ordered))
@@ -433,7 +445,7 @@ class UnsafesTable:
         elif self.tag is not None and self.tag in tags:
             return True
         elif 'tags' in self.view:
-            view_tags = list(x.strip() for x in self.view['tags'][0].split(','))
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(';'))
             return all(t in tags for t in view_tags)
         return False
 

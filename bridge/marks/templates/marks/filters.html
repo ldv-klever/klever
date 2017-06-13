@@ -253,7 +253,7 @@
             <label for="view_{{ view.type }}__tags_value">&nbsp;</label>
             <input id="view_{{ view.type }}__tags_value" type="text"{% if 'tags' in view %} value="{{ view.tags.0 }}"{% endif %}>
         </div>
-        <small style="color: #656565">{% trans 'Enter full names of tags separated by comma' %}</small>
+        <small style="color: #656565">{% trans 'Enter full names of tags separated by semicolon' %}</small>
         <div class="ui divider"></div>
 
         {# Attribute #}

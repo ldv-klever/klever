@@ -28,26 +28,36 @@
             <label for="view_{{ view.type }}__columns__parent_cpu">{% trans 'Verifiers time' %}</label>
         </div><br>
 
-        <h5 class="header">{% trans 'Order by attribute' %}</h5>
-        <input id="view_data_{{ view.type }}__order" value="list" data-list="radio_order_value__order_attr" type="hidden">
+
+        <h4 class="header">{% trans 'Order' %}</h4>
+        <input id="view_data_{{ view.type }}__order" value="list_null" data-list="radio_order_value__radio_order__order_attr" type="hidden">
         <div class="ui grid">
             <div class="two wide column">
                 <div class="ui radio checkbox">
-                    <input id="order_value_up_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="up" {% if 'order' in view and view.order.0 == 'up' %} checked{% endif %}>
+                    <input id="order_value_up_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="up" {% if view.order.0 == 'up' %} checked{% endif %}>
                     <label for="order_value_up_{{ view.type }}"><i class="ui arrow up icon"></i></label>
                 </div>
                 <br>
                 <div class="ui radio checkbox">
-                    <input id="order_value_down_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="down" {% if 'order' in view and view.order.0 == 'down' %} checked{% endif %}>
+                    <input id="order_value_down_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="down" {% if view.order.0 == 'down' %} checked{% endif %}>
                     <label for="order_value_down_{{ view.type }}"><i class="ui arrow down icon"></i></label>
                 </div>
             </div>
             <div class="fourteen wide column">
-                <label for="view_{{ view.type }}__order_attr"></label>
-                <div class="fluid">
-                    <input id="view_{{ view.type }}__order_attr" type="text"{% if 'order' in view and view.order.1 != 'default' %} value="{{ view.order.1 }}"{% endif %}>
+                <div class="ui radio checkbox">
+                    <input id="view_{{ view.type }}__radio_parent_cpu" type="radio" name="view_{{ view.type }}__radio_order" value="parent_cpu"{% if view.order.1 == 'parent_cpu' %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__radio_parent_cpu">{% trans 'Order by verifiers time' %}</label>
                 </div>
-                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i>. {% trans 'Leave empty for order by creation date' %}.</small>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="view_{{ view.type }}__radio_attr_order" type="radio" name="view_{{ view.type }}__radio_order" value="attr"{% if view.order.1 == 'attr' %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__radio_attr_order">{% trans 'Order by attribute' %}</label>
+                </div>
+                <label for="view_{{ view.type }}__order_attr"></label>
+                <div class="ui fluid input">
+                    <input id="view_{{ view.type }}__order_attr" type="text"{% if view.order.1 != 'parent_cpu' %} value="{{ view.order.2 }}"{% endif %}>
+                </div>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small><br>
             </div>
         </div>
     </div>
@@ -143,7 +153,7 @@
             <label for="view_{{ view.type }}__tags_value">&nbsp;</label>
             <input id="view_{{ view.type }}__tags_value" type="text"{% if 'tags' in view %} value="{{ view.tags.0 }}"{% endif %}>
         </div>
-        <small style="color: #656565">{% trans 'Enter full names of tags separated by comma' %}</small>
+        <small style="color: #656565">{% trans 'Enter full names of tags separated by semicolon' %}</small>
         <div class="ui divider"></div>
 
         {# Verifiers time #}
