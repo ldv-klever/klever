@@ -28,6 +28,8 @@ import signal
 import zipfile
 import re
 import glob
+import multiprocessing
+import sys
 from xml.etree import ElementTree
 
 
@@ -210,7 +212,19 @@ def higher_priority(one, two, strictly=False):
         return one_priority >= two_priority
 
 
-def execute(args, env=None, cwd=None, timeout=None, logger=None):
+def dir_size(dir):
+    """
+    Measure size of the given directory.
+
+    :param dir: Path string.
+    :return: integer size in Bytes.
+    """
+    if not os.path.isdir(dir):
+        raise ValueError('Expect existing directory but it is not: {}'.format(dir))
+    return int(get_output('du -bs {} | cut -f1'.format(dir)))
+
+
+def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation=None, disk_checking_period=30):
     """
     Execute given command in a separate process catching its stderr if necessary.
 
@@ -219,6 +233,8 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None):
     :param cwd: Current working directory to run the command.
     :param timeout: Timeout for the command.
     :param logger: Logger object.
+    :param disk_limitation: Allowed integer size of disk memory in Bytes of current working directory.
+    :param disk_checking_period: Integer number of seconds for the disk space measuring interval.
     :return: subprocess.Popen.returncode.
     """
 
@@ -242,6 +258,29 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None):
     signal.signal(signal.SIGTERM, handler)
     signal.signal(signal.SIGINT, handler)
 
+    def disk_controller(pid, limitation, period):
+        def process_alive():
+            try:
+                os.kill(pid, 0)
+            except OSError:
+                return False
+            else:
+                return True
+
+        while process_alive():
+            size = dir_size("./")
+            if size > limitation:
+                # Kill the process
+                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
+                os.kill(p.pid, signal.SIGINT)
+            time.sleep(period)
+        os._exit(0)
+
+    def activate_disk_limitation(pid, limitation):
+        if limitation:
+            p = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
+            p.start()
+
     cmd = args[0]
     if logger:
         logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
@@ -253,6 +292,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None):
                                                   ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
         p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
+        activate_disk_limitation(p.pid, disk_limitation)
 
         err_q = StreamQueue(p.stderr, 'STDERR', True)
         err_q.start()
@@ -278,14 +318,18 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None):
                 logger.warning(m)
 
         p.poll()
-
         err_q.join()
-
     else:
         p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid)
+        activate_disk_limitation(p.pid, disk_limitation)
         p.wait(timeout)
     signal.signal(signal.SIGTERM, original_sigtrm_handler)
     signal.signal(signal.SIGINT, original_sigint_handler)
+
+    if disk_limitation:
+        size = dir_size("./")
+        if size >= disk_limitation:
+            raise RuntimeError("Disk space limitation of {}B is exceeded".format(disk_limitation))
 
     return p.returncode
 

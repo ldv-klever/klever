@@ -161,7 +161,7 @@ def solve_task(logger, conf, server):
     args = prepare_task_arguments(conf)
     logger.info("Start task execution with the following options: {}".format(str(args)))
 
-    exit_code = execute(args, logger=logger)
+    exit_code = run(args, conf, logger=logger)
     logger.info("Task solution has finished with exit code {}".format(exit_code))
 
     if exit_code != 0:
@@ -218,7 +218,7 @@ def solve_job(logger, conf):
 
     args = prepare_job_arguments(conf)
 
-    exit_code = execute(args)
+    exit_code = run(args, conf)
     logger.info("Job solution has finished with exit code {}".format(exit_code))
 
     return exit_code
@@ -315,6 +315,31 @@ def prepare_job_arguments(conf):
     args.append(cmd)
 
     return args
+
+
+def run(args, conf, logger=None):
+    """
+    Run given command with or without disk space limitations.
+
+    :param args: Command arguments.
+    :param conf: Configuration dictionary of the client.
+    :param logger: Logger object.
+    :return: Exit code.
+    """
+
+    if conf["resource limits"]["disk memory size"] and not \
+            (("runexec measure disk" in conf['client'] and conf['client']["runexec measure disk"]) or
+             ("benchexec measure disk" in conf['client'] and conf['client']["benchexec measure disk"])):
+        dl = conf["resource limits"]["disk memory size"]
+        if "disk checking period" not in conf['client']:
+            dcp = 60
+        else:
+            dcp = conf['client']['disk checking period']
+    else:
+        dcp = None
+        dl = None
+
+    return execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

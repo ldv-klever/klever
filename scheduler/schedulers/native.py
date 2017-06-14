@@ -326,6 +326,18 @@ class Scheduler(schedulers.SchedulerExchange):
         args.extend(['--file', file_name])
         self.__reserved[subdir][identifier] = dict()
 
+        # Check disk space limitation
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
+                'disk memory size' in configuration["resource limits"] and \
+                configuration["resource limits"]['disk memory size']:
+            current_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+            if current_space > configuration["resource limits"]['disk memory size']:
+                raise schedulers.SchedulerException(
+                    "Clean manually existing working directory of {} since its size on the disk is {}B which is "
+                    "greater than allowed limitation of {}B".
+                    format(os.path.abspath(work_dir), current_space,
+                           configuration["resource limits"]['disk memory size']))
+
         if configuration["resource limits"]["CPU time"]:
             # This is emergency timer if something will hang
             timeout = int((configuration["resource limits"]["CPU time"] * 1.5) / 100)
@@ -333,19 +345,11 @@ class Scheduler(schedulers.SchedulerExchange):
             timeout = None
         process = multiprocessing.Process(None, executor, identifier, [timeout, args])
 
-        # Add particular
-        configuration["resource limits"]["CPU cores"] = \
-            self.__get_virtual_cores(int(node_status["available CPU number"]),
-                                     int(node_status["reserved CPU number"]),
-                                     int(configuration["resource limits"]["number of CPU cores"]))
-
         if mode == 'task':
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             client_conf["identifier"] = identifier
             client_conf["common"]["working directory"] = work_dir
-            with open(os.path.join(work_dir, "task.json"), "w", encoding="utf8") as fp:
-                json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
-            for name in ("resource limits", "verifier", "upload input files of static verifiers"):
+            for name in ("verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
 
             # Do verification versions check
@@ -372,9 +376,17 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
             client_conf["common"]["working directory"] = work_dir
             client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
-            client_conf["resource limits"] = configuration["resource limits"]
 
             self.__job_processes[identifier] = process
+
+        client_conf["resource limits"] = configuration["resource limits"]
+        # Add particular cores
+        if "resource limits" not in client_conf:
+            client_conf["resource limits"] = {}
+        client_conf["resource limits"]["CPU cores"] = \
+            self.__get_virtual_cores(int(node_status["available CPU number"]),
+                                     int(node_status["reserved CPU number"]),
+                                     int(configuration["resource limits"]["number of CPU cores"]))
 
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -437,7 +449,7 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Release resources
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            reserved_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+            reserved_space = utils.dir_size(work_dir)
         else:
             reserved_space = 0
 
