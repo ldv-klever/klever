@@ -14,8 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-import os
-import re
 import xml.etree.ElementTree as ET
 from core.vtg.et.error_trace import ErrorTrace
 
