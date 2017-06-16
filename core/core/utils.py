@@ -562,3 +562,14 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
 
     return report_file
+
+
+def unique_file_name(file_name, suffix=''):
+    if not os.path.isfile(file_name + suffix):
+        return file_name
+
+    i = 2
+    while True:
+        if not os.path.isfile("{0}({1}){2}".format(file_name, str(i), suffix)):
+            return "{0}({1})".format(file_name, str(i))
+        i += 1

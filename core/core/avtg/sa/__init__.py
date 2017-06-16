@@ -138,7 +138,8 @@ class SA(core.avtg.plugins.Plugin):
                                           '--aspect', self.aspect,
                                           # TODO: issues like in Weaver.
                                           '--out', os.path.relpath(
-                                           '{0}.c'.format(os.path.splitext(os.path.basename(command['out file']))[0]),
+                                           '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
+                                               os.path.basename(command['out file']))[0], '.c.aux')),
                                            os.path.join(self.conf['main working directory'], command['cwd'])),
                                           '--stage', 'instrumentation',
                                           '--back-end', 'src',
