@@ -41,8 +41,6 @@ class Weaver(core.avtg.plugins.Plugin):
 
                     self.logger.info('Weave in C file "{0}"'.format(cc_full_desc['in files'][0]))
 
-                    # TODO: if several files in verification object will have the same name everything will break.
-                    # Overwrite suffix because of we will obtain weaved C files.
                     cc_full_desc['out file'] = '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
                         os.path.basename(cc_full_desc['out file']))[0], '.abs-paths.i'))
 
