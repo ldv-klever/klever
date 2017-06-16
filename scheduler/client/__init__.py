@@ -108,6 +108,8 @@ def run_benchexec(mode, file=None, configuration=None):
     finally:
         if server:
             server.stop()
+        if not isinstance(exit_code, int):
+            exit_code = -1
         os._exit(int(exit_code))
 
 
@@ -160,7 +162,6 @@ def solve_task(logger, conf, server):
 
     args = prepare_task_arguments(conf)
     logger.info("Start task execution with the following options: {}".format(str(args)))
-
     exit_code = run(args, conf, logger=logger)
     logger.info("Task solution has finished with exit code {}".format(exit_code))
 
@@ -175,7 +176,7 @@ def solve_task(logger, conf, server):
             shutil.move(entry, 'output')
 
     decision_results = process_task_results(logger)
-    submit_task_results(logger, server, conf["identifier"], decision_results)
+    submit_task_results(logger, server, conf["identifier"], decision_results, os.path.curdir)
 
     return exit_code
 

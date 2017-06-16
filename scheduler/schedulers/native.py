@@ -52,7 +52,9 @@ def executor(timeout, args):
     print('executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)))
 
     # Be sure that process will exit
-    os._exit(ec)
+    if not isinstance(ec, int):
+        ec = -1
+    os._exit(int(ec))
 
 
 class Scheduler(schedulers.SchedulerExchange):

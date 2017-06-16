@@ -238,19 +238,25 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
     :return: subprocess.Popen.returncode.
     """
 
+    def process_alive(pid):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+
     def handler(arg1, arg2):
         # Repeate until it dies
         if p and p.pid:
-            unkilled = True
-            os.kill(p.pid, signal.SIGTERM)
-            while unkilled:
-                try:
-                    # Wait until program terminates
-                    p.wait(timeout=60)
-                    unkilled = False
-                except subprocess.TimeoutExpired:
-                    # Repeate sending signal if it is still alive
-                    os.kill(p.pid, signal.SIGTERM)
+            pid = p.pid
+            os.kill(pid, signal.SIGINT)
+            print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
+            if process_alive(pid):
+                os.kill(pid, signal.SIGINT)
+                os.kill(pid, signal.SIGKILL)
+
+        print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
         os._exit(-1)
 
     original_sigint_handler = signal.getsignal(signal.SIGINT)
@@ -259,15 +265,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
     signal.signal(signal.SIGINT, handler)
 
     def disk_controller(pid, limitation, period):
-        def process_alive():
-            try:
-                os.kill(pid, 0)
-            except OSError:
-                return False
-            else:
-                return True
-
-        while process_alive():
+        while process_alive(pid):
             size = dir_size("./")
             if size > limitation:
                 # Kill the process
@@ -322,7 +320,11 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
     else:
         p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid)
         activate_disk_limitation(p.pid, disk_limitation)
-        p.wait(timeout)
+        try:
+            p.wait()
+        except OSError:
+            p.kill()
+
     signal.signal(signal.SIGTERM, original_sigtrm_handler)
     signal.signal(signal.SIGINT, original_sigint_handler)
 
@@ -375,7 +377,7 @@ def process_task_results(logger):
     return decision_results
 
 
-def submit_task_results(logger, server, identifier, decision_results):
+def submit_task_results(logger, server, identifier, decision_results, solution_path):
     """
     Pack output directory prepared by BenchExec and prepare report archive with decision results and
     upload it to the server.
@@ -384,21 +386,23 @@ def submit_task_results(logger, server, identifier, decision_results):
     :param server: server.AbstractServer object.
     :param identifier: Task identifier.
     :param decision_results: Dictionary with decision results and measured resources.
+    :param solution_path: Path to the directory with solution files.
     :return: None
     """
 
-    results_file = "decision results.json"
+    results_file = os.path.join(solution_path, "decision results.json")
     logger.debug("Save decision results to the disk: {}".format(os.path.abspath(results_file)))
     with open(results_file, "w", encoding="utf8") as fp:
         json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-    results_archive = 'decision result files.zip'
+    results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
     with zipfile.ZipFile(results_archive, mode='w') as zfp:
         zfp.write("decision results.json")
-        for dirpath, dirnames, filenames in os.walk("output"):
+        for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
             for filename in filenames:
-                zfp.write(os.path.join(dirpath, filename))
+                zfp.write(os.path.join(dirpath, filename),
+                          os.path.join(os.path.relpath(dirpath, solution_path), filename))
 
     server.submit_solution(identifier, decision_results, results_archive)
 
