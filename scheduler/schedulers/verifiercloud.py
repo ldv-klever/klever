@@ -24,7 +24,9 @@ import sys
 import glob
 import uuid
 import xml.etree.ElementTree as ET
+from xml.dom import minidom
 import schedulers as schedulers
+import utils
 
 
 class Run:
@@ -280,7 +282,7 @@ class Scheduler(schedulers.SchedulerExchange):
         # Process results and convert RunExec output to result description
         # TODO: what will happen if there will be several input files?
         # Simulate BenchExec behaviour when one input file is provided.
-        os.makedirs(os.path.join(task_solution_dir, "output", "benchmark.logfiles").encode("utf8"))
+        os.makedirs(os.path.join(task_solution_dir, "output", "benchmark.logfiles").encode("utf8"), exist_ok=True)
         shutil.move(os.path.join(task_solution_dir, 'output.log'),
                     os.path.join(task_solution_dir, "output", "benchmark.logfiles",
                                  "{}.log".format(os.path.basename(run.sourcefiles[0]))))
@@ -294,7 +296,9 @@ class Scheduler(schedulers.SchedulerExchange):
             raise err
 
         # Make fake BenchExec XML report
-        self.__make_fake_benchexec(solution_description, run)
+        self.__make_fake_benchexec(solution_description, run,
+                                   os.path.join(task_work_dir, 'solution', 'output',
+                                                "benchmark.results.xml"))
 
         # Make archive
         solution_archive = os.path.join(task_work_dir, "solution")
@@ -305,11 +309,11 @@ class Scheduler(schedulers.SchedulerExchange):
         # Push result
         logging.debug("Upload solution archive {} of the task {} to the verification gateway".format(solution_archive,
                                                                                                      identifier))
-
         try:
-            self.server.submit_solution(identifier, solution_description, solution_archive)
+            utils.submit_task_results(logging, self.server, identifier, solution_description,
+                                      os.path.join(task_work_dir, "solution"))
         except Exception as err:
-            error_msg = "Cannot submit silution results of task {}: {}".format(identifier, err)
+            error_msg = "Cannot submit solution results of task {}: {}".format(identifier, err)
             logging.warning(error_msg)
             raise schedulers.SchedulerException(error_msg)
 
@@ -448,7 +452,7 @@ class Scheduler(schedulers.SchedulerExchange):
                         else:
                             logging.warning("Cannot properly extract exhausted memory from {}".format(general_file))
                     elif key == "coreLimit":
-                        cores = number.match(value).group(1)
+                        cores = int(value)
                         description["resources"]["coreLimit"] = cores
         else:
             raise FileNotFoundError("There is no solution file {}".format(general_file))
@@ -466,11 +470,11 @@ class Scheduler(schedulers.SchedulerExchange):
         elif "return value" in description:
             if description["return value"] == 0:
                 if glob.glob(os.path.join(solution_dir, "output", "witness.*.graphml")):
-                    description["status"] = "unsafe"
+                    description["status"] = "false"
                 else:
-                    description["status"] = "safe"
+                    description["status"] = "true"
             else:
-                description["status"] = "error"
+                description["status"] = "unknown"
         else:
             raise ValueError("Cannot determine termination reason according to the file {}".format(general_file))
 
@@ -502,13 +506,28 @@ class Scheduler(schedulers.SchedulerExchange):
         return identifier, description
 
     @staticmethod
-    def __make_fake_benchexec(description, run):
+    def __make_fake_benchexec(description, run, path):
+        """
+        Save a fake BenchExec report. If you need to add an additional information to the XML file then add it here.
+
+        :param description: Description dictionary extracted from VerifierCloud TXT files.
+        :param run: Run object prepared by this scheduler before run.
+        :return: None
+        """
         result = ET.Element("result", {
             "benchmarkname": "benchmark"
         })
         run = ET.SubElement(result, "run")
+        ET.SubElement(run, "column", {
+            'title': 'status',
+            'value': str(description['status'])
+        })
+        ET.SubElement(run, "column", {
+            'title': 'exitcode',
+            'value': str(description['return value'])
+        })
 
-
-
+        with open(path, "w", encoding="utf8") as fp:
+            fp.write(minidom.parseString(ET.tostring(result)).toprettyxml(indent="    "))
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
