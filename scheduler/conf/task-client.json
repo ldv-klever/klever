@@ -7,8 +7,8 @@
     },
     "benchexec location": "abs path to benchexec/",
     "benchexec container mode": true,
-    "benchexec container mode options": [],
-    "benchexec measure disk": false
+    "benchexec measure disk": false,
+    "benchexec container mode options": []
   },
   "common": {
     "working directory": null,

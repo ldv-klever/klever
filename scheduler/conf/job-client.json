@@ -10,7 +10,8 @@
       "--network-access",
       "--keep-system-config",
       "--full-access-dir", "/dev",
-      "--full-access-dir", "/sys"
+      "--full-access-dir", "/sys",
+      "--full-access-dir", "./"
     ]
   },
   "common": {
