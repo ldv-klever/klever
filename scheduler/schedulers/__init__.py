@@ -393,16 +393,10 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 submit = True
                 try:
                     logging.debug("Update information about connected nodes")
-                    nothing_changed = self.update_nodes()
+                    self.update_nodes()
                 except Exception as err:
                     logging.error("Cannot obtain information about connected nodes: {}".format(err))
                     submit = False
-                    nothing_changed = False
-
-                if not nothing_changed:
-                    # TODO: Implement rescheduling current tasks
-                    logging.warning("Configuration of connected nodes has been changed")
-                    pass
 
                 if submit:
                     # Schedule new tasks
