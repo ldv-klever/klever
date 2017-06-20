@@ -22,6 +22,7 @@ import sys
 import traceback
 import zipfile
 import shutil
+import re
 
 from utils import execute, process_task_results, submit_task_results
 from server.bridge import Server
@@ -161,8 +162,7 @@ def solve_task(logger, conf, server):
     os.makedirs("output".encode("utf8"))
 
     args = prepare_task_arguments(conf)
-    logger.info("Start task execution with the following options: {}".format(str(args)))
-    exit_code = run(args, conf, logger=logger)
+    exit_code = run(logger, args, conf, logger=logger)
     logger.info("Task solution has finished with exit code {}".format(exit_code))
 
     if exit_code != 0:
@@ -219,7 +219,7 @@ def solve_job(logger, conf):
 
     args = prepare_job_arguments(conf)
 
-    exit_code = run(args, conf)
+    exit_code = run(logger, args, conf)
     logger.info("Job solution has finished with exit code {}".format(exit_code))
 
     return exit_code
@@ -243,7 +243,7 @@ def prepare_task_arguments(conf):
     if "CPU cores" in conf["resource limits"] and conf["resource limits"]["CPU cores"]:
         args.extend(["--limitCores", str(conf["resource limits"]["number of CPU cores"])])
         args.append("--allowedCores")
-        args.extend(list(map(str, conf["resource limits"]["CPU cores"])))
+        args.append(','.join(list(map(str, conf["resource limits"]["CPU cores"]))))
 
     if conf["resource limits"]["disk memory size"] and "benchexec measure disk" in conf['client'] and\
             conf['client']["benchexec measure disk"]:
@@ -318,13 +318,14 @@ def prepare_job_arguments(conf):
     return args
 
 
-def run(args, conf, logger=None):
+def run(selflogger, args, conf, logger=None):
     """
     Run given command with or without disk space limitations.
 
+    :param selflogger: Logger to print log of this function.
     :param args: Command arguments.
     :param conf: Configuration dictionary of the client.
-    :param logger: Logger object.
+    :param logger: Logger object to print log of BenchExec or RunExec.
     :return: Exit code.
     """
 
@@ -340,7 +341,24 @@ def run(args, conf, logger=None):
         dcp = None
         dl = None
 
-    return execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
+    selflogger.info("Start task execution with the following options: {}".format(str(args)))
+    if logger:
+        return execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp)
+    else:
+        with open('client-log.log', 'a', encoding="utf8") as fdo:
+            ec = execute(args, logger=logger, disk_limitation=dl, disk_checking_period=dcp, stderr=fdo, stdout=fdo)
+
+        # Runexec prints its warnings and ordinary log to STDERR, thus lets try to find warnings there and move them
+        # to critical log file
+        with open('client-log.log', encoding="utf8") as log:
+            for line in log.readlines():
+                # Warnings can be added to the file only from RunExec
+                if re.search(r'WARNING', line):
+                    selflogger.warning(re.search(r'WARNING - (.*)', line).group(1))
+                elif re.search(r'runexec: error: .*', line):
+                    selflogger.error(re.search(r'runexec: error: .*', line).group(0))
+
+        return ec
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

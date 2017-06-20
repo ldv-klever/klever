@@ -224,7 +224,8 @@ def dir_size(dir):
     return int(get_output('du -bs {} | cut -f1'.format(dir)))
 
 
-def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation=None, disk_checking_period=30):
+def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
+            disk_limitation=None, disk_checking_period=30):
     """
     Execute given command in a separate process catching its stderr if necessary.
 
@@ -233,10 +234,18 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
     :param cwd: Current working directory to run the command.
     :param timeout: Timeout for the command.
     :param logger: Logger object.
+    :param stderr: Pipe or file descriptor to redirect output. Use it if logger is not provided.
+    :param stderr: Pipe or file descriptor to redirect output. Use it if logger is not provided.
     :param disk_limitation: Allowed integer size of disk memory in Bytes of current working directory.
     :param disk_checking_period: Integer number of seconds for the disk space measuring interval.
     :return: subprocess.Popen.returncode.
     """
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
+
+    def restore_handlers():
+        signal.signal(signal.SIGTERM, original_sigtrm_handler)
+        signal.signal(signal.SIGINT, original_sigint_handler)
 
     def process_alive(pid):
         try:
@@ -250,19 +259,29 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
         # Repeate until it dies
         if p and p.pid:
             pid = p.pid
-            os.kill(pid, signal.SIGINT)
             print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
-            if process_alive(pid):
-                os.kill(pid, signal.SIGINT)
+            # Sent initial signals
+            os.kill(pid, signal.SIGINT)
+            restore_handlers()
+
+            try:
+                # Try to wait - it helps if a process is waiting for something, we need to check its status
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print('{}: Process {} is still alive ...'.format(os.getpid(), pid), file=sys.stderr)
+                # Lets try it again
+                os.killpg(os.getpgid(pid), signal.SIGTERM)
+                os.killpg(os.getpgid(pid), signal.SIGINT)
                 os.kill(pid, signal.SIGKILL)
+                # It should not survive after kill, lets wait a couple of seconds
+                time.sleep(10)
 
         print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
         os._exit(-1)
 
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
-    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
-    signal.signal(signal.SIGTERM, handler)
-    signal.signal(signal.SIGINT, handler)
+    def set_handlers():
+        signal.signal(signal.SIGTERM, handler)
+        signal.signal(signal.SIGINT, handler)
 
     def disk_controller(pid, limitation, period):
         while process_alive(pid):
@@ -279,6 +298,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
             p = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
             p.start()
 
+    set_handlers()
     cmd = args[0]
     if logger:
         logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
@@ -318,15 +338,14 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, disk_limitation
         p.poll()
         err_q.join()
     else:
-        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid)
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout)
         activate_disk_limitation(p.pid, disk_limitation)
         try:
             p.wait()
         except OSError:
             p.kill()
 
-    signal.signal(signal.SIGTERM, original_sigtrm_handler)
-    signal.signal(signal.SIGINT, original_sigint_handler)
+    restore_handlers()
 
     if disk_limitation:
         size = dir_size("./")
@@ -398,7 +417,7 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
     results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
     with zipfile.ZipFile(results_archive, mode='w') as zfp:
-        zfp.write("decision results.json")
+        zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
         for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
             for filename in filenames:
                 zfp.write(os.path.join(dirpath, filename),
