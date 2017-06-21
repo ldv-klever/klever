@@ -41,7 +41,8 @@ class RSB(core.components.Component):
         self.prepare_bug_kind_functions_file()
         self.prepare_property_file()
         self.prepare_src_files()
-        self.prepare_shadow_dir()
+        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                           self.conf['shadow source tree']))
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -143,10 +144,6 @@ class RSB(core.components.Component):
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({'verifier': self.conf['VTG strategy']['verifier'],
                                'resource limits': self.restrictions})
-
-    def prepare_shadow_dir(self):
-        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                           self.conf['shadow source tree']))
 
     def prepare_bug_kind_functions_file(self):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')

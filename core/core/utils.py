@@ -258,13 +258,18 @@ def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
     return output
 
 
-# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
-def find_file_or_dir(logger, main_work_dir, file_or_dir):
+def get_search_dirs(main_work_dir):
     search_dirs = ['job/root', os.path.pardir]
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])
     search_dirs = tuple(
         os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
+    return search_dirs
+
+
+# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
+    search_dirs = get_search_dirs(main_work_dir)
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
@@ -280,11 +285,7 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
 
 
 def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
-    search_dirs = ['job/root', os.path.pardir]
-    if 'KLEVER_WORK_DIR' in os.environ:
-        search_dirs.append(os.environ['KLEVER_WORK_DIR'])
-    search_dirs = tuple(
-        os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
+    search_dirs = get_search_dirs(main_work_dir)
     for search_dir in search_dirs:
         if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
             return os.path.relpath(abs_path_to_file_or_dir, search_dir)
