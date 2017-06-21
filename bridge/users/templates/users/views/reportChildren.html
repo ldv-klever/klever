@@ -1,0 +1,105 @@
+{% load i18n %}
+
+<div class="ui styled accordion fluid">
+    <div class="title"><i class="setting icon"></i>{{ view.viewtitle }}</div>
+    <div class="content ui form">
+        {% include 'users/views/viewButtons.html' %}
+        <div class="ui divider"></div>
+
+        <h5>{% trans 'Number of rows' %}</h5>
+        <input id="view_data_{{ view.type }}__elements" value="list" data-list="elements" type="hidden">
+        <label for="view_{{ view.type }}__elements"></label>
+        <div class="ui input"><input id="view_{{ view.type }}__elements" type="number"{% if 'elements' in view %} value="{{ view.elements.0 }}"{% endif %}></div>
+        <div class="ui divider"></div>
+
+        <h4>{% trans 'Order by' %}</h4>
+        <input id="view_data_{{ view.type }}__order" value="list_null" data-list="radio_order_type__radio_order_value__order_attr" type="hidden">
+        <div class="inline fields">
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input id="order_by_component_{{ view.type }}" name="view_{{ view.type }}__radio_order_type" type="radio" value="component"{% if 'order' in view and view.order.0 == 'component' %} checked{% endif %}>
+                    <label for="order_by_component_{{ view.type }}">{% trans 'Component' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_by_attr_{{ view.type }}" name="view_{{ view.type }}__radio_order_type" type="radio" value="attr" {% if 'order' in view and view.order.0 != 'component' and view.order.0 != 'date' %} checked{% endif %}>
+                    <label for="order_by_attr_{{ view.type }}">{% trans 'Attribute' %}</label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_by_date_{{ view.type }}" name="view_{{ view.type }}__radio_order_type" type="radio" value="date" {% if 'order' in view and view.order.0 == 'date' %} checked{% endif %}>
+                    <label for="order_by_date_{{ view.type }}">{% trans 'Finish date' %}*</label>
+                </div>
+            </div>
+            <div class="field">
+                <div class="ui radio checkbox">
+                    <input id="order_value_up_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="up" {% if 'order' in view and view.order.1 == 'up' %} checked{% endif %}>
+                    <label for="order_value_up_{{ view.type }}"><i class="ui arrow up icon"></i></label>
+                </div>
+                <br>
+                <div class="ui radio checkbox">
+                    <input id="order_value_down_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="down" {% if 'order' in view and view.order.1 == 'down' %} checked{% endif %}>
+                    <label for="order_value_down_{{ view.type }}"><i class="ui arrow down icon"></i></label>
+                </div>
+            </div>
+            <div id="order_attr_value_div__{{ view.type }}"{% if view.order.0 != 'attr' %} style="display: none"{% endif %} class="field">
+                <label for="view_{{ view.type }}__order_attr"></label>
+                <input id="view_{{ view.type }}__order_attr" type="text"{% if 'order' in view and view.order.0 == 'attr' %} value="{{ view.order.2 }}"{% endif %} style="min-width: 250px;">
+                <br>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+            </div>
+        </div>
+        <br>
+        <small style="color: #656565">*{% trans 'Only finished children will be shown' %}</small>
+        <div class="ui divider"></div>
+
+        {# Component #}
+        <input id="view_data_{{ view.type }}__component" value="list_if_component" data-list="component_type__component_name" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__component"{% if 'component' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__component">{% trans 'Component name' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <select id="view_{{ view.type }}__component_type" class="ui dropdown">
+                    <option value="iexact"{% if 'component' in view and view.component.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'component' in view and view.component.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if 'component' in view and view.component.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__component_type"></label>
+            </div>
+            <div class="field">
+                <input id="view_{{ view.type }}__component_name" type="text"{% if 'component' in view %} value="{{ view.component.1 }}"{% endif %}>
+                <label for="view_{{ view.type }}__component_name"></label>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
+        <input id="view_data_{{ view.type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__attr"{% if 'attr' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__attr">{% trans 'Attribute' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields" style="margin-left: 15px;">
+            <div class="field">
+                <input id="view_{{ view.type }}__attr_name" type="text"{% if 'attr' in view %} value="{{ view.attr.0 }}"{% endif %} placeholder="{% trans 'Attribute name' %}">
+                <label for="view_{{ view.type }}__attr_name"></label>
+            </div>
+            <div class="field">
+                <select id="view_{{ view.type }}__attr_type" class="ui dropdown">
+                    <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__attr_type"></label>
+            </div>
+            <div class="field">
+                <input id="view_{{ view.type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %} placeholder="{% trans 'Attribute value' %}">
+            </div>
+        </div>
+        <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+        <div class="ui divider"></div>
+    {% include 'users/views/viewCreateForm.html' %}
+    </div>
+</div>

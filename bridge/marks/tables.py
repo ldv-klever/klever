@@ -62,7 +62,9 @@ MARK_TITLES = {
     'ass_type': _('Association type'),
     'automatic': _('Automatic association'),
     'tags': _('Tags'),
-    'likes': string_concat(_('Likes'), '/', _('Dislikes'))
+    'likes': string_concat(_('Likes'), '/', _('Dislikes')),
+    'buttons': '',
+    'description': _('Description'),
 }
 
 STATUS_COLOR = {
@@ -93,6 +95,12 @@ CHANGE_DATA = {
     '=': (_("Changed"), '#FF8533'),
     '+': (_("New"), '#00B800'),
     '-': (_("Deleted"), '#D11919')
+}
+
+ASSOCIATION_TYPE_COLOR = {
+    '0': '#7506b4',
+    '1': '#3f9f32',
+    '2': '#c71a2d'
 }
 
 
@@ -357,7 +365,49 @@ class ReportMarkTable:
 
         view_types = {'unsafe': VIEW_TYPES[10][0], 'safe': VIEW_TYPES[11][0], 'unknown': VIEW_TYPES[12][0]}
         self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        self.columns = self.__get_columns()
+        self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        if self.type == 'safe':
+            return ['verdict', 'status', 'source', 'tags', 'ass_type',
+                    'ass_author', 'description', 'change_date', 'author']
+        elif self.type == 'unsafe':
+            return ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type',
+                    'ass_author', 'description', 'change_date', 'author']
+        return ['problem', 'status', 'source', 'ass_type', 'ass_author', 'description', 'change_date', 'author']
+
+    def __get_columns(self):
+        columns = ['mark_num']
+        columns.extend(self.view['columns'])
+        columns.append('likes')
+        columns.append('buttons')
+        return columns
 
     def __get_values(self):
         value_data = []
@@ -379,9 +429,7 @@ class ReportMarkTable:
             orders = ['-result', '-mark__change_date']
         else:
             orders = ['-mark__change_date']
-        marks_ids = set()
         for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
-            marks_ids.add(mark_rep.mark_id)
             if 'status' in self.view and mark_rep.mark.status not in self.view['status']:
                 continue
             if 'verdict' in self.view and mark_rep.mark.verdict not in self.view['verdict']:
@@ -395,60 +443,77 @@ class ReportMarkTable:
                     continue
             if 'ass_type' in self.view and mark_rep.type not in self.view['ass_type']:
                 continue
-            row_data = {
-                'id': mark_rep.mark_id,
-                'number': cnt,
-                'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
-                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
-                'type': (mark_rep.type, mark_rep.get_type_display()),
-                'likes': list(sorted(likes.get(mark_rep.id, []))),
-                'dislikes': list(sorted(dislikes.get(mark_rep.id, []))),
-                'mark_type': mark_rep.mark.get_type_display()
-            }
-            if self.type == 'unsafe':
-                row_data['broken'] = (mark_rep.error is not None)
-                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), UNSAFE_COLOR[mark_rep.mark.verdict])
-                if mark_rep.error is not None:
-                    row_data['similarity'] = (mark_rep.error, result_color(0))
-                else:
-                    row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result))
-            elif self.type == 'safe':
-                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
-            else:
-                problem_link = mark_rep.mark.link
-                if problem_link is not None and not problem_link.startswith('http'):
-                    problem_link = 'http://' + mark_rep.mark.link
-                row_data['problem'] = (mark_rep.problem.name, problem_link)
-
-            if mark_rep.author is not None:
-                row_data['author'] = (
-                    mark_rep.author.get_full_name(), reverse('users:show_profile', args=[mark_rep.author_id])
-                )
-            if len(mark_rep.mark.description) > 0:
-                row_data['description'] = mark_rep.mark.description
-
+            row_data = []
+            for col in self.columns:
+                val = '-'
+                href = None
+                color = None
+                if col == 'mark_num':
+                    val = cnt
+                    href = '%s?report_to_redirect=%s' % (
+                        reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]), self.report.pk
+                    )
+                elif col == 'verdict' and self.type != 'unknown':
+                    val = mark_rep.mark.get_verdict_display()
+                    if self.type == 'unsafe':
+                        color = UNSAFE_COLOR[mark_rep.mark.verdict]
+                    else:
+                        color = SAFE_COLOR[mark_rep.mark.verdict]
+                elif col == 'problem' and self.type == 'unknown':
+                    val = mark_rep.problem.name
+                    problem_link = mark_rep.mark.link
+                    if problem_link is not None:
+                        if not problem_link.startswith('http'):
+                            problem_link = 'http://' + mark_rep.mark.link
+                        href = problem_link
+                elif col == 'similarity' and self.type == 'unsafe':
+                    if mark_rep.error is not None:
+                        val = mark_rep.error
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(mark_rep.result)
+                        color = result_color(mark_rep.result)
+                elif col == 'status':
+                    val = mark_rep.mark.get_status_display()
+                    color = STATUS_COLOR[mark_rep.mark.status]
+                elif col == 'source':
+                    val = mark_rep.mark.get_type_display()
+                elif col == 'tags' and self.type != 'unknown':
+                    tags_filters = {
+                        'mark_version__mark_id': mark_rep.mark_id,
+                        'mark_version__version': F('mark_version__mark__version')
+                    }
+                    tags = set()
+                    tags_model = {'safe': MarkSafeTag, 'unsafe': MarkUnsafeTag}
+                    for tag, in tags_model[self.type].objects.filter(**tags_filters).values_list('tag__tag'):
+                        tags.add(tag)
+                    if len(tags) > 0:
+                        val = '; '.join(sorted(tags))
+                elif col == 'ass_type':
+                    val = mark_rep.get_type_display()
+                    color = ASSOCIATION_TYPE_COLOR[mark_rep.type]
+                elif col == 'ass_author' and mark_rep.author is not None:
+                    val = mark_rep.author.get_full_name()
+                    href = reverse('users:show_profile', args=[mark_rep.author_id])
+                elif col == 'description' and len(mark_rep.mark.description) > 0:
+                    val = mark_rep.mark.description
+                elif col == 'likes':
+                    val = (
+                        mark_rep.mark_id,
+                        list(sorted(likes.get(mark_rep.id, []))),
+                        list(sorted(dislikes.get(mark_rep.id, [])))
+                    )
+                elif col == 'buttons':
+                    val = (mark_rep.mark_id, mark_rep.type)
+                elif col == 'change_date':
+                    val = mark_rep.mark.change_date
+                elif col == 'author':
+                    val = mark_rep.mark.author.get_full_name()
+                    if mark_rep.mark.author:
+                        href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
+                row_data.append({'value': val, 'color': color, 'column': col, 'href': href})
             cnt += 1
             value_data.append(row_data)
-
-        if self.type == 'unknown':
-            return value_data
-
-        tags_filters = {
-            'mark_version__mark_id__in': marks_ids,
-            'mark_version__version': F('mark_version__mark__version')
-        }
-        tags_data = {}
-        tags_model = {'safe': MarkSafeTag, 'unsafe': MarkUnsafeTag}
-        for m_id, tag in tags_model[self.type].objects.filter(**tags_filters)\
-                .values_list('mark_version__mark_id', 'tag__tag'):
-            if m_id not in tags_data:
-                tags_data[m_id] = set()
-            tags_data[m_id].add(tag)
-        for i in range(len(value_data)):
-            if value_data[i]['id'] in tags_data:
-                value_data[i]['tags'] = '; '.join(sorted(tags_data[value_data[i]['id']]))
-            else:
-                value_data[i]['tags'] = '-'
         return value_data
 
 
@@ -463,6 +528,9 @@ class MarksList:
         view_types = {'unsafe': VIEW_TYPES[7][0], 'safe': VIEW_TYPES[8][0], 'unknown': VIEW_TYPES[9][0]}
         self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
 
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
         if self.type != 'unknown':
@@ -470,6 +538,31 @@ class MarksList:
 
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_page(page, self.__get_values())
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        if self.type == 'unknown':
+            return ['num_of_links', 'component', 'status', 'author', 'change_date', 'format', 'pattern', 'source']
+        return ['num_of_links', 'verdict', 'tags', 'status', 'author', 'change_date', 'format', 'source']
 
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
@@ -677,7 +770,7 @@ class MarksList:
         return values
 
 
-class MarkData(object):
+class MarkData:
     def __init__(self, mark_type, mark_version=None, report=None):
         self.type = mark_type
         self.mark_version = mark_version
@@ -820,9 +913,37 @@ class MarkReportsTable(object):
         view_types = {'unsafe': VIEW_TYPES[13][0], 'safe': VIEW_TYPES[14][0], 'unknown': VIEW_TYPES[15][0]}
         self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
 
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self.columns = self.__get_columns()
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        if self.type == 'unsafe':
+            return ['job', 'similarity', 'ass_type', 'ass_author', 'likes']
+        return ['job', 'ass_type', 'ass_author', 'likes']
 
     def __get_columns(self):
         columns = ['report']

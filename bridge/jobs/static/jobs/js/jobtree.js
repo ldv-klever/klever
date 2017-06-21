@@ -161,35 +161,6 @@ $(document).ready(function () {
     fill_all_values();
     $("input[id^='job_checkbox__']").change(fill_checked_values);
 
-    $('#add_column_btn').click(function () {
-        var selected_column = $('#available_columns').children('option:selected');
-        $('<option>', {
-            value: selected_column.val(),
-            text: selected_column.text(),
-            title: selected_column.text()
-        }).appendTo('#view_1__columns');
-        return false;
-    });
-
-    $('#remove_column_btn').click(function () {
-        $('#view_1__columns').children('option:selected').remove();
-        return false;
-    });
-
-    $('#move_columns_up').click(function () {
-        var $op = $('#view_1__columns').children('option:selected');
-        if ($op.length) {
-            $op.first().prev().before($op);
-        }
-    });
-
-    $('#move_columns_down').click(function () {
-        var $op = $('#view_1__columns').children('option:selected');
-        if ($op.length) {
-            $op.last().next().after($op);
-        }
-    });
-
     $('#cancel_remove_jobs').click(function () {
         $('#remove_jobs_popup').modal('hide');
     });

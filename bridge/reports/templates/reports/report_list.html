@@ -49,9 +49,9 @@
     <br>
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display:none;">
         {% if TableData.view.type == '6' %}
-            {% include 'reports/UnknownsFilters.html' with view=TableData.view %}
+            {% include 'users/views/UnknownsList.html' with view=TableData.view %}
         {% else %}
-            {% include 'reports/ListFilters.html' with view=TableData.view verdicts=TableData.verdicts %}
+            {% include 'users/views/SafesAndUnsafesList.html' with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
         {% endif %}
         <br>
     </div>

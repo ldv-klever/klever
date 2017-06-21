@@ -129,17 +129,40 @@ class SafesTable:
         self.attr = attr
 
         self.view = ViewData(self.user, VIEW_TYPES[5][0], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self.verdicts = SAFE_VERDICTS
         columns, values = self.__safes_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
 
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu'}:
+                return []
+            col_title = col
+            if col_title in REP_MARK_TITLES:
+                col_title = REP_MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        self.__is_not_used()
+        columns = []
+        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu']:
+            col_title = col
+            if col_title in REP_MARK_TITLES:
+                col_title = REP_MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
     def __safes_data(self):
         data = {}
-
         columns = ['number']
-        for col in self.view['columns']:
-            columns.append(col)
+        columns.extend(self.view['columns'])
 
         safes_filters = {}
         if self.verdict is not None:
@@ -295,6 +318,9 @@ class SafesTable:
             values = self.paginator.page(self.paginator.num_pages)
         return values
 
+    def __is_not_used(self):
+        pass
+
 
 class UnsafesTable:
     def __init__(self, user, report, view=None, view_id=None, page=1,
@@ -307,17 +333,40 @@ class UnsafesTable:
         self.attr = attr
 
         self.view = ViewData(self.user, VIEW_TYPES[4][0], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self.verdicts = UNSAFE_VERDICTS
         columns, values = self.__unsafes_data()
         self.paginator = None
         self.table_data = {'header': Header(columns, REP_MARK_TITLES).struct, 'values': self.__get_page(page, values)}
 
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in {'marks_number', 'report_verdict', 'tags', 'parent_cpu'}:
+                return []
+            col_title = col
+            if col_title in REP_MARK_TITLES:
+                col_title = REP_MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        self.__is_not_used()
+        columns = []
+        for col in ['marks_number', 'report_verdict', 'tags', 'parent_cpu']:
+            col_title = col
+            if col_title in REP_MARK_TITLES:
+                col_title = REP_MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
     def __unsafes_data(self):
         data = {}
-
         columns = ['number']
-        for col in self.view['columns']:
-            columns.append(col)
+        columns.extend(self.view['columns'])
 
         unsafes_filters = {}
         if self.verdict is not None:
@@ -475,6 +524,9 @@ class UnsafesTable:
         except EmptyPage:
             values = self.paginator.page(self.paginator.num_pages)
         return values
+
+    def __is_not_used(self):
+        pass
 
 
 class UnknownsTable:

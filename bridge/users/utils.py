@@ -108,7 +108,7 @@ UNKNOWNS_VIEW = {
 
 UNSAFE_MARKS_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -128,7 +128,7 @@ UNSAFE_MARKS_VIEW = {
 
 SAFE_MARKS_VIEW = {
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -148,6 +148,7 @@ SAFE_MARKS_VIEW = {
 
 UNKNOWN_MARKS_VIEW = {
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
+    # order: [up|down, change_date|num_of_links]
     'order': ['up', 'change_date'],
 
     # FILTERS:
@@ -164,7 +165,7 @@ UNKNOWN_MARKS_VIEW = {
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'similarity', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -180,7 +181,7 @@ UNSAFE_ASS_MARKS_VIEW = {
 }
 
 SAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -194,7 +195,7 @@ SAFE_ASS_MARKS_VIEW = {
 }
 
 UNKNOWN_ASS_MARKS_VIEW = {
-    'columns': ['status', 'mark_type', 'ass_type', 'ass_author', 'description'],
+    'columns': ['status', 'source', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # status: <list of identifiers from MARK_STATUS>

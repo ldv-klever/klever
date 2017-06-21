@@ -9,7 +9,7 @@
 
 {% block body_block %}
     <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
-        {% include 'jobs/jobTreeView.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
+        {% include 'users/views/jobTree.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
     </div>
     <div class="ui mini basic icon buttons">
         <button class="ui button violet note-popup" id="compare_reports_btn" data-position="bottom left" data-content="{% trans 'Compare reports' %}"><i class="ui columns icon"></i></button>
