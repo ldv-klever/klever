@@ -41,6 +41,7 @@ class RSB(core.components.Component):
         self.prepare_bug_kind_functions_file()
         self.prepare_property_file()
         self.prepare_src_files()
+        self.prepare_shadow_dir()
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -142,6 +143,10 @@ class RSB(core.components.Component):
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({'verifier': self.conf['VTG strategy']['verifier'],
                                'resource limits': self.restrictions})
+
+    def prepare_shadow_dir(self):
+        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                           self.conf['shadow source tree']))
 
     def prepare_bug_kind_functions_file(self):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
@@ -398,6 +403,8 @@ class RSB(core.components.Component):
                         error_trace_name = 'error trace_' + trace_id + '.json'
 
                         self.logger.info('Write processed witness to "' + error_trace_name + '"')
+                        arcnames = self.trim_file_names(et['files'])
+                        et['files'] = [arcnames[file] for file in et['files']]
                         with open(error_trace_name, 'w', encoding='utf8') as fp:
                             json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -410,7 +417,8 @@ class RSB(core.components.Component):
                                                   {"Rule specification": self.rule_specification},
                                                   {"Error trace identifier": trace_id}],
                                               'error trace': error_trace_name,
-                                              'files': [error_trace_name] + et['files']
+                                              'files': [error_trace_name] + list(arcnames.keys()),
+                                              'arcname': arcnames
                                           },
                                           self.mqs['report files'],
                                           self.conf['main working directory'],
@@ -431,6 +439,9 @@ class RSB(core.components.Component):
 
                     et = import_error_trace(self.logger, witnesses[0])
                     self.logger.info('Write processed witness to "error trace.json"')
+
+                    arcnames = self.trim_file_names(et['files'])
+                    et['files'] = [arcnames[file] for file in et['files']]
                     with open('error trace.json', 'w', encoding='utf8') as fp:
                         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -441,7 +452,8 @@ class RSB(core.components.Component):
                                           'parent id': verification_report_id,
                                           'attrs': [{"Rule specification": self.rule_specification}],
                                           'error trace': 'error trace.json',
-                                          'files': ['error trace.json'] + et['files']
+                                          'files': ['error trace.json'] + list(arcnames.keys()),
+                                          'arcname': arcnames
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
@@ -475,3 +487,13 @@ class RSB(core.components.Component):
                           {'id': verification_report_id},
                           self.mqs['report files'],
                           self.conf['main working directory'])
+
+    def trim_file_names(self, file_names):
+        arcnames = {}
+        for file_name in file_names:
+            if file_name.startswith(self.shadow_src_dir):
+                new_file_name = os.path.relpath(file_name, self.shadow_src_dir)
+            else:
+                new_file_name = core.utils.make_relative_path(self.logger, self.conf['main working directory'], file_name)
+            arcnames[file_name] = new_file_name
+        return arcnames
