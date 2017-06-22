@@ -64,7 +64,7 @@ if "schedulers" in consul.kv:
 else:
     try:
         consul.kv["schedulers"] = json.dumps(status, ensure_ascii=False, sort_keys=True, indent=4)
-    except KeyError:
+    except (AttributeError, KeyError):
         print('Key-value storage is not ready yet')
         exit(1)
     set_status(status)

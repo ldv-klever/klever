@@ -26,7 +26,7 @@ def set_data(session, conf):
     try:
         session.kv["states/{}".format(conf["node configuration"]["node name"])] = \
             json.dumps(conf["node configuration"], ensure_ascii=False, sort_keys=True, indent=4)
-    except AttributeError:
+    except (AttributeError, KeyError):
         print("Key-value storage is inaccessible")
         exit(2)
 
