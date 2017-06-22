@@ -19,7 +19,8 @@ from django.contrib.auth.models import User
 from django.db import models
 from django.db.models.signals import pre_delete
 from django.dispatch.dispatcher import receiver
-from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE
+from bridge.vars import FORMAT, MARK_STATUS, MARK_UNSAFE, MARK_SAFE, MARK_TYPE, ASSOCIATION_TYPE, \
+    ASSOCIATION_CHANGE_KIND, SAFE_VERDICTS, UNSAFE_VERDICTS
 from reports.models import Attr, ReportUnsafe, ReportSafe, ReportComponent, Component, ReportUnknown, AttrName
 from jobs.models import Job
 
@@ -104,6 +105,16 @@ class MarkHistory(models.Model):
     change_date = models.DateTimeField()
     comment = models.TextField()
     description = models.TextField()
+
+    class Meta:
+        abstract = True
+
+
+class AssociationChanges(models.Model):
+    identifier = models.CharField(max_length=255)
+    user = models.ForeignKey(User)
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
+    change_kind = models.CharField(max_length=1, choices=ASSOCIATION_CHANGE_KIND)
 
     class Meta:
         abstract = True
@@ -348,6 +359,26 @@ class MarkAssociationsChanges(models.Model):
 
     class Meta:
         db_table = 'cache_mark_associations_changes'
+
+
+class SafeAssociationChanges(AssociationChanges):
+    report = models.ForeignKey(ReportSafe, null=True, on_delete=models.SET_NULL)
+    old_verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS)
+    new_verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS)
+    old_tags = models.TextField()
+    new_tags = models.TextField()
+
+
+class UnsafeAssociationChanges(AssociationChanges):
+    report = models.ForeignKey(ReportUnsafe, null=True, on_delete=models.SET_NULL)
+    old_verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
+    new_verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS)
+    old_tags = models.TextField()
+    new_tags = models.TextField()
+
+
+class UnknownAssociationChanges(AssociationChanges):
+    report = models.ForeignKey(ReportUnknown, null=True, on_delete=models.SET_NULL)
 
 
 class ErrorTraceConvertionCache(models.Model):

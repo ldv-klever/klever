@@ -23,10 +23,11 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, F, Count, Case, When
 from django.template import Template, Context
 from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
+from django.utils.timezone import now, timedelta
 
 from bridge.tableHead import Header
 from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE
-from bridge.utils import unique_id
+from bridge.utils import unique_id, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
@@ -594,6 +595,13 @@ class MarksList:
                 filters['type'] = self.view['source'][1]
             else:
                 unfilter['type'] = self.view['source'][1]
+        if 'change_date' in self.view:
+            limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
+            if self.view['change_date'][0] == 'older':
+                filters['change_date__lt'] = limit_time
+            elif self.view['change_date'][0] == 'younger':
+                filters['change_date__gt'] = limit_time
+
         table_filters = Q(**filters)
         for uf in unfilter:
             table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
@@ -1010,3 +1018,20 @@ class MarkReportsTable(object):
                 values_str.append({'value': val, 'href': href, 'color': color})
             values.append(values_str)
         return values
+
+
+class AssociationChangesTable:
+    def __init__(self, user, association_id, view=None, view_id=None):
+        self.data = self.__get_data(association_id)
+        self.view = ViewData(self.user, VIEW_TYPES[3][0], view=view, view_id=view_id)
+
+    def __get_data(self, association_id):
+        self.__is_not_used()
+        try:
+            ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
+        except ObjectDoesNotExist:
+            raise BridgeException(_("Mark associations changes cache wasn't found"))
+        return json.loads(ass_ch.table_data)
+
+    def __is_not_used(self):
+        pass

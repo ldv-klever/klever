@@ -576,19 +576,19 @@ class UnknownsTable:
             data[aname][u_id] = aval
 
         report_ids = []
-        if 'order' in self.view and self.view['order'][1] in data:
+        if 'order' in self.view and self.view['order'][1] == 'attr' and self.view['order'][2] in data:
             ids_ordered = []
-            for rep_id in data[self.view['order'][1]]:
-                ids_ordered.append((data[self.view['order'][1]][rep_id], rep_id))
+            for rep_id in data[self.view['order'][2]]:
+                ids_ordered.append((data[self.view['order'][2]][rep_id], rep_id))
             report_ids = [x[1] for x in sorted(ids_ordered, key=lambda x: x[0])]
-            if self.view['order'][0] == 'up':
-                report_ids = list(reversed(report_ids))
         else:
             comp_data = []
             for u_id in components:
                 comp_data.append((components[u_id], u_id))
             for name, rep_id in sorted(comp_data, key=lambda x: x[0]):
                 report_ids.append(rep_id)
+        if 'order' in self.view and self.view['order'][0] == 'up':
+            report_ids = list(reversed(report_ids))
 
         values_data = []
         for rep_id in report_ids:
@@ -661,7 +661,7 @@ class ReportChildrenTable:
         for report in ReportComponent.objects.filter(**component_filters).select_related('component'):
             report_ids.add(report.id)
             components[report.id] = report.component
-            if 'order' in self.view and self.view['order'][0] == 'date' and report.finish_date is not None:
+            if 'order' in self.view and self.view['order'][1] == 'date' and report.finish_date is not None:
                 finish_dates[report.id] = report.finish_date
 
         for ra in ReportAttr.objects.filter(report_id__in=report_ids).order_by('id') \
@@ -673,12 +673,12 @@ class ReportChildrenTable:
 
         comp_data = []
         for pk in components:
-            if self.view['order'][0] == 'component':
+            if self.view['order'][1] == 'component':
                 comp_data.append((components[pk].name, {'pk': pk, 'component': components[pk]}))
-            elif self.view['order'][0] == 'date':
+            elif self.view['order'][1] == 'date':
                 if pk in finish_dates:
                     comp_data.append((finish_dates[pk], {'pk': pk, 'component': components[pk]}))
-            elif self.view['order'][0] == 'attr':
+            elif self.view['order'][1] == 'attr':
                 attr_val = '-'
                 if self.view['order'][2] in data and pk in data[self.view['order'][2]]:
                     attr_val = data[self.view['order'][2]][pk]
@@ -687,7 +687,7 @@ class ReportChildrenTable:
         sorted_components = []
         for name, dt in sorted(comp_data, key=lambda x: x[0]):
             sorted_components.append(dt)
-        if self.view['order'] is not None and self.view['order'][1] == 'up':
+        if self.view['order'] is not None and self.view['order'][0] == 'up':
             sorted_components = list(reversed(sorted_components))
 
         values_data = []

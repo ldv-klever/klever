@@ -4,8 +4,15 @@
 <div class="ui divider"></div>
 
 <div class="ui grid">
-    <div class="ten wide column">{% include 'users/views/viewColumns.html' %}</div>
+    <div class="ten wide column">
+        <h3>{% trans 'Columns' %}</h3>
+        <div class="ui divider"></div>
+        {% include 'users/views/viewColumns.html' %}
+    </div>
     <div class="six wide column">
+        <h3>{% trans 'Filters' %}</h3>
+        <div class="ui divider"></div>
+
         {# Status #}
         <input id="view_data_{{ view.type }}__status" value="checkboxes_if_status" type="hidden">
         <div class="ui checkbox">
@@ -15,7 +22,7 @@
         <br><br>
         <div style="margin-left: 15px;">
             {% for status in statuses %}
-                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                <div class="ui checkbox">
                     <input id="view_{{ view.type }}__status__{{ status.0 }}" type="checkbox" value="{{ status.0 }}"{% if 'status' in view and status.0 in view.status %} checked{% endif %}>
                     <label for="view_{{ view.type }}__status__{{ status.0 }}">{{ status.1 }}</label>
                 </div>
@@ -33,7 +40,7 @@
         <br><br>
         <div style="margin-left: 15px;">
             {% for ass_type in ass_types %}
-                <div class="ui checkbox" style="margin-right: 30px; margin-top: 10px;">
+                <div class="ui checkbox">
                     <input id="view_{{ view.type }}__ass_type__{{ ass_type.0 }}" type="checkbox" value="{{ ass_type.0 }}"{% if 'ass_type' in view and ass_type.0 in view.ass_type %} checked{% endif %}>
                     <label for="view_{{ view.type }}__ass_type__{{ ass_type.0 }}">{{ ass_type.1 }}</label>
                 </div>

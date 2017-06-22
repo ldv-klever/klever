@@ -146,7 +146,10 @@ VIEW_TYPES = (
     ('12', 'unknown associated marks'),
     ('13', 'unsafe mark associated reports'),
     ('14', 'safe mark associated reports'),
-    ('15', 'unknown mark associated reports')
+    ('15', 'unknown mark associated reports'),
+    ('16', 'safe association changes'),
+    ('17', 'unsafe association changes'),
+    ('18', 'unknown association changes')
 )
 
 SCHEDULER_STATUS = (
@@ -228,4 +231,10 @@ ASSOCIATION_TYPE = (
     ('0', _('Automatic')),
     ('1', _('Confirmed')),
     ('2', _('Unconfirmed'))
+)
+
+ASSOCIATION_CHANGE_KIND = (
+    ('0', _('New')),
+    ('1', _('Changed')),
+    ('2', _('Deleted'))
 )

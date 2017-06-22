@@ -10,6 +10,9 @@
         <input id="view_data_{{ view.type }}__data" value="checkboxes" type="hidden">
         <div class="ui grid">
             <div class="six wide column">
+                <h3>{% trans 'Data' %}</h3>
+                <div class="ui divider"></div>
+
                 <div class="ui checkbox">
                     <input type="checkbox" id="view_{{ view.type }}__data__unsafes"{% if 'unsafes' in view.data %} checked{% endif %}>
                     <label for="view_{{ view.type }}__data__unsafes">{% trans 'Unsafes' %}</label>
@@ -56,6 +59,21 @@
                 </div>
                 <div class="ui divider"></div>
 
+                <input id="view_data_{{ view.type }}__attr_stat" value="list_if_attr_stat" data-list="attr_stat_name" type="hidden">
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_condition_{{ view.type }}__attr_stat"{% if 'attr_stat' in view %} checked{% endif %}>
+                    <label for="view_condition_{{ view.type }}__attr_stat">{% trans 'Statistic attribute name' %}</label>
+                </div>
+                <br><br>
+                <div class="field" style="margin-left: 15px;">
+                    <input id="view_{{ view.type }}__attr_stat_name" type="text"{% if 'attr_stat' in view %} value="{{ view.attr_stat.0 }}"{% endif %}>
+                    <label for="view_{{ view.type }}__attr_stat_name"></label>
+                </div>
+            </div>
+            <div class="ten wide column">
+                <h3>{% trans 'Filters' %}</h3>
+                <div class="ui divider"></div>
+
                 {# Hide data #}
                 <input id="view_data_{{ view.type }}__hidden" value="checkboxes" type="hidden">
                 <div class="ui checkbox">
@@ -73,8 +91,6 @@
                     <label for="view_{{ view.type }}__hidden__resource_total">{% trans 'Hide total of consumed resources' %}</label>
                 </div>
                 <div class="ui divider"></div>
-            </div>
-            <div class="ten wide column">
                 {# Unknown component #}
                 <input id="view_data_{{ view.type }}__unknown_component" value="list_if_unknown_component" data-list="unknown_component_type__unknown_component_name" type="hidden">
                 <div class="ui checkbox">
@@ -190,22 +206,11 @@
                 </div>
                 <div class="ui divider"></div>
 
-                {# Filters for attributes statistic #}
-                <input id="view_data_{{ view.type }}__attr_stat" value="list_if_attr_stat" data-list="attr_stat_name" type="hidden">
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_condition_{{ view.type }}__attr_stat"{% if 'attr_stat' in view %} checked{% endif %}>
-                    <label for="view_condition_{{ view.type }}__attr_stat">{% trans 'Statistic attribute name' %}</label>
-                </div>
-                <br><br>
-                <div class="field" style="margin-left: 15px;">
-                    <input id="view_{{ view.type }}__attr_stat_name" type="text"{% if 'attr_stat' in view %} value="{{ view.attr_stat.0 }}"{% endif %}>
-                    <label for="view_{{ view.type }}__attr_stat_name"></label>
-                </div>
-                <br>
+                {# Filter for attributes statistic #}
                 <input id="view_data_{{ view.type }}__attr_stat_filter" value="list_if_attr_stat_enable" data-list="attr_stat_type__attr_stat_value" type="hidden">
                 <div class="ui checkbox">
                     <input type="checkbox" id="view_condition_{{ view.type }}__attr_stat_enable"{% if 'attr_stat_filter' in view %} checked{% endif %}>
-                    <label for="view_condition_{{ view.type }}__attr_stat_enable">{% trans 'Calculate statistic just if attribute' %}</label>
+                    <label for="view_condition_{{ view.type }}__attr_stat_enable">{% trans 'Calculate statistic just if attribute value' %}</label>
                 </div>
                 <br><br>
                 <div class="inline fields" style="margin-left: 15px;">

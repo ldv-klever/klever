@@ -71,8 +71,8 @@ JOB_DATA_VIEW = {
 
 REPORT_CHILDREN_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # order: [attr|component|date, down|up, <attribute name in case of attr or any>]
-    'order': ['component', 'down', ''],
+    # order: [down|up, attr|component|date, <attribute name in case of attr or any>]
+    'order': ['down', 'component', ''],
 
     # FILTERS:
     # component: [<iexact|istartswith|icontains>, <any string>]
@@ -101,12 +101,14 @@ SAFES_VIEW = {
 
 UNKNOWNS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # 'order': ['up', 'Rule specification'],
+    # order: [up|down, component|attr, <any text, empty if not attr>]
+    'order': ['down', 'component', ''],
     # 'component': ['istartswith', 'v'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 UNSAFE_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
@@ -117,6 +119,7 @@ UNSAFE_MARKS_VIEW = {
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -127,6 +130,7 @@ UNSAFE_MARKS_VIEW = {
 }
 
 SAFE_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
     # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
@@ -137,6 +141,7 @@ SAFE_MARKS_VIEW = {
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -147,6 +152,7 @@ SAFE_MARKS_VIEW = {
 }
 
 UNKNOWN_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
     # order: [up|down, change_date|num_of_links]
     'order': ['up', 'change_date'],
@@ -156,6 +162,7 @@ UNKNOWN_MARKS_VIEW = {
     # component: [is|startswith, <any text>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -238,6 +245,19 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     # 'ass_type': ['0', '1'],
 }
 
+SAFE_ASSOCIATION_CHANGES_VIEW = {}
+UNSAFE_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['report', 'change_kind', 'sum_verdict', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
+    # new_verdict: <list of identifiers from UNSAFE_VERDICTS>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
+UNKNOWN_ASSOCIATION_CHANGES_VIEW = {}
+
 DEFAULT_VIEW = {
     '1': JOB_TREE_VIEW,
     '2': JOB_DATA_VIEW,
@@ -253,7 +273,10 @@ DEFAULT_VIEW = {
     '12': UNKNOWN_ASS_MARKS_VIEW,
     '13': UNSAFE_MARK_ASS_REPORTS_VIEW,
     '14': SAFE_MARK_ASS_REPORTS_VIEW,
-    '15': UNKNOWN_MARK_ASS_REPORTS_VIEW
+    '15': UNKNOWN_MARK_ASS_REPORTS_VIEW,
+    '16': SAFE_ASSOCIATION_CHANGES_VIEW,
+    '17': UNSAFE_ASSOCIATION_CHANGES_VIEW,
+    '18': UNKNOWN_ASSOCIATION_CHANGES_VIEW
 }
 
 

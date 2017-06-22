@@ -399,11 +399,11 @@ window.set_actions_for_views = function(view_type) {
         }
     });
 
-    $('#order_by_attr_' + view_type).parent().checkbox({
+    $('#order_by_attr__' + view_type).parent().checkbox({
         onChecked: function() {$('#order_attr_value_div__' + view_type).show()}
     });
     $('[id^="order_by_"]').each(function () {
-        if ($(this).attr('id').startsWith('order_by_attr_') || $(this).attr('id').slice(-1) !== view_type) {
+        if ($(this).attr('id').startsWith('order_by_attr__') || $(this).attr('id').split('__')[1] !== view_type) {
             return true;
         }
         $(this).parent().checkbox({

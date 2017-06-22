@@ -1,0 +1,161 @@
+{% load i18n %}
+
+{% include 'users/views/viewButtons.html' %}
+<div class="ui divider"></div>
+
+<div class="ui grid">
+    <div class="six wide column">
+        <h3>{% trans 'Number of rows' %}</h3>
+        <input id="view_data_{{ view.type }}__elements" value="list" data-list="elements" type="hidden">
+        <label for="view_{{ view.type }}__elements"></label>
+        <div class="ui input"><input id="view_{{ view.type }}__elements" type="number"{% if 'elements' in view %} value="{{ view.elements.0 }}"{% endif %}></div>
+        <div class="ui divider"></div>
+
+        <h3 class="header">{% trans 'Columns' %}</h3>
+        <div class="ui divider"></div>
+        {% include 'users/views/viewColumns.html' %}
+    </div>
+    <div class="ten wide column">
+        <h3>{% trans 'Filters' %}</h3>
+        <div class="ui divider"></div>
+
+        {# Change kind #}
+        <input id="view_data_{{ view.type }}__change_kind" value="checkboxes_if_change_kind" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__change_kind"{% if 'change_kind' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__change_kind">{% trans 'Change kind' %}</label>
+        </div>
+        <br><br>
+        <div style="margin-left: 15px;">
+            <div class="ui checkbox">
+                <input id="view_{{ view.type }}__change_kind__changed" type="checkbox" value="changed"{% if 'change_kind' in view and 'changed' in view.change_kind %} checked{% endif %}>
+                <label for="view_{{ view.type }}__change_kind__changed">{% trans 'Changed' %}</label>
+            </div>
+            <br>
+            <div class="ui checkbox">
+                <input id="view_{{ view.type }}__change_kind__new" type="checkbox" value="new"{% if 'change_kind' in view and 'new' in view.change_kind %} checked{% endif %}>
+                <label for="view_{{ view.type }}__change_kind__new">{% trans 'New' %}</label>
+            </div>
+            <br>
+            <div class="ui checkbox">
+                <input id="view_{{ view.type }}__change_kind__deleted" type="checkbox" value="deleted"{% if 'change_kind' in view and 'deleted' in view.change_kind %} checked{% endif %}>
+                <label for="view_{{ view.type }}__change_kind__deleted">{% trans 'Deleted' %}</label>
+            </div>
+            <br>
+
+        </div>
+        <div class="ui divider"></div>
+
+        {# Old verdict #}
+        <input id="view_data_{{ view.type }}__old_verdict" value="checkboxes_if_old_verdict" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__old_verdict"{% if 'old_verdict' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__old_verdict">{% trans 'Old verdict' %}</label>
+        </div>
+        <br><br>
+        {% for verdict in verdicts %}
+            <div class="ui checkbox" style="margin-left: 20px; margin-right: 10px; margin-top: 10px;">
+                <input id="view_{{ view.type }}__old_verdict__{{ verdict.0 }}" type="checkbox" value="{{ verdict.0 }}"{% if 'old_verdict' in view and verdict.0 in view.old_verdict %} checked{% endif %}>
+                <label for="view_{{ view.type }}__old_verdict__{{ verdict.0 }}">{{ verdict.1 }}</label>
+            </div>
+        {% endfor %}
+        <div class="ui divider"></div>
+
+        {# New verdict #}
+        <input id="view_data_{{ view.type }}__new_verdict" value="checkboxes_if_new_verdict" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__new_verdict"{% if 'new_verdict' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__new_verdict">{% trans 'Old verdict' %}</label>
+        </div>
+        <br><br>
+        {% for verdict in verdicts %}
+            <div class="ui checkbox" style="margin-left: 20px; margin-right: 10px; margin-top: 10px;">
+                <input id="view_{{ view.type }}__new_verdict__{{ verdict.0 }}" type="checkbox" value="{{ verdict.0 }}"{% if 'new_verdict' in view and verdict.0 in view.new_verdict %} checked{% endif %}>
+                <label for="view_{{ view.type }}__new_verdict__{{ verdict.0 }}">{{ verdict.1 }}</label>
+            </div>
+        {% endfor %}
+        <div class="ui divider"></div>
+
+        {# Job title #}
+        <input id="view_data_{{ view.type }}__job_title" value="list_if_job_title" data-list="job_title_type__job_title_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__job_title"{% if 'job_title' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__job_title">{% trans 'Job title' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields">
+            <div class="field">
+                <label for="view_{{ view.type }}__job_title_type"></label>
+                <select id="view_{{ view.type }}__job_title_type" class="ui dropdown">
+                    <option value="iexact"{% if 'job_title' in view and view.job_title.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'job_title' in view and view.job_title.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="icontains"{% if 'job_title' in view and view.job_title.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="view_{{ view.type }}__job_title_value"></label>
+                <input id="view_{{ view.type }}__job_title_value" type="text"{% if 'job_title' in view %} value="{{ view.job_title.1 }}"{% endif %} style="min-width: 300px;">
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
+        {# Format #}
+        <input id="view_data_{{ view.type }}__format" value="list_if_format" data-list="format_type__format_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__format"{% if 'format' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__format">{% trans 'Format' %}</label>
+        </div>
+        <br><br>
+        <div class="inline fields">
+            <div class="field">
+                <label for="view_{{ view.type }}__format_type"></label>
+                <select id="view_{{ view.type }}__format_type" class="ui dropdown">
+                    <option value="is"{% if 'format' in view and view.format.0 == 'is' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="isnot"{% if 'format' in view and view.format.0 == 'isnot' %} selected{% endif %}>{% trans 'is not' %}</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="view_{{ view.type }}__format_value">&nbsp;</label>
+                <input id="view_{{ view.type }}__format_value" type="text"{% if 'format' in view %} value="{{ view.format.1 }}" {% endif %}>
+            </div>
+        </div>
+        <div class="ui divider"></div>
+
+        {# Attribute #}
+        <input id="view_data_{{ view.type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__attr"{% if 'attr' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__attr">{% trans 'Attribute' %}</label>
+        </div>
+        <br><br>
+        <div class="fields" style="margin-left: 15px;">
+            <div class="six wide field">
+                <div class="ui fluid input">
+                    <input id="view_{{ view.type }}__attr_name" type="text"{% if 'attr' in view %} value="{{ view.attr.0 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Attribute name' %}">
+                </div>
+                <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
+            </div>
+            <div class="four wide field">
+                <select id="view_{{ view.type }}__attr_type" class="ui dropdown">
+                    <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
+                    <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
+                    <option value="iendswith"{% if 'attr' in view and view.attr.1 == 'iendswith' %} selected{% endif %}>{% trans 'ends with' %}</option>
+                </select>
+                <label for="view_{{ view.type }}__attr_type">&nbsp;</label>
+            </div>
+            <div class="six wide field">
+                <div class="ui fluid input">
+                    <input id="view_{{ view.type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Attribute value' %}">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="ui divider"></div>
+
+<div class="ui grid">
+    <div class="four wide column"></div>
+    <div class="seven wide column center aligned">
+        {% include 'users/views/viewCreateForm.html' %}
+    </div>
+</div>

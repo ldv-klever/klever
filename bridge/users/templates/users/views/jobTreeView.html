@@ -1,20 +1,43 @@
 {% load i18n %}
 
-{% include 'users/views/viewButtons.html' %}
-<div class="ui divider"></div>
-
 <div class="ui grid">
     <div class="five wide column field">
         <h3>{% trans 'Columns' %}</h3>
-        <div class="ui divider"></div>
+        <div class="ui grid">
+            <div class="fourteen wide column">
+                {# Table columns #}
+                <input id="view_data_{{ view.type }}__columns" value="multiselect" type="hidden">
+                <label for="view_{{ view.type }}__columns" class="bold-text">{% trans 'Selected columns' %}</label>
+                <select id="view_{{ view.type }}__columns" style="height: 160px;" multiple="multiple">
+                    {% for col in selected_columns %}
+                        <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+                    {% endfor %}
+                </select>
+                <br>
+                <label for="available_columns" class="bold-text">{% trans 'Available columns' %}</label>
+                <div class="ui field fluid action input">
+                    <select id="available_columns" class="ui dropdown">
+                        {% for col in available_columns %}
+                            <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+                        {% endfor %}
+                    </select>
+                    <button id="add_column_btn" type="button" class="ui purple basic icon button"><i class="plus icon"></i></button>
+                </div>
+            </div>
+            <div class="two wide column">
+                <div style="margin-top: 50px;" class="ui vertical mini basic icon purple buttons">
+                    <button id="move_columns_up" type="button" class="ui button"><i class="arrow up icon"></i></button>
+                    <button id="move_columns_down" type="button" class="ui button"><i class="arrow down icon"></i></button>
+                </div>
+                <br><br>
+                <button id="remove_column_btn" type="button" class="ui mini basic red icon button"><i class="remove icon"></i></button>
+            </div>
+        </div>
 
-        {% include 'users/views/viewColumns.html' %}
-
-        <h3>{% trans 'Order' %}</h3>
-        <div class="ui divider"></div>
+        <h5>{% trans 'Order' %}</h5>
         <input id="view_data_{{ view.type }}__order" value="list" data-list="radio_order_type__radio_order_value" type="hidden">
-        <div class="fields">
-            <div class="four wide field">
+        <div class="ui grid">
+            <div class="three wide column">
                 <div class="ui radio checkbox">
                     <input id="order_type_up_{{ view.type }}" name="view_{{ view.type }}__radio_order_type" type="radio" value="up" {% if 'order' in view and view.order.0 == 'up' %} checked{% endif %}>
                     <label for="order_type_up_{{ view.type }}"><i class="ui arrow up icon"></i></label>
@@ -25,7 +48,7 @@
                     <label for="order_type_down_{{ view.type }}"><i class="ui arrow down icon"></i></label>
                 </div>
             </div>
-            <div class="twelve wide field">
+            <div class="thirteen wide column">
                 <div class="ui radio checkbox">
                     <input id="order_value_date_{{ view.type }}" name="view_{{ view.type }}__radio_order_value" type="radio" value="date" {% if 'order' in view and view.order.1 == 'date' %} checked{% endif %}>
                     <label for="order_value_date_{{ view.type }}">{% trans 'Date' %}</label>
@@ -50,7 +73,6 @@
     </div>
     <div class="eleven wide column">
         <h3>{% trans 'Filters' %}</h3>
-        <div class="ui divider"></div>
 
         {# Title #}
         <input id="view_data_{{ view.type }}__title" value="list_if_title" data-list="title_type__title_value" type="hidden">
@@ -303,7 +325,7 @@
 <div class="ui grid">
     <div class="four wide column"></div>
     <div class="eight wide column">
-        {% include 'users/views/viewCreateForm.html' %}
+        {% include 'viewButtons.html' %}
     </div>
     <div class="four wide column"></div>
 </div>
