@@ -6,7 +6,7 @@
       }
     },
     "benchexec location": "abs path to benchexec/",
-    "benchexec container mode": true,
+    "benchexec container mode": false,
     "benchexec measure disk": false,
     "benchexec container mode options": []
   },

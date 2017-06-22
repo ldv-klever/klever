@@ -4,7 +4,7 @@
     "Klever Core path": "/abs/path/to/klever-core",
     "cif location": "/abs/path/to/cif/bin/",
     "cil location": "/abs/path/to/cil/obj/x86_LINUX",
-    "runexec container mode": true,
+    "runexec container mode": false,
     "runexec measure disk": false,
     "runexec container mode options": [
       "--network-access",
