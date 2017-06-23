@@ -847,7 +847,9 @@ function activate_download_for_compet() {
 $(document).ready(function () {
     function set_actions_for_run_history() {
         $('#run_history').dropdown();
-        $('#download_configuration').click(function () {
+        var download_conf_btn = $('#download_configuration');
+        download_conf_btn.popup();
+        download_conf_btn.click(function () {
             window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
         });
     }

@@ -245,9 +245,18 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     # 'ass_type': ['0', '1'],
 }
 
-SAFE_ASSOCIATION_CHANGES_VIEW = {}
+SAFE_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # old_verdict: <list of identifiers from SAFE_VERDICTS>
+    # new_verdict: <list of identifiers from SAFE_VERDICTS>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
 UNSAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['report', 'change_kind', 'sum_verdict', 'job', 'format'],
+    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
     # FILTERS:
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
@@ -256,7 +265,14 @@ UNSAFE_ASSOCIATION_CHANGES_VIEW = {
     # format: [is|isnot, <number>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
-UNKNOWN_ASSOCIATION_CHANGES_VIEW = {}
+UNKNOWN_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['change_kind', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
 
 DEFAULT_VIEW = {
     '1': JOB_TREE_VIEW,

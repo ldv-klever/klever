@@ -35,6 +35,6 @@ class Migration(migrations.Migration):
                 ('16', 'safe association changes'),
                 ('17', 'unsafe association changes'),
                 ('18', 'unknown association changes')
-            ], default='1', max_length=1),
+            ], default='1', max_length=2),
         ),
     ]

@@ -26,7 +26,8 @@ from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_
 from django.utils.timezone import now, timedelta
 
 from bridge.tableHead import Header
-from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE
+from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE,\
+    SAFE_VERDICTS, UNSAFE_VERDICTS
 from bridge.utils import unique_id, BridgeException
 
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
@@ -42,7 +43,7 @@ from marks.ConvertTrace import DEFAULT_CONVERT
 
 MARK_TITLES = {
     'mark_num': '№',
-    'change_kind': _('Change kind'),
+    'change_kind': _('Association change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
     'similarity': _('Similarity'),
@@ -93,9 +94,9 @@ SAFE_COLOR = {
 }
 
 CHANGE_DATA = {
-    '=': (_("Changed"), '#FF8533'),
-    '+': (_("New"), '#00B800'),
-    '-': (_("Deleted"), '#D11919')
+    'changed': (_("Changed"), '#FF8533'),
+    'new': (_("New"), '#00B800'),
+    'deleted': (_("Deleted"), '#D11919')
 }
 
 ASSOCIATION_TYPE_COLOR = {
@@ -117,26 +118,51 @@ def result_color(result):
 
 class MarkChangesTable:
     def __init__(self, user, mark, changes):
-        self.columns = ['report', 'change_kind', 'sum_verdict', 'job', 'format']
-        if isinstance(mark, MarkUnknown):
-            self.columns = ['report', 'change_kind', 'job', 'format']
         self.mark = mark
         self.changes = changes
         self.__accessed_changes(user)
-        if not isinstance(mark, MarkUnknown):
-            self.attr_values_data = self.__add_attrs()
+
         if isinstance(mark, MarkUnsafe):
-            self.values = self.__get_unsafe_values()
             self.mark_type = 'unsafe'
         elif isinstance(mark, MarkSafe):
-            self.values = self.__get_safe_values()
             self.mark_type = 'safe'
         elif isinstance(mark, MarkUnknown):
-            self.values = self.__get_unknown_values()
             self.mark_type = 'unknown'
         else:
             return
+
+        self.attrs = []
+        self.values = self.__get_values()
         self.cache_id = self.__save_data(user)
+
+    def __accessed_changes(self, user):
+        reports_to_del = []
+        for report in self.changes:
+            if not JobAccess(user, report.root.job).can_view():
+                reports_to_del.append(report)
+        for report in reports_to_del:
+            del self.changes[report]
+
+    def __get_values(self):
+        values = {}
+        change_kinds = {'-': 'deleted', '=': 'changed', '+': 'new'}
+        for report in self.changes:
+            if report.id not in values:
+                values[report.id] = {
+                    'change_kind': change_kinds[self.changes[report]['kind']],
+                    'job': [report.root.job.id, report.root.job.name],
+                    'format': report.root.job.format
+                }
+                if self.mark_type != 'unknown':
+                    values[report.id]['old_verdict'] = self.changes[report].get('verdict1', report.verdict)
+                    values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
+            if self.mark_type != 'unknown':
+                for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+                    if a_name not in self.attrs:
+                        self.attrs.append(a_name)
+                    if a_name not in values[report.id]:
+                        values[report.id][a_name] = a_value
+        return values
 
     def __save_data(self, user):
         try:
@@ -144,206 +170,14 @@ class MarkChangesTable:
         except ObjectDoesNotExist:
             cache = MarkAssociationsChanges(user=user)
         cache.identifier = unique_id()
+
+        view_types = {'safe': VIEW_TYPES[16][0], 'unsafe': VIEW_TYPES[17][0], 'unknown': VIEW_TYPES[18][0]}
         cache.table_data = json.dumps({
-            'mark_type': self.mark_type,
-            'mark_id': self.mark.pk,
-            'columns': self.columns,
-            'values': self.values
-        }, ensure_ascii=False, sort_keys=True, indent=4)
+            'href': reverse('marks:view_mark', args=[self.mark_type, self.mark.pk]),
+            'type': view_types[self.mark_type], 'values': self.values, 'attrs': self.attrs
+        }, ensure_ascii=False, sort_keys=True, indent=2)
         cache.save()
         return cache.identifier
-
-    def __accessed_changes(self, user):
-        for report in self.changes:
-            if not JobAccess(user, report.root.job).can_view():
-                del self.changes[report]
-
-    def __add_attrs(self):
-        data = {}
-        columns = []
-        for report in self.changes:
-            for ra in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-                if ra[0] not in columns:
-                    columns.append(ra[0])
-                if ra[0] not in data:
-                    data[ra[0]] = {}
-                data[ra[0]][report] = ra[1]
-        values = {}
-        for report in self.changes:
-            values[report] = {}
-            for col in columns:
-                cell_val = '-'
-                if report in data[col]:
-                    cell_val = data[col][report]
-                values[report][col] = cell_val
-        self.columns.extend(columns)
-        return values
-
-    def __get_unsafe_values(self):
-
-        def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
-                tmp_unsafe = ReportUnsafe()
-                tmp_unsafe.verdict = self.changes[rep]['verdict1']
-                val1 = tmp_unsafe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
-                    return '<span style="color:%s">%s</span>' % (UNSAFE_COLOR[self.changes[rep]['verdict1']], val1)
-                tmp_unsafe.verdict = self.changes[rep]['verdict2']
-                val2 = tmp_unsafe.get_verdict_display()
-                return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-                    UNSAFE_COLOR[self.changes[rep]['verdict1']], val1, UNSAFE_COLOR[self.changes[rep]['verdict2']], val2
-                )
-            return '<span style="color:%s">%s</span>' % (UNSAFE_COLOR[rep.verdict], rep.get_verdict_display())
-
-        values = []
-
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    href = reverse('reports:unsafe', args=[report.pk])
-                elif col == 'sum_verdict':
-                    val = get_verdict_change(report)
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
-
-    def __get_safe_values(self):
-
-        def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
-                tmp_safe = ReportSafe()
-                tmp_safe.verdict = self.changes[rep]['verdict1']
-                val1 = tmp_safe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
-                    return '<span style="color:%s">%s</span>' % (SAFE_COLOR[self.changes[rep]['verdict1']], val1)
-                tmp_safe.verdict = self.changes[rep]['verdict2']
-                val2 = tmp_safe.get_verdict_display()
-                return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-                    SAFE_COLOR[self.changes[rep]['verdict1']], val1, SAFE_COLOR[self.changes[rep]['verdict2']], val2
-                )
-            return '<span style="color:%s">%s</span>' % (SAFE_COLOR[rep.verdict], rep.get_verdict_display())
-
-        values = []
-
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    href = reverse('reports:safe', args=[report.pk])
-                elif col == 'sum_verdict':
-                    val = get_verdict_change(report)
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
-
-    def __status_change(self):
-        version_set = self.mark.versions.all().order_by('-version')
-        last_version = version_set[0]
-        try:
-            prev_version = version_set[1]
-        except IndexError:
-            return '<span style="color:%s">%s</span>' % (
-                STATUS_COLOR[last_version.status], last_version.get_status_display()
-            )
-        if prev_version.status == last_version.status:
-            return '<span style="color:%s">%s</span>' % (
-                STATUS_COLOR[last_version.status], last_version.get_status_display()
-            )
-        return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-            STATUS_COLOR[prev_version.status], prev_version.get_status_display(),
-            STATUS_COLOR[last_version.status], last_version.get_status_display()
-        )
-
-    def __get_unknown_values(self):
-        values = []
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col == 'report':
-                    val = cnt
-                    href = reverse('reports:unknown', args=[report.pk])
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
 
 
 # Table data for showing links between the specified report and marks
@@ -1022,8 +856,22 @@ class MarkReportsTable(object):
 
 class AssociationChangesTable:
     def __init__(self, user, association_id, view=None, view_id=None):
-        self.data = self.__get_data(association_id)
-        self.view = ViewData(self.user, VIEW_TYPES[3][0], view=view, view_id=view_id)
+        self._data = self.__get_data(association_id)
+        self.href = self._data['href']
+
+        self.view = ViewData(user, self._data['type'], view=view, view_id=view_id)
+
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            self.verdicts = SAFE_VERDICTS
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            self.verdicts = UNSAFE_VERDICTS
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        self.columns = self.__get_columns()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
 
     def __get_data(self, association_id):
         self.__is_not_used()
@@ -1032,6 +880,138 @@ class AssociationChangesTable:
         except ObjectDoesNotExist:
             raise BridgeException(_("Mark associations changes cache wasn't found"))
         return json.loads(ass_ch.table_data)
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        supported_columns = ['change_kind', 'job', 'format']
+        if self._data['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
+            supported_columns.append('sum_verdict')
+        return supported_columns
+
+    def __verdict_change(self, report_id, mark_type):
+        vtmpl = '<span style="color:{0}">{1}</span>'
+        if mark_type == 'unsafe':
+            colors = UNSAFE_COLOR
+            tmp_leaf = ReportUnsafe()
+        elif mark_type == 'safe':
+            colors = SAFE_COLOR
+            tmp_leaf = ReportSafe()
+        else:
+            return '-'
+
+        tmp_leaf.verdict = self._data['values'][report_id]['old_verdict']
+        val1 = tmp_leaf.get_verdict_display()
+        if self._data['values'][report_id]['old_verdict'] == self._data['values'][report_id]['new_verdict']:
+            return vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1)
+
+        tmp_leaf.verdict = self._data['values'][report_id]['new_verdict']
+        val2 = tmp_leaf.get_verdict_display()
+        return '<i class="ui long arrow right icon"></i>'.join([
+            vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1),
+            vtmpl.format(colors[self._data['values'][report_id]['new_verdict']], val2)
+        ])
+
+    def __get_columns(self):
+        columns = ['report']
+        columns.extend(self.view['columns'])
+        columns.extend(self._data.get('attrs', []))
+        return columns
+
+    def __get_values(self):
+        values = []
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            mark_type = 'safe'
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            mark_type = 'unsafe'
+        elif self.view['type'] == VIEW_TYPES[18][0]:
+            mark_type = 'unknown'
+        else:
+            return []
+
+        cnt = 0
+        for report_id in self._data['values']:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if not self.__filter_row(report_id):
+                    break
+                if col == 'report':
+                    val = cnt
+                    href = reverse('reports:%s' % mark_type, args=[report_id])
+                elif col == 'sum_verdict':
+                    val = self.__verdict_change(report_id, mark_type)
+                elif col == 'change_kind':
+                    if self._data['values'][report_id]['change_kind'] in CHANGE_DATA:
+                        val = CHANGE_DATA[self._data['values'][report_id]['change_kind']][0]
+                        color = CHANGE_DATA[self._data['values'][report_id]['change_kind']][1]
+                elif col == 'job':
+                    val = self._data['values'][report_id]['job'][1]
+                    href = reverse('jobs:job', args=[self._data['values'][report_id]['job'][0]])
+                elif col == 'format':
+                    val = self._data['values'][report_id]['format']
+                elif col in self._data['values'][report_id]:
+                    val = self._data['values'][report_id][col]
+                values_str.append({'value': str(val), 'color': color, 'href': href})
+            else:
+                values.append(values_str)
+        return values
+
+    def __filter_row(self, r_id):
+        if 'change_kind' in self.view and self._data['values'][r_id]['change_kind'] not in self.view['change_kind']:
+                return False
+        if 'old_verdict' in self.view and self._data['values'][r_id]['old_verdict'] not in self.view['old_verdict']:
+                return False
+        if 'new_verdict' in self.view and self._data['values'][r_id]['new_verdict'] not in self.view['new_verdict']:
+                return False
+        if 'job_title' in self.view:
+            job_title = self._data['values'][r_id]['job'][1].lower()
+            pattern = self.view['job_title'][1].lower()
+            if self.view['job_title'][0] == 'iexact' and job_title != pattern \
+                    or self.view['job_title'][0] == 'istartswith' and not job_title.startswith(pattern) \
+                    or self.view['job_title'][0] == 'icontains' and pattern not in job_title:
+                return False
+        if 'format' in self.view:
+            view_format = int(self.view['format'][1])
+            job_format = int(self._data['values'][r_id]['format'])
+            if self.view['format'][0] == 'is' and view_format != job_format \
+                    or self.view['format'][0] == 'isnot' and view_format == job_format:
+                return False
+
+        if 'attr' in self.view:
+            for col in self._data['values'][r_id]:
+                if col == self.view['attr'][0]:
+                    ftype = self.view['attr'][1]
+                    fvalue = self.view['attr'][2]
+                    value = self._data['values'][r_id][col]
+                    if ftype == 'iexact' and fvalue.lower() != value.lower():
+                        return False
+                    elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
+                        return False
+                    elif ftype == 'icontains' and fvalue.lower() not in value.lower():
+                        return False
+        return True
 
     def __is_not_used(self):
         pass

@@ -68,7 +68,7 @@
                 </div>
                 <small style="color: #656565">{% trans 'Enter the full name of the attribute' %}, {% trans 'e.g.' %} <i>Linux kernel:Version</i></small>
             </div>
-            <div class="four wide field">
+            <div class="five wide field">
                 <select id="view_{{ view.type }}__attr_type" class="ui dropdown">
                     <option value="iexact"{% if 'attr' in view and view.attr.1 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
                     <option value="istartswith"{% if 'attr' in view and view.attr.1 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
@@ -76,7 +76,7 @@
                 </select>
                 <label for="view_{{ view.type }}__attr_type"></label>
             </div>
-            <div class="six wide field">
+            <div class="five wide field">
                 <div class="ui fluid input">
                     <input id="view_{{ view.type }}__attr_value" type="text"{% if 'attr' in view %} value="{{ view.attr.2 }}"{% endif %} style="width: 15vw;" placeholder="{% trans 'Attribute value' %}">
                 </div>
