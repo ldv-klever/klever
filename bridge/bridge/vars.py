@@ -232,9 +232,3 @@ ASSOCIATION_TYPE = (
     ('1', _('Confirmed')),
     ('2', _('Unconfirmed'))
 )
-
-ASSOCIATION_CHANGE_KIND = (
-    ('0', _('New')),
-    ('1', _('Changed')),
-    ('2', _('Deleted'))
-)
