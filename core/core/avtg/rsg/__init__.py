@@ -189,22 +189,13 @@ class RSG(core.avtg.plugins.Plugin):
             cc_extra_full_desc_file = {}
 
             if 'bug kinds preprocessed C file' in model:
-                suffix = ''
-                full_desc_file = os.path.join('models', '{0}.json'.format(
-                    os.path.basename(model['bug kinds preprocessed C file'])))
-                if os.path.isfile(full_desc_file):
-                    suffix = 2
-                    while True:
-                        full_desc_file = os.path.join('models', '{0}{1}.json'.format(
-                            os.path.basename(model['bug kinds preprocessed C file']), suffix))
-                        if os.path.isfile(full_desc_file):
-                            suffix = str(int(suffix) + 1)
-                        else:
-                            break
+                file, ext = os.path.splitext(os.path.join('models',
+                                                          os.path.basename(model['bug kinds preprocessed C file'])))
+                base_name = core.utils.unique_file_name(file, '{0}.json'.format(ext))
+                full_desc_file = '{0}{1}.json'.format(base_name, ext)
 
-                # Otput file should be located somewhere inside RSG working directory to avoid races.
-                out_file = os.path.join('models', '{0}{1}.c'.format(
-                    os.path.splitext(os.path.basename(model['bug kinds preprocessed C file']))[0], suffix))
+                # Output file should be located somewhere inside RSG working directory to avoid races.
+                out_file = '{0}.c'.format(base_name)
 
                 self.logger.debug('Dump CC extra full description to file "{0}"'.format(full_desc_file))
                 with open(full_desc_file, 'w', encoding='utf8') as fp:
