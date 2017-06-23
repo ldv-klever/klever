@@ -165,8 +165,10 @@ class RSG(core.avtg.plugins.Plugin):
                         raise KeyError(
                             'Invalid bug kind "{0}" is specified in rule specification model description'.format(
                                 bug_kind))
-                preprocessed_model_c_file = os.path.join('models', '{0}.bk.c'.format(
-                    os.path.splitext(os.path.basename(model_c_file))[0]))
+                preprocessed_model_c_file = '{0}.bk.c'.format(
+                    core.utils.unique_file_name(os.path.join('models',
+                                                             os.path.splitext(os.path.basename(model_c_file))[0]),
+                                                '.bk.c'))
                 with open(preprocessed_model_c_file, 'w', encoding='utf8') as fp:
                     # Create ldv_assert*() function declarations to avoid compilation warnings. These functions will
                     # be defined later somehow by VTG.
