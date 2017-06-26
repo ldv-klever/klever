@@ -102,7 +102,7 @@ class LKBCE(core.components.Component):
     def create_wrappers(self):
         os.makedirs('wrappers')
 
-        opts = ['gcc', 'ld']
+        opts = ['gcc', 'ld', 'objcopy']
         if 'architecture' not in self.conf['Linux kernel'] or not self.conf['Linux kernel']['architecture']:
             raise KeyError("Provide configuration option 'architecture' for the given kernel")
 
