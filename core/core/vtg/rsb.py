@@ -27,6 +27,7 @@ import core.components
 import core.session
 import core.utils
 from core.vtg.et import import_error_trace
+from core.vtg import coverage_parser
 
 
 class RSB(core.components.Component):
@@ -101,7 +102,8 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
+                #self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
@@ -142,6 +144,11 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'].extend(
                     self.conf['abstract task desc']['verifier options']
                 )
+
+            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially'):
+                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.enabled=true'})
+                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.export=true'})
+                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.file=coverage.info'})
         else:
             raise NotImplementedError(
                 'Verifier {0} is not supported'.format(self.conf['VTG strategy']['verifier']['name']))
@@ -437,19 +444,40 @@ class RSB(core.components.Component):
         self.witness_processing_exception = None
 
         if re.match('true', decision_results['status']):
-            core.utils.report(self.logger,
+            self.verdict = 'safe'
+            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially'):
+                cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
+                                        self.conf['main working directory'], self.conf['VTG strategy']['collect coverage'])
+                with open('coverage.json', 'w', encoding='utf-8') as fp:
+                    json.dump(cov.get_files(), fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+                arcnames = cov.get_arcnames()
+                core.utils.report(self.logger,
                               'safe',
                               {
                                   'id': verification_report_id + '/safe',
                                   'parent id': verification_report_id,
                                   'attrs': [{"Rule specification": self.rule_specification}],
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  'proof': None
+                                  'proof': None,
+                                  'files': ['coverage.json'] + list(arcnames.keys()),
+                                  'arcname': arcnames
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
 
-            self.verdict = 'safe'
+            else:
+                core.utils.report(self.logger,
+                                  'safe',
+                                  {
+                                      'id': verification_report_id + '/safe',
+                                      'parent id': verification_report_id,
+                                      'attrs': [{"Rule specification": self.rule_specification}],
+                                      # TODO: at the moment it is unclear what are verifier proofs.
+                                      'proof': None,
+                                  },
+                                  self.mqs['report files'],
+                                  self.conf['main working directory'])
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
