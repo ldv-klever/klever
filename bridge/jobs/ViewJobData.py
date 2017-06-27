@@ -133,7 +133,9 @@ class ViewJobData(object):
         return get_children({'id': None}, -1)
 
     def __resource_info(self):
-        res_data = {}
+        cpu_time = {}
+        memory = {}
+        wall_time = {}
         resource_filters = {}
         resource_table = self.report.resources_cache
         if self.report.parent is None and self.report.root.job.light:
@@ -146,12 +148,21 @@ class ViewJobData(object):
             resource_filters = {ft: fv}
 
         for cr in resource_table.filter(~Q(component=None) & Q(**resource_filters)):
-            if cr.component.name not in res_data:
-                res_data[cr.component.name] = {}
+            if cr.component.name not in cpu_time:
+                cpu_time[cr.component.name] = {}
+                memory[cr.component.name] = {}
+                wall_time[cr.component.name] = {}
             rd = get_resource_data(self.user, cr)
-            res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
-        resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+            cpu_time[cr.component.name] = rd[1]
+            memory[cr.component.name] = rd[2]
+            if cr.component.name in ("Core"):
+                # The only one component, for which wall time makes sense.
+                wall_time[cr.component.name] = rd[0]
+            else:
+                wall_time[cr.component.name] = "-"
+
+        resource_data = [{'component': x, 'cpu': cpu_time[x], 'mem': memory[x], 'wall': wall_time[x]} for x in sorted(cpu_time)]
 
         if 'resource_total' not in self.view['filters'] or self.view['filters']['resource_total']['type'] == 'show':
             if self.report.root.job.light and self.report.parent is None:
@@ -160,7 +171,7 @@ class ViewJobData(object):
                 res_total = resource_table.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user, res_total)
-                resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
+                resource_data.append({'component': _('Total'), 'cpu': rd[1], 'mem': rd[2], 'wall': '-'})
         return resource_data
 
     def __unknowns_info(self):

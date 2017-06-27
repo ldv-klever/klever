@@ -75,22 +75,33 @@
     {% if reportdata.view_data.resources|length %}
         <div class="ui nine wide column">
             <h4 class="header ui violet">{% trans 'Consumed resources' %}
-                <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
             </h4>
+            <table border="1">
             <div class="ui list">
+                <tr bgcolor="#d3d3d3">
+                    <td align="left">Component</td>
+                    <td align="center">CPU time</td>
+                    <td align="center">Memory</td>
+                    <td align="center">Wall time</td>
+                </tr>
                 {% for res_data in reportdata.view_data.resources %}
                     <div class="item">
-                        <i class="laptop mini icon"></i>
                         <div class="content">
+                        <tr>
                             {% if reportdata.report.component.name == res_data.component %}
-                                <strong style="color: #86188c;">{{ res_data.component }}:</strong>
+                                <td><strong style="color: #86188c;">{{ res_data.component }}</strong></td>
                             {% else %}
-                                {{ res_data.component }}:
-                            {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
+                                <td>{{ res_data.component }}</td>
+                            {% endif %}
+                            <td align="right"><span style="color: darkblue"> <strong>{{ res_data.cpu }}</strong></span></td>
+                            <td align="right"><span style="color: darkblue"> {{ res_data.mem }}</span></td>
+                            <td align="right"><span style="color: darkblue"> {{ res_data.wall }}</span></td>
+                        </tr>
                         </div>
                     </div>
                 {% endfor %}
             </div>
+            </table>
         </div>
     {% endif %}
     {% if reportdata.view_data.unknowns|length %}

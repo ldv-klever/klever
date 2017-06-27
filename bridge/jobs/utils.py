@@ -581,7 +581,23 @@ def check_new_parent(job, parent):
 def get_resource_data(user, resource):
     if user.extended.data_format == 'hum':
         wall = convert_time(resource.wall_time, user.extended.accuracy)
-        cpu = convert_time(resource.cpu_time, user.extended.accuracy)
+        # Make big numbers look actually human readable.
+        cpu_time_in_seconds = round(resource.cpu_time / 1000)
+        cpu_time_human_readable = ""
+        if cpu_time_in_seconds == 0:
+            cpu_time_human_readable = "0"
+        while cpu_time_in_seconds > 0:
+            # Add thousand separator.
+            three_digits = cpu_time_in_seconds % 1000
+            cpu_time_in_seconds //= 1000
+            if cpu_time_in_seconds > 0:
+                if int(three_digits) < 100:
+                    three_digits = "0{0}".format(three_digits)
+                if int(three_digits) < 10:
+                    three_digits = "0{0}".format(three_digits)
+            cpu_time_human_readable = "{1} {0}".format(cpu_time_human_readable, three_digits)
+        cpu_time_human_readable = "{0} {1}".format(cpu_time_human_readable, _('s'))
+        cpu = cpu_time_human_readable
         mem = convert_memory(resource.memory, user.extended.accuracy)
     else:
         wall = "%s %s" % (resource.wall_time, _('ms'))
