@@ -76,7 +76,7 @@ class MAVPrecisionCleaningStrategy(Enum):
 class MAV(CommonStrategy):
 
     # Private strategy variables.
-    path_to_file_with_results = 'output/mav_results_file'
+    path_to_file_with_results = ''
     number_of_asserts = 0
     assert_function = {}  # Map of all checked asserts to corresponding 'error' functions.
     path_to_property_automata = 'property_automata.spc'
@@ -405,10 +405,10 @@ class MAV(CommonStrategy):
                 verification_report_id = '{0}/verification{1}'.format(self.id, iteration)
                 self.create_verification_report(verification_report_id, decision_results, iteration)
 
-                # Parse file with results.
-                is_new_verdicts = False
+                is_global_error = True
                 log_file = self.get_verifier_log_file(False)
                 if os.path.isfile(self.path_to_file_with_results):
+                    # Specific result file (for backward compatibility).
                     with open(self.path_to_file_with_results, encoding='ascii') as fp:
                         for line in fp:
                             result = re.search(self.verifier_results_regexp, line)
@@ -416,29 +416,36 @@ class MAV(CommonStrategy):
                                 bug_kind = result.group(1)
                                 verdict = result.group(3).lower()
                                 if verdict == 'safe' or verdict == 'unsafe' or verdict == 'unknown':
-                                    is_new_verdicts = True
+                                    is_global_error = False
                                 results[bug_kind] = verdict
                                 self.logger.debug('Assertion "{0}" got verdict "{1}"'.
                                                   format(bug_kind, verdict))
                             else:
                                 result = re.search(r'\[(.+)\]', line)
-                                if result:
+                                if result and self.relaunch == 'external':
                                     # LCA here.
                                     LCA = result.group(1)
                                     self.logger.debug('LCA is "{0}"'.format(LCA))
-                                    if not is_new_verdicts:
-                                        is_new_verdicts = True
+                                    if is_global_error:
+                                        is_global_error = False
                                         results[LCA] = 'unknown'
                 else:
-                    # Verifier failed before even starting verification.
-                    # Create only one Unknown report for strategy.
+                    # Take all information from log.
                     with open(log_file, encoding='ascii') as fp:
-                        content = fp.readlines()
-                    task_error = content
-                    self.process_global_error(''.join(task_error))
-                    break
+                        for line in fp:
+                            result = re.search(r"Property (.+): (\w+)$", line)
+                            if result:
+                                is_global_error = False
+                                assertion = result.group(1)
+                                verdict = result.group(2).lower()
+                                if verdict == 'false':
+                                    verdict = 'unsafe'
+                                if verdict == 'true':
+                                    verdict = 'safe'
+                                results[assertion] = verdict
 
                 if self.relaunch == 'no':
+                    is_global_error = False
                     with open(log_file) as f_res:
                         for line in f_res:
                             result = re.search(r'Assert \[(\S+)\] has exhausted its Assert Time Limit', line)
@@ -446,19 +453,23 @@ class MAV(CommonStrategy):
                                 rule = result.group(1)
                                 results[rule] = 'unknown-complete'
 
-                # No new transitions -> change all checking verdicts to unknown.
-                if not is_new_verdicts:
-                    self.logger.info('No new verdicts were obtained during this iteration')
-                    self.logger.info('Stop algorithm')
-                    for bug_kind, verdict in results.items():
-                        results[bug_kind] = 'unknown'
-
                 # Process all found error traces.
                 witness_assert = {}  # Witnss (error trace) <-> assert (bug kind).
                 all_found_error_traces = glob.glob(self.path_to_error_traces)
                 for error_trace in all_found_error_traces:
                     found_bug_kind = self.get_violated_property(error_trace)
                     witness_assert[error_trace] = found_bug_kind
+                    results[found_bug_kind] = 'unsafe'  # just in case
+                    is_global_error = False
+
+                if is_global_error:
+                    # Verifier failed before even starting verification.
+                    # Create only one Unknown report for strategy.
+                    with open(log_file, encoding='ascii') as fp:
+                        content = fp.readlines()
+                    task_error = content
+                    self.process_global_error(''.join(task_error))
+                    break
 
                 for bug_kind, verdict in results.items():
                     if verdict == 'checking':
