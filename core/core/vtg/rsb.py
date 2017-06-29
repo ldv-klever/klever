@@ -102,8 +102,7 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                #self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv': ''})
+                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
@@ -449,7 +448,7 @@ class RSB(core.components.Component):
                 cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
                                         self.conf['main working directory'], self.conf['VTG strategy']['collect coverage'])
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(cov.get_files(), fp, ensure_ascii=True, sort_keys=True, indent=4)
+                    json.dump(cov.get_coverage(), fp, ensure_ascii=True, sort_keys=True, indent=4)
 
                 arcnames = cov.get_arcnames()
                 core.utils.report(self.logger,
