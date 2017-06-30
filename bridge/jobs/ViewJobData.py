@@ -23,7 +23,7 @@ from django.utils.translation import ugettext_lazy as _
 from bridge.vars import JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
 from bridge.utils import logger, BridgeException
 
-from reports.models import ReportComponentLeaf, ReportAttr
+from reports.models import ReportComponentLeaf, ReportAttr, ComponentInstances
 
 from users.utils import ViewData
 from jobs.utils import SAFES, UNSAFES, TITLES, get_resource_data
@@ -133,6 +133,11 @@ class ViewJobData:
         return get_children({'id': None}, -1)
 
     def __resource_info(self):
+        instances = {}
+        for c_name, total, in_progress in ComponentInstances.objects.filter(report=self.report)\
+                .order_by('component__name').values_list('component__name', 'total', 'in_progress'):
+            instances[c_name] = ' (%s/%s)' % (total - in_progress, total)
+
         res_data = {}
         resource_filters = {}
         resource_table = self.report.resources_cache
@@ -149,7 +154,12 @@ class ViewJobData:
             rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, cr)
             res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
-        resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+        resource_data = [
+            {'component': x, 'val': res_data[x], 'instances': instances.get(x, '')} for x in sorted(res_data)
+        ]
+        resource_data.extend(list(
+            {'component': x, 'val': '-', 'instances': instances[x]} for x in sorted(instances) if x not in res_data
+        ))
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
@@ -158,7 +168,9 @@ class ViewJobData:
                 res_total = resource_table.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, res_total)
-                resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
+                resource_data.append({
+                    'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2]), 'instances': ''
+                })
         return resource_data
 
     def __unknowns_info(self):

@@ -19,7 +19,7 @@ import json
 from io import BytesIO
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils.timezone import now
 
 from bridge.vars import REPORT_FILES_ARCHIVE, JOB_WEIGHT, JOB_STATUS
@@ -31,7 +31,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, LightResource, TasksNumbers, ReportComponentLeaf,\
-    Computer
+    Computer, ComponentInstances
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
@@ -283,6 +283,15 @@ class UploadReport:
                 self.__update_parent_resources(report)
             else:
                 self.__update_light_resources(report)
+        for parent in self._parents_branch:
+            try:
+                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report=parent, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+        ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
 
     def __update_attrs(self, identifier):
         try:
@@ -368,6 +377,11 @@ class UploadReport:
                 and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
 
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
+
     def __finish_verification_report(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -382,6 +396,11 @@ class UploadReport:
                 report.parent = self._parents_branch[0]
             report.finish_date = now()
             report.save()
+
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
 
     def __create_report_unknown(self, identifier):
         try:
