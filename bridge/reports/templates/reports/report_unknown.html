@@ -51,11 +51,22 @@
         <div class="seven wide column">
             <div class="ui tiny buttons" style="float: right;">
                 <button id="show_leaf_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
-                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.title }}"><i class="setting icon"></i></button>
+                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.viewtitle }}"><i class="setting icon"></i></button>
                 {% if can_mark %}
                     <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unknown' report.pk %}" data-content="{% trans 'Create mark' %}"><i class="star icon"></i></a>
                 {% endif %}
             </div>
+
+            <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
+            <div class="ui special popup">
+                <div class="header">{% trans 'Consumed resources' %}</div>
+                <div class="content">
+                    <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
+                    <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
+                    <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+                </div>
+            </div>
+
             <br><br>
             <div id="leaf_attributes" style="display: none">
                 <table class="ui celled compact purple table">

@@ -69,6 +69,17 @@
                     <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
                 {% endif %}
             </div>
+
+            <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
+            <div class="ui special popup">
+                <div class="header">{% trans 'Consumed resources' %}</div>
+                <div class="content">
+                    <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
+                    <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
+                    <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+                </div>
+            </div>
+
             {% include 'reports/ETVButtons.html' %}
             <br><br>
             <div id="leaf_attributes" style="display: none">
