@@ -13,7 +13,7 @@
 {% block body_block %}
     {% if job %}
         <div class="ui grid">
-            <div id="view_job_1st_part" class="eight wide column">
+            <div id="view_job_1st_part" class="ten wide column">
                 <div class="ui small icon buttons top attached">
                     <button id="copy_job_btn" class="ui teal button note-popup{% if not can_create %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Make copy' %}"><i class="file outline icon"></i></button>
                     <button id="load_job_btn" class="ui olive button note-popup{% if not can_download %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Download' %}"><i class="download icon"></i></button>
@@ -182,7 +182,7 @@
                     </div>
                 {% endif %}
                 <br>
-                {% include 'jobs/viewJobFilters.html' with view=reportdata.view %}
+                {% include 'users/views/jobData.html' with view=reportdata.view %}
                 <br>
                 <div id="job_data_div">
                     {% if reportdata %}
@@ -190,7 +190,7 @@
                     {% endif %}
                 </div>
             </div>
-            <div id="edit_job_div" class="eight wide column"></div>
+            <div id="edit_job_div" class="six wide column"></div>
         </div>
         {% if can_edit %}
             <div id="safe_marks_popup" class="ui inverted popup">

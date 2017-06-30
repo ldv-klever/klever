@@ -11,7 +11,7 @@ def update_views(apps, schema_editor):
         if view.type in {'4', '5'}:
             new_view_data['columns'] = view_data['columns']
             if 'order' in view_data and view_data['order'][0] != 'default':
-                new_view_data['order'] = [view_data['order'][1], view_data['order'][0]]
+                new_view_data['order'] = [view_data['order'][1], 'attr', view_data['order'][0]]
 
             if 'filters' in view_data and 'attr' in view_data['filters']:
                 new_view_data['attr'] = [
@@ -21,8 +21,13 @@ def update_views(apps, schema_editor):
                 ]
         elif view.type == '6':
             new_view_data['columns'] = view_data['columns']
-            if 'order' in view_data and view_data['order'][0] != 'component':
-                new_view_data['order'] = [view_data['order'][1], view_data['order'][0]]
+            if 'order' in view_data:
+                if view_data['order'][0] == 'component':
+                    new_view_data['order'] = [view_data['order'][1], 'component', '']
+                else:
+                    new_view_data['order'] = [view_data['order'][1], 'attr', view_data['order'][0]]
+            else:
+                new_view_data['order'] = ['down', 'component', '']
 
             if 'filters' in view_data and 'component' in view_data['filters']:
                 new_view_data['component'] = [
@@ -38,9 +43,9 @@ def update_views(apps, schema_editor):
         elif view.type == '3':
             if 'order' in view_data:
                 if view_data['order'][0] in {'component', 'date'}:
-                    new_view_data['order'] = [view_data['order'][0], view_data['order'][1], '']
+                    new_view_data['order'] = [view_data['order'][1], view_data['order'][0], '']
                 else:
-                    new_view_data['order'] = ['attr', view_data['order'][1], view_data['order'][0]]
+                    new_view_data['order'] = [view_data['order'][1], 'attr', view_data['order'][0]]
 
             if 'filters' in view_data and 'component' in view_data['filters']:
                 new_view_data['component'] = [
@@ -87,7 +92,9 @@ def update_views(apps, schema_editor):
         elif view.type == '9':
             new_view_data['columns'] = view_data['columns']
             if 'order' in view_data and view_data['order'] == 'num_of_links':
-                new_view_data['order'] = ['num_of_links']
+                new_view_data['order'] = ['down', 'num_of_links']
+            else:
+                new_view_data['order'] = ['up', 'change_date']
 
             if 'filters' in view_data:
                 for filter_name in ['status', 'component', 'source']:
@@ -102,9 +109,11 @@ def update_views(apps, schema_editor):
             new_view_data['columns'] = view_data['columns']
             if 'order' in view_data:
                 if view_data['order'] == 'num_of_links':
-                    new_view_data['order'] = ['num_of_links', '']
+                    new_view_data['order'] = ['down', 'num_of_links', '']
                 else:
-                    new_view_data['order'] = ['attr', view_data['order']]
+                    new_view_data['order'] = ['down', 'attr', view_data['order']]
+            else:
+                new_view_data['order'] = ['up', 'change_date', '']
 
             if 'filters' in view_data:
                 for filter_name in ['status', 'verdict', 'source']:
@@ -166,5 +175,5 @@ def update_views(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('users', '0004_auto_20170530_1428')]
+    dependencies = [('users', '0004_auto_views')]
     operations = [migrations.RunPython(update_views)]

@@ -24,7 +24,7 @@ var do_not_count = [
 function fill_all_values() {
     $("td[id^='all__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!$.inArray(cell_id_data[1], do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) === -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function () {
@@ -42,7 +42,7 @@ function fill_all_values() {
 function fill_checked_values() {
     $("td[id^='checked__']").each(function() {
         var cell_id_data = $(this).attr('id').split('__');
-        if (!$.inArray(cell_id_data[1], do_not_count)) {
+        if ($.inArray(cell_id_data[1], do_not_count) === -1) {
             cell_id_data[0] = 'value';
             var sum = 0, have_numbers = false, is_checked = false;
             $("td[id^='" + cell_id_data.join('__') + "__']").each(function() {
@@ -160,35 +160,6 @@ $(document).ready(function () {
     inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
     fill_all_values();
     $("input[id^='job_checkbox__']").change(fill_checked_values);
-
-    $('#add_column_btn').click(function () {
-        var selected_column = $('#available_columns').children('option:selected');
-        $('<option>', {
-            value: selected_column.val(),
-            text: selected_column.text(),
-            title: selected_column.text()
-        }).appendTo('#view_1__columns');
-        return false;
-    });
-
-    $('#remove_column_btn').click(function () {
-        $('#view_1__columns').children('option:selected').remove();
-        return false;
-    });
-
-    $('#move_columns_up').click(function () {
-        var $op = $('#view_1__columns').children('option:selected');
-        if ($op.length) {
-            $op.first().prev().before($op);
-        }
-    });
-
-    $('#move_columns_down').click(function () {
-        var $op = $('#view_1__columns').children('option:selected');
-        if ($op.length) {
-            $op.last().next().after($op);
-        }
-    });
 
     $('#cancel_remove_jobs').click(function () {
         $('#remove_jobs_popup').modal('hide');

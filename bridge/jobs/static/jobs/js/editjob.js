@@ -847,7 +847,9 @@ function activate_download_for_compet() {
 $(document).ready(function () {
     function set_actions_for_run_history() {
         $('#run_history').dropdown();
-        $('#download_configuration').click(function () {
+        var download_conf_btn = $('#download_configuration');
+        download_conf_btn.popup();
+        download_conf_btn.click(function () {
             window.location.replace('/jobs/download_configuration/' + $('#run_history').val() + '/');
         });
     }
@@ -1106,9 +1108,20 @@ $(document).ready(function () {
     }
 
     if ($('#job_data_div').length) {
-        var num_of_updates = 0;
+        var num_of_updates = 0, is_filters_open = false;
+        $('#job_filters_accordion').accordion({
+            onOpen: function() {
+                is_filters_open = true;
+            },
+            onClose: function() {
+                is_filters_open = false;
+            }
+        });
         var interval = setInterval(function () {
             if ($.active > 0) {
+                return false;
+            }
+            if (is_filters_open) {
                 return false;
             }
             $.post(

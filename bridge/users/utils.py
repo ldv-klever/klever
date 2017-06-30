@@ -72,8 +72,8 @@ JOB_DATA_VIEW = {
 
 REPORT_CHILDREN_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # order: [attr|component|date, down|up, <attribute name in case of attr or any>]
-    'order': ['component', 'down', ''],
+    # order: [down|up, attr|component|date, <attribute name in case of attr or any>]
+    'order': ['down', 'component', ''],
 
     # FILTERS:
     # component: [<iexact|istartswith|icontains>, <any string>]
@@ -87,27 +87,31 @@ REPORT_CHILDREN_VIEW = {
 UNSAFES_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
-    # 'order': ['down', 'Rule specification'],
+    # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
+    # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 SAFES_VIEW = {
     'columns': ['marks_number', 'report_verdict', 'tags', 'parent_cpu'],
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # 'order': ['down', 'Rule specification'],
+    # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
+    # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 UNKNOWNS_VIEW = {
     'elements': [DEF_NUMBER_OF_ELEMENTS],
-    # 'order': ['up', 'Rule specification'],
+    # order: [up|down, component|attr, <any text, empty if not attr>]
+    'order': ['down', 'component', ''],
     # 'component': ['istartswith', 'v'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
 }
 
 UNSAFE_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -116,6 +120,7 @@ UNSAFE_MARKS_VIEW = {
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -126,8 +131,9 @@ UNSAFE_MARKS_VIEW = {
 }
 
 SAFE_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format'],
-    # order: [num_of_links|attr, <any text, '' for 'num_of_links' at first index>],
+    # order: [up|down, change_date|num_of_links|attr, <any text, empty if not attr>]
     'order': ['up', 'change_date', ''],
 
     # FILTERS:
@@ -136,6 +142,7 @@ SAFE_MARKS_VIEW = {
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -146,7 +153,9 @@ SAFE_MARKS_VIEW = {
 }
 
 UNKNOWN_MARKS_VIEW = {
+    'elements': [DEF_NUMBER_OF_ELEMENTS],
     'columns': ['num_of_links', 'status', 'component', 'author', 'format', 'pattern'],
+    # order: [up|down, change_date|num_of_links]
     'order': ['up', 'change_date'],
 
     # FILTERS:
@@ -154,6 +163,7 @@ UNKNOWN_MARKS_VIEW = {
     # component: [is|startswith, <any text>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
+    # change_date: [younger|older, <int number>, weeks|days|hours|minutes]
 
     # EXAMPLES:
     # 'status': ['is', '0'],
@@ -163,7 +173,7 @@ UNKNOWN_MARKS_VIEW = {
 }
 
 UNSAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'similarity', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -179,7 +189,7 @@ UNSAFE_ASS_MARKS_VIEW = {
 }
 
 SAFE_ASS_MARKS_VIEW = {
-    'columns': ['verdict', 'status', 'mark_type', 'tags', 'ass_type', 'ass_author', 'description'],
+    'columns': ['verdict', 'status', 'source', 'tags', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # verdict: <list of identifiers from MARK_UNSAFE>
@@ -193,7 +203,7 @@ SAFE_ASS_MARKS_VIEW = {
 }
 
 UNKNOWN_ASS_MARKS_VIEW = {
-    'columns': ['status', 'mark_type', 'ass_type', 'ass_author', 'description'],
+    'columns': ['status', 'source', 'ass_type', 'ass_author', 'description'],
 
     # FILTERS:
     # status: <list of identifiers from MARK_STATUS>
@@ -236,6 +246,35 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
     # 'ass_type': ['0', '1'],
 }
 
+SAFE_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # old_verdict: <list of identifiers from SAFE_VERDICTS>
+    # new_verdict: <list of identifiers from SAFE_VERDICTS>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
+UNSAFE_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
+    # new_verdict: <list of identifiers from UNSAFE_VERDICTS>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
+UNKNOWN_ASSOCIATION_CHANGES_VIEW = {
+    'columns': ['change_kind', 'job', 'format'],
+    # FILTERS:
+    # change_kind: <sublist from ['changed', 'new', 'deleted']>
+    # job_title: [iexact|istartswith|icontains, <any text>]
+    # format: [is|isnot, <number>]
+    # attr: [<Attr name>, iexact|istartswith, <Attr value>]
+}
+
 DEFAULT_VIEW = {
     '1': JOB_TREE_VIEW,
     '2': JOB_DATA_VIEW,
@@ -251,7 +290,10 @@ DEFAULT_VIEW = {
     '12': UNKNOWN_ASS_MARKS_VIEW,
     '13': UNSAFE_MARK_ASS_REPORTS_VIEW,
     '14': SAFE_MARK_ASS_REPORTS_VIEW,
-    '15': UNKNOWN_MARK_ASS_REPORTS_VIEW
+    '15': UNKNOWN_MARK_ASS_REPORTS_VIEW,
+    '16': SAFE_ASSOCIATION_CHANGES_VIEW,
+    '17': UNSAFE_ASSOCIATION_CHANGES_VIEW,
+    '18': UNKNOWN_ASSOCIATION_CHANGES_VIEW
 }
 
 

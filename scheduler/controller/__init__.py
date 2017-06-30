@@ -152,6 +152,7 @@ def setup_consul(conf):
 
     return consul_work_dir, consul_config_file
 
+
 def run_consul(conf, work_dir, config_file):
     """
     Run consul with provided options.

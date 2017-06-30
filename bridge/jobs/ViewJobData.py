@@ -17,7 +17,7 @@
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q, F, Count, Case, When
+from django.db.models import Q, Count, Case, When
 from django.utils.translation import ugettext_lazy as _
 
 from bridge.vars import JOB_WEIGHT, SAFE_VERDICTS, UNSAFE_VERDICTS, VIEW_TYPES
@@ -243,10 +243,9 @@ class ViewJobData:
     def __safes_info(self):
         safes_numbers = {}
         total_safes = 0
-        for verdict, confirmed, total in self.report.leaves.exclude(safe=None).annotate(
-                verdict=F('safe__verdict'), total=Count('id'),
-                confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
-        ).distinct().values_list('verdict', 'confirmed', 'total'):
+        for verdict, confirmed, total in self.report.leaves.exclude(safe=None).values('safe__verdict').annotate(
+                total=Count('id'), confirmed=Count(Case(When(safe__has_confirmed=True, then=1)))
+        ).values_list('safe__verdict', 'confirmed', 'total'):
             total_safes += total
 
             href = [None, None]

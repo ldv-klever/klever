@@ -9,7 +9,6 @@
     <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
     <script type="text/javascript" src="{% static 'marks/js/markForm.js' %}"></script>
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -83,7 +82,7 @@
         </div>
         <div class="nine wide column">
             <div id="view_form_segment_{{ MarkTable.view.type }}" class="ui form yellow segment" style="display:none;">
-                {% include 'reports/SafeAssMarksView.html' with view=MarkTable.view verdicts=MarkTable.verdicts statuses=MarkTable.statuses ass_types=MarkTable.ass_types %}
+                {% include 'users/views/SafeAssMarks.html' with view=MarkTable.view verdicts=MarkTable.verdicts statuses=MarkTable.statuses ass_types=MarkTable.ass_types selected_columns=MarkTable.selected_columns available_columns=MarkTable.available_columns %}
             </div>
             {% if can_mark %}
                 <div id="inline_mark_form" style="display: none"></div>
@@ -92,110 +91,5 @@
         <input type="hidden" id="report_pk" value="{{ report.pk }}">
         <input id="report_type" type="hidden" value="safe">
     </div>
-
-    {% if MarkTable.values|length %}
-        <h4 class="header">{% trans 'Associated marks' %}</h4>
-        <div style="overflow-x:auto;">
-            <table class="ui celled compact pink table">
-                <thead>
-                    <tr>
-                        <th>№</th>
-                    {% if 'verdict' in MarkTable.view.columns %}
-                        <th>{% trans 'Verdict' %}</th>
-                    {% endif %}
-                    {% if 'status' in MarkTable.view.columns %}
-                        <th>{% trans 'Status' %}</th>
-                    {% endif %}
-                    {% if 'mark_type' in MarkTable.view.columns %}
-                        <th>{% trans 'Source' %}</th>
-                    {% endif %}
-                    {% if 'tags' in MarkTable.view.columns %}
-                        <th>{% trans 'Tags' %}</th>
-                    {% endif %}
-                    {% if 'ass_type' in MarkTable.view.columns %}
-                        <th>{% trans 'Association type' %}</th>
-                    {% endif %}
-                    {% if 'ass_author' in MarkTable.view.columns %}
-                        <th>{% trans 'Association author' %}</th>
-                    {% endif %}
-                    {% if 'description' in MarkTable.view.columns %}
-                        <th>{% trans 'Description' %}</th>
-                    {% endif %}
-                        <th>{% trans 'Like' %}/{% trans 'Dislike' %}</th>
-                        {% if can_mark %}
-                            <th>&nbsp;</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                {% for v in MarkTable.values %}
-                    <tr>
-                        <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
-                    {% if 'verdict' in MarkTable.view.columns %}
-                        <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
-                    {% endif %}
-                    {% if 'status' in MarkTable.view.columns %}
-                        <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                    {% endif %}
-                    {% if 'mark_type' in MarkTable.view.columns %}
-                        <td>{{ v.mark_type }}</td>
-                    {% endif %}
-                    {% if 'tags' in MarkTable.view.columns %}
-                        <td>{{ v.tags }}</td>
-                    {% endif %}
-                    {% if 'ass_type' in MarkTable.view.columns %}
-                        <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
-                    {% endif %}
-                    {% if 'ass_author' in MarkTable.view.columns %}
-                        <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
-                    {% endif %}
-                    {% if 'description' in MarkTable.view.columns %}
-                        <td>{{ v.description|safe }}</td>
-                    {% endif %}
-                        <td>
-                            <div class="ui mini basic buttons">
-                                <button id="like_association_{{ v.id }}" class="ui green basic icon button {% if v.likes|length %} like-popup{% endif %}">
-                                    <i class="ui thumbs up icon"></i>{{ v.likes|length }}
-                                </button>
-                                {% if v.likes|length %}
-                                    <div class="ui popup">
-                                        {% for like in v.likes %}
-                                            <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                <button id="dislike_association_{{ v.id }}" class="ui red icon basic right attached button {% if v.dislikes|length %} like-popup{% endif %}">
-                                    <i class="ui thumbs down icon"></i>{{ v.dislikes|length }}
-                                </button>
-                                {% if v.dislikes|length %}
-                                    <div class="ui popup">
-                                        {% for dislike in v.dislikes %}
-                                            <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </td>
-                        {% if can_mark %}
-                            <td>
-                                <div class="ui mini icon buttons">
-                                    <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
-                                    {% if v.type.0 != '1' %}
-                                        <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
-                                    {% endif %}
-                                    {% if v.type.0 != '2' %}
-                                        <button id="unconfirm_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                        {% endif %}
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <h4>{% trans 'The list of associated marks is empty. Maybe it is because of the selected view.' %}</h4>
-    {% endif %}
-
+    {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
 {% endblock %}

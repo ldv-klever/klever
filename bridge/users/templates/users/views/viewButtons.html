@@ -1,17 +1,5 @@
 {% load i18n %}
 
-<div class="ui grid">
-    <div class="ten wide column">
-        <div class="ui small action input fluid">
-            <input id="view_name_input__{{ view.type }}" type="text" placeholder="{% trans 'New view name' %}">
-            <button id="view_save_btn__{{ view.type }}" type="button" class="ui olive button">{% trans 'Save' %}</button>
-        </div>
-    </div>
-    <div class="six wide column right aligned">
-        <button id="view_show_unsaved_btn__{{ view.type }}" type="button" class="ui violet button">{% trans 'Show' %}</button>
-    </div>
-</div>
-<div class="ui divider"></div>
 <div class="ui action input">
     <label for="view_list__{{ view.type }}"></label>
     <select id="view_list__{{ view.type }}" class="ui dropdown">

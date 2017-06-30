@@ -46,21 +46,6 @@ $(document).ready(function () {
 
     $('.parent-popup').popup({inline:true});
     $('.ui.dropdown').dropdown();
-    $('[id^=order_type_attr_]').parent().checkbox({
-        onChecked: function () {
-            $('#children_order_attr_div').show();
-        }
-    });
-    $('[id^=order_type_component_]').parent().checkbox({
-        onChecked: function () {
-            $('#children_order_attr_div').hide();
-        }
-    });
-    $('[id^=order_type_date_]').parent().checkbox({
-        onChecked: function () {
-            $('#children_order_attr_div').hide();
-        }
-    });
 
     $('#file_content_modal').modal('setting', 'transition', 'fade');
     $('#show_component_log').click(function () {

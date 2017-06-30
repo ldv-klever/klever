@@ -2,7 +2,8 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-3.14",
-      "configuration": "defconfig"
+      "configuration": "defconfig",
+      "architecture": "x86_64"
     },
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",

@@ -45,7 +45,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, Mar
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
 from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
+from marks.tables import MARK_TITLES, MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
 @register.filter
@@ -509,19 +509,19 @@ def get_mark_versions(request):
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
+    view_add_args = {}
+    if request.GET.get('view_type') in {VIEW_TYPES[16][0], VIEW_TYPES[17][0], VIEW_TYPES[18][0]}:
+        view_add_args['view'] = request.GET.get('view')
+        view_add_args['view_id'] = request.GET.get('view_id')
+
     try:
-        ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
-    try:
-        data = json.loads(ass_ch.table_data)
+        data = AssociationChangesTable(request.user, association_id, **view_add_args)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
-    return render(request, 'marks/SaveMarkResult.html', {
-        'MarkTable': data,
-        'header': Header(data.get('columns', []), MARK_TITLES).struct
-    })
+    return render(request, 'marks/SaveMarkResult.html', {'TableData': data})
 
 
 @login_required
