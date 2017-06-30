@@ -157,7 +157,7 @@ $(document).ready(function () {
         }
     });
 
-    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon', true);
+    inittree($('.tree'), 2, 'chevron down violet icon', 'chevron right violet icon');
     fill_all_values();
     $("input[id^='job_checkbox__']").change(fill_checked_values);
 

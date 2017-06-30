@@ -10,7 +10,7 @@
     <br>
     {% if TableData.values|length %}
         <div style="overflow-x: auto; max-height: 80vh; overflow-y: auto;">
-            <table class="ui celled compact pink table tree">
+            <table class="ui celled compact pink selectable table alternate-color">
                 <thead>
                     {% for column_row in TableData.header %}
                         <tr>

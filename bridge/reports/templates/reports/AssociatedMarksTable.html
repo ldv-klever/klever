@@ -3,7 +3,7 @@
 {% if MarkTable.values|length %}
     <h4 class="header">{% trans 'Associated marks' %}</h4>
     <div style="overflow-x:auto;">
-        <table class="ui celled compact pink table">
+        <table class="ui celled compact pink selectable table alternate-color">
             <thead>
                 {% for column_row in MarkTable.header %}
                     <tr>

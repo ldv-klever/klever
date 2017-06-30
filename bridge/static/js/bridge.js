@@ -414,6 +414,25 @@ window.set_actions_for_views = function(view_type) {
     });
 };
 
+window.update_colors = function (table) {
+    if (!table.hasClass('alternate-color')) {
+        return false;
+    }
+    var is_dark = false;
+    table.find('tbody').first().find('tr').each(function () {
+        if (!$(this).is(':hidden')) {
+            if (is_dark) {
+                $(this).css('background', '#f0fcfe');
+                is_dark = false;
+            }
+            else {
+                $(this).css('background', 'white');
+                is_dark = true;
+            }
+        }
+    });
+};
+
 $(document).ready(function () {
     $('.browse').popup({
         inline: true,
@@ -595,5 +614,8 @@ $(document).ready(function () {
             html: $(this).attr('data-content'),
             hoverable: true
         });
+    });
+    $('.alternate-color').each(function () {
+        update_colors($(this));
     });
 });
