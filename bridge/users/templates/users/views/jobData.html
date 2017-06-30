@@ -57,11 +57,6 @@
                     <input type="checkbox" id="view_{{ view.type }}__data__unknowns_attr_stat"{% if 'unknowns_attr_stat' in view.data %} checked{% endif %}>
                     <label for="view_{{ view.type }}__data__unknowns_attr_stat">{% trans 'Statistics' %}/{% trans 'Unknown' %}</label>
                 </div>
-                <br>
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_{{ view.type }}__data__compinst"{% if 'compinst' in view.data %} checked{% endif %}>
-                    <label for="view_{{ view.type }}__data__compinst">{% trans 'Instances of components' %}</label>
-                </div>
                 <div class="ui divider"></div>
 
                 <input id="view_data_{{ view.type }}__attr_stat" value="list_if_attr_stat" data-list="attr_stat_name" type="hidden">
@@ -207,29 +202,6 @@
                     <div class="field">
                         <input id="view_{{ view.type }}__unsafe_tag_name" type="text"{% if 'unsafe_tag' in view %} value="{{ view.unsafe_tag.1 }}"{% endif %}>
                         <label for="view_{{ view.type }}__unsafe_tag_name"></label>
-                    </div>
-                </div>
-                <div class="ui divider"></div>
-
-                {# Filters for components' instances #}
-                <input id="view_data_{{ view.type }}__compinst" value="list_if_compinst" data-list="compinst_type__compinst_name" type="hidden">
-                <div class="ui checkbox">
-                    <input type="checkbox" id="view_condition_{{ view.type }}__compinst"{% if 'compinst' in view %} checked{% endif %}>
-                    <label for="view_condition_{{ view.type }}__compinst">{% trans 'Instances where component name' %}</label>
-                </div>
-                <br><br>
-                <div class="inline fields" style="margin-left: 15px;">
-                    <div class="field">
-                        <select id="view_{{ view.type }}__compinst_type" class="ui dropdown">
-                            <option value="iexact"{% if 'compinst' in view and view.compinst.0 == 'iexact' %} selected{% endif %}>{% trans 'is' %}</option>
-                            <option value="istartswith"{% if 'compinst' in view and view.compinst.0 == 'istartswith' %} selected{% endif %}>{% trans 'starts with' %}</option>
-                            <option value="icontains"{% if 'compinst' in view and view.compinst.0 == 'icontains' %} selected{% endif %}>{% trans 'contains' %}</option>
-                        </select>
-                        <label for="view_{{ view.type }}__compinst_type"></label>
-                    </div>
-                    <div class="field">
-                        <input id="view_{{ view.type }}__compinst_name" type="text"{% if 'compinst' in view %} value="{{ view.compinst.1 }}"{% endif %}>
-                        <label for="view_{{ view.type }}__compinst_name"></label>
                     </div>
                 </div>
                 <div class="ui divider"></div>

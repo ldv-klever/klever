@@ -70,8 +70,7 @@ class ViewJobData:
             'tags_unsafe': self.__unsafe_tags_info,
             'safes_attr_stat': self.__safes_attrs_statistic,
             'unsafes_attr_stat': self.__unsafes_attrs_statistic,
-            'unknowns_attr_stat': self.__unknowns_attrs_statistic,
-            'compinst': self.__component_instances
+            'unknowns_attr_stat': self.__unknowns_attrs_statistic
         }
         for d in self.view['data']:
             if d in actions:
@@ -134,6 +133,16 @@ class ViewJobData:
         return get_children({'id': None}, -1)
 
     def __resource_info(self):
+        instances = {}
+        for c_name, total, in_progress in ComponentInstances.objects.filter(report=self.report)\
+                .order_by('component__name').values_list('component__name', 'total', 'in_progress'):
+            instances[c_name] = ' (%s' % total
+            if in_progress == 1:
+                instances[c_name] += ', 1 %s' % _('is still running')
+            elif in_progress > 1:
+                instances[c_name] += ', %s %s' % (in_progress, _('are still running'))
+            instances[c_name] += ')'
+
         res_data = {}
         resource_filters = {}
         resource_table = self.report.resources_cache
@@ -150,7 +159,9 @@ class ViewJobData:
             rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, cr)
             res_data[cr.component.name] = "%s %s %s" % (rd[0], rd[1], rd[2])
 
-        resource_data = [{'component': x, 'val': res_data[x]} for x in sorted(res_data)]
+        resource_data = [
+            {'component': x, 'val': res_data[x], 'instances': instances.get(x, '')} for x in sorted(res_data)
+        ]
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
@@ -159,7 +170,9 @@ class ViewJobData:
                 res_total = resource_table.filter(component=None).first()
             if res_total is not None:
                 rd = get_resource_data(self.user.extended.data_format, self.user.extended.accuracy, res_total)
-                resource_data.append({'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2])})
+                resource_data.append({
+                    'component': _('Total'), 'val': "%s %s %s" % (rd[0], rd[1], rd[2]), 'instances': ''
+                })
         return resource_data
 
     def __unknowns_info(self):
@@ -393,11 +406,3 @@ class ViewJobData:
                 }
             attr_stat_data[ra_val]['num'] += 1
         return list((val, attr_stat_data[val]['num'], attr_stat_data[val]['href']) for val in sorted(attr_stat_data))
-
-    def __component_instances(self):
-        if 'compinst' in self.view:
-            return ComponentInstances.objects.filter(**{
-                'report': self.report, 'component__name__%s' % self.view['compinst'][0]: self.view['compinst'][1]
-            }).order_by('component__name').values_list('component__name', 'total', 'in_progress')
-        return ComponentInstances.objects.filter(report=self.report).order_by('component__name')\
-            .values_list('component__name', 'total', 'in_progress')

@@ -54,7 +54,7 @@ JOB_TREE_VIEW = {
 
 JOB_DATA_VIEW = {
     'data': [
-        'unsafes', 'safes', 'unknowns', 'resources', 'compinst', 'tags_safe', 'tags_unsafe',
+        'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
         'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
     ],
     # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total'],

@@ -104,9 +104,9 @@
                             <i class="laptop mini icon"></i>
                             <div class="content">
                                 {% if reportdata.report.component.name == res_data.component %}
-                                    <strong style="color: #86188c;">{{ res_data.component }}:</strong>
+                                    <strong style="color: #86188c;">{{ res_data.component }}{{ res_data.instances }}:</strong>
                                 {% else %}
-                                    {{ res_data.component }}:
+                                    {{ res_data.component }}{{ res_data.instances }}:
                                 {% endif %}<span style="color: darkblue">{{ res_data.val }}</span>
                             </div>
                         </div>
