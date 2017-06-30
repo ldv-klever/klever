@@ -1,0 +1,31 @@
+{% load i18n %}
+
+<div class="ui grid" style="max-width: 30vw;">
+    <div class="fourteen wide column">
+        <input id="view_data_{{ view.type }}__columns" value="multiselect" type="hidden">
+        <label for="view_{{ view.type }}__columns" class="bold-text">{% trans 'Selected columns' %}</label>
+        <select id="view_{{ view.type }}__columns" style="height: 160px;" multiple="multiple">
+            {% for col in selected_columns %}
+                <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label for="view_available_columns_{{ view.type }}" class="bold-text">{% trans 'Available columns' %}</label>
+        <div class="ui field fluid action input">
+            <select id="view_available_columns_{{ view.type }}" class="ui dropdown">
+                {% for col in available_columns %}
+                    <option  title="{{ col.title }}" value="{{ col.value }}">{{ col.title }}</option>
+                {% endfor %}
+            </select>
+            <button id="view_add_column_btn_{{ view.type }}" type="button" class="ui purple basic icon button"><i class="plus icon"></i></button>
+        </div>
+    </div>
+    <div class="two wide column">
+        <div style="margin-top: 50px;" class="ui vertical mini basic icon purple buttons">
+            <button id="view_move_columns_up_{{ view.type }}" type="button" class="ui button"><i class="arrow up icon"></i></button>
+            <button id="view_move_columns_down_{{ view.type }}" type="button" class="ui button"><i class="arrow down icon"></i></button>
+        </div>
+        <br><br>
+        <button id="view_remove_column_btn_{{ view.type }}" type="button" class="ui mini basic red icon button"><i class="remove icon"></i></button>
+    </div>
+</div>

@@ -551,16 +551,19 @@ class UploadReport:
         attr_data = []
         if isinstance(val, list):
             for v in val:
-                if isinstance(v, dict):
-                    nextname = next(iter(v))
-                    for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
-                        if len(name) == 0:
-                            new_id = n[0]
-                        else:
-                            new_id = "%s:%s" % (name, n[0])
-                        attr_data.append((new_id, n[1]))
+                if not isinstance(v, dict) or len(v) != 1:
+                    raise ValueError('Wrong format of report attribute')
+                nextname = next(iter(v))
+                for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
+                    if len(name) == 0:
+                        new_id = n[0]
+                    else:
+                        new_id = "%s:%s" % (name, n[0])
+                    attr_data.append((new_id, n[1]))
         elif isinstance(val, str):
             attr_data = [(name, val)]
+        else:
+            raise ValueError('Wrong format of report attributes')
         return attr_data
 
     def __save_attrs(self, report_id, attrs):

@@ -15,73 +15,7 @@
  * limitations under the License.
  */
 
-function collect_filters_data() {
-    var view_values = {columns: []}, filter_values = {},
-        order_type = $('input[name=marks_enable_order]:checked').val();
-    $('input[id^="marks_filter_checkbox__"]:checked').each(function () {
-        view_values['columns'].push($(this).attr('id').replace('marks_filter_checkbox__', ''));
-    });
-    if (order_type === 'attribute') {
-        var order = $('#filter__attr__order').val();
-        if (order.length > 0) {
-            view_values['order'] = order;
-        }
-    }
-    else if (order_type === 'num_of_links') {
-        view_values['order'] = 'num_of_links';
-    }
-
-    var attr_val = $('#filter__attr__value').val(),
-        attr_attr = $('#filter__attr__attr').val();
-    if (attr_val && attr_attr && attr_val.length > 0 && attr_attr.length > 0) {
-        filter_values['attr'] = {
-            attr: attr_attr,
-            type: $('#filter__attr__type').val(),
-            value: attr_val
-        }
-    }
-    if ($('#filter__enable__verdict').is(':checked')) {
-        filter_values['verdict'] = {
-            type: $('#filter__type__verdict').val(),
-            value: $('#filter__value__verdict').children(':selected').val()
-        }
-    }
-    if ($('#filter__enable__status').is(':checked')) {
-        filter_values['status'] = {
-            type: $('#filter__type__status').val(),
-            value: $('#filter__value__status').children(':selected').val()
-        }
-    }
-    if ($('#filter__enable__author').is(':checked')) {
-        filter_values['author'] = {
-            type: 'is',
-            value: parseInt($('#filter__value__author').children(':selected').val())
-        }
-    }
-    if ($('#filter__enable__source').is(':checked')) {
-        filter_values['source'] = {
-            type: $('#filter__type__source').val(),
-            value: $('#filter__value__source').val()
-        }
-    }
-    if ($('#filter__enable__component').is(':checked')) {
-        var filter_val = $('#filter__value__component').val();
-        if (filter_val.length > 0) {
-            filter_values['component'] = {
-                type: $('#filter__type__component').val(),
-                value: filter_val
-            }
-        }
-    }
-    view_values['filters'] = filter_values;
-    return JSON.stringify(view_values);
-}
-
 $(document).ready(function () {
-    var view_type_input = $('#view_type');
-    if (view_type_input.length) {
-        set_actions_for_views(view_type_input.val(), collect_filters_data);
-    }
     activate_tags();
     $('.ui.dropdown').each(function () {
         if (!$(this).hasClass('search')) {

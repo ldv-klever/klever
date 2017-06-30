@@ -19,6 +19,8 @@
             </div>
         </div>
         <div class="nine wide column">
+            <button id="view_show_form_btn_{{ TableData.view.type }}" data-position="bottom right" data-content="{{ TableData.view.viewtitle }}" class="ui mini violet icon basic button" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+
             <div class="ui breadcrumb">
                 <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
                 <div class="ui special popup">
@@ -42,18 +44,29 @@
                     </div>
                 {% endfor %}
             </div>
-            <br><br>
-            {% if view_type == '6' %}
-                {% include 'reports/UnknownsFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
-            {% else %}
-                {% include 'reports/ListFilters.html' with view=TableData.view view_id=TableData.view_id views=TableData.views view_type=view_type %}
-            {% endif %}
         </div>
     </div>
     <br>
+    <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display:none;">
+        {% if TableData.view.type == '6' %}
+            {% include 'users/views/UnknownsList.html' with view=TableData.view %}
+        {% else %}
+            {% include 'users/views/SafesAndUnsafesList.html' with view=TableData.view verdicts=TableData.verdicts selected_columns=TableData.selected_columns available_columns=TableData.available_columns %}
+        {% endif %}
+        <br>
+    </div>
     {% if TableData.table_data.values|length %}
+        <div>
+            {% if TableData.table_data.values.has_previous %}
+                <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+            {% endif %}
+            <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+            {% if TableData.table_data.values.has_next %}
+                <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+            {% endif %}
+        </div>
         <div id="report_list_table" style="overflow-x:auto;max-height:75vh;overflow-y:auto;">
-            <table class="ui compact celled selectable table alternate-color {% if view_type == '6' %}red{% elif view_type == '5' %}green{% elif view_type == '4' %}orange{% endif %} ">
+            <table class="ui compact celled selectable table alternate-color {% if TableData.view.type == '6' %}red{% elif TableData.view.type == '5' %}green{% elif TableData.view.type == '4' %}orange{% endif %} ">
                 <thead>
                     {% for column_row in TableData.table_data.header %}
                         <tr class="info">
@@ -80,5 +93,7 @@
                 </tbody>
             </table>
         </div>
+    {% else %}
+        <h4>{% trans 'The list of reports is empty. Maybe it is because of the selected view.' %}</h4>
     {% endif %}
 {% endblock %}
