@@ -422,7 +422,7 @@ window.update_colors = function (table) {
     table.find('tbody').first().find('tr').each(function () {
         if (!$(this).is(':hidden')) {
             if (is_dark) {
-                $(this).css('background', '#e8f9fe');
+                $(this).css('background', '#f0fcfe');
                 is_dark = false;
             }
             else {
