@@ -8,7 +8,7 @@
 {% block body_block %}{% timezone user.extended.timezone %}
 
 <div class="ui grid">
-    <div class="seven wide column">
+    <div class="six wide column">
         <table class="ui selectable compact inverted violet table attached">
             <tbody>
                 <tr id="component_name_tr" data-variation="very wide">
@@ -127,7 +127,7 @@
 
     </div>
 
-    <div class="nine wide column">
+    <div class="ten wide column">
         <div class="ui breadcrumb">
             <a class="section parent-popup" href="{{ parents.0.href }}" data-variation="very wide">{{ parents.0.title }}</a>
             <div class="ui special popup">
@@ -153,8 +153,17 @@
         </div>
         <div class="ui teal segment">
             <h3 class="header ui violet italic">{% trans 'Children' %}</h3>
-            {% include 'reports/AttrsFilters.html' with view_type='3' view=TableData.view view_id=TableData.view_id views=TableData.views %}
+            {% include 'users/views/reportChildren.html' with view=TableData.view %}
             {% if TableData.table_data.values|length %}
+                <div>
+                    {% if TableData.table_data.values.has_previous %}
+                        <i class="ui arrow left blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.previous_page_number }}"></i>
+                    {% endif %}
+                    <span>{% blocktrans with n1=TableData.table_data.values.number n2=TableData.table_data.values.paginator.num_pages %}Page {{ n1 }} of {{ n2 }}{% endblocktrans %}</span>
+                    {% if TableData.table_data.values.has_next %}
+                        <i class="ui arrow right blue link icon page-link-icon" data-page-number="{{ TableData.table_data.values.next_page_number }}"></i>
+                    {% endif %}
+                </div>
                 <div style="overflow: auto;max-height: 40vh;">
                     <table class="ui celled compact teal table">
                         <thead>
@@ -184,7 +193,7 @@
         </div>
         <div class="ui orange segment">
             <h3 class="header ui violet italic">{% trans 'Statistics on component and its children' %}</h3>
-            {% include 'jobs/viewJobFilters.html' %}
+            {% include 'users/views/jobData.html' with view=reportdata.view %}
             <br>
             {% include 'jobs/jobData.html' %}
         </div>

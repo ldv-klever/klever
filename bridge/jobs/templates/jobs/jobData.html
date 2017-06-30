@@ -1,12 +1,12 @@
 {% load i18n %}
 
-{% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.unknowns|length %}
+{% if reportdata.data.unsafes|length or reportdata.unsafes_total or reportdata.data.safes|length or reportdata.safes_total or reportdata.data.unknowns|length %}
     <div class="ui grid">
-        {% if reportdata.view_data.unsafes|length or reportdata.unsafes_total or reportdata.view_data.tags_unsafe|length %}
+        {% if reportdata.unsafes_total or reportdata.data.tags_unsafe|length %}
             <div class="eight wide column">
                 <h4 class="header ui violet">{% trans 'Unsafes' %}{% if reportdata.unsafes_total %} (<a href="{{ reportdata.unsafes_total.1 }}">{{ reportdata.unsafes_total.0 }}</a>){% endif %}</h4>
                 <div class="ui list">
-                    {% for v in reportdata.view_data.unsafes %}
+                    {% for v in reportdata.data.unsafes %}
                         <div class="item">
                             <i class="pointing right mini icon"></i>
                             <div class="content">
@@ -19,10 +19,10 @@
                         </div>
                     {% endfor %}
                 </div>
-                {% if reportdata.view_data.tags_unsafe|length %}
+                {% if reportdata.data.tags_unsafe|length %}
                     <h5 class="header ui orange">{% trans 'Tags' %}</h5>
                     <div class="ui list">
-                        {% for t in reportdata.view_data.tags_unsafe %}
+                        {% for t in reportdata.data.tags_unsafe %}
                             <div class="item" style="padding-left: {{ t.padding }}px;">
                                 <i class="tag tiny orange icon"></i>
                                 <div class="content">
@@ -32,10 +32,10 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.view_data.unsafes_attr_stat|length and reportdata.view.filters.stat_attr_name %}
-                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
+                {% if reportdata.data.unsafes_attr_stat|length and reportdata.view.attr_stat %}
+                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.attr_stat.0 }}"</h5>
                     <div class="ui small list">
-                        {% for uas in reportdata.view_data.unsafes_attr_stat %}
+                        {% for uas in reportdata.data.unsafes_attr_stat %}
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
                                 <div class="content">{{ uas.0 }}: <a href="{{ uas.2 }}">{{ uas.1 }}</a></div>
@@ -45,11 +45,11 @@
                 {% endif %}
             </div>
         {% endif %}
-        {% if reportdata.view_data.safes|length or reportdata.safes_total or reportdata.view_data.tags_safe|length %}
+        {% if reportdata.safes_total or reportdata.data.tags_safe|length %}
             <div class="eight wide column">
                 <h4 class="header ui violet">{% trans 'Safes' %}{% if reportdata.safes_total %} ({% if reportdata.safes_total|length == 2 %}<a href="{{ reportdata.safes_total.1 }}">{{ reportdata.safes_total.0 }}</a>{% else %}{{ reportdata.safes_total.0 }}{% endif %}){% endif %}</h4>
                 <div class="ui list">
-                    {% for v in reportdata.view_data.safes %}
+                    {% for v in reportdata.data.safes %}
                         <div class="item">
                             <i class="pointing right mini icon"></i>
                             <div class="content">
@@ -62,10 +62,10 @@
                         </div>
                     {% endfor %}
                 </div>
-                {% if reportdata.view_data.tags_safe|length %}
+                {% if reportdata.data.tags_safe|length %}
                     <h5 class="header ui green">{% trans 'Tags' %}</h5>
                     <div class="ui list">
-                        {% for t in reportdata.view_data.tags_safe %}
+                        {% for t in reportdata.data.tags_safe %}
                             <div class="item" style="padding-left: {{ t.padding }}px;">
                                 <i class="tag green icon"></i>
                                 <div class="content">
@@ -75,10 +75,10 @@
                         {% endfor %}
                     </div>
                 {% endif %}
-                {% if reportdata.view_data.safes_attr_stat|length and reportdata.view.filters.stat_attr_name %}
-                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
+                {% if reportdata.data.safes_attr_stat|length and reportdata.view.attr_stat %}
+                    <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.attr_stat.0 }}"</h5>
                     <div class="ui small list">
-                        {% for sas in reportdata.view_data.safes_attr_stat %}
+                        {% for sas in reportdata.data.safes_attr_stat %}
                             <div class="item">
                                 <i class="pointing right mini icon"></i>
                                 <div class="content">{{ sas.0 }}: <a href="{{ sas.2 }}">{{ sas.1 }}</a></div>
@@ -92,13 +92,13 @@
 {% endif %}
 
 <div class="ui grid">
-    {% if reportdata.view_data.resources|length %}
+    {% if reportdata.data.resources|length %}
         <div class="ui nine wide column">
             <h4 class="header ui violet">{% trans 'Consumed resources' %}
                 <i id="resources-note" class="ui blue help icon" data-content="{% trans "Wall time, CPU time and maximum memory size" %}"></i>
             </h4>
             <div class="ui list">
-                {% for res_data in reportdata.view_data.resources %}
+                {% for res_data in reportdata.data.resources %}
                     <div class="item">
                         <i class="laptop mini icon"></i>
                         <div class="content">
@@ -113,11 +113,11 @@
             </div>
         </div>
     {% endif %}
-    {% if reportdata.view_data.unknowns|length %}
+    {% if reportdata.data.unknowns|length %}
         <div class="seven wide column">
             <h4 class="header ui violet">{% trans 'Unknowns' %}{% if reportdata.unknowns_total %} (<a href="{{ reportdata.unknowns_total.href }}">{{ reportdata.unknowns_total.num }}</a>){% endif %}</h4>
             <div class="ui small list">
-                {% for comp in reportdata.view_data.unknowns %}
+                {% for comp in reportdata.data.unknowns %}
                     <div class="item">
                         <i class="cube mini icon"></i>
                         <div class="content">{{ comp.component }}{% for probl in comp.problems %}{% if probl.problem == 'total' %} (<a href="{{ probl.href }}">{{ probl.num }}</a>){% endif %}{% endfor %}</div>
@@ -136,10 +136,10 @@
                     </div>
                 {% endfor %}
             </div>
-            {% if reportdata.view_data.unknowns_attr_stat|length and reportdata.view.filters.stat_attr_name %}
-                <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.filters.stat_attr_name.value }}"</h5>
+            {% if reportdata.data.unknowns_attr_stat|length and reportdata.view.attr_stat %}
+                <h5 class="header">{% trans 'Statistics of' %} "{{ reportdata.view.attr_stat.0 }}"</h5>
                 <div class="ui small list">
-                    {% for fas in reportdata.view_data.unknowns_attr_stat %}
+                    {% for fas in reportdata.data.unknowns_attr_stat %}
                         <div class="item">
                             <i class="pointing right mini icon"></i>
                             <div class="content">{{ fas.0 }}: <a href="{{ fas.2 }}">{{ fas.1 }}</a></div>
