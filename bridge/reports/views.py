@@ -29,8 +29,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES, \
-    MARK_STATUS, ASSOCIATION_TYPE, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -657,8 +656,6 @@ def get_source_code(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     filename = request.POST['file_name']
-    if len(filename) > 50:
-        filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
         'content': result.data, 'name': filename, 'fullname': request.POST['file_name']
     })
