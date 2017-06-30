@@ -157,6 +157,9 @@ class ViewJobData:
         resource_data = [
             {'component': x, 'val': res_data[x], 'instances': instances.get(x, '')} for x in sorted(res_data)
         ]
+        resource_data.extend(list(
+            {'component': x, 'val': '-', 'instances': instances[x]} for x in sorted(instances) if x not in res_data
+        ))
 
         if 'hidden' not in self.view or 'resource_total' not in self.view['hidden']:
             if self.report.root.job.weight == JOB_WEIGHT[1][0] and self.report.parent is None:
