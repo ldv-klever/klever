@@ -136,12 +136,7 @@ class ViewJobData:
         instances = {}
         for c_name, total, in_progress in ComponentInstances.objects.filter(report=self.report)\
                 .order_by('component__name').values_list('component__name', 'total', 'in_progress'):
-            instances[c_name] = ' (%s' % total
-            if in_progress == 1:
-                instances[c_name] += ', 1 %s' % _('is still running')
-            elif in_progress > 1:
-                instances[c_name] += ', %s %s' % (in_progress, _('are still running'))
-            instances[c_name] += ')'
+            instances[c_name] = ' (%s/%s)' % (total - in_progress, total)
 
         res_data = {}
         resource_filters = {}
