@@ -527,8 +527,14 @@ def remove_jobs(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
-    jobs.utils.remove_jobs_by_id(request.user, jobs_for_del)
+    try:
+        jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
+        jobs.utils.remove_jobs_by_id(request.user, jobs_for_del)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(str(e))
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 

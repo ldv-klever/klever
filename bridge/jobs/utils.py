@@ -532,7 +532,7 @@ def remove_jobs_by_id(user, job_ids):
                 remove_job_with_children(ch_id)
             del job_struct[j_id]
         if not JobAccess(user, all_jobs[j_id]).can_delete():
-            raise ValueError("You don't have an access to delete one of the childrens")
+            raise BridgeException(_("You don't have an access to delete one of the children"))
         try:
             Notify(all_jobs[j_id], 2)
         except Exception as e:
