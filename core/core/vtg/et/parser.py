@@ -27,6 +27,12 @@ class ErrorTraceParser:
         # Start parsing
         self.error_trace = ErrorTrace(logger)
         self._parse_witness(witness)
+        self._sanity_checks()
+
+    def _sanity_checks(self):
+        for edge in self.error_trace.trace_iterator():
+            if len(edge['target node']['out']) > 0:
+                raise ValueError('Witness contains branching which is not supported')
 
     def _parse_witness(self, witness):
         self._logger.info('Parse witness {!r}'.format(witness))
