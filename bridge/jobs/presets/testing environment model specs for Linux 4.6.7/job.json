@@ -2,7 +2,8 @@
   "Common": {
     "Linux kernel": {
       "source": "linux-4.6.7",
-      "configuration": "allmodconfig"
+      "configuration": "allmodconfig",
+      "architecture": "x86_64"
     },
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,

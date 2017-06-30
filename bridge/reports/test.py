@@ -242,17 +242,17 @@ class TestReports(KleverTestCase):
         response = self.client.get(reverse('reports:component', args=[self.job.pk, main_report.pk]))
         self.assertEqual(response.status_code, 200)
 
-        response = self.client.get(reverse('reports:list', args=[main_report.pk, 'unsafes']))
+        response = self.client.get(reverse('reports:unsafes', args=[main_report.pk]))
         if ReportUnsafe.objects.count() == 1:
             self.assertRedirects(response, reverse('reports:unsafe', args=[ReportUnsafe.objects.first().id]))
         else:
             self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('reports:list', args=[main_report.pk, 'safes']))
+        response = self.client.get(reverse('reports:safes', args=[main_report.pk]))
         if ReportSafe.objects.count() == 1:
             self.assertRedirects(response, reverse('reports:safe', args=[ReportSafe.objects.first().id]))
         else:
             self.assertEqual(response.status_code, 200)
-        response = self.client.get(reverse('reports:list', args=[main_report.pk, 'unknowns']))
+        response = self.client.get(reverse('reports:unknowns', args=[main_report.pk]))
         if ReportUnknown.objects.count() == 1:
             self.assertRedirects(response, reverse('reports:unknown', args=[ReportUnknown.objects.first().id]))
         else:
@@ -262,25 +262,27 @@ class TestReports(KleverTestCase):
             response = self.client.get(reverse('reports:component', args=[self.job.pk, report.pk]))
             self.assertEqual(response.status_code, 200)
             # TODO: update archives so that all unsafes can be shown without errors and uncomment it
-            # response = self.client.get(reverse('reports:list', args=[report.pk, 'unsafes']))
+            # response = self.client.get(reverse('reports:unsafes', args=[report.pk]))
             # leaves = ReportComponentLeaf.objects.exclude(unsafe=None).filter(report=report)
             # if leaves.count() == 1:
             #     self.assertRedirects(response, reverse('reports:unsafe', args=[leaves.first().unsafe_id]))
             # else:
             #     self.assertEqual(response.status_code, 200)
-            response = self.client.get(reverse('reports:list', args=[report.pk, 'safes']))
+            response = self.client.get(reverse('reports:safes', args=[report.pk]))
             leaves = ReportComponentLeaf.objects.exclude(safe=None).filter(report=report)
             if leaves.count() == 1:
                 self.assertRedirects(response, reverse('reports:safe', args=[leaves.first().safe_id]))
             else:
                 self.assertEqual(response.status_code, 200)
-            response = self.client.get(reverse('reports:list', args=[report.pk, 'unknowns']))
+            response = self.client.get(reverse('reports:unknowns', args=[report.pk]))
             leaves = ReportComponentLeaf.objects.exclude(unknown=None).filter(report=report)
             if leaves.count() == 1:
                 self.assertRedirects(response, reverse('reports:unknown', args=[leaves.first().unknown_id]))
             else:
                 self.assertEqual(response.status_code, 200)
-            response = self.client.get(reverse('reports:unknowns', args=[report.pk, report.component_id]))
+            response = self.client.get(
+                '%s?component=%s' % (reverse('reports:unknowns', args=[report.pk]), report.component_id)
+            )
             leaves = ReportComponentLeaf.objects.exclude(unknown=None)\
                 .filter(report=report, unknown__component_id=report.component_id)
             if leaves.count() == 1:
@@ -815,20 +817,20 @@ class DecideJobs(object):
         elif job.type == JOB_CLASSES[1][0]:
             core_data = {
                 'module1': {
-                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 before fix'},
-                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module1 after fix'},
+                    'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 before fix'},
+                    'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module1 after fix'},
                 },
                 'module2': {
-                    'before fix': {'verification status': 'safe', 'comment': '1'},
-                    'after fix': {'verification status': 'unsafe', 'comment': 'Comment for module2 after fix'},
+                    'before fix': {'verdict': 'safe', 'comment': '1'},
+                    'after fix': {'verdict': 'unsafe', 'comment': 'Comment for module2 after fix'},
                 },
                 'module3': {
-                    'before fix': {'verification status': 'unsafe', 'comment': 'Comment for module3 before fix'},
-                    'after fix': {'verification status': 'safe', 'comment': '1'},
+                    'before fix': {'verdict': 'unsafe', 'comment': 'Comment for module3 before fix'},
+                    'after fix': {'verdict': 'safe', 'comment': '1'},
                 },
                 'module4': {
-                    'before fix': {'verification status': 'unsafe', 'comment': '1'},
-                    'after fix': {'verification status': 'unknown', 'comment': '1'},
+                    'before fix': {'verdict': 'unsafe', 'comment': '1'},
+                    'after fix': {'verdict': 'unknown', 'comment': '1'},
                 }
             }
 

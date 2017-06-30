@@ -14,14 +14,67 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
-import subprocess
 import logging
 import logging.config
 import argparse
 import os
 import json
 import shutil
+import subprocess
+import queue
+import threading
+import time
+import signal
+import zipfile
+import re
+import glob
+import multiprocessing
+import sys
+from xml.etree import ElementTree
+
+
+class StreamQueue:
+    """
+    Implements queue to work with output stream to catch stderr or stdout.
+    """
+
+    def __init__(self, stream, stream_name, collect_all_output=False):
+        self.stream = stream
+        self.stream_name = stream_name
+        self.collect_all_output = collect_all_output
+        self.queue = queue.Queue()
+        self.finished = False
+        self.traceback = None
+        self.thread = threading.Thread(target=self.__put_lines_from_stream_to_queue)
+        self.output = []
+
+    def get(self):
+        try:
+            return self.queue.get_nowait()
+        except queue.Empty:
+            return None
+
+    def join(self):
+        self.thread.join()
+
+    def start(self):
+        self.thread.start()
+
+    def __put_lines_from_stream_to_queue(self):
+        try:
+            # This will put lines from stream to queue until stream will be closed. For instance it will happen when
+            # execution of command will be completed.
+            for line in self.stream:
+                line = line.decode('utf8').rstrip()
+                self.queue.put(line)
+                if self.collect_all_output:
+                    self.output.append(line)
+
+            # Nothing will be put to queue from now.
+            self.finished = True
+        except Exception:
+            import traceback
+            self.traceback = traceback.format_exc().rstrip()
 
 
 def common_initialization(tool, conf=None):
@@ -29,6 +82,7 @@ def common_initialization(tool, conf=None):
     Start execution of the corresponding cloud tool.
 
     :param tool: Tool name string.
+    :param conf: Configuration dictionary.
     :return: Configuration dictionary.
     """
 
@@ -108,10 +162,10 @@ def extract_system_information():
     Extract information about the system and return it as a dictionary.
     :return: dictionary with system info,
     """
-    system_conf = {}
+    system_conf = dict()
     system_conf["node name"] = get_output('uname -n')
     system_conf["CPU model"] = get_output('cat /proc/cpuinfo | grep -m1 "model name" | sed -r "s/^.*: //"')
-    system_conf["CPU number"] = int(get_output('cat /proc/cpuinfo | grep processor | wc -l'))
+    system_conf["CPU number"] = len(extract_cpu_cores_info().keys())
     system_conf["RAM memory"] = \
         int(get_output('cat /proc/meminfo | grep "MemTotal" | sed -r "s/^.*: *([0-9]+).*/1024 * \\1/" | bc'))
     system_conf["disk memory"] = 1024 * int(get_output('df ./ | grep / | awk \'{ print $4 }\''))
@@ -156,5 +210,246 @@ def higher_priority(one, two, strictly=False):
         return one_priority > two_priority
     else:
         return one_priority >= two_priority
+
+
+def dir_size(dir):
+    """
+    Measure size of the given directory.
+
+    :param dir: Path string.
+    :return: integer size in Bytes.
+    """
+    if not os.path.isdir(dir):
+        raise ValueError('Expect existing directory but it is not: {}'.format(dir))
+    return int(get_output('du -bs {} | cut -f1'.format(dir)))
+
+
+def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
+            disk_limitation=None, disk_checking_period=30):
+    """
+    Execute given command in a separate process catching its stderr if necessary.
+
+    :param args: Command erguments.
+    :param env: Environment variables.
+    :param cwd: Current working directory to run the command.
+    :param timeout: Timeout for the command.
+    :param logger: Logger object.
+    :param stderr: Pipe or file descriptor to redirect output. Use it if logger is not provided.
+    :param stderr: Pipe or file descriptor to redirect output. Use it if logger is not provided.
+    :param disk_limitation: Allowed integer size of disk memory in Bytes of current working directory.
+    :param disk_checking_period: Integer number of seconds for the disk space measuring interval.
+    :return: subprocess.Popen.returncode.
+    """
+    original_sigint_handler = signal.getsignal(signal.SIGINT)
+    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
+
+    def restore_handlers():
+        signal.signal(signal.SIGTERM, original_sigtrm_handler)
+        signal.signal(signal.SIGINT, original_sigint_handler)
+
+    def process_alive(pid):
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        else:
+            return True
+
+    def handler(arg1, arg2):
+        # Repeate until it dies
+        if p and p.pid:
+            pid = p.pid
+            print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
+            # Sent initial signals
+            os.kill(pid, signal.SIGINT)
+            restore_handlers()
+
+            try:
+                # Try to wait - it helps if a process is waiting for something, we need to check its status
+                p.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                print('{}: Process {} is still alive ...'.format(os.getpid(), pid), file=sys.stderr)
+                # Lets try it again
+                os.killpg(os.getpgid(pid), signal.SIGTERM)
+                os.killpg(os.getpgid(pid), signal.SIGINT)
+                os.kill(pid, signal.SIGKILL)
+                # It should not survive after kill, lets wait a couple of seconds
+                time.sleep(10)
+
+        print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
+        os._exit(-1)
+
+    def set_handlers():
+        signal.signal(signal.SIGTERM, handler)
+        signal.signal(signal.SIGINT, handler)
+
+    def disk_controller(pid, limitation, period):
+        while process_alive(pid):
+            size = dir_size("./")
+            if size > limitation:
+                # Kill the process
+                print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
+                os.kill(p.pid, signal.SIGINT)
+            time.sleep(period)
+        os._exit(0)
+
+    def activate_disk_limitation(pid, limitation):
+        if limitation:
+            p = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
+            p.start()
+
+    set_handlers()
+    cmd = args[0]
+    if logger:
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+
+        logger.debug('Execute:\n{0}{1}{2}'.format(cmd,
+                                                  '' if len(args) == 1 else ' ',
+                                                  ' '.join('"{0}"'.format(arg) for arg in args[1:])))
+
+        p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
+        activate_disk_limitation(p.pid, disk_limitation)
+
+        err_q = StreamQueue(p.stderr, 'STDERR', True)
+        err_q.start()
+
+        # Print to logs everything that is printed to STDOUT and STDERR each timeout seconds. Last try is required to
+        # print last messages queued before command finishes.
+        last_try = True
+        while not err_q.finished or last_try:
+            if err_q.traceback:
+                raise RuntimeError(
+                    'STDERR reader thread failed with the following traceback:\n{0}'.format(err_q.traceback))
+            last_try = not err_q.finished
+            time.sleep(timeout if isinstance(timeout, int) else 0)
+
+            output = []
+            while True:
+                line = err_q.get()
+                if line is None:
+                    break
+                output.append(line)
+            if output:
+                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
+                logger.warning(m)
+
+        p.poll()
+        err_q.join()
+    else:
+        p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout)
+        activate_disk_limitation(p.pid, disk_limitation)
+        try:
+            p.wait()
+        except OSError:
+            p.kill()
+
+    restore_handlers()
+
+    if disk_limitation:
+        size = dir_size("./")
+        if size >= disk_limitation:
+            raise RuntimeError("Disk space limitation of {}B is exceeded".format(disk_limitation))
+
+    return p.returncode
+
+
+def process_task_results(logger):
+    """
+    Expect working directory after BenchExec finished its work. Then parse its generated files and read spent resources.
+
+    :param logger: Logger object.
+    :return:
+    """
+    logger.debug("Translate benchexec output into our results format")
+    decision_results = {
+        "resources": {}
+    }
+    # Actually there is the only output file, but benchexec is quite clever to add current date to its name.
+    solutions = glob.glob(os.path.join("output", "benchmark*results.xml"))
+    if len(solutions) == 0:
+        raise FileNotFoundError("Cannot find any solution generated by BenchExec")
+
+    for benexec_output in solutions:
+        with open(benexec_output, encoding="utf8") as fp:
+            result = ElementTree.parse(fp).getroot()
+            decision_results["desc"] = '{0}\n{1} {2}'.format(result.attrib.get('generator'),
+                                                             result.attrib.get('tool'),
+                                                             result.attrib.get('version'))
+            run = result.findall("run")[0]
+            for column in run.iter("column"):
+                name, value = [column.attrib.get(name) for name in ("title", "value")]
+                if name == "cputime":
+                    match = re.search(r"^(\d+\.\d+)s$", value)
+                    if match:
+                        decision_results["resources"]["CPU time"] = int(float(match.groups()[0]) * 1000)
+                elif name == "walltime":
+                    match = re.search(r"^(\d+\.\d+)s$", value)
+                    if match:
+                        decision_results["resources"]["wall time"] = int(float(match.groups()[0]) * 1000)
+                elif name == "memUsage":
+                    decision_results["resources"]["memory size"] = int(value)
+                elif name == "exitcode":
+                    decision_results["exit code"] = int(value)
+
+    return decision_results
+
+
+def submit_task_results(logger, server, identifier, decision_results, solution_path):
+    """
+    Pack output directory prepared by BenchExec and prepare report archive with decision results and
+    upload it to the server.
+
+    :param logger: Logger object.
+    :param server: server.AbstractServer object.
+    :param identifier: Task identifier.
+    :param decision_results: Dictionary with decision results and measured resources.
+    :param solution_path: Path to the directory with solution files.
+    :return: None
+    """
+
+    results_file = os.path.join(solution_path, "decision results.json")
+    logger.debug("Save decision results to the disk: {}".format(os.path.abspath(results_file)))
+    with open(results_file, "w", encoding="utf8") as fp:
+        json.dump(decision_results, fp, ensure_ascii=False, sort_keys=True, indent=4)
+
+    results_archive = os.path.join(solution_path, 'decision result files.zip')
+    logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
+    with zipfile.ZipFile(results_archive, mode='w') as zfp:
+        zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
+        for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
+            for filename in filenames:
+                zfp.write(os.path.join(dirpath, filename),
+                          os.path.join(os.path.relpath(dirpath, solution_path), filename))
+
+    server.submit_solution(identifier, decision_results, results_archive)
+
+
+def extract_cpu_cores_info():
+    """
+    Read /proc/cpuinfo to get information about cores and virtual cores.
+
+    :return: {int(core id) -> int(virtual core id)}
+    """
+    data = {}
+    with open('/proc/cpuinfo', encoding='utf8') as fp:
+        current_vc = None
+        for line in fp.readlines():
+            vc = re.match(r'processor\s*:\s*(\d+)', line)
+            pc = re.match(r'core\sid\s*:\s*(\d+)', line)
+
+            if vc:
+                current_vc = int(vc.group(1))
+            if pc:
+                pc = int(pc.group(1))
+                if pc in data:
+                    data[pc].append(current_vc)
+                else:
+                    data[pc] = [current_vc]
+
+    return data
+
+a = extract_cpu_cores_info()
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

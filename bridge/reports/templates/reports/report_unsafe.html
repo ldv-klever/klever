@@ -12,7 +12,6 @@
     <script type="text/javascript" src="{% static 'reports/js/ETV-windows.js' %}"></script>
     <link href="{% static 'reports/css/ETV.css' %}" rel="stylesheet">
     <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
-    <link href="{% static 'reports/css/leaf.css' %}" rel="stylesheet">
 {% endblock %}
 
 {% block body_block %}
@@ -64,6 +63,7 @@
         <div class="seven wide column">
             <div class="ui tiny buttons" style="float: right;">
                 <button id="show_leaf_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
+                <button id="view_show_form_btn_{{ MarkTable.view.type }}" class="ui tiny violet icon basic button" data-position="bottom right" data-content="{{ MarkTable.view.viewtitle }}"><i class="setting icon"></i></button>
                 {% if can_mark %}
                     <button id="create_light_mark_btn" class="ui pink icon button note-popup" data-position="bottom left" data-content="{% trans 'Create lightweight mark' %}"><i class="empty star icon"></i></button>
                     <a class="ui pink icon button note-popup" data-position="bottom left" href="{% url 'marks:create_mark' 'unsafe' report.pk %}" data-content="{% trans 'Create fullweight mark' %}"><i class="star icon"></i></a>
@@ -86,85 +86,16 @@
             </div>
         </div>
         <div class="nine wide column">
+            <div id="view_form_segment_{{ MarkTable.view.type }}" class="ui form yellow segment" style="display:none;">
+                {% include 'users/views/UnsafeAssMarks.html' with view=MarkTable.view verdicts=MarkTable.verdicts statuses=MarkTable.statuses ass_types=MarkTable.ass_types selected_columns=MarkTable.selected_columns available_columns=MarkTable.available_columns %}
+            </div>
             {% if can_mark %}
                 <div id="inline_mark_form" style="display: none"></div>
             {% endif %}
         </div>
     </div>
-    {% if MarkTable.values|length %}
-        <h4 class="header">{% trans 'Associated marks' %}</h4>
-        <table class="ui celled compact pink table">
-            <thead>
-                <tr>
-                    <th>№</th>
-                    <th>{% trans 'Verdict' %}</th>
-                    <th>{% trans 'Similarity' %}</th>
-                    <th>{% trans 'Status' %}</th>
-                    <th>{% trans 'Tags' %}</th>
-                    <th>{% trans 'Association type' %}</th>
-                    <th>{% trans 'Association author' %}</th>
-                    <th>{% trans 'Description' %}</th>
-                    <th>{% trans 'Like' %}/{% trans 'Dislike' %}</th>
-                    {% if can_mark %}
-                        <th>&nbsp;</th>
-                    {% endif %}
-                </tr>
-            </thead>
-            <tbody>
-            {% for v in MarkTable.values %}
-                <tr>
-                    <td><a href="{{ v.href }}?report_to_redirect={{ report.pk }}">{{ v.number }}</a></td>
-                    <td><span style="color:{{ v.verdict.1 }}">{{ v.verdict.0 }}</span></td>
-                    <td><span style="color:{{ v.similarity.1 }}">{{ v.similarity.0 }}</span></td>
-                    <td><span style="color:{{ v.status.1 }}">{{ v.status.0 }}</span></td>
-                    <td>{{ v.tags }}</td>
-                    <td class="association-type-{{ v.type.0 }}">{{ v.type.1 }}</td>
-                    <td>{% if v.author %}<a href="{{ v.author.1 }}">{{ v.author.0 }}</a>{% else %}-{% endif %}</td>
-                    <td>{{ v.description|safe }}</td>
-                    <td>
-                        <div class="ui mini basic buttons">
-                            <button id="like_association_{{ v.id }}" class="ui green basic icon button {% if v.likes|length %} like-popup{% endif %}">
-                                <i class="ui thumbs up icon"></i>{{ v.likes|length }}
-                            </button>
-                            {% if v.likes|length %}
-                                <div class="ui popup">
-                                    {% for like in v.likes %}
-                                        <span><a href="{% url 'users:show_profile' like.1 %}">{{ like.0 }}</a></span><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                            <button id="dislike_association_{{ v.id }}" class="ui red icon basic right attached button {% if v.dislikes|length %} like-popup{% endif %}">
-                                <i class="ui thumbs down icon"></i>{{ v.dislikes|length }}
-                            </button>
-                            {% if v.dislikes|length %}
-                                <div class="ui popup">
-                                    {% for dislike in v.dislikes %}
-                                        <span><a href="{% url 'users:show_profile' dislike.1 %}">{{ dislike.0 }}</a></span><br>
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                    </td>
-                    {% if can_mark %}
-                        <td>
-                            <div class="ui mini icon buttons">
-                                <button id="inline_edit_mark_{{ v.id }}" class="ui blue button note-popup" data-position="top right" data-content="{% trans 'Edit' %}"><i class="edit icon"></i></button>
-                                {% if v.type.0 != '1' %}
-                                    <button id="confirm_association_{{ v.id }}" class="ui green button note-popup" data-position="top right" data-content="{% trans 'Confirm' %}"><i class="legal icon"></i></button>
-                                {% endif %}
-                                {% if v.type.0 != '2' %}
-                                    <button id="unconfirm_association_{{ v.id }}" class="ui red button note-popup" data-position="top right" data-content="{% trans 'Unconfirm' %}"><i class="trash icon"></i></button>
-                                {% endif %}
-                            </div>
-                        </td>
-                    {% endif %}
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+    {% include 'reports/AssociatedMarksTable.html' with MarkTable=MarkTable %}
     <br>
-    <input type="hidden" id="report_pk" value="{{ report.pk }}">
-    <input id="report_type" type="hidden" value="unsafe">
-
+    <input id="report_pk" value="{{ report.pk }}" type="hidden">
+    <input id="report_type" value="unsafe" type="hidden">
 {% endblock %}
