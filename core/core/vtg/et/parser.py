@@ -31,7 +31,7 @@ class ErrorTraceParser:
 
     def _sanity_checks(self):
         for edge in self.error_trace.trace_iterator():
-            if len(edge['target node']['out']) > 0:
+            if len(edge['target node']['out']) > 1:
                 raise ValueError('Witness contains branching which is not supported')
 
     def _parse_witness(self, witness):
