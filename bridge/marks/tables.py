@@ -19,20 +19,23 @@ import json
 
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q, F
-from django.utils.translation import ugettext_lazy as _, ungettext_lazy
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q, F, Count, Case, When
+from django.template import Template, Context
+from django.utils.translation import ugettext_lazy as _, ungettext_lazy, string_concat
+from django.utils.timezone import now, timedelta
 
 from bridge.tableHead import Header
-from bridge.vars import MARKS_UNSAFE_VIEW, MARKS_SAFE_VIEW, MARKS_UNKNOWN_VIEW, MARKS_COMPARE_ATTRS,\
-    MARK_SAFE, MARK_UNSAFE, MARK_STATUS
-from bridge.utils import unique_id
+from bridge.vars import MARKS_COMPARE_ATTRS, MARK_SAFE, MARK_UNSAFE, MARK_STATUS, VIEW_TYPES, ASSOCIATION_TYPE,\
+    SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.utils import unique_id, BridgeException
 
-from users.models import View
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkAssociationsChanges, MarkSafeAttr, MarkUnsafeAttr, \
     MarkUnsafeCompare, MarkUnsafeConvert, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory, \
     MarkSafeTag, MarkUnsafeTag, SafeAssociationLike, UnsafeAssociationLike, UnknownAssociationLike
 
+from users.utils import ViewData, DEF_NUMBER_OF_ELEMENTS
 from jobs.utils import JobAccess
 from marks.CompareTrace import DEFAULT_COMPARE
 from marks.ConvertTrace import DEFAULT_CONVERT
@@ -40,13 +43,14 @@ from marks.ConvertTrace import DEFAULT_CONVERT
 
 MARK_TITLES = {
     'mark_num': '№',
-    'change_kind': _('Change kind'),
+    'change_kind': _('Association change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
-    'result': _('Similarity'),
+    'similarity': _('Similarity'),
     'status': _('Status'),
     'author': _('Last change author'),
-    'association_author': _('Association author'),
+    'change_date': _('Last change date'),
+    'ass_author': _('Association author'),
     'report': _('Report'),
     'job': _('Job'),
     'format': _('Format'),
@@ -57,9 +61,12 @@ MARK_TITLES = {
     'pattern': _('Problem pattern'),
     'checkbox': '',
     'source': _('Source'),
-    'assc_type': _('Association type'),
+    'ass_type': _('Association type'),
     'automatic': _('Automatic association'),
-    'tags': _('Tags')
+    'tags': _('Tags'),
+    'likes': string_concat(_('Likes'), '/', _('Dislikes')),
+    'buttons': '',
+    'description': _('Description'),
 }
 
 STATUS_COLOR = {
@@ -87,9 +94,15 @@ SAFE_COLOR = {
 }
 
 CHANGE_DATA = {
-    '=': (_("Changed"), '#FF8533'),
-    '+': (_("New"), '#00B800'),
-    '-': (_("Deleted"), '#D11919')
+    'changed': (_("Changed"), '#FF8533'),
+    'new': (_("New"), '#00B800'),
+    'deleted': (_("Deleted"), '#D11919')
+}
+
+ASSOCIATION_TYPE_COLOR = {
+    '0': '#7506b4',
+    '1': '#3f9f32',
+    '2': '#c71a2d'
 }
 
 
@@ -105,26 +118,51 @@ def result_color(result):
 
 class MarkChangesTable:
     def __init__(self, user, mark, changes):
-        self.columns = ['report', 'change_kind', 'sum_verdict', 'job', 'format']
-        if isinstance(mark, MarkUnknown):
-            self.columns = ['report', 'change_kind', 'job', 'format']
         self.mark = mark
         self.changes = changes
         self.__accessed_changes(user)
-        if not isinstance(mark, MarkUnknown):
-            self.attr_values_data = self.__add_attrs()
+
         if isinstance(mark, MarkUnsafe):
-            self.values = self.__get_unsafe_values()
             self.mark_type = 'unsafe'
         elif isinstance(mark, MarkSafe):
-            self.values = self.__get_safe_values()
             self.mark_type = 'safe'
         elif isinstance(mark, MarkUnknown):
-            self.values = self.__get_unknown_values()
             self.mark_type = 'unknown'
         else:
             return
+
+        self.attrs = []
+        self.values = self.__get_values()
         self.cache_id = self.__save_data(user)
+
+    def __accessed_changes(self, user):
+        reports_to_del = []
+        for report in self.changes:
+            if not JobAccess(user, report.root.job).can_view():
+                reports_to_del.append(report)
+        for report in reports_to_del:
+            del self.changes[report]
+
+    def __get_values(self):
+        values = {}
+        change_kinds = {'-': 'deleted', '=': 'changed', '+': 'new'}
+        for report in self.changes:
+            if report.id not in values:
+                values[report.id] = {
+                    'change_kind': change_kinds[self.changes[report]['kind']],
+                    'job': [report.root.job.id, report.root.job.name],
+                    'format': report.root.job.format
+                }
+                if self.mark_type != 'unknown':
+                    values[report.id]['old_verdict'] = self.changes[report].get('verdict1', report.verdict)
+                    values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
+            if self.mark_type != 'unknown':
+                for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
+                    if a_name not in self.attrs:
+                        self.attrs.append(a_name)
+                    if a_name not in values[report.id]:
+                        values[report.id][a_name] = a_value
+        return values
 
     def __save_data(self, user):
         try:
@@ -132,228 +170,85 @@ class MarkChangesTable:
         except ObjectDoesNotExist:
             cache = MarkAssociationsChanges(user=user)
         cache.identifier = unique_id()
+
+        view_types = {'safe': VIEW_TYPES[16][0], 'unsafe': VIEW_TYPES[17][0], 'unknown': VIEW_TYPES[18][0]}
         cache.table_data = json.dumps({
-            'mark_type': self.mark_type,
-            'mark_id': self.mark.pk,
-            'columns': self.columns,
-            'values': self.values
-        }, ensure_ascii=False, sort_keys=True, indent=4)
+            'href': reverse('marks:view_mark', args=[self.mark_type, self.mark.pk]),
+            'type': view_types[self.mark_type], 'values': self.values, 'attrs': self.attrs
+        }, ensure_ascii=False, sort_keys=True, indent=2)
         cache.save()
         return cache.identifier
-
-    def __accessed_changes(self, user):
-        for report in self.changes:
-            if not JobAccess(user, report.root.job).can_view():
-                del self.changes[report]
-
-    def __add_attrs(self):
-        data = {}
-        columns = []
-        for report in self.changes:
-            for ra in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
-                if ra[0] not in columns:
-                    columns.append(ra[0])
-                if ra[0] not in data:
-                    data[ra[0]] = {}
-                data[ra[0]][report] = ra[1]
-        values = {}
-        for report in self.changes:
-            values[report] = {}
-            for col in columns:
-                cell_val = '-'
-                if report in data[col]:
-                    cell_val = data[col][report]
-                values[report][col] = cell_val
-        self.columns.extend(columns)
-        return values
-
-    def __get_unsafe_values(self):
-
-        def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
-                tmp_unsafe = ReportUnsafe()
-                tmp_unsafe.verdict = self.changes[rep]['verdict1']
-                val1 = tmp_unsafe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
-                    return '<span style="color:%s">%s</span>' % (UNSAFE_COLOR[self.changes[rep]['verdict1']], val1)
-                tmp_unsafe.verdict = self.changes[rep]['verdict2']
-                val2 = tmp_unsafe.get_verdict_display()
-                return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-                    UNSAFE_COLOR[self.changes[rep]['verdict1']], val1, UNSAFE_COLOR[self.changes[rep]['verdict2']], val2
-                )
-            return '<span style="color:%s">%s</span>' % (UNSAFE_COLOR[rep.verdict], rep.get_verdict_display())
-
-        values = []
-
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    href = reverse('reports:unsafe', args=[report.pk])
-                elif col == 'sum_verdict':
-                    val = get_verdict_change(report)
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
-
-    def __get_safe_values(self):
-
-        def get_verdict_change(rep):
-            if all(x in self.changes[rep] for x in {'verdict1', 'verdict2'}):
-                tmp_safe = ReportSafe()
-                tmp_safe.verdict = self.changes[rep]['verdict1']
-                val1 = tmp_safe.get_verdict_display()
-                if self.changes[rep]['verdict1'] == self.changes[rep]['verdict2']:
-                    return '<span style="color:%s">%s</span>' % (SAFE_COLOR[self.changes[rep]['verdict1']], val1)
-                tmp_safe.verdict = self.changes[rep]['verdict2']
-                val2 = tmp_safe.get_verdict_display()
-                return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-                    SAFE_COLOR[self.changes[rep]['verdict1']], val1, SAFE_COLOR[self.changes[rep]['verdict2']], val2
-                )
-            return '<span style="color:%s">%s</span>' % (SAFE_COLOR[rep.verdict], rep.get_verdict_display())
-
-        values = []
-
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col in self.attr_values_data[report]:
-                    val = self.attr_values_data[report][col]
-                elif col == 'report':
-                    val = cnt
-                    href = reverse('reports:safe', args=[report.pk])
-                elif col == 'sum_verdict':
-                    val = get_verdict_change(report)
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
-
-    def __status_change(self):
-        version_set = self.mark.versions.all().order_by('-version')
-        last_version = version_set[0]
-        try:
-            prev_version = version_set[1]
-        except IndexError:
-            return '<span style="color:%s">%s</span>' % (
-                STATUS_COLOR[last_version.status], last_version.get_status_display()
-            )
-        if prev_version.status == last_version.status:
-            return '<span style="color:%s">%s</span>' % (
-                STATUS_COLOR[last_version.status], last_version.get_status_display()
-            )
-        return '<span style="color:%s">%s</span> -> <span style="color:%s">%s</span>' % (
-            STATUS_COLOR[prev_version.status], prev_version.get_status_display(),
-            STATUS_COLOR[last_version.status], last_version.get_status_display()
-        )
-
-    def __get_unknown_values(self):
-        values = []
-        cnt = 0
-        for report in self.changes:
-            cnt += 1
-            values_str = []
-            for col in self.columns:
-                val = '-'
-                color = None
-                href = None
-                if col == 'report':
-                    val = cnt
-                    href = reverse('reports:unknown', args=[report.pk])
-                elif col == 'status':
-                    val = self.__status_change()
-                elif col == 'change_kind':
-                    if self.changes[report]['kind'] in CHANGE_DATA:
-                        val = CHANGE_DATA[self.changes[report]['kind']][0]
-                        color = CHANGE_DATA[self.changes[report]['kind']][1]
-                elif col == 'author':
-                    if self.mark.author is not None:
-                        val = self.mark.author.get_full_name()
-                        href = reverse('users:show_profile', args=[self.mark.author_id])
-                elif col == 'job':
-                    val = report.root.job.name
-                    href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'format':
-                    val = report.root.job.format
-                values_str.append({
-                    'value': str(val),
-                    'color': color,
-                    'href': href
-                })
-            values.append(values_str)
-        return values
 
 
 # Table data for showing links between the specified report and marks
 class ReportMarkTable:
-    def __init__(self, user, report):
+    def __init__(self, user, report, view=None, view_id=None):
         self.report = report
         self.user = user
+        self.statuses = MARK_STATUS
+        self.ass_types = ASSOCIATION_TYPE
         if isinstance(report, ReportUnsafe):
             self.type = 'unsafe'
+            self.verdicts = MARK_UNSAFE
         elif isinstance(report, ReportSafe):
             self.type = 'safe'
+            self.verdicts = MARK_SAFE
         elif isinstance(report, ReportUnknown):
             self.type = 'unknown'
         else:
             return
+
+        view_types = {'unsafe': VIEW_TYPES[10][0], 'safe': VIEW_TYPES[11][0], 'unknown': VIEW_TYPES[12][0]}
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        self.columns = self.__get_columns()
+        self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        if self.type == 'safe':
+            return ['verdict', 'status', 'source', 'tags', 'ass_type',
+                    'ass_author', 'description', 'change_date', 'author']
+        elif self.type == 'unsafe':
+            return ['verdict', 'similarity', 'status', 'source', 'tags', 'ass_type',
+                    'ass_author', 'description', 'change_date', 'author']
+        return ['problem', 'status', 'source', 'ass_type', 'ass_author', 'description', 'change_date', 'author']
+
+    def __get_columns(self):
+        columns = ['mark_num']
+        columns.extend(self.view['columns'])
+        columns.append('likes')
+        columns.append('buttons')
+        return columns
 
     def __get_values(self):
         value_data = []
         likes = {}
         dislikes = {}
-        cnt = 0
+        cnt = 1
 
         likes_model = {'safe': SafeAssociationLike, 'unsafe': UnsafeAssociationLike, 'unknown': UnknownAssociationLike}
         for ass_like in likes_model[self.type].objects.filter(association__report=self.report):
@@ -369,157 +264,189 @@ class ReportMarkTable:
             orders = ['-result', '-mark__change_date']
         else:
             orders = ['-mark__change_date']
-        marks_ids = set()
         for mark_rep in self.report.markreport_set.select_related('mark', 'mark__author').order_by(*orders):
-            marks_ids.add(mark_rep.mark_id)
+            if 'status' in self.view and mark_rep.mark.status not in self.view['status']:
+                continue
+            if 'verdict' in self.view and mark_rep.mark.verdict not in self.view['verdict']:
+                continue
+            if 'similarity' in self.view:
+                if '0' not in self.view['similarity'] and mark_rep.result == 0:
+                    continue
+                if '100' not in self.view['similarity'] and mark_rep.result == 1:
+                    continue
+                if '50' not in self.view['similarity'] and 0 < mark_rep.result < 1:
+                    continue
+            if 'ass_type' in self.view and mark_rep.type not in self.view['ass_type']:
+                continue
+            row_data = []
+            for col in self.columns:
+                val = '-'
+                href = None
+                color = None
+                if col == 'mark_num':
+                    val = cnt
+                    href = '%s?report_to_redirect=%s' % (
+                        reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]), self.report.pk
+                    )
+                elif col == 'verdict' and self.type != 'unknown':
+                    val = mark_rep.mark.get_verdict_display()
+                    if self.type == 'unsafe':
+                        color = UNSAFE_COLOR[mark_rep.mark.verdict]
+                    else:
+                        color = SAFE_COLOR[mark_rep.mark.verdict]
+                elif col == 'problem' and self.type == 'unknown':
+                    val = mark_rep.problem.name
+                    problem_link = mark_rep.mark.link
+                    if problem_link is not None:
+                        if not problem_link.startswith('http'):
+                            problem_link = 'http://' + mark_rep.mark.link
+                        href = problem_link
+                elif col == 'similarity' and self.type == 'unsafe':
+                    if mark_rep.error is not None:
+                        val = mark_rep.error
+                        color = result_color(0)
+                    else:
+                        val = "{:.0%}".format(mark_rep.result)
+                        color = result_color(mark_rep.result)
+                elif col == 'status':
+                    val = mark_rep.mark.get_status_display()
+                    color = STATUS_COLOR[mark_rep.mark.status]
+                elif col == 'source':
+                    val = mark_rep.mark.get_type_display()
+                elif col == 'tags' and self.type != 'unknown':
+                    tags_filters = {
+                        'mark_version__mark_id': mark_rep.mark_id,
+                        'mark_version__version': F('mark_version__mark__version')
+                    }
+                    tags = set()
+                    tags_model = {'safe': MarkSafeTag, 'unsafe': MarkUnsafeTag}
+                    for tag, in tags_model[self.type].objects.filter(**tags_filters).values_list('tag__tag'):
+                        tags.add(tag)
+                    if len(tags) > 0:
+                        val = '; '.join(sorted(tags))
+                elif col == 'ass_type':
+                    val = mark_rep.get_type_display()
+                    color = ASSOCIATION_TYPE_COLOR[mark_rep.type]
+                elif col == 'ass_author' and mark_rep.author is not None:
+                    val = mark_rep.author.get_full_name()
+                    href = reverse('users:show_profile', args=[mark_rep.author_id])
+                elif col == 'description' and len(mark_rep.mark.description) > 0:
+                    val = mark_rep.mark.description
+                elif col == 'likes':
+                    val = (
+                        mark_rep.mark_id,
+                        list(sorted(likes.get(mark_rep.id, []))),
+                        list(sorted(dislikes.get(mark_rep.id, [])))
+                    )
+                elif col == 'buttons':
+                    val = (mark_rep.mark_id, mark_rep.type)
+                elif col == 'change_date':
+                    val = mark_rep.mark.change_date
+                elif col == 'author':
+                    val = mark_rep.mark.author.get_full_name()
+                    if mark_rep.mark.author:
+                        href = reverse('users:show_profile', args=[mark_rep.mark.author_id])
+                row_data.append({'value': val, 'color': color, 'column': col, 'href': href})
             cnt += 1
-            row_data = {
-                'id': mark_rep.mark_id,
-                'number': cnt,
-                'href': reverse('marks:view_mark', args=[self.type, mark_rep.mark_id]),
-                'status': (mark_rep.mark.get_status_display(), STATUS_COLOR[mark_rep.mark.status]),
-                'type': (mark_rep.type, mark_rep.get_type_display()),
-                'likes': list(sorted(likes.get(mark_rep.id, []))),
-                'dislikes': list(sorted(dislikes.get(mark_rep.id, [])))
-            }
-            if self.type == 'unsafe':
-                row_data['broken'] = (mark_rep.error is not None)
-                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), UNSAFE_COLOR[mark_rep.mark.verdict])
-                if mark_rep.error is not None:
-                    row_data['similarity'] = (mark_rep.error, result_color(0))
-                else:
-                    row_data['similarity'] = ("{:.0%}".format(mark_rep.result), result_color(mark_rep.result))
-            elif self.type == 'safe':
-                row_data['verdict'] = (mark_rep.mark.get_verdict_display(), SAFE_COLOR[mark_rep.mark.verdict])
-            else:
-                problem_link = mark_rep.mark.link
-                if problem_link is not None and not problem_link.startswith('http'):
-                    problem_link = 'http://' + mark_rep.mark.link
-                row_data['problem'] = (mark_rep.problem.name, problem_link)
-
-            if mark_rep.author is not None:
-                row_data['author'] = (
-                    mark_rep.author.get_full_name(), reverse('users:show_profile', args=[mark_rep.author_id])
-                )
-            if len(mark_rep.mark.description) > 0:
-                row_data['description'] = mark_rep.mark.description
-
             value_data.append(row_data)
-
-        if self.type == 'unknown':
-            return value_data
-
-        tags_filters = {
-            'mark_version__mark_id__in': marks_ids,
-            'mark_version__version': F('mark_version__mark__version')
-        }
-        tags_data = {}
-        tags_model = {'safe': MarkSafeTag, 'unsafe': MarkUnsafeTag}
-        for m_id, tag in tags_model[self.type].objects.filter(**tags_filters)\
-                .values_list('mark_version__mark_id', 'tag__tag'):
-            if m_id not in tags_data:
-                tags_data[m_id] = set()
-            tags_data[m_id].add(tag)
-        for i in range(len(value_data)):
-            if value_data[i]['id'] in tags_data:
-                value_data[i]['tags'] = '; '.join(sorted(tags_data[value_data[i]['id']]))
-            else:
-                value_data[i]['tags'] = '-'
         return value_data
 
 
 class MarksList:
-    def __init__(self, user, marks_type, view=None, view_id=None):
+    def __init__(self, user, marks_type, view=None, view_id=None, page=1):
         self.user = user
         self.type = marks_type
         if self.type not in {'unsafe', 'safe', 'unknown'}:
             return
-        view_types = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
-        self.view_type = view_types[self.type]
-
         self.authors = []
-        self.view, self.view_id = self.__get_view(view, view_id)
-        self.views = self.__views()
+
+        view_types = {'unsafe': VIEW_TYPES[7][0], 'safe': VIEW_TYPES[8][0], 'unknown': VIEW_TYPES[9][0]}
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
         self.columns = self.__get_columns()
         self.marks = self.__get_marks()
         if self.type != 'unknown':
             self.attr_values = self.__get_attrs()
+
         self.header = Header(self.columns, MARK_TITLES).struct
-        self.values = self.__get_values()
+        self.values = self.__get_page(page, self.__get_values())
 
-    def __views(self):
-        return View.objects.filter(Q(type=self.view_type) & (Q(author=self.user) | Q(shared=True))).order_by('name')
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
 
-    def __get_view(self, view, view_id):
-        def_views = {
-            'unsafe': MARKS_UNSAFE_VIEW,
-            'safe': MARKS_SAFE_VIEW,
-            'unknown': MARKS_UNKNOWN_VIEW
-        }
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
 
-        if view is not None:
-            return json.loads(view), None
-        if view_id is None:
-            pref_view = self.user.preferableview_set.filter(view__type=self.view_type)
-            if len(pref_view) > 0:
-                return json.loads(pref_view[0].view.view), pref_view[0].view_id
-        elif view_id == 'default':
-            return def_views[self.type], 'default'
-        else:
-            user_view = View.objects.filter(
-                Q(id=view_id, type=self.view_type) & (Q(shared=True) | Q(author=self.user))
-            ).first()
-            if user_view:
-                return json.loads(user_view.view), user_view.pk
-        return def_views[self.type], 'default'
+    def __supported_columns(self):
+        if self.type == 'unknown':
+            return ['num_of_links', 'component', 'status', 'author', 'change_date', 'format', 'pattern', 'source']
+        return ['num_of_links', 'verdict', 'tags', 'status', 'author', 'change_date', 'format', 'source']
 
     def __get_columns(self):
         columns = ['checkbox', 'mark_num']
-        if self.type == 'unknown':
-            for col in ['num_of_links', 'status', 'component', 'author', 'format', 'pattern', 'source']:
-                if col in self.view['columns']:
-                    columns.append(col)
-        else:
-            for col in ['num_of_links', 'verdict', 'tags', 'status', 'author', 'format', 'source']:
-                if col in self.view['columns']:
-                    columns.append(col)
+        columns.extend(self.view['columns'])
         return columns
 
     def __get_marks(self):
         filters = {}
         unfilter = {'version': 0}
-        if 'filters' in self.view:
-            if 'status' in self.view['filters']:
-                if self.view['filters']['status']['type'] == 'is':
-                    filters['status'] = self.view['filters']['status']['value']
-                else:
-                    unfilter['status'] = self.view['filters']['status']['value']
-            if self.type != 'unknown' and 'verdict' in self.view['filters']:
-                if self.view['filters']['verdict']['type'] == 'is':
-                    filters['verdict'] = self.view['filters']['verdict']['value']
-                else:
-                    unfilter['verdict'] = self.view['filters']['verdict']['value']
-            if 'component' in self.view['filters']:
-                if self.view['filters']['component']['type'] == 'is':
-                    filters['component__name'] = self.view['filters']['component']['value']
-                elif self.view['filters']['component']['type'] == 'startswith':
-                    filters['component__name__istartswith'] = self.view['filters']['component']['value']
-            if 'author' in self.view['filters']:
-                filters['author_id'] = self.view['filters']['author']['value']
-            if 'source' in self.view['filters']:
-                if self.view['filters']['source']['type'] == 'is':
-                    filters['type'] = self.view['filters']['source']['value']
-                else:
-                    unfilter['type'] = self.view['filters']['source']['value']
+        if 'status' in self.view:
+            if self.view['status'][0] == 'is':
+                filters['status'] = self.view['status'][1]
+            else:
+                unfilter['status'] = self.view['status'][1]
+        if 'verdict' in self.view:
+            if self.view['verdict'][0] == 'is':
+                filters['verdict'] = self.view['verdict'][1]
+            else:
+                unfilter['verdict'] = self.view['verdict'][1]
+        if 'component' in self.view:
+            if self.view['component'][0] == 'is':
+                filters['component__name'] = self.view['component'][1]
+            elif self.view['component'][0] == 'startswith':
+                filters['component__name__istartswith'] = self.view['component'][1]
+        if 'author' in self.view:
+            filters['author_id'] = self.view['author'][0]
+        if 'source' in self.view:
+            if self.view['source'][0] == 'is':
+                filters['type'] = self.view['source'][1]
+            else:
+                unfilter['type'] = self.view['source'][1]
+        if 'change_date' in self.view:
+            limit_time = now() - timedelta(**{self.view['change_date'][2]: int(self.view['change_date'][1])})
+            if self.view['change_date'][0] == 'older':
+                filters['change_date__lt'] = limit_time
+            elif self.view['change_date'][0] == 'younger':
+                filters['change_date__gt'] = limit_time
 
         table_filters = Q(**filters)
         for uf in unfilter:
             table_filters = table_filters & ~Q(**{uf: unfilter[uf]})
+        order_field = 'id'
+        if self.view['order'][1] == 'change_date':
+            order_field = 'change_date'
         if self.type == 'unsafe':
-            return MarkUnsafe.objects.filter(table_filters)
+            return MarkUnsafe.objects.filter(table_filters).order_by(order_field)
         elif self.type == 'safe':
-            return MarkSafe.objects.filter(table_filters)
-        return MarkUnknown.objects.filter(table_filters)
+            return MarkSafe.objects.filter(table_filters).order_by(order_field)
+        return MarkUnknown.objects.filter(table_filters).order_by(order_field)
 
     def __get_attrs(self):
         if self.type == 'safe':
@@ -559,30 +486,31 @@ class MarksList:
         return values
 
     def __get_values(self):
+        view_tags = []
+        if 'tags' in self.view:
+            view_tags = list(x.strip() for x in self.view['tags'][0].split(';'))
+
         values = []
-        cnt = 0
         for mark in self.marks:
             if mark.author not in self.authors:
                 self.authors.append(mark.author)
-            cnt += 1
             values_str = []
             order_by_value = ''
             for col in self.columns:
+                if col in {'mark_num', 'checkbox'}:
+                    continue
                 val = '-'
                 color = None
                 href = None
                 if self.type != 'unknown' and col in self.attr_values[mark]:
                     val = self.attr_values[mark][col]
-                    if 'order' in self.view and self.view['order'] == col:
+                    if self.__get_order() == col:
                         order_by_value = val
-                    if 'filters' in self.view and not self.__filter_attr(col, val):
+                    if not self.__filter_attr(col, val):
                         break
-                elif col == 'mark_num':
-                    val = cnt
-                    href = reverse('marks:view_mark', args=[self.type, mark.id])
                 elif col == 'num_of_links':
                     val = mark.markreport_set.count()
-                    if 'order' in self.view and self.view['order'] == 'num_of_links':
+                    if self.__get_order() == 'num_of_links':
                         order_by_value = val
                     if self.type == 'unsafe':
                         broken = mark.markreport_set.exclude(error=None).count()
@@ -603,6 +531,10 @@ class MarksList:
                     if mark.author is not None:
                         val = mark.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark.author_id])
+                elif col == 'change_date':
+                    val = mark.change_date
+                    if self.user.extended.data_format == 'hum':
+                        val = Template('{% load humanize %}{{ date|naturaltime }}').render(Context({'date': val}))
                 elif col == 'format':
                     val = mark.format
                 elif col == 'component':
@@ -616,39 +548,71 @@ class MarksList:
                     if last_v is None:
                         val = '-'
                     else:
-                        val = '; '.join(tag['tag__tag'] for tag in last_v.tags.order_by('tag__tag').values('tag__tag'))
+                        tags = list(tag['tag__tag'] for tag in last_v.tags.order_by('tag__tag').values('tag__tag'))
+                        if 'tags' in self.view and any(t not in tags for t in view_tags):
+                            break
+                        val = '; '.join(tags)
                         if val == '':
                             val = '-'
-                if col == 'checkbox':
-                    values_str.append({'checkbox': mark.pk})
-                else:
-                    values_str.append({'color': color, 'value': val, 'href': href})
+                values_str.append({'color': color, 'value': val, 'href': href})
             else:
-                values.append((order_by_value, values_str))
+                values.append((order_by_value, mark.id, values_str))
 
         ordered_values = []
-        if 'order' in self.view and self.view['order'] == 'num_of_links':
-            for ord_by, val_str in reversed(sorted(values, key=lambda x: x[0])):
-                ordered_values.append(val_str)
-        elif 'order' in self.view:
-            for ord_by, val_str in sorted(values, key=lambda x: x[0]):
-                ordered_values.append(val_str)
+        if self.__get_order() == 'num_of_links':
+            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
+                ordered_values.append((mark_id, val_str))
+        elif isinstance(self.__get_order(), str):
+            for ord_by, mark_id, val_str in sorted(values, key=lambda x: x[0]):
+                ordered_values.append((mark_id, val_str))
         else:
-            ordered_values = list(x[1] for x in values)
-        return ordered_values
+            ordered_values = list((x[1], x[2]) for x in values)
+        if self.view['order'][0] == 'up':
+            ordered_values = list(reversed(ordered_values))
+
+        final_values = []
+        cnt = 1
+        for mark_id, valstr in ordered_values:
+            valstr.insert(0, {'value': cnt, 'href': reverse('marks:view_mark', args=[self.type, mark_id])})
+            valstr.insert(0, {'checkbox': mark_id})
+            final_values.append(valstr)
+            cnt += 1
+        return final_values
 
     def __filter_attr(self, attribute, value):
-        if 'attr' in self.view['filters'] and self.view['filters']['attr']['attr'] == attribute:
-            fvalue = self.view['filters']['attr']['value']
-            ftype = self.view['filters']['attr']['type']
+        if 'attr' in self.view and self.view['attr'][0] == attribute:
+            ftype = self.view['attr'][1]
+            fvalue = self.view['attr'][2]
             if ftype == 'iexact' and fvalue.lower() != value.lower():
                 return False
             elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
                 return False
         return True
 
+    def __get_order(self):
+        if self.view['order'][1] == 'attr' and len(self.view['order'][2]) > 0:
+            return self.view['order'][2]
+        elif self.view['order'][1] == 'num_of_links':
+            return 'num_of_links'
+        elif self.view['order'][1] == 'change_date':
+            return 'change_date'
+        return None
 
-class MarkData(object):
+    def __get_page(self, page, values):
+        num_per_page = DEF_NUMBER_OF_ELEMENTS
+        if 'elements' in self.view:
+            num_per_page = int(self.view['elements'][0])
+        self.paginator = Paginator(values, num_per_page)
+        try:
+            values = self.paginator.page(page)
+        except PageNotAnInteger:
+            values = self.paginator.page(1)
+        except EmptyPage:
+            values = self.paginator.page(self.paginator.num_pages)
+        return values
+
+
+class MarkData:
     def __init__(self, mark_type, mark_version=None, report=None):
         self.type = mark_type
         self.mark_version = mark_version
@@ -775,27 +739,86 @@ class MarkData(object):
 
 # Table data for showing links between the specified mark and reports
 class MarkReportsTable(object):
-    def __init__(self, user, mark):
+    def __init__(self, user, mark, view=None, view_id=None):
         self.user = user
-        if isinstance(mark, MarkUnsafe):
+        self.mark = mark
+
+        if isinstance(self.mark, MarkUnsafe):
             self.type = 'unsafe'
-            self.columns = ['report', 'job', 'result', 'assc_type', 'association_author']
-        elif isinstance(mark, MarkSafe):
+        elif isinstance(self.mark, MarkSafe):
             self.type = 'safe'
-            self.columns = ['report', 'job', 'assc_type', 'association_author']
-        elif isinstance(mark, MarkUnknown):
+        elif isinstance(self.mark, MarkUnknown):
             self.type = 'unknown'
-            self.columns = ['report', 'job', 'assc_type', 'association_author']
         else:
             return
-        self.mark = mark
+
+        view_types = {'unsafe': VIEW_TYPES[13][0], 'safe': VIEW_TYPES[14][0], 'unknown': VIEW_TYPES[15][0]}
+        self.view = ViewData(self.user, view_types[self.type], view=view, view_id=view_id)
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        self.columns = self.__get_columns()
         self.header = Header(self.columns, MARK_TITLES).struct
         self.values = self.__get_values()
 
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        if self.type == 'unsafe':
+            return ['job', 'similarity', 'ass_type', 'ass_author', 'likes']
+        return ['job', 'ass_type', 'ass_author', 'likes']
+
+    def __get_columns(self):
+        columns = ['report']
+        columns.extend(self.view['columns'])
+        return columns
+
     def __get_values(self):
+        likes = {}
+        dislikes = {}
+        if 'likes' in self.columns:
+            likes_model = {
+                'safe': SafeAssociationLike, 'unsafe': UnsafeAssociationLike, 'unknown': UnknownAssociationLike
+            }
+            for ass_id, l_num, dl_num in likes_model[self.type].objects.values('association_id')\
+                    .annotate(dislikes=Count(Case(When(dislike=True, then=1))),
+                              likes=Count(Case(When(dislike=False, then=1))))\
+                    .values_list('association_id', 'likes', 'dislikes'):
+                likes[ass_id] = l_num
+                dislikes[ass_id] = dl_num
+
         values = []
         cnt = 0
-        for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job'):
+        for mark_report in self.mark.markreport_set.select_related('report', 'report__root__job').order_by('id'):
+            if 'similarity' in self.view:
+                if '0' not in self.view['similarity'] and mark_report.result == 0:
+                    continue
+                if '100' not in self.view['similarity'] and mark_report.result == 1:
+                    continue
+                if '50' not in self.view['similarity'] and 0 < mark_report.result < 1:
+                    continue
+            if 'ass_type' in self.view and mark_report.type not in self.view['ass_type']:
+                continue
+
             report = mark_report.report
             cnt += 1
             values_str = []
@@ -807,7 +830,7 @@ class MarkReportsTable(object):
                     val = cnt
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('reports:%s' % self.type, args=[report.id])
-                elif col == 'result':
+                elif col == 'similarity':
                     if mark_report.error is not None:
                         val = mark_report.error
                         color = result_color(0)
@@ -818,12 +841,177 @@ class MarkReportsTable(object):
                     val = report.root.job.name
                     if JobAccess(self.user, report.root.job).can_view():
                         href = reverse('jobs:job', args=[report.root.job_id])
-                elif col == 'assc_type':
+                elif col == 'ass_type':
                     val = mark_report.get_type_display()
-                elif col == 'association_author':
+                elif col == 'ass_author':
                     if mark_report.author:
                         val = mark_report.author.get_full_name()
                         href = reverse('users:show_profile', args=[mark_report.author_id])
+                elif col == 'likes':
+                    val = '%s/%s' % (likes.get(mark_report.id, 0), dislikes.get(mark_report.id, 0))
                 values_str.append({'value': val, 'href': href, 'color': color})
             values.append(values_str)
         return values
+
+
+class AssociationChangesTable:
+    def __init__(self, user, association_id, view=None, view_id=None):
+        self._data = self.__get_data(association_id)
+        self.href = self._data['href']
+
+        self.view = ViewData(user, self._data['type'], view=view, view_id=view_id)
+
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            self.verdicts = SAFE_VERDICTS
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            self.verdicts = UNSAFE_VERDICTS
+
+        self.selected_columns = self.__selected()
+        self.available_columns = self.__available()
+
+        self.columns = self.__get_columns()
+        self.header = Header(self.columns, MARK_TITLES).struct
+        self.values = self.__get_values()
+
+    def __get_data(self, association_id):
+        self.__is_not_used()
+        try:
+            ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
+        except ObjectDoesNotExist:
+            raise BridgeException(_("Mark associations changes cache wasn't found"))
+        return json.loads(ass_ch.table_data)
+
+    def __selected(self):
+        columns = []
+        for col in self.view['columns']:
+            if col not in self.__supported_columns():
+                return []
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __available(self):
+        columns = []
+        for col in self.__supported_columns():
+            col_title = col
+            if col_title in MARK_TITLES:
+                col_title = MARK_TITLES[col_title]
+            columns.append({'value': col, 'title': col_title})
+        return columns
+
+    def __supported_columns(self):
+        supported_columns = ['change_kind', 'job', 'format']
+        if self._data['type'] in {VIEW_TYPES[16][0], VIEW_TYPES[17][0]}:
+            supported_columns.append('sum_verdict')
+        return supported_columns
+
+    def __verdict_change(self, report_id, mark_type):
+        vtmpl = '<span style="color:{0}">{1}</span>'
+        if mark_type == 'unsafe':
+            colors = UNSAFE_COLOR
+            tmp_leaf = ReportUnsafe()
+        elif mark_type == 'safe':
+            colors = SAFE_COLOR
+            tmp_leaf = ReportSafe()
+        else:
+            return '-'
+
+        tmp_leaf.verdict = self._data['values'][report_id]['old_verdict']
+        val1 = tmp_leaf.get_verdict_display()
+        if self._data['values'][report_id]['old_verdict'] == self._data['values'][report_id]['new_verdict']:
+            return vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1)
+
+        tmp_leaf.verdict = self._data['values'][report_id]['new_verdict']
+        val2 = tmp_leaf.get_verdict_display()
+        return '<i class="ui long arrow right icon"></i>'.join([
+            vtmpl.format(colors[self._data['values'][report_id]['old_verdict']], val1),
+            vtmpl.format(colors[self._data['values'][report_id]['new_verdict']], val2)
+        ])
+
+    def __get_columns(self):
+        columns = ['report']
+        columns.extend(self.view['columns'])
+        columns.extend(self._data.get('attrs', []))
+        return columns
+
+    def __get_values(self):
+        values = []
+        if self.view['type'] == VIEW_TYPES[16][0]:
+            mark_type = 'safe'
+        elif self.view['type'] == VIEW_TYPES[17][0]:
+            mark_type = 'unsafe'
+        elif self.view['type'] == VIEW_TYPES[18][0]:
+            mark_type = 'unknown'
+        else:
+            return []
+
+        cnt = 0
+        for report_id in self._data['values']:
+            cnt += 1
+            values_str = []
+            for col in self.columns:
+                val = '-'
+                color = None
+                href = None
+                if not self.__filter_row(report_id):
+                    break
+                if col == 'report':
+                    val = cnt
+                    href = reverse('reports:%s' % mark_type, args=[report_id])
+                elif col == 'sum_verdict':
+                    val = self.__verdict_change(report_id, mark_type)
+                elif col == 'change_kind':
+                    if self._data['values'][report_id]['change_kind'] in CHANGE_DATA:
+                        val = CHANGE_DATA[self._data['values'][report_id]['change_kind']][0]
+                        color = CHANGE_DATA[self._data['values'][report_id]['change_kind']][1]
+                elif col == 'job':
+                    val = self._data['values'][report_id]['job'][1]
+                    href = reverse('jobs:job', args=[self._data['values'][report_id]['job'][0]])
+                elif col == 'format':
+                    val = self._data['values'][report_id]['format']
+                elif col in self._data['values'][report_id]:
+                    val = self._data['values'][report_id][col]
+                values_str.append({'value': str(val), 'color': color, 'href': href})
+            else:
+                values.append(values_str)
+        return values
+
+    def __filter_row(self, r_id):
+        if 'change_kind' in self.view and self._data['values'][r_id]['change_kind'] not in self.view['change_kind']:
+                return False
+        if 'old_verdict' in self.view and self._data['values'][r_id]['old_verdict'] not in self.view['old_verdict']:
+                return False
+        if 'new_verdict' in self.view and self._data['values'][r_id]['new_verdict'] not in self.view['new_verdict']:
+                return False
+        if 'job_title' in self.view:
+            job_title = self._data['values'][r_id]['job'][1].lower()
+            pattern = self.view['job_title'][1].lower()
+            if self.view['job_title'][0] == 'iexact' and job_title != pattern \
+                    or self.view['job_title'][0] == 'istartswith' and not job_title.startswith(pattern) \
+                    or self.view['job_title'][0] == 'icontains' and pattern not in job_title:
+                return False
+        if 'format' in self.view:
+            view_format = int(self.view['format'][1])
+            job_format = int(self._data['values'][r_id]['format'])
+            if self.view['format'][0] == 'is' and view_format != job_format \
+                    or self.view['format'][0] == 'isnot' and view_format == job_format:
+                return False
+
+        if 'attr' in self.view:
+            for col in self._data['values'][r_id]:
+                if col == self.view['attr'][0]:
+                    ftype = self.view['attr'][1]
+                    fvalue = self.view['attr'][2]
+                    value = self._data['values'][r_id][col]
+                    if ftype == 'iexact' and fvalue.lower() != value.lower():
+                        return False
+                    elif ftype == 'istartswith' and not value.lower().startswith(fvalue.lower()):
+                        return False
+                    elif ftype == 'icontains' and fvalue.lower() not in value.lower():
+                        return False
+        return True
+
+    def __is_not_used(self):
+        pass

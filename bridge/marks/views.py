@@ -32,7 +32,8 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
+    VIEW_TYPES
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from bridge.tableHead import Header
 
@@ -44,7 +45,7 @@ from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, Mar
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
 from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
+from marks.tables import MARK_TITLES, MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
 @register.filter
@@ -112,6 +113,13 @@ def view_mark(request, mark_type, mark_id):
     if mark.version == 0:
         return BridgeErrorResponse(605)
 
+    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
+    view_add_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == mark_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
+
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
 
@@ -133,12 +141,13 @@ def view_mark(request, mark_type, mark_id):
         'first_version': history_set.last(),
         'type': mark_type,
         'markdata': MarkData(mark_type, mark_version=last_version),
-        'reports': MarkReportsTable(request.user, mark),
+        'reports': MarkReportsTable(request.user, mark, **view_add_args),
         'tags': tags,
         'can_edit': mutils.MarkAccess(request.user, mark=mark).can_edit(),
         'view_tags': True,
         'error_trace': error_trace,
-        'report_id': request.GET.get('report_to_redirect')
+        'report_id': request.GET.get('report_to_redirect'),
+        'ass_types': ASSOCIATION_TYPE
     })
 
 
@@ -330,27 +339,19 @@ def get_mark_version_data(request):
 @unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
-    titles = {
-        'unsafe': _('Unsafe marks'),
-        'safe': _('Safe marks'),
-        'unknown': _('Unknown marks'),
-    }
-    verdicts = {
-        'unsafe': MARK_UNSAFE,
-        'safe': MARK_SAFE,
-        'unknown': []
-    }
-    view_type = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
-    table_args = [request.user, marks_type]
-    if request.method == 'POST':
-        if request.POST.get('view_type', None) == view_type[marks_type]:
-            table_args.append(request.POST.get('view', None))
-            table_args.append(request.POST.get('view_id', None))
+
+    verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
+
+    view_type_map = {VIEW_TYPES[7][0]: 'unsafe', VIEW_TYPES[8][0]: 'safe', VIEW_TYPES[9][0]: 'unknown'}
+    view_add_args = {'page': request.GET.get('page', 1)}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == marks_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
 
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(*table_args),
+        'tabledata': MarksList(request.user, marks_type, **view_add_args),
         'type': marks_type,
-        'title': titles[marks_type],
         'statuses': MARK_STATUS,
         'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],
@@ -508,19 +509,19 @@ def get_mark_versions(request):
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
+    view_add_args = {}
+    if request.GET.get('view_type') in {VIEW_TYPES[16][0], VIEW_TYPES[17][0], VIEW_TYPES[18][0]}:
+        view_add_args['view'] = request.GET.get('view')
+        view_add_args['view_id'] = request.GET.get('view_id')
+
     try:
-        ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
-    try:
-        data = json.loads(ass_ch.table_data)
+        data = AssociationChangesTable(request.user, association_id, **view_add_args)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
-    return render(request, 'marks/SaveMarkResult.html', {
-        'MarkTable': data,
-        'header': Header(data.get('columns', []), MARK_TITLES).struct
-    })
+    return render(request, 'marks/SaveMarkResult.html', {'TableData': data})
 
 
 @login_required
