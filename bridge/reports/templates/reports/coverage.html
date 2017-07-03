@@ -1,0 +1,16 @@
+{% load i18n %}
+
+{% load staticfiles %}
+
+{% block title %}{% trans 'Coverage' %}{% endblock %}
+
+{% block body_block %}
+    <h1>Hi</h1>
+    {% if coverage.type == 'safe' %}
+        <a href="{% url 'reports:safe' coverage.report.id %}">Report</a>
+    {% elif coverage.type == 'unsafe' %}
+        <a href="{% url 'reports:unsafe' coverage.report.id %}">Report</a>
+    {% elif coverage.type == 'unknown' %}
+        <a href="{% url 'reports:unknown' coverage.report.id %}">Report</a>
+    {% endif %}
+{% endblock %}

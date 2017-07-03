@@ -29,8 +29,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES, \
-    MARK_STATUS, ASSOCIATION_TYPE, MARK_UNSAFE, MARK_SAFE
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -46,6 +45,7 @@ import reports.models
 from reports.UploadReport import UploadReport
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+from reports.coverage import GetCoverage
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
@@ -809,3 +809,17 @@ def clear_verification_files(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
+
+
+@unparallel_group([reports.models.Report])
+def coverage_page(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        coverage = GetCoverage(report_id)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'reports/coverage.html', {'coverage': coverage})
