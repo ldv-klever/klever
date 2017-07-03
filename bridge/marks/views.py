@@ -22,10 +22,9 @@ from io import BytesIO
 from urllib.parse import unquote
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q, F
-from django.http import HttpResponse, JsonResponse, HttpResponseRedirect, StreamingHttpResponse
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.template.defaulttags import register
 from django.template.loader import get_template
@@ -33,17 +32,20 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
+    VIEW_TYPES
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from bridge.tableHead import Header
 
-from users.models import View
+from users.models import User
+from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
+    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, MarkAssociationsChanges
 
+import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
-from marks.utils import NewMark, MarkAccess, DeleteMark
-from marks.Download import ReadMarkArchive, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
-from marks.models import *
+from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
+from marks.tables import MARK_TITLES, MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
 @register.filter
@@ -73,7 +75,7 @@ def create_mark(request, mark_type, report_id):
                 return BridgeErrorResponse(500)
     except ObjectDoesNotExist:
         return BridgeErrorResponse(504)
-    if not MarkAccess(request.user, report=report).can_create():
+    if not mutils.MarkAccess(request.user, report=report).can_create():
         return BridgeErrorResponse(_("You don't have an access to create new marks"))
     tags = None
     if mark_type != 'unknown':
@@ -111,6 +113,13 @@ def view_mark(request, mark_type, mark_id):
     if mark.version == 0:
         return BridgeErrorResponse(605)
 
+    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
+    view_add_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == mark_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
+
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
 
@@ -132,12 +141,13 @@ def view_mark(request, mark_type, mark_id):
         'first_version': history_set.last(),
         'type': mark_type,
         'markdata': MarkData(mark_type, mark_version=last_version),
-        'reports': MarkReportsTable(request.user, mark),
+        'reports': MarkReportsTable(request.user, mark, **view_add_args),
         'tags': tags,
-        'can_edit': MarkAccess(request.user, mark=mark).can_edit(),
+        'can_edit': mutils.MarkAccess(request.user, mark=mark).can_edit(),
         'view_tags': True,
         'error_trace': error_trace,
-        'report_id': request.GET.get('report_to_redirect')
+        'report_id': request.GET.get('report_to_redirect'),
+        'ass_types': ASSOCIATION_TYPE
     })
 
 
@@ -158,7 +168,7 @@ def edit_mark(request, mark_type, mark_id):
     if mark.version == 0:
         return BridgeErrorResponse(605)
 
-    if not MarkAccess(request.user, mark=mark).can_edit():
+    if not mutils.MarkAccess(request.user, mark=mark).can_edit():
         return BridgeErrorResponse(_("You don't have an access to edit this mark"))
 
     history_set = mark.versions.order_by('-version')
@@ -219,40 +229,9 @@ def save_mark(request):
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if savedata.get('data_type') not in {'safe', 'unsafe', 'unknown'}:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    if 'report_id' in savedata:
-        try:
-            if savedata['data_type'] == 'unsafe':
-                inst = ReportUnsafe.objects.get(pk=int(savedata['report_id']))
-            elif savedata['data_type'] == 'safe':
-                inst = ReportSafe.objects.get(pk=int(savedata['report_id']))
-                if not inst.root.job.safe_marks:
-                    return JsonResponse({'error': _('Safe marks are disabled')})
-            else:
-                inst = ReportUnknown.objects.get(pk=int(savedata['report_id']))
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': str(_('The report was not found'))})
-        if not MarkAccess(request.user, report=inst).can_create():
-            return JsonResponse({'error': str(_("You don't have an access to create new marks"))})
-    elif 'mark_id' in savedata:
-        try:
-            if savedata['data_type'] == 'unsafe':
-                inst = MarkUnsafe.objects.get(pk=int(savedata['mark_id']))
-            elif savedata['data_type'] == 'safe':
-                inst = MarkSafe.objects.get(pk=int(savedata['mark_id']))
-            else:
-                inst = MarkUnknown.objects.get(pk=int(savedata['mark_id']))
-        except ObjectDoesNotExist:
-            return JsonResponse({'error': str(_('The mark was not found'))})
-        if not MarkAccess(request.user, mark=inst).can_edit():
-            return JsonResponse({'error': str(_("You don't have an access to this mark"))})
-    else:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        res = NewMark(inst, request.user, savedata['data_type'], savedata)
+        res = mutils.NewMark(request.user, savedata)
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
@@ -329,7 +308,7 @@ def get_mark_version_data(request):
         return JsonResponse({
             'error': _('Your version is expired, please reload the page')
         })
-    if not MarkAccess(request.user, mark=mark_version.mark).can_edit():
+    if not mutils.MarkAccess(request.user, mark=mark_version.mark).can_edit():
         return JsonResponse({
             'error': _("You don't have an access to edit this mark")
         })
@@ -360,27 +339,19 @@ def get_mark_version_data(request):
 @unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
-    titles = {
-        'unsafe': _('Unsafe marks'),
-        'safe': _('Safe marks'),
-        'unknown': _('Unknown marks'),
-    }
-    verdicts = {
-        'unsafe': MARK_UNSAFE,
-        'safe': MARK_SAFE,
-        'unknown': []
-    }
-    view_type = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
-    table_args = [request.user, marks_type]
-    if request.method == 'POST':
-        if request.POST.get('view_type', None) == view_type[marks_type]:
-            table_args.append(request.POST.get('view', None))
-            table_args.append(request.POST.get('view_id', None))
+
+    verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
+
+    view_type_map = {VIEW_TYPES[7][0]: 'unsafe', VIEW_TYPES[8][0]: 'safe', VIEW_TYPES[9][0]: 'unknown'}
+    view_add_args = {'page': request.GET.get('page', 1)}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == marks_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
 
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(*table_args),
+        'tabledata': MarksList(request.user, marks_type, **view_add_args),
         'type': marks_type,
-        'title': titles[marks_type],
         'statuses': MARK_STATUS,
         'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],
@@ -418,7 +389,7 @@ def download_mark(request, mark_type, mark_id):
 def upload_marks(request):
     activate(request.user.extended.language)
 
-    if not MarkAccess(request.user).can_create():
+    if not mutils.MarkAccess(request.user).can_create():
         return JsonResponse({'status': False, 'message': _("You don't have access to create new marks")})
 
     failed_marks = []
@@ -427,7 +398,7 @@ def upload_marks(request):
     num_of_new_marks = 0
     for f in request.FILES.getlist('file'):
         try:
-            res = ReadMarkArchive(request.user, f)
+            res = UploadMark(request.user, f)
         except BridgeException as e:
             failed_marks.append([str(e), f.name])
         except Exception as e:
@@ -448,48 +419,17 @@ def upload_marks(request):
 
 @login_required
 @unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
-def delete_mark(request, mark_type, mark_id):
-    obj_model = {
-        'unsafe': (MarkUnsafe, ReportUnsafe),
-        'safe': (MarkSafe, ReportSafe),
-        'unknown': (MarkUnknown, ReportUnknown)
-    }
-    try:
-        mark = obj_model[mark_type][0].objects.get(pk=mark_id)
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-    if not MarkAccess(request.user, mark=mark).can_delete():
-        return BridgeErrorResponse(_("You don't have an access to delete this mark"))
-    DeleteMark(mark)
-    if request.method == 'GET' and 'report_to_redirect' in request.GET:
-        return HttpResponseRedirect(reverse('reports:%s' % mark_type, args=[request.GET['report_to_redirect']]))
-    return HttpResponseRedirect(reverse('marks:mark_list', args=[mark_type]))
-
-
-@login_required
-@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def delete_marks(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'type' not in request.POST or 'ids' not in request.POST:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     try:
-        mark_ids = json.loads(request.POST['ids'])
+        mutils.delete_marks(request.user, request.POST['type'], json.loads(request.POST['ids']))
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
     except Exception as e:
-        logger.exception("Json parsing error: %s" % e, stack_info=True)
+        logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if request.POST['type'] == 'unsafe':
-        marks = MarkUnsafe.objects.filter(id__in=mark_ids)
-    elif request.POST['type'] == 'safe':
-        marks = MarkSafe.objects.filter(id__in=mark_ids)
-    elif request.POST['type'] == 'unknown':
-        marks = MarkUnknown.objects.filter(id__in=mark_ids)
-    else:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    if not all(MarkAccess(request.user, mark=mark).can_delete() for mark in marks):
-        return JsonResponse({'error': _("You can't delete one of the selected mark")})
-    for mark in marks:
-        DeleteMark(mark)
     return JsonResponse({})
 
 
@@ -516,7 +456,7 @@ def remove_versions(request):
         mark_history = mark.versions.filter(~Q(version__in=[mark.version, 1]))
     except ObjectDoesNotExist:
         return JsonResponse({'error': _('The mark was not found')})
-    if not MarkAccess(request.user, mark).can_edit():
+    if not mutils.MarkAccess(request.user, mark).can_edit():
         return JsonResponse({'error': _("You don't have an access to edit this mark")})
 
     versions = json.loads(request.POST.get('versions', '[]'))
@@ -569,19 +509,19 @@ def get_mark_versions(request):
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
+    view_add_args = {}
+    if request.GET.get('view_type') in {VIEW_TYPES[16][0], VIEW_TYPES[17][0], VIEW_TYPES[18][0]}:
+        view_add_args['view'] = request.GET.get('view')
+        view_add_args['view_id'] = request.GET.get('view_id')
+
     try:
-        ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
-    try:
-        data = json.loads(ass_ch.table_data)
+        data = AssociationChangesTable(request.user, association_id, **view_add_args)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
-    return render(request, 'marks/SaveMarkResult.html', {
-        'MarkTable': data,
-        'header': Header(data.get('columns', []), MARK_TITLES).struct
-    })
+    return render(request, 'marks/SaveMarkResult.html', {'TableData': data})
 
 
 @login_required
@@ -745,6 +685,8 @@ def download_tags(request, tags_type):
 @login_required
 @unparallel_group([UnsafeTag, SafeTag])
 def upload_tags(request):
+    activate(request.user.extended.language)
+
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if not can_edit_tag(request.user):
@@ -811,6 +753,10 @@ def upload_all(request):
 
 @unparallel_group(['MarkSafe', 'MarkUnsafe'])
 def get_inline_mark_form(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
+
     obj_model = {
         'safe': (MarkSafeHistory, ReportSafe),
         'unsafe': (MarkUnsafeHistory, ReportUnsafe)
@@ -854,3 +800,80 @@ def get_inline_mark_form(request):
             'type': request.POST['type'], 'markdata': markdata, 'tags': tags
         })
     })
+
+
+@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+def unconfirm_association(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.unconfirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+def confirm_association(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST' or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.confirm_association(request.user, request.POST['report_id'], request.POST['mark_id'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})
+
+
+@unparallel_group(['UnsafeAssociationLike', 'MarkUnsafeReport', 'SafeAssociationLike', 'MarkSafeReport',
+                   'UnknownAssociationLike', 'MarkUnknownReport'])
+def like_association(request):
+    if not request.user.is_authenticated():
+        return JsonResponse({'error': 'You are not signing in'})
+    activate(request.user.extended.language)
+
+    if request.method != 'POST' \
+            or any(x not in request.POST for x in ['mark_id', 'report_id', 'report_type', 'dislike']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    try:
+        if request.POST['report_type'] == 'safe':
+            mutils.SafeUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        elif request.POST['report_type'] == 'unsafe':
+            mutils.UnsafeUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        elif request.POST['report_type'] == 'unknown':
+            mutils.UnknownUtils.like_association(
+                request.user, request.POST['report_id'], request.POST['mark_id'], request.POST['dislike'])
+        else:
+            return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({})

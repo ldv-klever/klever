@@ -16,27 +16,33 @@
 #
 
 import os
-import re
 import json
 from types import FunctionType
+
+from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.utils.translation import override, ungettext_lazy
-from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES, MARK_STATUS, MARK_TYPE
-from bridge.settings import DEFAULT_LANGUAGE, BASE_DIR
+
+from bridge.vars import JOB_CLASSES, SCHEDULER_TYPE, USER_ROLES, JOB_ROLES
 from bridge.utils import file_get_or_create, unique_id, BridgeException
+
+import marks.SafeUtils as SafeUtils
+import marks.UnsafeUtils as UnsafeUtils
+import marks.UnknownUtils as UnknownUtils
+
 from users.models import Extended
-from jobs.utils import create_job
 from jobs.models import Job, JobFile
 from reports.models import TaskStatistic
+from marks.models import MarkUnsafeCompare, MarkUnsafeConvert, ErrorTraceConvertionCache
+from service.models import Scheduler
+
+from jobs.utils import create_job
 from marks.ConvertTrace import ConvertTrace
 from marks.CompareTrace import CompareTrace
-from marks.models import MarkUnknown, MarkUnknownHistory, Component, MarkUnsafeCompare, MarkUnsafeConvert,\
-    ErrorTraceConvertionCache
-from marks.utils import ConnectMarkWithReports
 from marks.tags import CreateTagsFromFile
-from service.models import Scheduler
+
 
 JOB_SETTINGS_FILE = 'settings.json'
 
@@ -52,9 +58,9 @@ def extend_user(user, role=USER_ROLES[1][0]):
         user.save()
 
 
-class Population(object):
+class Population:
     def __init__(self, user=None, manager=None, service=None):
-        self.changes = {}
+        self.changes = {'marks': {}}
         self.user = user
         if manager is None:
             self.manager = self.__get_manager(None, None)
@@ -79,6 +85,9 @@ class Population(object):
         self.__populate_default_jobs()
         self.__populate_unknown_marks()
         self.__populate_tags()
+        self.__populate_unsafe_marks()
+        if settings.ENABLE_SAFE_MARKS:
+            self.__populate_safe_marks()
         sch_crtd1 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[0][0])[1]
         sch_crtd2 = Scheduler.objects.get_or_create(type=SCHEDULER_TYPE[1][0])[1]
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
@@ -166,7 +175,7 @@ class Population(object):
             try:
                 Job.objects.get(type=JOB_CLASSES[i][0], parent=None)
             except ObjectDoesNotExist:
-                with override(DEFAULT_LANGUAGE):
+                with override(settings.DEFAULT_LANGUAGE):
                     args['name'] = JOB_CLASSES[i][1]
                     args['description'] = "<h3>%s</h3>" % JOB_CLASSES[i][1]
                     args['type'] = JOB_CLASSES[i][0]
@@ -174,7 +183,7 @@ class Population(object):
                     self.changes['jobs'] = True
 
     def __populate_default_jobs(self):
-        default_jobs_dir = os.path.join(BASE_DIR, 'jobs', 'presets')
+        default_jobs_dir = os.path.join(settings.BASE_DIR, 'jobs', 'presets')
         for jobdir in [os.path.join(default_jobs_dir, x) for x in os.listdir(default_jobs_dir)]:
             if not os.path.exists(os.path.join(jobdir, JOB_SETTINGS_FILE)):
                 raise BridgeException('There is default job without settings file (%s)' % jobdir)
@@ -248,61 +257,21 @@ class Population(object):
         return get_fdata(d)
 
     def __populate_unknown_marks(self):
-        presets_dir = os.path.join(BASE_DIR, 'marks', 'presets')
-        for component_dir in [os.path.join(presets_dir, x) for x in os.listdir(presets_dir)]:
-            component = os.path.basename(component_dir)
-            if not 0 < len(component) <= 15:
-                raise ValueError('Wrong component length: "%s". 1-15 is allowed.' % component)
-            for mark_settings in [os.path.join(component_dir, x) for x in os.listdir(component_dir)]:
-                data = None
-                with open(mark_settings, encoding='utf8') as fp:
-                    try:
-                        data = json.load(fp)
-                    except Exception as e:
-                        fp.seek(0)
-                        try:
-                            path_to_json = os.path.abspath(os.path.join(component_dir, fp.read()))
-                            with open(path_to_json, encoding='utf8') as fp2:
-                                data = json.load(fp2)
-                        except Exception:
-                            raise BridgeException("Can't parse json data of unknown mark: %s (\"%s\")" % (
-                                e, os.path.relpath(mark_settings, presets_dir)
-                            ))
-                if not isinstance(data, dict) or any(x not in data for x in ['function', 'pattern']):
-                    raise BridgeException('Wrong unknown mark data format: %s' % mark_settings)
-                try:
-                    re.compile(data['function'])
-                except re.error:
-                    raise ValueError('Wrong regular expression: "%s"' % data['function'])
-                if 'link' not in data:
-                    data['link'] = ''
-                if 'description' not in data:
-                    data['description'] = ''
-                if 'status' not in data:
-                    data['status'] = MARK_STATUS[0][0]
-                if 'is_modifiable' not in data:
-                    data['is_modifiable'] = True
-                if data['status'] not in list(x[0] for x in MARK_STATUS) or len(data['function']) == 0 \
-                        or not 0 < len(data['pattern']) <= 15 or not isinstance(data['is_modifiable'], bool):
-                    raise BridgeException('Wrong unknown mark data: %s' % mark_settings)
-                try:
-                    MarkUnknown.objects.get(component__name=component, problem_pattern=data['pattern'])
-                except ObjectDoesNotExist:
-                    mark = MarkUnknown.objects.create(
-                        identifier=unique_id(), component=Component.objects.get_or_create(name=component)[0],
-                        author=self.manager, status=data['status'], is_modifiable=data['is_modifiable'],
-                        function=data['function'], problem_pattern=data['pattern'], description=data['description'],
-                        type=MARK_TYPE[1][0], link=data['link'] if len(data['link']) > 0 else None
-                    )
-                    MarkUnknownHistory.objects.create(
-                        mark=mark, version=mark.version, author=mark.author, status=mark.status,
-                        function=mark.function, problem_pattern=mark.problem_pattern, link=mark.link,
-                        change_date=mark.change_date, description=mark.description, comment=''
-                    )
-                    ConnectMarkWithReports(mark)
-                    self.changes['marks'] = True
-                except MultipleObjectsReturned:
-                    raise Exception('There are similar unknown marks in the system')
+        res = UnknownUtils.PopulateMarks(self.manager)
+        if res.created > 0:
+            self.changes['marks']['unknown'] = (res.created, res.total)
+
+    def __populate_safe_marks(self):
+        res = SafeUtils.PopulateMarks(self.manager)
+        new_num = len(res.created)
+        if new_num > 0:
+            self.changes['marks']['safe'] = (new_num, res.total)
+
+    def __populate_unsafe_marks(self):
+        res = UnsafeUtils.PopulateMarks(self.manager)
+        new_num = len(res.created)
+        if new_num > 0:
+            self.changes['marks']['unsafe'] = (new_num, res.total)
 
     def __populate_tags(self):
         self.changes['tags'] = []
@@ -318,8 +287,8 @@ class Population(object):
             ) % {'count': num_of_new})
 
     def __create_tags(self, tag_type):
-        self.ccc = 0
-        preset_tags = os.path.join(BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
+        self.__is_not_used()
+        preset_tags = os.path.join(settings.BASE_DIR, 'marks', 'tags_presets', "%s.json" % tag_type)
         if not os.path.isfile(preset_tags):
             return 0
         with open(preset_tags, mode='rb') as fp:

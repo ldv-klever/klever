@@ -17,7 +17,6 @@
 
 import json
 import argparse
-import logging
 import os
 import sys
 
@@ -26,9 +25,7 @@ os.environ['PYTHONPATH'] = '{0}{1}'.format(os.path.join(sys.path[0], os.path.par
                                            ':{0}'.format(os.environ['PYTHONPATH'])
                                            if os.environ.get('PYTHONPATH') else '')
 
-import utils as utils
-import client as client
-
+from client import run_benchexec
 
 # Parse configuration
 parser = argparse.ArgumentParser(description='Start cloud Klever scheduler client according to the provided '
@@ -38,23 +35,9 @@ parser.add_argument('--conf', metavar="CONF", help='JSON string with all necessa
 parser.add_argument('--file', metavar="FILE", help='File with configuration. Use it during debug.')
 args = parser.parse_args()
 if args.file and os.path.isfile(args.file):
-    with open(args.file, encoding="utf8") as fh:
-        conf = json.loads(fh.read())
+    run_benchexec(args.mode, file=args.file)
 else:
-    conf = json.loads(str(args.conf))
-conf = utils.common_initialization("Client controller", conf)
-
-if args.mode == "JOB":
-    logging.info("Proceed to job solution")
-    exit_code = client.solve_job(conf)
-    logging.info("Exiting with Klever Core exit code {}".format(exit_code))
-    exit(int(exit_code))
-elif args.mode == "TASK":
-    logging.info("Proceed to task solution")
-    exit_code = client.solve_task(conf)
-    logging.info("Exiting with exit code {}".format(exit_code))
-    exit(int(exit_code))
-else:
-    NotImplementedError("Provided mode {} is not supported by the client".format(args.mode))
+    cf = json.loads(str(args.conf))
+    run_benchexec(args.mode, configuration=cf)
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

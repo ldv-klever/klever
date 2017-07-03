@@ -139,6 +139,7 @@ class ReportUnsafe(Report):
     error_trace = models.CharField(max_length=128)
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
     verifier_time = models.BigIntegerField()
+    has_confirmed = models.BooleanField(default=False)
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
@@ -158,6 +159,7 @@ class ReportSafe(Report):
     proof = models.CharField(max_length=128, null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
     verifier_time = models.BigIntegerField()
+    has_confirmed = models.BooleanField(default=False)
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
@@ -199,18 +201,6 @@ class ReportComponentLeaf(models.Model):
 
     class Meta:
         db_table = 'cache_report_component_leaf'
-
-
-class AttrStatistic(models.Model):
-    report = models.ForeignKey(ReportComponent)
-    name = models.ForeignKey(AttrName)
-    attr = models.ForeignKey(Attr, null=True)
-    safes = models.PositiveIntegerField(default=0)
-    unsafes = models.PositiveIntegerField(default=0)
-    unknowns = models.PositiveIntegerField(default=0)
-
-    class Meta:
-        db_table = 'cache_report_attr_statistic'
 
 
 class Verdict(models.Model):
@@ -306,3 +296,10 @@ class TaskStatistic(models.Model):
 
     class Meta:
         db_table = 'cache_report_task_statistic'
+
+
+class ComponentInstances(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    component = models.ForeignKey(Component)
+    in_progress = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)

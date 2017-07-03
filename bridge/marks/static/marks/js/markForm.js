@@ -39,7 +39,7 @@ window.collect_new_markdata = function() {
         is_modifiable = is_modifiable_checkbox.is(':checked');
     }
 
-    if (mark_type == 'unknown') {
+    if (mark_type === 'unknown') {
         var unknown_function = $('#unknown_function').val(),
             unknown_problem_pattern = $('#unknown_problem_pattern').val();
         if (unknown_function.length <= 0) {
@@ -72,7 +72,7 @@ window.collect_new_markdata = function() {
         };
     }
 
-    if (mark_type == 'unsafe') {
+    if (mark_type === 'unsafe') {
         mark_data['convert_id'] = $("#convert_function").val();
         mark_data['compare_id'] = $("#compare_function").val();
     }
@@ -101,7 +101,7 @@ window.collect_markdata = function() {
         is_modifiable = is_modifiable_checkbox.is(':checked');
     }
 
-    if (mark_type == 'unknown') {
+    if (mark_type === 'unknown') {
         var unknown_function = $('#unknown_function').val(),
             unknown_problem_pattern = $('#unknown_problem_pattern').val();
         if (unknown_function.length <= 0) {
@@ -141,7 +141,7 @@ window.collect_markdata = function() {
         };
     }
 
-    if (mark_type == 'unsafe') {
+    if (mark_type === 'unsafe') {
         mark_data['compare_id'] = $("#compare_function").val();
     }
 

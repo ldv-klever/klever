@@ -18,20 +18,23 @@
 import os
 import json
 import zipfile
-from io import BytesIO
-from django.db.models import Q
-from django.conf import settings
+
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext_lazy as _
+from django.db.models import Q
 from django.utils.timezone import now
-from bridge.utils import file_get_or_create, logger, unique_id, BridgeException
+from django.utils.translation import ugettext_lazy as _
+
+from bridge.utils import logger, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
-from marks.utils import NewMark, RecalculateTags, ConnectMarkWithReports, DeleteMark
-from marks.ConvertTrace import ET_FILE_NAME
-from marks.models import *
+
+from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, SafeTag, UnsafeTag, MarkUnsafeCompare
+
+import marks.SafeUtils as SafeUtils
+import marks.UnsafeUtils as UnsafeUtils
+import marks.UnknownUtils as UnknownUtils
 
 
-class MarkArchiveGenerator(object):
+class MarkArchiveGenerator:
     def __init__(self, mark):
         self.mark = mark
         if isinstance(self.mark, MarkUnsafe):
@@ -63,6 +66,8 @@ class MarkArchiveGenerator(object):
                 version_data['verdict'] = markversion.verdict
                 if self.type == 'unsafe':
                     version_data['function'] = markversion.function.name
+                    with markversion.error_trace.file.file as fp:
+                        version_data['error_trace'] = fp.read().decode('utf8')
                 for tag in markversion.tags.all():
                     version_data['tags'].append(tag.tag.tag)
                 for attr in markversion.attrs.order_by('id'):
@@ -74,10 +79,10 @@ class MarkArchiveGenerator(object):
             content = json.dumps(version_data, ensure_ascii=False, sort_keys=True, indent=4)
             for data in self.stream.compress_string('version-%s' % markversion.version, content):
                 yield data
-            if self.type == 'unsafe':
-                err_trace_file = os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name)
-                for data in self.stream.compress_file(err_trace_file, 'error_trace_%s' % str(markversion.version)):
-                    yield data
+            # if self.type == 'unsafe':
+            #     err_trace_file = os.path.join(settings.MEDIA_ROOT, markversion.error_trace.file.name)
+            #     for data in self.stream.compress_file(err_trace_file, 'error_trace_%s' % str(markversion.version)):
+            #         yield data
         common_data = {
             'is_modifiable': self.mark.is_modifiable,
             'mark_type': self.type,
@@ -113,225 +118,79 @@ class AllMarksGen(object):
         yield self.stream.close_stream()
 
 
-class ReadMarkArchive:
+class UploadMark:
     def __init__(self, user, archive):
-        self.mark = None
         self.type = None
         self._user = user
-        self._archive = archive
-        self.__create_mark_from_archive()
+        self.mark = self.__upload_mark(archive)
 
-    class UploadMark(object):
-        def __init__(self, user, mark_type, args):
-            self.mark = None
-            self.mark_version = None
-            self.user = user
-            self.type = mark_type
-            if not isinstance(args, dict) or not isinstance(user, User):
-                raise BridgeException()
-            self.__create_mark(args)
-
-        def __create_mark(self, args):
-            mark_model = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
-            mark = mark_model[self.type](
-                author=self.user, format=int(args['format']),
-                identifier=args['identifier'] if 'identifier' in args else unique_id(),
-                is_modifiable=bool(args['is_modifiable']),
-                status=MARK_STATUS[int(args['status'])][0],
-                description=args.get('description', ''), type=MARK_TYPE[2][0]
-            )
-            if mark.format != FORMAT:
-                raise BridgeException(_('The mark format is not supported'))
-
-            if self.type == 'unsafe':
-                mark.verdict = MARK_UNSAFE[int(args['verdict'])][0]
-                mark.function_id = args['compare_id']
-            elif self.type == 'safe':
-                mark.verdict = MARK_SAFE[int(args['verdict'])][0]
-            elif self.type == 'unknown':
-                if len(MarkUnknown.objects.filter(component__name=args['component'],
-                                                  problem_pattern=args['problem'])) > 0:
-                    raise BridgeException(_('Could not upload the mark archive since the similar mark exists already'))
-                mark.component = Component.objects.get_or_create(name=args['component'])[0]
-                mark.function = args['function']
-                mark.problem_pattern = args['problem']
-                if 'link' in args and len(args['link']) > 0:
-                    mark.link = args['link']
-
-            try:
-                mark.save()
-            except Exception as e:
-                logger.exception("Saving mark to DB failed: %s" % e, stack_info=True)
-                raise BridgeException()
-
-            self.__update_mark(mark, args.get('error_trace'), args.get('tags'))
-            if self.type != 'unknown':
-                try:
-                    self.__create_attributes(args['attrs'])
-                except Exception:
-                    mark.delete()
-                    raise
-            self.mark = mark
-
-        def __update_mark(self, mark, error_trace, tags):
-            version_model = {'unsafe': MarkUnsafeHistory, 'safe': MarkSafeHistory, 'unknown': MarkUnknownHistory}
-            self.mark_version = version_model[self.type](
-                mark=mark, author=mark.author, comment='', change_date=mark.change_date, status=mark.status,
-                version=mark.version, description=mark.description
-            )
-            if self.type == 'unsafe':
-                self.mark_version.function = mark.function
-                self.mark_version.error_trace = file_get_or_create(BytesIO(
-                    json.dumps(json.loads(error_trace), ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
-                ), ET_FILE_NAME, ConvertedTraces)[0]
-            if self.type == 'unknown':
-                self.mark_version.function = mark.function
-                self.mark_version.problem_pattern = mark.problem_pattern
-                self.mark_version.link = mark.link
-            else:
-                self.mark_version.verdict = mark.verdict
-            self.mark_version.save()
-            if isinstance(tags, list):
-                for tag in tags:
-                    if self.type == 'safe':
-                        try:
-                            safetag = SafeTag.objects.get(tag=tag)
-                        except ObjectDoesNotExist:
-                            raise BridgeException(_('One of tags was not found'))
-                        MarkSafeTag.objects.get_or_create(tag=safetag, mark_version=self.mark_version)
-                        newtag = safetag.parent
-                        while newtag is not None:
-                            MarkSafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
-                            newtag = newtag.parent
-                    elif self.type == 'unsafe':
-                        try:
-                            unsafetag = UnsafeTag.objects.get(tag=tag)
-                        except ObjectDoesNotExist:
-                            raise BridgeException(_('One of tags was not found'))
-                        MarkUnsafeTag.objects.get_or_create(tag=unsafetag, mark_version=self.mark_version)
-                        newtag = unsafetag.parent
-                        while newtag is not None:
-                            MarkUnsafeTag.objects.get_or_create(tag=newtag, mark_version=self.mark_version)
-                            newtag = newtag.parent
-
-        def __create_attributes(self, attrs):
-            if not isinstance(attrs, list):
-                raise BridgeException(_('The attributes have wrong format'))
-            for a in attrs:
-                if any(x not in a for x in ['attr', 'value', 'is_compare']):
-                    raise BridgeException(_('The attributes have wrong format'))
-            for a in attrs:
-                attr_name = AttrName.objects.get_or_create(name=a['attr'])[0]
-                attr = Attr.objects.get_or_create(name=attr_name, value=a['value'])[0]
-                create_args = {
-                    'mark': self.mark_version,
-                    'attr': attr,
-                    'is_compare': a['is_compare']
-                }
-                if self.type == 'unsafe':
-                    MarkUnsafeAttr.objects.get_or_create(**create_args)
-                else:
-                    MarkSafeAttr.objects.get_or_create(**create_args)
-
-    def __create_mark_from_archive(self):
+    def __upload_mark(self, archive):
 
         def get_func_id(func_name):
             try:
                 return MarkUnsafeCompare.objects.get(name=func_name).pk
             except ObjectDoesNotExist:
-                return 0
+                raise BridgeException(
+                    _('The mark comparison function "%(fname)s" is not supported anymore') % {'fname': func_name}
+                )
 
         mark_data = None
-        err_traces = {}
         versions_data = {}
-        with zipfile.ZipFile(self._archive, 'r') as zfp:
+        with zipfile.ZipFile(archive, 'r') as zfp:
             for file_name in zfp.namelist():
                 if file_name == 'markdata':
-                    try:
-                        mark_data = json.loads(zfp.read(file_name).decode('utf8'))
-                    except ValueError:
-                        raise BridgeException(_("The mark archive is corrupted"))
+                    mark_data = json.loads(zfp.read(file_name).decode('utf8'))
                 elif file_name.startswith('version-'):
                     version_id = int(file_name.replace('version-', ''))
                     try:
                         versions_data[version_id] = json.loads(zfp.read(file_name).decode('utf8'))
                     except ValueError:
                         raise BridgeException(_("The mark archive is corrupted"))
-                elif file_name.startswith('error_trace_'):
-                    err_traces[int(file_name.replace('error_trace_', ''))] = zfp.read(file_name).decode('utf8')
 
-        if not isinstance(mark_data, dict) or any(x not in mark_data for x in ['mark_type', 'is_modifiable', 'format']):
-            raise BridgeException(_("The mark archive is corrupted"))
-        self.type = mark_data['mark_type']
-        if self.type not in {'safe', 'unsafe', 'unknown'}:
-            raise BridgeException(_("The mark archive is corrupted"))
-        if self.type == 'safe' and not settings.ENABLE_SAFE_MARKS:
-            raise BridgeException(_("Safe marks are disabled"))
-        if self.type == 'unknown' and 'component' not in mark_data:
-            raise BridgeException(_("The mark archive is corrupted"))
-
-        mark_table = {'unsafe': MarkUnsafe, 'safe': MarkSafe, 'unknown': MarkUnknown}
-        if 'identifier' in mark_data:
-            if isinstance(mark_data['identifier'], str) and len(mark_data['identifier']) > 0:
-                if mark_table[self.type].objects.filter(identifier=mark_data['identifier']).count() > 0:
-                    raise BridgeException(_("The mark with identifier specified in the archive already exists"))
-            else:
-                del mark_data['identifier']
-
+        if not isinstance(mark_data, dict):
+            raise ValueError('Unsupported mark data type: %s' % type(mark_data))
+        self.type = mark_data.get('mark_type')
         if self.type == 'unsafe':
             for v_id in versions_data:
-                if v_id not in err_traces:
-                    raise BridgeException(_("The mark archive is corrupted"))
-                versions_data[v_id]['error_trace'] = err_traces[v_id]
+                if 'function' not in versions_data[v_id]:
+                    raise BridgeException(_('The mark archive is corrupted'))
 
         version_list = list(versions_data[v] for v in sorted(versions_data))
-        for version in version_list:
-            if any(x not in version for x in ['status', 'comment']):
-                raise BridgeException(_("The mark archive is corrupted"))
-            if self.type == 'unsafe' and 'function' not in version:
-                raise BridgeException(_("The mark archive is corrupted"))
-            if self.type != 'unknown' and any(x not in version for x in ['verdict', 'attrs', 'tags']):
-                raise BridgeException(_("The mark archive is corrupted"))
-            if self.type == 'unknown' and any(x not in version for x in ['problem', 'function']):
-                raise BridgeException(_("The mark archive is corrupted"))
 
-        mark_data.update(version_list[0])
-        if self.type == 'unsafe':
-            mark_data['compare_id'] = get_func_id(version_list[0]['function'])
-            del mark_data['function'], mark_data['mark_type']
+        if self.type == 'safe':
+            tags_in_db = dict(SafeTag.objects.values_list('tag', 'id'))
+            for version in version_list:
+                version['tags'] = list(tags_in_db[tname] for tname in version['tags'])
+        elif self.type == 'unsafe':
+            tags_in_db = dict(UnsafeTag.objects.values_list('tag', 'id'))
+            for version in version_list:
+                version['tags'] = list(tags_in_db[tname] for tname in version['tags'])
+                version['compare_id'] = get_func_id(version['function'])
+                del version['function']
+        return self.__create_mark(mark_data, version_list)
 
-        mark = self.UploadMark(self._user, self.type, mark_data).mark
-        if not isinstance(mark, mark_table[self.type]):
-            raise BridgeException()
-        for version_data in version_list[1:]:
-            if 'tags' in version_data:
-                if self.type == 'safe':
-                    tag_table = SafeTag
-                elif self.type == 'unsafe':
-                    tag_table = UnsafeTag
-                else:
-                    raise BridgeException()
-                tag_ids = []
-                for t_name in version_data['tags']:
-                    try:
-                        tag_ids.append(tag_table.objects.get(tag=t_name).pk)
-                    except ObjectDoesNotExist:
-                        raise BridgeException(_('One of tags was not found'))
-                version_data['tags'] = tag_ids
-            if len(version_data['comment']) == 0:
-                version_data['comment'] = '1'
-            if self.type == 'unsafe':
-                version_data['compare_id'] = get_func_id(version_data['function'])
-                del version_data['function']
+    def __create_mark(self, mark_data, versions):
+        mark_utils = {'safe': SafeUtils, 'unsafe': UnsafeUtils, 'unknown': UnknownUtils}
+        versions[0].update(mark_data)
+        res = mark_utils[self.type].NewMark(self._user, versions[0])
+        mark = res.upload_mark()
+        for version_data in versions[1:]:
+            version_data.update(mark_data)
             try:
-                NewMark(mark, self._user, self.type, version_data, False)
+                mark_utils[self.type].NewMark(self._user, version_data).change_mark(mark, False)
             except Exception:
                 mark.delete()
                 raise
+        if self.type == 'safe':
+            SafeUtils.RecalculateTags(list(SafeUtils.ConnectMarks([mark]).changes.get(mark.id, {})))
+        elif self.type == 'unsafe':
+            UnsafeUtils.RecalculateTags(list(UnsafeUtils.ConnectMarks([mark]).changes.get(mark.id, {})))
+        elif self.type == 'unknown':
+            UnknownUtils.ConnectMark(mark)
+        return mark
 
-        for report in ConnectMarkWithReports(mark).changes:
-            RecalculateTags(report)
-        self.mark = mark
+    def __is_not_used(self):
+        pass
 
 
 class UploadAllMarks:
@@ -339,25 +198,19 @@ class UploadAllMarks:
         self.user = user
         self.numbers = {'safe': 0, 'unsafe': 0, 'unknown': 0, 'fail': 0}
         self.delete_all = delete_all_marks
-        self.__delete_all_marks()
         self.__upload_all(marks_dir)
 
-    def __delete_all_marks(self):
-        if self.delete_all:
-            for mark in MarkSafe.objects.all():
-                DeleteMark(mark)
-            for mark in MarkUnsafe.objects.all():
-                DeleteMark(mark)
-            for mark in MarkUnknown.objects.all():
-                DeleteMark(mark)
-
     def __upload_all(self, marks_dir):
+        if self.delete_all:
+            SafeUtils.delete_marks(MarkSafe.objects.all())
+            UnsafeUtils.delete_marks(MarkUnsafe.objects.all())
+            UnknownUtils.delete_marks(MarkUnknown.objects.all())
         for file_name in os.listdir(marks_dir):
             mark_path = os.path.join(marks_dir, file_name)
             if os.path.isfile(mark_path):
                 with open(mark_path, mode='rb') as fp:
                     try:
-                        mark_type = ReadMarkArchive(self.user, fp).type
+                        mark_type = UploadMark(self.user, fp).type
                         if mark_type in self.numbers:
                             self.numbers[mark_type] += 1
                     except Exception as e:

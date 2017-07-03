@@ -48,7 +48,7 @@ $(document).ready(function () {
                 err_notify($('#error___line_not_found').text());
             }
         }
-        if (filename == $('#ETVSourceTitleFull').text()) {
+        if (filename === $('#ETVSourceTitleFull').text()) {
             select_src_string();
         }
         else {
@@ -71,6 +71,7 @@ $(document).ready(function () {
                         title_place.text(data.name);
                         $('#ETVSourceTitleFull').text(data['fullname']);
                         title_place.popup();
+                        src_filename_trunc();
                         source_code_window.html(data.content);
                         select_src_string();
                         ready_for_next_string = true;
@@ -79,6 +80,10 @@ $(document).ready(function () {
             });
         }
     }
+    $('#ETVSourceTitle').click(function () {
+        src_filename_trunc();
+        console.log(123);
+    });
 
     function open_function(hidelink, shift_pressed, change_state) {
         if (change_state) {

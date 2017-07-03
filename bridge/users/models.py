@@ -17,7 +17,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from bridge.vars import LANGUAGES, USER_ROLES, VIEW_TYPES, DATAFORMAT
+from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES
 from bridge.settings import DEF_USER
 
 
@@ -40,7 +40,7 @@ class Extended(models.Model):
 
 class View(models.Model):
     author = models.ForeignKey(User)
-    type = models.CharField(max_length=1, choices=VIEW_TYPES, default='1')
+    type = models.CharField(max_length=2, choices=VIEW_TYPES, default='1')
     name = models.CharField(max_length=255)
     view = models.TextField()
     shared = models.BooleanField(default=False)

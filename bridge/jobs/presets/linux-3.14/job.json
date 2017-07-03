@@ -2,6 +2,7 @@
   "Linux kernel": {
     "source": "linux-3.14",
     "configuration": "allmodconfig",
+    "architecture": "x86_64",
     "modules": ["drivers/net/usb/kaweth.ko"]
   },
   "LKVOG strategy": {"name": "separate modules"},
@@ -14,14 +15,6 @@
     "verifier": {
       "name": "CPAchecker",
       "version": "ldv-bam:24572"
-    },
-    "resource limits": {
-      "wall time": 1000000,
-      "CPU time": 900000,
-      "memory size": 10000000000,
-      "CPU model": null,
-      "number of CPU cores": 1,
-      "result size": 1000000
     },
     "merge source files": true
   }

@@ -3,7 +3,16 @@
     "benchexec location": "/abs/path/to/benchexec/",
     "Klever Core path": "/abs/path/to/klever-core",
     "cif location": "/abs/path/to/cif/bin/",
-    "cil location": "/abs/path/to/cil/obj/x86_LINUX"
+    "cil location": "/abs/path/to/cil/obj/x86_LINUX",
+    "runexec container mode": false,
+    "runexec measure disk": false,
+    "runexec container mode options": [
+      "--network-access",
+      "--keep-system-config",
+      "--full-access-dir", "/dev",
+      "--full-access-dir", "/sys",
+      "--full-access-dir", "./"
+    ]
   },
   "common": {
     "working directory": null,

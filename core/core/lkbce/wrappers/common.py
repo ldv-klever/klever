@@ -55,6 +55,20 @@ class Command:
         self.type = None
         self.desc_file = None
 
+        if 'KLEVER_PREFIX' in os.environ:
+            self.prefix = os.environ['KLEVER_PREFIX']
+        else:
+            self.prefix = None
+
+    @property
+    def name_without_prefix(self):
+        if self.prefix:
+            pre, prefix, name = self.name.rpartition(self.prefix)
+        else:
+            name = self.name
+
+        return name
+
     def copy_deps(self):
         # Dependencies can be obtained just for CC commands taking normal C files as input.
         if self.type != 'CC' or re.search(r'\.S$', self.in_files[0], re.IGNORECASE):
@@ -135,17 +149,32 @@ class Command:
                                        'model CC opts.json'), 'w', encoding='utf8') as fp:
                     json.dump(self.other_opts, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-        # Check, whether the output file has init function
-        has_init = False
+        # Extract info for multimodule analysis
+        provided_functions = []
+        required_functions = []
+        output_size = 0
+        HEADER_SIZE = 4
+
+        # Checks, that file is ELF object
         elf_out = subprocess.check_output(['file', '-b', self.out_file], universal_newlines=True).split('\n')
         if elf_out and elf_out[0].startswith('ELF'):
+            # Process symbol table. We need to skip first 4 lines, since it is a useless header
             symbol_table = subprocess.check_output(['objdump', '-t', self.out_file], universal_newlines=True).split('\n')
-            for table_entry in symbol_table:
-                if re.search(r'(.*\sinit_module$|\sO \.initcall.*\.init\s)', table_entry):
-                    has_init = True
-                    break
+            for table_entry in symbol_table[HEADER_SIZE:]:
+                # Split row into columns
+                symbol_entities = re.split(r'\s*|\t', table_entry)
+                if len(symbol_entities) > 3 and symbol_entities[1] == '*UND*':
+                    # Undefined symbol is an import function
+                    required_functions.append(symbol_entities[3])
+                elif len(symbol_entities) > 5 and symbol_entities[1] == 'g':
+                    # Global symbol is an export functions
+                    provided_functions.append(symbol_entities[5])
+            # Size of output file
+            output_size = os.path.getsize(self.out_file)
 
-        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file, 'has init': has_init}
+        desc = {'type': self.type, 'in files': self.in_files, 'out file': self.out_file,
+                'provided functions': provided_functions, 'required functions': required_functions,
+                'output size': output_size}
         if full_desc_file:
             desc['full desc file'] = os.path.relpath(full_desc_file, os.environ['KLEVER_MAIN_WORK_DIR'])
 
@@ -195,9 +224,10 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
-        if self.name == 'gcc':
+        if self.name_without_prefix == 'gcc':
             self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
-        exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
+        exit_code = subprocess.call(tuple(['aspectator' if self.name_without_prefix == 'gcc'
+                                           else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
         if exit_code:
@@ -223,7 +253,7 @@ class Command:
         cmd_requires_in_files = True
         cmd_requires_out_file = True
 
-        if self.name in ('gcc', 'ld'):
+        if self.name_without_prefix in ('gcc', 'ld'):
             skip_next_opt = False
             for idx, opt in enumerate(self.opts):
                 # Option represents already processed value of the previous option.
@@ -231,17 +261,17 @@ class Command:
                     skip_next_opt = False
                     continue
 
-                for opt_discarding_in_files in self.OPTS[self.name]['opts discarding in files']:
+                for opt_discarding_in_files in self.OPTS[self.name_without_prefix]['opts discarding in files']:
                     if re.search(r'^-{0}'.format(opt_discarding_in_files), opt):
                         cmd_requires_in_files = False
 
-                for opt_discarding_out_file in self.OPTS[self.name]['opts discarding out file']:
+                for opt_discarding_out_file in self.OPTS[self.name_without_prefix]['opts discarding out file']:
                     if re.search(r'^-{0}'.format(opt_discarding_out_file), opt):
                         cmd_requires_out_file = False
 
                 # Options with values.
                 match = None
-                for opt_requiring_val in self.OPTS[self.name]['opts requiring vals']:
+                for opt_requiring_val in self.OPTS[self.name_without_prefix]['opts requiring vals']:
                     match = re.search(r'^-({0})(=?)(.*)'.format(opt_requiring_val), opt)
                     if match:
                         opt, eq, val = match.groups()
@@ -306,8 +336,8 @@ class Command:
 
         # We treat all invocations of GCC with more than one input file as pure linking whereas this might be not the
         # case in general.
-        if self.name != 'gcc':
-            self.type = self.name.upper()
+        if self.name_without_prefix != 'gcc':
+            self.type = self.name_without_prefix.upper()
         elif len(self.in_files) > 1:
             self.type = 'LD'
         else:

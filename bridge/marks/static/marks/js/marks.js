@@ -15,86 +15,17 @@
  * limitations under the License.
  */
 
-function collect_filters_data() {
-    var view_values = {columns: []}, filter_values = {},
-        order_type = $('input[name=marks_enable_order]:checked').val();
-    $('input[id^="marks_filter_checkbox__"]:checked').each(function () {
-        view_values['columns'].push($(this).attr('id').replace('marks_filter_checkbox__', ''));
-    });
-    if (order_type == 'attribute') {
-        var order = $('#filter__attr__order').val();
-        if (order.length > 0) {
-            view_values['order'] = order;
-        }
-    }
-    else if (order_type == 'num_of_links') {
-        view_values['order'] = 'num_of_links';
-    }
-
-    var attr_val = $('#filter__attr__value').val(),
-        attr_attr = $('#filter__attr__attr').val();
-    if (attr_val && attr_attr && attr_val.length > 0 && attr_attr.length > 0) {
-        filter_values['attr'] = {
-            attr: attr_attr,
-            type: $('#filter__attr__type').val(),
-            value: attr_val
-        }
-    }
-    if ($('#filter__enable__verdict').is(':checked')) {
-        filter_values['verdict'] = {
-            type: $('#filter__type__verdict').val(),
-            value: $('#filter__value__verdict').children(':selected').val()
-        }
-    }
-    if ($('#filter__enable__status').is(':checked')) {
-        filter_values['status'] = {
-            type: $('#filter__type__status').val(),
-            value: $('#filter__value__status').children(':selected').val()
-        }
-    }
-    if ($('#filter__enable__author').is(':checked')) {
-        filter_values['author'] = {
-            type: 'is',
-            value: parseInt($('#filter__value__author').children(':selected').val())
-        }
-    }
-    if ($('#filter__enable__type').is(':checked')) {
-        filter_values['type'] = {
-            type: $('#filter__type__type').val(),
-            value: $('#filter__value__type').val()
-        }
-    }
-    if ($('#filter__enable__component').is(':checked')) {
-        var filter_val = $('#filter__value__component').val();
-        if (filter_val.length > 0) {
-            filter_values['component'] = {
-                type: $('#filter__type__component').val(),
-                value: filter_val
-            }
-        }
-    }
-    view_values['filters'] = filter_values;
-    return JSON.stringify(view_values);
-}
-
 $(document).ready(function () {
-    var view_type_input = $('#view_type');
-    if (view_type_input.length) {
-        set_actions_for_views(view_type_input.val(), collect_filters_data);
-    }
     activate_tags();
     $('.ui.dropdown').each(function () {
         if (!$(this).hasClass('search')) {
             $(this).dropdown();
         }
     });
-    $('#remove_mark_popup').modal({transition: 'fly up', autofocus: false, closable: false})
-        .modal('attach events', '#show_remove_mark_popup', 'show');
-    $('#cancel_remove_mark').click(function () {
-        $('#remove_mark_popup').modal('hide');
-    });
 
     $('#remove_marks_popup').modal({transition: 'fly up', autofocus: false, closable: false});
+    $('#cancel_remove_marks').click(function () {$('#remove_marks_popup').modal('hide')});
+    $('#show_remove_mark_popup').click(function () {$('#remove_marks_popup').modal('show')});
     $('#show_remove_marks_popup').click(function () {
         var ids_for_del = [];
         $('input[id^="mark_checkbox__"]').each(function () {
@@ -109,9 +40,7 @@ $(document).ready(function () {
             err_notify($('#no_marks_selected').text())
         }
     });
-    $('#cancel_remove_marks').click(function () {
-        $('#remove_marks_popup').modal('hide');
-    });
+
     $('#confirm_remove_marks').click(function () {
         var ids_for_del = [];
         $('input[id^="mark_checkbox__"]').each(function () {
@@ -119,7 +48,7 @@ $(document).ready(function () {
                 ids_for_del.push($(this).attr('id').replace('mark_checkbox__', ''));
             }
         });
-        if (ids_for_del.length == 0) {
+        if (!ids_for_del.length) {
             $('#remove_marks_popup').modal('hide');
             err_notify($('#no_marks_selected').text());
         }
@@ -141,6 +70,31 @@ $(document).ready(function () {
                 }
             });
         }
+    });
+    $('#confirm_remove_mark').click(function () {
+        var mark_type = $('#mark_type').val();
+        $.ajax({
+            url: marks_ajax_url + 'delete/',
+            data: {
+                'type': mark_type,
+                ids: JSON.stringify([$('#mark_pk').val()])
+            },
+            type: 'POST',
+            success: function (data) {
+                if (data.error) {
+                    err_notify(data.error);
+                }
+                else {
+                    var report_id = $('#report_id');
+                    if (report_id.length) {
+                        window.location.replace('/reports/' + mark_type + '/' + report_id.val() + '/');
+                    }
+                    else {
+                        window.location.replace('/marks/' + mark_type + '/');
+                    }
+                }
+            }
+        });
     });
 
     $('#save_new_mark_btn').click(function () {

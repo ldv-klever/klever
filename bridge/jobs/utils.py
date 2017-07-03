@@ -266,8 +266,7 @@ class SaveFileData(object):
         saved_files = {}
         for lvl in self.filedata_by_lvl:
             for lvl_elem in lvl:
-                fs_elem = FileSystem()
-                fs_elem.job = self.job
+                fs_elem = FileSystem(job=self.job)
                 if lvl_elem['parent']:
                     fs_elem.parent = saved_files[lvl_elem['parent']]
                 if lvl_elem['type'] == '1':
@@ -533,7 +532,7 @@ def remove_jobs_by_id(user, job_ids):
                 remove_job_with_children(ch_id)
             del job_struct[j_id]
         if not JobAccess(user, all_jobs[j_id]).can_delete():
-            raise ValueError("You don't have an access to delete one of the childrens")
+            raise BridgeException(_("You don't have an access to delete one of the children"))
         try:
             Notify(all_jobs[j_id], 2)
         except Exception as e:

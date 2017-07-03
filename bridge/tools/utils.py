@@ -15,19 +15,24 @@
 # limitations under the License.
 #
 
+import os
 import json
-from django.db import transaction
-from django.db.models import ProtectedError, F
+
 from django.conf import settings
-from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import ATTR_STATISTIC
-from bridge.utils import BridgeException
+
+from bridge.vars import SAFE_VERDICTS, UNSAFE_VERDICTS
+from bridge.utils import BridgeException, logger
+
+import marks.SafeUtils as SafeUtils
+import marks.UnsafeUtils as UnsafeUtils
+import marks.UnknownUtils as UnknownUtils
+
 from jobs.models import JOBFILE_DIR, JobFile
 from service.models import FILE_DIR, Solution, Task
-from reports.models import *
-from marks.models import *
-from marks.utils import ConnectReportWithMarks, update_unknowns_cache
+from marks.models import CONVERTED_DIR, ConvertedTraces
+from reports.models import ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponentLeaf,\
+    ComponentUnknown, Verdict, ComponentResource, ComponentInstances
 
 
 def objects_without_relations(table):
@@ -39,20 +44,6 @@ def objects_without_relations(table):
             accessor_name = accessor_name[:-4]
         filters[accessor_name] = None
     return table.objects.filter(**filters)
-
-
-def disable_safe_marks_for_job(job):
-    try:
-        root = ReportRoot.objects.get(job=job)
-    except ObjectDoesNotExist:
-        return
-    ReportSafeTag.objects.filter(report__root=root).delete()
-    SafeReportTag.objects.filter(report__root=root).delete()
-    MarkSafeReport.objects.filter(report__root=root).delete()
-    Verdict.objects.filter(report__root=job.reportroot).update(
-        safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
-    )
-    ReportSafe.objects.filter(root=root).update(verdict=SAFE_VERDICTS[4][0])
 
 
 class ClearFiles:
@@ -131,238 +122,28 @@ class RecalculateVerdicts:
         data.upload()
 
 
-class RecalculateUnsafeMarkConnections:
+class RecalculateComponentInstances:
     def __init__(self, roots):
-        self._roots = roots
+        self.roots = roots
         self.__recalc()
 
     def __recalc(self):
-        ReportUnsafeTag.objects.filter(report__root__in=self._roots).delete()
-        UnsafeReportTag.objects.filter(report__root__in=self._roots).delete()
-        MarkUnsafeReport.objects.filter(report__root__in=self._roots).delete()
-        Verdict.objects.filter(report__root__in=self._roots).update(
-            unsafe_bug=0, unsafe_target_bug=0, unsafe_false_positive=0,
-            unsafe_unknown=0, unsafe_inconclusive=0, unsafe_unassociated=F('unsafe')
-        )
-        for unsafe in ReportUnsafe.objects.filter(root__in=self._roots):
-            ConnectReportWithMarks(unsafe)
-
-
-class RecalculateSafeMarkConnections:
-    def __init__(self, roots):
-        self._roots = list(root for root in roots if root.job.safe_marks)
-        self._marks = {}
-        self._safes = {}
-        self._reports = {}
-        self.__clear_caches()
-        self.__get_marks()
-        self.__get_safes()
-        self.__connect_marks()
-        self.__fill_cache()
-
-    def __clear_caches(self):
-        ReportSafeTag.objects.filter(report__root__in=self._roots).delete()
-        SafeReportTag.objects.filter(report__root__in=self._roots).delete()
-        MarkSafeReport.objects.filter(report__root__in=self._roots).delete()
-        ReportSafe.objects.filter(root__in=self._roots).update(verdict=SAFE_VERDICTS[4][0])
-        Verdict.objects.filter(report__root__in=self._roots).update(
-            safe_missed_bug=0, safe_incorrect_proof=0, safe_unknown=0, safe_inconclusive=0, safe_unassociated=F('safe')
-        )
-
-    def __get_marks(self):
-        for mark_id, attr_id, verdict in MarkSafeAttr.objects.filter(is_compare=True)\
-                .values_list('mark_id', 'attr_id', 'mark__verdict'):
-            if mark_id not in self._marks:
-                self._marks[mark_id] = {'attrs': set(), 'tags': set(), 'verdict': verdict}
-            self._marks[mark_id]['attrs'].add(attr_id)
-        for mark_id, tag_id in MarkSafeTag.objects.all().values_list('mark_version__mark_id', 'tag_id'):
-            # Marks without enabled attributes will not be associated
-            if mark_id in self._marks:
-                self._marks[mark_id]['tags'].add(tag_id)
-
-    def __get_safes(self):
-        for safe_id, in ReportSafe.objects.filter(root__in=self._roots).values_list('id'):
-            self._safes[safe_id] = {'attrs': set(), 'marks': set(), 'reports': set()}
-        for safe_id, attr_id in ReportAttr.objects.filter(report__root__in=self._roots, report_id__in=self._safes)\
-                .values_list('report_id', 'attr_id'):
-            self._safes[safe_id]['attrs'].add(attr_id)
-
-        # Fill affected reports
-        verdicts_nums = {}
-        for v in SAFE_VERDICTS:
-            verdicts_nums[v[0]] = 0
-        for report_id, safe_id in ReportComponentLeaf.objects.filter(safe_id__in=self._safes)\
-                .values_list('report_id', 'safe_id'):
-            self._safes[safe_id]['reports'].add(report_id)
-            if report_id not in self._reports:
-                self._reports[report_id] = {'safes': set()}
-            self._reports[report_id]['safes'].add(safe_id)
-
-    def __connect_marks(self):
-        for safe_id in self._safes:
-            for mark_id in self._marks:
-                if self._marks[mark_id]['attrs'].issubset(self._safes[safe_id]['attrs']):
-                    self._safes[safe_id]['marks'].add(mark_id)
-            # We don't need safe attributes already
-            del self._safes[safe_id]['attrs']
-        for mark_id in self._marks:
-            # We don't need mark attributes already
-            del self._marks[mark_id]['attrs']
-
-    def __fill_cache(self):
-        safe_tag_cache = {}
-        report_tag_cache = {}
-        new_markreports = []
-        for safe_id in self._safes:
-            new_verdict = SAFE_VERDICTS[4][0]
-            for mark_id in self._safes[safe_id]['marks']:
-                new_markreports.append(MarkSafeReport(mark_id=mark_id, report_id=safe_id))
-                if new_verdict != SAFE_VERDICTS[4][0] and new_verdict != self._marks[mark_id]['verdict']:
-                    new_verdict = SAFE_VERDICTS[3][0]
-                    break
-                else:
-                    new_verdict = self._marks[mark_id]['verdict']
-                for tag_id in self._marks[mark_id]['tags']:
-                    if (safe_id, tag_id) not in safe_tag_cache:
-                        safe_tag_cache[(safe_id, tag_id)] = \
-                            SafeReportTag(report_id=safe_id, tag_id=tag_id, number=0)
-                    safe_tag_cache[(safe_id, tag_id)].number += 1
-                    for report_id in self._safes[safe_id]['reports']:
-                        if (report_id, tag_id) not in report_tag_cache:
-                            report_tag_cache[(report_id, tag_id)] = \
-                                ReportSafeTag(report_id=report_id, tag_id=tag_id, number=0)
-                        report_tag_cache[(report_id, tag_id)].number += 1
-            self._safes[safe_id]['verdict'] = new_verdict
-        MarkSafeReport.objects.bulk_create(new_markreports)
-        SafeReportTag.objects.bulk_create(safe_tag_cache.values())
-        ReportSafeTag.objects.bulk_create(report_tag_cache.values())
-        self.__update_safe_verdicts()
-
-        for report_id in self._reports:
-            for safe_id in self._reports[report_id]['safes']:
-                safe_verdict = self._safes[safe_id]['verdict']
-                if safe_verdict not in self._reports[report_id]:
-                    self._reports[report_id][safe_verdict] = 1
-                else:
-                    self._reports[report_id][safe_verdict] += 1
-            # We need just verdicts statistic
-            del self._reports[report_id]['safes']
-        self.__update_verdicts()
-
-    def __update_safe_verdicts(self):
-        safes_by_verdict = {}
-        for safe_id in self._safes:
-            if self._safes[safe_id]['verdict'] not in safes_by_verdict:
-                safes_by_verdict[self._safes[safe_id]['verdict']] = set()
-            safes_by_verdict[self._safes[safe_id]['verdict']].add(safe_id)
-        for verdict in safes_by_verdict:
-            ReportSafe.objects.filter(id__in=safes_by_verdict[verdict]).update(verdict=verdict)
-
-    @transaction.atomic
-    def __update_verdicts(self):
-        for verdict in Verdict.objects.filter(report_id__in=self._reports):
-            verdict.safe_unknown = self._reports[verdict.report_id].get(SAFE_VERDICTS[0][0], 0)
-            verdict.safe_incorrect_proof = self._reports[verdict.report_id].get(SAFE_VERDICTS[1][0], 0)
-            verdict.safe_missed_bug = self._reports[verdict.report_id].get(SAFE_VERDICTS[2][0], 0)
-            verdict.safe_inconclusive = self._reports[verdict.report_id].get(SAFE_VERDICTS[3][0], 0)
-            verdict.safe_unassociated = self._reports[verdict.report_id].get(SAFE_VERDICTS[4][0], 0)
-            verdict.save()
-
-
-class RecalculateUnknownMarkConnections:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__recalc()
-        for problem in UnknownProblem.objects.all():
-            try:
-                problem.delete()
-            except ProtectedError:
-                pass
-
-    def __recalc(self):
-        MarkUnknownReport.objects.filter(report__root__in=self._roots).delete()
-        ComponentMarkUnknownProblem.objects.filter(report__root__in=self._roots).delete()
-        for unknown in ReportUnknown.objects.filter(root__in=self._roots):
-            ConnectReportWithMarks(unknown, False)
-        update_unknowns_cache(ReportUnknown.objects.filter(root__in=self._roots))
-
-
-class RecalculateAttrStatistic:
-    def __init__(self, roots):
-        self._roots = roots
-        self.__recalc()
-
-    def __recalc(self):
-        AttrStatistic.objects.filter(report__root__in=self._roots).delete()
-        attrs_data = []
-        for j_type in ATTR_STATISTIC:
-            root_ids = [root.id for root in self._roots if root.job.type == j_type]
-            if len(root_ids) == 0:
-                continue
-            attr_names = set(a['id'] for a in AttrName.objects.filter(name__in=ATTR_STATISTIC[j_type]).values('id'))
-
-            safes = {}
-            unsafes = {}
-            unknowns = {}
-            for leaf in ReportComponentLeaf.objects.filter(report__root_id__in=root_ids):
-                if leaf.safe_id is not None:
-                    if leaf.safe_id not in safes:
-                        safes[leaf.safe_id] = set()
-                    safes[leaf.safe_id].add(leaf.report_id)
-                elif leaf.unsafe_id is not None:
-                    if leaf.unsafe_id not in unsafes:
-                        unsafes[leaf.unsafe_id] = set()
-                    unsafes[leaf.unsafe_id].add(leaf.report_id)
-                elif leaf.unknown_id is not None:
-                    if leaf.unknown_id not in unknowns:
-                        unknowns[leaf.unknown_id] = set()
-                    unknowns[leaf.unknown_id].add(leaf.report_id)
-
-            report_attrs = {}
-            for ra in ReportAttr.objects.filter(report_id__in=safes, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('s', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unsafes, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('u', ra[0], ra[1])] = ra[2]
-            for ra in ReportAttr.objects.filter(report_id__in=unknowns, attr__name_id__in=attr_names) \
-                    .values_list('report_id', 'attr__name_id', 'attr_id'):
-                report_attrs[('f', ra[0], ra[1])] = ra[2]
-
-            for r_id in list(r[0] for r in ReportComponent.objects.filter(root_id__in=root_ids).values_list('id')):
-                for n_id in attr_names:
-                    safes_num = {}
-                    unsafes_num = {}
-                    unknowns_num = {}
-                    for s_id in safes:
-                        if r_id not in safes[s_id]:
-                            continue
-                        a_id = report_attrs.get(('s', s_id, n_id), None)
-                        if a_id not in safes_num:
-                            safes_num[a_id] = 0
-                        safes_num[a_id] += 1
-                    for u_id in unsafes:
-                        if r_id not in unsafes[u_id]:
-                            continue
-                        a_id = report_attrs.get(('u', u_id, n_id), None)
-                        if a_id not in unsafes_num:
-                            unsafes_num[a_id] = 0
-                        unsafes_num[a_id] += 1
-                    for f_id in unknowns:
-                        if r_id not in unknowns[f_id]:
-                            continue
-                        a_id = report_attrs.get(('f', f_id, n_id), None)
-                        if a_id not in unknowns_num:
-                            unknowns_num[a_id] = 0
-                        unknowns_num[a_id] += 1
-                    for a_id in set(safes_num) | set(unsafes_num) | set(unknowns_num):
-                        attrs_data.append(AttrStatistic(
-                            report_id=r_id, attr_id=a_id, name_id=n_id,
-                            safes=safes_num.get(a_id, 0),
-                            unsafes=unsafes_num.get(a_id, 0),
-                            unknowns=unknowns_num.get(a_id, 0)
-                        ))
-        AttrStatistic.objects.bulk_create(attrs_data)
+        report_parents = {}
+        inst_cache = {}
+        for report in ReportComponent.objects.filter(root__in=self.roots).order_by('id'):
+            parent_id = report.parent_id
+            report_parents[report.id] = parent_id
+            cache_id = (report.id, report.component_id)
+            inst_cache[cache_id] = ComponentInstances(report=report, component=report.component, total=1)
+            while parent_id is not None:
+                cache_id = (parent_id, report.component_id)
+                if cache_id not in inst_cache:
+                    inst_cache[cache_id] = ComponentInstances(report_id=parent_id, component=report.component)
+                inst_cache[cache_id].total += 1
+                if parent_id not in report_parents:
+                    raise ValueError('Unknown parent found')
+                parent_id = report_parents[parent_id]
+        ComponentInstances.objects.bulk_create(list(inst_cache.values()))
 
 
 class Recalculation:
@@ -389,23 +170,23 @@ class Recalculation:
         elif self.type == 'leaves':
             RecalculateLeaves(self._roots)
         elif self.type == 'unsafe':
-            RecalculateUnsafeMarkConnections(self._roots)
+            UnsafeUtils.RecalculateConnections(self._roots)
         elif self.type == 'safe':
-            RecalculateSafeMarkConnections(self._roots)
+            SafeUtils.RecalculateConnections(self._roots)
         elif self.type == 'unknown':
-            RecalculateUnknownMarkConnections(self._roots)
+            UnknownUtils.RecalculateConnections(self._roots)
         elif self.type == 'resources':
             RecalculateResources(self._roots)
-        elif self.type == 'attrs_stat':
-            RecalculateAttrStatistic(self._roots)
+        elif self.type == 'compinst':
+            RecalculateComponentInstances(self._roots)
         elif self.type == 'all':
             RecalculateLeaves(self._roots)
-            RecalculateUnsafeMarkConnections(self._roots)
-            RecalculateSafeMarkConnections(self._roots)
-            RecalculateUnknownMarkConnections(self._roots)
+            UnsafeUtils.RecalculateConnections(self._roots)
+            SafeUtils.RecalculateConnections(self._roots)
+            UnknownUtils.RecalculateConnections(self._roots)
             RecalculateVerdicts(self._roots)
             RecalculateResources(self._roots)
-            RecalculateAttrStatistic(self._roots)
+            RecalculateComponentInstances(self._roots)
         else:
             logger.error('Wrong type of recalculation')
             raise BridgeException()

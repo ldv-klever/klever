@@ -17,13 +17,23 @@
 
 import json
 from io import BytesIO
+
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
-from bridge.vars import REPORT_FILES_ARCHIVE, ATTR_STATISTIC, JOB_WEIGHT, JOB_STATUS
-from marks.utils import ConnectReportWithMarks
-from service.utils import FinishJobDecision, KleverCoreStartDecision
+from django.db.models import Q, F
+from django.utils.timezone import now
+
+from bridge.vars import REPORT_FILES_ARCHIVE, JOB_WEIGHT, JOB_STATUS
+from bridge.utils import logger
+
+import marks.SafeUtils as SafeUtils
+import marks.UnsafeUtils as UnsafeUtils
+import marks.UnknownUtils as UnknownUtils
+
+from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
+    Component, ComponentUnknown, ComponentResource, ReportAttr, LightResource, TasksNumbers, ReportComponentLeaf,\
+    Computer, ComponentInstances
 from reports.utils import AttrData
-from reports.models import *
+from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
 
 
@@ -273,6 +283,15 @@ class UploadReport:
                 self.__update_parent_resources(report)
             else:
                 self.__update_light_resources(report)
+        for parent in self._parents_branch:
+            try:
+                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report=parent, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+        ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
 
     def __update_attrs(self, identifier):
         try:
@@ -358,6 +377,11 @@ class UploadReport:
                 and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
 
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
+
     def __finish_verification_report(self, identifier):
         try:
             report = ReportComponent.objects.get(identifier=identifier)
@@ -372,6 +396,11 @@ class UploadReport:
                 report.parent = self._parents_branch[0]
             report.finish_date = now()
             report.save()
+
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
 
     def __create_report_unknown(self, identifier):
         try:
@@ -434,13 +463,16 @@ class UploadReport:
 
         if self.data['type'] == 'unknown':
             self.__fill_unknown_cache(leaf)
+            UnknownUtils.ConnectReport(leaf)
         elif self.data['type'] == 'unsafe':
             self.__fill_unsafe_cache(leaf)
+            UnsafeUtils.ConnectReport(leaf)
+            UnsafeUtils.RecalculateTags([leaf])
         elif self.data['type'] == 'safe':
             self.__fill_safe_cache(leaf)
-        self.__fill_attrs_statistic(leaf)
-        if self.data['type'] != 'safe' or self.job.safe_marks:
-            ConnectReportWithMarks(leaf)
+            if self.job.safe_marks:
+                SafeUtils.ConnectReport(leaf)
+                SafeUtils.RecalculateTags([leaf])
 
     def __cut_reports_branch(self, leaf):
         # Just Core report
@@ -478,26 +510,6 @@ class UploadReport:
             verdict.unsafe_unassociated += 1
             verdict.save()
             ReportComponentLeaf.objects.create(report=p, unsafe=unsafe)
-
-    def __fill_attrs_statistic(self, leaf):
-        report_attrs = []
-        if self.job.type in ATTR_STATISTIC:
-            for a in ReportAttr.objects.filter(report=leaf).values('attr__name__name', 'attr__name_id', 'attr_id'):
-                if a['attr__name__name'] in ATTR_STATISTIC[self.job.type]:
-                    report_attrs.append((a['attr__name_id'], a['attr_id']))
-        if self.data['type'] == 'unknown':
-            optname = 'unknowns'
-        elif self.data['type'] == 'unsafe':
-            optname = 'unsafes'
-        elif self.data['type'] == 'safe':
-            optname = 'safes'
-        else:
-            return
-        for p in self._parents_branch:
-            for ra in report_attrs:
-                attr_stat = AttrStatistic.objects.get_or_create(report=p, name_id=ra[0], attr_id=ra[1])[0]
-                setattr(attr_stat, optname, getattr(attr_stat, optname) + 1)
-                attr_stat.save()
 
     def __update_parent_resources(self, report):
 
@@ -558,16 +570,19 @@ class UploadReport:
         attr_data = []
         if isinstance(val, list):
             for v in val:
-                if isinstance(v, dict):
-                    nextname = next(iter(v))
-                    for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
-                        if len(name) == 0:
-                            new_id = n[0]
-                        else:
-                            new_id = "%s:%s" % (name, n[0])
-                        attr_data.append((new_id, n[1]))
+                if not isinstance(v, dict) or len(v) != 1:
+                    raise ValueError('Wrong format of report attribute')
+                nextname = next(iter(v))
+                for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
+                    if len(name) == 0:
+                        new_id = n[0]
+                    else:
+                        new_id = "%s:%s" % (name, n[0])
+                    attr_data.append((new_id, n[1]))
         elif isinstance(val, str):
             attr_data = [(name, val)]
+        else:
+            raise ValueError('Wrong format of report attributes')
         return attr_data
 
     def __save_attrs(self, report_id, attrs):

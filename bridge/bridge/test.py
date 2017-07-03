@@ -78,11 +78,11 @@ class TestPopulation(KleverTestCase):
         self.assertEqual(Extended.objects.filter(user__username='service', role=USER_ROLES[4][0]).count(), 1)
 
         # Testing populated unknown marks
-        number_of_preset_marks = 0
-        for comp_dir in os.listdir(os.path.join(BASE_DIR, 'marks', 'presets')):
-            if os.path.isdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)):
-                number_of_preset_marks += len(os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', comp_dir)))
-        self.assertEqual(MarkUnknown.objects.count(), number_of_preset_marks)
+        num_of_preset_marks = 0
+        for comp_dir in os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns')):
+            if os.path.isdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)):
+                num_of_preset_marks += len(os.listdir(os.path.join(BASE_DIR, 'marks', 'presets', 'unknowns', comp_dir)))
+        self.assertEqual(MarkUnknown.objects.count(), num_of_preset_marks)
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[0][0]).count(), 1)
         self.assertEqual(Scheduler.objects.filter(type=SCHEDULER_TYPE[1][0]).count(), 1)
 

@@ -16,20 +16,30 @@
 #
 
 import os
+import json
 import mimetypes
-from wsgiref.util import FileWrapper
 from urllib.parse import quote
+from wsgiref.util import FileWrapper
+
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q
 from django.http import JsonResponse, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.translation import activate
 
 from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, TASK_STATUS, PRIORITY, JOB_STATUS
+from bridge.utils import logger
 
+from jobs.models import Job
+from reports.models import ReportRoot, TaskStatistic
+from service.models import Scheduler, SolvingProgress, Task, VerificationTool, NodesConfiguration, SchedulerUser,\
+    Workload
+
+import service.utils
+from jobs.utils import change_job_status
 from service.test import TEST_NODES_DATA, TEST_TOOLS_DATA, TEST_JSON
-from service.utils import *
 
 
 @unparallel_group([SolvingProgress])
@@ -50,7 +60,7 @@ def schedule_task(request):
     if archive is None:
         return JsonResponse({'error': 'The task archive was not got'})
     try:
-        res = ScheduleTask(request.session['job id'], request.POST['description'], archive)
+        res = service.utils.ScheduleTask(request.session['job id'], request.POST['description'], archive)
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -68,7 +78,7 @@ def get_task_status(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
-        res = GetTaskStatus(request.POST['task id'])
+        res = service.utils.GetTaskStatus(request.POST['task id'])
     except Exception as e:
         return JsonResponse({'error': str(e)})
     return JsonResponse({'task status': res.status})
@@ -86,7 +96,7 @@ def download_solution(request):
         return JsonResponse({'error': 'Task identifier is not specified'})
 
     try:
-        res = GetSolution(request.POST['task id'])
+        res = service.utils.GetSolution(request.POST['task id'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -110,7 +120,7 @@ def remove_task(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
-        RemoveTask(request.POST['task id'])
+        service.utils.RemoveTask(request.POST['task id'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -128,7 +138,7 @@ def cancel_task(request):
     if 'task id' not in request.POST:
         return JsonResponse({'error': 'Task identifier is not specified'})
     try:
-        CancelTask(request.POST['task id'])
+        service.utils.CancelTask(request.POST['task id'])
     except Exception as e:
         return JsonResponse({'error': str(e)})
     return JsonResponse({})
@@ -147,8 +157,9 @@ def get_jobs_and_tasks(request):
     if 'jobs and tasks status' not in request.POST:
         return JsonResponse({'error': 'Tasks data is required'})
     try:
-        jobs_and_tasks = GetTasks(request.session['scheduler'], request.POST['jobs and tasks status']).newtasks
-    except ServiceError as e:
+        jobs_and_tasks = service.utils.GetTasks(
+            request.session['scheduler'], request.POST['jobs and tasks status']).newtasks
+    except service.utils.ServiceError as e:
         # TODO: email notification
         return JsonResponse({'error': str(e)})
     except Exception as e:
@@ -169,7 +180,7 @@ def download_task(request):
         return JsonResponse({'error': 'Task identifier is not specified'})
 
     try:
-        res = GetTaskData(request.POST['task id'])
+        res = service.utils.GetTaskData(request.POST['task id'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -200,7 +211,7 @@ def upload_solution(request):
     if archive is None:
         return JsonResponse({'error': 'The solution archive was not got'})
     try:
-        SaveSolution(request.POST['task id'], archive, request.POST['description'])
+        service.utils.SaveSolution(request.POST['task id'], archive, request.POST['description'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -219,7 +230,7 @@ def update_nodes(request):
         return JsonResponse({'error': 'Nodes data is not specified'})
 
     try:
-        SetNodes(request.POST['nodes data'])
+        service.utils.SetNodes(request.POST['nodes data'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -239,7 +250,7 @@ def update_tools(request):
     if 'tools data' not in request.POST:
         return JsonResponse({'error': 'Tools data is not specified'})
     try:
-        UpdateTools(request.session['scheduler'], request.POST['tools data'])
+        service.utils.UpdateTools(request.session['scheduler'], request.POST['tools data'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -257,7 +268,7 @@ def set_schedulers_status(request):
     if 'statuses' not in request.POST:
         return JsonResponse({'error': 'Statuses were not got'})
     try:
-        SetSchedulersStatus(request.POST['statuses'])
+        service.utils.SetSchedulersStatus(request.POST['statuses'])
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(e)})
@@ -268,7 +279,9 @@ def set_schedulers_status(request):
 @unparallel_group([NodesConfiguration, Workload])
 def schedulers_info(request):
     activate(request.user.extended.language)
-    return render(request, 'service/scheduler.html', {'schedulers': Scheduler.objects.all(), 'data': NodesData()})
+    return render(request, 'service/scheduler.html', {
+        'schedulers': Scheduler.objects.all(), 'data': service.utils.NodesData()
+    })
 
 
 @login_required

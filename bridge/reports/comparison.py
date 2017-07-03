@@ -17,15 +17,22 @@
 
 import re
 import json
+
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
 from django.db.models import Count
 from django.utils.translation import ugettext_lazy as _
-from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS
+
+from bridge.vars import JOB_STATUS, JOBS_COMPARE_ATTRS, COMPARE_VERDICT
 from bridge.utils import BridgeException
-from jobs.utils import JobAccess, CompareFileSet
-from reports.models import *
+
+from users.models import User
+from jobs.models import Job
+from reports.models import AttrName, Attr, ReportAttr, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
+    ReportComponentLeaf, CompareJobsInfo, CompareJobsCache
 from marks.models import MarkUnsafeReport, MarkSafeReport, MarkUnknownReport
+
+from jobs.utils import JobAccess, CompareFileSet
 from marks.tables import UNSAFE_COLOR, SAFE_COLOR
 
 
@@ -368,22 +375,21 @@ class ComparisonData:
                     branch_data[cnt].append(
                         get_block[rdata[0]][0](rdata[1], parent)
                     )
-                    if self.v1 == self.v2:
-                        cnt += 1
-                        for b in get_block[rdata[0]][1](rdata[1]):
-                            if cnt not in branch_data:
-                                branch_data[cnt] = []
-                            if b.id not in list(x.id for x in branch_data[cnt]):
-                                branch_data[cnt].append(b)
-                            else:
-                                for i in range(len(branch_data[cnt])):
-                                    if b.id == branch_data[cnt][i].id:
-                                        if rdata[0] == 'f' \
-                                                and b.add_info[0]['value'] != branch_data[cnt][i].add_info[0]['value']:
-                                            branch_data[cnt].append(b)
-                                        else:
-                                            branch_data[cnt][i].parents.extend(b.parents)
-                                        break
+                    cnt += 1
+                    for b in get_block[rdata[0]][1](rdata[1]):
+                        if cnt not in branch_data:
+                            branch_data[cnt] = []
+                        if b.id not in list(x.id for x in branch_data[cnt]):
+                            branch_data[cnt].append(b)
+                        else:
+                            for i in range(len(branch_data[cnt])):
+                                if b.id == branch_data[cnt][i].id:
+                                    if rdata[0] == 'f' \
+                                            and b.add_info[0]['value'] != branch_data[cnt][i].add_info[0]['value']:
+                                        branch_data[cnt].append(b)
+                                    else:
+                                        branch_data[cnt][i].parents.extend(b.parents)
+                                    break
                     break
                 parent = rdata[1]
                 cnt += 1
@@ -464,7 +470,8 @@ class ComparisonData:
     def __unsafe_mark_data(self, report_id):
         self.__is_not_used()
         blocks = []
-        for mark in MarkUnsafeReport.objects.filter(report_id=report_id).select_related('mark'):
+        for mark in MarkUnsafeReport.objects.filter(report_id=report_id, result__gt=0, type__in='01')\
+                .select_related('mark'):
             block = CompareBlock('um_%s' % mark.mark_id, 'm', _('Unsafes mark'))
             block.parents.append('u_%s' % report_id)
             block.add_info = {'value': mark.mark.get_verdict_display(), 'color': UNSAFE_COLOR[mark.mark.verdict]}

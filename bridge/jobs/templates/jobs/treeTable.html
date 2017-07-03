@@ -4,7 +4,7 @@
 
 {% if TableData.values|length %}
     {% timezone user.extended.timezone %}
-    <table class="ui celled striped compact teal table tree">
+    <table class="ui celled striped compact selectable teal table tree alternate-color">
         <thead>
             {% for column_row in TableData.header %}
                 <tr>
