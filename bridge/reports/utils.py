@@ -87,7 +87,8 @@ def get_parents(report):
         parents_data.insert(0, {
             'title': parent.component.name,
             'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
-            'attrs': parent_attrs
+            'attrs': parent_attrs,
+            'coverage': parent.coverage
         })
         try:
             parent = ReportComponent.objects.get(id=parent.parent_id)

@@ -816,10 +816,28 @@ def coverage_page(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        coverage = GetCoverage(report_id)
+        coverage = GetCoverage(request.user, report_id)
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
     return render(request, 'reports/coverage.html', {'coverage': coverage})
+
+
+@unparallel_group([reports.models.Report])
+def get_coverage_src(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST' or 'report_id' not in request.POST or 'filename' not in request.POST:
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+
+    try:
+        coverage = GetCoverage(request.user, request.POST['report_id'])
+        file_content = coverage.get_file_content(request.POST['filename'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'content': file_content})

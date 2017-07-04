@@ -747,8 +747,9 @@ class DecideJobs(object):
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
-        if random.randint(1, 10) > 4:
-            with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
+        if random.randint(1, 10) > 0:
+            with open(os.path.join(ARCHIVE_PATH, 'coverage_full.zip'), mode='rb') as fp:
+                report['coverage'] = 'coverage.json'
                 self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         else:
             report['log'] = None

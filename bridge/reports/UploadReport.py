@@ -140,6 +140,8 @@ class UploadReport:
                 self.data['comp'] = data['comp']
             if 'log' in data:
                 self.data['log'] = data['log']
+            if 'coverage' in data:
+                self.data['coverage'] = data['coverage']
         elif data['type'] == 'verification finish':
             pass
         elif data['type'] == 'safe':
@@ -272,6 +274,7 @@ class UploadReport:
                 (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
+            report.coverage = self.data.get('coverage')
 
         report.save()
 

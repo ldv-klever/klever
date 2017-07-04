@@ -1,0 +1,36 @@
+#CoverageSRCContent {
+    left: 0;
+    bottom: 0;
+    line-height: normal;
+    font-size: 12px;
+    border-top: 1px solid #ca8f1d;
+}
+
+.COVComment {
+    color: #b1b4b7;
+}
+
+.COVNumber {
+    color: #3bbbbc;
+}
+
+.COVSrcL {
+    position: relative;
+    background-color: #d7f0f0;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.COVText {
+    color: #20d467;
+}
+
+.COVKey1 {
+    color: #1f984c;
+    font-weight: bold;
+}
+
+.COVKey2 {
+    color: #291fbf;
+    font-weight: bold;
+}

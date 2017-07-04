@@ -1,16 +1,79 @@
+{% extends 'reports/base.html' %}
 {% load i18n %}
 
 {% load staticfiles %}
 
 {% block title %}{% trans 'Coverage' %}{% endblock %}
 
+{% block head_block %}
+    <script type="text/javascript" src="{% static 'reports/js/coverage.js' %}"></script>
+    <link href="{% static 'reports/css/coverage.css' %}" rel="stylesheet">
+{% endblock %}
+
 {% block body_block %}
-    <h1>Hi</h1>
-    {% if coverage.type == 'safe' %}
-        <a href="{% url 'reports:safe' coverage.report.id %}">Report</a>
-    {% elif coverage.type == 'unsafe' %}
-        <a href="{% url 'reports:unsafe' coverage.report.id %}">Report</a>
-    {% elif coverage.type == 'unknown' %}
-        <a href="{% url 'reports:unknown' coverage.report.id %}">Report</a>
-    {% endif %}
+    <div class="ui grid">
+        <div class="five wide column">
+            <span class="purple-title">{% trans 'Job' %}: </span>
+            <a href="{% url 'jobs:job' coverage.job.id %}">{{ coverage.job.name }}</a>
+        </div>
+        <div class="four wide column">
+            {% if coverage.type == 'safe' %}
+                <a href="{% url 'reports:safe' coverage.report.id %}">{% trans 'Safe report' %}</a>
+            {% elif coverage.type == 'unsafe' %}
+                <a href="{% url 'reports:unsafe' coverage.report.id %}">{% trans 'Unsafe report' %}</a>
+            {% elif coverage.type == 'unknown' %}
+                <a href="{% url 'reports:unknown' coverage.report.id %}">{% trans 'Unknown report' %}</a>
+            {% endif %}
+        </div>
+        <div class="six wide column">
+            <div class="ui breadcrumb">
+                <a class="section parent-popup" href="{{ coverage.parents.0.href }}" data-variation="very wide">{{ coverage.parents.0.title }}</a>
+                <div class="ui special popup">
+                    <div class="header">{{ coverage.parents.0.title }}</div>
+                    <div class="content">
+                        {% for attr in coverage.parents.0.attrs %}
+                            <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br><br>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% for parent in coverage.parents|slice:"1:" %}
+                    <i class="right arrow icon divider"></i>
+                    <a class="section parent-popup" href="{{ parent.href }}" data-variation="very wide">{{ parent.title }}</a>
+                    <div class="ui special popup">
+                        <div class="header">{{ parent.title }}</div>
+                        <div class="content">
+                            {% for attr in parent.attrs %}
+                                <span class="purple-subtitle">{{ attr.0 }}: </span>{{ attr.1|safe }}<br>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="one wide column right aligned">
+            <div class="ui mini buttons">
+                <button class="ui icon basic button note-popup" data-content="{% trans 'Download coverage' %}"><i class="download icon"></i></button>
+                <a class="ui icon basic button" href="{% url 'reports:coverage' coverage.report.pk %}"><i class="maximize icon"></i></a>
+            </div>
+        </div>
+    </div>
+    <div id="files_tree" class="ui floating labeled yellow icon dropdown button">{{ coverage.files_tree|safe }}</div>
+    <br><br>
+    <div class="ui grid">
+        <div class="ten wide column">
+            <div class="ui yellow segment">
+                <div style="height: 5vh;overflow-x: auto">
+                    <h5 id="selected_file_name"></h5>
+                </div>
+                <div id="CoverageSRCContent" class="filecontent" style="height: 60vh;overflow-x: auto"></div>
+            </div>
+        </div>
+        <div class="six wide column">
+            <div class="ui violet segment">
+                <div style="height: 5vh;overflow-x: auto"></div>
+                <div id="data_content" class="filecontent" style="height: 60vh;overflow-x: auto"></div>
+            </div>
+        </div>
+    </div>
+    <input id="report_id" value="{{ coverage.report.id }}" type="hidden">
 {% endblock %}

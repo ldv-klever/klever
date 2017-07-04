@@ -112,6 +112,7 @@ class ReportComponent(Report):
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
     log = models.CharField(max_length=128, null=True)
+    coverage = models.CharField(max_length=128, null=True)
     archive = models.FileField(upload_to=get_component_path, null=True)
     data = models.FileField(upload_to=get_component_path, null=True)
 
