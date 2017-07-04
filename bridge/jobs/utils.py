@@ -186,8 +186,11 @@ class JobAccess(object):
             return False
         if not (self.__is_author or self.__is_manager):
             return False
-        return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
-            .exclude(archive='').count() > 0
+        try:
+            return ReportComponent.objects.filter(root=self.job.reportroot, verification=True)\
+                .exclude(archive='').count() > 0
+        except ObjectDoesNotExist:
+            return False
 
     def can_dfc(self):
         return self.job is not None and self.job.status not in [JOB_STATUS[0][0], JOB_STATUS[1][0]]
