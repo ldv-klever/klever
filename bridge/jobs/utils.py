@@ -178,11 +178,11 @@ class JobAccess(object):
     def can_collapse(self):
         if self.job is None:
             return False
-        return self.job.status == JOB_STATUS[3][0] and (self.__is_author or self.__is_manager) \
-            and self.job.weight == JOB_WEIGHT[0][0]
+        return self.job.status not in {JOB_STATUS[1][0], JOB_STATUS[2][0]} \
+            and (self.__is_author or self.__is_manager) and self.job.weight == JOB_WEIGHT[0][0]
 
     def can_clear_verifications(self):
-        if self.job is None or self.job.status not in {JOB_STATUS[3][0], JOB_STATUS[4][0]}:
+        if self.job is None or self.job.status in {JOB_STATUS[1][0], JOB_STATUS[2][0]}:
             return False
         if not (self.__is_author or self.__is_manager):
             return False
