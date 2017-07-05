@@ -31,7 +31,8 @@ class Manual(AbstractStrategy):
             for module_list in value:
                 if type(module_list) not in (tuple, list):
                     raise ValueError('You should specify list of lists for modules in manual strategy\n'
-                                     'For example "{0}: [[{1}]]" instead of "{0}: [{1}]"'.format(key, module_list))
+                                     'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key.replace('.o', '.ko'),
+                                                                                             value))
                 self.groups[key].append([re.subn('.ko$', '.o', module)[0] for module in module_list])
 
     def divide(self, module_name):
