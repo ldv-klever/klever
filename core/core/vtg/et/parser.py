@@ -27,12 +27,23 @@ class ErrorTraceParser:
         # Start parsing
         self.error_trace = ErrorTrace(logger)
         self._parse_witness(witness)
-        self._sanity_checks()
+        self._check_given_files()
+        self.error_trace.sanity_checks()
 
-    def _sanity_checks(self):
+    def _check_given_files(self):
+        last_used_file = None
         for edge in self.error_trace.trace_iterator():
-            if len(edge['target node']['out']) > 1:
-                raise ValueError('Witness contains branching which is not supported')
+            if 'file' in edge and edge['file'] is not None:
+                last_used_file = edge['file']
+            elif ('file' not in edge or edge['file'] is None) and last_used_file:
+                edge['file'] = last_used_file
+            else:
+                self._logger.warning("Cannot determine file for edge: '{}: {}'".
+                                     format(edge['start line'], edge['source']))
+                # We cannot predict the file and have to delete it
+                if 'enter' in edge or 'return' in edge:
+                    raise ValueError('sdfasd')
+                self.error_trace.remove_edge_and_target_node(edge)
 
     def _parse_witness(self, witness):
         self._logger.info('Parse witness {!r}'.format(witness))
@@ -41,11 +52,6 @@ class ErrorTraceParser:
             tree = ET.parse(fp)
 
         root = tree.getroot()
-
-        # Parse default file.
-        for key in root.findall('graphml:key', self.WITNESS_NS):
-            if key.attrib['id'] == 'originfile':
-                self.error_trace.add_file(key.find('graphml:default', self.WITNESS_NS).text)
 
         graph = root.find('graphml:graph', self.WITNESS_NS)
 
@@ -123,8 +129,11 @@ class ErrorTraceParser:
             for data in edge.findall('graphml:data', self.WITNESS_NS):
                 data_key = data.attrib['key']
                 if data_key == 'originfile':
-                    identifier = self.error_trace.add_file(data.text)
-                    _edge['file'] = identifier
+                    try:
+                        identifier = self.error_trace.add_file(data.text)
+                        _edge['file'] = identifier
+                    except FileNotFoundError:
+                        _edge['file'] = None
                 elif data_key == 'startline':
                     _edge['start line'] = int(data.text)
                 elif data_key == 'endline':
@@ -143,7 +152,7 @@ class ErrorTraceParser:
                     _edge['condition'] = True
                 elif data_key == 'assumption':
                     _edge['assumption'] = data.text
-                elif data_key == 'thread':
+                elif data_key == 'threadId':
                     _edge['thread'] = data.text
                 elif data_key in ('startoffset', 'endoffset'):
                     pass
@@ -153,8 +162,6 @@ class ErrorTraceParser:
                     self._logger.warning('Edge data key {!r} is not supported'.format(data_key))
                     unsupported_edge_data_keys[data_key] = None
 
-            if 'file' not in _edge:
-                _edge['file'] = 0
             edges_num += 1
 
         self._logger.debug('Parse {0} edges and {1} sink edges'.format(edges_num, sink_edges_num))
