@@ -221,7 +221,18 @@ def dir_size(dir):
     """
     if not os.path.isdir(dir):
         raise ValueError('Expect existing directory but it is not: {}'.format(dir))
-    return int(get_output('du -bs {} | cut -f1'.format(dir)))
+    output = get_output('du -bs {} | cut -f1'.format(dir))
+    try:
+        res = int(output)
+    except ValueError as e:
+        # One of the files inside the dir has been removed. We should delete warning messgae.
+        splts = output.split('\n')
+        if len(splts < 2):
+            # Can not delete warning message
+            raise e
+        else:
+            res = int(splts[-1])
+    return res
 
 
 def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
