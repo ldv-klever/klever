@@ -389,6 +389,9 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__get_virtual_cores(int(node_status["available CPU number"]),
                                      int(node_status["reserved CPU number"]),
                                      int(configuration["resource limits"]["number of CPU cores"]))
+        if mode != "task":
+            client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                len(client_conf["resource limits"]["CPU cores"])
 
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
