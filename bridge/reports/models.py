@@ -296,3 +296,10 @@ class TaskStatistic(models.Model):
 
     class Meta:
         db_table = 'cache_report_task_statistic'
+
+
+class ComponentInstances(models.Model):
+    report = models.ForeignKey(ReportComponent)
+    component = models.ForeignKey(Component)
+    in_progress = models.PositiveIntegerField(default=0)
+    total = models.PositiveIntegerField(default=0)

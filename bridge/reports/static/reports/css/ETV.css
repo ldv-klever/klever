@@ -50,8 +50,10 @@
     overflow-x: auto;
     overflow-y: auto;
 }
-#ETVTitleBlock {
+.ETVTitleBlock {
     height: 50px;
+    white-space: nowrap;
+    overflow-x: hidden;
 }
 
 #etv {

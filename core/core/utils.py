@@ -258,13 +258,18 @@ def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
     return output
 
 
-# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
-def find_file_or_dir(logger, main_work_dir, file_or_dir):
+def get_search_dirs(main_work_dir):
     search_dirs = ['job/root', os.path.pardir]
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])
     search_dirs = tuple(
         os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
+    return search_dirs
+
+
+# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
+    search_dirs = get_search_dirs(main_work_dir)
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
@@ -277,6 +282,14 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
 
     raise FileNotFoundError(
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+
+
+def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
+    search_dirs = get_search_dirs(main_work_dir)
+    for search_dir in search_dirs:
+        if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
+            return os.path.relpath(abs_path_to_file_or_dir, search_dir)
+    return abs_path_to_file_or_dir
 
 
 def is_src_tree_root(filenames):
@@ -542,7 +555,10 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
             raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
         with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
             for file in report['files']:
-                zfp.write(file)
+                arcname = None
+                if 'arcname' in report and file in report['arcname']:
+                    arcname = report['arcname'][file]
+                zfp.write(file, arcname=arcname)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
