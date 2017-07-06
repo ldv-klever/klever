@@ -16,7 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
 
 extern void export_without_error(void);
 extern void export_with_error(void);

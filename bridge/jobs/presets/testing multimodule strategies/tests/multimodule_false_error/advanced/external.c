@@ -16,9 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
 
 int export_with_error(void)
 {

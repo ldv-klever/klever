@@ -16,13 +16,9 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
 
 void export_without_error(void) {
-    mutex_lock(&mutex);
-    mutex_unlock(&mutex);
+    /* nothing */
 }
 
 EXPORT_SYMBOL(export_without_error);
