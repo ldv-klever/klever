@@ -24,7 +24,7 @@ from kopenstack.kopenstack import execute_os_entity_action
 
 def main():
     logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)5s> %(message)s')
+                        format='%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s')
 
     logging.info('Parse command-line arguments')
     parser = argparse.ArgumentParser()
