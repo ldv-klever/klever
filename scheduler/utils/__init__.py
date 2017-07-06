@@ -225,10 +225,10 @@ def dir_size(dir):
     try:
         res = int(output)
     except ValueError as e:
-        # One of the files inside the dir has been removed. We should delete warning messgae.
+        # One of the files inside the dir has been removed. We should delete the warning message.
         splts = output.split('\n')
         if len(splts < 2):
-            # Can not delete warning message
+            # Can not delete the warning message
             raise e
         else:
             res = int(splts[-1])
