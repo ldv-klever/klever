@@ -4,12 +4,18 @@ from django.db import migrations, models
 
 
 def set_marks_type(apps, schema_editor):
-    apps.get_model("marks", "MarkUnsafeReport").objects.filter(manual=True)\
-        .update(type='1', author=models.F('mark__author'))
-    apps.get_model("marks", "MarkSafeReport").objects.filter(manual=True)\
-        .update(type='1', author=models.F('mark__author'))
-    apps.get_model("marks", "MarkUnknownReport").objects.filter(manual=True)\
-        .update(type='1', author=models.F('mark__author'))
+    for mrep in apps.get_model("marks", "MarkUnsafeReport").objects.filter(manual=True):
+        mrep.type = '1'
+        mrep.author = mrep.mark.author
+        mrep.save()
+    for mrep in apps.get_model("marks", "MarkSafeReport").objects.filter(manual=True):
+        mrep.type = '1'
+        mrep.author = mrep.mark.author
+        mrep.save()
+    for mrep in apps.get_model("marks", "MarkUnknownReport").objects.filter(manual=True):
+        mrep.type = '1'
+        mrep.author = mrep.mark.author
+        mrep.save()
 
 
 class Migration(migrations.Migration):
