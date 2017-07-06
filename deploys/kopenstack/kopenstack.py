@@ -293,13 +293,13 @@ class OSKleverDeveloperInstance(OSEntity):
                                            os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
                             ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
 
-                    # Copy all scripts that can be used during creation/update of Klever developer instance.
+                    logging.info('Copy scripts that can be used during creation/update of Klever developer instance')
                     for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
                         self._sftp_put(ssh, sftp,
                                        os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
                     # Prepare environment once when new Klever developer instance is created.
-                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-work"')
+                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-conf klever-work"')
                     sftp.remove('prepare-environment')
 
                     # TODO: initialize volumes

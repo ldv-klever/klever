@@ -43,10 +43,12 @@ with open('/extlinux.conf', 'w') as fp:
 execute_cmd('extlinux', '-U', '/')
 
 
+print('Prepare configurations directory')
+execute_cmd('mkdir', 'klever-conf')
+
+
 print('Prepare working directory')
 execute_cmd('mkdir', 'klever-work')
-execute_cmd('mkdir', 'klever-work/conf')
-execute_cmd('mkdir', 'klever-work/log')
 
 
 print('Prepare CIF environment')
