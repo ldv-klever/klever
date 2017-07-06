@@ -12,7 +12,8 @@ import core.components
 import core.utils
 
 
-default_name = 'sc'
+sequential_combination_name = 'sc'
+regression_verification_name = 'rv'
 
 
 def before_launch_sub_job_components(context):
@@ -75,11 +76,12 @@ class VTG(core.components.Component):
 
         self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
 
-        if self.strategy_name == default_name:
-            # SC
+        if 'bug kinds' in self.conf['VTG strategy'] and self.conf['VTG strategy']['bug kinds']:
+            self.is_bug_kinds = True
+        if self.strategy_name == sequential_combination_name:
             self.logger.info('Using Sequential Combination (SC) of strategies')
-            if 'bug kinds' in self.conf['VTG strategy'] and self.conf['VTG strategy']['bug kinds']:
-                self.is_bug_kinds = True
+        elif self.strategy_name == regression_verification_name:
+            self.logger.info('Using Regression Verification')
         else:
             try:
                 self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name), 'core.vtg'),
@@ -98,9 +100,12 @@ class VTG(core.components.Component):
         self.logger.info('Generate all verification tasks')
 
         subcomponents = [('AVTDNG', self.get_abstract_verification_task_descs_num)]
-        if self.strategy_name == default_name:
+        if self.strategy_name == sequential_combination_name:
             for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
                 subcomponents.append(('Worker {0}'.format(i), self._generate_sc_verification_tasks))
+        elif self.strategy_name == regression_verification_name:
+            for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
+                subcomponents.append(('Worker {0}'.format(i), self._generate_rv_verification_tasks))
         else:
             for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
                 subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
@@ -475,3 +480,231 @@ class VTG(core.components.Component):
                     self.logger.info('SC: Step 3 is not required')
 
             self.logger.info('SC: All steps have been completed')
+
+    def _generate_rv_verification_tasks(self):
+        while True:
+            abstract_task_desc_file_and_num = self.mqs['abstract task desc files and nums'].get()
+
+            if abstract_task_desc_file_and_num is None:
+                self.logger.debug('Abstract verification task descriptions message queue was terminated')
+                break
+
+            abstract_task_desc_file = os.path.join(self.conf['main working directory'],
+                                                   abstract_task_desc_file_and_num['desc file'])
+
+            with open(abstract_task_desc_file, encoding='ascii') as fp:
+                abstract_task_desc = json.load(fp)
+
+            if not self.conf['keep intermediate files']:
+                os.remove(abstract_task_desc_file)
+
+            # Print progress in form of "the number of already generated abstract verification task descriptions/the
+            # number of all abstract verification task descriptions". The latter may be omitted for early abstract
+            # verification task descriptions because of it isn't known until the end of AVTG operation.
+            self.logger.debug('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
+                    abstract_task_desc['id'], abstract_task_desc_file_and_num['num'],
+                    '/{0}'.format(self.abstract_task_descs_num.value) if self.abstract_task_descs_num.value else ''))
+
+            attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
+            work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                    abstract_task_desc['attrs'][1]['rule specification'],
+                                    self.strategy_name, 'step1')
+            os.makedirs(work_dir)
+            self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+            self.conf['abstract task desc'] = abstract_task_desc
+
+            # Get all checking rules.
+            all_rules = []
+            for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                if 'bug kinds' in extra_c_file:
+                    if not self.is_bug_kinds:
+                        common_bug_kind = extra_c_file['bug kinds'][0]
+                        rule = self.parse_bug_kind(common_bug_kind)
+                        all_rules.append(rule)
+                    else:
+                        for bug_kind in extra_c_file['bug kinds']:
+                            all_rules.append(bug_kind)
+
+            # Get module name.
+            module = None
+            for attr in self.conf['abstract task desc']['attrs']:
+                attr_name = list(attr.keys())[0]
+                attr_val = attr[attr_name]
+                if attr_name == 'verification object':
+                    module = attr_val
+
+            # Get supposed unknown results.
+            supposed_unknown_rules = []
+            try:
+                with open(self.conf['VTG strategy']['verifier']['precision reuse']['unknowns']) as f_unks:
+                    for line in f_unks:
+                        result = re.search(r"{0}\t(.+)".format(module), line)
+                        if result:
+                            supposed_unknown_rules = result.group(1).split(',')
+            except:
+                pass
+            self.logger.info("Rules with unknown results are: {0}".format(supposed_unknown_rules))
+            
+            # Get best strategy.
+            strategy = "CMAV"  # TODO: organise names
+            try:
+                with open(self.conf['VTG strategy']['verifier']['precision reuse']['strategies']) as f_strat:
+                    for line in f_strat:
+                        result = re.search(r"{0}\t(\w+)".format(module), line)
+                        if result:
+                            strategy = result.group(1)
+            except:
+                pass
+            self.logger.info("Supposed best strategy is: {0}".format(strategy))
+
+            # TODO: should be improved.
+            if "linux:alloc:spin lock" in supposed_unknown_rules and "linux:spinlock" not in supposed_unknown_rules:
+                supposed_unknown_rules.append("linux:spinlock")
+            if "linux:spinlock" in supposed_unknown_rules and "linux:alloc:spin lock" not in supposed_unknown_rules:
+                supposed_unknown_rules.append("linux:alloc:spin lock")
+
+            # check for MPV
+            if strategy == "MPV":
+                self.logger.info('RV: Using strategy "MPV"')
+                extra_c_files = []
+                for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                    if 'bug kinds' in extra_c_file:
+                        if 'C file' in extra_c_file:
+                            del extra_c_file['C file']
+                    extra_c_files.append(extra_c_file)
+
+                self.conf['abstract task desc']['extra C files'] = extra_c_files
+
+                if not self.is_bug_kinds:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpv'), 'core.vtg'), 'MPV')
+                else:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mpvbk'), 'core.vtg'), 'MPVBK')
+                self.conf['RSG strategy'] = 'property automaton'
+                self.conf['unite rule specifications'] = True
+                self.conf['VTG strategy']['verifier']['MPV strategy'] = 'Relevance'
+                self.conf['VTG strategy']['verifier']['alias'] = 'mpv'  # TODO: place it in some config file
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv-mpa': ''}]
+                self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
+                self.conf['VTG strategy']['verifier']['precision reuse']['mode'] = "no"
+
+                work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                abstract_task_desc['attrs'][1]['rule specification'],
+                                self.strategy_name, 'step3')
+                os.makedirs(work_dir)
+                self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+                p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                  '{0}/{1}/{2}/step3'.format(*list(attr_vals) + [self.strategy_name]),
+                                  work_dir, abstract_task_desc['attrs'], True, True)
+                try:
+                    p.start()
+                    p.join()
+                except core.components.ComponentError:
+                    pass
+                continue
+
+            # Step 1.
+            old_extra_c_files = copy.deepcopy(self.conf['abstract task desc']['extra C files'])
+            if supposed_unknown_rules:
+                self.logger.info('RV: Verify supposed unknown rules with strategy "CMAV"')
+                extra_c_files = []
+                for extra_c_file in self.conf['abstract task desc']['extra C files']:
+                    if 'bug kinds' in extra_c_file:
+                        if not self.is_bug_kinds:
+                            common_bug_kind = extra_c_file['bug kinds'][0]
+                            rule = self.parse_bug_kind(common_bug_kind)
+                            if rule in supposed_unknown_rules:
+                                extra_c_files.append(extra_c_file)
+                        else:
+                            adjusted_set_of_bug_kinds = []
+                            for bug_kind in extra_c_file['bug kinds']:
+                                if bug_kind in supposed_unknown_rules:
+                                    adjusted_set_of_bug_kinds.append(bug_kind)
+                            if adjusted_set_of_bug_kinds:
+                                extra_c_file['bug kinds'] = adjusted_set_of_bug_kinds
+                                extra_c_files.append(extra_c_file)
+                    else:
+                        extra_c_files.append(extra_c_file)
+                    self.conf['abstract task desc']['extra C files'] = extra_c_files
+
+                if not self.is_bug_kinds:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mav'), 'core.vtg'), 'MAV')
+                else:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mavbk'), 'core.vtg'), 'MAVBK')
+                self.conf['unite rule specifications'] = True
+                self.conf['VTG strategy']['verifier']['relaunch'] = 'internal'
+                self.conf['VTG strategy']['verifier']['alias'] = 'cmav'
+                self.conf['VTG strategy']['verifier']['MAV cleaning strategy'] = 'ALL'
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
+                self.conf['RSG strategy'] = 'instrumentation'
+                self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
+                self.conf['VTG strategy']['verifier']['precision reuse']['mode'] = "no"
+                self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+
+                p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                    '{0}/{1}/{2}/step1'.format(*list(attr_vals) + [self.strategy_name]),
+                                    work_dir, abstract_task_desc['attrs'], True, True)
+                try:
+                    p.start()
+                    p.join()
+                except core.components.ComponentError:
+                    pass
+
+            # Step 2.
+            if len(supposed_unknown_rules) < len(all_rules):
+                self.logger.info('RV: Verify other rules with strategy "CMAV"')
+                extra_c_files = []
+                for extra_c_file in old_extra_c_files:
+                    if 'bug kinds' in extra_c_file:
+                        if not self.is_bug_kinds:
+                            common_bug_kind = extra_c_file['bug kinds'][0]
+                            rule = self.parse_bug_kind(common_bug_kind)
+                            if rule not in supposed_unknown_rules:
+                                extra_c_files.append(extra_c_file)
+                        else:
+                            adjusted_set_of_bug_kinds = []
+                            for bug_kind in extra_c_file['bug kinds']:
+                                if bug_kind not in supposed_unknown_rules:
+                                    adjusted_set_of_bug_kinds.append(bug_kind)
+                            if adjusted_set_of_bug_kinds:
+                                extra_c_file['bug kinds'] = adjusted_set_of_bug_kinds
+                                extra_c_files.append(extra_c_file)
+                    else:
+                        extra_c_files.append(extra_c_file)
+                self.conf['abstract task desc']['extra C files'] = extra_c_files
+
+                if not self.is_bug_kinds:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mav'), 'core.vtg'), 'MAV')
+                else:
+                    self.strategy = getattr(importlib.import_module('.{0}'.format('mavbk'), 'core.vtg'), 'MAVBK')
+                self.conf['unite rule specifications'] = True
+                self.conf['VTG strategy']['verifier']['relaunch'] = 'internal'
+                self.conf['VTG strategy']['verifier']['alias'] = 'cmav'
+                self.conf['VTG strategy']['verifier']['MAV cleaning strategy'] = 'ARG_SUB'
+                self.conf['VTG strategy']['verifier']['options'] = [{'-ldv': ''}]
+                self.conf['RSG strategy'] = 'instrumentation'
+                self.conf['VTG strategy']['resource limits']['CPU time'] = self.time_limit
+                self.conf['VTG strategy']['verifier']['precision reuse']['mode'] = "update"
+
+                if not os.path.isfile(self.conf['VTG strategy']['verifier']['precision reuse']['precision directory'] +
+                                      re.sub('/', '-', module) + ".value.precision"):
+                    self.conf['VTG strategy']['verifier']['MAV preset'] = 'L1'
+                else:
+                    self.conf['VTG strategy']['verifier']['MAV preset'] = 'L2'
+
+                work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+                                abstract_task_desc['attrs'][1]['rule specification'],
+                                self.strategy_name, 'step2')
+                os.makedirs(work_dir)
+                self.logger.debug('Working directory is "{0}"'.format(work_dir))
+
+                p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+                                  '{0}/{1}/{2}/step2'.format(*list(attr_vals) + [self.strategy_name]),
+                                  work_dir, abstract_task_desc['attrs'], True, True)
+                try:
+                    p.start()
+                    p.join()
+                except core.components.ComponentError:
+                    pass
+            self.logger.info('RV: completed')

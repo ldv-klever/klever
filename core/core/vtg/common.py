@@ -100,6 +100,8 @@ class CommonStrategy(core.components.Component):
             attr_val = attr[attr_name]
             if attr_name == 'rule specification':
                 self.rule_specification = attr_val
+            if attr_name == 'verification object':
+                self.verification_object = attr_val
 
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})

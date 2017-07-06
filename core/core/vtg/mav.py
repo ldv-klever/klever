@@ -83,6 +83,8 @@ class MAV(CommonStrategy):
     error_function_prefix = '__VERIFIER_error_'
     verifier_results_regexp = r"\[assert=\[(.+)\], time=(\d+), verdict=(\w+)\]"
     assert_to_bug_kinds = {}  # Map of all asserts to considered bug kinds.
+    prec_value = "value.precision"
+    prec_predicate = "predicate.precision"
 
     # Public strategy parameters.
     # Option ['VTG strategy']['verifier']['relaunch'] - determines relaunches of conditional MAV.
@@ -103,8 +105,8 @@ class MAV(CommonStrategy):
     def perform_preprocess_actions(self):
         self.print_strategy_information()
         self.create_asserts()
-        if self.number_of_asserts <= 1:
-            raise AttributeError("It is strictly forbidden to use MAV for less than 2 asserts")
+        #if self.number_of_asserts <= 1:
+        #    raise AttributeError("It is strictly forbidden to use MAV for less than 2 asserts")
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
         self.create_mea()
@@ -241,6 +243,45 @@ class MAV(CommonStrategy):
 
         self.parse_preset()
         self.parse_cleaning_strategy()
+
+        # Three modes for precision reuse are supported:
+        # - save: write current precision to the files;
+        # - load: read initial precision from the files;
+        # - update: read initial precision, then write new precision.
+        if 'precision reuse' in self.conf['VTG strategy']['verifier']:
+            mode = self.conf['VTG strategy']['verifier']['precision reuse']['mode']
+            if 'precision directory' in self.conf['VTG strategy']['verifier']['precision reuse']:
+                # Load precision from corresponding files.
+                # 2 precision types are supported: value and predicate.
+                # TODO: make more general implementation.
+                precision_directory = self.conf['VTG strategy']['verifier']['precision reuse']['precision directory']
+                module = re.sub('/', '-', self.verification_object)
+                path_val = precision_directory + "/" + module + "." + self.prec_value
+                path_pred = precision_directory + "/" + module + "." + self.prec_predicate
+                # If precision file does not exist (e.g., Unknown verdict), ignore it.
+                if not os.path.isfile(path_val):
+                    path_val = None
+                if not os.path.isfile(path_pred):
+                    path_pred = None
+            else:
+                path_val = None
+                path_pred = None
+            if mode == "save" or mode == "update":
+                if not path_val:
+                    path_val = self.prec_value
+                if not path_pred:
+                    path_pred = self.prec_predicate
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'cpa.value.precisionFile={0}'.format(path_val)})
+                self.conf['VTG strategy']['verifier']['options'].append(
+                    {'-setprop': 'cpa.predicate.predmap.file={0}'.format(path_pred)})
+            if mode == "load" or mode == "update":
+                if path_val:
+                    self.conf['VTG strategy']['verifier']['options'].append(
+                        {'-setprop': 'cpa.value.initialPrecisionFile={0}'.format(path_val)})
+                if path_pred:
+                    self.conf['VTG strategy']['verifier']['options'].append(
+                        {'-setprop': 'cpa.predicate.abstraction.initialPredicates={0}'.format(path_pred)})
 
     def parse_cleaning_strategy(self):
         # By default no cleaning strategy is specified. In this case it is expected, that the user
