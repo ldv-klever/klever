@@ -294,7 +294,7 @@ class OSKleverDeveloperInstance(OSEntity):
                             ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
 
                     # Copy all scripts that can be used during creation/update of Klever developer instance.
-                    for script in ('configure-schedulers', 'install-klever-bridge', 'prepare-environment'):
+                    for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
                         self._sftp_put(ssh, sftp,
                                        os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
@@ -409,9 +409,9 @@ class OSKleverDeveloperInstance(OSEntity):
                                                         ssh, sftp)
 
                             if is_update_verification_backend:
-                                # It is enough to reconfigure schedulers since they automatically reread configuration
-                                # files holding changes of verification backends.
-                                ssh.execute_cmd('./configure-schedulers')
+                                # It is enough to reconfigure controller and schedulers since they automatically reread
+                                # configuration files holding changes of verification backends.
+                                ssh.execute_cmd('./configure-controller-and-schedulers')
                         else:
                             # TODO: stop, configure, start schedulers if BenchExec, CIF, CIL or Consul changes.
                             self._update_entity(addon_name, host_klever_conf['Addons'], instance_klever_conf['Addons'],
