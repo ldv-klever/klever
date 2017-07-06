@@ -284,7 +284,7 @@ class OSKleverDeveloperInstance(OSEntity):
                 sftp = ssh.ssh.open_sftp()
 
                 try:
-                    # Copy and install all init.d scripts.
+                    logging.info('Copy and install init.d scripts')
                     for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                              'init.d')):
                         for filename in filenames:
@@ -297,7 +297,7 @@ class OSKleverDeveloperInstance(OSEntity):
                         self._sftp_put(ssh, sftp,
                                        os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
-                    # Prepare environment once when new Klever developer instance is created.
+                    logging.info('Prepare environment')
                     ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-conf klever-work"')
                     sftp.remove('prepare-environment')
 
