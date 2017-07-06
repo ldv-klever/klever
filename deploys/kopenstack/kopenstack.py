@@ -241,7 +241,7 @@ class OSKleverDeveloperInstance(OSEntity):
                                  '\n* '.join(['{0} (status: {1})'.format(instance.name, instance.status)
                                               for instance in klever_developer_instances])))
         else:
-            logging.info('There are no Klever base images matching "{0}"'.format(self.args.name))
+            logging.info('There are no Klever developer instances matching "{0}"'.format(self.args.name))
 
     def create(self):
         self._connect(glance=True, nova=True, neutron=True)
