@@ -170,7 +170,7 @@ class OSKleverBaseImage(OSEntity):
     def show(self):
         self._connect(glance=True)
 
-        klever_base_image_name = self.args.name if self.args.name else 'Klever Base.*'
+        klever_base_image_name = self.name if self.name else 'Klever Base.*'
         klever_base_images = self._get_images(klever_base_image_name)
 
         if len(klever_base_images) == 1:
@@ -187,7 +187,7 @@ class OSKleverBaseImage(OSEntity):
     def create(self):
         self._connect(glance=True, nova=True, neutron=True)
 
-        klever_base_image_name = self.args.name if self.args.name else 'Klever Base'
+        klever_base_image_name = self.name if self.name else 'Klever Base'
         klever_base_images = self._get_images(klever_base_image_name)
         base_image = self._get_base_image(self.args.base_image)
 
@@ -230,7 +230,7 @@ class OSKleverBaseImage(OSEntity):
     def remove(self):
         self._connect(glance=True)
 
-        klever_base_image_name = self.args.name if self.args.name else 'Klever Base'
+        klever_base_image_name = self.name if self.name else 'Klever Base'
         klever_base_images = self._get_images(klever_base_image_name)
 
         if len(klever_base_images) == 0:
@@ -248,40 +248,39 @@ class OSKleverDeveloperInstance(OSEntity):
     def __init__(self, args):
         super().__init__(args)
 
-        if not self.args.name:
-            raise ValueError('Please specify Klever developer instance name with help of command-line option --name')
+        self.name = self.args.name or '{0}-klever-dev'.format(self.args.os_username)
 
     def show(self):
         self._connect(nova=True)
 
-        klever_developer_instances = self._get_instances(self.args.name)
+        klever_developer_instances = self._get_instances(self.name)
 
         if len(klever_developer_instances) == 1:
             logging.info('There is Klever developer instance "{0}" matching "{1}"'
                          .format('{0} (status: {1})'
                                  .format(klever_developer_instances[0].name, klever_developer_instances[0].status),
-                                 self.args.name))
+                                 self.name))
         elif len(klever_developer_instances) > 1:
             logging.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
-                         .format(len(klever_developer_instances), self.args.name,
+                         .format(len(klever_developer_instances), self.name,
                                  '\n* '.join(['{0} (status: {1})'.format(instance.name, instance.status)
                                               for instance in klever_developer_instances])))
         else:
-            logging.info('There are no Klever developer instances matching "{0}"'.format(self.args.name))
+            logging.info('There are no Klever developer instances matching "{0}"'.format(self.name))
 
     def create(self):
         self._connect(glance=True, nova=True, neutron=True)
 
         base_image = self._get_base_image(self.args.klever_base_image)
 
-        klever_developer_instances = self._get_instances(self.args.name)
+        klever_developer_instances = self._get_instances(self.name)
 
         if klever_developer_instances:
-            raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.args.name))
+            raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(os_services=self.os_services, name=self.args.name, base_image=base_image,
+        with OSInstance(os_services=self.os_services, name=self.name, base_image=base_image,
                         flavor_name=self.args.flavor, keep_on_exit=True) as instance:
-            with SSH(args=self.args, name=self.args.name, floating_ip=instance.floating_ip) as ssh:
+            with SSH(args=self.args, name=self.name, floating_ip=instance.floating_ip) as ssh:
                 sftp = ssh.ssh.open_sftp()
 
                 try:
@@ -328,7 +327,7 @@ class OSKleverDeveloperInstance(OSEntity):
             else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, host_desc['path'])
 
         if not os.path.exists(host_path):
-            raise ValueError('Location "{0}" does not exist'.format(host_path))
+            raise ValueError('Path "{0}" does not exist'.format(host_path))
 
         is_git_repo = False
 
@@ -378,9 +377,9 @@ class OSKleverDeveloperInstance(OSEntity):
         with open(self.args.klever_configuration_file) as fp:
             host_klever_conf = json.load(fp)
 
-        instance = self._get_instance(self.args.name)
+        instance = self._get_instance(self.name)
 
-        with SSH(args=self.args, name=self.args.name, floating_ip=self._get_instance_floating_ip(instance)) as ssh:
+        with SSH(args=self.args, name=self.name, floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             sftp = ssh.ssh.open_sftp()
 
             try:
@@ -427,13 +426,13 @@ class OSKleverDeveloperInstance(OSEntity):
 
     def remove(self):
         self._connect(nova=True)
-        self.os_services['nova'].servers.delete(self._get_instance(self.args.name).id)
+        self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
 
     def ssh(self):
         self._connect(nova=True)
 
-        with SSH(args=self.args, name=self.args.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.args.name))) as ssh:
+        with SSH(args=self.args, name=self.name,
+                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
 
 
@@ -441,24 +440,22 @@ class OSKleverExperimentalInstances(OSEntity):
     def __init__(self, args):
         super().__init__(args)
 
-        if not self.args.name:
-            raise ValueError(
-                'Please specify Klever experimental instances name with help of command-line option --name')
+        self.name = self.args.name or '{0}-klever-experiment'.format(self.args.os_username)
 
     def show(self):
         self._connect(nova=True)
 
-        klever_experimental_instances = self._get_instances(self.args.name + '.*')
+        klever_experimental_instances = self._get_instances(self.name + '.*')
 
         if len(klever_experimental_instances) == 1:
             logging.info('There is Klever experimental instance "{0}" matching "{1}"'
-                         .format(klever_experimental_instances[0].name, self.args.name))
+                         .format(klever_experimental_instances[0].name, self.name))
         elif len(klever_experimental_instances) > 1:
             logging.info('There are {0} Klever experimental instances matching "{1}":\n* {2}'
-                         .format(len(klever_experimental_instances), self.args.name,
+                         .format(len(klever_experimental_instances), self.name,
                                  '\n* '.join([instance.name for instance in klever_experimental_instances])))
         else:
-            logging.info('There are no Klever experimental instances matching "{0}"'.format(self.args.name))
+            logging.info('There are no Klever experimental instances matching "{0}"'.format(self.name))
 
     def create(self):
         # TODO: like for Klever developer instance create.
@@ -466,13 +463,13 @@ class OSKleverExperimentalInstances(OSEntity):
 
     def remove(self):
         self._connect(nova=True)
-        self.os_services['nova'].servers.delete(self._get_instance(self.args.name).id)
+        self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
 
     def ssh(self):
         self._connect(nova=True)
 
-        with SSH(args=self.args, name=self.args.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.args.name))) as ssh:
+        with SSH(args=self.args, name=self.name,
+                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
 
 
