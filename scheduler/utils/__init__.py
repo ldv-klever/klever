@@ -427,7 +427,7 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
 
     results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
-    with zipfile.ZipFile(results_archive, mode='w') as zfp:
+    with zipfile.ZipFile(results_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
         zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
         for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
             for filename in filenames:
