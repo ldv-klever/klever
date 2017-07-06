@@ -4,4 +4,5 @@ dist/
 *.egg-info/
 */.idea/workspace.xml
 addons
+deploys/conf/*.json
 
