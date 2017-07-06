@@ -148,19 +148,19 @@ class OSEntity:
 
         return instances
 
-    def _sftp_put(self, ssh, sftp, host_location, instance_location, dir=None):
+    def _sftp_put(self, ssh, sftp, host_path, instance_path, dir=None):
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
-            instance_archive_location = os.path.basename(fp.name)
+            instance_archive = os.path.basename(fp.name)
             with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                TarFile.add(host_location, instance_location)
+                TarFile.add(host_path, instance_path)
             fp.flush()
             fp.seek(0)
-            sftp.putfo(fp, instance_archive_location)
+            sftp.putfo(fp, instance_archive)
 
         # Use sudo to allow extracting archives outside home directory.
-        ssh.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive_location))
-        ssh.execute_cmd('rm ' + instance_archive_location)
+        ssh.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive))
+        ssh.execute_cmd('rm ' + instance_archive)
 
 
 class OSKleverBaseImage(OSEntity):
@@ -321,21 +321,21 @@ class OSKleverDeveloperInstance(OSEntity):
 
         host_version = host_desc['version']
 
-        if 'location' not in host_desc:
-            raise KeyError('Location is not specified for entity "{0}"'.format(name))
+        if 'path' not in host_desc:
+            raise KeyError('Path is not specified for entity "{0}"'.format(name))
 
-        host_location = host_desc['location'] if os.path.isabs(host_desc['location']) \
-            else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, host_desc['location'])
+        host_path = host_desc['path'] if os.path.isabs(host_desc['path']) \
+            else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, host_desc['path'])
 
-        if not os.path.exists(host_location):
-            raise ValueError('Location "{0}" does not exist'.format(host_location))
+        if not os.path.exists(host_path):
+            raise ValueError('Location "{0}" does not exist'.format(host_path))
 
         is_git_repo = False
 
         # Use commit hash to uniquely identify entity version if it is provided as Git repository.
-        if os.path.isdir(host_location) and os.path.isdir(os.path.join(host_location, '.git')):
+        if os.path.isdir(host_path) and os.path.isdir(os.path.join(host_path, '.git')):
             is_git_repo = True
-            host_version = self._execute_cmd('git', '-C', host_location, 'rev-list', '-n', '1', host_version,
+            host_version = self._execute_cmd('git', '-C', host_path, 'rev-list', '-n', '1', host_version,
                                              get_output=True).rstrip()
 
         instance_version = instance_klever_conf.get(name)
@@ -350,23 +350,23 @@ class OSKleverDeveloperInstance(OSEntity):
         instance_klever_conf[name] = host_version
 
         if name == 'Klever':
-            instance_location = 'klever'
+            instance_path = 'klever'
         else:
-            instance_location = os.path.join('klever-addons', name)
+            instance_path = os.path.join('klever-addons', name)
 
         # Remove previous version of entity if so.
         if instance_version:
-            ssh.execute_cmd('rm -rf ' + instance_location)
+            ssh.execute_cmd('rm -rf ' + instance_path)
 
         if is_git_repo:
             with tempfile.TemporaryDirectory() as tmpdir:
-                self._execute_cmd('git', 'clone', '-q', host_location, tmpdir)
+                self._execute_cmd('git', 'clone', '-q', host_path, tmpdir)
                 self._execute_cmd('git', '-C', tmpdir, 'checkout', '-q', host_version)
                 shutil.rmtree(os.path.join(tmpdir, '.git'))
-                host_location = tmpdir
-                self._sftp_put(ssh, sftp, host_location, instance_location)
-        elif os.path.isfile(host_location) or os.path.isdir(host_location):
-            self._sftp_put(ssh, sftp, host_location, instance_location)
+                host_path = tmpdir
+                self._sftp_put(ssh, sftp, host_path, instance_path)
+        elif os.path.isfile(host_path) or os.path.isdir(host_path):
+            self._sftp_put(ssh, sftp, host_path, instance_path)
         else:
             raise NotImplementedError
 
