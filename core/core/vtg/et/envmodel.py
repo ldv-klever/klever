@@ -116,9 +116,10 @@ def _match_control_function(error_trace, edge, stack, data):
                 'functions': list(),
                 'cf': data[file][func_name],
                 'enter id': edge['enter'],
-                'in aux code': False,
-                'thread': edge['thread']
+                'in aux code': False
             }
+            if 'thread' in edge:
+                cf_data['thread'] = edge['thread']
             stack.append(cf_data)
             return cf_data
 
@@ -189,7 +190,7 @@ def _set_thread(data, error_trace):
                 if m:
                     # Update current thread if a transition has happen
                     current_thread = update_thread(cf_stack)
-            if not m:
+            if 'thread' not in edge:
                 edge['thread'] = current_thread
     else:
         # Shift all existing thread identifiers to keep 0 thread identifier for global initialization edges
