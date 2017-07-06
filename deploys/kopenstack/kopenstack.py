@@ -390,21 +390,25 @@ class OSKleverDeveloperInstance(OSEntity):
                     # TODO: ditto for schedulers.
                     ssh.execute_cmd('sudo sh -c "service nginx stop; service klever-bridge stop; ./install-klever-bridge; service klever-bridge start; service nginx start"')
 
-                if 'Addons' in host_klever_conf:
-                    if 'Addons' not in instance_klever_conf:
-                        instance_klever_conf['Addons'] = {}
+                if 'Klever Addons' in host_klever_conf:
+                    host_klever_addons_conf = host_klever_conf['Klever Addons']
 
-                    for addon_name in host_klever_conf['Addons'].keys():
+                    if 'Klever Addons' not in instance_klever_conf:
+                        instance_klever_conf['Klever Addons'] = {}
+
+                    instance_klever_addons_conf = instance_klever_conf['Klever Addons']
+
+                    for addon_name in host_klever_addons_conf.keys():
                         if addon_name == 'Verification Backends':
-                            if 'Verification Backends' not in instance_klever_conf['Addons']:
-                                instance_klever_conf['Addons']['Verification Backends'] = {}
+                            if 'Verification Backends' not in instance_klever_addons_conf:
+                                instance_klever_addons_conf['Verification Backends'] = {}
 
                             is_update_verification_backend = False
-                            for verification_backend in host_klever_conf['Addons']['Verification Backends'].keys():
+                            for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
                                 is_update_verification_backend |= \
                                     self._update_entity(verification_backend,
-                                                        host_klever_conf['Addons']['Verification Backends'],
-                                                        instance_klever_conf['Addons']['Verification Backends'],
+                                                        host_klever_addons_conf['Verification Backends'],
+                                                        instance_klever_addons_conf['Verification Backends'],
                                                         ssh, sftp)
 
                             if is_update_verification_backend:
@@ -413,7 +417,7 @@ class OSKleverDeveloperInstance(OSEntity):
                                 ssh.execute_cmd('./configure-controller-and-schedulers')
                         else:
                             # TODO: stop, configure, start schedulers if BenchExec, CIF, CIL or Consul changes.
-                            self._update_entity(addon_name, host_klever_conf['Addons'], instance_klever_conf['Addons'],
+                            self._update_entity(addon_name, host_klever_addons_conf, instance_klever_addons_conf,
                                                 ssh, sftp)
 
                 # Specify actual versions of Klever and its addons.
