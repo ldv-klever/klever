@@ -346,7 +346,7 @@ class OSKleverDeveloperInstance(OSEntity):
         logging.info('Update "{0}" (host version: "{1}", instance version "{2}")'
                      .format(name, host_version, instance_version))
 
-        instance_klever_conf[name]['version'] = host_version
+        instance_klever_conf[name] = {'version': host_version}
         if 'executable path' in host_desc:
             instance_klever_conf[name]['executable path'] = host_desc['executable path']
 
