@@ -337,7 +337,7 @@ class OSKleverDeveloperInstance(OSEntity):
             host_version = self._execute_cmd('git', '-C', host_path, 'rev-list', '-n', '1', host_version,
                                              get_output=True).rstrip()
 
-        instance_version = instance_klever_conf.get(name)
+        instance_version = instance_klever_conf[name]['version'] if name in instance_klever_conf else None
 
         if host_version == instance_version:
             logging.info('Entity "{0}" is up to date (version: "{1}")'.format(name, host_version))
@@ -346,7 +346,9 @@ class OSKleverDeveloperInstance(OSEntity):
         logging.info('Update "{0}" (host version: "{1}", instance version "{2}")'
                      .format(name, host_version, instance_version))
 
-        instance_klever_conf[name] = host_version
+        instance_klever_conf[name]['version'] = host_version
+        if 'executable path' in host_desc:
+            instance_klever_conf[name]['executable path'] = host_desc['executable path']
 
         if name == 'Klever':
             instance_path = 'klever'
