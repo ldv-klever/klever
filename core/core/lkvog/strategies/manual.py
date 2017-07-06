@@ -29,8 +29,9 @@ class Manual(AbstractStrategy):
             key = re.subn('.ko$', '.o', key)[0]
             self.groups[key] = []
             for module_list in value:
-                if type(module_list) not in (tuple, list):
-                    raise ValueError('You should specify list of lists for modules in manual strategy\n'
+                if not isinstance(module_list, tuple) \
+                        and not isinstance(module_list, list):
+                    raise ValueError('You should specify a list of lists for modules for manual strategy\n'
                                      'For example "{0}: [{1}]" instead of "{0}: {1}"'.format(key.replace('.o', '.ko'),
                                                                                              value))
                 self.groups[key].append([re.subn('.ko$', '.o', module)[0] for module in module_list])
