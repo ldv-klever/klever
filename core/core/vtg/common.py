@@ -106,6 +106,13 @@ class CommonStrategy(core.components.Component):
         # Use resource limits and verifier specified in job configuration.
         self.task_desc.update({name: self.conf['VTG strategy'][name] for name in ('resource limits', 'verifier')})
 
+        if "poll interval" in self.conf['VTG strategy'] and self.conf['VTG strategy']["poll interval"] > 0:
+            self.poll_interval = self.conf['VTG strategy']["poll interval"]
+        else:
+            self.poll_interval = 30  # some default value
+        self.logger.debug('The interval for polling results from the scheduler is {0} seconds'.
+                          format(self.poll_interval))
+
     def prepare_src_files(self):
         self.task_desc['files'] = []
 

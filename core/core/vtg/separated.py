@@ -230,4 +230,4 @@ class SeparatedStrategy(CommonStrategy):
                 self.create_verification_finish_report(verification_report_id, bug_kind)
                 break
 
-            time.sleep(1)
+            time.sleep(self.poll_interval)
