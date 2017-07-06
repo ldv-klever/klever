@@ -1,12 +1,15 @@
 from __future__ import unicode_literals
 
-from django.db import migrations
+from django.db import migrations, models
 
 
 def set_marks_type(apps, schema_editor):
-    apps.get_model("marks", "MarkUnsafeReport").objects.filter(manual=True).update(type='1')
-    apps.get_model("marks", "MarkSafeReport").objects.filter(manual=True).update(type='1')
-    apps.get_model("marks", "MarkUnknownReport").objects.filter(manual=True).update(type='1')
+    apps.get_model("marks", "MarkUnsafeReport").objects.filter(manual=True)\
+        .update(type='1', author=models.F('mark__author'))
+    apps.get_model("marks", "MarkSafeReport").objects.filter(manual=True)\
+        .update(type='1', author=models.F('mark__author'))
+    apps.get_model("marks", "MarkUnknownReport").objects.filter(manual=True)\
+        .update(type='1', author=models.F('mark__author'))
 
 
 class Migration(migrations.Migration):
