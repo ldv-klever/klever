@@ -18,6 +18,7 @@
 import argparse
 import getpass
 import logging
+import os
 
 from kopenstack.kopenstack import execute_os_entity_action
 
@@ -50,8 +51,9 @@ def main():
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
     parser.add_argument('--flavor', default='spark.large',
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
-    parser.add_argument('--reboot', type=bool,  default=False,
-                        help='Whether instance should be rebooted after update (default: "%(default)s").')
+    parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                            'conf', 'klever.json'),
+                        help='Path to Klever configuration file (default: "%(default)s").')
     args = parser.parse_args()
 
     execute_os_entity_action(args)
