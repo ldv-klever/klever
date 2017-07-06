@@ -1,0 +1,98 @@
+#!/usr/bin/env python3
+#
+# Copyright (c) 2017 ISPRAS (http://www.ispras.ru)
+# Institute for System Programming of the Russian Academy of Sciences
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+import json
+import os
+import subprocess
+
+
+def execute_cmd(*args, stdin=None, get_output=False):
+    print('Execute command "{0}"'.format(' '.join(args)))
+    if get_output:
+        return subprocess.check_output(args, stdin=stdin).decode('utf8')
+    else:
+        subprocess.check_call(args, stdin=stdin)
+
+
+print('Configure Controller')
+with open('klever/scheduler/conf/controller.json') as fp:
+    controller_conf = json.load(fp)
+
+controller_conf['Klever Bridge']['user'] = 'service'
+controller_conf['Klever Bridge']['password'] = 'service'
+# TODO: controller_conf['client-controller']['consul'] = os.path.abspath('klever/addons/consul')
+
+with open('klever-work/conf/controller.json', 'w') as fp:
+    json.dump(controller_conf, fp, sort_keys=True, indent=4)
+
+
+print('Configure NativeScheduler')
+with open('klever/scheduler/conf/native-scheduler.json') as fp:
+    native_scheduler_conf = json.load(fp)
+
+native_scheduler_conf['Klever Bridge']['user'] = 'service'
+native_scheduler_conf['Klever Bridge']['password'] = 'service'
+native_scheduler_conf['scheduler']['job client configuration'] = os.path.abspath('klever-work/conf/job-client.json')
+native_scheduler_conf['scheduler']['task client configuration'] = os.path.abspath('klever-work/conf/task-client.json')
+
+with open('klever-work/conf/native-scheduler.json', 'w') as fp:
+    json.dump(native_scheduler_conf, fp, sort_keys=True, indent=4)
+
+# TODO!
+# cpachecker_root = glob.glob('klever/addons/CPAchecker*')[0]
+# m = re.search(r'(\w+)-unix$', cpachecker_root)
+# if m:
+#     cpachecker_version = m.group(1)
+# else:
+#     raise ValueError('Can not obtain CPAchecker version from path "{0}"'.format(cpachecker_root))
+
+
+print('Configure VerifierCloud')
+with open('klever/scheduler/conf/verifiercloud-scheduler.json') as fp:
+    verifiercloud_scheduler_conf = json.load(fp)
+
+verifiercloud_scheduler_conf['Klever Bridge']['user'] = 'service'
+verifiercloud_scheduler_conf['Klever Bridge']['password'] = 'service'
+# TODO: verifiercloud_scheduler_conf['scheduler']['web client location'] = os.path.abspath(os.path.join(cpachecker_root, 'scripts/benchmark'))
+
+with open('klever-work/conf/verifiercloud-scheduler.json', 'w') as fp:
+    json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
+
+
+print('Configure Job Worker')
+with open('klever/scheduler/conf/job-client.json') as fp:
+    job_client_conf = json.load(fp)
+
+# TODO: job_client_conf['client']['benchexec location'] = os.path.abspath(glob.glob('klever/addons/benchexec*')[0])
+#job_client_conf['client']['cif location'] = os.path.abspath(glob.glob('klever/addons/cif*')[0])
+#job_client_conf['client']['cil location'] = os.path.abspath(os.path.join(glob.glob('klever/addons/cil*')[0], 'obj/x86_LINUX'))
+del job_client_conf['client']['Klever Core path']
+
+with open('klever-work/conf/job-client.json', 'w') as fp:
+    json.dump(job_client_conf, fp, sort_keys=True, indent=4)
+
+
+print('Configure Task Worker')
+with open('klever/scheduler/conf/task-client.json') as fp:
+    task_client_conf = json.load(fp)
+
+# TODO: task_client_conf['client']['benchexec location'] = os.path.abspath(glob.glob('klever/addons/benchexec*')[0])
+#task_client_conf['client']['verification tools']['CPAchecker'] = {cpachecker_version: os.path.abspath(os.path.join(cpachecker_root, 'scripts'))}
+
+with open('klever-work/conf/task-client.json', 'w') as fp:
+    json.dump(task_client_conf, fp, sort_keys=True, indent=4)

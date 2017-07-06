@@ -17,8 +17,13 @@
 
 import getpass
 import logging
+import json
 import os
 import re
+import shutil
+import subprocess
+import tarfile
+import tempfile
 import time
 import traceback
 
@@ -72,6 +77,13 @@ class OSEntity:
         if cinder:
             logging.info('Initialize OpenStack client for cinder (volumes)')
             self.os_services['cinder'] = cinderclient.client.Client('2', session=sess)
+
+    def _execute_cmd(self, *args, get_output=False):
+        logging.info('Execute command "{0}"'.format(' '.join(args)))
+        if get_output:
+            return subprocess.check_output(args).decode('utf8')
+        else:
+            subprocess.check_call(args)
 
     def _get_base_image(self, base_image_name):
         logging.info('Get base image matching "{0}"'.format(base_image_name))
@@ -136,6 +148,20 @@ class OSEntity:
 
         return instances
 
+    def _sftp_put(self, ssh, sftp, host_location, instance_location, dir=None):
+        # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
+        with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
+            instance_archive_location = os.path.basename(fp.name)
+            with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
+                TarFile.add(host_location, instance_location)
+            fp.flush()
+            fp.seek(0)
+            sftp.putfo(fp, instance_archive_location)
+
+        # Use sudo to allow extracting archives outside home directory.
+        ssh.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive_location))
+        ssh.execute_cmd('rm ' + instance_archive_location)
+
 
 class OSKleverBaseImage(OSEntity):
     def __init__(self, args):
@@ -197,7 +223,7 @@ class OSKleverBaseImage(OSEntity):
                 finally:
                     sftp.close()
 
-                ssh.execute_cmd('sudo python3 install-deps')
+                ssh.execute_cmd('sudo ./install-deps')
 
             instance.create_image()
 
@@ -256,10 +282,148 @@ class OSKleverDeveloperInstance(OSEntity):
         with OSInstance(os_services=self.os_services, name=self.args.name, base_image=base_image,
                         flavor_name=self.args.flavor, keep_on_exit=True) as instance:
             with SSH(args=self.args, name=self.args.name, floating_ip=instance.floating_ip) as ssh:
-                pass
+                sftp = ssh.ssh.open_sftp()
+
+                try:
+                    # Copy and install all init.d scripts.
+                    for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                             'init.d')):
+                        for filename in filenames:
+                            self._sftp_put(ssh, sftp, os.path.join(dirpath, filename),
+                                           os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
+                            ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
+
+                    # Copy all scripts that can be used during creation/update of Klever developer instance.
+                    for script in ('configure-schedulers', 'install-klever-bridge', 'prepare-environment'):
+                        self._sftp_put(ssh, sftp,
+                                       os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
+
+                    # Prepare environment once when new Klever developer instance is created.
+                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-work"')
+                    sftp.remove('prepare-environment')
+
+                    # TODO: initialize volumes
+
+                    # TODO: like for update
+                    with sftp.file('klever.json', mode='w') as fp:
+                        json.dump({}, fp)
+                finally:
+                    sftp.close()
+
+    def _update_entity(self, name, host_klever_conf, instance_klever_conf, ssh, sftp):
+        if name not in host_klever_conf:
+            raise KeyError('Entity "{0}" is not described'.format(name))
+
+        host_desc = host_klever_conf[name]
+
+        if 'version' not in host_desc:
+            raise KeyError('Version is not specified for entity "{0}"'.format(name))
+
+        host_version = host_desc['version']
+
+        if 'location' not in host_desc:
+            raise KeyError('Location is not specified for entity "{0}"'.format(name))
+
+        host_location = host_desc['location'] if os.path.isabs(host_desc['location']) \
+            else os.path.join(os.path.dirname(__file__), os.path.pardir, os.path.pardir, host_desc['location'])
+
+        if not os.path.exists(host_location):
+            raise ValueError('Location "{0}" does not exist'.format(host_location))
+
+        is_git_repo = False
+
+        # Use commit hash to uniquely identify entity version if it is provided as Git repository.
+        if os.path.isdir(host_location) and os.path.isdir(os.path.join(host_location, '.git')):
+            is_git_repo = True
+            host_version = self._execute_cmd('git', '-C', host_location, 'rev-list', '-n', '1', host_version,
+                                             get_output=True).rstrip()
+
+        instance_version = instance_klever_conf.get(name)
+
+        if host_version == instance_version:
+            logging.info('Entity "{0}" is up to date (version: "{1}")'.format(name, host_version))
+            return False
+
+        logging.info('Update "{0}" (host version: "{1}", instance version "{2}")'
+                     .format(name, host_version, instance_version))
+
+        instance_klever_conf[name] = host_version
+
+        if name == 'Klever':
+            instance_location = 'klever'
+        else:
+            instance_location = os.path.join('klever-addons', name)
+
+        # Remove previous version of entity if so.
+        if instance_version:
+            ssh.execute_cmd('rm -rf ' + instance_location)
+
+        if is_git_repo:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                self._execute_cmd('git', 'clone', '-q', host_location, tmpdir)
+                self._execute_cmd('git', '-C', tmpdir, 'checkout', '-q', host_version)
+                shutil.rmtree(os.path.join(tmpdir, '.git'))
+                host_location = tmpdir
+                self._sftp_put(ssh, sftp, host_location, instance_location)
+        elif os.path.isfile(host_location) or os.path.isdir(host_location):
+            self._sftp_put(ssh, sftp, host_location, instance_location)
+        else:
+            raise NotImplementedError
+
+        return True
 
     def update(self):
-        pass
+        self._connect(nova=True)
+
+        with open(self.args.klever_configuration_file) as fp:
+            host_klever_conf = json.load(fp)
+
+        instance = self._get_instance(self.args.name)
+
+        with SSH(args=self.args, name=self.args.name, floating_ip=self._get_instance_floating_ip(instance)) as ssh:
+            sftp = ssh.ssh.open_sftp()
+
+            try:
+                with sftp.file('klever.json') as fp:
+                    instance_klever_conf = json.load(fp)
+
+                if self._update_entity('Klever', host_klever_conf, instance_klever_conf, ssh, sftp):
+                    # TODO: ditto for schedulers.
+                    ssh.execute_cmd('sudo sh -c "service nginx stop; service klever-bridge stop; ./install-klever-bridge; service klever-bridge start; service nginx start"')
+
+                if 'Addons' in host_klever_conf:
+                    if 'Addons' not in instance_klever_conf:
+                        instance_klever_conf['Addons'] = {}
+
+                    for addon_name in host_klever_conf['Addons'].keys():
+                        if addon_name == 'Verification Backends':
+                            if 'Verification Backends' not in instance_klever_conf['Addons']:
+                                instance_klever_conf['Addons']['Verification Backends'] = {}
+
+                            is_update_verification_backend = False
+                            for verification_backend in host_klever_conf['Addons']['Verification Backends'].keys():
+                                is_update_verification_backend |= \
+                                    self._update_entity(verification_backend,
+                                                        host_klever_conf['Addons']['Verification Backends'],
+                                                        instance_klever_conf['Addons']['Verification Backends'],
+                                                        ssh, sftp)
+
+                            if is_update_verification_backend:
+                                # It is enough to reconfigure schedulers since they automatically reread configuration
+                                # files holding changes of verification backends.
+                                ssh.execute_cmd('./configure-schedulers')
+                        else:
+                            # TODO: stop, configure, start schedulers if BenchExec, CIF, CIL or Consul changes.
+                            self._update_entity(addon_name, host_klever_conf['Addons'], instance_klever_conf['Addons'],
+                                                ssh, sftp)
+
+                # Specify actual versions of Klever and its addons.
+                with sftp.file('klever.json', 'w') as fp:
+                    json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
+
+                # TODO: copy sources.
+            finally:
+                sftp.close()
 
     def remove(self):
         self._connect(nova=True)
