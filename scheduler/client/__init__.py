@@ -299,8 +299,6 @@ def prepare_job_arguments(conf):
     else:
         args.append('--no-container')
 
-    args.append(sys.executable)
-
     # Determine Klever Core script path
     if "Klever Core path" in conf["client"]:
         cmd = conf["client"]["Klever Core path"]
