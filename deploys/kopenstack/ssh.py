@@ -56,7 +56,7 @@ class SSH:
                 return self
             except:
                 attempts -= 1
-                logging.exception(
+                self.logger.exception(
                     'Could not establish SSH connection, wait for {0} seconds and try {1} times more'
                     .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CONNECTION_RECOVERY_INTERVAL)
