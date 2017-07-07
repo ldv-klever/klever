@@ -39,7 +39,7 @@ case "$1" in
     start)
         log_daemon_msg "Starting $DESC"
         start_daemon -p ${PIDFILE} ${DAEMON} --daemon --pid ${PIDFILE} --chdir ${DIR} --timeout 900 \
-            --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) --bind unix:bridge.sock \
+            --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) --bind unix:${DIR}/gunicorn.sock \
             bridge.wsgi:application
         log_end_msg $?
         ;;
