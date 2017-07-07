@@ -191,7 +191,7 @@ Klever Bridge testing
     $ cd bridge
     $ python3 manage.py test
 
-.. note:: Another way to start tests from console::
+.. note:: Another way to starr tests from console::
 
     $ python3 path/to/klever/bridge/manage.py test bridge users jobs reports marks service
 
