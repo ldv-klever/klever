@@ -42,8 +42,9 @@ class NotImplementedOSEntityAction(NotImplementedError):
 
 
 class OSEntity:
-    def __init__(self, args):
+    def __init__(self, args, logger):
         self.args = args
+        self.logger = logger
 
         self.kind = args.entity
 
@@ -53,7 +54,7 @@ class OSEntity:
         raise NotImplementedOSEntityAction('You can not {0} "{1}"'.format(name, self.kind))
 
     def _connect(self, glance=False, nova=False, neutron=False, cinder=False):
-        logging.info('Sign in to OpenStack')
+        self.logger.info('Sign in to OpenStack')
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
@@ -63,30 +64,30 @@ class OSEntity:
         sess = session.Session(auth=auth)
 
         if glance:
-            logging.info('Initialize OpenStack client for glance (images)')
+            self.logger.info('Initialize OpenStack client for glance (images)')
             self.os_services['glance'] = glanceclient.client.Client('1', session=sess)
 
         if nova:
-            logging.info('Initialize OpenStack client for nova (instances)')
+            self.logger.info('Initialize OpenStack client for nova (instances)')
             self.os_services['nova'] = novaclient.client.Client('2', session=sess)
 
         if neutron:
-            logging.info('Initialize OpenStack client for neutron (floating IPs)')
+            self.logger.info('Initialize OpenStack client for neutron (floating IPs)')
             self.os_services['neutron'] = neutronclient.v2_0.client.Client(session=sess)
 
         if cinder:
-            logging.info('Initialize OpenStack client for cinder (volumes)')
+            self.logger.info('Initialize OpenStack client for cinder (volumes)')
             self.os_services['cinder'] = cinderclient.client.Client('2', session=sess)
 
     def _execute_cmd(self, *args, get_output=False):
-        logging.info('Execute command "{0}"'.format(' '.join(args)))
+        self.logger.info('Execute command "{0}"'.format(' '.join(args)))
         if get_output:
             return subprocess.check_output(args).decode('utf8')
         else:
             subprocess.check_call(args)
 
     def _get_base_image(self, base_image_name):
-        logging.info('Get base image matching "{0}"'.format(base_image_name))
+        self.logger.info('Get base image matching "{0}"'.format(base_image_name))
 
         base_images = self._get_images(base_image_name)
 
@@ -109,7 +110,7 @@ class OSEntity:
         return images
 
     def _get_instance(self, instance_name):
-        logging.info('Get instance matching "{0}"'.format(instance_name))
+        self.logger.info('Get instance matching "{0}"'.format(instance_name))
 
         instances = self._get_instances(instance_name)
 
@@ -123,7 +124,7 @@ class OSEntity:
         return instances[0]
 
     def _get_instance_floating_ip(self, instance):
-        logging.info('Get instance floating IP')
+        self.logger.info('Get instance floating IP')
 
         floating_ip = None
         for network_addresses in instance.addresses.values():
@@ -164,8 +165,8 @@ class OSEntity:
 
 
 class OSKleverBaseImage(OSEntity):
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, logger):
+        super().__init__(args, logger)
 
     def show(self):
         self._connect(glance=True)
@@ -174,15 +175,15 @@ class OSKleverBaseImage(OSEntity):
         klever_base_images = self._get_images(klever_base_image_name)
 
         if len(klever_base_images) == 1:
-            logging.info('There is Klever base image "{0}" (status: {1}) matching "{2}"'
-                         .format(klever_base_images[0].name, klever_base_images[0].status, klever_base_image_name))
+            self.logger.info('There is Klever base image "{0}" (status: {1}) matching "{2}"'
+                             .format(klever_base_images[0].name, klever_base_images[0].status, klever_base_image_name))
         elif len(klever_base_images) > 1:
-            logging.info('There are {0} Klever base images matching "{1}":\n* {2}'
-                         .format(len(klever_base_images), klever_base_image_name,
-                                 '\n* '.join(['"{0}" (status: {1})'.format(image.name, image.status)
-                                              for image in klever_base_images])))
+            self.logger.info('There are {0} Klever base images matching "{1}":\n* {2}'
+                             .format(len(klever_base_images), klever_base_image_name,
+                                     '\n* '.join(['"{0}" (status: {1})'.format(image.name, image.status)
+                                                 for image in klever_base_images])))
         else:
-            logging.info('There are no Klever base images matching "{0}"'.format(klever_base_image_name))
+            self.logger.info('There are no Klever base images matching "{0}"'.format(klever_base_image_name))
 
     def create(self):
         self._connect(glance=True, nova=True, neutron=True)
@@ -206,14 +207,16 @@ class OSKleverBaseImage(OSEntity):
                 if deprecated_klever_base_images:
                     i += 1
                 else:
-                    logging.info('Rename previous Klever base image to "{0}"'.format(deprecated_klever_base_image_name))
+                    self.logger.info('Rename previous Klever base image to "{0}"'
+                                     .format(deprecated_klever_base_image_name))
                     self.os_services['glance'].images.update(klever_base_images[0].id,
                                                              name=deprecated_klever_base_image_name)
                     break
 
-        with OSInstance(os_services=self.os_services, name=klever_base_image_name, base_image=base_image,
-                        flavor_name='keystone.xlarge') as instance:
-            with SSH(args=self.args, name=klever_base_image_name, floating_ip=instance.floating_ip) as ssh:
+        with OSInstance(logger=self.logger, os_services=self.os_services, name=klever_base_image_name,
+                        base_image=base_image, flavor_name='keystone.xlarge') as instance:
+            with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
+                     floating_ip=instance.floating_ip) as ssh:
                 script = os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps')
 
                 sftp = ssh.ssh.open_sftp()
@@ -245,8 +248,8 @@ class OSKleverBaseImage(OSEntity):
 
 
 class OSKleverDeveloperInstance(OSEntity):
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, logger):
+        super().__init__(args, logger)
 
         self.name = self.args.name or '{0}-klever-dev'.format(self.args.os_username)
 
@@ -256,17 +259,17 @@ class OSKleverDeveloperInstance(OSEntity):
         klever_developer_instances = self._get_instances(self.name)
 
         if len(klever_developer_instances) == 1:
-            logging.info('There is Klever developer instance "{0}" matching "{1}"'
-                         .format('{0} (status: {1})'
-                                 .format(klever_developer_instances[0].name, klever_developer_instances[0].status),
-                                 self.name))
+            self.logger.info('There is Klever developer instance "{0}" matching "{1}"'
+                             .format('{0} (status: {1})'
+                                     .format(klever_developer_instances[0].name, klever_developer_instances[0].status),
+                                     self.name))
         elif len(klever_developer_instances) > 1:
-            logging.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
-                         .format(len(klever_developer_instances), self.name,
-                                 '\n* '.join(['{0} (status: {1})'.format(instance.name, instance.status)
-                                              for instance in klever_developer_instances])))
+            self.logger.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
+                             .format(len(klever_developer_instances), self.name,
+                                     '\n* '.join(['{0} (status: {1})'.format(instance.name, instance.status)
+                                                 for instance in klever_developer_instances])))
         else:
-            logging.info('There are no Klever developer instances matching "{0}"'.format(self.name))
+            self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
 
     def create(self):
         self._connect(glance=True, nova=True, neutron=True)
@@ -278,13 +281,13 @@ class OSKleverDeveloperInstance(OSEntity):
         if klever_developer_instances:
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
-        with OSInstance(os_services=self.os_services, name=self.name, base_image=base_image,
+        with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
                         flavor_name=self.args.flavor, keep_on_exit=True) as instance:
-            with SSH(args=self.args, name=self.name, floating_ip=instance.floating_ip) as ssh:
+            with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=instance.floating_ip) as ssh:
                 sftp = ssh.ssh.open_sftp()
 
                 try:
-                    logging.info('Copy and install init.d scripts')
+                    self.logger.info('Copy and install init.d scripts')
                     for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                              'init.d')):
                         for filename in filenames:
@@ -292,12 +295,13 @@ class OSKleverDeveloperInstance(OSEntity):
                                            os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
                             ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
 
-                    logging.info('Copy scripts that can be used during creation/update of Klever developer instance')
+                    self.logger.info(
+                        'Copy scripts that can be used during creation/update of Klever developer instance')
                     for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
                         self._sftp_put(ssh, sftp,
                                        os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
-                    logging.info('Prepare environment')
+                    self.logger.info('Prepare environment')
                     ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-conf klever-work"')
                     sftp.remove('prepare-environment')
 
@@ -340,11 +344,11 @@ class OSKleverDeveloperInstance(OSEntity):
         instance_version = instance_klever_conf[name]['version'] if name in instance_klever_conf else None
 
         if host_version == instance_version:
-            logging.info('Entity "{0}" is up to date (version: "{1}")'.format(name, host_version))
+            self.logger.info('Entity "{0}" is up to date (version: "{1}")'.format(name, host_version))
             return False
 
-        logging.info('Update "{0}" (host version: "{1}", instance version "{2}")'
-                     .format(name, host_version, instance_version))
+        self.logger.info('Update "{0}" (host version: "{1}", instance version "{2}")'
+                         .format(name, host_version, instance_version))
 
         instance_klever_conf[name] = {'version': host_version}
         if 'executable path' in host_desc:
@@ -381,7 +385,8 @@ class OSKleverDeveloperInstance(OSEntity):
 
         instance = self._get_instance(self.name)
 
-        with SSH(args=self.args, name=self.name, floating_ip=self._get_instance_floating_ip(instance)) as ssh:
+        with SSH(args=self.args, logger=self.logger, name=self.name,
+                 floating_ip=self._get_instance_floating_ip(instance)) as ssh:
             sftp = ssh.ssh.open_sftp()
 
             try:
@@ -437,14 +442,14 @@ class OSKleverDeveloperInstance(OSEntity):
     def ssh(self):
         self._connect(nova=True)
 
-        with SSH(args=self.args, name=self.name,
+        with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
 
 
 class OSKleverExperimentalInstances(OSEntity):
-    def __init__(self, args):
-        super().__init__(args)
+    def __init__(self, args, logger):
+        super().__init__(args, logger)
 
         self.name = self.args.name or '{0}-klever-experiment'.format(self.args.os_username)
 
@@ -454,14 +459,14 @@ class OSKleverExperimentalInstances(OSEntity):
         klever_experimental_instances = self._get_instances(self.name + '.*')
 
         if len(klever_experimental_instances) == 1:
-            logging.info('There is Klever experimental instance "{0}" matching "{1}"'
-                         .format(klever_experimental_instances[0].name, self.name))
+            self.logger.info('There is Klever experimental instance "{0}" matching "{1}"'
+                             .format(klever_experimental_instances[0].name, self.name))
         elif len(klever_experimental_instances) > 1:
-            logging.info('There are {0} Klever experimental instances matching "{1}":\n* {2}'
-                         .format(len(klever_experimental_instances), self.name,
-                                 '\n* '.join([instance.name for instance in klever_experimental_instances])))
+            self.logger.info('There are {0} Klever experimental instances matching "{1}":\n* {2}'
+                             .format(len(klever_experimental_instances), self.name,
+                                     '\n* '.join([instance.name for instance in klever_experimental_instances])))
         else:
-            logging.info('There are no Klever experimental instances matching "{0}"'.format(self.name))
+            self.logger.info('There are no Klever experimental instances matching "{0}"'.format(self.name))
 
     def create(self):
         # TODO: like for Klever developer instance create.
@@ -474,7 +479,7 @@ class OSKleverExperimentalInstances(OSEntity):
     def ssh(self):
         self._connect(nova=True)
 
-        with SSH(args=self.args, name=self.name,
+        with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             ssh.open_shell()
 
@@ -494,7 +499,8 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, os_services, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, os_services, name, base_image, flavor_name, keep_on_exit=False):
+        self.logger = logger
         self.os_services = os_services
         self.name = name
         self.base_image = base_image
@@ -502,8 +508,8 @@ class OSInstance:
         self.keep_on_exit = keep_on_exit
 
     def __enter__(self):
-        logging.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
-                     .format(self.name, self.flavor_name, self.base_image.name))
+        self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
+                         .format(self.name, self.flavor_name, self.base_image.name))
 
         instance = None
         flavor = self.os_services['nova'].flavors.find(name=self.flavor_name)
@@ -525,11 +531,11 @@ class OSInstance:
                         if not self.floating_ip:
                             raise RuntimeError('There are no free floating IPs, please, resolve this manually')
                         instance.add_floating_ip(self.floating_ip)
-                        logging.info('Instance "{0}" with floating IP {1} is running'
-                                     .format(self.name, self.floating_ip))
+                        self.logger.info('Instance "{0}" with floating IP {1} is running'
+                                         .format(self.name, self.floating_ip))
                         self.instance = instance
 
-                        logging.info(
+                        self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
                             .format(self.OPERATING_SYSTEM_STARTUP_DELAY))
                         time.sleep(self.OPERATING_SYSTEM_STARTUP_DELAY)
@@ -537,9 +543,9 @@ class OSInstance:
                         return self
                     else:
                         timeout -= self.CREATION_CHECK_INTERVAL
-                        logging.info('Wait for {0} seconds until instance will run ({1})'
-                                     .format(self.CREATION_CHECK_INTERVAL,
-                                             'remaining timeout is {0} seconds'.format(timeout)))
+                        self.logger.info('Wait for {0} seconds until instance will run ({1})'
+                                         .format(self.CREATION_CHECK_INTERVAL,
+                                                 'remaining timeout is {0} seconds'.format(timeout)))
                         time.sleep(self.CREATION_CHECK_INTERVAL)
                         instance = self.os_services['nova'].servers.get(instance.id)
 
@@ -558,11 +564,11 @@ class OSInstance:
 
     def __exit__(self, etype, value, traceback):
         if not self.keep_on_exit and self.instance:
-            logging.info('Terminate instance "{0}"'.format(self.name))
+            self.logger.info('Terminate instance "{0}"'.format(self.name))
             self.instance.delete()
 
     def create_image(self):
-        logging.info('Create image "{0}"'.format(self.name))
+        self.logger.info('Create image "{0}"'.format(self.name))
 
         attempts = self.IMAGE_CREATION_ATTEMPTS
 
@@ -576,13 +582,13 @@ class OSInstance:
                     image = self.os_services['glance'].images.get(image_id)
 
                     if image.status == 'active':
-                        logging.info('Image "{0}" was created'.format(self.name))
+                        self.logger.info('Image "{0}" was created'.format(self.name))
                         return
                     else:
                         timeout -= self.IMAGE_CREATION_CHECK_INTERVAL
-                        logging.info('Wait for {0} seconds until image will be created ({1})'
-                                     .format(self.IMAGE_CREATION_CHECK_INTERVAL,
-                                             'remaining timeout is {0} seconds'.format(timeout)))
+                        self.logger.info('Wait for {0} seconds until image will be created ({1})'
+                                         .format(self.IMAGE_CREATION_CHECK_INTERVAL,
+                                                 'remaining timeout is {0} seconds'.format(timeout)))
                         time.sleep(self.IMAGE_CREATION_CHECK_INTERVAL)
 
                 raise OSInstanceCreationTimeout
@@ -597,14 +603,14 @@ class OSInstance:
         raise RuntimeError('Could not create image')
 
 
-def execute_os_entity_action(args):
-    logging.info('{0} {1}'.format(args.action.capitalize(), args.entity))
+def execute_os_entity_action(args, logger):
+    logger.info('{0} {1}'.format(args.action.capitalize(), args.entity))
 
     if args.entity == 'Klever base image':
-        getattr(OSKleverBaseImage(args), args.action)()
+        getattr(OSKleverBaseImage(args, logger), args.action)()
     elif args.entity == 'Klever developer instance':
-        getattr(OSKleverDeveloperInstance(args), args.action)()
+        getattr(OSKleverDeveloperInstance(args, logger), args.action)()
     elif args.entity == 'Klever experimental instances':
-        getattr(OSKleverExperimentalInstances(args), args.action)()
+        getattr(OSKleverExperimentalInstances(args, logger), args.action)()
     else:
         raise NotImplementedError('Entity "{0}" is not supported'.format(args.entity))

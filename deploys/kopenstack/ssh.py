@@ -32,16 +32,17 @@ class SSH:
     COMMAND_EXECUTION_CHECK_INTERVAL = 3
     COMMAND_EXECUTION_STREAM_BUF_SIZE = 10000
 
-    def __init__(self, args, name, floating_ip):
+    def __init__(self, args, logger, name, floating_ip):
         if not args.ssh_rsa_private_key_file:
             raise ValueError('Please specify path to SSH RSA private key file with help of command-line option --ssh-rsa-private-key-file')
 
         self.args = args
+        self.logger = logger
         self.name = name
         self.floating_ip = floating_ip
 
     def __enter__(self):
-        logging.info('Establish SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        self.logger.info('Establish SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
 
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -63,12 +64,12 @@ class SSH:
         raise RuntimeError('Could not establish SSH connection')
 
     def __exit__(self, etype, value, traceback):
-        logging.info('Close SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        self.logger.info('Close SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         self.ssh.close()
 
     def execute_cmd(self, cmd):
-        logging.info('Execute command over SSH on instance "{0}" (IP: {1})\n{2}'
-                     .format(self.name, self.floating_ip, cmd))
+        self.logger.info('Execute command over SSH on instance "{0}" (IP: {1})\n{2}'
+                         .format(self.name, self.floating_ip, cmd))
 
         chan = self.ssh.get_transport().open_session()
         chan.setblocking(0)
@@ -84,12 +85,12 @@ class SSH:
                 while chan.recv_stderr_ready():
                     stderr += chan.recv_stderr(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
                 if stderr:
-                    logging.info('Executed command STDERR:\n{0}'.format(stderr.rstrip()))
+                    self.logger.info('Executed command STDERR:\n{0}'.format(stderr.rstrip()))
                 stdout = ''
                 while chan.recv_ready():
                     stdout += chan.recv(self.COMMAND_EXECUTION_STREAM_BUF_SIZE).decode(encoding='utf8')
                 if stdout:
-                    logging.info('Executed command STDOUT:\n{0}'.format(stdout.rstrip()))
+                    self.logger.info('Executed command STDOUT:\n{0}'.format(stdout.rstrip()))
             time.sleep(self.COMMAND_EXECUTION_CHECK_INTERVAL)
 
         retcode = chan.recv_exit_status()
@@ -105,7 +106,7 @@ class SSH:
             sftp.close()
 
     def open_shell(self):
-        logging.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         logging.warning('Just simple operations can be peformed, for the complex ones, please, run "{0}"'
                         .format('ssh -o StrictHostKeyChecking=no -i {0} {1}@{2}'
                                 .format(self.args.ssh_rsa_private_key_file, self.args.ssh_username, self.floating_ip)))

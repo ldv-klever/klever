@@ -19,15 +19,12 @@ import argparse
 import getpass
 import logging
 import os
+import sys
 
 from kopenstack.kopenstack import execute_os_entity_action
 
 
 def main():
-    logging.basicConfig(level=logging.INFO,
-                        format='%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s')
-
-    logging.info('Parse command-line arguments')
     parser = argparse.ArgumentParser()
     parser.add_argument('action', choices=['show', 'create', 'update', 'ssh', 'remove'], help='Action to be executed.')
     parser.add_argument('entity',
@@ -56,4 +53,12 @@ def main():
                         help='Path to Klever configuration file (default: "%(default)s").')
     args = parser.parse_args()
 
-    execute_os_entity_action(args)
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)s> %(message)s', "%Y-%m-%d %H:%M:%S")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    execute_os_entity_action(args, logger)
