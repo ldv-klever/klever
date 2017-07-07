@@ -41,6 +41,11 @@ class Command:
         },
         'ld': {
             'opts requiring vals': ('T', 'm', 'o',),
+            'opts discarding in files': ('-help',),
+            'opts discarding out file': ('-help',)
+        },
+        'objcopy': {
+            'opts requiring vals': ('-set-section-flags', '-rename-section'),
             'opts discarding in files': (),
             'opts discarding out file': ()
         }
@@ -253,7 +258,7 @@ class Command:
         cmd_requires_in_files = True
         cmd_requires_out_file = True
 
-        if self.name_without_prefix in ('gcc', 'ld'):
+        if self.name_without_prefix in ('gcc', 'ld', 'objcopy'):
             skip_next_opt = False
             for idx, opt in enumerate(self.opts):
                 # Option represents already processed value of the previous option.
@@ -313,6 +318,15 @@ class Command:
         else:
             raise NotImplementedError(
                 'Linux kernel raw build command "{0}" is not supported yet'.format(self.name))
+
+        if self.name == 'objcopy':
+            # objcopy has only one input file and no more than one output file.
+            # out file is the same as in file if it didn't specified.
+            if len(self.in_files) == 2:
+                self.out_file = self.in_files[-1]
+                self.in_files = self.in_files[:-1]
+            else:
+                self.out_file = self.in_files[-1]
 
         if cmd_requires_in_files and not self.in_files:
             raise ValueError(

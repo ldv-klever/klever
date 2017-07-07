@@ -16,9 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
 
 extern void bad_export(void);
 

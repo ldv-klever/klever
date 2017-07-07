@@ -304,7 +304,7 @@ class RSB(core.components.Component):
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
-        with zipfile.ZipFile('task files.zip', mode='w') as zfp:
+        with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in self.files:
                 zfp.write(file)
 

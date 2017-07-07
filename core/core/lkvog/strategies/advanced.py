@@ -78,6 +78,9 @@ class Advanced(AbstractStrategy):
             self.not_checked_export_f[module] = set(module.export_functions.keys())
             self.not_checked_call_f[module] = set(module.call_functions.keys())
 
+        self.not_checked_export_f_backup = {k: set(v) for k, v in self.not_checked_export_f.items()}
+        self.not_checked_call_f_backup = {k: set(v) for k, v in self.not_checked_call_f.items()}
+
         self.not_checked_preds = {}
         self.not_checked_succs = {}
         for module in self.modules.values():
@@ -273,7 +276,14 @@ class Advanced(AbstractStrategy):
                                          max_value / module[1][i] >= 0.5, process)))
         return list(sorted(process, key=itemgetter(1), reverse=True))[0][0]
 
+    def clean(self):
+        self.count_groups_for_m = {}
+        self.not_checked_call_f = {k: set(v) for k, v in self.not_checked_call_f_backup.items()}
+        self.not_checked_export_f = {k: set(v) for k, v in self.not_checked_export_f_backup.items()}
+
     def divide(self, module_name):
+        self.clean()
+
         if module_name == 'all':
             ret = set()
             for module in sorted(self.modules.keys()):

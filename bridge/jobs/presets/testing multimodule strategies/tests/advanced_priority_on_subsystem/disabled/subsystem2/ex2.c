@@ -16,7 +16,6 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
 
 extern void bad_export(void);
 

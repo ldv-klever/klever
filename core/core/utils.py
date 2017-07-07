@@ -469,6 +469,12 @@ def get_logger(name, conf):
 def get_parallel_threads_num(logger, conf, action):
     logger.info('Get the number of parallel threads for "{0}"'.format(action))
 
+    if 'CPU Virtual cores' in conf['task resource limits']\
+            and conf['task resource limits']['CPU Virtual cores'] > 0:
+        number_of_cores = conf['task resource limits']['CPU Virtual cores']
+    else:
+        number_of_cores = conf['number of CPU cores']
+
     raw_parallel_threads_num = conf['parallelism'][action]
 
     # In case of integer number it is already the number of parallel threads.
@@ -476,7 +482,7 @@ def get_parallel_threads_num(logger, conf, action):
         parallel_threads_num = raw_parallel_threads_num
     # In case of decimal number it is fraction of the number of CPUs.
     elif isinstance(raw_parallel_threads_num, float):
-        parallel_threads_num = conf['number of CPU cores'] * raw_parallel_threads_num
+        parallel_threads_num = number_of_cores * raw_parallel_threads_num
     else:
         raise ValueError(
             'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
@@ -487,7 +493,7 @@ def get_parallel_threads_num(logger, conf, action):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * conf['number of CPU cores']:
+    elif parallel_threads_num > 2 * number_of_cores:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
                 parallel_threads_num, action))
@@ -553,7 +559,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         if os.path.isfile(report_files_archive):
             raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
+        with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in report['files']:
                 arcname = None
                 if 'arcname' in report and file in report['arcname']:
@@ -578,3 +584,14 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
 
     return report_file
+
+
+def unique_file_name(file_name, suffix=''):
+    if not os.path.isfile(file_name + suffix):
+        return file_name
+
+    i = 2
+    while True:
+        if not os.path.isfile("{0}({1}){2}".format(file_name, str(i), suffix)):
+            return "{0}({1})".format(file_name, str(i))
+        i += 1

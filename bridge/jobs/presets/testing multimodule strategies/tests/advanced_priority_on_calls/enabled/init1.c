@@ -16,11 +16,9 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
 
 void bad_export(void) {
+    /* nothing */
 }
 
 static int __init init(void)
