@@ -18,6 +18,7 @@
 import os
 import json
 import logging.config
+import signal
 import subprocess
 
 import utils as utils
@@ -186,7 +187,18 @@ def run_consul(conf, work_dir, config_file):
 
     command = " ".join(args)
     logging.info("Run: '{}'".format(command))
-    subprocess.call(args)
+
+    process = None
+
+    def handler(signum, frame):
+        if process:
+            process.send_signal(signum)
+
+    signal.signal(signal.SIGTERM, handler)
+
+    process = subprocess.Popen(args)
+
+    process.wait()
 
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
