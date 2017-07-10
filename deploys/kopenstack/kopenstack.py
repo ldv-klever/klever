@@ -15,6 +15,7 @@
 # limitations under the License.
 #
 
+import errno
 import getpass
 import logging
 import json
@@ -148,6 +149,16 @@ class OSEntity:
                 instances.append(instance)
 
         return instances
+
+    def _sftp_exists(self, sftp, path):
+        try:
+            sftp.stat(path)
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                return False
+            raise
+        else:
+            return True
 
     def _sftp_put(self, ssh, sftp, host_path, instance_path, dir=None):
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
@@ -307,9 +318,10 @@ class OSKleverDeveloperInstance(OSEntity):
 
                     # TODO: initialize volumes
 
-                    # TODO: like for update
-                    with sftp.file('klever.json', mode='w') as fp:
-                        json.dump({}, fp)
+                    self._do_update(ssh, sftp)
+                except Exception:
+                    # Remove instance if something above went wrong.
+                    instance.keep_on_exit = False
                 finally:
                     sftp.close()
 
@@ -377,96 +389,99 @@ class OSKleverDeveloperInstance(OSEntity):
 
         return True
 
-    def update(self):
-        self._connect(nova=True)
-
+    def _do_update(self, ssh, sftp):
         with open(self.args.klever_configuration_file) as fp:
             host_klever_conf = json.load(fp)
 
-        instance = self._get_instance(self.name)
+        if self._sftp_exists(sftp, 'klever.json'):
+            with sftp.file('klever.json') as fp:
+                instance_klever_conf = json.load(fp)
+        else:
+            instance_klever_conf = {}
+
+        is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh, sftp)
+
+        is_update_controller_and_schedulers = False
+        is_update_verification_backend = False
+        if 'Klever Addons' in host_klever_conf:
+            host_klever_addons_conf = host_klever_conf['Klever Addons']
+
+            if 'Klever Addons' not in instance_klever_conf:
+                instance_klever_conf['Klever Addons'] = {}
+
+            instance_klever_addons_conf = instance_klever_conf['Klever Addons']
+
+            for addon_name in host_klever_addons_conf.keys():
+                instance_path = os.path.join('klever-addons', addon_name)
+
+                if addon_name == 'Verification Backends':
+                    if 'Verification Backends' not in instance_klever_addons_conf:
+                        instance_klever_addons_conf['Verification Backends'] = {}
+
+                    for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
+                        is_update_verification_backend |= \
+                            self._update_entity(verification_backend, instance_path,
+                                                host_klever_addons_conf['Verification Backends'],
+                                                instance_klever_addons_conf['Verification Backends'],
+                                                ssh, sftp)
+                elif self._update_entity(addon_name, instance_path, host_klever_addons_conf,
+                                         instance_klever_addons_conf, ssh, sftp) \
+                        and addon_name in ('BenchExec', 'CIF', 'CIL', 'Consul'):
+                    is_update_controller_and_schedulers = True
+
+        if 'Programs' in host_klever_conf:
+            host_programs_conf = host_klever_conf['Programs']
+
+            if 'Programs' not in instance_klever_conf:
+                instance_klever_conf['Programs'] = {}
+
+            instance_programs_conf = instance_klever_conf['Programs']
+
+            for program in host_programs_conf.keys():
+                self._update_entity(program, os.path.join('klever-work', program), host_programs_conf,
+                                    instance_programs_conf, ssh, sftp)
+
+        self.logger.info('Specify actual versions of Klever, its addons and programs')
+        with sftp.file('klever.json', 'w') as fp:
+            json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
+
+        if is_update_klever or is_update_controller_and_schedulers:
+            self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
+            services = ('klever-controller', 'klever-native-scheduler')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} stop'.format(service) for service in services)
+            ))
+            ssh.execute_cmd('./configure-controller-and-schedulers')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} start'.format(service) for service in services)
+            ))
+
+        if is_update_klever:
+            self.logger.info('(Re)install and (re)start Klever Bridge')
+            services = ('nginx', 'klever-bridge')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} stop'.format(service) for service in services)
+            ))
+            ssh.execute_cmd('sudo ./install-klever-bridge')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} start'.format(service) for service in services)
+            ))
+
+        if is_update_verification_backend and not is_update_klever and not is_update_controller_and_schedulers:
+            self.logger.info('(Re)configure Klever Controller and Klever schedulers')
+            # It is enough to reconfigure controller and schedulers since they automatically reread
+            # configuration files holding changes of verification backends.
+            ssh.execute_cmd('./configure-controller-and-schedulers')
+
+    def update(self):
+        self._connect(nova=True)
 
         with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(instance)) as ssh:
+                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
             sftp = ssh.ssh.open_sftp()
 
             try:
-                with sftp.file('klever.json') as fp:
-                    instance_klever_conf = json.load(fp)
-
-                is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh,
-                                                       sftp)
-
-                is_update_controller_and_schedulers = False
-                is_update_verification_backend = False
-                if 'Klever Addons' in host_klever_conf:
-                    host_klever_addons_conf = host_klever_conf['Klever Addons']
-
-                    if 'Klever Addons' not in instance_klever_conf:
-                        instance_klever_conf['Klever Addons'] = {}
-
-                    instance_klever_addons_conf = instance_klever_conf['Klever Addons']
-
-                    for addon_name in host_klever_addons_conf.keys():
-                        instance_path = os.path.join('klever-addons', addon_name)
-
-                        if addon_name == 'Verification Backends':
-                            if 'Verification Backends' not in instance_klever_addons_conf:
-                                instance_klever_addons_conf['Verification Backends'] = {}
-
-                            for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
-                                is_update_verification_backend |= \
-                                    self._update_entity(verification_backend, instance_path,
-                                                        host_klever_addons_conf['Verification Backends'],
-                                                        instance_klever_addons_conf['Verification Backends'],
-                                                        ssh, sftp)
-                        elif self._update_entity(addon_name, instance_path, host_klever_addons_conf,
-                                                 instance_klever_addons_conf, ssh, sftp) \
-                                and addon_name in ('BenchExec', 'CIF', 'CIL', 'Consul'):
-                            is_update_controller_and_schedulers = True
-
-                if 'Programs' in host_klever_conf:
-                    host_programs_conf = host_klever_conf['Programs']
-
-                    if 'Programs' not in instance_klever_conf:
-                        instance_klever_conf['Programs'] = {}
-
-                    instance_programs_conf = instance_klever_conf['Programs']
-
-                    for program in host_programs_conf.keys():
-                        self._update_entity(program, os.path.join('klever-work', program), host_programs_conf,
-                                            instance_programs_conf, ssh, sftp)
-
-                self.logger.info('Specify actual versions of Klever, its addons and programs')
-                with sftp.file('klever.json', 'w') as fp:
-                    json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
-
-                if is_update_klever or is_update_controller_and_schedulers:
-                    self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
-                    services = ('klever-controller', 'klever-native-scheduler')
-                    ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                        '; '.join('service {0} stop'.format(service) for service in services)
-                    ))
-                    ssh.execute_cmd('./configure-controller-and-schedulers')
-                    ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                        '; '.join('service {0} start'.format(service) for service in services)
-                    ))
-
-                if is_update_klever:
-                    self.logger.info('(Re)install and (re)start Klever Bridge')
-                    services = ('nginx', 'klever-bridge')
-                    ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                        '; '.join('service {0} stop'.format(service) for service in services)
-                    ))
-                    ssh.execute_cmd('sudo ./install-klever-bridge')
-                    ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                        '; '.join('service {0} start'.format(service) for service in services)
-                    ))
-
-                if is_update_verification_backend and not is_update_klever and not is_update_controller_and_schedulers:
-                    self.logger.info('(Re)configure Klever Controller and Klever schedulers')
-                    # It is enough to reconfigure controller and schedulers since they automatically reread
-                    # configuration files holding changes of verification backends.
-                    ssh.execute_cmd('./configure-controller-and-schedulers')
+                self._do_update(ssh, sftp)
             finally:
                 sftp.close()
 
