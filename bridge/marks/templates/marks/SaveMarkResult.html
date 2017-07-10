@@ -2,11 +2,17 @@
 {% load i18n %}
 {% block title %}{% trans 'Changes in associations of marks with leaf reports' %}{% endblock %}
 {% block body_block %}
-    {% if MarkTable.values|length %}
+    <button type="button" class="ui mini violet icon basic button" id="view_show_form_btn_{{ TableData.view.type }}" data-content="{{ TableData.view.viewtitle }}" data-position="bottom right" style="float:right;margin-right: 10px;"><i class="setting icon"></i></button>
+    <br>
+    <div id="view_form_segment_{{ TableData.view.type }}" class="ui form yellow segment" style="display: none">
+        {% include 'users/views/AssociationChanges.html' with view=TableData.view selected_columns=TableData.selected_columns available_columns=TableData.available_columns verdicts=TableData.verdicts %}
+    </div>
+    <br>
+    {% if TableData.values|length %}
         <div style="overflow-x: auto; max-height: 80vh; overflow-y: auto;">
-            <table class="ui celled compact pink table tree">
+            <table class="ui celled compact pink selectable table alternate-color">
                 <thead>
-                    {% for column_row in header %}
+                    {% for column_row in TableData.header %}
                         <tr>
                         {% for coldata in column_row %}
                             <th colspan="{{ coldata.columns }}" rowspan="{{ coldata.rows }}">{{ coldata.title }}</th>
@@ -15,7 +21,7 @@
                     {% endfor %}
                 </thead>
                 <tbody>
-                    {% for row_data in MarkTable.values %}
+                    {% for row_data in TableData.values %}
                         <tr>
                             {% for v in row_data %}
                                 <td class="collapsing">
@@ -32,8 +38,8 @@
             </table>
         </div>
     {% else %}
-        <h1 class="header" style="text-align:center;">{% trans 'No changes in associations of marks with leaf reports' %}</h1>
+        <h1 class="header" style="text-align:center;">{% trans 'No changes in associations of marks with leaf reports or the view has filtered all results' %}</h1>
     {% endif %}
     <br>
-    <a href="{% url 'marks:view_mark' MarkTable.mark_type MarkTable.mark_id %}" class="ui green button" style="float: right">{% trans 'Show mark' %}</a>
+    <a href="{{ TableData.href }}" class="ui green button" style="float: right">{% trans 'Show mark' %}</a>
 {% endblock %}

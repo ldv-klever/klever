@@ -42,12 +42,12 @@ class RSB(core.components.Component):
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
-        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
-                                                           self.conf['shadow source tree']))
         property_file = self.prepare_property_file()
         files = self.prepare_src_files()
         benchmark = self.prepare_benchmark_description(files, property_file)
         self.files = files + [property_file] + [benchmark]
+        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                           self.conf['shadow source tree']))
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -310,7 +310,7 @@ class RSB(core.components.Component):
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
-        with zipfile.ZipFile('task files.zip', mode='w') as zfp:
+        with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in self.files:
                 zfp.write(file)
 

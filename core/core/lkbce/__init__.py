@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import stat
-import sys
 import tarfile
 import time
 import urllib.parse
@@ -102,7 +101,7 @@ class LKBCE(core.components.Component):
     def create_wrappers(self):
         os.makedirs('wrappers')
 
-        opts = ['gcc', 'ld']
+        opts = ['gcc', 'ld', 'objcopy']
         if 'architecture' not in self.conf['Linux kernel'] or not self.conf['Linux kernel']['architecture']:
             raise KeyError("Provide configuration option 'architecture' for the given kernel")
 
@@ -118,13 +117,13 @@ class LKBCE(core.components.Component):
         for cmd in opts:
             cmd_path = os.path.join('wrappers', cmd)
             with open(cmd_path, 'w', encoding='utf8') as fp:
-                fp.write("""#!{0}
+                fp.write("""#!/usr/bin/env python3
 import sys
 
 from core.lkbce.wrappers.common import Command
 
 sys.exit(Command(sys.argv).launch())
-""".format(sys.executable))
+""")
             os.chmod(cmd_path, os.stat(cmd_path).st_mode | stat.S_IEXEC)
 
     def receive_modules_to_build(self):

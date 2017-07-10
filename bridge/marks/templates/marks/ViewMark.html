@@ -65,10 +65,19 @@
                     </tr>
                 </tbody>
             </table>
+            <br>
+
+            {% if reports.view.type == '13' %}
+                {% include 'users/views/UnsafeAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+            {% else %}
+                {% include 'users/views/SafeAndUnkownAssReports.html' with view=reports.view selected_columns=reports.selected_columns available_columns=reports.available_columns %}
+            {% endif %}
+            <br>
+
             {% if reports.values|length %}
                 <h4 class="header ui teal">{% trans 'Associated leaf reports' %}</h4>
                 <div style="overflow-x: auto;">
-                    <table class="ui compact teal celled table" style="width:auto;">
+                    <table class="ui compact teal celled selectable table alternate-color">
                         <thead>
                             {% for column_row in reports.header %}
                                 <tr>
@@ -95,6 +104,8 @@
                         </tbody>
                     </table>
                 </div>
+            {% else %}
+                <h4>{% trans 'The list of associated reports is empty. Maybe it is because of the selected view.' %}</h4>
             {% endif %}
         </div>
         <div class="nine wide column">
