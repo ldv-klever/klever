@@ -63,15 +63,15 @@ with Cd('/var/www/klever-bridge'):
     # TODO: deal with media! Place media within volume!
 
     print('Update translations')
-    execute_cmd('python3', 'manage.py', 'compilemessages')
+    execute_cmd('manage.py', 'compilemessages')
 
 
     print('Migrate database')
-    execute_cmd('python3', 'manage.py', 'migrate')
+    execute_cmd('manage.py', 'migrate')
 
 
     print('Collect static files')
-    execute_cmd('python3', 'manage.py', 'collectstatic', '--noinput')
+    execute_cmd('manage.py', 'collectstatic', '--noinput')
 
 
     print('Populate databace (once)')
@@ -92,5 +92,5 @@ with Cd('/var/www/klever-bridge'):
          'Population()').encode(encoding='utf8')
     )
     os.close(write_fp)
-    execute_cmd('python3', 'manage.py', 'shell', stdin=read_fp)
+    execute_cmd('manage.py', 'shell', stdin=read_fp)
     os.close(read_fp)
