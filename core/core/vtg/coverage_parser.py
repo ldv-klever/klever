@@ -33,6 +33,10 @@ class LCOV:
 
         PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
+        DIR_MAP = (('src', self.shadow_src_dir),
+                   ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
+                   ('generated', self.main_work_dir))
+
         ignore_file = False
 
         excluded_dirs = set()
@@ -74,12 +78,11 @@ class LCOV:
                     if os.path.isfile(file_name) \
                         and not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
                         len_file = self.get_file_len(file_name)
-                        if file_name.startswith(self.shadow_src_dir):
-                            new_file_name = os.path.join('src', os.path.relpath(file_name, self.shadow_src_dir))
-                            ignore_file = False
-                        elif file_name.startswith(self.main_work_dir):
-                            new_file_name = os.path.join('generated', os.path.relpath(file_name, self.main_work_dir))
-                            ignore_file = False
+                        for dest, src in DIR_MAP:
+                            if file_name.startswith(src):
+                                new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
+                                ignore_file = False
+                                break
                         else:
                             new_file_name = core.utils.make_relative_path(self.logger, self.main_work_dir, file_name)
                             if new_file_name == file_name:
