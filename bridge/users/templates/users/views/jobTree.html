@@ -298,6 +298,21 @@
                 </select>
             </div>
         </div>
+
+        {# Weight #}
+        <input id="view_data_{{ view.type }}__weight" value="checkboxes_if_weight" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_condition_{{ view.type }}__weight"{% if 'weight' in view %} checked{% endif %}>
+            <label for="view_condition_{{ view.type }}__weight">{% trans 'Job weight' %}</label>
+        </div>
+        <br><br>
+        {% for weight in weights %}
+            <div class="ui checkbox" style="margin-left: 20px; margin-right: 10px; margin-top: 10px;">
+                <input id="view_{{ view.type }}__weight__{{ weight.0 }}" type="checkbox" value="{{ weight.0 }}"{% if 'weight' in view and weight.0 in view.weight %} checked{% endif %}>
+                <label for="view_{{ view.type }}__weight__{{ weight.0 }}">{{ weight.1 }}</label>
+            </div>
+        {% endfor %}
+        <div class="ui divider"></div>
     </div>
 </div>
 <div class="ui grid">

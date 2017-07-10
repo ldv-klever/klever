@@ -299,13 +299,18 @@ class ParseErrorTrace:
             data['code'] = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
         return data
 
-    def __return(self, func_id=None):
+    def __return(self, func_id=None, if_possible=False):
         if self.scope.current_action():
             # Return from action first
             self.lines.append(self.__triangle_line(self.scope.remove()))
         if not self.scope.is_return_correct(func_id):
+            if if_possible:
+                return
+            func_name = 'NONE'
+            if func_id is not None:
+                func_name = self.functions[func_id]
             raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                self.functions[func_id], self.scope.current()
+                func_name, self.scope.current()
             ))
         return_scope = self.scope.remove()
         self.lines.append(self.__triangle_line(return_scope))
@@ -315,7 +320,7 @@ class ParseErrorTrace:
 
     def __return_all(self):
         while self.scope.can_return():
-            self.__return()
+            self.__return(if_possible=True)
 
     def __get_comment(self, note, warn):
         new_data = {}
@@ -914,16 +919,24 @@ def etv_callstack(unsafe_id=None, file_name='test.txt'):
     ind = 0
     for x in data['edges']:
         if 'enter' in x:
-            trace += '%s%s {\n' % (' ' * ind, data['funcs'][x['enter']])
+            if 'action' in x:
+                trace += '%s%s(%s)[action_%s] {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'], x['action'])
+            else:
+                trace += '%s%s(%s) {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'])
             ind += 2
             if 'return' in x:
                 double_returns.add(x['enter'])
         elif 'return' in x:
             ind -= 2
-            trace += '%s}\n' % (' ' * ind)
+            if 'action' in x:
+                trace += '%s}(%s)[action_%s]\n' % (' ' * ind, x['return'], x['action'])
+            else:
+                trace += '%s}(%s)\n' % (' ' * ind, x['return'])
             if x['return'] in double_returns:
                 ind -= 2
-                trace += '%s}\n' % (' ' * ind)
+                trace += '%s}(DOUBLE)\n' % (' ' * ind)
                 double_returns.remove(x['return'])
+        elif 'action' in x:
+            trace += '%sACTION(%s)\n' % (' ' * ind, x['action'])
     with open(file_name, mode='w', encoding='utf8') as fp:
         fp.write(trace)

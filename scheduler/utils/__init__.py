@@ -221,7 +221,18 @@ def dir_size(dir):
     """
     if not os.path.isdir(dir):
         raise ValueError('Expect existing directory but it is not: {}'.format(dir))
-    return int(get_output('du -bs {} | cut -f1'.format(dir)))
+    output = get_output('du -bs {} | cut -f1'.format(dir))
+    try:
+        res = int(output)
+    except ValueError as e:
+        # One of the files inside the dir has been removed. We should delete the warning message.
+        splts = output.split('\n')
+        if len(splts < 2):
+            # Can not delete the warning message
+            raise e
+        else:
+            res = int(splts[-1])
+    return res
 
 
 def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stderr, stdout=sys.stdout,
@@ -416,7 +427,7 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
 
     results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
-    with zipfile.ZipFile(results_archive, mode='w') as zfp:
+    with zipfile.ZipFile(results_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
         zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
         for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
             for filename in filenames:

@@ -16,15 +16,11 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
+#include <linux/emg/test_model.h>
 
 int export_with_error(void)
 {
-	mutex_lock(&mutex);
-	mutex_unlock(&mutex);
-	mutex_unlock(&mutex);
+	ldv_invoke_callback();
 	return 0;
 }
 

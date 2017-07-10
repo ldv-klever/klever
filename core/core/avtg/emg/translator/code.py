@@ -19,6 +19,7 @@ import re
 import os
 from core.avtg.emg.common.signature import Declaration, Pointer, Function, Primitive, import_declaration
 from core.avtg.emg.common import get_conf_property
+from core.utils import unique_file_name
 
 
 class CModel:
@@ -213,7 +214,7 @@ class CModel:
                 lines.extend(aspect.get_aspect())
                 lines.append("\n")
 
-            name = "aspects/ldv_{}.aspect".format(os.path.splitext(os.path.basename(file))[0])
+            name = "{}.aspect".format(unique_file_name("aspects/ldv_" + os.path.splitext(os.path.basename(file))[0], '.aspect'))
             with open(name, "w", encoding="utf8") as fh:
                 fh.writelines(lines)
 

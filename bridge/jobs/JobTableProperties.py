@@ -386,6 +386,9 @@ class TableTree:
             filters['solvingprogress__finish_date__year__' + self.view['finish_date'][0]] = \
                 int(self.view['finish_date'][2])
 
+        if 'weight' in self.view:
+            filters['weight__in'] = self.view['weight']
+
         return filters, unfilters
 
     def __table_columns(self):

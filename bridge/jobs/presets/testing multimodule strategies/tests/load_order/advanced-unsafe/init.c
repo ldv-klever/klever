@@ -16,11 +16,9 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
+#include <linux/emg/test_model.h>
 
 static int i;
-
-static DEFINE_MUTEX(mutex);
 
 void set_i(void) {
   i = 7;
@@ -33,8 +31,7 @@ int __init init1(void) {
 
 void __exit exit1(void) {
   if(i != 5) {
-    mutex_lock(&mutex);
-    mutex_lock(&mutex);
+      ldv_invoke_callback();
   }
 }
 
