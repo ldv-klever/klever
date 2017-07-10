@@ -124,6 +124,11 @@ def common_initialization(tool, conf=None):
         raise KeyError("Provide configuration property 'common''logging' according to Python logging specs")
     logging.config.dictConfig(conf["common"]['logging'])
 
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        logging.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+    sys.excepthook = handle_exception
+
     return conf
 
 
