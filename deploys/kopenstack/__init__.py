@@ -46,7 +46,7 @@ def main():
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
     parser.add_argument('--klever-base-image', default='Klever Base',
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
-    parser.add_argument('--flavor', default='spark.large',
+    parser.add_argument('--flavor', default='spark.xlarge',
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
     parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                             'conf', 'klever.json'),
