@@ -466,6 +466,4 @@ def extract_cpu_cores_info():
 
     return data
 
-a = extract_cpu_cores_info()
-
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
