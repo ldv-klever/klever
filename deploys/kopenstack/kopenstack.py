@@ -313,7 +313,7 @@ class OSKleverDeveloperInstance(OSEntity):
                 finally:
                     sftp.close()
 
-    def _update_entity(self, name, host_klever_conf, instance_klever_conf, ssh, sftp):
+    def _update_entity(self, name, instance_path, host_klever_conf, instance_klever_conf, ssh, sftp):
         if name not in host_klever_conf:
             raise KeyError('Entity "{0}" is not described'.format(name))
 
@@ -354,11 +354,6 @@ class OSKleverDeveloperInstance(OSEntity):
         if 'executable path' in host_desc:
             instance_klever_conf[name]['executable path'] = host_desc['executable path']
 
-        if name == 'Klever':
-            instance_path = 'klever'
-        else:
-            instance_path = os.path.join('klever-addons', name)
-
         # Remove previous version of entity if so.
         if instance_version:
             ssh.execute_cmd('rm -rf ' + instance_path)
@@ -368,8 +363,13 @@ class OSKleverDeveloperInstance(OSEntity):
                 self._execute_cmd('git', 'clone', '-q', host_path, tmpdir)
                 self._execute_cmd('git', '-C', tmpdir, 'checkout', '-q', host_version)
                 shutil.rmtree(os.path.join(tmpdir, '.git'))
-                host_path = tmpdir
-                self._sftp_put(ssh, sftp, host_path, instance_path)
+                self._sftp_put(ssh, sftp, tmpdir, instance_path)
+        elif os.path.isfile(host_path) and tarfile.is_tarfile(host_path):
+            instance_archive = os.path.basename(host_path)
+            sftp.put(host_path, instance_archive)
+            ssh.execute_cmd('mkdir -p "{0}"'.format(instance_path))
+            ssh.execute_cmd('tar -C "{0}" -xf "{1}"'.format(instance_path, instance_archive))
+            ssh.execute_cmd('rm -rf "{0}"'.format(instance_archive))
         elif os.path.isfile(host_path) or os.path.isdir(host_path):
             self._sftp_put(ssh, sftp, host_path, instance_path)
         else:
@@ -393,7 +393,8 @@ class OSKleverDeveloperInstance(OSEntity):
                 with sftp.file('klever.json') as fp:
                     instance_klever_conf = json.load(fp)
 
-                is_update_klever = self._update_entity('Klever', host_klever_conf, instance_klever_conf, ssh, sftp)
+                is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh,
+                                                       sftp)
 
                 is_update_controller_and_schedulers = False
                 is_update_verification_backend = False
@@ -406,23 +407,36 @@ class OSKleverDeveloperInstance(OSEntity):
                     instance_klever_addons_conf = instance_klever_conf['Klever Addons']
 
                     for addon_name in host_klever_addons_conf.keys():
+                        instance_path = os.path.join('klever-addons', addon_name)
+
                         if addon_name == 'Verification Backends':
                             if 'Verification Backends' not in instance_klever_addons_conf:
                                 instance_klever_addons_conf['Verification Backends'] = {}
 
                             for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
                                 is_update_verification_backend |= \
-                                    self._update_entity(verification_backend,
+                                    self._update_entity(verification_backend, instance_path,
                                                         host_klever_addons_conf['Verification Backends'],
                                                         instance_klever_addons_conf['Verification Backends'],
                                                         ssh, sftp)
-                        else:
+                        elif self._update_entity(addon_name, instance_path, host_klever_addons_conf,
+                                                 instance_klever_addons_conf, ssh, sftp) \
+                                and addon_name in ('BenchExec', 'CIF', 'CIL', 'Consul'):
+                            is_update_controller_and_schedulers = True
 
-                            if self._update_entity(addon_name, host_klever_addons_conf, instance_klever_addons_conf,
-                                                   ssh, sftp) and addon_name in ('BenchExec', 'CIF', 'CIL', 'Consul'):
-                                is_update_controller_and_schedulers = True
+                if 'Programs' in host_klever_conf:
+                    host_programs_conf = host_klever_conf['Programs']
 
-                self.logger.info('Specify actual versions of Klever and its addons')
+                    if 'Programs' not in instance_klever_conf:
+                        instance_klever_conf['Programs'] = {}
+
+                    instance_programs_conf = instance_klever_conf['Programs']
+
+                    for program in host_programs_conf.keys():
+                        self._update_entity(program, os.path.join('klever-work', program), host_programs_conf,
+                                            instance_programs_conf, ssh, sftp)
+
+                self.logger.info('Specify actual versions of Klever, its addons and programs')
                 with sftp.file('klever.json', 'w') as fp:
                     json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
 
@@ -453,8 +467,6 @@ class OSKleverDeveloperInstance(OSEntity):
                     # It is enough to reconfigure controller and schedulers since they automatically reread
                     # configuration files holding changes of verification backends.
                     ssh.execute_cmd('./configure-controller-and-schedulers')
-
-                # TODO: copy sources.
             finally:
                 sftp.close()
 
