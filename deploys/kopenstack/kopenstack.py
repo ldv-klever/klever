@@ -445,17 +445,6 @@ class OSKleverDeveloperInstance(OSEntity):
         with sftp.file('klever.json', 'w') as fp:
             json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
 
-        if is_update_klever or is_update_controller_and_schedulers:
-            self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
-            services = ('klever-controller', 'klever-native-scheduler')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} stop'.format(service) for service in services)
-            ))
-            ssh.execute_cmd('./configure-controller-and-schedulers')
-            ssh.execute_cmd('sudo sh -c "{0}"'.format(
-                '; '.join('service {0} start'.format(service) for service in services)
-            ))
-
         if is_update_klever:
             self.logger.info('(Re)install and (re)start Klever Bridge')
             services = ('nginx', 'klever-bridge')
@@ -463,6 +452,17 @@ class OSKleverDeveloperInstance(OSEntity):
                 '; '.join('service {0} stop'.format(service) for service in services)
             ))
             ssh.execute_cmd('sudo ./install-klever-bridge')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} start'.format(service) for service in services)
+            ))
+
+        if is_update_klever or is_update_controller_and_schedulers:
+            self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
+            services = ('klever-controller', 'klever-native-scheduler')
+            ssh.execute_cmd('sudo sh -c "{0}"'.format(
+                '; '.join('service {0} stop'.format(service) for service in services)
+            ))
+            ssh.execute_cmd('./configure-controller-and-schedulers')
             ssh.execute_cmd('sudo sh -c "{0}"'.format(
                 '; '.join('service {0} start'.format(service) for service in services)
             ))
