@@ -244,18 +244,28 @@ around: call(void framebuffer_release(..))
 	if ($arg1 != 0) {
 		if ($arg1->apertures != 0) {
 			ldv_memory_free();
+			ldv_free($arg1->apertures);
 		}
 		ldv_memory_free();
+		ldv_free($arg1);
 	}
 }
 
 around: call(void rsi_91x_deinit(..))
 {
+    struct rsi_common *common = $arg1->priv;
+
+    if (common) {
+        ldv_memory_free();
+        ldv_free(common);
+    }
 	if ($arg1->rsi_dev != 0) {
 		ldv_memory_free();
+		ldv_free($arg1->rsi_dev);
 	}
 	if ($arg1 != 0) {
 		ldv_memory_free();
+		ldv_free($arg1);
 	}
 }
 
