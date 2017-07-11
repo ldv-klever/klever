@@ -7,6 +7,8 @@
   "scheduler": {
     "production": true,
     "type": "native",
+    "wait controller initialization": true,
+    "disable CPU cores account": false,
     "concurrent jobs": 2,
     "processes": 1.0,
     "process pool": false,
