@@ -65,6 +65,7 @@ native_scheduler_conf['Klever Bridge'].update({
     'password': 'service'
 })
 native_scheduler_conf['scheduler'].update({
+    'disable CPU cores account': True,
     'job client configuration': os.path.abspath('klever-conf/native-scheduler-job-client.json'),
     'task client configuration': os.path.abspath('klever-conf/native-scheduler-task-client.json')
 })
