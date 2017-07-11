@@ -37,9 +37,19 @@ around: define(_THIS_IP_)
 //This function makes kzalloc()!
 around: call(struct fb_info *framebuffer_alloc(..))
 {
-	void *res = ldv_zalloc(sizeof(struct fb_info) + $arg1);
+    int fb_info_size = sizeof(struct fb_info);
+	struct fb_info *info;
+	if ($arg1)
+	    fb_info_size += sizeof(long) - (sizeof(struct fb_info) % sizeof(long));
+	void *res = ldv_zalloc(fb_info_size + $arg1);
 	ldv_after_alloc(res);
-	return res;
+    info = (struct fb_info *) res;
+	if (res) {
+	    if ($arg1)
+		    info->par = res + fb_info_size;
+	}
+	info->device = $arg2;
+	return info;
 }
 
 around: call(void *kmemdup(..))
