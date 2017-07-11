@@ -531,7 +531,7 @@ class ResourceManager:
             return par, None, None
 
         self.__logger.info("Going to check that deadlock are impossible" if not job else
-                            "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
+                           "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
         jobs = self.__processing_jobs
         jobs = [[j, self.__jobs_config[j[0]]] for j in jobs] if not job else \
                [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
