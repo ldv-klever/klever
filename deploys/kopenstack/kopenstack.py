@@ -411,22 +411,22 @@ class OSKleverDeveloperInstance(OSEntity):
 
             instance_klever_addons_conf = instance_klever_conf['Klever Addons']
 
-            for addon_name in host_klever_addons_conf.keys():
-                instance_path = os.path.join('klever-addons', addon_name)
-
-                if addon_name == 'Verification Backends':
+            for addon in host_klever_addons_conf.keys():
+                if addon == 'Verification Backends':
                     if 'Verification Backends' not in instance_klever_addons_conf:
                         instance_klever_addons_conf['Verification Backends'] = {}
 
                     for verification_backend in host_klever_addons_conf['Verification Backends'].keys():
                         is_update_verification_backend |= \
-                            self._update_entity(verification_backend, instance_path,
+                            self._update_entity(verification_backend, os.path.join('klever-addons',
+                                                                                   'verification-backends',
+                                                                                   verification_backend),
                                                 host_klever_addons_conf['Verification Backends'],
                                                 instance_klever_addons_conf['Verification Backends'],
                                                 ssh, sftp)
-                elif self._update_entity(addon_name, instance_path, host_klever_addons_conf,
+                elif self._update_entity(addon, os.path.join('klever-addons', addon), host_klever_addons_conf,
                                          instance_klever_addons_conf, ssh, sftp) \
-                        and addon_name in ('BenchExec', 'CIF', 'CIL', 'Consul'):
+                        and addon in ('BenchExec', 'CIF', 'CIL', 'Consul'):
                     is_update_controller_and_schedulers = True
 
         if 'Programs' in host_klever_conf:

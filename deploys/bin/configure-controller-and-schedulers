@@ -32,7 +32,8 @@ def execute_cmd(*args, stdin=None, get_output=False):
 def get_klever_addon_abs_path(name, verification_backend=False):
     klever_addon_desc = klever_conf['Klever Addons']['Verification Backends'][name] \
         if verification_backend is True else klever_conf['Klever Addons'][name]
-    return os.path.abspath(os.path.join('klever-addons', name, klever_addon_desc.get('executable path', '')))
+    return os.path.abspath(os.path.join('klever-addons', 'verification-backends' if verification_backend else '', name,
+                                        klever_addon_desc.get('executable path', '')))
 
 
 print('Read Klever configuration')
