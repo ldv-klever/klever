@@ -258,13 +258,18 @@ def execute_external_tool(logger, args, timelimit=450000, memlimit=300000000):
     return output
 
 
-# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
-def find_file_or_dir(logger, main_work_dir, file_or_dir):
+def get_search_dirs(main_work_dir):
     search_dirs = ['job/root', os.path.pardir]
     if 'KLEVER_WORK_DIR' in os.environ:
         search_dirs.append(os.environ['KLEVER_WORK_DIR'])
     search_dirs = tuple(
         os.path.relpath(os.path.join(main_work_dir, search_dir)) for search_dir in search_dirs)
+    return search_dirs
+
+
+# TODO: get value of the second parameter on the basis of passed configuration. Or, even better, implement wrapper around this function in components.Component.
+def find_file_or_dir(logger, main_work_dir, file_or_dir):
+    search_dirs = get_search_dirs(main_work_dir)
 
     for search_dir in search_dirs:
         found_file_or_dir = os.path.join(search_dir, file_or_dir)
@@ -277,6 +282,14 @@ def find_file_or_dir(logger, main_work_dir, file_or_dir):
 
     raise FileNotFoundError(
         'Could not find file or directory "{0}" in directories "{1}"'.format(file_or_dir, ', '.join(search_dirs)))
+
+
+def make_relative_path(logger, main_work_dir, abs_path_to_file_or_dir):
+    search_dirs = get_search_dirs(main_work_dir)
+    for search_dir in search_dirs:
+        if abs_path_to_file_or_dir.startswith(os.path.abspath(search_dir)):
+            return os.path.relpath(abs_path_to_file_or_dir, search_dir)
+    return abs_path_to_file_or_dir
 
 
 def is_src_tree_root(filenames):
@@ -456,6 +469,12 @@ def get_logger(name, conf):
 def get_parallel_threads_num(logger, conf, action):
     logger.info('Get the number of parallel threads for "{0}"'.format(action))
 
+    if 'CPU Virtual cores' in conf['task resource limits']\
+            and conf['task resource limits']['CPU Virtual cores'] > 0:
+        number_of_cores = conf['task resource limits']['CPU Virtual cores']
+    else:
+        number_of_cores = conf['number of CPU cores']
+
     raw_parallel_threads_num = conf['parallelism'][action]
 
     # In case of integer number it is already the number of parallel threads.
@@ -463,7 +482,7 @@ def get_parallel_threads_num(logger, conf, action):
         parallel_threads_num = raw_parallel_threads_num
     # In case of decimal number it is fraction of the number of CPUs.
     elif isinstance(raw_parallel_threads_num, float):
-        parallel_threads_num = conf['number of CPU cores'] * raw_parallel_threads_num
+        parallel_threads_num = number_of_cores * raw_parallel_threads_num
     else:
         raise ValueError(
             'The number of parallel threads ("{0}") for "{1}" is neither integer nor decimal number'.format(
@@ -474,7 +493,7 @@ def get_parallel_threads_num(logger, conf, action):
     if parallel_threads_num < 1:
         raise ValueError('The computed number of parallel threads ("{0}") for "{1}" is less than 1'.format(
             parallel_threads_num, action))
-    elif parallel_threads_num > 2 * conf['number of CPU cores']:
+    elif parallel_threads_num > 2 * number_of_cores:
         raise ValueError(
             'The computed number of parallel threads ("{0}") for "{1}" is greater than the double number of CPUs'.format(
                 parallel_threads_num, action))
@@ -540,9 +559,12 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
         if os.path.isfile(report_files_archive):
             raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with zipfile.ZipFile(report_files_archive, mode='w') as zfp:
+        with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in report['files']:
-                zfp.write(file)
+                arcname = None
+                if 'arcname' in report and file in report['arcname']:
+                    arcname = report['arcname'][file]
+                zfp.write(file, arcname=arcname)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
@@ -562,3 +584,14 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
 
     return report_file
+
+
+def unique_file_name(file_name, suffix=''):
+    if not os.path.isfile(file_name + suffix):
+        return file_name
+
+    i = 2
+    while True:
+        if not os.path.isfile("{0}({1}){2}".format(file_name, str(i), suffix)):
+            return "{0}({1})".format(file_name, str(i))
+        i += 1

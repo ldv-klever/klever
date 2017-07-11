@@ -660,8 +660,6 @@ def get_source_code(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     filename = request.POST['file_name']
-    if len(filename) > 50:
-        filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
         'content': result.data, 'name': filename, 'fullname': request.POST['file_name']
     })

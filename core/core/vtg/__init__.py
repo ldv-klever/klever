@@ -34,6 +34,10 @@ def after_set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
 
+def after_set_shadow_src_tree(context):
+    context.mqs['shadow src tree'].put(context.shadow_src_tree)
+
+
 def after_generate_abstact_verification_task_desc(context):
     context.mqs['abstract task desc files'].put(
         os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory'])
@@ -65,6 +69,7 @@ class VTG(core.components.Component):
         self.get_strategy()
 
         self.get_common_prj_attrs()
+        self.get_shadow_src_tree()
         core.utils.report(self.logger,
                           'attrs',
                           {
@@ -96,6 +101,15 @@ class VTG(core.components.Component):
         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
 
         self.mqs['VTG common prj attrs'].close()
+
+    def get_shadow_src_tree(self):
+        self.logger.info('Get shadow source tree')
+
+        self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
+
+        self.mqs['shadow src tree'].close()
+
+        self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
 
     def generate_all_verification_tasks(self):
         self.logger.info('Generate all verification tasks')

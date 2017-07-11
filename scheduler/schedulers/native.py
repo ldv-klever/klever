@@ -22,7 +22,6 @@ import multiprocessing
 import os
 import shutil
 import signal
-import sys
 
 import schedulers as schedulers
 import schedulers.resource_scheduler
@@ -308,8 +307,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        args = [sys.executable, self.__client_bin]
         node_status = self.__manager.node_info(self.__node_name)
+
         if mode == 'task':
             subdir = 'tasks'
             client_conf = self.__get_task_configuration()
@@ -318,7 +317,8 @@ class Scheduler(schedulers.SchedulerExchange):
             subdir = 'jobs'
             client_conf = self.__job_conf_prototype.copy()
             self.__manager.check_resources(configuration, job=True)
-        args.append(mode)
+
+        args = [self.__client_bin, mode]
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -389,6 +389,9 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__get_virtual_cores(int(node_status["available CPU number"]),
                                      int(node_status["reserved CPU number"]),
                                      int(configuration["resource limits"]["number of CPU cores"]))
+        if mode != "task":
+            client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                len(client_conf["resource limits"]["CPU cores"])
 
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)

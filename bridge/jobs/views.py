@@ -35,7 +35,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES
+from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT
 from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
@@ -71,6 +71,7 @@ def tree_view(request):
     return render(request, 'jobs/tree.html', {
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
+        'weights': JOB_WEIGHT,
         'priorities': list(reversed(PRIORITY)),
         'months': months_choices,
         'years': list(range(curr_year - 3, curr_year + 1)),

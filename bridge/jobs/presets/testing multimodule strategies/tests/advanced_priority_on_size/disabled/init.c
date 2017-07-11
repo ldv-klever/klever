@@ -16,9 +16,7 @@
  */
 
 #include <linux/module.h>
-#include <linux/mutex.h>
-
-static DEFINE_MUTEX(mutex);
+#include <linux/emg/test_model.h>
 
 static int __init init1(void)
 {
@@ -27,8 +25,7 @@ static int __init init1(void)
 
 void export_err(void)
 {
-  mutex_lock(&mutex);
-  mutex_lock(&mutex);
+  ldv_invoke_callback();
 }
 
 EXPORT_SYMBOL(export_err);
