@@ -59,7 +59,7 @@ class OSEntity:
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
-            'password': getpass.getpass('OpenStack password for authentication: '),
+            'password': 'zkbC@27&',  # TODO: getpass.getpass('OpenStack password for authentication: '),
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)
@@ -109,6 +109,29 @@ class OSEntity:
                 images.append(image)
 
         return images
+
+    def _get_volume(self, volume_name, is_required=False):
+        self.logger.info('Get volume matching "{0}"'.format(volume_name))
+
+        volumes = self._get_volumes(volume_name)
+
+        if len(volumes) == 0 and is_required:
+            raise ValueError('There are no volumes matching "{0}"'.format(volume_name))
+
+        if len(volumes) > 1:
+            raise ValueError('There are several volumes matching "{0}", please, resolve this conflict manually'
+                             .format(volume_name))
+
+        return volumes[0] if volumes else None
+
+    def _get_volumes(self, volume_name):
+        volumes = []
+
+        for volume in self.os_services['cinder'].volumes.list():
+            if re.fullmatch(volume_name, volume.name):
+                volumes.append(volume)
+
+        return volumes
 
     def _get_instance(self, instance_name):
         self.logger.info('Get instance matching "{0}"'.format(instance_name))
@@ -284,9 +307,14 @@ class OSKleverDeveloperInstance(OSEntity):
             self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
 
     def create(self):
-        self._connect(glance=True, nova=True, neutron=True)
+        self._connect(glance=True, nova=True, neutron=True, cinder=True)
 
         base_image = self._get_base_image(self.args.klever_base_image)
+
+        klever_developer_volumes = self._get_volumes(self.name)
+
+        if klever_developer_volumes:
+            raise ValueError('Klever developer volume matching "{0}" already exists'.format(self.name))
 
         klever_developer_instances = self._get_instances(self.name)
 
@@ -294,7 +322,7 @@ class OSKleverDeveloperInstance(OSEntity):
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
         with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor, keep_on_exit=True) as instance:
+                        flavor_name=self.args.flavor, volume_size=self.args.volume_size, keep_on_exit=True) as instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=instance.floating_ip) as ssh:
                 sftp = ssh.ssh.open_sftp()
 
@@ -485,8 +513,20 @@ class OSKleverDeveloperInstance(OSEntity):
                 sftp.close()
 
     def remove(self):
-        self._connect(nova=True)
-        self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
+        self._connect(nova=True, cinder=True)
+
+        instance_id = self._get_instance(self.name).id
+
+        volume = self._get_volume(self.name)
+        if volume:
+            self.logger.info('Detach volume "{0}" from instance "{0}"'.format(self.name))
+            self.os_services['nova'].volumes.delete_server_volume(instance_id, volume.attachments[0]['id'])
+            self.logger.info('Remove volume "{0}"'.format(self.name))
+            self.os_services['cinder'].volumes.delete(volume.id)
+
+        self.logger.info('Remove instance "{0}"'.format(self.name))
+        # TODO: wait for successfull execution of removing amd retry it upon failures here and in other places where something is removed.
+        self.os_services['nova'].servers.delete(instance_id)
 
     def ssh(self):
         self._connect(nova=True)
@@ -533,11 +573,35 @@ class OSKleverExperimentalInstances(OSEntity):
             ssh.open_shell()
 
 
+class OSVolumeCreationTimeout(RuntimeError):
+    pass
+
+
+class OSVolumeAttachmentTimeout(RuntimeError):
+    pass
+
+
+class OSVolumeDissociationTimeout(RuntimeError):
+    pass
+
+
 class OSInstanceCreationTimeout(RuntimeError):
     pass
 
 
 class OSInstance:
+    VOLUME_CREATION_ATTEMPTS = 2
+    VOLUME_CREATION_TIMEOUT = 60
+    VOLUME_CREATION_CHECK_INTERVAL = 5
+    VOLUME_CREATION_RECOVERY_INTERVAL = 10
+    VOLUME_MOUNTPOINT = '/dev/vdb'
+    VOLUME_ATTACHMENT_ATTEMPTS = 2
+    VOLUME_ATTACHMENT_TIMEOUT = 20
+    VOLUME_ATTACHMENT_CHECK_INTERVAL = 2
+    VOLUME_ATTACHMENT_RECOVERY_INTERVAL = 5
+    VOLUME_DETACHING_TIMEOUT = 20
+    VOLUME_DETACHING_CHECK_INTERVAL = 2
+    VOLUME_DETACHING_RECOVERY_INTERVAL = 5
     CREATION_ATTEMPTS = 5
     CREATION_TIMEOUT = 120
     CREATION_CHECK_INTERVAL = 5
@@ -548,15 +612,153 @@ class OSInstance:
     IMAGE_CREATION_CHECK_INTERVAL = 10
     IMAGE_CREATION_RECOVERY_INTERVAL = 30
 
-    def __init__(self, logger, os_services, name, base_image, flavor_name, keep_on_exit=False):
+    def __init__(self, logger, os_services, name, base_image, flavor_name, volume_size=None, keep_on_exit=False):
         self.logger = logger
         self.os_services = os_services
         self.name = name
         self.base_image = base_image
         self.flavor_name = flavor_name
+        self.volume_size = volume_size
         self.keep_on_exit = keep_on_exit
 
+        self.volume = None
+        self.is_volume_attached = False
+        self.instance = None
+
+    def _create_volume(self):
+        self.logger.info('Create volume "{0}" of size {1} GB'.format(self.name, self.volume_size))
+
+        volume = None
+        attempts = self.VOLUME_CREATION_ATTEMPTS
+
+        while attempts > 0:
+            try:
+                volume = self.os_services['cinder'].volumes.create(name=self.name, size=self.volume_size)
+
+                timeout = self.VOLUME_CREATION_TIMEOUT
+
+                while timeout > 0:
+                    if volume.status == 'available':
+                        self.logger.info('Volume "{0}" is available'.format(self.name))
+                        self.volume = volume
+                        break
+                    else:
+                        timeout -= self.VOLUME_CREATION_CHECK_INTERVAL
+                        self.logger.info('Wait for {0} seconds until volume will be available ({1})'
+                                         .format(self.VOLUME_CREATION_CHECK_INTERVAL,
+                                                 'remaining timeout is {0} seconds'.format(timeout)))
+                        time.sleep(self.VOLUME_CREATION_CHECK_INTERVAL)
+                        volume = self.os_services['cinder'].volumes.get(volume.id)
+
+                if self.volume:
+                    break
+
+                raise OSVolumeCreationTimeout
+            except Exception as e:
+                if volume:
+                    volume.delete()
+                attempts -= 1
+                logging.warning(
+                    'Could not create volume, wait for {0} seconds and try {1} times more{2}'
+                    .format(self.VOLUME_CREATION_RECOVERY_INTERVAL, attempts,
+                            '' if isinstance(e, OSVolumeCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                time.sleep(self.VOLUME_CREATION_RECOVERY_INTERVAL)
+
+        if not self.volume:
+            raise RuntimeError('Could not create volume')
+
+    def _attach_volume(self):
+        self.logger.info('Attach volume "{0}" to instance "{0}"'.format(self.name))
+
+        attempts = self.VOLUME_ATTACHMENT_ATTEMPTS
+
+        while attempts > 0:
+            try:
+                self.os_services['nova'].volumes.create_server_volume(self.instance.id, self.volume.id,
+                                                                      self.VOLUME_MOUNTPOINT)
+                volume = self.os_services['cinder'].volumes.get(self.volume.id)
+                timeout = self.VOLUME_ATTACHMENT_TIMEOUT
+
+                while timeout > 0:
+                    self.logger.info(volume.attachments)
+                    if volume.status == 'in-use':
+                        self.logger.info('Volume "{0}" is attached to instance "{0}"'.format(self.name))
+                        self.is_volume_attached = True
+                        break
+                    else:
+                        timeout -= self.VOLUME_ATTACHMENT_CHECK_INTERVAL
+                        self.logger.info('Wait for {0} seconds until volume will be available ({1})'
+                                         .format(self.VOLUME_ATTACHMENT_CHECK_INTERVAL,
+                                                 'remaining timeout is {0} seconds'.format(timeout)))
+                        time.sleep(self.VOLUME_ATTACHMENT_CHECK_INTERVAL)
+                        volume = self.os_services['cinder'].volumes.get(volume.id)
+
+                if self.is_volume_attached:
+                    break
+
+                raise OSVolumeAttachmentTimeout
+            except Exception as e:
+                # TODO!
+                # if volume:
+                #     volume.delete()
+                attempts -= 1
+                logging.warning(
+                    'Could not attach volume, wait for {0} seconds and try {1} times more{2}'
+                    .format(self.VOLUME_ATTACHMENT_RECOVERY_INTERVAL, attempts,
+                            '' if isinstance(e, OSVolumeAttachmentTimeout) else '\n' + traceback.format_exc().rstrip()))
+                time.sleep(self.VOLUME_ATTACHMENT_RECOVERY_INTERVAL)
+
+        if not self.is_volume_attached:
+            raise RuntimeError('Could not attach volume')
+
+    def _detach_volume(self):
+        self.logger.info('Detach volume "{0}" from instance "{0}"'.format(self.name))
+
+        if not self.is_volume_attached:
+            raise ValueError('There are no volumes attached to instance "{0}"'.format(self.name))
+
+        if len(self.volume.attachments) > 1:
+            raise ValueError(
+                'There are several volumes attached to instance "{0}", please, resolve this conflict manually'
+                .format(self.name))
+
+        while True:
+            try:
+                self.os_services['nova'].volumes.delete_server_volume(self.instance.id,
+                                                                      self.volume.attachments[0]['id'])
+
+
+                volume = self.os_services['cinder'].volumes.get(volume.id)
+                timeout = self.VOLUME_DETACHING_TIMEOUT
+
+                while timeout > 0:
+                    if volume.status == 'in-use':
+                        self.logger.info('Volume "{0}" is attached to instance "{0}"'.format(self.name))
+                        self.is_volume_attached = True
+                        break
+                    else:
+                        timeout -= self.VOLUME_DETACHING_CHECK_INTERVAL
+                        self.logger.info('Wait for {0} seconds until volume will be detached ({1})'
+                                         .format(self.VOLUME_DETACHING_CHECK_INTERVAL,
+                                                 'remaining timeout is {0} seconds'.format(timeout)))
+                        time.sleep(self.VOLUME_DETACHING_CHECK_INTERVAL)
+                        volume = self.os_services['cinder'].volumes.get(volume.id)
+
+                if self.is_volume_attached:
+                    break
+
+                raise OSVolumeDissociationTimeout
+            except Exception as e:
+                logging.warning(
+                    'Could not deattach volume, wait for {0} seconds and try one more time{1}'
+                    .format(self.VOLUME_DETACHING_RECOVERY_INTERVAL,
+                            '' if isinstance(e, OSVolumeDissociationTimeout) else '\n' + traceback.format_exc().rstrip()))
+                time.sleep(self.VOLUME_DETACHING_RECOVERY_INTERVAL)
+
     def __enter__(self):
+        if self.volume_size:
+            self._create_volume()
+
         self.logger.info('Create instance "{0}" of flavor "{1}" on the base of image "{2}"'
                          .format(self.name, self.flavor_name, self.base_image.name))
 
@@ -591,6 +793,9 @@ class OSInstance:
                         self.logger.info('Floating IP {0} is attached to instance "{0}"'
                                          .format(self.floating_ip, self.name))
 
+                        if self.volume:
+                            self._attach_volume()
+
                         self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
                             .format(self.OPERATING_SYSTEM_STARTUP_DELAY))
@@ -619,7 +824,12 @@ class OSInstance:
         raise RuntimeError('Could not create instance')
 
     def __exit__(self, etype, value, traceback):
+        # TODO: merge with OSKleverDeveloperInstance.remove()
         if not self.keep_on_exit and self.instance:
+            if self.volume:
+                self.logger.info('Remove volume "{0}"'.format(self.name))
+                self.volume.delete()
+
             self.logger.info('Terminate instance "{0}"'.format(self.name))
             self.instance.delete()
 

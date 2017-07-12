@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import os
 import subprocess
 
 
@@ -30,6 +31,17 @@ def execute_cmd(*args, stdin=None, get_output=False):
 print('Create data directory')
 execute_cmd('mkdir', '/var/lib/klever')
 
+if os.path.exists('/dev/vdb'):
+    print('Prepare attached volume')
+    read_fp, write_fp = os.pipe()
+    os.write(write_fp, 'o\nn\np\n1\n\n\nw'.encode(encoding='utf8'))
+    os.close(write_fp)
+    execute_cmd('fdisk', '/dev/vdb', stdin=read_fp)
+    os.close(read_fp)
+    execute_cmd('mkfs.ext3', '-F', '/dev/vdb1')
+    with open('/etc/fstab', 'a') as fp:
+        fp.write('/dev/vdb1 /var/lib/klever ext3 rw 0 0')
+    execute_cmd('mount', '-a')
 
 print('Create configurations directory')
 execute_cmd('mkdir', 'klever-conf')
