@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import errno
 import getpass
 import logging
 import json
@@ -150,30 +149,6 @@ class OSEntity:
 
         return instances
 
-    def _sftp_exists(self, sftp, path):
-        try:
-            sftp.stat(path)
-        except IOError as e:
-            if e.errno == errno.ENOENT:
-                return False
-            raise
-        else:
-            return True
-
-    def _sftp_put(self, ssh, sftp, host_path, instance_path, dir=None):
-        # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
-        with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
-            instance_archive = os.path.basename(fp.name)
-            with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
-                TarFile.add(host_path, instance_path)
-            fp.flush()
-            fp.seek(0)
-            sftp.putfo(fp, instance_archive)
-
-        # Use sudo to allow extracting archives outside home directory.
-        ssh.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive))
-        ssh.execute_cmd('rm ' + instance_archive)
-
 
 class OSKleverBaseImage(OSEntity):
     def __init__(self, args, logger):
@@ -230,14 +205,8 @@ class OSKleverBaseImage(OSEntity):
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
-                sftp = ssh.ssh.open_sftp()
-
-                try:
-                    self._sftp_put(ssh, sftp, os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin',
-                                                           'install-deps'), 'install-deps')
-                finally:
-                    sftp.close()
-
+                ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
+                             'install-deps')
                 ssh.execute_cmd('sudo ./install-deps')
 
             instance.create_image()
@@ -294,37 +263,31 @@ class OSKleverDeveloperInstance(OSEntity):
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
         with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor, keep_on_exit=True) as instance:
+                        flavor_name=self.args.flavor) as instance:
             with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=instance.floating_ip) as ssh:
-                sftp = ssh.ssh.open_sftp()
+                self.logger.info('Copy and install init.d scripts')
+                for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
+                                                                         'init.d')):
+                    for filename in filenames:
+                        ssh.sftp_put(os.path.join(dirpath, filename),
+                                     os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
+                        ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
 
-                try:
-                    self.logger.info('Copy and install init.d scripts')
-                    for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
-                                                                             'init.d')):
-                        for filename in filenames:
-                            self._sftp_put(ssh, sftp, os.path.join(dirpath, filename),
-                                           os.path.join(os.path.sep, 'etc', 'init.d', filename), dir=os.path.sep)
-                            ssh.execute_cmd('sudo update-rc.d {0} defaults'.format(filename))
+                self.logger.info(
+                    'Copy scripts that can be used during creation/update of Klever developer instance')
+                for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
+                    ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
-                    self.logger.info(
-                        'Copy scripts that can be used during creation/update of Klever developer instance')
-                    for script in ('configure-controller-and-schedulers', 'install-klever-bridge', 'prepare-environment'):
-                        self._sftp_put(ssh, sftp,
-                                       os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
+                self.logger.info('Prepare environment')
+                ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -LR $(id -u):$(id -g) klever-conf klever-work"')
+                ssh.sftp.remove('prepare-environment')
 
-                    self.logger.info('Prepare environment')
-                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -LR $(id -u):$(id -g) klever-conf klever-work"')
-                    sftp.remove('prepare-environment')
+                self._do_update(ssh)
 
-                    self._do_update(ssh, sftp)
-                except Exception:
-                    # Remove instance if something above went wrong.
-                    instance.keep_on_exit = False
-                finally:
-                    sftp.close()
+                # Preserve instance if everything above went well.
+                instance.keep_on_exit = True
 
-    def _update_entity(self, name, instance_path, host_klever_conf, instance_klever_conf, ssh, sftp):
+    def _update_entity(self, name, instance_path, host_klever_conf, instance_klever_conf, ssh):
         if name not in host_klever_conf:
             raise KeyError('Entity "{0}" is not described'.format(name))
 
@@ -374,31 +337,31 @@ class OSKleverDeveloperInstance(OSEntity):
                 self._execute_cmd('git', 'clone', '-q', host_path, tmpdir)
                 self._execute_cmd('git', '-C', tmpdir, 'checkout', '-q', host_version)
                 shutil.rmtree(os.path.join(tmpdir, '.git'))
-                self._sftp_put(ssh, sftp, tmpdir, instance_path)
+                ssh.sftp_put(tmpdir, instance_path)
         elif os.path.isfile(host_path) and tarfile.is_tarfile(host_path):
             instance_archive = os.path.basename(host_path)
-            sftp.put(host_path, instance_archive)
+            ssh.sftp.put(host_path, instance_archive)
             ssh.execute_cmd('mkdir -p "{0}"'.format(instance_path))
             ssh.execute_cmd('tar -C "{0}" -xf "{1}"'.format(instance_path, instance_archive))
             ssh.execute_cmd('rm -rf "{0}"'.format(instance_archive))
         elif os.path.isfile(host_path) or os.path.isdir(host_path):
-            self._sftp_put(ssh, sftp, host_path, instance_path)
+            ssh.sftp_put(host_path, instance_path)
         else:
             raise NotImplementedError
 
         return True
 
-    def _do_update(self, ssh, sftp):
+    def _do_update(self, ssh):
         with open(self.args.klever_configuration_file) as fp:
             host_klever_conf = json.load(fp)
 
-        if self._sftp_exists(sftp, 'klever.json'):
-            with sftp.file('klever.json') as fp:
+        if ssh.sftp_exist('klever.json'):
+            with ssh.sftp.file('klever.json') as fp:
                 instance_klever_conf = json.load(fp)
         else:
             instance_klever_conf = {}
 
-        is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh, sftp)
+        is_update_klever = self._update_entity('Klever', 'klever', host_klever_conf, instance_klever_conf, ssh)
 
         is_update_controller_and_schedulers = False
         is_update_verification_backend = False
@@ -422,9 +385,9 @@ class OSKleverDeveloperInstance(OSEntity):
                                                                                    verification_backend),
                                                 host_klever_addons_conf['Verification Backends'],
                                                 instance_klever_addons_conf['Verification Backends'],
-                                                ssh, sftp)
+                                                ssh)
                 elif self._update_entity(addon, os.path.join('klever-addons', addon), host_klever_addons_conf,
-                                         instance_klever_addons_conf, ssh, sftp) \
+                                         instance_klever_addons_conf, ssh) \
                         and addon in ('BenchExec', 'CIF', 'CIL', 'Consul'):
                     is_update_controller_and_schedulers = True
 
@@ -438,10 +401,10 @@ class OSKleverDeveloperInstance(OSEntity):
 
             for program in host_programs_conf.keys():
                 self._update_entity(program, os.path.join('klever-work', program), host_programs_conf,
-                                    instance_programs_conf, ssh, sftp)
+                                    instance_programs_conf, ssh)
 
         self.logger.info('Specify actual versions of Klever, its addons and programs')
-        with sftp.file('klever.json', 'w') as fp:
+        with ssh.sftp.file('klever.json', 'w') as fp:
             json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)
 
         if is_update_klever:
@@ -477,22 +440,18 @@ class OSKleverDeveloperInstance(OSEntity):
 
         with SSH(args=self.args, logger=self.logger, name=self.name,
                  floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
-            sftp = ssh.ssh.open_sftp()
-
-            try:
-                self._do_update(ssh, sftp)
-            finally:
-                sftp.close()
+            self._do_update(ssh)
 
     def remove(self):
         self._connect(nova=True)
+        # TODO: wait for successfull deletion everywhere.
         self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
 
     def ssh(self):
         self._connect(nova=True)
 
         with SSH(args=self.args, logger=self.logger, name=self.name,
-                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name))) as ssh:
+                 floating_ip=self._get_instance_floating_ip(self._get_instance(self.name)), open_sftp=False) as ssh:
             ssh.open_shell()
 
 

@@ -15,12 +15,15 @@
 # limitations under the License.
 #
 
+import errno
 import logging
 import os
 import paramiko
 import select
 import socket
 import sys
+import tarfile
+import tempfile
 import termios
 import time
 import tty
@@ -32,17 +35,19 @@ class SSH:
     COMMAND_EXECUTION_CHECK_INTERVAL = 3
     COMMAND_EXECUTION_STREAM_BUF_SIZE = 10000
 
-    def __init__(self, args, logger, name, floating_ip):
+    def __init__(self, args, logger, name, floating_ip, open_sftp=True):
         if not args.ssh_rsa_private_key_file:
-            raise ValueError('Please specify path to SSH RSA private key file with help of command-line option --ssh-rsa-private-key-file')
+            raise ValueError('Please specify path to SSH RSA private key file with help of command-line option' +
+                             ' --ssh-rsa-private-key-file')
 
         self.args = args
         self.logger = logger
         self.name = name
         self.floating_ip = floating_ip
+        self.open_sftp = open_sftp
 
     def __enter__(self):
-        self.logger.info('Establish SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        self.logger.info('Open SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
 
         self.ssh = paramiko.SSHClient()
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -53,18 +58,29 @@ class SSH:
         while attempts > 0:
             try:
                 self.ssh.connect(hostname=self.floating_ip, username=self.args.ssh_username, pkey=k)
+
+                if self.open_sftp:
+                    self.logger.info(
+                        'Open SFTP session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+                    self.sftp = self.ssh.open_sftp()
+
                 return self
             except:
                 attempts -= 1
                 self.logger.warning(
-                    'Could not establish SSH connection, wait for {0} seconds and try {1} times more'
+                    'Could not open SSH session, wait for {0} seconds and try {1} times more'
                     .format(self.CONNECTION_RECOVERY_INTERVAL, attempts))
                 time.sleep(self.CONNECTION_RECOVERY_INTERVAL)
 
-        raise RuntimeError('Could not establish SSH connection')
+        raise RuntimeError('Could not open SSH session')
 
     def __exit__(self, etype, value, traceback):
-        self.logger.info('Close SSH connection to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+        if self.open_sftp:
+            self.logger.info(
+                'Close SFTP session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
+            self.sftp.open_sftp()
+
+        self.logger.info('Close SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         self.ssh.close()
 
     def execute_cmd(self, cmd):
@@ -97,13 +113,6 @@ class SSH:
 
         if retcode:
             raise RuntimeError('Command exitted with {0}'.format(retcode))
-
-    def get(self, src, dest):
-        try:
-            sftp = self.ssh.open_sftp()
-            sftp.get(src, dest)
-        finally:
-            sftp.close()
 
     def open_shell(self):
         self.logger.info('Open interactive SSH to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
@@ -141,3 +150,27 @@ class SSH:
                     chan.send(x)
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
+
+    def sftp_exist(self, path):
+        try:
+            self.sftp.stat(path)
+        except IOError as e:
+            if e.errno == errno.ENOENT:
+                return False
+            raise
+        else:
+            return True
+
+    def sftp_put(self, host_path, instance_path, dir=None):
+        # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
+        with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
+            instance_archive = os.path.basename(fp.name)
+            with tarfile.open(fileobj=fp, mode='w:gz') as TarFile:
+                TarFile.add(host_path, instance_path)
+            fp.flush()
+            fp.seek(0)
+            self.sftp.putfo(fp, instance_archive)
+
+        # Use sudo to allow extracting archives outside home directory.
+        self.execute_cmd('{0} -xf {1}'.format('sudo tar -C ' + dir if dir else 'tar', instance_archive))
+        self.execute_cmd('rm ' + instance_archive)
