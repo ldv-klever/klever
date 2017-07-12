@@ -179,6 +179,8 @@ class OSKleverBaseImage(OSEntity):
     def __init__(self, args, logger):
         super().__init__(args, logger)
 
+        self.name = self.args.name
+
     def show(self):
         self._connect(glance=True)
 
