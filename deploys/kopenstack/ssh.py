@@ -78,7 +78,7 @@ class SSH:
         if self.open_sftp:
             self.logger.info(
                 'Close SFTP session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
-            self.sftp.open_sftp()
+            self.sftp.close()
 
         self.logger.info('Close SSH session to instance "{0}" (IP: {1})'.format(self.name, self.floating_ip))
         self.ssh.close()
