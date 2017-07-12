@@ -27,20 +27,6 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
-print('Enable memory controller of control groups')
-boot_loader_conf = []
-with open('/extlinux.conf') as fp:
-    for line in fp:
-        line = line.rstrip()
-        if line.startswith('append'):
-            line += ' cgroup_enable=memory'
-        boot_loader_conf.append(line)
-
-with open('/extlinux.conf', 'w') as fp:
-    for line in boot_loader_conf:
-        fp.write(line + '\n')
-
-execute_cmd('extlinux', '-U', '/')
 
 
 print('Prepare configurations directory')
