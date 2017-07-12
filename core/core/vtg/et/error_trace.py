@@ -408,6 +408,33 @@ class ErrorTrace:
             if len(edge['target node']['out']) > 1:
                 raise ValueError('Witness contains branching which is not supported')
 
+    def final_checks(self):
+        # Iterate over the trace
+        threads = {}
+        last_thread = None
+        for edge in self.trace_iterator():
+            if 'thread' in edge and (not last_thread or last_thread != edge['thread']):
+                if edge['thread'] not in threads:
+                    threads[edge['thread']] = []
+                data = threads[edge['thread']]
+
+            if 'return' in edge:
+                if len(data) == 0:
+                    raise ValueError('Unexpected return from function {!r} in thread {}'.
+                                     format(self.resolve_function(edge['return']), edge['thread']))
+                elif edge['return'] != data[-1]:
+                    raise ValueError('Unexpected return from function {!r} in thread {}, expected last entered '
+                                     'function {}'.
+                                     format(self.resolve_function(edge['return']), edge['thread'],
+                                            self.resolve_function(data[-1])))
+                else:
+                    data.pop(-1)
+            if 'enter' in edge:
+                data.append(edge['enter'])
+
+            last_thread = edge['thread']
+
+
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')
 
