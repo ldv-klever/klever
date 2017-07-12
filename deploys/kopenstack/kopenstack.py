@@ -279,7 +279,8 @@ class OSKleverDeveloperInstance(OSEntity):
                     ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
                 self.logger.info('Prepare environment')
-                ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -LR $(id -u):$(id -g) klever-conf klever-work"')
+                ssh.execute_cmd('sudo ./prepare-environment && ' +
+                                'sudo chown -LR $(id -u):$(id -g) klever-conf klever-work')
                 ssh.sftp.remove('prepare-environment')
 
                 self._do_update(ssh)
