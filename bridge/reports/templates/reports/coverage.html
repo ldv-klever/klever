@@ -51,29 +51,48 @@
             </div>
         </div>
         <div class="one wide column right aligned">
-            <div class="ui mini buttons">
-                <button class="ui icon basic button note-popup" data-content="{% trans 'Download coverage' %}"><i class="download icon"></i></button>
-                <a class="ui icon basic button" href="{% url 'reports:coverage' coverage.report.pk %}"><i class="maximize icon"></i></a>
-            </div>
+            <button class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}"><i class="download icon"></i></button>
         </div>
     </div>
-    <div id="files_tree" class="ui floating labeled yellow icon dropdown button">{{ coverage.files_tree|safe }}</div>
+    <div id="files_tree" class="ui floating labeled yellow icon tiny dropdown button">{{ coverage.files_tree|safe }}</div>
     <br><br>
     <div class="ui grid">
         <div class="ten wide column">
             <div class="ui yellow segment">
-                <div style="height: 5vh;overflow-x: auto">
-                    <h5 id="selected_file_name"></h5>
-                </div>
-                <div id="CoverageSRCContent" class="filecontent" style="height: 60vh;overflow-x: auto"></div>
+                <div class="CoverageTitle"><h5 id="selected_file_name"></h5></div>
+                <div id="CoverageSRCContent"></div>
             </div>
         </div>
         <div class="six wide column">
             <div class="ui violet segment">
-                <div style="height: 5vh;overflow-x: auto"></div>
-                <div id="data_content" class="filecontent" style="height: 60vh;overflow-x: auto"></div>
+                <div class="CoverageTitle"><h5>{% trans 'Data' %}</h5></div>
+                <div id="CoverageDataContent" style="padding: 5px;"></div>
             </div>
         </div>
     </div>
+    <br>
+    <div class="ui tiny buttons">
+        <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
+        <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
+        <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
+    </div>
+
+    <br><br>
+    <div id="CoverageAttrTable" style="display: none;">
+        <table class="ui celled compact purple table">
+            <tbody>
+                {% for v in SelfAttrsData %}
+                    <tr>
+                        <th class="collapsing">{{ v.0 }}</th>
+                        <td class="collapsing">{{ v.1 }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div id="CoverageTable" style="display: none;"></div>
+    <div id="DataStatisticTable" style="display: none;"></div>
+    <br><br>
+
     <input id="report_id" value="{{ coverage.report.id }}" type="hidden">
 {% endblock %}

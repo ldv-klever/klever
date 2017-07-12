@@ -62,4 +62,6 @@ urlpatterns = [
 
     url(r'^coverage/(?P<report_id>[0-9]+)/$', views.coverage_page, name='coverage'),
     url(r'^ajax/get-coverage-src/$', views.get_coverage_src),
+    url(r'^ajax/get-coverage-statistic/$', views.get_coverage_statistic),
+    url(r'^ajax/get-coverage-data-statistic/$', views.get_coverage_data_stat),
 ]

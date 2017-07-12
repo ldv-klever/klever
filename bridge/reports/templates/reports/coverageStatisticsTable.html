@@ -1,0 +1,38 @@
+{% load i18n %}
+
+{% if TableData|length %}
+    <table class="ui celled striped compact selectable teal table tree alternate-color">
+        <thead>
+            <tr>
+                <th>{% trans 'Files' %}</th>
+                <th>{% trans 'Line coverage' %}, %</th>
+                <th>{% trans 'Covered lines' %}</th>
+                <th>{% trans 'Total lines' %}</th>
+                <th>{% trans 'Function coverage' %}, %</th>
+                <th>{% trans 'Covered functions' %}</th>
+                <th>{% trans 'Total functions' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row_data in TableData %}
+                <tr class="{% if row_data.display %}tr-show{% endif %} treegrid-{{ row_data.id }}{% if row_data.parent_id %} treegrid-parent-{{ row_data.parent_id }}{% endif %}">
+                    <td>
+                        {% if not row_data.is_dir %}
+                            <a class="tree-file-link" data-path="{{ row_data.path }}" href="#">{{ row_data.title }}</a>
+                        {% else %}
+                            <span>{{ row_data.title }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ row_data.lines.percent }}</td>
+                    <td>{{ row_data.lines.covered }}</td>
+                    <td>{{ row_data.lines.total }}</td>
+                    <td>{{ row_data.funcs.percent }}</td>
+                    <td>{{ row_data.funcs.covered }}</td>
+                    <td>{{ row_data.funcs.total }}</td>
+                </tr>
+            {%  endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <h1 class="ui violet header">{% trans 'List of files is empty' %}</h1>
+{% endif %}

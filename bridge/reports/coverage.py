@@ -16,40 +16,88 @@
 #
 
 import os
+import re
 import json
 import zipfile
-import xml.etree.ElementTree as ETree
-from xml.dom import minidom
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.core.urlresolvers import reverse
-from django.db.models import Q, Count, Case, When
+from django.template import loader
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, JOB_WEIGHT, VIEW_TYPES
-from bridge.tableHead import Header
-from bridge.utils import logger, BridgeException, ArchiveFileContent
-from bridge.ZipGenerator import ZipStream
+from bridge.utils import BridgeException
 
-from reports.models import ReportComponent, Attr, AttrName, ReportAttr, ReportUnsafe, ReportSafe, ReportUnknown,\
-    ReportRoot
-from marks.models import UnknownProblem, UnsafeReportTag, SafeReportTag
+from reports.models import ReportComponent, ReportUnsafe, ReportSafe, ReportUnknown
 
-from users.utils import DEF_NUMBER_OF_ELEMENTS, ViewData
-from jobs.utils import get_resource_data, get_user_time
 from reports.utils import get_parents
-from marks.tables import SAFE_COLOR, UNSAFE_COLOR
+from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
 
 
 SOURCE_CLASSES = {
     'comment': "COVComment",
     'number': "COVNumber",
-    'line': "COVSrcL",
     'text': "COVText",
     'key1': "COVKey1",
     'key2': "COVKey2"
 }
+
+# ROOT_DIRS_ORDER = ['source files', 'models', 'generated models']
+ROOT_DIRS_ORDER = ['src', 'specifications', 'generated']
+
+
+def coverage_color(curr_cov, max_cov, delta=0):
+    green = 140 + int(100 * (1 - curr_cov / max_cov))
+    blue = 140 + int(100 * (1 - curr_cov / max_cov)) - delta
+    return 'rgb(255, %s, %s)' % (green, blue)
+
+
+def json_to_html(data):
+    data = json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False)
+
+    def wrap_text(text):
+        return '<span class="COVJsonText">{0}</span>'.format(text)
+
+    def wrap_number(number):
+        return '<span class="COVJsonNum">{0}</span>'.format(number)
+
+    def wrap_string(string):
+        return '<span class="COVJsonLine">{0}</span><br>'.format(string)
+
+    data_html = ''
+    for line in data.split('\n'):
+        line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+        m = re.match('^(\s*)(\".*?\"):\s(.*)$', line)
+        if m is not None:
+            if m.group(3) in {'{', '['}:
+                new_line = '{0}{1}: {2}'.format(m.group(1), wrap_text(m.group(2)), m.group(3))
+                data_html += wrap_string(new_line)
+                continue
+            m2 = re.match('^(\d.*?)(,?)$', m.group(3))
+            if m2 is not None:
+                new_line = '{0}{1}: {2}{3}'.format(
+                    m.group(1), wrap_text(m.group(2)), wrap_number(m2.group(1)), m2.group(2)
+                )
+                data_html += wrap_string(new_line)
+                continue
+            m2 = re.match('^(\".*?\")(,?)$', m.group(3))
+            if m2 is not None:
+                new_line = '{0}{1}: {2}{3}'.format(
+                    m.group(1), wrap_text(m.group(2)), wrap_text(m2.group(1)), m2.group(2)
+                )
+                data_html += wrap_string(new_line)
+                continue
+        m = re.match('^(\s*)(\".*\")(,?)$', line)
+        if m is not None:
+            new_line = '{0}{1}{2}'.format(m.group(1), wrap_text(m.group(2)), m.group(3))
+            data_html += wrap_string(new_line)
+            continue
+        m = re.match('^(\s*)(\d.*?)(,?)$', line)
+        if m is not None:
+            new_line = '{0}{1}{2}'.format(m.group(1), wrap_number(m.group(2)), m.group(3))
+            data_html += wrap_string(new_line)
+            continue
+        data_html += wrap_string(line)
+    return data_html
 
 
 class GetCoverage:
@@ -63,6 +111,7 @@ class GetCoverage:
         self._files = []
         self._curr_i = 0
         self._sum = 0
+        self.coverage = None
 
     def __get_report(self, report_id):
         try:
@@ -79,15 +128,6 @@ class GetCoverage:
                     return ReportUnknown.objects.get(id=report_id)
                 except ObjectDoesNotExist:
                     raise BridgeException(_('The report was not found'))
-
-    def get_coverage(self):
-        if not self.parent.verification or self.parent.coverage is None:
-            raise ValueError("The parent doesn't have coverage")
-        with self.parent.archive as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                return json.loads(zfp.read(self.parent.coverage))
 
     def __get_files(self):
         if not self.parent.verification:
@@ -148,20 +188,25 @@ class GetCoverage:
         self._files = list(sorted(self._files))
 
         root_dirs = []
-        children_html, children_are_headers = self.__get_children_list('generated')
-        if len(children_html) > 0:
-            root_dirs.append(self.__wrap_item('generated', children_html, children_are_headers))
-            children_html, children_are_headers = self.__get_children_list('specifications')
-        if len(children_html) > 0:
-            root_dirs.insert(0, self.__wrap_item('specifications', children_html, children_are_headers))
-            children_html, children_are_headers = self.__get_children_list('src')
-        if len(children_html) > 0:
-            root_dirs.insert(0, self.__wrap_item('src', children_html, children_are_headers))
+        indexes = {}
+        cnt = 0
+        for rdir in sorted(ROOT_DIRS_ORDER):
+            children_html, children_are_headers = self.__get_children_list(rdir)
+            if len(children_html) > 0:
+                for i in range(len(ROOT_DIRS_ORDER)):
+                    if ROOT_DIRS_ORDER[i] == rdir:
+                        indexes[i] = cnt
+                        break
+                root_dirs.append(self.__wrap_item(rdir, children_html, children_are_headers))
+            cnt += 1
 
+        root_dirs_sorted = []
+        for j in sorted(indexes):
+            root_dirs_sorted.append(root_dirs[indexes[j]])
         if self._sum != len(self._files):
             raise ValueError('Something is wrong')
 
-        return self.__wrap_items('Select file', root_dirs)
+        return self.__wrap_items('Select file', root_dirs_sorted)
 
     def get_file_content(self, filename):
         with self.parent.archive as fp:
@@ -169,18 +214,86 @@ class GetCoverage:
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 filename = os.path.normpath(filename).replace('\\', '/')
-                return GetCoverageSrcHTML(zfp.read(filename).decode('utf8')).data
+                return GetCoverageSrcHTML(
+                    filename,
+                    zfp.read(filename).decode('utf8'),
+                    json.loads(zfp.read(self.parent.coverage))
+                )
 
     def __is_not_used(self):
         pass
 
 
 class GetCoverageSrcHTML:
-    def __init__(self, content):
-        self.is_comment = False
-        self.is_text = False
-        self.text_quote = None
-        self.data = self.__get_source(content)
+    def __init__(self, filename, content, coverage):
+        self._filename = filename
+
+        self._coverage = coverage
+        self._max_cov_line, self._line_coverage = self.__get_coverage(coverage['line coverage'])
+        del self._coverage['line coverage']
+        self._max_cov_func, self._func_coverage = self.__get_coverage(coverage['function coverage']['coverage'])
+        del self._coverage['function coverage']
+
+        self._is_comment = False
+        self._is_text = False
+        self._text_quote = None
+        self._total_lines = 1
+        self._data_map = {}
+        self.data_html = self.__get_data()
+        self.src_html = self.__get_source_html(content)
+
+    def __get_coverage(self, coverage):
+        data = {}
+        max_cov = 0
+        for cov in coverage:
+            if self._filename in cov[1]:
+                max_cov = max(max_cov, cov[0])
+                for line_num in cov[1][self._filename]:
+                    if isinstance(line_num, int):
+                        data[line_num] = cov[0]
+                    elif isinstance(line_num, list) and len(line_num) == 2:
+                        for i in range(*line_num):
+                            data[i] = cov[0]
+                        data[line_num[1]] = cov[0]
+        return max_cov, data
+
+    def __get_data(self):
+        data_values = {}
+        data_names = set()
+        for data_name in self._coverage:
+            cnt = 0
+            for data_val in self._coverage[data_name]['values']:
+                if self._filename in data_val[1]:
+                    cnt += 1
+                    data_id = ("%s_%s" % (data_name, cnt)).replace(' ', '_')
+                    data_names.add(data_name)
+                    data_values[data_id] = json_to_html(data_val[0])
+                    for line_num in data_val[1][self._filename]:
+                        if isinstance(line_num, int):
+                            if line_num not in self._data_map:
+                                self._data_map[line_num] = {}
+                            self._data_map[line_num][data_name] = data_id
+                        elif isinstance(line_num, list) and len(line_num) == 2:
+                            for i in range(*line_num):
+                                if i not in self._data_map:
+                                    self._data_map[i] = {}
+                                self._data_map[i][data_name] = data_id
+                            if line_num[1] not in self._data_map:
+                                self._data_map[line_num[1]] = {}
+                            self._data_map[line_num[1]][data_name] = data_id
+        data = []
+        data_names = list(sorted(data_names))
+        for i in self._data_map:
+            content = []
+            for name in data_names:
+                if name in self._data_map[i]:
+                    content.append([name, self._data_map[i][name], False])
+            content[0][2] = True
+            data.append({'line': i, 'content': content})
+        return loader.get_template('reports/coverageData.html').render({
+            'data_map': data,
+            'data_values': list([d_id, data_values[d_id]] for d_id in data_values)
+        })
 
     def __get_report(self, report_id):
         self.__is_not_used()
@@ -189,42 +302,66 @@ class GetCoverageSrcHTML:
         except ObjectDoesNotExist:
             raise BridgeException(_("Could not find the corresponding unsafe"))
 
-    def __get_source(self, source_content):
-        from reports.etv import TAB_LENGTH
-        data = ''
+    def __get_source_html(self, source_content):
+        data = []
         cnt = 1
         lines = source_content.split('\n')
+        self._total_lines = len(str(len(lines)))
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-            line_num = ' ' * (len(str(len(lines))) - len(str(cnt))) + str(cnt)
-            data += '<span>%s %s</span><br>' % (
-                self.__wrap_line(line_num, 'line', 'ETVSrcL_%s' % cnt), self.__parse_line(line)
-            )
+            data.append(self.__get_line_data(cnt, self.__parse_line(line)))
             cnt += 1
-        return data
+        return loader.get_template('reports/coverageFile.html').render({'linedata': data})
+
+    def __get_line_data(self, line, code):
+        line_num = {
+            'class': 'COVLine', 'static': True, 'data': [],
+            'content': '<a class="COVLineLink">%s</a>' % (' ' * (self._total_lines - len(str(line))) + str(line))
+        }
+        code = {'class': 'COVCode', 'content': code}
+        if line in self._line_coverage:
+            line_num['data'].append(('number', self._line_coverage[line]))
+            code['color'] = coverage_color(self._line_coverage[line], self._max_cov_line)
+
+        if line in self._data_map:
+            line_num['data'].append(('line', line))
+
+        func_cov = {'class': 'COVIsFC', 'static': True, 'content': '&nbsp;'}
+        if line in self._func_coverage:
+            func_cov['data'] = [('number', self._func_coverage[line])]
+            func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
+
+        linedata = [line_num, func_cov]
+        # TODO: if with data
+        if True:
+            linedata.append({
+                'class': 'COVHasD', 'static': True,
+                'content': 'D' if line in self._data_map else '&nbsp;',
+                'color': '#7a4eb2' if line in self._data_map else '#f4f7ff'
+            })
+        linedata.append(code)
+        return linedata
 
     def __parse_line(self, line):
-        import re
-        from reports.etv import KEY1_WORDS, KEY2_WORDS
-        if self.is_comment:
+        if self._is_comment:
             m = re.match('(.*?)\*/(.*)', line)
             if m is None:
                 return self.__wrap_line(line, 'comment')
-            self.is_comment = False
+            self._is_comment = False
             new_line = self.__wrap_line(m.group(1) + '*/', 'comment')
             return new_line + self.__parse_line(m.group(2))
 
-        if self.is_text:
+        if self._is_text:
             before, after = self.__parse_text(line)
             if after is None:
                 return self.__wrap_line(before, 'text')
-            self.is_text = False
+            self._is_text = False
             return self.__wrap_line(before, 'text') + self.__parse_line(after)
 
         m = re.match('(.*?)/\*(.*)', line)
         if m is not None and m.group(1).find('"') == -1 and m.group(1).find("'") == -1:
             new_line = self.__parse_line(m.group(1))
-            self.is_comment = True
+            self._is_comment = True
             new_line += self.__parse_line('/*' + m.group(2))
             return new_line
         m = re.match('(.*?)//(.*)', line)
@@ -236,13 +373,13 @@ class GetCoverageSrcHTML:
         m = re.match('(.*?)([\'\"])(.*)', line)
         if m is not None:
             new_line = self.__parse_line(m.group(1))
-            self.text_quote = m.group(2)
+            self._text_quote = m.group(2)
             before, after = self.__parse_text(m.group(3))
-            new_line += self.__wrap_line(self.text_quote + before, 'text')
+            new_line += self.__wrap_line(self._text_quote + before, 'text')
             if after is None:
-                self.is_text = True
+                self._is_text = True
                 return new_line
-            self.is_text = False
+            self._is_text = False
             return new_line + self.__parse_line(after)
 
         m = re.match("(.*\W)(\d+)(\W.*)", line)
@@ -271,7 +408,7 @@ class GetCoverageSrcHTML:
             if end_found:
                 after += c
                 continue
-            if not escaped and c == self.text_quote:
+            if not escaped and c == self._text_quote:
                 end_found = True
             elif escaped:
                 escaped = False
@@ -292,3 +429,208 @@ class GetCoverageSrcHTML:
 
     def __is_not_used(self):
         pass
+
+
+class CoverageStatistics:
+    def __init__(self, report_id):
+        self.type = None
+        self.report = self.__get_report(report_id)
+        self.parent = ReportComponent.objects.get(id=self.report.parent_id)
+        self._files = []
+        self._total_lines = {}
+        self._covered_lines = {}
+        self._covered_funcs = {}
+        self.__get_files()
+        self.shown_ids = set()
+        self._table_data = self.__get_table_data()
+        self.table_html = self.__html_table()
+
+    def __get_report(self, report_id):
+        try:
+            self.type = 'safe'
+            return ReportSafe.objects.get(id=report_id)
+        except ObjectDoesNotExist:
+            try:
+                self.type = 'unsafe'
+                return ReportUnsafe.objects.get(id=report_id)
+
+            except ObjectDoesNotExist:
+                try:
+                    self.type = 'unknown'
+                    return ReportUnknown.objects.get(id=report_id)
+                except ObjectDoesNotExist:
+                    raise BridgeException(_('The report was not found'))
+
+    def __get_files(self):
+        if not self.parent.verification:
+            raise ValueError("The parent is not verification report")
+        with self.parent.archive as fp:
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                for filename in zfp.namelist():
+                    if filename.endswith('/'):
+                        continue
+                    if filename == self.parent.coverage:
+                        coverage = json.loads(zfp.read(self.parent.coverage))
+                        self.__get_covered(coverage['line coverage'])
+                        self._covered_funcs = self.__get_covered_funcs(coverage['function coverage']['statistics'])
+                    elif filename != self.parent.log:
+                        self._files.append(os.path.normpath(filename))
+                        with zfp.open(filename) as inzip_fp:
+                            lines = 0
+                            for line in inzip_fp:
+                                lines += 1
+                            self._total_lines[os.path.normpath(filename)] = lines
+
+    def __get_covered(self, line_coverage):
+        covered_lines = {}
+        for data in line_coverage:
+            if data[0] > 0:
+                for f in data[1]:
+                    path = os.path.normpath(f)
+                    if path not in covered_lines:
+                        covered_lines[path] = set()
+                    for linenum in data[1][f]:
+                        if isinstance(linenum, int):
+                            covered_lines[path].add(linenum)
+                        elif isinstance(linenum, list):
+                            for ln in range(*linenum):
+                                covered_lines[path].add(ln)
+                            covered_lines[path].add(linenum[1])
+        for filename in covered_lines:
+            self._covered_lines[filename] = len(covered_lines[filename])
+
+    def __get_covered_funcs(self, coverage):
+        self.__is_not_used()
+        func_coverage = {}
+        for fname in coverage:
+            func_coverage[os.path.normpath(fname)] = coverage[fname]
+        return func_coverage
+
+    def __get_table_data(self):
+        cnt = 0
+        parents = {}
+        for fname in self._files:
+            path = fname.split(os.path.sep)
+            for i in range(len(path)):
+                cnt += 1
+                curr_path = os.path.join(*path[:(i + 1)])
+                if curr_path not in parents:
+                    parent_id = parent = None
+                    if i > 0:
+                        parent = os.path.join(*path[:i])
+                        parent_id = parents[parent]['id']
+                    parents[curr_path] = {
+                        'id': cnt,
+                        'title': path[i],
+                        'parent': parent,
+                        'parent_id': parent_id,
+                        'display': False,
+                        'is_dir': (i != len(path) - 1),
+                        'path': curr_path,
+                        'lines': {'covered': 0, 'total': 0, 'percent': '-'},
+                        'funcs': {'covered': 0, 'total': 0, 'percent': '-'}
+                    }
+
+        for fname in self._files:
+            display = False
+            if any(fname.endswith(x) for x in ['.i', '.c', '.c.aux']):
+                display = True
+            covered_lines = self._covered_lines.get(fname, 0)
+            total_lines = self._total_lines.get(fname, 0)
+            covered_funcs = total_funcs = 0
+            if fname in self._covered_funcs:
+                covered_funcs = self._covered_funcs[fname][0]
+                total_funcs = self._covered_funcs[fname][1]
+            parent = fname
+            while parent is not None:
+                parents[parent]['lines']['covered'] += covered_lines
+                parents[parent]['lines']['total'] += total_lines
+                parents[parent]['funcs']['covered'] += covered_funcs
+                parents[parent]['funcs']['total'] += total_funcs
+                if parents[parent]['is_dir'] and display or parents[parent]['parent'] is None:
+                    parents[parent]['display'] = True
+                parent = parents[parent]['parent']
+
+        for fname in parents:
+            if parents[fname]['lines']['total'] > 0:
+                parents[fname]['lines']['percent'] = '%s%%' % int(
+                    100 * parents[fname]['lines']['covered'] / parents[fname]['lines']['total']
+                )
+            if parents[fname]['funcs']['total'] > 0:
+                parents[fname]['funcs']['percent'] = '%s%%' % int(
+                    100 * parents[fname]['funcs']['covered'] / parents[fname]['funcs']['total']
+                )
+
+        other_data = list(sorted(parents.values(), key=lambda x: (not x['is_dir'], x['title'])))
+
+        def __get_all_children(file_info):
+            children = []
+            if not file_info['is_dir']:
+                return children
+            for fi in other_data:
+                if fi['parent_id'] == file_info['id']:
+                    children.append(fi)
+                    children.extend(__get_all_children(fi))
+            return children
+
+        first_lvl = []
+        for root_name in ROOT_DIRS_ORDER:
+            if root_name in parents:
+                first_lvl.append(parents[root_name])
+
+        ordered_data = []
+        for fd in first_lvl:
+            ordered_data.append(fd)
+            ordered_data.extend(__get_all_children(fd))
+        return ordered_data
+
+    def __html_table(self):
+        return loader.get_template('reports/coverageStatisticsTable.html').render({'TableData': self._table_data})
+
+    def __is_not_used(self):
+        pass
+
+
+class DataStatistic:
+    def __init__(self, report_id):
+        self.type = None
+        self.report = self.__get_report(report_id)
+        self.parent = ReportComponent.objects.get(id=self.report.parent_id)
+        self.table_html = loader.get_template('reports/coverageDataStatistics.html')\
+            .render({'DataStatistics': self.__get_data()})
+
+    def __get_report(self, report_id):
+        try:
+            self.type = 'safe'
+            return ReportSafe.objects.get(id=report_id)
+        except ObjectDoesNotExist:
+            try:
+                self.type = 'unsafe'
+                return ReportUnsafe.objects.get(id=report_id)
+
+            except ObjectDoesNotExist:
+                try:
+                    self.type = 'unknown'
+                    return ReportUnknown.objects.get(id=report_id)
+                except ObjectDoesNotExist:
+                    raise BridgeException(_('The report was not found'))
+
+    def __get_data(self):
+        if not self.parent.verification:
+            raise ValueError("The parent is not verification report")
+        data = []
+        with self.parent.archive as fp:
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                coverage = json.loads(zfp.read(self.parent.coverage))
+                for val in sorted(coverage):
+                    if val not in {'line coverage', 'function coverage'} and 'statistics' in coverage[val]:
+                        data.append({
+                            'tab': val, 'active': False, 'content': json_to_html(coverage[val]['statistics'])
+                        })
+        if len(data) > 0:
+            data[0]['active'] = True
+        return data

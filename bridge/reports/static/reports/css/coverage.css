@@ -1,9 +1,30 @@
-#CoverageSRCContent {
+.CoverageTitle {
+    height: 30px;
+    overflow-x: auto;
+}
+
+#CoverageSRCContent, #CoverageDataContent {
     left: 0;
     bottom: 0;
+    border-top: 1px solid #ca8f1d;
     line-height: normal;
     font-size: 12px;
-    border-top: 1px solid #ca8f1d;
+    font-family: monospace;
+    white-space: nowrap;
+    height: 60vh;
+    overflow-x: auto;
+    width: 100%;
+}
+.COVJsonLine {
+    white-space: pre;
+}
+
+#CoverageSRCContent > span {
+    white-space: pre;
+    display: table-row;
+}
+#CoverageSRCContent > span > span {
+    display: table-cell;
 }
 
 .COVComment {
@@ -11,18 +32,42 @@
 }
 
 .COVNumber {
-    color: #3bbbbc;
+    color: #3b7dbc;
 }
 
-.COVSrcL {
+.COVStatic {
     position: relative;
+}
+.COVLine {
     background-color: #d7f0f0;
     padding-left: 5px;
     padding-right: 5px;
 }
+.COVLineSelected {
+    background-color: #fff0eb;
+}
+.COVLineLink {
+    cursor: pointer;
+}
+.COVIsFC {
+    background-color: #ffffff;
+    padding-left: 5px;
+    padding-right: 5px;
+    cursor: pointer;
+}
+.COVHasD {
+    color: #1ddee4;
+    font-weight: bold;
+    padding-left: 5px;
+    padding-right: 5px;
+}
+.COVCode {
+    width: 100%;
+    display: inline-block;
+}
 
 .COVText {
-    color: #20d467;
+    color: #18793d;
 }
 
 .COVKey1 {
@@ -33,4 +78,39 @@
 .COVKey2 {
     color: #291fbf;
     font-weight: bold;
+}
+
+#test_span {
+    line-height: normal;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: pre;
+    background: #b0b4f2;
+}
+#test_span2 {
+    line-height: normal;
+    font-size: 12px;
+    font-family: monospace;
+    white-space: pre;
+    background: #b0b4f2;
+}
+.CovNumberPopup {
+    border: 1px solid #866973;
+    border-radius: 4px 4px 4px 0;
+    background-color: #ffb7f8;
+    padding: 4px;
+    position: absolute;
+    bottom: 7px;
+    z-index: 999;
+}
+
+.COVJsonText {
+    color: #d97422;
+}
+.COVJsonNum {
+    color: #15d958;
+}
+
+#CoverageAttrTable {
+    width: 50vw;
 }
