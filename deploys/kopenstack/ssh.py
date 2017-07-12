@@ -141,13 +141,3 @@ class SSH:
                     chan.send(x)
         finally:
             termios.tcsetattr(sys.stdin, termios.TCSADRAIN, oldtty)
-
-    def put(self, src):
-        try:
-            sftp = self.ssh.open_sftp()
-            if os.path.isfile(src):
-                sftp.put(src, os.path.basename(src))
-            else:
-                raise NotImplementedError
-        finally:
-            sftp.close()
