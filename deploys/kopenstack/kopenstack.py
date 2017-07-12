@@ -230,12 +230,11 @@ class OSKleverBaseImage(OSEntity):
                         base_image=base_image, flavor_name='keystone.xlarge') as instance:
             with SSH(args=self.args, logger=self.logger, name=klever_base_image_name,
                      floating_ip=instance.floating_ip) as ssh:
-                script = os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps')
-
                 sftp = ssh.ssh.open_sftp()
 
                 try:
-                    sftp.put(script, os.path.basename(script))
+                    self._sftp_put(ssh, sftp, os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin',
+                                                           'install-deps'), 'install-deps')
                 finally:
                     sftp.close()
 
