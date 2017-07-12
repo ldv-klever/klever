@@ -17,5 +17,5 @@ def update_confirmed(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [('reports', '0007_auto_20170526_1727'), ('marks', '0011_auto_20170516_1157')]
+    dependencies = [('reports', '0007_auto_20170526_1727'), ('marks', '0013_auto_20170516_1157')]
     operations = [migrations.RunPython(update_confirmed)]

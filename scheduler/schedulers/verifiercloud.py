@@ -371,10 +371,11 @@ class Scheduler(schedulers.SchedulerExchange):
         logging.info("Terminate all runs")
         self.wi.shutdown()
 
-    def update_nodes(self):
+    def update_nodes(self, wait_controller=False):
         """
         Update statuses and configurations of available nodes and push them to the server.
 
+        :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
         return super(Scheduler, self).update_nodes()
