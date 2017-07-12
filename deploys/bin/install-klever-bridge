@@ -49,6 +49,8 @@ shutil.copy('klever/bridge/conf/debian-nginx', '/etc/nginx/sites-enabled/klever-
 print('Update Klever Bridge source/binary code')
 shutil.rmtree('/var/www/klever-bridge', ignore_errors=True)
 shutil.copytree('klever/bridge', '/var/www/klever-bridge', symlinks=True)
+shutil.rmtree('/var/www/klever-bridge/media')
+execute_cmd('ln', '-s', '-T', '/var/lib/klever/media', '/var/www/klever-bridge/media')
 
 
 with Cd('/var/www/klever-bridge'):
@@ -60,7 +62,6 @@ with Cd('/var/www/klever-bridge'):
         json.dump({'ENGINE': 'django.db.backends.postgresql', 'NAME': 'klever', 'USER': 'postgres'}, fp, sort_keys=True,
                   indent=4)
 
-    # TODO: deal with media! Place media within volume!
 
     print('Update translations')
     execute_cmd('./manage.py', 'compilemessages')
@@ -78,7 +79,7 @@ with Cd('/var/www/klever-bridge'):
     read_fp, write_fp = os.pipe()
     os.write(
         write_fp,
-        ('import sys;'
+        ('import sys;' +
          'from django.contrib.auth.models import User;' +
          'sys.exit(0) if User.objects.filter(username="admin").first() else None;' +
          'User.objects.create_superuser(username="admin", email="", password="admin");' +

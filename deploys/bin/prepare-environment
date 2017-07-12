@@ -27,22 +27,38 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
+print('Create data directory')
+execute_cmd('mkdir', '/var/lib/klever')
 
 
-print('Prepare configurations directory')
+print('Create configurations directory')
 execute_cmd('mkdir', 'klever-conf')
 
 
-print('Prepare working directory')
-execute_cmd('mkdir', 'klever-work')
+print('Create working directory')
+execute_cmd('mkdir', '/var/lib/klever/work')
+execute_cmd('ln', '-s', '/var/lib/klever/work', 'klever-work')
 
 
 print('Prepare CIF environment')
 execute_cmd('ln', '-s', '/usr/lib/x86_64-linux-gnu/crt*.o', '/usr/lib')
 
 
-print('Set up database')
-# TODO: place database within volume!
+print('Create database')
+execute_cmd('mkdir', '/var/lib/klever/db')
+execute_cmd('mv', '/var/lib/postgresql', '/var/lib/klever/db')
+
+postgresql_conf_file = execute_cmd('find', '/etc/postgresql', '-name', 'postgresql.conf', get_output=True).rstrip()
+
+with open(postgresql_conf_file) as fp:
+    postgresql_conf = fp.readlines()
+
+with open(postgresql_conf_file, 'w') as fp:
+    for line in postgresql_conf:
+        if line.startswith('data_directory'):
+            line = "data_directory = '/var/lib/klever/db/postgresql/9.4/main'\n"
+        fp.write(line)
+
 pg_hba_conf_file = execute_cmd('find', '/etc/postgresql', '-name', 'pg_hba.conf',
                                get_output=True).rstrip()
 
@@ -57,3 +73,7 @@ with open(pg_hba_conf_file, 'w') as fp:
 
 execute_cmd('service', 'postgresql', 'restart')
 execute_cmd('createdb', '-U', 'postgres', '-T', 'template0', '-E', 'utf8', '-O', 'postgres', 'klever')
+
+
+print('Create media directory')
+execute_cmd('mkdir', '/var/lib/klever/media')

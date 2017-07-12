@@ -314,10 +314,8 @@ class OSKleverDeveloperInstance(OSEntity):
                                        os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
                     self.logger.info('Prepare environment')
-                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -R $(id -u):$(id -g) klever-conf klever-work"')
+                    ssh.execute_cmd('sudo sh -c "./prepare-environment; sudo chown -LR $(id -u):$(id -g) klever-conf klever-work"')
                     sftp.remove('prepare-environment')
-
-                    # TODO: initialize volumes
 
                     self._do_update(ssh, sftp)
                 except Exception:
@@ -575,16 +573,23 @@ class OSInstance:
 
                 while timeout > 0:
                     if instance.status == 'ACTIVE':
+                        self.logger.info('Instance "{0}" is active'.format(self.name))
+
+                        self.instance = instance
+
                         for floating_ip in self.os_services['neutron'].list_floatingips()['floatingips']:
                             if floating_ip['status'] == 'DOWN':
                                 self.floating_ip = floating_ip['floating_ip_address']
                                 break
+
                         if not self.floating_ip:
                             raise RuntimeError('There are no free floating IPs, please, resolve this manually')
+
+                        # TODO: maybe wait for adding floating IP.
                         instance.add_floating_ip(self.floating_ip)
-                        self.logger.info('Instance "{0}" with floating IP {1} is running'
-                                         .format(self.name, self.floating_ip))
-                        self.instance = instance
+
+                        self.logger.info('Floating IP {0} is attached to instance "{0}"'
+                                         .format(self.floating_ip, self.name))
 
                         self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
