@@ -48,8 +48,6 @@ def main():
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
     parser.add_argument('--flavor', default='spark.large',
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
-    parser.add_argument('--volume-size', type=int,
-                        help='Size of volume in GB to be attached to new instances.')
     parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                             'conf', 'klever.json'),
                         help='Path to Klever configuration file (default: "%(default)s").')
