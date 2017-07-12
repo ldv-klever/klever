@@ -69,7 +69,17 @@ around: call(struct rsi_hw *rsi_91x_init(..))
 
 around: call(struct mem_ctl_info *edac_mc_alloc(..))
 {
-	void *res = ldv_zalloc($arg4);
+    /*
+     * Allignment is omitted. Please add if required
+     */
+    unsigned size, count = 1;
+	size = sizeof(*mci) + sizeof(struct edac_mc_layer) * $arg2 + $arg4;
+	for (i = 0; i < $arg2; i++) {
+		count *= $arg3[i].size;
+		size += 2 * sizeof(u32) * count;
+	}
+
+	void *res = ldv_zalloc(size);
 	ldv_after_alloc(res);
 	return res;
 }
