@@ -18,6 +18,7 @@ import requests
 import consulate
 import json
 import copy
+import time
 from utils import higher_priority, sort_priority
 from schedulers import SchedulerException
 
@@ -46,26 +47,43 @@ class ResourceManager:
 
         self.__logger.info("Resource manager is live now")
 
-    def update_system_status(self, address):
+    def update_system_status(self, address, wait_controller=False):
         """
         Get an information about connected nodes from a scheduler controller. If a user reduces an amount of available
         resources the method checks the invariant and reports jobs and tasks to cancel to prevent scheduling deadlocks.
 
         :param address: Controllers address to make the request.
+        :param wait_controller: Wait until controller intializes its KV storage.
         :raise ValueError: If the request to controller fails then raise the exception.
         :return: [list of identifiers of jobs to cancel], [list of identifiers of tasks to cancel].
         """
+        def request(kv_url):
+            r = requests.get(kv_url)
+            if not r.ok:
+                raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
+                                 format(kv_url, r.status_code, r.reason))
+            nds = r.json()
+            nds = [data["Node"] for data in nds]
+            sess = consulate.Consul()
+            # test
+            if len(nds) == 0:
+                raise KeyError("Expect at least one working node to operate")
+            sess.kv["states/" + nds[0]]
+            return nds, sess
+
         self.__logger.debug("Try to receive information about resources from controller")
         url = address + "/v1/catalog/nodes"
-        response = requests.get(url)
-        if not response.ok:
-            raise ValueError("Cannot get list of connected nodes requesting {} (got status code: {} due to: {})".
-                             format(url, response.status_code, response.reason))
-        nodes = response.json()
-        nodes = [data["Node"] for data in nodes]
+        if wait_controller:
+            done = False
+            while not done:
+                try:
+                    nodes, session = request(url)
+                    done = True
+                except (requests.exceptions.ConnectionError, KeyError):
+                    time.sleep(10)
+        else:
+            nodes, session = request(url)
 
-        # Fetch node configuration
-        session = consulate.Consul()
         cancel_jobs = []
         cancel_tasks = []
         for node in nodes:
@@ -513,7 +531,7 @@ class ResourceManager:
             return par, None, None
 
         self.__logger.info("Going to check that deadlock are impossible" if not job else
-                            "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
+                           "Going to check that job {!r} does not introduce deadlocks".format(job['id']))
         jobs = self.__processing_jobs
         jobs = [[j, self.__jobs_config[j[0]]] for j in jobs] if not job else \
                [[j, self.__jobs_config[j[0]]] for j in jobs] + [[job['id'], job]]
