@@ -38,12 +38,3 @@ void ldv_dev_set_drvdata(struct device *dev, void *data)
 {
 	dev->driver_data = data;
 }
-
-/*
- * For compatibility with environment
- */
-int ldv_dev_set_drvdata(struct device *dev, void *data)
-{
-	dev->driver_data = data;
-	return 0;
-}

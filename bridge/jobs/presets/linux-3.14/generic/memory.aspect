@@ -20,9 +20,19 @@ around: define(_THIS_IP_)
 //This function makes kzalloc()!
 around: call(struct fb_info *framebuffer_alloc(..))
 {
-	void *res = ldv_zalloc(sizeof(struct fb_info) + $arg1);
+    int fb_info_size = sizeof(struct fb_info);
+	struct fb_info *info;
+	if ($arg1)
+	    fb_info_size += sizeof(long) - (sizeof(struct fb_info) % sizeof(long));
+	void *res = ldv_zalloc(fb_info_size + $arg1);
 	ldv_after_alloc(res);
-	return res;
+    info = (struct fb_info *) res;
+	if (res) {
+	    if ($arg1)
+		    info->par = res + fb_info_size;
+	    info->device = $arg2;
+	}
+	return info;
 }
 
 around: call(void *kmemdup(..))
@@ -73,7 +83,8 @@ around: call(struct mem_ctl_info *edac_mc_alloc(..))
      * Allignment is omitted. Please add if required
      */
     unsigned size, count = 1;
-	size = sizeof(*mci) + sizeof(struct edac_mc_layer) * $arg2 + $arg4;
+    int i;
+	size = sizeof(struct mem_ctl_info) + sizeof(struct edac_mc_layer) * $arg2 + $arg4;
 	for (i = 0; i < $arg2; i++) {
 		count *= $arg3[i].size;
 		size += 2 * sizeof(u32) * count;
@@ -224,19 +235,24 @@ around: call(void framebuffer_release(..))
 {
 	if ($arg1 != 0) {
 		if ($arg1->apertures != 0) {
-			ldv_memory_free();
+			ldv_free($arg1->apertures);
 		}
-		ldv_memory_free();
+		ldv_free($arg1);
 	}
 }
 
 around: call(void rsi_91x_deinit(..))
 {
+    struct rsi_common *common = $arg1->priv;
+
+    if (common) {
+        ldv_free(common);
+    }
 	if ($arg1->rsi_dev != 0) {
-		ldv_memory_free();
+		ldv_free($arg1->rsi_dev);
 	}
 	if ($arg1 != 0) {
-		ldv_memory_free();
+		ldv_free($arg1);
 	}
 }
 

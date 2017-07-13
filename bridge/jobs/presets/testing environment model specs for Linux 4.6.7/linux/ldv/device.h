@@ -15,20 +15,12 @@
  * limitations under the License.
  */
 
-before: file("$this")
-{
+#ifndef __LINUX_LDV_DEVICE_H
+#define __LINUX_LDV_DEVICE_H
+
 struct device;
 
 void *ldv_dev_get_drvdata(const struct device *dev);
 void ldv_dev_set_drvdata(struct device *dev, void *data);
-}
 
-around: call(void *dev_get_drvdata(const struct device *dev))
-{
-	return ldv_dev_get_drvdata(dev);
-}
-
-around: call(void dev_set_drvdata(struct device *dev, void *data))
-{
-	return ldv_dev_set_drvdata(dev, data);
-}
+#endif /* __LINUX_LDV_DEVICE_H */
