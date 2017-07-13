@@ -15,7 +15,9 @@
 # limitations under the License.
 #
 
+import os
 import json
+import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
@@ -29,7 +31,8 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES,\
+    COV_WEIGHT
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -814,13 +817,29 @@ def coverage_page(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        coverage = GetCoverage(request.user, report_id)
+        coverage = GetCoverage(report_id, COV_WEIGHT[0][0])
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
-    return render(request, 'reports/coverage.html', {
+    return render(request, 'reports/coverage/coverage.html', {
+        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attibutes(coverage.report)
+    })
+
+
+@unparallel_group([reports.models.Report])
+def coverage_light_page(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        coverage = GetCoverage(report_id, COV_WEIGHT[1][0])
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'reports/coverage/coverage_light.html', {
         'coverage': coverage, 'SelfAttrsData': reports.utils.report_attibutes(coverage.report)
     })
 
@@ -828,11 +847,11 @@ def coverage_page(request, report_id):
 @unparallel_group([reports.models.Report])
 def get_coverage_src(request):
     activate(request.user.extended.language)
-    if request.method != 'POST' or 'report_id' not in request.POST or 'filename' not in request.POST:
+    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'weight']):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        coverage = GetCoverage(request.user, request.POST['report_id'])
+        coverage = GetCoverage(request.POST['report_id'], request.POST['weight'])
         res = coverage.get_file_content(request.POST['filename'])
         file_content = res.src_html
         data_content = res.data_html

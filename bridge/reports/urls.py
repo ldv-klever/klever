@@ -61,6 +61,7 @@ urlpatterns = [
     url(r'^component/(?P<report_id>[0-9]+)/download_files/$', views.download_report_files, name='download_files'),
 
     url(r'^coverage/(?P<report_id>[0-9]+)/$', views.coverage_page, name='coverage'),
+    url(r'^coverage-light/(?P<report_id>[0-9]+)/$', views.coverage_light_page, name='coverage_light'),
     url(r'^ajax/get-coverage-src/$', views.get_coverage_src),
     url(r'^ajax/get-coverage-statistic/$', views.get_coverage_statistic),
     url(r'^ajax/get-coverage-data-statistic/$', views.get_coverage_data_stat),

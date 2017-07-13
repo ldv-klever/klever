@@ -19,6 +19,7 @@ import os
 import re
 import json
 import zipfile
+import time
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.template import loader
@@ -40,8 +41,16 @@ SOURCE_CLASSES = {
     'key2': "COVKey2"
 }
 
-# ROOT_DIRS_ORDER = ['source files', 'models', 'generated models']
-ROOT_DIRS_ORDER = ['src', 'specifications', 'generated']
+ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
+
+
+def exec_time(func):
+    def inner(*args, **kwargs):
+        t1 = time.time()
+        res = func(*args, **kwargs)
+        print("CALL {}(): {:5.5f}".format(func.__name__, time.time() - t1))
+        return res
+    return inner
 
 
 def coverage_color(curr_cov, max_cov, delta=0):
@@ -101,13 +110,15 @@ def json_to_html(data):
 
 
 class GetCoverage:
-    def __init__(self, user, report_id):
-        self.user = user
+    def __init__(self, report_id, weight):
+        self._weight = weight
+
         self.type = None
         self.report = self.__get_report(report_id)
         self.job = self.report.root.job
         self.parent = ReportComponent.objects.get(id=self.report.parent_id)
         self.parents = get_parents(self.report)
+
         self._files = []
         self._curr_i = 0
         self._sum = 0
@@ -198,7 +209,7 @@ class GetCoverage:
                         indexes[i] = cnt
                         break
                 root_dirs.append(self.__wrap_item(rdir, children_html, children_are_headers))
-            cnt += 1
+                cnt += 1
 
         root_dirs_sorted = []
         for j in sorted(indexes):
@@ -217,7 +228,8 @@ class GetCoverage:
                 return GetCoverageSrcHTML(
                     filename,
                     zfp.read(filename).decode('utf8'),
-                    json.loads(zfp.read(self.parent.coverage))
+                    json.loads(zfp.read(self.parent.coverage)),
+                    self._weight
                 )
 
     def __is_not_used(self):
@@ -225,8 +237,9 @@ class GetCoverage:
 
 
 class GetCoverageSrcHTML:
-    def __init__(self, filename, content, coverage):
+    def __init__(self, filename, content, coverage, weight):
         self._filename = filename
+        self._weight = weight
 
         self._coverage = coverage
         self._max_cov_line, self._line_coverage = self.__get_coverage(coverage['line coverage'])
@@ -239,7 +252,9 @@ class GetCoverageSrcHTML:
         self._text_quote = None
         self._total_lines = 1
         self._data_map = {}
-        self.data_html = self.__get_data()
+        self.data_html = ''
+        if self._weight == '0':
+            self.data_html = self.__get_data()
         self.src_html = self.__get_source_html(content)
 
     def __get_coverage(self, coverage):
@@ -290,7 +305,7 @@ class GetCoverageSrcHTML:
                     content.append([name, self._data_map[i][name], False])
             content[0][2] = True
             data.append({'line': i, 'content': content})
-        return loader.get_template('reports/coverageData.html').render({
+        return loader.get_template('reports/coverage/coverageData.html').render({
             'data_map': data,
             'data_values': list([d_id, data_values[d_id]] for d_id in data_values)
         })
@@ -311,7 +326,7 @@ class GetCoverageSrcHTML:
             line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
             data.append(self.__get_line_data(cnt, self.__parse_line(line)))
             cnt += 1
-        return loader.get_template('reports/coverageFile.html').render({'linedata': data})
+        return loader.get_template('reports/coverage/coverageFile.html').render({'linedata': data})
 
     def __get_line_data(self, line, code):
         line_num = {
@@ -319,26 +334,30 @@ class GetCoverageSrcHTML:
             'content': '<a class="COVLineLink">%s</a>' % (' ' * (self._total_lines - len(str(line))) + str(line))
         }
         code = {'class': 'COVCode', 'content': code}
-        if line in self._line_coverage:
+        if line in self._line_coverage and self._line_coverage[line] > 0:
             line_num['data'].append(('number', self._line_coverage[line]))
             code['color'] = coverage_color(self._line_coverage[line], self._max_cov_line)
 
         if line in self._data_map:
             line_num['data'].append(('line', line))
 
-        func_cov = {'class': 'COVIsFC', 'static': True, 'content': '&nbsp;'}
+        func_cov = {'class': 'COVIsFC', 'static': True, 'content': '<i class="ui mini icon"></i>'}
         if line in self._func_coverage:
             func_cov['data'] = [('number', self._func_coverage[line])]
-            func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
+            if self._func_coverage[line] == 0:
+                func_cov['content'] = '<i class="ui mini red remove icon"></i>'
+            else:
+                func_cov['content'] = '<i class="ui mini blue checkmark icon"></i>'
+                func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
 
-        linedata = [line_num, func_cov]
-        # TODO: if with data
-        if True:
+        linedata = [line_num]
+        if self._weight == '0':
             linedata.append({
                 'class': 'COVHasD', 'static': True,
-                'content': 'D' if line in self._data_map else '&nbsp;',
-                'color': '#7a4eb2' if line in self._data_map else '#f4f7ff'
+                'content': '&nbsp;',
+                'color': '#a478e9' if line in self._data_map else '#f4f7ff'
             })
+        linedata.append(func_cov)
         linedata.append(code)
         return linedata
 
@@ -440,7 +459,7 @@ class CoverageStatistics:
         self._total_lines = {}
         self._covered_lines = {}
         self._covered_funcs = {}
-        self.__get_files()
+        self.__get_files_and_data()
         self.shown_ids = set()
         self._table_data = self.__get_table_data()
         self.table_html = self.__html_table()
@@ -461,7 +480,7 @@ class CoverageStatistics:
                 except ObjectDoesNotExist:
                     raise BridgeException(_('The report was not found'))
 
-    def __get_files(self):
+    def __get_files_and_data(self):
         if not self.parent.verification:
             raise ValueError("The parent is not verification report")
         with self.parent.archive as fp:
@@ -587,7 +606,8 @@ class CoverageStatistics:
         return ordered_data
 
     def __html_table(self):
-        return loader.get_template('reports/coverageStatisticsTable.html').render({'TableData': self._table_data})
+        return loader.get_template('reports/coverage/coverageStatisticsTable.html')\
+            .render({'TableData': self._table_data})
 
     def __is_not_used(self):
         pass
@@ -598,8 +618,8 @@ class DataStatistic:
         self.type = None
         self.report = self.__get_report(report_id)
         self.parent = ReportComponent.objects.get(id=self.report.parent_id)
-        self.table_html = loader.get_template('reports/coverageDataStatistics.html')\
-            .render({'DataStatistics': self.__get_data()})
+        self.table_html = loader.get_template('reports/coverage/coverageDataStatistics.html')\
+            .render({'DataStatistics': self.__get_data_stat()})
 
     def __get_report(self, report_id):
         try:
@@ -617,7 +637,7 @@ class DataStatistic:
                 except ObjectDoesNotExist:
                     raise BridgeException(_('The report was not found'))
 
-    def __get_data(self):
+    def __get_data_stat(self):
         if not self.parent.verification:
             raise ValueError("The parent is not verification report")
         data = []
