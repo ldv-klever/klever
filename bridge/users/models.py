@@ -17,7 +17,7 @@
 
 from django.db import models
 from django.contrib.auth.models import User
-from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES
+from bridge.vars import LANGUAGES, USER_ROLES, DATAFORMAT, VIEW_TYPES, COV_WEIGHT
 from bridge.settings import DEF_USER
 
 
@@ -30,6 +30,7 @@ class Extended(models.Model):
     timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
     assumptions = models.BooleanField(default=DEF_USER['assumptions'])
     triangles = models.BooleanField(default=DEF_USER['triangles'])
+    coverage_weight = models.CharField(max_length=1, choices=COV_WEIGHT, default=COV_WEIGHT[0][0])
 
     def __str__(self):
         return self.user.username

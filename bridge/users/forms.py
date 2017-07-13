@@ -95,13 +95,15 @@ class UserExtendedForm(forms.ModelForm):
         self.fields['data_format'].label = _("Data format")
         self.fields['assumptions'].label = _("Error trace assumptions")
         self.fields['triangles'].label = _("Error trace closing triangles")
+        self.fields['coverage_weight'].label = _("Coverage page")
 
     class Meta:
         model = Extended
-        fields = ('accuracy', 'data_format', 'language', 'assumptions', 'triangles')
+        fields = ('accuracy', 'data_format', 'language', 'assumptions', 'triangles', 'coverage_weight')
         widgets = {
             'data_format': forms.Select(attrs={'class': 'ui selection dropdown'}),
             'language': forms.Select(attrs={'class': 'ui selection dropdown'}),
             'assumptions': forms.CheckboxInput(attrs={'class': 'hidden'}),
-            'triangles': forms.CheckboxInput(attrs={'class': 'hidden'})
+            'triangles': forms.CheckboxInput(attrs={'class': 'hidden'}),
+            'coverage_weight': forms.Select(attrs={'class': 'ui selection dropdown'})
         }
