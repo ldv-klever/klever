@@ -228,7 +228,7 @@ class GetCoverage:
                 return GetCoverageSrcHTML(
                     filename,
                     zfp.read(filename).decode('utf8'),
-                    json.loads(zfp.read(self.parent.coverage)),
+                    json.loads(zfp.read(self.parent.coverage).decode('utf8')),
                     self._weight
                 )
 
@@ -491,7 +491,7 @@ class CoverageStatistics:
                     if filename.endswith('/'):
                         continue
                     if filename == self.parent.coverage:
-                        coverage = json.loads(zfp.read(self.parent.coverage))
+                        coverage = json.loads(zfp.read(self.parent.coverage).decode('utf8'))
                         self.__get_covered(coverage['line coverage'])
                         self._covered_funcs = self.__get_covered_funcs(coverage['function coverage']['statistics'])
                     elif filename != self.parent.log:
@@ -645,7 +645,7 @@ class DataStatistic:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
-                coverage = json.loads(zfp.read(self.parent.coverage))
+                coverage = json.loads(zfp.read(self.parent.coverage).decode('utf8'))
                 for val in sorted(coverage):
                     if val not in {'line coverage', 'function coverage'} and 'statistics' in coverage[val]:
                         data.append({
