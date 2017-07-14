@@ -144,7 +144,7 @@ class RSB(core.components.Component):
                     self.conf['abstract task desc']['verifier options']
                 )
 
-            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially'):
+            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
                 self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.enabled=true'})
                 self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.export=true'})
                 self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.file=coverage.info'})
@@ -444,7 +444,7 @@ class RSB(core.components.Component):
 
         if re.match('true', decision_results['status']):
             self.verdict = 'safe'
-            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially'):
+            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
                 cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
                                         self.conf['main working directory'], self.conf['VTG strategy']['collect coverage'])
                 with open('coverage.json', 'w', encoding='utf-8') as fp:

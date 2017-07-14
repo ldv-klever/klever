@@ -12,12 +12,14 @@ class LCOV:
         self.main_work_dir = main_work_dir
         self.type = type
         self.len_files = {}
-        if self.type not in ('full', 'partially'):
+        if self.type not in ('full', 'partially', 'lightweight'):
             raise NotImplementedError("Coverage type '{0}' is not supported".format(self.type))
 
         self.lines_coverage = {}
 
         self.functions_coverage = {}
+
+        self.functions_statistics = {}
 
         self.arcnames = {}
 
@@ -33,14 +35,14 @@ class LCOV:
 
         PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
-        DIR_MAP = (('src', self.shadow_src_dir),
-                   ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
-                   ('generated', self.main_work_dir))
+        DIR_MAP = (('source files', self.shadow_src_dir),
+                   ('models', os.path.join(self.main_work_dir, 'job', 'root')),
+                   ('generated models', self.main_work_dir))
 
         ignore_file = False
 
         excluded_dirs = set()
-        if self.type == 'partially':
+        if self.type in ('partially', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 all_files = {}
                 for line in fp:
@@ -52,11 +54,18 @@ class LCOV:
                             all_files.setdefault(dir, [])
                             all_files[dir].append(file)
                 for dir, files in all_files.items():
+                    if self.type == 'lightweight' \
+                            and not dir.startswith(self.shadow_src_dir):
+                        self.logger.debug('Excluded {0}'.format(dir))
+                        excluded_dirs.add(dir)
+                        continue
                     for file in files:
                         if file.endswith('.c') or file.endswith('.c.aux'):
                             break
                     else:
                         excluded_dirs.add(dir)
+
+        self.logger.debug(str(excluded_dirs))
 
         with open(self.coverage_file, encoding='utf-8') as fp:
             for line in fp:
@@ -71,6 +80,7 @@ class LCOV:
                     covered_lines = {}
                     function_to_line = {}
                     covered_functions = {}
+                    count_covered_functions = 0
                     len_file = 0
                 elif line.startswith(FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
@@ -112,9 +122,11 @@ class LCOV:
                         continue
                     covered_functions.setdefault(int(splts[0]), [])
                     covered_functions[int(splts[0])].append(function_to_line[splts[1]])
+                    count_covered_functions += 1
                 elif line.startswith(EOR_PREFIX):
                     self.len_files.setdefault(len_file, [])
                     self.len_files[len_file].append(file_name)
+                    self.functions_statistics[file_name] = [count_covered_functions, len(function_to_line)]
                     for count, values in covered_lines.items():
                         ranges = self.build_ranges(values)
                         self.lines_coverage.setdefault(count, {})
@@ -125,10 +137,11 @@ class LCOV:
 
     def get_coverage(self):
         return {
-            'line coverage': {
-                'coverage': [[key, value] for key, value in self.lines_coverage.items()]
-            },
+            'line coverage':
+                [[key, value] for key, value in self.lines_coverage.items()]
+            ,
             'function coverage': {
+                'statistics': self.functions_statistics,
                 'coverage': [[key, value] for key, value in self.functions_coverage.items()]
             }
         }
@@ -170,8 +183,30 @@ class LCOV:
         return res
 
 if __name__ == '__main__':
-    l = LCOV(None, '../coverage.info', '/home/alexey/klever/native-scheduler-work-dir/'
-                                       'native-scheduler-work-dir/scheduler/jobs/35e0dfd4993067c50d8e4544fc9c157f/'
-                                       'klever-core-work-dir/lkbce/', '.', "partially")
-    with open('../coverage.json', 'w', encoding='utf-8') as fp:
+    import os
+    l = LCOV(None, '', '/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/jobs/a585593f1fe930315637b6cbcac2b6f0/klever-core-work-dir/lkbce/',
+             '/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/jobs/a585593f1fe930315637b6cbcac2b6f0/klever-core-work-dir/',
+             'partially')
+    total = 0
+    for dir in os.listdir('/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/tasks'):
+        path = os.path.join('/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/tasks',
+                                       dir, 'output', 'coverage.info')
+        if os.path.isfile(path):
+            print('Parse', dir)
+            total += 1
+            l.coverage_file = path
+            l.parse()
+
+    ##l = LCOV(None, '../coverage.info', '/home/alexey/klever/native-scheduler-work-dir/'
+                                       #'native-scheduler-work-dir/scheduler/jobs/35e0dfd4993067c50d8e4544fc9c157f/'
+                                       #'klever-core-work-dir/lkbce/', '.', "partially")
+    with open('/home/alexey/coverage.json', 'w', encoding='utf-8') as fp:
         json.dump(l.get_coverage(), fp, indent=4)
+
+    import zipfile
+    print('Total', total)
+    with zipfile.ZipFile('/home/alexey/big_full_coverage.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+        for file, arcname in l.get_arcnames().items():
+            zfp.write(file, arcname=arcname)
+
+        zfp.write('/home/alexey/coverage.json', 'coverage.json')
