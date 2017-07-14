@@ -5,12 +5,8 @@
         <thead>
             <tr>
                 <th>{% trans 'Files' %}</th>
-                <th>{% trans 'Line coverage' %}, %</th>
-                <th>{% trans 'Covered lines' %}</th>
-                <th>{% trans 'Total lines' %}</th>
-                <th>{% trans 'Function coverage' %}, %</th>
-                <th>{% trans 'Covered functions' %}</th>
-                <th>{% trans 'Total functions' %}</th>
+                <th>{% trans 'Line coverage' %}</th>
+                <th>{% trans 'Function coverage' %}</th>
             </tr>
         </thead>
         <tbody>
@@ -23,12 +19,8 @@
                             <span>{{ row_data.title }}</span>
                         {% endif %}
                     </td>
-                    <td>{{ row_data.lines.percent }}</td>
-                    <td>{{ row_data.lines.covered }}</td>
-                    <td>{{ row_data.lines.total }}</td>
-                    <td>{{ row_data.funcs.percent }}</td>
-                    <td>{{ row_data.funcs.covered }}</td>
-                    <td>{{ row_data.funcs.total }}</td>
+                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.lines.color }};"{% endif %}><b>{{ row_data.lines.percent }}</b> ({{ row_data.lines.covered }}/{{ row_data.lines.total }})</td>
+                    <td{% if row_data.lines.color %} style="background-color: {{ row_data.funcs.color }};"{% endif %}><b>{{ row_data.funcs.percent }}</b> ({{ row_data.funcs.covered }}/{{ row_data.funcs.total }})</td>
                 </tr>
             {%  endfor %}
         </tbody>

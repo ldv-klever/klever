@@ -882,7 +882,9 @@ class DecideJobs(object):
                 # self.__upload_empty_safe_report(tool, [])
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
-                    tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
+                    tool = self.__upload_verification_report(
+                        chunk['tool'], abkm, chunk['tool_attrs'], 'big_full_coverage.zip'
+                    )
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
                     self.__upload_finish_verification_report(tool)
                     cnt += 1

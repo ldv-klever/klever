@@ -111,3 +111,24 @@
 #CoverageAttrTable {
     width: 50vw;
 }
+
+.CovLegCell {
+    width: 100%;
+    height: 20px;
+    text-align: center;
+    font-size: smaller;
+}
+#cov-legend-box {
+    border: 1px solid #860cff;
+    border-radius: 5px;
+    padding: 10px;
+}
+.small-violet-text {
+    font-size: smaller;
+    color: #680cce;
+}
+#div_for_legend {
+    float: right;
+    width: 35vw;
+    margin-bottom: 15px;
+}

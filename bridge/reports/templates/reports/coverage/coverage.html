@@ -16,14 +16,8 @@
             <span class="purple-title">{% trans 'Job' %}: </span>
             <a href="{% url 'jobs:job' coverage.job.id %}">{{ coverage.job.name }}</a>
         </div>
-        <div class="four wide column">
-            {% if coverage.type == 'safe' %}
-                <a href="{% url 'reports:safe' coverage.report.id %}">{% trans 'Safe report' %}</a>
-            {% elif coverage.type == 'unsafe' %}
-                <a href="{% url 'reports:unsafe' coverage.report.id %}">{% trans 'Unsafe report' %}</a>
-            {% elif coverage.type == 'unknown' %}
-                <a href="{% url 'reports:unknown' coverage.report.id %}">{% trans 'Unknown report' %}</a>
-            {% endif %}
+        <div class="three wide column">
+            <a href="{% url 'reports:component' coverage.job.id coverage.report.id %}">{{ coverage.report.component.name }}</a>
         </div>
         <div class="six wide column">
             <div class="ui breadcrumb">
@@ -50,15 +44,13 @@
                 {% endfor %}
             </div>
         </div>
-        <div class="one wide column right aligned">
+        <div class="two wide column right aligned">
             <div class="ui buttons">
-                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_files' coverage.report.parent_id %}"><i class="download icon"></i></a>
+                <a class="ui icon mini basic button note-popup" data-content="{% trans 'Download coverage' %}" href="{% url 'reports:download_files' coverage.report.id %}"><i class="download icon"></i></a>
                 <a class="ui icon mini basic button note-popup" data-content="{% trans 'Show coverage without data' %}" href="{% url 'reports:coverage_light' coverage.report.id %}"><i class="ui maximize icon"></i></a>
             </div>
         </div>
     </div>
-    <div id="files_tree" class="ui floating labeled yellow icon tiny dropdown button">{{ coverage.files_tree|safe }}</div>
-    <br><br>
     <div class="ui grid">
         <div class="ten wide column">
             <div class="ui yellow segment">
@@ -74,11 +66,14 @@
         </div>
     </div>
     <br>
+    <div id="div_for_legend"></div>
+
     <div class="ui tiny buttons">
         <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
         <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
         <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
     </div>
+    <div id="files_tree" class="ui floating labeled grey icon tiny dropdown button">{{ coverage.files_tree|safe }}</div>
 
     <br><br>
     <div id="CoverageAttrTable" style="display: none;">

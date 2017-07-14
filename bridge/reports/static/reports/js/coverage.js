@@ -23,6 +23,7 @@ $(document).ready(function () {
                     if ($(weight === '0')) {
                         src_data_content.html(data['data']).find('.item').tab();
                     }
+                    $('#div_for_legend').html(data['legend']);
                 }
             }
         });

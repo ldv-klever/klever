@@ -48,7 +48,7 @@ import reports.models
 from reports.UploadReport import UploadReport
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
-from reports.coverage import GetCoverage, CoverageStatistics, DataStatistic
+from reports.coverage import GetCoverage, CoverageStatistics, DataStatistic, get_legend
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
@@ -853,14 +853,12 @@ def get_coverage_src(request):
     try:
         coverage = GetCoverage(request.POST['report_id'], request.POST['weight'])
         res = coverage.get_file_content(request.POST['filename'])
-        file_content = res.src_html
-        data_content = res.data_html
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'content': file_content, 'data': data_content})
+    return JsonResponse({'content': res.src_html, 'data': res.data_html, 'legend': res.legend})
 
 
 @unparallel_group([reports.models.Report])

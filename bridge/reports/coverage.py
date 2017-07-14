@@ -21,13 +21,9 @@ import json
 import zipfile
 import time
 
-from django.core.exceptions import ObjectDoesNotExist
 from django.template import loader
-from django.utils.translation import ugettext_lazy as _
 
-from bridge.utils import BridgeException
-
-from reports.models import ReportComponent, ReportUnsafe, ReportSafe, ReportUnknown
+from reports.models import ReportComponent
 
 from reports.utils import get_parents
 from reports.etv import TAB_LENGTH, KEY1_WORDS, KEY2_WORDS
@@ -47,6 +43,8 @@ COLOR = {
     'lightgrey': '#f4f7ff'
 }
 
+TABLE_STAT_COLOR = ['#f18fa6', '#f1c0b2', '#f9e19b', '#e4f495', '#acf1a8']
+
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
 
 
@@ -63,6 +61,33 @@ def coverage_color(curr_cov, max_cov, delta=0):
     green = 140 + int(100 * (1 - curr_cov / max_cov))
     blue = 140 + int(100 * (1 - curr_cov / max_cov)) - delta
     return 'rgb(255, %s, %s)' % (green, blue)
+
+
+def get_legend(max_cov, leg_type, number=5):
+    if max_cov == 0:
+        return []
+    elif max_cov > 100:
+        rounded_max = 100 * int(max_cov/100)
+    else:
+        rounded_max = max_cov
+
+    delta = 0
+    if leg_type == 'funcs':
+        delta = 40
+
+    colors = []
+    divisions = number - 1
+    for i in reversed(range(divisions)):
+        curr_cov = int(i * rounded_max / divisions)
+        if curr_cov == 0:
+            curr_cov = 1
+        colors.append((curr_cov, coverage_color(curr_cov, max_cov, delta)))
+    colors.insert(0, (rounded_max, coverage_color(rounded_max, max_cov, delta)))
+    new_colors = []
+    for i in reversed(range(len(colors))):
+        if colors[i] not in new_colors:
+            new_colors.insert(0, colors[i])
+    return new_colors
 
 
 def json_to_html(data):
@@ -119,10 +144,8 @@ class GetCoverage:
     def __init__(self, report_id, weight):
         self._weight = weight
 
-        self.type = None
-        self.report = self.__get_report(report_id)
+        self.report = ReportComponent.objects.get(id=report_id)
         self.job = self.report.root.job
-        self.parent = ReportComponent.objects.get(id=self.report.parent_id)
         self.parents = get_parents(self.report)
 
         self._files = []
@@ -130,32 +153,17 @@ class GetCoverage:
         self._sum = 0
         self.coverage = None
 
-    def __get_report(self, report_id):
-        try:
-            self.type = 'safe'
-            return ReportSafe.objects.get(id=report_id)
-        except ObjectDoesNotExist:
-            try:
-                self.type = 'unsafe'
-                return ReportUnsafe.objects.get(id=report_id)
-            except ObjectDoesNotExist:
-                try:
-                    self.type = 'unknown'
-                    return ReportUnknown.objects.get(id=report_id)
-                except ObjectDoesNotExist:
-                    raise BridgeException(_('The report was not found'))
-
     def __get_files(self):
-        if not self.parent.verification:
+        if not self.report.verification:
             raise ValueError("The parent is not verification report")
-        with self.parent.archive as fp:
+        with self.report.archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 for filename in zfp.namelist():
                     if filename.endswith('/'):
                         continue
-                    if filename not in {self.parent.coverage, self.parent.log}:
+                    if filename not in {self.report.coverage, self.report.log}:
                         self._files.append(os.path.normpath(filename))
 
     def __wrap_item(self, title, item, header):
@@ -225,7 +233,7 @@ class GetCoverage:
         return self.__wrap_items('Select file', root_dirs_sorted)
 
     def get_file_content(self, filename):
-        with self.parent.archive as fp:
+        with self.report.archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -233,7 +241,7 @@ class GetCoverage:
                 return GetCoverageSrcHTML(
                     filename,
                     zfp.read(filename).decode('utf8'),
-                    json.loads(zfp.read(self.parent.coverage).decode('utf8')),
+                    json.loads(zfp.read(self.report.coverage).decode('utf8')),
                     self._weight
                 )
 
@@ -261,6 +269,10 @@ class GetCoverageSrcHTML:
         if self._weight == '0':
             self.data_html = self.__get_data()
         self.src_html = self.__get_source_html(content)
+        self.legend = loader.get_template('reports/coverage/cov_legend.html').render({'legend': {
+            'lines': get_legend(self._max_cov_line, 'lines', 5),
+            'funcs': get_legend(self._max_cov_func, 'funcs', 5)
+        }})
 
     def __get_coverage(self, coverage):
         data = {}
@@ -314,13 +326,6 @@ class GetCoverageSrcHTML:
             'data_map': data,
             'data_values': list([d_id, data_values[d_id]] for d_id in data_values)
         })
-
-    def __get_report(self, report_id):
-        self.__is_not_used()
-        try:
-            return ReportUnsafe.objects.get(pk=report_id)
-        except ObjectDoesNotExist:
-            raise BridgeException(_("Could not find the corresponding unsafe"))
 
     def __get_source_html(self, source_content):
         data = []
@@ -457,9 +462,7 @@ class GetCoverageSrcHTML:
 
 class CoverageStatistics:
     def __init__(self, report_id):
-        self.type = None
-        self.report = self.__get_report(report_id)
-        self.parent = ReportComponent.objects.get(id=self.report.parent_id)
+        self.report = ReportComponent.objects.get(id=report_id)
         self._files = []
         self._total_lines = {}
         self._covered_lines = {}
@@ -469,37 +472,21 @@ class CoverageStatistics:
         self._table_data = self.__get_table_data()
         self.table_html = self.__html_table()
 
-    def __get_report(self, report_id):
-        try:
-            self.type = 'safe'
-            return ReportSafe.objects.get(id=report_id)
-        except ObjectDoesNotExist:
-            try:
-                self.type = 'unsafe'
-                return ReportUnsafe.objects.get(id=report_id)
-
-            except ObjectDoesNotExist:
-                try:
-                    self.type = 'unknown'
-                    return ReportUnknown.objects.get(id=report_id)
-                except ObjectDoesNotExist:
-                    raise BridgeException(_('The report was not found'))
-
     def __get_files_and_data(self):
-        if not self.parent.verification:
+        if not self.report.verification:
             raise ValueError("The parent is not verification report")
-        with self.parent.archive as fp:
+        with self.report.archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 for filename in zfp.namelist():
                     if filename.endswith('/'):
                         continue
-                    if filename == self.parent.coverage:
-                        coverage = json.loads(zfp.read(self.parent.coverage).decode('utf8'))
+                    if filename == self.report.coverage:
+                        coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
                         self.__get_covered(coverage['line coverage'])
                         self._covered_funcs = self.__get_covered_funcs(coverage['function coverage']['statistics'])
-                    elif filename != self.parent.log:
+                    elif filename != self.report.log:
                         self._files.append(os.path.normpath(filename))
                         with zfp.open(filename) as inzip_fp:
                             lines = 0
@@ -579,13 +566,19 @@ class CoverageStatistics:
 
         for fname in parents:
             if parents[fname]['lines']['total'] > 0:
-                parents[fname]['lines']['percent'] = '%s%%' % int(
-                    100 * parents[fname]['lines']['covered'] / parents[fname]['lines']['total']
-                )
+                div = parents[fname]['lines']['covered'] / parents[fname]['lines']['total']
+                parents[fname]['lines']['percent'] = '%s%%' % int(100 * div)
+                color_id = int(div * len(TABLE_STAT_COLOR))
+                if color_id == len(TABLE_STAT_COLOR):
+                    color_id -= 1
+                parents[fname]['lines']['color'] = TABLE_STAT_COLOR[color_id]
             if parents[fname]['funcs']['total'] > 0:
-                parents[fname]['funcs']['percent'] = '%s%%' % int(
-                    100 * parents[fname]['funcs']['covered'] / parents[fname]['funcs']['total']
-                )
+                div = parents[fname]['funcs']['covered'] / parents[fname]['funcs']['total']
+                parents[fname]['funcs']['percent'] = '%s%%' % int(100 * div)
+                color_id = int(div * len(TABLE_STAT_COLOR))
+                if color_id == len(TABLE_STAT_COLOR):
+                    color_id -= 1
+                parents[fname]['funcs']['color'] = TABLE_STAT_COLOR[color_id]
 
         other_data = list(sorted(parents.values(), key=lambda x: (not x['is_dir'], x['title'])))
 
@@ -620,37 +613,19 @@ class CoverageStatistics:
 
 class DataStatistic:
     def __init__(self, report_id):
-        self.type = None
-        self.report = self.__get_report(report_id)
-        self.parent = ReportComponent.objects.get(id=self.report.parent_id)
+        self.report = ReportComponent.objects.get(id=report_id)
         self.table_html = loader.get_template('reports/coverage/coverageDataStatistics.html')\
             .render({'DataStatistics': self.__get_data_stat()})
 
-    def __get_report(self, report_id):
-        try:
-            self.type = 'safe'
-            return ReportSafe.objects.get(id=report_id)
-        except ObjectDoesNotExist:
-            try:
-                self.type = 'unsafe'
-                return ReportUnsafe.objects.get(id=report_id)
-
-            except ObjectDoesNotExist:
-                try:
-                    self.type = 'unknown'
-                    return ReportUnknown.objects.get(id=report_id)
-                except ObjectDoesNotExist:
-                    raise BridgeException(_('The report was not found'))
-
     def __get_data_stat(self):
-        if not self.parent.verification:
+        if not self.report.verification:
             raise ValueError("The parent is not verification report")
         data = []
-        with self.parent.archive as fp:
+        with self.report.archive as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
-                coverage = json.loads(zfp.read(self.parent.coverage).decode('utf8'))
+                coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
                 for val in sorted(coverage):
                     if val not in {'line coverage', 'function coverage'} and 'statistics' in coverage[val]:
                         data.append({
