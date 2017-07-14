@@ -592,7 +592,7 @@
       },
       "RSG": {
         "models": {"sync/races.c": {"bug kinds": []}},
-        "verifier version": "CPALockator:25108",
+        "verifier version": "CPALockator:25248",
         "verifier configuration": "-lockator-linux"
       }
     }
