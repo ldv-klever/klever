@@ -35,17 +35,16 @@ from tools.profiling import unparallel_group
 from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
     VIEW_TYPES
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from bridge.tableHead import Header
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, MarkAssociationsChanges
+    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, MarkAssociationsChanges, SafeTagAccess, UnsafeTagAccess
 
 import marks.utils as mutils
-from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
+from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
 from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
-from marks.tables import MARK_TITLES, MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
+from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
 @register.filter
@@ -542,26 +541,39 @@ def show_tags(request, tags_type):
         'title': page_title,
         'tags': tags_data.table.data,
         'tags_type': tags_type,
-        'can_edit': can_edit_tag(request.user)
+        'can_create': TagAccess(request.user, None).create()
     })
 
 
 @login_required
 @unparallel_group(['UnsafeTag', 'SafeTag'])
-def get_tag_parents(request):
+def get_tag_data(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    user_access = {'access_edit': [], 'access_child': [], 'all': []}
+
+    if request.user.extended.role == USER_ROLES[2][0]:
+        for u in User.objects.exclude(extended__role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
+            user_access['all'].append([u.id, u.get_full_name()])
+
     if 'tag_id' not in request.POST:
         if request.POST['tag_type'] == 'unsafe':
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
-                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+            return JsonResponse({
+                'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
+                                      ensure_ascii=False, sort_keys=True, indent=4),
+                'access': json.dumps(user_access, ensure_ascii=False)
+            })
         else:
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
-                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+            return JsonResponse({
+                'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
+                                      ensure_ascii=False, sort_keys=True, indent=4),
+                'access': json.dumps(user_access, ensure_ascii=False)
+            })
     try:
         res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
     except BridgeException as e:
@@ -569,9 +581,19 @@ def get_tag_parents(request):
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    if request.user.extended.role == USER_ROLES[2][0]:
+        tag_access_model = {'safe': SafeTagAccess, 'unsafe': UnsafeTagAccess}
+        for tag_access in tag_access_model[request.POST['tag_type']].objects.filter(tag=res.tag):
+            if tag_access.modification:
+                user_access['access_edit'].append(tag_access.user_id)
+            elif tag_access.child_creation:
+                user_access['access_child'].append(tag_access.user_id)
+
     return JsonResponse({
-        'parents': json.dumps(res.parents_ids, ensure_ascii=False, sort_keys=True, indent=4),
-        'current': res.tag.parent_id if res.tag.parent_id is not None else 0
+        'parents': json.dumps(res.parents_ids, ensure_ascii=False),
+        'current': res.tag.parent_id if res.tag.parent_id is not None else 0,
+        'access': json.dumps(user_access, ensure_ascii=False)
     })
 
 
@@ -613,7 +635,7 @@ def remove_tag(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The tag was not found')})
 
-    if not can_edit_tag(request.user, tag):
+    if not TagAccess(request.user, tag).delete():
         return JsonResponse({'error': _("You don't have an access to remove this tag")})
     tag.delete()
     return JsonResponse({})
@@ -653,7 +675,7 @@ def get_tags_data(request):
         'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
         'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
         'tree': get_template('marks/MarkTagsTree.html').render({
-            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
+            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True, 'user': request.user
         })
     })
 
@@ -689,7 +711,7 @@ def upload_tags(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not can_edit_tag(request.user):
+    if not TagAccess(request.user, None).create():
         return JsonResponse({'error': str(_("You don't have an access to upload tags"))})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})

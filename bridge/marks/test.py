@@ -120,13 +120,13 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:safe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe'})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -531,7 +531,7 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:unsafe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_parents/', {
+        response = self.client.post('/marks/ajax/get_tag_data/', {
             'tag_type': 'unsafe', 'tag_id': created_tags[2].pk
         })
         self.assertEqual(response.status_code, 200)
@@ -539,7 +539,7 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'unsafe'})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'unsafe'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
