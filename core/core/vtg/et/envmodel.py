@@ -22,9 +22,16 @@ def envmodel_simplifications(logger, error_trace):
     data, main_data, main = _collect_action_diaposons(error_trace)
     _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
+
+    # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
+    error_trace.final_checks()
     _remove_control_func_aux_code(data, error_trace)
+    try:
+        error_trace.final_checks()
+    except ValueError as e:
+        raise RuntimeError("Edges from error trace has been deleted incorrectly and it cannot be visualized: {}".
+                           format(e))
     _wrap_actions(data, error_trace)
-    error_trace.sanity_checks()
 
 
 def _collect_action_diaposons(error_trace):
@@ -88,14 +95,21 @@ def _inside_this_control_function(cf, file, line):
         return False
 
 
-def _inside_control_function(stack, file, line):
+def _inside_control_function(stack, file, line, thread=None):
     """Determine action to which string belong."""
     # Keep in mind that threads may interlieve
+    suits = []
     for index in reversed(range(0, len(stack))):
         if _inside_this_control_function(stack[index]['cf'], file, line):
-            return stack[index]
+            suits.append(index)
 
-    return None
+    if thread:
+        suits = [i for i in suits if stack[i]['thread'] == thread]
+
+    if len(suits) > 0:
+        return stack[suits[0]]
+    else:
+        return None
 
 
 def _inside_action(cf, line):
@@ -220,7 +234,7 @@ def _remove_control_func_aux_code(data, error_trace):
 
         if len(stack) != 0:
             # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
-            cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e))
+            cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
             if cf:
                 act = _inside_action(cf['cf'], get_original_start_line(e))
                 if not act:
@@ -231,12 +245,13 @@ def _remove_control_func_aux_code(data, error_trace):
                     cf['action'] = act
                     cf['in aux code'] = False
             else:
-                if stack[-1]['in aux code'] and e['thread'] == stack[-1]['thread']:
+                cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
+                if len(cfs) > 0:
                     error_trace.remove_edge_and_target_node(e)
 
     def if_simple_state(e, stack):
         """Simple e."""
-        cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e))
+        cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
         if cf:
             cf['in aux code'] = False
             act = _inside_action(cf['cf'], get_original_start_line(e))
@@ -248,20 +263,23 @@ def _remove_control_func_aux_code(data, error_trace):
                 # Not in action
                 cf['action'] = None
                 error_trace.remove_edge_and_target_node(e)
-        elif len(stack) > 0 and stack[-1]['in aux code'] and stack[-1]['thread'] == e['thread']:
-            error_trace.remove_edge_and_target_node(e)
+        else:
+            # Check whether there are control functions from this thread which have stack stopped in aux code
+            cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
+            if len(cfs) > 0:
+                error_trace.remove_edge_and_target_node(e)
 
         return
 
     for edge in error_trace.trace_iterator():
         # Dict changes its size, so keep it in mind
-        if 'enter' in edge:
-            if_enter_function(edge, cf_stack, data)
-        elif 'return' in edge:
+        if 'return' in edge:
             m = _match_exit_function(edge, cf_stack)
             if not m and len(cf_stack) > 0:
                 if_simple_state(edge, cf_stack)
-        else:
+        if 'enter' in edge:
+            if_enter_function(edge, cf_stack, data)
+        if 'enter' not in edge and 'return' not in edge:
             if_simple_state(edge, cf_stack)
 
 
@@ -269,7 +287,8 @@ def _wrap_actions(data, error_trace):
     cf_stack = list()
     for edge in error_trace.trace_iterator():
         if len(cf_stack) > 0:
-            cf = _inside_control_function(cf_stack, get_original_file(edge), get_original_start_line(edge))
+            cf = _inside_control_function(cf_stack, get_original_file(edge), get_original_start_line(edge),
+                                          edge['thread'])
             if cf:
                 act = _inside_action(cf['cf'], get_original_start_line(edge))
                 if act:
