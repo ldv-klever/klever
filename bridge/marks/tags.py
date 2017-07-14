@@ -357,12 +357,12 @@ class SaveTag:
         can_edit = list(int(x) for x in access['edit'])
         can_create = list(int(x) for x in access['child'])
 
+        self.access_model.objects.filter(tag=self.tag).delete()
         access_to_create = []
         for u in User.objects.filter(id__in=(can_edit + can_create)):
             access_to_create.append(self.access_model(
                 tag=self.tag, user=u, modification=(u.id in can_edit), child_creation=(u.id in can_create)
             ))
-
         self.access_model.objects.bulk_create(access_to_create)
 
 
