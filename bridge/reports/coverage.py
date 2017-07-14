@@ -485,7 +485,6 @@ class CoverageStatistics:
                 except ObjectDoesNotExist:
                     raise BridgeException(_('The report was not found'))
 
-    @exec_time
     def __get_files_and_data(self):
         if not self.parent.verification:
             raise ValueError("The parent is not verification report")
