@@ -16,6 +16,6 @@ def set_tags_author(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ('marks', '0003_add_author_field'),
-        ('jobs', '0008_remove_lightjobs')
+        ('jobs', '0007_remove_lightweight')
     ]
     operations = [migrations.RunPython(set_tags_author)]
