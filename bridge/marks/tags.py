@@ -21,32 +21,49 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.utils.translation import ugettext_lazy as _
 from bridge.vars import USER_ROLES
 from bridge.utils import logger, BridgeException
-from marks.models import SafeTag, UnsafeTag
+
+from users.models import User
+from marks.models import SafeTag, UnsafeTag, SafeTagAccess, UnsafeTagAccess
 
 
-def can_edit_tag(user, tag=None):
-    if user is None:
-        return False
-    if user.extended.role == USER_ROLES[2][0]:
-        return True
-    if tag is not None and tag.author == user \
-            and tag.children.filter(author__extended__role=USER_ROLES[2][0]).count() == 0:
-        return True
-    return False
+class TagAccess:
+    def __init__(self, user, tag):
+        self.user = user
+        self.tag = tag
+        self._is_manager = self.__is_manager()
 
+    def __is_manager(self):
+        return self.user is not None and self.user.extended.role == USER_ROLES[2][0]
 
-def can_create_tag_child(user, parent):
-    if user is None:
-        return False
-    if user.extended.role == USER_ROLES[2][0]:
-        return True
-    if parent is None:
-        return False
-    if parent.author.extended.role == USER_ROLES[2][0] \
-            and parent.children.filter(author__extended__role=USER_ROLES[2][0]).count() == 0 \
-            and user.extended.role in {USER_ROLES[1][0], USER_ROLES[3][0]}:
-        return True
-    return False
+    def __has_edit_access(self):
+        if self.tag is None or self.user is None:
+            return False
+        access_table = SafeTagAccess if isinstance(self.tag, SafeTag) else UnsafeTagAccess
+        try:
+            return access_table.objects.get(user=self.user, tag=self.tag).modification
+        except ObjectDoesNotExist:
+            return False
+
+    def __has_child_access(self):
+        if self.tag is None or self.user is None:
+            return False
+        access_table = SafeTagAccess if isinstance(self.tag, SafeTag) else UnsafeTagAccess
+        try:
+            return access_table.objects.get(user=self.user, tag=self.tag).child_creation
+        except ObjectDoesNotExist:
+            return False
+
+    def __is_leaf(self):
+        return self.tag.children.count() == 0
+
+    def edit(self):
+        return self._is_manager or self.__has_edit_access()
+
+    def create(self):
+        return self._is_manager or self.__has_child_access()
+
+    def delete(self):
+        return self._is_manager or self.__is_leaf() and self.__has_edit_access()
 
 
 class TagTable(object):
@@ -114,8 +131,10 @@ class TagData:
         self.description = tag.description
         self.populated = tag.populated
         self.author = tag.author.get_full_name()
-        self.can_edit = can_edit_tag(user, tag)
-        self.can_create_the_child = can_create_tag_child(user, tag)
+        self._access = TagAccess(user, tag)
+        self.can_edit = self._access.edit()
+        self.can_delete = self._access.delete()
+        self.can_create_the_child = self._access.create()
 
     def __repr__(self):
         return "<Tag: '%s'>" % self.name
@@ -254,12 +273,15 @@ class SaveTag:
             raise BridgeException()
         if self.data['tag_type'] == 'unsafe':
             self.table = UnsafeTag
+            self.access_model = UnsafeTagAccess
         else:
             self.table = SafeTag
+            self.access_model = SafeTagAccess
         if self.data['action'] == 'edit':
-            self.__edit_tag()
+            self.tag = self.__edit_tag()
         else:
-            self.__create_tag()
+            self.tag = self.__create_tag()
+        self.__create_access()
 
     def __create_tag(self):
         if any(x not in self.data for x in ['description', 'name', 'parent_id']):
@@ -270,7 +292,7 @@ class SaveTag:
                 parent = self.table.objects.get(pk=self.data['parent_id'])
             except ObjectDoesNotExist:
                 raise BridgeException(_('The tag parent was not found'))
-        if not can_create_tag_child(self.user, parent):
+        if not TagAccess(self.user, parent).create():
             raise BridgeException(_("You don't have an access to create this tag"))
 
         if len(self.data['name']) == 0:
@@ -279,7 +301,7 @@ class SaveTag:
             raise BridgeException(_('The maximum length of a tag must be 32 characters'))
         if len(self.table.objects.filter(tag=self.data['name'])) > 0:
             raise BridgeException(_('The tag name is used already'))
-        self.table.objects.create(
+        return self.table.objects.create(
             author=self.user, tag=self.data['name'], parent=parent, description=self.data['description']
         )
 
@@ -290,7 +312,7 @@ class SaveTag:
             tag = self.table.objects.get(pk=self.data['tag_id'])
         except ObjectDoesNotExist:
             raise BridgeException(_('The tag was not found'))
-        if not can_edit_tag(self.user, tag):
+        if not TagAccess(self.user, tag).edit():
             raise BridgeException(_("You don't have an access to edit this tag"))
 
         if len(self.data['name']) == 0:
@@ -310,8 +332,8 @@ class SaveTag:
         tag.description = self.data['description']
         tag.tag = self.data['name']
         tag.parent = parent
-        tag.author = self.user
         tag.save()
+        return tag
 
     def __check_parent(self, tag, parent):
         self.ccc = 0
@@ -320,6 +342,28 @@ class SaveTag:
                 return False
             parent = parent.parent
         return True
+
+    def __create_access(self):
+        if self.data['action'] == 'create' and self.user.extended.role != USER_ROLES[2][0]:
+            self.access_model.objects.create(tag=self.tag, user=self.user, modification=True, child_creation=True)
+
+        if self.user.extended.role != USER_ROLES[2][0] or 'access' not in self.data:
+            return
+        access = json.loads(self.data['access'])
+        if access['edit'] is None:
+            access['edit'] = []
+        if access['child'] is None:
+            access['child'] = []
+        can_edit = list(int(x) for x in access['edit'])
+        can_create = list(int(x) for x in access['child'])
+
+        access_to_create = []
+        for u in User.objects.filter(id__in=(can_edit + can_create)):
+            access_to_create.append(self.access_model(
+                tag=self.tag, user=u, modification=(u.id in can_edit), child_creation=(u.id in can_create)
+            ))
+
+        self.access_model.objects.bulk_create(access_to_create)
 
 
 class TagsInfo:
