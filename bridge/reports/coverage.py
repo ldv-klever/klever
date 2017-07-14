@@ -41,6 +41,12 @@ SOURCE_CLASSES = {
     'key2': "COVKey2"
 }
 
+COLOR = {
+    'grey': '#bcbcbc',
+    'purple': '#a478e9',
+    'lightgrey': '#f4f7ff'
+}
+
 ROOT_DIRS_ORDER = ['source files', 'specifications', 'generated models']
 
 
@@ -132,7 +138,6 @@ class GetCoverage:
             try:
                 self.type = 'unsafe'
                 return ReportUnsafe.objects.get(id=report_id)
-
             except ObjectDoesNotExist:
                 try:
                     self.type = 'unknown'
@@ -155,10 +160,10 @@ class GetCoverage:
 
     def __wrap_item(self, title, item, header):
         self.__is_not_used()
+        style = ''
         if header:
-            return '<div class="item" data-value="%s" style="color:#bcbcbc;">%s</div>' % (title, item)
-        else:
-            return '<div class="item" data-value="%s">%s</div>' % (title, item)
+            style = ' style="color:%s;"' % COLOR['grey']
+        return '<div class="item" data-value="%s"%s>%s</div>' % (title, style, item)
 
     def __wrap_items(self, title, items):
         self.__is_not_used()
@@ -355,7 +360,7 @@ class GetCoverageSrcHTML:
             linedata.append({
                 'class': 'COVHasD', 'static': True,
                 'content': '&nbsp;',
-                'color': '#a478e9' if line in self._data_map else '#f4f7ff'
+                'color': COLOR['purple'] if line in self._data_map else COLOR['lightgrey']
             })
         linedata.append(func_cov)
         linedata.append(code)
@@ -480,6 +485,7 @@ class CoverageStatistics:
                 except ObjectDoesNotExist:
                     raise BridgeException(_('The report was not found'))
 
+    @exec_time
     def __get_files_and_data(self):
         if not self.parent.verification:
             raise ValueError("The parent is not verification report")
@@ -498,7 +504,7 @@ class CoverageStatistics:
                         self._files.append(os.path.normpath(filename))
                         with zfp.open(filename) as inzip_fp:
                             lines = 0
-                            for line in inzip_fp:
+                            while inzip_fp.readline():
                                 lines += 1
                             self._total_lines[os.path.normpath(filename)] = lines
 
