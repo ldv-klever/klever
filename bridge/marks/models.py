@@ -365,9 +365,15 @@ class SafeTagAccess(models.Model):
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
 
+    class Meta:
+        db_table = 'marks_safe_tag_access'
+
 
 class UnsafeTagAccess(models.Model):
     user = models.ForeignKey(User)
     tag = models.ForeignKey(UnsafeTag)
     modification = models.BooleanField(default=False)
     child_creation = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'marks_unsafe_tag_access'
