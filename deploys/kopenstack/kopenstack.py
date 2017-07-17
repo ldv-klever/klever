@@ -208,6 +208,7 @@ class OSKleverBaseImage(OSEntity):
                 ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', 'install-deps'),
                              'install-deps')
                 ssh.execute_cmd('sudo ./install-deps')
+                ssh.sftp.remove('install-deps')
 
             instance.create_image()
 
