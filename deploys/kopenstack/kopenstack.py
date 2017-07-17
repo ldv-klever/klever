@@ -549,8 +549,8 @@ class OSInstance:
                         # TODO: maybe wait for adding floating IP.
                         instance.add_floating_ip(self.floating_ip)
 
-                        self.logger.info('Floating IP {0} is attached to instance "{0}"'
-                                         .format(self.floating_ip, self.name))
+                        self.logger.info('Floating IP {0} is attached to instance "{1}"'.format(self.floating_ip,
+                                                                                                self.name))
 
                         self.logger.info(
                             'Wait for {0} seconds until operating system will start before performing other operations'
