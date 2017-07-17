@@ -162,6 +162,8 @@ class SSH:
             return True
 
     def sftp_put(self, host_path, instance_path, dir=None):
+        self.logger.info('Copy "{0}" to "{1}"'.format(host_path, os.path.join(dir if dir else '', instance_path)))
+
         # Always transfer files using compressed tar archives to preserve file permissions and reduce net load.
         with tempfile.NamedTemporaryFile(suffix='.tar.gz') as fp:
             instance_archive = os.path.basename(fp.name)
