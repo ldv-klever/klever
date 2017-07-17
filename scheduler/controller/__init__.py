@@ -50,8 +50,6 @@ def prepare_node_info(node_info):
     # resources if they are specified as decimals.
     if isinstance(result["available CPU number"], float):
         result["available CPU number"] = int(result["CPU number"] * result["available CPU number"])
-    if result["available CPU number"] < 1:
-        result["available CPU number"] = 1
     elif result["available CPU number"] > result["CPU number"]:
         result["available CPU number"] = result["CPU number"]
     if isinstance(result["available RAM memory"], float):

@@ -38,6 +38,38 @@ $(document).ready(function () {
                 $(this).remove();
             }
         });
+        $('#create_tag_user_access_selection').empty();
+        $('#edit_tag_user_access_selection').empty();
+    }
+    function create_access_selections(access, user_access_field) {
+        console.log(access);
+        if (user_access_field.length && access['all'].length > 0) {
+            var new_dropdown1 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_edit_sel'}),
+                new_dropdown2 = $('<select>', {multiple: true, 'class': 'ui fluid dropdown', 'id': 'user_access_child_sel'});
+            $.each(access['all'], function (i, v) {
+                if (access['access_edit'].indexOf(v[0]) >= 0) {
+                    new_dropdown1.append($('<option>', {value: v[0], text: v[1], selected: true}));
+                }
+                else {
+                    new_dropdown1.append($('<option>', {value: v[0], text: v[1]}));
+                }
+            });
+            $.each(access['all'], function (i, v) {
+                if (access['access_child'].indexOf(v[0]) >= 0) {
+                    new_dropdown2.append($('<option>', {value: v[0], text: v[1], selected: true}));
+                }
+                else {
+                    new_dropdown2.append($('<option>', {value: v[0], text: v[1]}));
+                }
+            });
+            user_access_field.append($('<label>', {'for': 'user_access_edit_sel', 'class': 'bold-text', 'text': $('#label_for_user_access_1').text()}));
+            user_access_field.append(new_dropdown1);
+            user_access_field.append($('<br>'));
+            user_access_field.append($('<label>', {'for': 'user_access_child_sel', 'class': 'bold-text', 'text': $('#label_for_user_access_2').text()}));
+            user_access_field.append($('<br>'));
+            user_access_field.append(new_dropdown2);
+            user_access_field.find('select').dropdown();
+        }
     }
 
     var remove_tag_icon = $('.remove-tag-icon'),
@@ -104,7 +136,7 @@ $(document).ready(function () {
         $('#tag_name').val($('#tag_id_' + tag_id).text());
         $('#tag_description').val(tag_popup.children('.content').first().html());
         $.ajax({
-            url: '/marks/ajax/get_tag_parents/',
+            url: '/marks/ajax/get_tag_data/',
             type: 'POST',
             data: {
                 tag_type: $('#tags_type').text(),
@@ -123,6 +155,7 @@ $(document).ready(function () {
                     parent_dropdown.append($('<option>', {'value': value, 'text': $('#tag_id_' + value).text()}));
                 });
                 $('#edit_tag_id').val(tag_id);
+                create_access_selections(JSON.parse(data['access']), $('#edit_tag_user_access_selection'));
 
                 $('.edit-tag-cell').popup('hide');
                 edit_tag_modal.modal('show');
@@ -135,6 +168,10 @@ $(document).ready(function () {
         });
     });
     $('#save_tag').click(function () {
+        var uadiv = $('#edit_tag_user_access_selection'), access = {
+            'edit': uadiv.find('#user_access_edit_sel').val(),
+            'child': uadiv.find('#user_access_child_sel').val()
+        };
         $.ajax({
             url: '/marks/ajax/save_tag/',
             type: 'POST',
@@ -144,7 +181,8 @@ $(document).ready(function () {
                 tag_type: $('#tags_type').text(),
                 description: $('#tag_description').val(),
                 parent_id: $('#tag_parent').val(),
-                action: 'edit'
+                action: 'edit',
+                access: JSON.stringify(access)
             },
             success: function (data) {
                 if (data.error) {
@@ -169,7 +207,7 @@ $(document).ready(function () {
     create_tag_modal.modal({transition: 'drop', autofocus: false, closable: false});
     function create_tag_click(parent_id) {
         $.ajax({
-            url: '/marks/ajax/get_tag_parents/',
+            url: '/marks/ajax/get_tag_data/',
             type: 'POST',
             data: {
                 tag_type: $('#tags_type').text()
@@ -191,6 +229,8 @@ $(document).ready(function () {
                 setTimeout(function () {
                     create_tag_parent.dropdown('set selected', create_tag_parent.val());
                 }, 1);
+                create_access_selections(JSON.parse(data['access']), $('#create_tag_user_access_selection'));
+
                 $('.edit-tag-cell').popup('hide');
                 create_tag_modal.modal('show');
             }
@@ -207,6 +247,10 @@ $(document).ready(function () {
         clear_modal();
     });
     $('#confirm_create_tag').click(function () {
+        var uadiv = $('#create_tag_user_access_selection'), access = {
+            'edit': uadiv.find('#user_access_edit_sel').val(),
+            'child': uadiv.find('#user_access_child_sel').val()
+        };
         $.ajax({
             url: '/marks/ajax/save_tag/',
             type: 'POST',
@@ -215,7 +259,8 @@ $(document).ready(function () {
                 tag_type: $('#tags_type').text(),
                 description: $('#create_tag_description').val(),
                 parent_id: $('#create_tag_parent').val(),
-                action: 'create'
+                action: 'create',
+                access: JSON.stringify(access)
             },
             success: function (data) {
                 if (data.error) {
