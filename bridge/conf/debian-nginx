@@ -1,5 +1,5 @@
 upstream bridge_server {
-  server unix:/var/www/klever-bridge/gunicorn.sock fail_timeout=0;
+  server unix:/var/www/klever-bridge/media/gunicorn.sock fail_timeout=0;
 }
 
 server {
