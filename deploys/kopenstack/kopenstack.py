@@ -210,6 +210,9 @@ class OSKleverBaseImage(OSEntity):
                 ssh.execute_cmd('sudo ./install-deps')
                 ssh.sftp.remove('install-deps')
 
+            # TODO: perhaps due to some hardware issues without this delay created images can be corrupted.
+            # time.sleep(300)
+
             instance.create_image()
 
     def remove(self):
@@ -342,7 +345,8 @@ class OSKleverDeveloperInstance(OSEntity):
                 tmp_host_path = os.path.join(tmpdir, os.path.basename(os.path.realpath(host_path)))
                 self._execute_cmd('git', 'clone', '-q', host_path, tmp_host_path)
                 self._execute_cmd('git', '-C', tmp_host_path, 'checkout', '-q', host_version)
-                #shutil.rmtree(os.path.join(tmp_host_path, '.git'))
+                # TODO: this makes imposible to detect Klever Core version.
+                # shutil.rmtree(os.path.join(tmp_host_path, '.git'))
                 ssh.sftp_put(tmp_host_path, instance_path)
         elif os.path.isfile(host_path) and tarfile.is_tarfile(host_path):
             instance_archive = os.path.basename(host_path)
