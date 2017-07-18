@@ -93,8 +93,12 @@ class Session:
         return resp.json()['task id']
 
     def get_task_status(self, task_id):
-        resp = self.__request('service/get_task_status/', {'task id': task_id})
-        return resp.json()['task status']
+        resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps([task_id])})
+        statuses = resp.json()['tasks statuses']
+        for status in statuses:
+            if task_id in statuses[status]:
+                return status.upper()
+        return None
 
     def get_task_error(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
