@@ -83,3 +83,8 @@ execute_cmd('createdb', '-U', 'postgres', '-T', 'template0', '-E', 'utf8', '-O',
 print('Prepare media directory')
 execute_cmd('mkdir', '/var/lib/klever/media')
 execute_cmd('chown', '-R', 'www-data:www-data', '/var/lib/klever/media')
+
+
+print('Enable control groups access')
+execute_cmd('chmod', 'o+w', *(os.path.join(os.path.sep, 'sys', 'fs', 'cgroup', cgroup_controller)
+                              for cgroup_controller in ('cpuset', 'cpu,cpuacct', 'memory', 'freezer')))
