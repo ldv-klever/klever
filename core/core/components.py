@@ -239,11 +239,14 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         subcomponent_processes = []
         try:
             for subcomponent in subcomponents:
-                subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
-                setattr(subcomponent_class, 'main', subcomponent[1])
-                # Do not try to separate these subcomponents from their parents - it is a true headache.
-                # We always include child resources into resources of these components since otherwise they will
-                # disappear from resources statistics.
+                if isinstance(subcomponent, list):
+                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
+                    setattr(subcomponent_class, 'main', subcomponent[1])
+                    # Do not try to separate these subcomponents from their parents - it is a true headache.
+                    # We always include child resources into resources of these components since otherwise they will
+                    # disappear from resources statistics.
+                else:
+                    subcomponent_class = subcomponent
                 p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                        include_child_resources=True)
                 p.start()
