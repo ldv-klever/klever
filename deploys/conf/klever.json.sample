@@ -1,10 +1,52 @@
 {
   "Klever": {
-    "version": "master",
-    "source": "."
+    "version": "openstack-deployment",
+    "path": "."
   },
-  "TODO!!!": {
-    "version": "0.5.2",
-    "source": "../../addons/consul"
+  "Klever Addons": {
+    "CIF": {
+      "version": "58ca670",
+      "path": "addons/cif-58ca670"
+    },
+    "CIL": {
+      "version": "1.5.1-ldv",
+      "path": "addons/cil-1.5.1",
+      "executable path": "obj/x86_LINUX"
+    },
+    "Consul": {
+      "version": "0.8.3",
+      "path": "addons/consul"
+    },
+    "BenchExec": {
+      "version": "master",
+      "path": "../benchexec"
+    },
+    "Verification Backends": {
+      "CPAchecker LDV BAM": {
+        "version": "ldv-bam:24572",
+        "path": "addons/CPAchecker-1.6.1-svn 05b6b8c-unix",
+        "executable path": "scripts"
+      },
+      "CPAchecker LDV SMG": {
+        "version": "smg_witness_for_ldv:24577",
+        "path": "addons/CPAchecker-1.6.1-svn 5f0eb6d-unix",
+        "executable path": "scripts"
+      },
+      "CPAlocator": {
+        "version": "CPALockator:24629",
+        "path": "addons/CPAchecker-1.6.1-svn b9e3664606-unix",
+        "executable path": "scripts"
+      }
+    }
+  },
+  "Programs": {
+    "Linux 3.14": {
+      "version": "3.14",
+      "path": "programs/linux-3.14.tar.xz"
+    },
+    "Linux 4.2.6": {
+      "version": "4.2.6",
+      "path": "programs/linux-4.2.6"
+    }
   }
 }
