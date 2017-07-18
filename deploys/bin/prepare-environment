@@ -46,7 +46,7 @@ print('Prepare CIF environment')
 execute_cmd('ln', '-s', '/usr/lib/x86_64-linux-gnu/crt*.o', '/usr/lib')
 
 
-print('Create database')
+print('Move PostgreSQL data directory')
 execute_cmd('mkdir', '/var/lib/klever/db')
 execute_cmd('mv', '/var/lib/postgresql', '/var/lib/klever/db')
 
@@ -58,9 +58,11 @@ with open(postgresql_conf_file) as fp:
 with open(postgresql_conf_file, 'w') as fp:
     for line in postgresql_conf:
         if line.startswith('data_directory'):
-            line = "data_directory = '/var/lib/klever/db/postgresql/9.4/main'\n"
+            line = "data_directory = '/var/lib/klever/db/postgresql/9.6/main'\n"
         fp.write(line)
 
+
+print('Enable full local access to all PostgreSQL users to all PostgreSQL databases')
 pg_hba_conf_file = execute_cmd('find', '/etc/postgresql', '-name', 'pg_hba.conf',
                                get_output=True).rstrip()
 
@@ -73,10 +75,11 @@ with open(pg_hba_conf_file, 'w') as fp:
             line = 'local all all trust\n'
         fp.write(line)
 
+print('Create PostgreSQL database')
 execute_cmd('service', 'postgresql', 'restart')
 execute_cmd('createdb', '-U', 'postgres', '-T', 'template0', '-E', 'utf8', '-O', 'postgres', 'klever')
 
 
-print('Create media directory')
+print('Prepare media directory')
 execute_cmd('mkdir', '/var/lib/klever/media')
 execute_cmd('chown', '-R', 'www-data:www-data', '/var/lib/klever/media')
