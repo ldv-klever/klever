@@ -31,9 +31,10 @@ NAME=klever-native-scheduler
 DAEMON=/home/debian/klever/scheduler/bin/native-scheduler
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-WORKDIR=/home/debian/klever-work
-USER=debian
-GROUP=debian
+WORKDIR=/home/debian/klever-programs
+CONFFILE=/home/debian/klever-conf/native-scheduler.json
+USER=klever
+GROUP=klever
 
 . /lib/lsb/init-functions
 
@@ -47,7 +48,7 @@ case "$1" in
         fi
         export KLEVER_WORK_DIR=${WORKDIR}
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
-            --group ${GROUP} --exec ${DAEMON} -- /home/debian/klever-conf/native-scheduler.json
+            --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
         then
             rc=0
             sleep 1

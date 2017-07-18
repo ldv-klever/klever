@@ -31,7 +31,9 @@ NAME=klever-bridge
 DAEMON=/usr/local/bin/gunicorn
 PIDFILE=/var/run/"$NAME".pid
 SCRIPTNAME=/etc/init.d/"$NAME"
-DIR=/var/www/"$NAME"
+WORKDIR=/var/www/"$NAME"
+USER=www-data
+GROUP=www-data
 
 . /lib/lsb/init-functions
 
@@ -43,9 +45,10 @@ case "$1" in
             log_end_msg 0
             exit 0
         fi
-        if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --exec ${DAEMON} \
-            -- --chdir ${DIR} --timeout 900 --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
-            --bind unix:${DIR}/gunicorn.sock bridge.wsgi:application
+        if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile  --chuid ${USER} \
+            --group ${GROUP} --chdir ${WORKDIR} --exec ${DAEMON} \
+            -- --timeout 900 --workers $(( 2 * `cat /proc/cpuinfo | grep 'core id' | wc -l` + 1 )) \
+            --bind unix:media/gunicorn.sock bridge.wsgi:application
         then
             rc=0
             sleep 1

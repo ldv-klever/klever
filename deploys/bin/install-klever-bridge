@@ -95,3 +95,5 @@ with Cd('/var/www/klever-bridge'):
     os.close(write_fp)
     execute_cmd('./manage.py', 'shell', stdin=read_fp)
     os.close(read_fp)
+
+execute_cmd('chown', '-R', 'www-data:www-data', '/var/lib/klever/media')

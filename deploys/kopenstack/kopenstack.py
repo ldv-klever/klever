@@ -280,9 +280,12 @@ class OSKleverDeveloperInstance(OSEntity):
                     ssh.sftp_put(os.path.join(os.path.dirname(__file__), os.path.pardir, 'bin', script), script)
 
                 self.logger.info('Prepare environment')
-                ssh.execute_cmd('sudo ./prepare-environment && ' +
-                                'sudo chown -LR $(id -u):$(id -g) klever-conf klever-work')
+                ssh.execute_cmd('sudo ./prepare-environment')
                 ssh.sftp.remove('prepare-environment')
+                # Owner of these directories should be default user since later that user will put and update files
+                # there.
+                self.logger.info('Prepare configurations and programs directory')
+                ssh.execute_cmd('mkdir -p klever-conf klever-programs')
 
                 self._do_update(ssh)
 
@@ -402,7 +405,7 @@ class OSKleverDeveloperInstance(OSEntity):
             instance_programs_conf = instance_klever_conf['Programs']
 
             for program in host_programs_conf.keys():
-                self._update_entity(program, os.path.join('klever-work', program), host_programs_conf,
+                self._update_entity(program, os.path.join('klever-programs', program), host_programs_conf,
                                     instance_programs_conf, ssh)
 
         self.logger.info('Specify actual versions of Klever, its addons and programs')

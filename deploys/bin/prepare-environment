@@ -27,8 +27,8 @@ def execute_cmd(*args, stdin=None, get_output=False):
         subprocess.check_call(args, stdin=stdin)
 
 
-print('Create data directory')
-execute_cmd('mkdir', '/var/lib/klever')
+print('Create user')
+execute_cmd('useradd', 'klever')
 
 
 print('Create configurations directory')
@@ -38,6 +38,7 @@ execute_cmd('mkdir', 'klever-conf')
 print('Create working directory')
 execute_cmd('mkdir', '/var/lib/klever/work')
 execute_cmd('ln', '-s', '/var/lib/klever/work', 'klever-work')
+execute_cmd('chown', '-LR', 'klever:klever', 'klever-work')
 
 
 print('Prepare CIF environment')
@@ -77,3 +78,4 @@ execute_cmd('createdb', '-U', 'postgres', '-T', 'template0', '-E', 'utf8', '-O',
 
 print('Create media directory')
 execute_cmd('mkdir', '/var/lib/klever/media')
+execute_cmd('chown', '-R', 'www-data:www-data', '/var/lib/klever/media')
