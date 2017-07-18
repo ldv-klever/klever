@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import os
 import subprocess
 
 
@@ -31,11 +32,11 @@ print('Create user')
 execute_cmd('useradd', 'klever')
 
 
-print('Create configurations directory')
-execute_cmd('mkdir', 'klever-conf')
+print('Create data directory')
+execute_cmd('mkdir', '/var/lib/klever')
 
 
-print('Create working directory')
+print('Prepare working directory')
 execute_cmd('mkdir', '/var/lib/klever/work')
 execute_cmd('ln', '-s', '/var/lib/klever/work', 'klever-work')
 execute_cmd('chown', '-LR', 'klever:klever', 'klever-work')
