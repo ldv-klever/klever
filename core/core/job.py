@@ -39,8 +39,7 @@ class Job(core.utils.CallbacksCaller):
         'Verification of Linux kernel modules': [
             'LKBCE',
             'LKVOG',
-            'AVTG',
-            'VTG',
+            'VTGVRP'
         ],
     }
 
