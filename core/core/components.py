@@ -239,7 +239,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         subcomponent_processes = []
         try:
             for subcomponent in subcomponents:
-                if isinstance(subcomponent, list):
+                if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
                     subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
                     setattr(subcomponent_class, 'main', subcomponent[1])
                     # Do not try to separate these subcomponents from their parents - it is a true headache.
