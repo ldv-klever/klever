@@ -31,6 +31,26 @@ from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
 
+# Generate decorators to use them across the project
+for tp in CALLBACK_KINDS:
+    # Access namespace of the decorated function and insert there a new one with the name like 'before_' + function_name
+    def new_decorator(decorated_function, tp=tp):
+        if decorated_function.__name__[0:2] != '__':
+            raise ValueError("Callbacks should be private, call function {!r} with '__' prefix".
+                             format(decorated_function.__name__))
+        callback_function_name = "{}_{}".format(str(tp), decorated_function.__name__[2:])
+        if callback_function_name in decorated_function.__globals__:
+            raise KeyError("Cannot create callback {!r} in {!r}".
+                           format(callback_function_name, decorated_function.__module__))
+        else:
+            setattr(sys.modules[decorated_function.__module__], callback_function_name, decorated_function)
+
+        return decorated_function
+
+    # Add new decorator to this module to use it
+    globals()[tp + '_callback'] = new_decorator
+    new_decorator = None
+
 
 class CallbacksCaller:
     def __getattribute__(self, name):
