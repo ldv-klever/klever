@@ -24,7 +24,7 @@ import re
 import jinja2
 
 import core.utils
-import core.vtgvrp.plugins
+import core.vtgvrp.vtg.plugins
 from core.vtgvrp.vtg.sa.initparser import parse_initializations
 
 
@@ -32,7 +32,7 @@ def nested_dict():
     return collections.defaultdict(nested_dict)
 
 
-class SA(core.vtgvrp.plugins.Plugin):
+class SA(core.vtgvrp.vtg.plugins.Plugin):
     # TODO: Use template processor instead of predefined aspect file and target output files
     collection = None
     files = []

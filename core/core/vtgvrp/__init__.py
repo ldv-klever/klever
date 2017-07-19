@@ -15,24 +15,19 @@
 # limitations under the License.
 #
 
-import collections
-import copy
-import importlib
-import json
 import multiprocessing
-import os
-import re
-
 import core.components
 import core.utils
 from core.vtgvrp import vtg, vrp
 
 
-def before_launch_sub_job_components(context):
-    context.mqs['VTGVRT common prj attrs'] = multiprocessing.Queue()
+@core.utils.before_callback
+def __launch_sub_job_components(context):
+    context.mqs['VTGVRP common prj attrs'] = multiprocessing.Queue()
 
 
-def after_set_common_prj_attrs(context):
+@core.utils.after_callback
+def __set_common_prj_attrs(context):
     context.mqs['VTGVRP common prj attrs'].put(context.common_prj_attrs)
 
 
@@ -66,9 +61,9 @@ class VTGVRP(core.components.Component):
     def __get_common_prj_attrs(self):
         self.logger.info('Get common project atributes')
 
-        common_prj_attrs = self.mqs['AVTG common prj attrs'].get()
+        common_prj_attrs = self.mqs['VTGVRP common prj attrs'].get()
 
-        self.mqs['AVTG common prj attrs'].close()
+        self.mqs['VTGVRP common prj attrs'].close()
 
         return common_prj_attrs
 

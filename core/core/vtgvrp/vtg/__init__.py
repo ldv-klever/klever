@@ -26,36 +26,42 @@ import core.components
 import core.utils
 
 
-def before_launch_sub_job_components(context):
-    context.mqs['verification obj desc files'] = multiprocessing.Queue()
-    context.mqs['verification obj descs num'] = multiprocessing.Queue()
-    context.mqs['shadow src tree'] = multiprocessing.Queue()
-    context.mqs['model CC opts'] = multiprocessing.Queue()
-
-
-def after_set_common_prj_attrs(context):
-    context.mqs['VTGVRP common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_shadow_src_tree(context):
-    context.mqs['shadow src tree'].put(context.shadow_src_tree)
-
-
-def after_fixup_model_cc_opts(context):
-    context.mqs['model CC opts'].put(context.model_cc_opts)
-
-
-def after_generate_verification_obj_desc(context):
-    if context.verification_obj_desc:
-        context.mqs['verification obj desc files'].put(
-            os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
-
-
-def after_generate_all_verification_obj_descs(context):
-    context.logger.info('Terminate verification object description files message queue')
-    context.mqs['verification obj desc files'].put(None)
-    # todo: fix or rewrite
-    #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
+# @core.utils.before_callback
+# def launch_sub_job_components(context):
+#     context.mqs['verification obj desc files'] = multiprocessing.Queue()
+#     context.mqs['verification obj descs num'] = multiprocessing.Queue()
+#     context.mqs['shadow src tree'] = multiprocessing.Queue()
+#     context.mqs['model CC opts'] = multiprocessing.Queue()
+#
+#
+# @core.utils.after_callback
+# def set_common_prj_attrs(context):
+#     context.mqs['VTGVRP common prj attrs'].put(context.common_prj_attrs)
+#
+#
+# @core.utils.after_callback
+# def set_shadow_src_tree(context):
+#     context.mqs['shadow src tree'].put(context.shadow_src_tree)
+#
+#
+# @core.utils.after_callback
+# def fixup_model_cc_opts(context):
+#     context.mqs['model CC opts'].put(context.model_cc_opts)
+#
+#
+# @core.utils.after_callback
+# def generate_verification_obj_desc(context):
+#     if context.verification_obj_desc:
+#         context.mqs['verification obj desc files'].put(
+#             os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
+#
+#
+# @core.utils.after_callback
+# def generate_all_verification_obj_descs(context):
+#     context.logger.info('Terminate verification object description files message queue')
+#     context.mqs['verification obj desc files'].put(None)
+#     # todo: fix or rewrite
+#     #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
