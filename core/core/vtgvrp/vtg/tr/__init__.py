@@ -15,14 +15,15 @@
 # limitations under the License.
 #
 
-import jinja2
 import os
 
-import core.vtgvrp.plugins
+import jinja2
+
 import core.utils
+import core.vtgvrp.vtg.plugins
 
 
-class TR(core.vtgvrp.plugins.Plugin):
+class TR(core.vtgvrp.vtg.plugins.Plugin):
     def render_templates(self):
         if 'template context' not in self.abstract_task_desc:
             self.logger.warning('Template context is not specified (nothing to do)')

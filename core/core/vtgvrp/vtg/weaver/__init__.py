@@ -20,11 +20,11 @@ import json
 import os
 import re
 
-import core.vtgvrp.plugins
 import core.utils
+import core.vtgvrp.vtg.plugins
 
 
-class Weaver(core.vtgvrp.plugins.Plugin):
+class Weaver(core.vtgvrp.vtg.plugins.Plugin):
     def weave(self):
         self.abstract_task_desc['extra C files'] = []
 

@@ -26,11 +26,11 @@ from core.vtgvrp.emg.processmodel.process_parser import parse_event_specificatio
 from core.vtgvrp.emg.translator import translate_intermediate_model
 
 import core.utils
-import core.vtgvrp.plugins
+import core.vtgvrp.vtg.plugins
 from core.vtgvrp.vtg.emg.interfacespec import InterfaceCategoriesSpecification
 
 
-class EMG(core.vtgvrp.plugins.Plugin):
+class EMG(core.vtgvrp.vtg.plugins.Plugin):
     """
     EMG plugin for environment model generation.
     """

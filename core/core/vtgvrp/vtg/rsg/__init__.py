@@ -18,13 +18,12 @@
 import json
 import os
 import re
-import string
 
-import core.vtgvrp.plugins
 import core.utils
+import core.vtgvrp.vtg.plugins
 
 
-class RSG(core.vtgvrp.plugins.Plugin):
+class RSG(core.vtgvrp.vtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 

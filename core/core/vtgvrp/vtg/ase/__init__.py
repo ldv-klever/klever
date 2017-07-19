@@ -19,11 +19,11 @@ import fileinput
 import json
 import os
 
-import core.vtgvrp.plugins
 import core.utils
+import core.vtgvrp.vtg.plugins
 
 
-class ASE(core.vtgvrp.plugins.Plugin):
+class ASE(core.vtgvrp.vtg.plugins.Plugin):
     def extract_argument_signatures(self):
         if 'request aspects' not in self.conf:
             raise KeyError('There is not mandatory option "request aspects"')
