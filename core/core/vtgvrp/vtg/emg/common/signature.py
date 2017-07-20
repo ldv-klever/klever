@@ -18,7 +18,7 @@
 import copy
 import re
 
-from core.vtgvrp.vtg.emg.grammars import parse_signature
+from core.vtgvrp.vtg.emg.grammars.signature import parse_signature
 
 __type_collection = {}
 __typedefs = {}

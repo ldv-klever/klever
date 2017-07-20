@@ -17,9 +17,9 @@
 
 import re
 
-from core.vtgvrp.emg.common.signature import Array, Structure, Pointer
+from core.vtgvrp.vtg.emg.common.signature import Array, Structure, Pointer
 
-from core.vtgvrp.vtg.emg.grammars import parse_process
+from core.vtgvrp.vtg.emg.grammars.process import parse_process
 
 
 def generate_regex_set(subprocess_name):

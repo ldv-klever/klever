@@ -14,9 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
+from core.vtgvrp.vtg.emg.common import get_necessary_conf_property, check_or_set_conf_property, \
     check_necessary_conf_property
-from core.vtgvrp.emg.common.process import Process, Label, Receive, Dispatch, Call, CallRetval, \
+from core.vtgvrp.vtg.emg.common.process import Process, Label, Receive, Dispatch, Call, CallRetval, \
     generate_regex_set
 
 from core.vtgvrp.vtg.emg.common.signature import import_declaration

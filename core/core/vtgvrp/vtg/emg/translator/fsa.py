@@ -18,9 +18,9 @@
 import copy
 from operator import attrgetter
 
-from core.vtgvrp.emg.common.process import Subprocess, Receive, Dispatch
+from core.vtgvrp.vtg.emg.common.process import Subprocess, Receive, Dispatch
 
-from core.vtgvrp.vtg.emg.translator import Variable
+from core.vtgvrp.vtg.emg.translator.code import Variable
 
 
 class FSA:

@@ -15,8 +15,8 @@
 # limitations under the License.
 #
 
-from core.vtgvrp.emg.common import get_necessary_conf_property
-from core.vtgvrp.emg.common.process import Dispatch, Receive, Call, Label, Process
+from core.vtgvrp.vtg.emg.common import get_necessary_conf_property
+from core.vtgvrp.vtg.emg.common.process import Dispatch, Receive, Call, Label, Process
 
 from core.vtgvrp.vtg.emg.common.signature import import_declaration
 

@@ -14,10 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.emg.common import check_or_set_conf_property, get_necessary_conf_property
-from core.vtgvrp.emg.translator.code import CModel
-from core.vtgvrp.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
-from core.vtgvrp.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
+from core.vtgvrp.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
+from core.vtgvrp.vtg.emg.translator.code import CModel
+from core.vtgvrp.vtg.emg.translator.fsa_translator.label_fsa_translator import LabelTranslator
+from core.vtgvrp.vtg.emg.translator.fsa_translator.state_fsa_translator import StateTranslator
 
 from core.vtgvrp.vtg.emg.translator.instances import yield_instances
 

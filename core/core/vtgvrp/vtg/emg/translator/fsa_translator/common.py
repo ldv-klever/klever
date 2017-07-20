@@ -16,8 +16,8 @@
 #
 import json
 
-from core.vtgvrp.emg.common import get_conf_property
-from core.vtgvrp.emg.common.process import Receive, Dispatch
+from core.vtgvrp.vtg.emg.common import get_conf_property
+from core.vtgvrp.vtg.emg.common.process import Receive, Dispatch
 
 from core.vtgvrp.vtg.emg.common.signature import Pointer, Primitive
 

@@ -16,9 +16,9 @@
 #
 from operator import attrgetter
 
-from core.vtgvrp.emg.common.process import Subprocess
+from core.vtgvrp.vtg.emg.common.process import Subprocess
 
-from core.vtgvrp.vtg.emg.translator import control_function_comment_begin, control_function_comment_end, \
+from core.vtgvrp.vtg.emg.translator.fsa_translator.common import control_function_comment_begin, control_function_comment_end, \
     initialize_automaton_variables, model_comment
 
 

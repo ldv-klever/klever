@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.vtg.emg.common import Function, Pointer, InterfaceReference
+from core.vtgvrp.vtg.emg.common.signature import Function, Pointer, InterfaceReference
 
 
 class Interface:

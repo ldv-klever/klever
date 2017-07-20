@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.emg.common import get_conf_property
-from core.vtgvrp.emg.common.interface import Container, Resource, Callback
-from core.vtgvrp.emg.common.signature import Declaration, Function, Structure, Union, Array, Pointer, extracted_types
+from core.vtgvrp.vtg.emg.common import get_conf_property
+from core.vtgvrp.vtg.emg.common.interface import Container, Resource, Callback
+from core.vtgvrp.vtg.emg.common.signature import Declaration, Function, Structure, Union, Array, Pointer, extracted_types
 
-from core.vtgvrp.vtg.emg.interfacespec import fulfill_function_interfaces
+from core.vtgvrp.vtg.emg.interfacespec.specification import fulfill_function_interfaces
 
 
 def yield_categories(collection, conf):

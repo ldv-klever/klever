@@ -18,7 +18,7 @@
 import os
 import re
 
-from core.vtgvrp.emg.common import get_conf_property
+from core.vtgvrp.vtg.emg.common import get_conf_property
 
 from core.utils import unique_file_name
 from core.vtgvrp.vtg.emg.common.signature import Declaration, Pointer, Function, Primitive, import_declaration

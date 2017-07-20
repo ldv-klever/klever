@@ -18,13 +18,13 @@ import abc
 from operator import attrgetter
 
 import graphviz
-from core.vtgvrp.emg.common import get_conf_property, get_necessary_conf_property
-from core.vtgvrp.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
+from core.vtgvrp.vtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.vtgvrp.vtg.emg.common.process import Receive, Dispatch, Call, CallRetval, Condition, Subprocess, \
     get_common_parameter
-from core.vtgvrp.emg.common.signature import Pointer, Primitive, Structure, import_declaration
+from core.vtgvrp.vtg.emg.common.signature import Pointer, Primitive, Structure, import_declaration
 
-from core.vtgvrp.vtg.emg.translator import FunctionDefinition
-from core.vtgvrp.vtg.emg.translator import action_model_comment, model_comment, \
+from core.vtgvrp.vtg.emg.translator.code import FunctionDefinition
+from core.vtgvrp.vtg.emg.translator.fsa_translator.common import action_model_comment, model_comment, \
     extract_relevant_automata, choose_file, registration_intf_check, initialize_automaton_variables
 
 

@@ -17,11 +17,11 @@
 import copy
 import re
 
-from core.vtgvrp.emg.common import get_necessary_conf_property
-from core.vtgvrp.emg.common.interface import Interface, Callback, Container
-from core.vtgvrp.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition
+from core.vtgvrp.vtg.emg.common import get_necessary_conf_property
+from core.vtgvrp.vtg.emg.common.interface import Interface, Callback, Container
+from core.vtgvrp.vtg.emg.common.process import Access, Process, Label, Call, Dispatch, Receive, Condition
 
-from core.vtgvrp.vtg.emg.processmodel import EntryProcessGenerator
+from core.vtgvrp.vtg.emg.processmodel.entry import EntryProcessGenerator
 
 
 class ProcessModel:

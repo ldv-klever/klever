@@ -14,13 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.emg.common import get_conf_property, get_necessary_conf_property
-from core.vtgvrp.emg.common.process import Dispatch, get_common_parameter
+from core.vtgvrp.vtg.emg.common import get_conf_property, get_necessary_conf_property
+from core.vtgvrp.vtg.emg.common.process import Dispatch, get_common_parameter
 
-from core.vtgvrp.vtg.emg.translator import FSATranslator
-from core.vtgvrp.vtg.emg.translator import Variable
-from core.vtgvrp.vtg.emg.translator import extract_relevant_automata, choose_file
-from core.vtgvrp.vtg.emg.translator import label_based_function, normalize_fsa
+from core.vtgvrp.vtg.emg.translator.fsa_translator import FSATranslator
+from core.vtgvrp.vtg.emg.translator.code import Variable
+from core.vtgvrp.vtg.emg.translator.fsa_translator.common import extract_relevant_automata, choose_file
+from core.vtgvrp.vtg.emg.translator.fsa_translator.label_control_function import label_based_function, normalize_fsa
 
 
 class LabelTranslator(FSATranslator):

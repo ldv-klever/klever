@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-from core.vtgvrp.vtg.emg.grammars import parse_process
+from core.vtgvrp.vtg.emg.grammars.process import parse_process
 
 __grammar_tests = [
     "([a[2]])",

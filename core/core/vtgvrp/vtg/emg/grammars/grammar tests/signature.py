@@ -15,8 +15,7 @@
 # limitations under the License.
 #
 
-from core.vtgvrp.vtg.emg.common.signature import import_declaration, setup_collection
-
+from core.vtgvrp.vtg.emg.common.signature import import_declaration
 
 __grammar_tests = [
     "int ** a(int **(*(*arg))(void))",
@@ -104,7 +103,6 @@ __grammar_tests = [
     '%usb.driver% function(int, $, %usb.driver%)'
 ]
 
-setup_collection({}, {})
 for test in __grammar_tests:
     print(test)
     object = import_declaration(test)

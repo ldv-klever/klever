@@ -14,11 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.emg.common.interface import SourceFunction
-from core.vtgvrp.emg.common.signature import Structure, Union, Array, import_declaration, import_typedefs, extract_name, \
+from core.vtgvrp.vtg.emg.common.interface import SourceFunction
+from core.vtgvrp.vtg.emg.common.signature import Structure, Union, Array, import_declaration, import_typedefs, extract_name, \
     check_null
 
-from core.vtgvrp.vtg.emg.interfacespec import calculate_load_order
+from core.vtgvrp.vtg.emg.interfacespec.tarjan import calculate_load_order
 
 
 def import_code_analysis(collection, avt, analysis):

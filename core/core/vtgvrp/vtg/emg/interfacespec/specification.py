@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.vtg.emg.common import Container, Resource, Callback, SourceFunction
-from core.vtgvrp.vtg.emg.common import Function, Structure, Array, Pointer, InterfaceReference, Primitive, \
+from core.vtgvrp.vtg.emg.common.interface import Container, Resource, Callback, SourceFunction
+from core.vtgvrp.vtg.emg.common.signature import Function, Structure, Array, Pointer, InterfaceReference, Primitive, \
     import_declaration
 
 

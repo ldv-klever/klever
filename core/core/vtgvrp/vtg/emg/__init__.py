@@ -20,10 +20,10 @@ import json
 import os
 import re
 
-from core.vtgvrp.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property
-from core.vtgvrp.emg.processmodel import ProcessModel
-from core.vtgvrp.emg.processmodel.process_parser import parse_event_specification
-from core.vtgvrp.emg.translator import translate_intermediate_model
+from core.vtgvrp.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property, get_conf_property
+from core.vtgvrp.vtg.emg.processmodel import ProcessModel
+from core.vtgvrp.vtg.emg.processmodel.process_parser import parse_event_specification
+from core.vtgvrp.vtg.emg.translator import translate_intermediate_model
 
 import core.utils
 import core.vtgvrp.vtg.plugins

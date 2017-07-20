@@ -17,13 +17,13 @@
 import collections
 import re
 
-from core.vtgvrp.emg.common import get_conf_property
-from core.vtgvrp.emg.common.interface import Container, Resource, Callback
-from core.vtgvrp.emg.common.signature import Structure, Union, Array, Pointer, InterfaceReference, refine_declaration
+from core.vtgvrp.vtg.emg.common import get_conf_property
+from core.vtgvrp.vtg.emg.common.interface import Container, Resource, Callback
+from core.vtgvrp.vtg.emg.common.signature import Structure, Union, Array, Pointer, InterfaceReference, refine_declaration
 
-from core.vtgvrp.vtg.emg.interfacespec import import_code_analysis
-from core.vtgvrp.vtg.emg.interfacespec import import_interface_specification
-from core.vtgvrp.vtg.emg.interfacespec import yield_categories
+from core.vtgvrp.vtg.emg.interfacespec.analysis import import_code_analysis
+from core.vtgvrp.vtg.emg.interfacespec.specification import import_interface_specification
+from core.vtgvrp.vtg.emg.interfacespec.categories import yield_categories
 
 
 class InterfaceCategoriesSpecification:

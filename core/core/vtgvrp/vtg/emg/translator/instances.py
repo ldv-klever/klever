@@ -17,11 +17,11 @@
 
 import copy
 
-from core.vtgvrp.emg.common import check_or_set_conf_property, get_necessary_conf_property
-from core.vtgvrp.emg.common.interface import Resource, Container
-from core.vtgvrp.emg.common.signature import Implementation
+from core.vtgvrp.vtg.emg.common import check_or_set_conf_property, get_necessary_conf_property
+from core.vtgvrp.vtg.emg.common.interface import Resource, Container
+from core.vtgvrp.vtg.emg.common.signature import Implementation
 
-from core.vtgvrp.vtg.emg.translator import Automaton
+from core.vtgvrp.vtg.emg.translator.fsa import Automaton
 
 
 def yield_instances(logger, conf, analysis, model, instance_maps):
