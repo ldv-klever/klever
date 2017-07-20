@@ -28,6 +28,7 @@ import core.utils
 
 @core.utils.before_callback
 def __launch_sub_job_components(context):
+    context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
     context.mqs['verification obj desc files'] = multiprocessing.Queue()
     context.mqs['verification obj descs num'] = multiprocessing.Queue()
     context.mqs['shadow src tree'] = multiprocessing.Queue()
@@ -58,6 +59,10 @@ def __generate_all_verification_obj_descs(context):
     # todo: fix or rewrite
     #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
+
+@core.utils.after_callback
+def __set_common_prj_attrs(context):
+    context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
     logger.info('Extract descriptions for plugins of template "{0}"'.format(tmpl_id))
@@ -312,6 +317,16 @@ class VTG(core.components.Component):
         self.__get_shadow_src_tree()
         self.__get_model_cc_opts()
 
+        core.utils.report(self.logger,
+                          'attrs',
+                          {
+                              'id': self.id,
+                              'attrs': self.__get_common_prj_attrs()
+                          },
+                          self.mqs['report files'],
+                          self.conf['main working directory'],
+                          suffix='vtg')
+
         # Start plugins
         self.__generate_all_abstract_verification_task_descs()
 
@@ -366,6 +381,12 @@ class VTG(core.components.Component):
                             self.model_headers[model_c_file] = headers
 
                             self.logger.debug('Set headers "{0}"'.format(headers))
+
+    def __get_common_prj_attrs(self):
+        self.logger.info('Get common project atributes')
+        common_prj_attrs = self.mqs['VTG common prj attrs'].get()
+        self.mqs['VTG common prj attrs'].close()
+        return common_prj_attrs
 
     def __get_shadow_src_tree(self):
         self.logger.info('Get shadow source tree')
