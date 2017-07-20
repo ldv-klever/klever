@@ -370,7 +370,7 @@ sys.exit(Command(sys.argv).launch())
         self.linux_kernel['src'] = self.conf['Linux kernel']['source']
 
         o = urllib.parse.urlparse(self.linux_kernel['src'])
-        if o[0] in ('http', 'https', 'ftp'):
+        if o[0] in ('http', 'https', 'fvtp'):
             raise NotImplementedError(
                 'Linux kernel source code is likely provided in unsopported form of remote archive')
         elif o[0] == 'git':

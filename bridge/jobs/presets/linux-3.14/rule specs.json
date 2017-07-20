@@ -139,7 +139,12 @@
             }
           }
         },
-        "Weaver"
+        "Weaver",
+        {
+          "FVTP": {
+            "merge source files": true
+          }
+        }
       ]
     },
     "Argument signatures for Linux kernel modules": {
