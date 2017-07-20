@@ -31,6 +31,15 @@ def __set_common_prj_attrs(context):
     context.mqs['VTGVRP common prj attrs'].put(context.common_prj_attrs)
 
 
+@core.utils.propogate_callbacks
+def propogate_vtg_and_vrp_callbacks(conf, logger):
+    logger.info('Get VTG and VRP callbacks')
+
+    # todo: add VRP
+    subcomponents = [vtg.VTG]
+    return core.utils.get_component_callbacks(logger, subcomponents, conf)
+
+
 class VTGVRP(core.components.Component):
 
     def main_routine(self):
@@ -53,7 +62,7 @@ class VTGVRP(core.components.Component):
             # todo: fix or rewrite
             #('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
             vtg.VTG,
-            vrp.VRP
+ #           vrp.VRP
         )
 
     main = main_routine

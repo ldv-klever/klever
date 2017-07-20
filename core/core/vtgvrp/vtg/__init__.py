@@ -26,42 +26,37 @@ import core.components
 import core.utils
 
 
-# @core.utils.before_callback
-# def launch_sub_job_components(context):
-#     context.mqs['verification obj desc files'] = multiprocessing.Queue()
-#     context.mqs['verification obj descs num'] = multiprocessing.Queue()
-#     context.mqs['shadow src tree'] = multiprocessing.Queue()
-#     context.mqs['model CC opts'] = multiprocessing.Queue()
-#
-#
-# @core.utils.after_callback
-# def set_common_prj_attrs(context):
-#     context.mqs['VTGVRP common prj attrs'].put(context.common_prj_attrs)
-#
-#
-# @core.utils.after_callback
-# def set_shadow_src_tree(context):
-#     context.mqs['shadow src tree'].put(context.shadow_src_tree)
-#
-#
-# @core.utils.after_callback
-# def fixup_model_cc_opts(context):
-#     context.mqs['model CC opts'].put(context.model_cc_opts)
-#
-#
-# @core.utils.after_callback
-# def generate_verification_obj_desc(context):
-#     if context.verification_obj_desc:
-#         context.mqs['verification obj desc files'].put(
-#             os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
-#
-#
-# @core.utils.after_callback
-# def generate_all_verification_obj_descs(context):
-#     context.logger.info('Terminate verification object description files message queue')
-#     context.mqs['verification obj desc files'].put(None)
-#     # todo: fix or rewrite
-#     #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
+@core.utils.before_callback
+def __launch_sub_job_components(context):
+    context.mqs['verification obj desc files'] = multiprocessing.Queue()
+    context.mqs['verification obj descs num'] = multiprocessing.Queue()
+    context.mqs['shadow src tree'] = multiprocessing.Queue()
+    context.mqs['model CC opts'] = multiprocessing.Queue()
+
+
+@core.utils.after_callback
+def __set_shadow_src_tree(context):
+    context.mqs['shadow src tree'].put(context.shadow_src_tree)
+
+
+@core.utils.after_callback
+def __fixup_model_cc_opts(context):
+    context.mqs['model CC opts'].put(context.model_cc_opts)
+
+
+@core.utils.after_callback
+def __generate_verification_obj_desc(context):
+    if context.verification_obj_desc:
+        context.mqs['verification obj desc files'].put(
+            os.path.relpath(context.verification_obj_desc_file, context.conf['main working directory']))
+
+
+@core.utils.after_callback
+def __generate_all_verification_obj_descs(context):
+    context.logger.info('Terminate verification object description files message queue')
+    context.mqs['verification obj desc files'].put(None)
+    # todo: fix or rewrite
+    #context.mqs['verification obj descs num'].put(context.verification_obj_desc_num)
 
 
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
@@ -93,6 +88,96 @@ def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
         'Template "{0}" plugins are "{1}"'.format(tmpl_id, [plugin_desc['name'] for plugin_desc in plugin_descs]))
 
     return plugin_descs
+
+
+def _extract_rule_spec_desc(logger, raw_rule_spec_descs, rule_spec_id):
+    logger.info('Extract description for rule specification "{0}"'.format(rule_spec_id))
+
+    # Get raw rule specification description.
+    if rule_spec_id in raw_rule_spec_descs['rule specifications']:
+        rule_spec_desc = raw_rule_spec_descs['rule specifications'][rule_spec_id]
+    else:
+        raise ValueError(
+            'Specified rule specification "{0}" could not be found in rule specifications DB'.format(rule_spec_id))
+
+    # Get rid of useless information.
+    for attr in ('description',):
+        if attr in rule_spec_desc:
+            del (rule_spec_desc[attr])
+
+    # Get rule specification template which it is based on.
+    if 'template' not in rule_spec_desc:
+        raise ValueError(
+            'Rule specification "{0}" has not mandatory attribute "template"'.format(rule_spec_id))
+    tmpl_id = rule_spec_desc['template']
+    # This information won't be used any more.
+    del (rule_spec_desc['template'])
+    logger.debug('Rule specification "{0}" template is "{1}"'.format(rule_spec_id, tmpl_id))
+    if 'templates' not in raw_rule_spec_descs or tmpl_id not in raw_rule_spec_descs['templates']:
+        raise ValueError(
+            'Template "{0}" of rule specification "{1}" could not be found in rule specifications DB'.format(
+                tmpl_id, rule_spec_id))
+    tmpl_desc = raw_rule_spec_descs['templates'][tmpl_id]
+
+    # Get options for plugins specified in template.
+    plugin_descs = _extract_plugin_descs(logger, tmpl_id, tmpl_desc)
+
+    # Get options for plugins specified in base template and merge them with the ones extracted above.
+    if 'template' in tmpl_desc:
+        if tmpl_desc['template'] not in raw_rule_spec_descs['templates']:
+            raise ValueError('Template "{0}" of template "{1}" could not be found in rule specifications DB'.format(
+                tmpl_desc['template'], tmpl_id))
+
+        logger.debug('Template "{0}" template is "{1}"'.format(tmpl_id, tmpl_desc['template']))
+
+        base_tmpl_plugin_descs = _extract_plugin_descs(logger, tmpl_desc['template'],
+                                                       raw_rule_spec_descs['templates'][tmpl_desc['template']])
+
+        for plugin_desc in plugin_descs:
+            for base_tmpl_plugin_desc in base_tmpl_plugin_descs:
+                if plugin_desc['name'] == base_tmpl_plugin_desc['name']:
+                    if 'options' in base_tmpl_plugin_desc:
+                        if 'options' in plugin_desc:
+                            plugin_desc['options'] = core.utils.merge_confs(base_tmpl_plugin_desc['options'],
+                                                                            plugin_desc['options'])
+                        else:
+                            plugin_desc['options'] = base_tmpl_plugin_desc['options']
+
+    # Add plugin options specific for rule specification.
+    rule_spec_plugin_names = []
+    # Names of all remained attributes are considered as plugin names, values - as corresponding plugin options.
+    for attr in rule_spec_desc:
+        plugin_name = attr
+        rule_spec_plugin_names.append(plugin_name)
+        is_plugin_specified = False
+
+        for plugin_desc in plugin_descs:
+            if plugin_name == plugin_desc['name']:
+                is_plugin_specified = True
+                if 'options' not in plugin_desc:
+                    plugin_desc['options'] = {}
+                plugin_desc['options'].update(rule_spec_desc[plugin_name])
+                logger.debug(
+                    'Plugin "{0}" options specific for rule specification "{1}" are "{2}"'.format(
+                        plugin_name, rule_spec_id, rule_spec_desc[plugin_name]))
+                break
+
+        if not is_plugin_specified:
+            raise ValueError(
+                'Rule specification "{0}" plugin "{1}" is not specified in template "{2}"'.format(
+                    rule_spec_id, plugin_name, tmpl_id))
+
+    # We don't need to keep plugin options specific for rule specification in such the form any more.
+    for plugin_name in rule_spec_plugin_names:
+        del (rule_spec_desc[plugin_name])
+
+    rule_spec_desc['plugins'] = plugin_descs
+
+    # Add rule specification identifier to its description after all. Do this so late to avoid treating of "id" as
+    # plugin name above.
+    rule_spec_desc['id'] = rule_spec_id
+
+    return rule_spec_desc
 
 
 # This function is invoked to collect plugin callbacks.
@@ -153,8 +238,9 @@ def _extract_rule_spec_descs(conf, logger):
 _rule_spec_descs = None
 
 
-def get_subcomponent_callbacks(conf, logger):
-    logger.info('Get AVTG plugin callbacks')
+@core.utils.propogate_callbacks
+def collect_plugin_callbacks(conf, logger):
+    logger.info('Get VTG plugin callbacks')
 
     global _rule_spec_descs
     _rule_spec_descs = _extract_rule_spec_descs(conf, logger)
@@ -165,7 +251,7 @@ def get_subcomponent_callbacks(conf, logger):
     for rule_spec_desc in _rule_spec_descs:
         for plugin_desc in rule_spec_desc['plugins']:
             try:
-                plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtgvrp'),
+                plugin = getattr(importlib.import_module('.{0}'.format(plugin_desc['name'].lower()), 'core.vtgvrp.vtg'),
                                  plugin_desc['name'])
                 # Remember found class to create its instance during main operation.
                 plugin_desc['plugin'] = plugin
@@ -177,49 +263,62 @@ def get_subcomponent_callbacks(conf, logger):
     return core.utils.get_component_callbacks(logger, plugins, conf)
 
 ###############################################################################
-def before_launch_sub_job_components(context):
-    context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
-    context.mqs['abstract task desc files'] = multiprocessing.Queue()
-    context.mqs['num of abstract task descs to be generated'] = multiprocessing.Queue()
-
-
-def after_set_common_prj_attrs(context):
-    context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
-
-
-def after_set_shadow_src_tree(context):
-    context.mqs['shadow src tree'].put(context.shadow_src_tree)
-
-
-def after_generate_abstact_verification_task_desc(context):
-    context.mqs['abstract task desc files'].put(
-        os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory'])
-        if context.abstract_task_desc_file
-        else '')
-
-
-def after_evaluate_abstract_verification_task_descs_num(context):
-    context.mqs['num of abstract task descs to be generated'].put(context.abstract_task_descs_num.value)
-
-
-def after_generate_all_abstract_verification_task_descs(context):
-    context.logger.info('Terminate abstract verification task descriptions message queue')
-    for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
-        context.mqs['abstract task desc files'].put(None)
+# todo: remove
+# def before_launch_sub_job_components(context):
+#     context.mqs['VTG common prj attrs'] = multiprocessing.Queue()
+#     context.mqs['abstract task desc files'] = multiprocessing.Queue()
+#     context.mqs['num of abstract task descs to be generated'] = multiprocessing.Queue()
+#
+#
+# def after_set_common_prj_attrs(context):
+#     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
+#
+#
+# def after_set_shadow_src_tree(context):
+#     context.mqs['shadow src tree'].put(context.shadow_src_tree)
+#
+#
+# def after_generate_abstact_verification_task_desc(context):
+#     context.mqs['abstract task desc files'].put(
+#         os.path.relpath(context.abstract_task_desc_file, context.conf['main working directory'])
+#         if context.abstract_task_desc_file
+#         else '')
+#
+#
+# def after_evaluate_abstract_verification_task_descs_num(context):
+#     context.mqs['num of abstract task descs to be generated'].put(context.abstract_task_descs_num.value)
+#
+#
+# def after_generate_all_abstract_verification_task_descs(context):
+#     context.logger.info('Terminate abstract verification task descriptions message queue')
+#     for i in range(core.utils.get_parallel_threads_num(context.logger, context.conf, 'Tasks generation')):
+#         context.mqs['abstract task desc files'].put(None)
+#
 
 
 class VTG(core.components.Component):
 
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+        # Rule specification descriptions were already extracted when getting VTG callbacks.
+        self.rule_spec_descs = None
+
+        super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+                                  unknown_attrs, separate_from_parent, include_child_resources)
+
     def generate_verification_tasks(self):
-        self.__set_model_headers()
+        self.rule_spec_descs = _rule_spec_descs
+        self.set_model_headers()
         self.__get_shadow_src_tree()
         self.__get_model_cc_opts()
-        # Rule specification descriptions were already extracted when getting AVTG callbacks.
-        self.rule_spec_descs = _rule_spec_descs
+
+        # Start plugins
+        self.__generate_all_abstract_verification_task_descs()
 
     main = generate_verification_tasks
 
-    def __set_model_headers(self):
+    def set_model_headers(self):
+        """Set model headers. Do not rename function - it has a callback in LKBCE."""
         self.logger.info('Set model headers')
 
         self.model_headers = {}
@@ -308,10 +407,10 @@ class VTG(core.components.Component):
             for rule_spec_desc in self.rule_spec_descs:
                 self.__generate_abstact_verification_task_desc(verification_obj_desc, rule_spec_desc)
 
-        # todo: fix or reimplement
-        # if self.failed_abstract_task_desc_num.value:
-        #     self.logger.info('Could not generate "{0}" abstract verification task descriptions'.format(
-        #         self.failed_abstract_task_desc_num.value))
+                # todo: fix or reimplement
+                # if self.failed_abstract_task_desc_num.value:
+                #     self.logger.info('Could not generate "{0}" abstract verification task descriptions'.format(
+                #         self.failed_abstract_task_desc_num.value))
 
     def __generate_abstact_verification_task_desc(self, verification_obj_desc, rule_spec_desc):
         # todo: fix or reimplement
@@ -445,177 +544,177 @@ class VTG(core.components.Component):
             self.verification_obj = verification_obj_desc['id']
             self.rule_spec = rule_spec_desc['id']
 
-
-
-########################################################################
-    def generate_verification_tasks(self):
-        self.strategy_name = None
-        self.strategy = None
-        self.common_prj_attrs = {}
-        self.faulty_generated_abstract_task_descs_num = multiprocessing.Value('i', 0)
-        self.num_of_abstract_task_descs_to_be_processed = multiprocessing.Value('i', 0)
-        self.processed_abstract_task_desc_num = multiprocessing.Value('i', 0)
-        self.faulty_processed_abstract_task_descs_num = multiprocessing.Value('i', 0)
-
-        # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
-        self.get_strategy()
-
-        self.get_common_prj_attrs()
-        self.get_shadow_src_tree()
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.common_prj_attrs
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
-
-        self.generate_all_verification_tasks()
-
-    main = generate_verification_tasks
-
-    def get_strategy(self):
-        self.logger.info('Get strategy')
-
-        self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
-
-        try:
-            self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name.lower()), 'core.vtg'),
-                                    self.strategy_name.upper())
-        except ImportError:
-            raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
-
-
-    def get_common_prj_attrs(self):
-        self.logger.info('Get common project atributes')
-
-        self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
-
-        self.mqs['VTG common prj attrs'].close()
-
-    def get_shadow_src_tree(self):
-        self.logger.info('Get shadow source tree')
-
-        self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
-
-        self.mqs['shadow src tree'].close()
-
-        self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
-
-    def generate_all_verification_tasks(self):
-        self.logger.info('Generate all verification tasks')
-
-        subcomponents = [('NAVTDBPE', self.evaluate_num_of_abstract_verification_task_descs_to_be_processed)]
-        for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-            subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
-
-        self.launch_subcomponents(*subcomponents)
-
-        self.mqs['abstract task desc files'].close()
-
-        if self.faulty_processed_abstract_task_descs_num.value:
-            self.logger.info('Could not process "{0}" abstract verification task descriptions'.format(
-                self.faulty_processed_abstract_task_descs_num.value))
-
-    def evaluate_num_of_abstract_verification_task_descs_to_be_processed(self):
-        self.logger.info('Get the total number of abstract verification task descriptions to be generated in ideal')
-
-        num_of_abstract_task_descs_to_be_generated = self.mqs['num of abstract task descs to be generated'].get()
-
-        self.mqs['num of abstract task descs to be generated'].close()
-
-        self.logger.debug(
-            'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
-                num_of_abstract_task_descs_to_be_generated))
-
-        self.num_of_abstract_task_descs_to_be_processed.value = num_of_abstract_task_descs_to_be_generated
-
-        self.logger.info(
-            'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'.format(
-                self.num_of_abstract_task_descs_to_be_processed.value -
-                self.faulty_generated_abstract_task_descs_num.value))
-
-        if self.faulty_generated_abstract_task_descs_num.value:
-            self.logger.debug(
-                'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
-                format(self.faulty_generated_abstract_task_descs_num.value))
-
-    def _generate_verification_tasks(self):
-        while True:
-            abstract_task_desc_file = self.mqs['abstract task desc files'].get()
-
-            if abstract_task_desc_file is None:
-                self.logger.debug('Abstract verification task descriptions message queue was terminated')
-                break
-
-            if abstract_task_desc_file is '':
-                with self.faulty_generated_abstract_task_descs_num.get_lock():
-                    self.faulty_generated_abstract_task_descs_num.value += 1
-                self.logger.info(
-                    'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'
-                    .format(self.num_of_abstract_task_descs_to_be_processed.value -
-                            self.faulty_generated_abstract_task_descs_num.value))
-                self.logger.debug(
-                    'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
-                    format(self.faulty_generated_abstract_task_descs_num.value))
-                continue
-
-            # Count the number of processed abstract verification task descriptions.
-            self.processed_abstract_task_desc_num.value += 1
-
-            abstract_task_desc_file = os.path.join(self.conf['main working directory'], abstract_task_desc_file)
-
-            with open(abstract_task_desc_file, encoding='utf8') as fp:
-                abstract_task_desc = json.load(fp)
-
-            if not self.conf['keep intermediate files']:
-                os.remove(abstract_task_desc_file)
-
-            self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
-                    abstract_task_desc['id'], self.processed_abstract_task_desc_num.value,
-                    '/{0}'.format(self.num_of_abstract_task_descs_to_be_processed.value -
-                                  self.faulty_generated_abstract_task_descs_num.value)
-                    if self.num_of_abstract_task_descs_to_be_processed.value else ''))
-
-            attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
-            work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
-                                    abstract_task_desc['attrs'][1]['rule specification'],
-                                    self.strategy_name)
-            os.makedirs(work_dir.encode('utf8'))
-            self.logger.debug('Working directory is "{0}"'.format(work_dir))
-
-            self.conf['abstract task desc'] = abstract_task_desc
-
-            p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
-                              '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
-                              work_dir,
-                              # Always report just verification object as attribute.
-                              attrs=[abstract_task_desc['attrs'][0]],
-                              # Rule specification will be added just in case of failures since otherwise it is added
-                              # somehow by strategies themselves.
-                              unknown_attrs=[abstract_task_desc['attrs'][1]],
-                              separate_from_parent=True, include_child_resources=True)
-            try:
-                p.start()
-                p.join()
-            # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
-            # tasks. Do not print information on failure since it will be printed automatically by core.components.
-            except core.components.ComponentError:
-                # Count the number of abstract verification task descriptions that weren't processed to print it at the
-                # end of work. Note that the total number of abstract verification task descriptions to be processed in
-                # ideal will be printed at least once already.
-                with self.faulty_processed_abstract_task_descs_num.get_lock():
-                    self.faulty_processed_abstract_task_descs_num.value += 1
-                    core.utils.report(self.logger,
-                                      'data',
-                                      {
-                                          'id': self.id,
-                                          'data': {
-                                              'faulty processed abstract verification task descriptions':
-                                                  self.faulty_processed_abstract_task_descs_num.value
-                                          }
-                                      },
-                                      self.mqs['report files'],
-                                      self.conf['main working directory'],
-                                      self.faulty_processed_abstract_task_descs_num.value)
+#
+#
+# ########################################################################
+#     def generate_verification_tasks(self):
+#         self.strategy_name = None
+#         self.strategy = None
+#         self.common_prj_attrs = {}
+#         self.faulty_generated_abstract_task_descs_num = multiprocessing.Value('i', 0)
+#         self.num_of_abstract_task_descs_to_be_processed = multiprocessing.Value('i', 0)
+#         self.processed_abstract_task_desc_num = multiprocessing.Value('i', 0)
+#         self.faulty_processed_abstract_task_descs_num = multiprocessing.Value('i', 0)
+#
+#         # Get strategy as early as possible to terminate without any delays if strategy isn't supported.
+#         self.get_strategy()
+#
+#         self.get_common_prj_attrs()
+#         self.get_shadow_src_tree()
+#         core.utils.report(self.logger,
+#                           'attrs',
+#                           {
+#                               'id': self.id,
+#                               'attrs': self.common_prj_attrs
+#                           },
+#                           self.mqs['report files'],
+#                           self.conf['main working directory'])
+#
+#         self.generate_all_verification_tasks()
+#
+#     main = generate_verification_tasks
+#
+#     def get_strategy(self):
+#         self.logger.info('Get strategy')
+#
+#         self.strategy_name = ''.join([word[0] for word in self.conf['VTG strategy']['name'].split(' ')])
+#
+#         try:
+#             self.strategy = getattr(importlib.import_module('.{0}'.format(self.strategy_name.lower()), 'core.vtg'),
+#                                     self.strategy_name.upper())
+#         except ImportError:
+#             raise NotImplementedError('Strategy "{0}" is not supported'.format(self.conf['VTG strategy']['name']))
+#
+#
+#     def get_common_prj_attrs(self):
+#         self.logger.info('Get common project atributes')
+#
+#         self.common_prj_attrs = self.mqs['VTG common prj attrs'].get()
+#
+#         self.mqs['VTG common prj attrs'].close()
+#
+#     def get_shadow_src_tree(self):
+#         self.logger.info('Get shadow source tree')
+#
+#         self.conf['shadow source tree'] = self.mqs['shadow src tree'].get()
+#
+#         self.mqs['shadow src tree'].close()
+#
+#         self.logger.debug('Shadow source tree "{0}"'.format(self.conf['shadow source tree']))
+#
+#     def generate_all_verification_tasks(self):
+#         self.logger.info('Generate all verification tasks')
+#
+#         subcomponents = [('NAVTDBPE', self.evaluate_num_of_abstract_verification_task_descs_to_be_processed)]
+#         for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
+#             subcomponents.append(('Worker {0}'.format(i), self._generate_verification_tasks))
+#
+#         self.launch_subcomponents(*subcomponents)
+#
+#         self.mqs['abstract task desc files'].close()
+#
+#         if self.faulty_processed_abstract_task_descs_num.value:
+#             self.logger.info('Could not process "{0}" abstract verification task descriptions'.format(
+#                 self.faulty_processed_abstract_task_descs_num.value))
+#
+#     def evaluate_num_of_abstract_verification_task_descs_to_be_processed(self):
+#         self.logger.info('Get the total number of abstract verification task descriptions to be generated in ideal')
+#
+#         num_of_abstract_task_descs_to_be_generated = self.mqs['num of abstract task descs to be generated'].get()
+#
+#         self.mqs['num of abstract task descs to be generated'].close()
+#
+#         self.logger.debug(
+#             'The total number of abstract verification task descriptions to be generated in ideal is "{0}"'.format(
+#                 num_of_abstract_task_descs_to_be_generated))
+#
+#         self.num_of_abstract_task_descs_to_be_processed.value = num_of_abstract_task_descs_to_be_generated
+#
+#         self.logger.info(
+#             'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'.format(
+#                 self.num_of_abstract_task_descs_to_be_processed.value -
+#                 self.faulty_generated_abstract_task_descs_num.value))
+#
+#         if self.faulty_generated_abstract_task_descs_num.value:
+#             self.logger.debug(
+#                 'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
+#                 format(self.faulty_generated_abstract_task_descs_num.value))
+#
+#     def _generate_verification_tasks(self):
+#         while True:
+#             abstract_task_desc_file = self.mqs['abstract task desc files'].get()
+#
+#             if abstract_task_desc_file is None:
+#                 self.logger.debug('Abstract verification task descriptions message queue was terminated')
+#                 break
+#
+#             if abstract_task_desc_file is '':
+#                 with self.faulty_generated_abstract_task_descs_num.get_lock():
+#                     self.faulty_generated_abstract_task_descs_num.value += 1
+#                 self.logger.info(
+#                     'The total number of abstract verification task descriptions to be processed in ideal is "{0}"'
+#                     .format(self.num_of_abstract_task_descs_to_be_processed.value -
+#                             self.faulty_generated_abstract_task_descs_num.value))
+#                 self.logger.debug(
+#                     'It was taken into account that generation of "{0}" abstract verification task descriptions failed'.
+#                     format(self.faulty_generated_abstract_task_descs_num.value))
+#                 continue
+#
+#             # Count the number of processed abstract verification task descriptions.
+#             self.processed_abstract_task_desc_num.value += 1
+#
+#             abstract_task_desc_file = os.path.join(self.conf['main working directory'], abstract_task_desc_file)
+#
+#             with open(abstract_task_desc_file, encoding='utf8') as fp:
+#                 abstract_task_desc = json.load(fp)
+#
+#             if not self.conf['keep intermediate files']:
+#                 os.remove(abstract_task_desc_file)
+#
+#             self.logger.info('Generate verification tasks for abstract verification task "{0}" ({1}{2})'.format(
+#                     abstract_task_desc['id'], self.processed_abstract_task_desc_num.value,
+#                     '/{0}'.format(self.num_of_abstract_task_descs_to_be_processed.value -
+#                                   self.faulty_generated_abstract_task_descs_num.value)
+#                     if self.num_of_abstract_task_descs_to_be_processed.value else ''))
+#
+#             attr_vals = tuple(attr[name] for attr in abstract_task_desc['attrs'] for name in attr)
+#             work_dir = os.path.join(abstract_task_desc['attrs'][0]['verification object'],
+#                                     abstract_task_desc['attrs'][1]['rule specification'],
+#                                     self.strategy_name)
+#             os.makedirs(work_dir.encode('utf8'))
+#             self.logger.debug('Working directory is "{0}"'.format(work_dir))
+#
+#             self.conf['abstract task desc'] = abstract_task_desc
+#
+#             p = self.strategy(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
+#                               '{0}/{1}/{2}'.format(*list(attr_vals) + [self.strategy_name]),
+#                               work_dir,
+#                               # Always report just verification object as attribute.
+#                               attrs=[abstract_task_desc['attrs'][0]],
+#                               # Rule specification will be added just in case of failures since otherwise it is added
+#                               # somehow by strategies themselves.
+#                               unknown_attrs=[abstract_task_desc['attrs'][1]],
+#                               separate_from_parent=True, include_child_resources=True)
+#             try:
+#                 p.start()
+#                 p.join()
+#             # Do not fail if verification task generation strategy fails. Just proceed to other abstract verification
+#             # tasks. Do not print information on failure since it will be printed automatically by core.components.
+#             except core.components.ComponentError:
+#                 # Count the number of abstract verification task descriptions that weren't processed to print it at the
+#                 # end of work. Note that the total number of abstract verification task descriptions to be processed in
+#                 # ideal will be printed at least once already.
+#                 with self.faulty_processed_abstract_task_descs_num.get_lock():
+#                     self.faulty_processed_abstract_task_descs_num.value += 1
+#                     core.utils.report(self.logger,
+#                                       'data',
+#                                       {
+#                                           'id': self.id,
+#                                           'data': {
+#                                               'faulty processed abstract verification task descriptions':
+#                                                   self.faulty_processed_abstract_task_descs_num.value
+#                                           }
+#                                       },
+#                                       self.mqs['report files'],
+#                                       self.conf['main working directory'],
+#                                       self.faulty_processed_abstract_task_descs_num.value)

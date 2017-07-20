@@ -30,6 +30,7 @@ import queue
 from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
+CALLBACK_PROPOGATOR = 'get_subcomponent_callbacks'
 
 # Generate decorators to use them across the project
 for tp in CALLBACK_KINDS:
@@ -39,7 +40,7 @@ for tp in CALLBACK_KINDS:
             raise ValueError("Callbacks should be private, call function {!r} with '__' prefix".
                              format(decorated_function.__name__))
         callback_function_name = "{}_{}".format(str(tp), decorated_function.__name__[2:])
-        if callback_function_name in decorated_function.__globals__:
+        if hasattr(sys.modules[decorated_function.__module__], callback_function_name):
             raise KeyError("Cannot create callback {!r} in {!r}".
                            format(callback_function_name, decorated_function.__module__))
         else:
@@ -50,6 +51,24 @@ for tp in CALLBACK_KINDS:
     # Add new decorator to this module to use it
     globals()[tp + '_callback'] = new_decorator
     new_decorator = None
+
+
+def propogate_callbacks(decorated_function):
+    """
+    Decorates function that propogates subcomponent callbacks. Inserts a specific function that has necessary name
+    to be called at callbacks propogating.
+
+    :param decorated_function: Function object.
+    :return: The same function.
+    """
+    if hasattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR):
+        raise ValueError('Module {!r} already has callback propogating function {!r}'.
+                         format(decorated_function.__module__, CALLBACK_PROPOGATOR))
+
+    setattr(sys.modules[decorated_function.__module__], CALLBACK_PROPOGATOR, decorated_function)
+
+    return decorated_function
+
 
 
 class CallbacksCaller:
@@ -354,7 +373,7 @@ def get_component_callbacks(logger, components, components_conf):
 
             # This special function implies that component has subcomponents for which callbacks should be get as well
             # using this function.
-            if attr == 'get_subcomponent_callbacks':
+            if attr == CALLBACK_PROPOGATOR:
                 subcomponents_callbacks = getattr(module, attr)(components_conf, logger)
 
                 # Merge subcomponent callbacks into component ones.
