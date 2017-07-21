@@ -27,6 +27,11 @@ class RSG(core.vtgvrp.vtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
+
+        if 'verifier profile' not in self.conf:
+            raise KeyError("User should set 'verifier profile' configuration option to determine which verifier options "
+                           "the system should use")
+
         if 'verifier version' in self.conf:
             self.logger.info('Verifier version is "{0}"'.format(self.conf['verifier version']))
             self.abstract_task_desc['verifier version'] = self.conf['verifier version']
