@@ -27,27 +27,6 @@ class RSG(core.vtgvrp.vtg.plugins.Plugin):
     def generate_rule_specification(self):
         generated_models = {}
 
-
-        if 'verifier profile' not in self.conf:
-            raise KeyError("User should set 'verifier profile' configuration option to determine which verifier options "
-                           "the system should use")
-
-        if 'verifier version' in self.conf:
-            self.logger.info('Verifier version is "{0}"'.format(self.conf['verifier version']))
-            self.abstract_task_desc['verifier version'] = self.conf['verifier version']
-
-        if 'verifier configuration' in self.conf:
-            self.logger.info('Verifier configuration is "{0}"'.format(self.conf['verifier configuration']))
-            self.abstract_task_desc['verifier configuration'] = self.conf['verifier configuration']
-
-        if 'verifier options' in self.conf:
-            self.logger.info('Verifier options are: {0}'.format(self.conf['verifier options']))
-            self.abstract_task_desc['verifier options'] = self.conf['verifier options']
-
-        if 'verifier specifications' in self.conf:
-            self.logger.info('Verifier specifications are: {0}'.format(', '.join(self.conf['verifier specifications'])))
-            self.abstract_task_desc['verifier specifications'] = self.conf['verifier specifications']
-
         if 'files' in self.abstract_task_desc:
             self.logger.info('Get generated aspects and models specified in abstract task description')
 
