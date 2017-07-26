@@ -33,8 +33,8 @@ class FVTP(core.vtgvrp.vtg.plugins.Plugin):
 
         self.logger.info("Going to use strategy {!r} to generate verification tasks".format(strategy_name))
         try:
-            strategy = getattr(importlib.import_module('.{0}'.format(strategy_name.lower()), 'core.vtg.fvtp'),
-                               strategy_name.upper())
+            strategy = getattr(importlib.import_module('.{0}'.format(strategy_name.lower()), 'core.vtgvrp.vtg.fvtp'),
+                               strategy_name.capitalize())
         except ImportError:
             raise ValueError("There is no strategy {!r}".format(strategy_name))
 
