@@ -32,19 +32,20 @@ from django.utils.translation import ugettext as _, activate
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE
+from bridge.vars import USER_ROLES, UNKNOWN_ERROR, MARK_STATUS, MARK_SAFE, MARK_UNSAFE, MARK_TYPE, ASSOCIATION_TYPE,\
+    VIEW_TYPES
 from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeException, BridgeErrorResponse
-from bridge.tableHead import Header
 
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, MarkAssociationsChanges
+    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 import marks.utils as mutils
-from marks.tags import GetTagsData, GetParents, SaveTag, can_edit_tag, TagsInfo, CreateTagsFromFile
+from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
 from marks.Download import UploadMark, MarkArchiveGenerator, AllMarksGen, UploadAllMarks
-from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, MARK_TITLES
+from marks.tables import MarkData, MarkChangesTable, MarkReportsTable, MarksList, AssociationChangesTable
 
 
 @register.filter
@@ -53,7 +54,7 @@ def value_type(value):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
@@ -95,7 +96,7 @@ def create_mark(request, mark_type, report_id):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def view_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -111,6 +112,13 @@ def view_mark(request, mark_type, mark_id):
 
     if mark.version == 0:
         return BridgeErrorResponse(605)
+
+    view_type_map = {VIEW_TYPES[13][0]: 'unsafe', VIEW_TYPES[14][0]: 'safe', VIEW_TYPES[15][0]: 'unknown'}
+    view_add_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == mark_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
 
     history_set = mark.versions.order_by('-version')
     last_version = history_set.first()
@@ -133,17 +141,18 @@ def view_mark(request, mark_type, mark_id):
         'first_version': history_set.last(),
         'type': mark_type,
         'markdata': MarkData(mark_type, mark_version=last_version),
-        'reports': MarkReportsTable(request.user, mark),
+        'reports': MarkReportsTable(request.user, mark, **view_add_args),
         'tags': tags,
         'can_edit': mutils.MarkAccess(request.user, mark=mark).can_edit(),
         'view_tags': True,
         'error_trace': error_trace,
-        'report_id': request.GET.get('report_to_redirect')
+        'report_id': request.GET.get('report_to_redirect'),
+        'ass_types': ASSOCIATION_TYPE
     })
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def edit_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -237,7 +246,7 @@ def save_mark(request):
 
 
 @login_required
-@unparallel_group(['MarkUnsafeCompare', 'MarkUnsafeConvert'])
+@unparallel_group([])
 def get_func_description(request):
     activate(request.user.extended.language)
 
@@ -265,7 +274,7 @@ def get_func_description(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def get_mark_version_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -327,30 +336,22 @@ def get_mark_version_data(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
-    titles = {
-        'unsafe': _('Unsafe marks'),
-        'safe': _('Safe marks'),
-        'unknown': _('Unknown marks'),
-    }
-    verdicts = {
-        'unsafe': MARK_UNSAFE,
-        'safe': MARK_SAFE,
-        'unknown': []
-    }
-    view_type = {'unsafe': '7', 'safe': '8', 'unknown': '9'}
-    table_args = [request.user, marks_type]
-    if request.method == 'POST':
-        if request.POST.get('view_type', None) == view_type[marks_type]:
-            table_args.append(request.POST.get('view', None))
-            table_args.append(request.POST.get('view_id', None))
+
+    verdicts = {'unsafe': MARK_UNSAFE, 'safe': MARK_SAFE, 'unknown': []}
+
+    view_type_map = {VIEW_TYPES[7][0]: 'unsafe', VIEW_TYPES[8][0]: 'safe', VIEW_TYPES[9][0]: 'unknown'}
+    view_add_args = {'page': request.GET.get('page', 1)}
+    view_type = request.GET.get('view_type')
+    if view_type in view_type_map and view_type_map[view_type] == marks_type:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
 
     return render(request, 'marks/MarkList.html', {
-        'tabledata': MarksList(*table_args),
+        'tabledata': MarksList(request.user, marks_type, **view_add_args),
         'type': marks_type,
-        'title': titles[marks_type],
         'statuses': MARK_STATUS,
         'mark_types': MARK_TYPE,
         'verdicts': verdicts[marks_type],
@@ -359,7 +360,7 @@ def mark_list(request, marks_type):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def download_mark(request, mark_type, mark_id):
 
     if request.method == 'POST':
@@ -384,7 +385,7 @@ def download_mark(request, mark_type, mark_id):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def upload_marks(request):
     activate(request.user.extended.language)
 
@@ -469,7 +470,7 @@ def remove_versions(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def get_mark_versions(request):
     activate(request.user.extended.language)
 
@@ -504,27 +505,27 @@ def get_mark_versions(request):
 
 
 @login_required
-@unparallel_group([MarkAssociationsChanges])
+@unparallel_group([])
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
+    view_add_args = {}
+    if request.GET.get('view_type') in {VIEW_TYPES[16][0], VIEW_TYPES[17][0], VIEW_TYPES[18][0]}:
+        view_add_args['view'] = request.GET.get('view')
+        view_add_args['view_id'] = request.GET.get('view_id')
+
     try:
-        ass_ch = MarkAssociationsChanges.objects.get(identifier=association_id)
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("Mark associations changes cache wasn't found"))
-    try:
-        data = json.loads(ass_ch.table_data)
+        data = AssociationChangesTable(request.user, association_id, **view_add_args)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
     except Exception as e:
         logger.exception(e)
         return BridgeErrorResponse(500)
-    return render(request, 'marks/SaveMarkResult.html', {
-        'MarkTable': data,
-        'header': Header(data.get('columns', []), MARK_TITLES).struct
-    })
+    return render(request, 'marks/SaveMarkResult.html', {'TableData': data})
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def show_tags(request, tags_type):
     activate(request.user.extended.language)
 
@@ -541,26 +542,39 @@ def show_tags(request, tags_type):
         'title': page_title,
         'tags': tags_data.table.data,
         'tags_type': tags_type,
-        'can_edit': can_edit_tag(request.user)
+        'can_create': TagAccess(request.user, None).create()
     })
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
-def get_tag_parents(request):
+@unparallel_group([])
+def get_tag_data(request):
     activate(request.user.extended.language)
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     if 'tag_type' not in request.POST or request.POST['tag_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    user_access = {'access_edit': [], 'access_child': [], 'all': []}
+
+    if request.user.extended.role == USER_ROLES[2][0]:
+        for u in User.objects.exclude(extended__role=USER_ROLES[2][0]).order_by('last_name', 'first_name'):
+            user_access['all'].append([u.id, u.get_full_name()])
+
     if 'tag_id' not in request.POST:
         if request.POST['tag_type'] == 'unsafe':
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
-                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+            return JsonResponse({
+                'parents': json.dumps(list(tag.pk for tag in UnsafeTag.objects.order_by('tag')),
+                                      ensure_ascii=False, sort_keys=True, indent=4),
+                'access': json.dumps(user_access, ensure_ascii=False)
+            })
         else:
-            return JsonResponse({'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
-                                                       ensure_ascii=False, sort_keys=True, indent=4)})
+            return JsonResponse({
+                'parents': json.dumps(list(tag.pk for tag in SafeTag.objects.order_by('tag')),
+                                      ensure_ascii=False, sort_keys=True, indent=4),
+                'access': json.dumps(user_access, ensure_ascii=False)
+            })
     try:
         res = GetParents(request.POST['tag_id'], request.POST['tag_type'])
     except BridgeException as e:
@@ -568,9 +582,19 @@ def get_tag_parents(request):
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    if request.user.extended.role == USER_ROLES[2][0]:
+        tag_access_model = {'safe': SafeTagAccess, 'unsafe': UnsafeTagAccess}
+        for tag_access in tag_access_model[request.POST['tag_type']].objects.filter(tag=res.tag):
+            if tag_access.modification:
+                user_access['access_edit'].append(tag_access.user_id)
+            elif tag_access.child_creation:
+                user_access['access_child'].append(tag_access.user_id)
+
     return JsonResponse({
-        'parents': json.dumps(res.parents_ids, ensure_ascii=False, sort_keys=True, indent=4),
-        'current': res.tag.parent_id if res.tag.parent_id is not None else 0
+        'parents': json.dumps(res.parents_ids, ensure_ascii=False),
+        'current': res.tag.parent_id if res.tag.parent_id is not None else 0,
+        'access': json.dumps(user_access, ensure_ascii=False)
     })
 
 
@@ -612,14 +636,14 @@ def remove_tag(request):
         except ObjectDoesNotExist:
             return JsonResponse({'error': _('The tag was not found')})
 
-    if not can_edit_tag(request.user, tag):
+    if not TagAccess(request.user, tag).delete():
         return JsonResponse({'error': _("You don't have an access to remove this tag")})
     tag.delete()
     return JsonResponse({})
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def get_tags_data(request):
     activate(request.user.extended.language)
 
@@ -652,13 +676,13 @@ def get_tags_data(request):
         'available': json.dumps(res.available, ensure_ascii=False, sort_keys=True, indent=4),
         'selected': json.dumps(res.selected, ensure_ascii=False, sort_keys=True, indent=4),
         'tree': get_template('marks/MarkTagsTree.html').render({
-            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True
+            'tags': res.table, 'tags_type': res.tag_type, 'can_edit': True, 'user': request.user
         })
     })
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def download_tags(request, tags_type):
     tags_data = []
     if tags_type == 'safe':
@@ -688,7 +712,7 @@ def upload_tags(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    if not can_edit_tag(request.user):
+    if not TagAccess(request.user, None).create():
         return JsonResponse({'error': str(_("You don't have an access to upload tags"))})
     if 'tags_type' not in request.POST or request.POST['tags_type'] not in ['safe', 'unsafe']:
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
@@ -707,7 +731,7 @@ def upload_tags(request):
     return JsonResponse({})
 
 
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def download_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -750,7 +774,7 @@ def upload_all(request):
     return JsonResponse(res.numbers)
 
 
-@unparallel_group(['MarkSafe', 'MarkUnsafe'])
+@unparallel_group([])
 def get_inline_mark_form(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -801,7 +825,7 @@ def get_inline_mark_form(request):
     })
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def unconfirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -824,7 +848,7 @@ def unconfirm_association(request):
     return JsonResponse({})
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def confirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -847,8 +871,7 @@ def confirm_association(request):
     return JsonResponse({})
 
 
-@unparallel_group(['UnsafeAssociationLike', 'MarkUnsafeReport', 'SafeAssociationLike', 'MarkSafeReport',
-                   'UnknownAssociationLike', 'MarkUnknownReport'])
+@unparallel_group([MarkUnsafeReport, MarkSafeReport, MarkUnknownReport])
 def like_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})

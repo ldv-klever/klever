@@ -16,10 +16,11 @@
 #
 
 import json
+import zipfile
 from io import BytesIO
 
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
+from django.db.models import Q, F
 from django.utils.timezone import now
 
 from bridge.vars import REPORT_FILES_ARCHIVE, JOB_WEIGHT, JOB_STATUS
@@ -31,7 +32,7 @@ import marks.UnknownUtils as UnknownUtils
 
 from reports.models import Report, ReportRoot, ReportComponent, ReportSafe, ReportUnsafe, ReportUnknown, Verdict,\
     Component, ComponentUnknown, ComponentResource, ReportAttr, LightResource, TasksNumbers, ReportComponentLeaf,\
-    Computer
+    Computer, ComponentInstances
 from reports.utils import AttrData
 from service.utils import FinishJobDecision, KleverCoreStartDecision
 from tools.utils import RecalculateLeaves, RecalculateVerdicts, RecalculateResources
@@ -268,12 +269,15 @@ class UploadReport:
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
 
+        check_arch = False
         if self.archive is not None and \
                 (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
-
+            check_arch = True
         report.save()
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -283,6 +287,15 @@ class UploadReport:
                 self.__update_parent_resources(report)
             else:
                 self.__update_light_resources(report)
+        for parent in self._parents_branch:
+            try:
+                comp_inst = ComponentInstances.objects.get(report=parent, component=report.component)
+            except ObjectDoesNotExist:
+                comp_inst = ComponentInstances(report=parent, component=report.component)
+            comp_inst.in_progress += 1
+            comp_inst.total += 1
+            comp_inst.save()
+        ComponentInstances.objects.create(report=report, component=report.component, in_progress=1, total=1)
 
     def __update_attrs(self, identifier):
         try:
@@ -346,9 +359,11 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
+        check_arch = False
         if self.archive is not None and (report.parent is None or self.job.weight == JOB_WEIGHT[0][0]):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
+            check_arch = True
 
         report.finish_date = now()
         if 'data' in self.data:
@@ -356,6 +371,9 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
+
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -367,6 +385,11 @@ class UploadReport:
         if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
                 and ReportComponent.objects.filter(parent=report).count() == 0:
             report.delete()
+
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
 
     def __finish_verification_report(self, identifier):
         try:
@@ -383,6 +406,11 @@ class UploadReport:
             report.finish_date = now()
             report.save()
 
+        report_ids = set(r.pk for r in self._parents_branch)
+        report_ids.add(report.pk)
+        ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
+            .update(in_progress=(F('in_progress') - 1))
+
     def __create_report_unknown(self, identifier):
         try:
             ReportUnknown.objects.get(identifier=identifier)
@@ -395,6 +423,7 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -407,10 +436,14 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
+        check_arch = False
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
+            check_arch = True
         report.save()
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -427,6 +460,7 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
@@ -551,16 +585,19 @@ class UploadReport:
         attr_data = []
         if isinstance(val, list):
             for v in val:
-                if isinstance(v, dict):
-                    nextname = next(iter(v))
-                    for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
-                        if len(name) == 0:
-                            new_id = n[0]
-                        else:
-                            new_id = "%s:%s" % (name, n[0])
-                        attr_data.append((new_id, n[1]))
+                if not isinstance(v, dict) or len(v) != 1:
+                    raise ValueError('Wrong format of report attribute')
+                nextname = next(iter(v))
+                for n in self.__attr_children(nextname.replace(':', '_'), v[nextname]):
+                    if len(name) == 0:
+                        new_id = n[0]
+                    else:
+                        new_id = "%s:%s" % (name, n[0])
+                    attr_data.append((new_id, n[1]))
         elif isinstance(val, str):
             attr_data = [(name, val)]
+        else:
+            raise ValueError('Wrong format of report attributes')
         return attr_data
 
     def __save_attrs(self, report_id, attrs):
@@ -578,6 +615,11 @@ class UploadReport:
                 if parent.attrs.filter(attr__name_id__in=names).count() > 0:
                     raise ValueError("The report has redefined parent's attributes")
         return attrorder
+
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch):
+            raise ValueError("The report's archive is not a ZIP file")
 
     def __is_not_used(self):
         pass

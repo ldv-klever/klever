@@ -21,7 +21,6 @@ import os
 import re
 import shutil
 import stat
-import sys
 import tarfile
 import time
 import urllib.parse
@@ -41,6 +40,16 @@ def after_set_model_headers(context):
 
 
 class LKBCE(core.components.Component):
+    ARCH_OPTS = {
+        'arm': {
+            'ARCH': 'arm',
+            'CROSS_COMPILE': 'arm-unknown-linux-gnueabi-'
+        },
+        'x86_64': {
+            'ARCH': 'x86_64'
+        }
+    }
+
     def extract_linux_kernel_build_commands(self):
         self.linux_kernel = {'prepared to build ext modules': None}
 
@@ -92,16 +101,29 @@ class LKBCE(core.components.Component):
     def create_wrappers(self):
         os.makedirs('wrappers')
 
-        for cmd in ('gcc', 'ld', 'mv'):
+        opts = ['gcc', 'ld', 'objcopy']
+        if 'architecture' not in self.conf['Linux kernel'] or not self.conf['Linux kernel']['architecture']:
+            raise KeyError("Provide configuration option 'architecture' for the given kernel")
+
+        if self.conf['Linux kernel']['architecture'] not in self.ARCH_OPTS:
+            raise KeyError("Architecture {!r} is not supported, choose one from  the following options: {}".
+                           format(self.conf['Linux kernel']['architecture'], ', '.join(self.ARCH_OPTS.keys())))
+
+        if 'CROSS_COMPILE' in self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]:
+            opts = [self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]['CROSS_COMPILE'] + o for o in opts]
+
+        opts.append('mv')
+
+        for cmd in opts:
             cmd_path = os.path.join('wrappers', cmd)
             with open(cmd_path, 'w', encoding='utf8') as fp:
-                fp.write("""#!{0}
+                fp.write("""#!/usr/bin/env python3
 import sys
 
 from core.lkbce.wrappers.common import Command
 
 sys.exit(Command(sys.argv).launch())
-""".format(sys.executable))
+""")
             os.chmod(cmd_path, os.stat(cmd_path).st_mode | stat.S_IEXEC)
 
     def receive_modules_to_build(self):
@@ -600,9 +622,21 @@ sys.exit(Command(sys.argv).launch())
                 'KLEVER_MAIN_WORK_DIR': self.conf['main working directory'],
             })
 
+        # Use specific architecture and crosscompiler
+        if specify_arch:
+            arch = ["{}={}".format(k, self.ARCH_OPTS[self.conf['Linux kernel']['architecture']][k]) for k in
+                    self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]]
+
+            if 'CROSS_COMPILE' in self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]:
+                env.update({
+                    "KLEVER_PREFIX": self.ARCH_OPTS[self.conf['Linux kernel']['architecture']]['CROSS_COMPILE']
+                })
+        else:
+            arch = []
+
         return core.utils.execute(self.logger,
                                   tuple(['make', '-j', str(jobs_num)] +
-                                        (['ARCH={0}'.format(self.linux_kernel['arch'])] if specify_arch else []) +
+                                        arch +
                                         (['KCONFIG_CONFIG=' + os.path.basename(self.linux_kernel['conf file'])]
                                          if 'conf file' in self.linux_kernel else []) +
                                         list(build_target)),

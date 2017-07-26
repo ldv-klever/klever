@@ -29,12 +29,12 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
 from jobs.models import Job
-from marks.models import UnsafeTag, SafeTag, MarkSafe, MarkUnsafe, MarkUnknown, UnknownProblem
+from marks.models import UnsafeTag, SafeTag, UnknownProblem
 from marks.utils import MarkAccess
 from marks.tables import ReportMarkTable, MarkData
 from marks.tags import TagsInfo
@@ -137,7 +137,7 @@ def calculate_validation_stats(validation_results):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
@@ -159,16 +159,15 @@ def report_component(request, job_id, report_id):
         duration = report.finish_date - report.start_date
         status = 2
 
-    view_args = [request.user, report]
-    report_attrs_data = [request.user, report]
-    if request.method == 'POST':
-        view_type = request.POST.get('view_type', None)
-        if view_type == '2':
-            view_args.append(request.POST.get('view', None))
-            view_args.append(request.POST.get('view_id', None))
-        elif view_type == '3':
-            report_attrs_data.append(request.POST.get('view', None))
-            report_attrs_data.append(request.POST.get('view_id', None))
+    view_add_args = {}
+    children_add_data = {'page': request.GET.get('page', 1)}
+    view_type = request.GET.get('view_type')
+    if view_type == VIEW_TYPES[2][0]:
+        view_add_args['view_id'] = request.GET.get('view_id')
+        view_add_args['view'] = request.GET.get('view')
+    elif view_type == VIEW_TYPES[3][0]:
+        children_add_data['view_id'] = request.GET.get('view_id')
+        children_add_data['view'] = request.GET.get('view')
 
     unknown_href = None
     try:
@@ -197,10 +196,10 @@ def report_component(request, job_id, report_id):
             'duration': duration,
             'resources': reports.utils.report_resources(report, request.user),
             'computer': reports.utils.computer_description(report.computer.description),
-            'reportdata': ViewJobData(*view_args),
+            'reportdata': ViewJobData(request.user, report, **view_add_args),
             'parents': reports.utils.get_parents(report),
-            'SelfAttrsData': reports.utils.ReportTable(*report_attrs_data).table_data,
-            'TableData': reports.utils.ReportTable(*report_attrs_data, table_type='3'),
+            'SelfAttrsData': reports.utils.ReportAttrsTable(report).table_data,
+            'TableData': reports.utils.ReportChildrenTable(request.user, report, **children_add_data),
             'status': status,
             'unknown': unknown_href,
             'data': report_data
@@ -209,9 +208,8 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent', 'ReportSafe', 'ReportUnsafe', 'ReportUnknown'])
-def report_list(request, report_id, ltype, component_id=None,
-                verdict=None, tag=None, problem=None, mark=None, attr=None, confirmed=None):
+@unparallel_group([])
+def safes_list(request, report_id):
     activate(request.user.extended.language)
 
     try:
@@ -222,146 +220,174 @@ def report_list(request, report_id, ltype, component_id=None,
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
 
-    list_types = {
-        'unsafes': '4',
-        'safes': '5',
-        'unknowns': '6'
-    }
+    allow_redirect = True
+    additional_parameters = {'page': request.GET.get('page', 1)}
+    if request.GET.get('view_type') == VIEW_TYPES[5][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
+        allow_redirect = False
 
-    if ltype == 'safes':
-        title = _("All safes")
-        if tag is not None:
-            title = string_concat(_("Safes"), ': ', tag)
-        elif verdict is not None:
-            for s in SAFE_VERDICTS:
-                if s[0] == verdict:
-                    title = string_concat(_("Safes"), ': ', s[1])
-                    break
-        elif mark is not None:
-            title = _('Safes marked by')
-        elif attr is not None:
-            title = _('Safes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
-    elif ltype == 'unsafes':
-        title = _("All unsafes")
-        if tag is not None:
-            title = string_concat(_("Unsafes"), ': ', tag)
-        elif verdict is not None:
-            for s in UNSAFE_VERDICTS:
-                if s[0] == verdict:
-                    title = string_concat(_("Unsafes"), ': ', s[1])
-                    break
-        elif mark is not None:
-            title = _('Unsafes marked by')
-        elif attr is not None:
-            title = _('Unsafes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
-    else:
-        title = _("All unknowns")
-        if isinstance(problem, UnknownProblem):
-            title = string_concat(_("Unknowns"), ': ', problem.name)
-        elif problem == 0:
-            title = string_concat(_("Unknowns without marks"))
-        elif mark is not None:
-            title = _('Unknowns marked by')
-        elif attr is not None:
-            title = _('Unknowns where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
-    if mark is not None:
-        title = string_concat(title, mark.identifier[:10])
+    title = _("All safes")
+    if 'verdict' in request.GET:
+        for s in SAFE_VERDICTS:
+            if s[0] == request.GET['verdict']:
+                title = string_concat(_("Safes"), ': ', s[1])
+                additional_parameters['verdict'] = request.GET['verdict']
+                if 'confirmed' in request.GET:
+                    additional_parameters['confirmed'] = True
+                break
+    elif 'tag' in request.GET:
+        try:
+            tag = SafeTag.objects.get(pk=request.GET['tag']).tag
+        except ObjectDoesNotExist:
+            return BridgeErrorResponse(_("The tag was not found"))
+        title = string_concat(_("Safes"), ': ', tag)
+        additional_parameters['tag'] = tag
+    elif 'attr' in request.GET:
+        try:
+            attr = reports.models.Attr.objects.get(id=request.GET['attr'])
+        except ObjectDoesNotExist:
+            return BridgeErrorResponse(_("The attribute was not found"))
+        title = _('Safes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
+        additional_parameters['attr'] = attr
 
-    report_attrs_data = [request.user, report]
-    if request.method == 'POST':
-        if request.POST.get('view_type', None) == list_types[ltype]:
-            report_attrs_data.append(request.POST.get('view', None))
-            report_attrs_data.append(request.POST.get('view_id', None))
+    table_data = reports.utils.SafesTable(request.user, report, **additional_parameters)
 
-    table_data = reports.utils.ReportTable(
-        *report_attrs_data, table_type=list_types[ltype],
-        component_id=component_id, verdict=verdict, tag=tag, problem=problem, mark=mark, attr=attr, confirmed=confirmed
-    )
     # If there is only one element in table, and first column of table is link, redirect to this link
-    if len(table_data.table_data['values']) == 1 and isinstance(table_data.table_data['values'][0], list) \
-            and len(table_data.table_data['values'][0]) > 0 and 'href' in table_data.table_data['values'][0][0] \
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
             and table_data.table_data['values'][0][0]['href']:
         return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
-    return render(
-        request,
-        'reports/report_list.html',
-        {
-            'report': report,
-            'parents': reports.utils.get_parents(report),
-            'TableData': table_data,
-            'view_type': list_types[ltype],
-            'title': title
-        }
-    )
+
+    return render(request, 'reports/report_list.html', {
+        'report': report, 'parents': reports.utils.get_parents(report), 'TableData': table_data, 'title': title
+    })
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
-def report_list_tag(request, report_id, ltype, tag_id):
+@unparallel_group([])
+def unsafes_list(request, report_id):
+    activate(request.user.extended.language)
+
     try:
-        if ltype == 'unsafes':
-            tag = UnsafeTag.objects.get(pk=int(tag_id))
-        else:
-            tag = SafeTag.objects.get(pk=int(tag_id))
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
     except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("The tag was not found"))
-    return report_list(request, report_id, ltype, tag=tag.tag)
+        return BridgeErrorResponse(504)
 
+    if not JobAccess(request.user, report.root.job).can_view():
+        return BridgeErrorResponse(400)
 
-@login_required
-def report_list_by_verdict(request, report_id, ltype, verdict):
-    return report_list(request, report_id, ltype, verdict=verdict)
+    allow_redirect = True
+    additional_parameters = {'page': request.GET.get('page', 1)}
+    if request.GET.get('view_type') == VIEW_TYPES[4][0]:
+        allow_redirect = False
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
 
-
-@login_required
-def report_list_by_verdict_confirmed(request, report_id, ltype, verdict):
-    return report_list(request, report_id, ltype, verdict=verdict, confirmed=True)
-
-
-@login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
-def report_list_by_mark(request, report_id, ltype, mark_id):
-    tables = {
-        'safes': MarkSafe,
-        'unsafes': MarkUnsafe,
-        'unknowns': MarkUnknown
-    }
-    try:
-        return report_list(request, report_id, ltype, mark=tables[ltype].objects.get(pk=mark_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(604)
-
-
-@login_required
-@unparallel_group(['Attr'])
-def report_list_by_attr(request, report_id, ltype, attr_id):
-    try:
-        return report_list(request, report_id, ltype, attr=reports.models.Attr.objects.get(pk=attr_id))
-    except ObjectDoesNotExist:
-        return BridgeErrorResponse(_("The attribute was not found"))
-
-
-@login_required
-def report_unknowns(request, report_id, component_id):
-    return report_list(request, report_id, 'unknowns', component_id=component_id)
-
-
-@login_required
-@unparallel_group(['UnknownProblem'])
-def report_unknowns_by_problem(request, report_id, component_id, problem_id):
-    problem_id = int(problem_id)
-    if problem_id == 0:
-        problem = 0
-    else:
+    title = _("All unsafes")
+    if 'verdict' in request.GET:
+        for u in UNSAFE_VERDICTS:
+            if u[0] == request.GET['verdict']:
+                additional_parameters['verdict'] = request.GET['verdict']
+                if 'confirmed' in request.GET:
+                    additional_parameters['confirmed'] = True
+                    title = string_concat(_("Unsafes"), ': ', _('confirmed'), ' ', u[1])
+                else:
+                    title = string_concat(_("Unsafes"), ': ', u[1])
+                break
+    elif 'tag' in request.GET:
         try:
-            problem = UnknownProblem.objects.get(pk=problem_id)
+            tag = UnsafeTag.objects.get(pk=request.GET['tag']).tag
         except ObjectDoesNotExist:
-            return BridgeErrorResponse(_("The problem was not found"))
-    return report_list(request, report_id, 'unknowns', component_id=component_id, problem=problem)
+            return BridgeErrorResponse(_("The tag was not found"))
+        title = string_concat(_("Unsafes"), ': ', tag)
+        additional_parameters['tag'] = tag
+    elif 'attr' in request.GET:
+        try:
+            attr = reports.models.Attr.objects.get(id=request.GET['attr'])
+        except ObjectDoesNotExist:
+            return BridgeErrorResponse(_("The attribute was not found"))
+        title = _('Unsafes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
+        additional_parameters['attr'] = attr
+
+    table_data = reports.utils.UnsafesTable(request.user, report, **additional_parameters)
+
+    # If there is only one element in table, and first column of table is link, redirect to this link
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
+            and table_data.table_data['values'][0][0]['href']:
+        return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
+
+    return render(request, 'reports/report_list.html', {
+        'report': report, 'parents': reports.utils.get_parents(report), 'TableData': table_data, 'title': title
+    })
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
+def unknowns_list(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+
+    if not JobAccess(request.user, report.root.job).can_view():
+        return BridgeErrorResponse(400)
+
+    allow_redirect = True
+    additional_parameters = {'component': request.GET.get('component'), 'page': request.GET.get('page', 1)}
+    if request.GET.get('view_type') == VIEW_TYPES[6][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
+        allow_redirect = False
+
+    title = _("All unknowns")
+    if 'problem' in request.GET:
+        try:
+            problem_id = int(request.GET['problem'])
+        except ValueError:
+            return BridgeErrorResponse(500)
+        if problem_id == 0:
+            title = string_concat(_("Unknowns without marks"))
+            additional_parameters['problem'] = 0
+        else:
+            try:
+                problem = UnknownProblem.objects.get(pk=problem_id)
+            except ObjectDoesNotExist:
+                return BridgeErrorResponse(_("The problem was not found"))
+            title = string_concat(_("Unknowns"), ': ', problem.name)
+            additional_parameters['problem'] = problem
+    elif 'attr' in request.GET:
+        try:
+            attr = reports.models.Attr.objects.get(id=request.GET['attr'])
+        except ObjectDoesNotExist:
+            return BridgeErrorResponse(_("The attribute was not found"))
+        title = _('Unsafes where %(a_name)s is %(a_val)s') % {'a_name': attr.name.name, 'a_val': attr.value}
+        additional_parameters['attr'] = attr
+
+    table_data = reports.utils.UnknownsTable(request.user, report, **additional_parameters)
+
+    # If there is only one element in table, and first column of table is link, redirect to this link
+    if allow_redirect and table_data.table_data['values'].paginator.count == 1 \
+            and isinstance(table_data.table_data['values'][0], list) \
+            and len(table_data.table_data['values'][0]) > 0 \
+            and 'href' in table_data.table_data['values'][0][0] \
+            and table_data.table_data['values'][0][0]['href']:
+        return HttpResponseRedirect(table_data.table_data['values'][0][0]['href'])
+
+    return render(request, 'reports/report_list.html', {
+        'report': report, 'parents': reports.utils.get_parents(report), 'TableData': table_data, 'title': title
+    })
+
+
+@login_required
+@unparallel_group([])
 def report_unsafe(request, report_id):
     activate(request.user.extended.language)
 
@@ -372,6 +398,11 @@ def report_unsafe(request, report_id):
 
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
+
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[10][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
 
     main_file_content = None
     try:
@@ -392,14 +423,15 @@ def report_unsafe(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'etv': etv,
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'include_assumptions': request.user.extended.assumptions,
                 'markdata': MarkData('unsafe', report=report),
                 'tags': tags,
-                'include_jquery_ui': True
+                'include_jquery_ui': True,
+                'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
     except Exception as e:
@@ -408,7 +440,7 @@ def report_unsafe(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportSafe'])
+@unparallel_group([])
 def report_safe(request, report_id):
     activate(request.user.extended.language)
 
@@ -419,6 +451,11 @@ def report_safe(request, report_id):
 
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
+
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[11][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
 
     main_file_content = None
     if report.archive and report.proof:
@@ -440,11 +477,12 @@ def report_safe(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
                 'markdata': MarkData('safe', report=report),
-                'tags': tags
+                'tags': tags,
+                'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
     except Exception as e:
@@ -453,7 +491,7 @@ def report_safe(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnknown'])
+@unparallel_group([])
 def report_unknown(request, report_id):
     activate(request.user.extended.language)
 
@@ -463,6 +501,12 @@ def report_unknown(request, report_id):
         return BridgeErrorResponse(504)
     if not JobAccess(request.user, report.root.job).can_view():
         return BridgeErrorResponse(400)
+
+    additional_parameters = {}
+    if request.GET.get('view_type') == VIEW_TYPES[12][0]:
+        additional_parameters['view_id'] = request.GET.get('view_id')
+        additional_parameters['view'] = request.GET.get('view')
+
     try:
         main_file_content = ArchiveFileContent(report, report.problem_description).content.decode('utf8')
     except Exception as e:
@@ -476,10 +520,11 @@ def report_unknown(request, report_id):
                 'report': report,
                 'parents': reports.utils.get_parents(report),
                 'SelfAttrsData': reports.utils.report_attibutes(report),
-                'MarkTable': ReportMarkTable(request.user, report),
+                'MarkTable': ReportMarkTable(request.user, report, **additional_parameters),
                 'can_mark': MarkAccess(request.user, report=report).can_create(),
                 'main_content': main_file_content,
-                'markdata': MarkData('unknown', report=report)
+                'markdata': MarkData('unknown', report=report),
+                'resources': reports.utils.get_parent_resources(request.user, report)
             }
         )
     except Exception as e:
@@ -488,7 +533,7 @@ def report_unknown(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
@@ -546,7 +591,7 @@ def upload_report(request):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
@@ -574,7 +619,7 @@ def get_component_log(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
@@ -600,7 +645,7 @@ def get_log_content(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def get_source_code(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'report_id' not in request.POST or 'file_name' not in request.POST:
@@ -614,8 +659,6 @@ def get_source_code(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     filename = request.POST['file_name']
-    if len(filename) > 50:
-        filename = '.../' + filename[-50:].split('/', 1)[-1]
     return JsonResponse({
         'content': result.data, 'name': filename, 'fullname': request.POST['file_name']
     })
@@ -643,7 +686,7 @@ def fill_compare_cache(request):
 
 
 @login_required
-@unparallel_group([reports.models.CompareJobsInfo])
+@unparallel_group([])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -673,7 +716,7 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group([reports.models.CompareJobsInfo])
+@unparallel_group([])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'info_id' not in request.POST:
@@ -715,7 +758,7 @@ def get_compare_jobs_data(request):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def download_report_files(request, report_id):
     try:
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
@@ -731,7 +774,7 @@ def download_report_files(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def download_error_trace(request, report_id):
     if request.method != 'GET':
         return BridgeErrorResponse(301)

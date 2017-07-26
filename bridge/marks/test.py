@@ -120,13 +120,13 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:safe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe', 'tag_id': created_tags[2].pk})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'safe'})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'safe'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -442,15 +442,17 @@ class TestMarks(KleverTestCase):
 
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[0].pk]))
+        response = self.client.get('%s?tag=%s' % (reverse('reports:safes', args=[root_comp.pk]), created_tags[0].pk))
         self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'safes', created_tags[1].pk]))
+        response = self.client.get('%s?tag=%s' % (reverse('reports:safes', args=[root_comp.pk]), created_tags[1].pk))
         self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'safes', newmark.pk]))
+        response = self.client.get(
+            '%s?verdict=%s' % (reverse('reports:safes', args=[root_comp.pk]), SAFE_VERDICTS[0][0])
+        )
         self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_verdict', args=[root_comp.pk, 'safes', SAFE_VERDICTS[0][0]]))
-        self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_verdict', args=[root_comp.pk, 'safes', SAFE_VERDICTS[2][0]]))
+        response = self.client.get(
+            '%s?verdict=%s' % (reverse('reports:safes', args=[root_comp.pk]), SAFE_VERDICTS[2][0])
+        )
         self.assertIn(response.status_code, {200, 302})
 
         # Download all marks
@@ -529,7 +531,7 @@ class TestMarks(KleverTestCase):
             self.assertEqual(created_tags[i - 1].parent, created_tags[i - 2])
 
         # Get tag parents for editing tag 'test:unsafe:tag:3'
-        response = self.client.post('/marks/ajax/get_tag_parents/', {
+        response = self.client.post('/marks/ajax/get_tag_data/', {
             'tag_type': 'unsafe', 'tag_id': created_tags[2].pk
         })
         self.assertEqual(response.status_code, 200)
@@ -537,7 +539,7 @@ class TestMarks(KleverTestCase):
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
 
         # Get tag parents for creating new tag
-        response = self.client.post('/marks/ajax/get_tag_parents/', {'tag_type': 'unsafe'})
+        response = self.client.post('/marks/ajax/get_tag_data/', {'tag_type': 'unsafe'})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -888,22 +890,20 @@ class TestMarks(KleverTestCase):
 
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[0].pk]))
+        response = self.client.get('%s?tag=%s' % (reverse('reports:unsafes', args=[root_comp.pk]), created_tags[0].pk))
         self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_tag', args=[root_comp.pk, 'unsafes', created_tags[1].pk]))
-        self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unsafes', newmark.pk]))
+        response = self.client.get('%s?tag=%s' % (reverse('reports:unsafes', args=[root_comp.pk]), created_tags[1].pk))
         self.assertIn(response.status_code, {200, 302})
         response = self.client.get(
-            reverse('reports:list_verdict', args=[root_comp.pk, 'unsafes', UNSAFE_VERDICTS[0][0]])
+            '%s?verdict=%s' % (reverse('reports:unsafes', args=[root_comp.pk]), UNSAFE_VERDICTS[0][0])
         )
         self.assertIn(response.status_code, {200, 302})
         response = self.client.get(
-            reverse('reports:list_verdict', args=[root_comp.pk, 'unsafes', UNSAFE_VERDICTS[2][0]])
+            '%s?verdict=%s' % (reverse('reports:unsafes', args=[root_comp.pk]), UNSAFE_VERDICTS[2][0])
         )
         self.assertIn(response.status_code, {200, 302})
 
-        # TODO: tests for 'reports:list_attr'
+        # TODO: tests for list of reports filtered by attr
 
         # Download all marks
         response = self.client.get('/marks/download-all/')
@@ -1207,17 +1207,17 @@ class TestMarks(KleverTestCase):
 
         # Reports' lists pages
         root_comp = ReportComponent.objects.get(root__job_id=self.job.pk, parent=None)
-        response = self.client.get(reverse('reports:list_mark', args=[root_comp.pk, 'unknowns', newmark.pk]))
-        self.assertIn(response.status_code, {200, 302})
-        response = self.client.get(reverse('reports:unknowns', args=[root_comp.pk, parent.component_id]))
+        response = self.client.get(
+            '%s?component=%s' % (reverse('reports:unknowns', args=[root_comp.pk]), parent.component_id)
+        )
         self.assertIn(response.status_code, {200, 302})
         try:
             problem_id = UnknownProblem.objects.get(name='EVal: rule').pk
         except ObjectDoesNotExist:
             self.fail("Can't find unknown problem")
-        response = self.client.get(
-            reverse('reports:unknowns_problem', args=[root_comp.pk, parent.component_id, problem_id])
-        )
+        response = self.client.get('%s?component=%s&problem=%s' % (
+            reverse('reports:unknowns', args=[root_comp.pk]), parent.component_id, problem_id
+        ))
         self.assertIn(response.status_code, {200, 302})
 
         # Delete all marks

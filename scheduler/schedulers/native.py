@@ -22,8 +22,6 @@ import multiprocessing
 import os
 import shutil
 import signal
-import subprocess
-import sys
 
 import schedulers as schedulers
 import schedulers.resource_scheduler
@@ -38,38 +36,24 @@ def executor(timeout, args):
     :param args: Native scheduler client execution command arguments.
     :return: It exits with the exit code returned by a client.
     """
-    # todo: implement proper logging here, since usage of logging.debug lead to hanging of threads dont know why
+    # todo: implement proper logging here, since usage of logging lead to hanging of threads dont know why
+    ####### !!!! #######
+    # I know that this is redundant code but you will not able to run clients code directly without this one!!!!
+    # This is because bug in logging library. After an attempt to start the client with logging in a separate
+    # process and then kill it and start it again logging will HANG and you WILL NOT able to start the client again.
+    # This is known bug in logging, so do not waste your time here until it is fixed.
+    ####### !!!! #######
 
     # Kill handler
     mypid = os.getpid()
     print('Executor {!r}: establish signal handlers'.format(mypid))
-    original_sigint_handler = signal.getsignal(signal.SIGINT)
-    original_sigtrm_handler = signal.getsignal(signal.SIGTERM)
-
-    def handler(arg1, arg2):
-        print('Somebody wants to kill me ({!r})!'.format(mypid))
-        signal.signal(signal.SIGTERM, original_sigtrm_handler)
-        signal.signal(signal.SIGINT, original_sigint_handler)
-        os.killpg(os.getpgid(prc.pid), signal.SIGTERM)
-        os._exit(-1)
-
-    signal.signal(signal.SIGTERM, handler)
-    signal.signal(signal.SIGINT, handler)
-
-    print('Executor {!r}: Start command {!r}'.format(mypid, ' '.join(args)))
-    prc = subprocess.Popen(args, preexec_fn=os.setsid)
-    print('Executor {!r}: Waiting for termination of {!r}'.format(mypid, ' '.join(args)))
-    try:
-        prc.wait(timeout=timeout)
-    except subprocess.TimeoutExpired:
-        print('Executor {!r}: expired timeout {!r} for command: {!r}'.
-              format(mypid, timeout, ' '.join(args)))
-        os._exit(-1)
-
+    ec = utils.execute(args, timeout=timeout)
     print('executor {!r}: Finished command: {!r}'.format(mypid, ' '.join(args)))
 
     # Be sure that process will exit
-    os._exit(prc.returncode)
+    if not isinstance(ec, int):
+        ec = -1
+    os._exit(int(ec))
 
 
 class Scheduler(schedulers.SchedulerExchange):
@@ -136,7 +120,12 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             concurrent_jobs = 1
         self.__manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
-        self.update_nodes()
+
+        if "wait controller initialization" in self.conf["scheduler"]:
+            wc = self.conf["scheduler"]["wait controller initialization"]
+        else:
+            wc = False
+        self.update_nodes(wc)
         nodes = self.__manager.active_nodes
         if len(nodes) != 1:
             raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
@@ -149,9 +138,18 @@ class Scheduler(schedulers.SchedulerExchange):
         if "processes" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''processes' to set "
                            "available number of parallel processes")
-        max_processes = self.conf["scheduler"]["processes"]
-        if isinstance(max_processes, float):
-            max_processes = int(max_processes * self.__cpu_cores)
+
+        if "disable CPU cores account" in self.conf["scheduler"] and \
+                self.conf["scheduler"]["disable CPU cores account"]:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                data = utils.extract_cpu_cores_info()
+                # Evaluate as a number of virtual cores
+                max_processes = int(max_processes * sum((len(data[a]) for a in data)))
+        else:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                max_processes = int(max_processes * self.__cpu_cores)
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
@@ -287,14 +285,15 @@ class Scheduler(schedulers.SchedulerExchange):
         # Be sure that workers are killed
         self.__pool.shutdown(wait=False)
 
-    def update_nodes(self):
+    def update_nodes(self, wait_controller=False):
         """
         Update statuses and configurations of available nodes and push them to the server.
 
+        :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
         # Use resource mamanger to manage resources
-        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url)
+        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
         if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
             logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
@@ -323,18 +322,18 @@ class Scheduler(schedulers.SchedulerExchange):
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        args = [sys.executable, self.__client_bin]
         node_status = self.__manager.node_info(self.__node_name)
+
         if mode == 'task':
             subdir = 'tasks'
-            args.append("TASK")
             client_conf = self.__get_task_configuration()
             self.__manager.check_resources(configuration, job=False)
         else:
             subdir = 'jobs'
-            args.append("JOB")
             client_conf = self.__job_conf_prototype.copy()
             self.__manager.check_resources(configuration, job=True)
+
+        args = [self.__client_bin, mode]
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -343,6 +342,18 @@ class Scheduler(schedulers.SchedulerExchange):
         file_name = os.path.join(work_dir, 'client.json')
         args.extend(['--file', file_name])
         self.__reserved[subdir][identifier] = dict()
+
+        # Check disk space limitation
+        if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"] and \
+                'disk memory size' in configuration["resource limits"] and \
+                configuration["resource limits"]['disk memory size']:
+            current_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+            if current_space > configuration["resource limits"]['disk memory size']:
+                raise schedulers.SchedulerException(
+                    "Clean manually existing working directory of {} since its size on the disk is {}B which is "
+                    "greater than allowed limitation of {}B".
+                    format(os.path.abspath(work_dir), current_space,
+                           configuration["resource limits"]['disk memory size']))
 
         if configuration["resource limits"]["CPU time"]:
             # This is emergency timer if something will hang
@@ -355,20 +366,8 @@ class Scheduler(schedulers.SchedulerExchange):
             client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
             client_conf["identifier"] = identifier
             client_conf["common"]["working directory"] = work_dir
-            with open(os.path.join(work_dir, "task.json"), "w", encoding="utf8") as fp:
-                json.dump(configuration, fp, ensure_ascii=False, sort_keys=True, indent=4)
-            for name in ("resource limits", "verifier", "files", "upload input files of static verifiers"):
+            for name in ("verifier", "upload input files of static verifiers"):
                 client_conf[name] = configuration[name]
-
-            # Add particular
-            first_cpu = node_status["available CPU number"] - node_status["reserved CPU number"] - \
-                        client_conf["resource limits"]["number of CPU cores"]
-            last_cpu = node_status["available CPU number"] - node_status["reserved CPU number"]
-            client_conf["resource limits"]["CPU cores"] = [x for x in range(first_cpu, last_cpu)]
-
-            # Property file may not be specified.
-            if "property file" in configuration:
-                client_conf["property file"] = configuration["property file"]
 
             # Do verification versions check
             if client_conf['verifier']['name'] not in client_conf['client']['verification tools']:
@@ -394,9 +393,25 @@ class Scheduler(schedulers.SchedulerExchange):
             self.__reserved["jobs"][identifier]["configuration"] = klever_core_conf
             client_conf["common"]["working directory"] = work_dir
             client_conf["Klever Core conf"] = self.__reserved["jobs"][identifier]["configuration"]
-            client_conf["resource limits"] = configuration["resource limits"]
 
             self.__job_processes[identifier] = process
+
+        client_conf["resource limits"] = configuration["resource limits"]
+        # Add particular cores
+        if "resource limits" not in client_conf:
+            client_conf["resource limits"] = {}
+        client_conf["resource limits"]["CPU cores"] = \
+            self.__get_virtual_cores(int(node_status["available CPU number"]),
+                                     int(node_status["reserved CPU number"]),
+                                     int(configuration["resource limits"]["number of CPU cores"]))
+        if mode != "task":
+            if len(client_conf["resource limits"]["CPU cores"]) == 0:
+                data = utils.extract_cpu_cores_info()
+                client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                    sum((len(data[a]) for a in data))
+            else:
+                client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                    len(client_conf["resource limits"]["CPU cores"])
 
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -425,9 +440,9 @@ class Scheduler(schedulers.SchedulerExchange):
         """
         logging.info("Going to cancel execution of the {} {}".format(mode, identifier))
         if mode == 'task':
-            process = self.__task_processes[identifier]
+            process = self.__task_processes[identifier] if identifier in self.__task_processes else None
         else:
-            process = self.__job_processes[identifier]
+            process = self.__job_processes[identifier] if identifier in self.__job_processes else None
         if process and process.pid:
             try:
                 os.kill(process.pid, signal.SIGTERM)
@@ -459,36 +474,41 @@ class Scheduler(schedulers.SchedulerExchange):
 
         # Release resources
         if "keep working directory" in self.conf["scheduler"] and self.conf["scheduler"]["keep working directory"]:
-            reserved_space = int(utils.get_output('du -bs {} | cut -f1'.format(work_dir)))
+            reserved_space = utils.dir_size(work_dir)
         else:
             reserved_space = 0
-        self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False, reserved_space)
 
         logging.debug('Yielding result of a future object of {} {}'.format(mode, identifier))
         try:
-            result = future.result()
-            logfile = "{}/client-log.log".format(work_dir)
-            if os.path.isfile(logfile):
-                with open(logfile, mode='r', encoding="utf8") as f:
-                    logging.debug("Scheduler client log: {}".format(f.read()))
-            else:
-                raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
+            if future:
+                self.__manager.release_resources(identifier, self.__node_name, True if mode == 'job' else False,
+                                                 reserved_space)
 
-            errors_file = "{}/client-critical.log".format(work_dir)
-            if os.path.isfile(errors_file):
-                with open(errors_file, mode='r', encoding="utf8") as f:
-                    errors = f.readlines()
-            else:
-                errors = []
+                result = future.result()
+                logfile = "{}/client-log.log".format(work_dir)
+                if os.path.isfile(logfile):
+                    with open(logfile, mode='r', encoding="utf8") as f:
+                        logging.debug("Scheduler client log: {}".format(f.read()))
+                else:
+                    raise FileNotFoundError("Cannot find Scheduler client file with logs: {!r}".format(logfile))
 
-            if len(errors) > 0:
-                error_msg = errors[-1]
+                errors_file = "{}/client-critical.log".format(work_dir)
+                if os.path.isfile(errors_file):
+                    with open(errors_file, mode='r', encoding="utf8") as f:
+                        errors = f.readlines()
+                else:
+                    errors = []
+
+                if len(errors) > 0:
+                    error_msg = errors[-1]
+                else:
+                    error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
+                                                                                                 result)
+                if len(errors) > 0 or result != 0:
+                    logging.warning(error_msg)
+                    raise schedulers.SchedulerException(error_msg)
             else:
-                error_msg = "Execution of {} {} finished with non-zero exit code: {}".format(mode, identifier,
-                                                                                             result)
-            if len(errors) > 0 or result != 0:
-                logging.warning(error_msg)
-                raise schedulers.SchedulerException(error_msg)
+                logging.debug("Seems that {} {} has not been started".format(mode, identifier))
         except Exception as err:
             error_msg = "Execution of {} {} terminated with an exception: {}".format(mode, identifier, err)
             logging.warning(error_msg)
@@ -572,5 +592,22 @@ class Scheduler(schedulers.SchedulerExchange):
                                      format(data["client"]["verification tools"][tool][version], tool, version))
 
         return data
+
+    @staticmethod
+    def __get_virtual_cores(available, reserved, required):
+        # First get system info
+        si = utils.extract_cpu_cores_info()
+
+        # Get keys
+        pcores = sorted(si.keys())
+
+        if available > len(pcores):
+            raise ValueError('Host system has {} cores but expect {}'.format(len(pcores), available))
+
+        cores = []
+        for vcores in (si[pc] for pc in pcores[available - reserved - required:available - reserved]):
+            cores.extend(vcores)
+
+        return cores
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'

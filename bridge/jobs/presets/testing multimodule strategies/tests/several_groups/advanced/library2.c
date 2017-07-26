@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-.association-type-0 {
-    color: #7506b4;
+#include <linux/module.h>
+
+void export_without_error(void) {
+    /* nothing */
 }
-.association-type-1 {
-    color: #3f9f32;
-}
-.association-type-2 {
-    color: #c71a2d;
-}
+
+EXPORT_SYMBOL(export_without_error);

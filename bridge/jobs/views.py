@@ -35,7 +35,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.utils.timezone import pytz
 
 from tools.profiling import unparallel_group
-from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES
+from bridge.vars import VIEW_TYPES, UNKNOWN_ERROR, JOB_STATUS, PRIORITY, JOB_ROLES, JOB_WEIGHT
 from bridge.utils import file_get_or_create, extract_archive, logger, BridgeException, BridgeErrorResponse
 
 from users.models import User, View, PreferableView
@@ -49,32 +49,33 @@ import jobs.utils
 import marks.SafeUtils as SafeUtils
 from jobs.models import Job, RunHistory, JobHistory, JobFile
 from jobs.ViewJobData import ViewJobData
-from jobs.JobTableProperties import FilterForm, TableTree
+from jobs.JobTableProperties import TableTree
 from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, JobsArchivesGen
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def tree_view(request):
     activate(request.user.extended.language)
 
-    tree_args = [request.user]
-    if request.method == 'POST':
-        tree_args.append(request.POST.get('view', None))
-        tree_args.append(request.POST.get('view_id', None))
+    view_args = {}
+    if request.GET.get('view_type') == VIEW_TYPES[1][0]:
+        view_args['view'] = request.GET.get('view')
+        view_args['view_id'] = request.GET.get('view_id')
+
     months_choices = []
     for i in range(1, 13):
         months_choices.append((i, datetime(2016, i, 1).strftime('%B')))
     curr_year = datetime.now().year
 
     return render(request, 'jobs/tree.html', {
-        'FF': FilterForm(*tree_args),
         'users': User.objects.all(),
         'statuses': JOB_STATUS,
+        'weights': JOB_WEIGHT,
         'priorities': list(reversed(PRIORITY)),
         'months': months_choices,
         'years': list(range(curr_year - 3, curr_year + 1)),
-        'TableData': TableTree(*tree_args)
+        'TableData': TableTree(request.user, **view_args)
     })
 
 
@@ -125,7 +126,7 @@ def check_view_name(request):
     if view_name == '':
         return JsonResponse({'error': _("The view name is required")})
 
-    if view_name == _('Default') or len(request.user.view_set.filter(type=view_type, name=view_name)):
+    if view_name == str(_('Default')) or len(request.user.view_set.filter(type=view_type, name=view_name)):
         return JsonResponse({'error': _("Please choose another view name")})
     return JsonResponse({})
 
@@ -212,7 +213,7 @@ def share_view(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
 
@@ -252,15 +253,16 @@ def show_job(request, job_id=None):
             'name': child.name,
         })
 
-    view_args = [request.user]
     try:
         report = ReportComponent.objects.get(root__job=job, parent=None)
     except ObjectDoesNotExist:
         report = None
-    view_args.append(report)
-    if request.method == 'POST':
-        view_args.append(request.POST.get('view', None))
-        view_args.append(request.POST.get('view_id', None))
+
+    view_args = {}
+    view_type = request.GET.get('view_type')
+    if view_type == VIEW_TYPES[2][0]:
+        view_args['view'] = request.GET.get('view')
+        view_args['view_id'] = request.GET.get('view_id')
 
     progress_data = jobs.utils.get_job_progress(request.user, job)\
         if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]] else None
@@ -273,7 +275,7 @@ def show_job(request, job_id=None):
             'parents': parents,
             'children': children,
             'progress_data': progress_data,
-            'reportdata': ViewJobData(*view_args),
+            'reportdata': ViewJobData(request.user, report, **view_args),
             'created_by': job.versions.get(version=1).change_author,
             'can_delete': job_access.can_delete(),
             'can_edit': job_access.can_edit(),
@@ -289,7 +291,7 @@ def show_job(request, job_id=None):
 
 
 @login_required
-@unparallel_group(['Job', 'Report'])
+@unparallel_group([])
 def get_job_data(request):
     activate(request.user.extended.language)
 
@@ -317,7 +319,7 @@ def get_job_data(request):
 
 
 @login_required
-@unparallel_group([Job])
+@unparallel_group([])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -391,7 +393,7 @@ def remove_versions(request):
 
 
 @login_required
-@unparallel_group(['Job', 'JobHistory'])
+@unparallel_group([])
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -413,7 +415,7 @@ def get_job_versions(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -526,13 +528,19 @@ def remove_jobs(request):
 
     if request.method != 'POST':
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
-    jobs.utils.remove_jobs_by_id(request.user, jobs_for_del)
+    try:
+        jobs_for_del = json.loads(request.POST.get('jobs', '[]'))
+        jobs.utils.remove_jobs_by_id(request.user, jobs_for_del)
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(str(e))
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def showjobdata(request):
     activate(request.user.extended.language)
 
@@ -551,7 +559,7 @@ def showjobdata(request):
 
 
 @login_required
-@unparallel_group(['JobFile'])
+@unparallel_group([JobFile])
 def upload_file(request):
     activate(request.user.extended.language)
 
@@ -572,7 +580,7 @@ def upload_file(request):
 
 
 @login_required
-@unparallel_group(['FileSystem', 'JobFile'])
+@unparallel_group([])
 def download_file(request, file_id):
     if request.method == 'POST':
         return BridgeErrorResponse(301)
@@ -592,7 +600,7 @@ def download_file(request, file_id):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
@@ -609,7 +617,7 @@ def download_job(request, job_id):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
         return BridgeErrorResponse(301, back=reverse('jobs:tree'))
@@ -627,7 +635,7 @@ def download_jobs(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def check_access(request):
     activate(request.user.extended.language)
 
@@ -730,7 +738,7 @@ def decide_job(request):
 
 
 @login_required
-@unparallel_group(['FileSystem', 'JobFile'])
+@unparallel_group([])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
@@ -795,7 +803,7 @@ def run_decision(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def prepare_decision(request, job_id):
     activate(request.user.extended.language)
     try:
@@ -882,7 +890,7 @@ def lastconf_run_decision(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def check_compare_access(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -898,7 +906,7 @@ def check_compare_access(request):
 
 
 @login_required
-@unparallel_group(['Job', 'JobFile'])
+@unparallel_group([])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -919,7 +927,7 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group(['JobFile'])
+@unparallel_group([])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -952,7 +960,7 @@ def get_file_by_checksum(request):
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
-@unparallel_group(['RunHistory'])
+@unparallel_group([])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -1014,7 +1022,7 @@ def collapse_reports(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def do_job_has_children(request):
     activate(request.user.extended.language)
 
@@ -1030,7 +1038,7 @@ def do_job_has_children(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
         return BridgeErrorResponse(301)

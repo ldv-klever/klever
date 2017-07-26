@@ -1,20 +1,21 @@
 {% extends 'base.html' %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block head_block %}
-    <link href="/static/marks/css/tagsmap.css" rel="stylesheet">
-    <script type="text/javascript" src="/static/marks/js/tags.js"></script>
-    <script type="text/javascript" src="/static/marks/js/tagsmap.js"></script>
+    <link href="{% static 'marks/css/tagsmap.css' %}" rel="stylesheet">
+    <script type="text/javascript" src="{% static 'marks/js/tags.js' %}"></script>
+    <script type="text/javascript" src="{% static 'marks/js/tagsmap.js' %}"></script>
 {% endblock %}
 
 {% block title %}{{ title }}{% endblock %}
 
 {% block body_block %}
     <div class="tagsmap">
-        {% if can_edit %}<button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>{% endif %}
+        {% if can_create %}<button id="create_root_tag" data-content="Create new root tag" class="ui tiny blue basic icon button"><i class="ui add icon"></i></button>{% endif %}
         <a id="download_all_tags" class="ui tiny olive basic icon button" href="{% url 'marks:download_tags' tags_type %}" data-content="Download all tags"><i class="ui download icon"></i></a>
-        {% if can_edit %}<button id="upload_tags" data-content="Upload tags" class="ui tiny green basic icon button"><i class="ui upload icon"></i></button>{% endif %}
+        {% if can_create %}<button id="upload_tags" data-content="Upload tags" class="ui tiny green basic icon button"><i class="ui upload icon"></i></button>{% endif %}
         <br><br>
     <p style="margin-left: 10px"><i class="ui large gift purple icon"></i> <span style="color: #808080" class="italic">- {% trans 'Populated tags' %}</span></p>
         <table>
@@ -40,8 +41,8 @@
             {% for cell in row %}
                 {% if cell|value_type == "<class 'marks.tags.TagData'>" %}
                     <div id="tag_popup_{{ cell.id }}" class="ui popup" style="min-width: 250px;">
+                        {% if cell.populated %}<i class="ui tiny gift purple icon"></i>{% endif %}
                         {% if cell.can_edit %}
-                            {% if cell.populated %}<i class="ui tiny gift purple icon"></i>{% endif %}
                             <span class="icon-text" style="display: inline">&nbsp;</span>
                         {% endif %}
                         {% if cell.can_create_the_child %}
@@ -50,8 +51,10 @@
                         {% endif %}
                         {% if cell.can_edit %}
                             <span class="icon-text icon-text-edit">{% trans 'Edit' %}</span>
-                            <span class="icon-text icon-text-remove">{% trans 'Remove' %}</span>
-                            <i class="ui small remove blue icon remove-tag-icon tag-icon" style="float: right"></i>
+                            {% if cell.can_delete %}
+                                <span class="icon-text icon-text-remove">{% trans 'Remove' %}</span>
+                                <i class="ui small remove blue icon remove-tag-icon tag-icon" style="float: right"></i>
+                            {% endif %}
                             <i class="ui small write blue icon edit-tag-icon tag-icon" style="float: right"></i>
                         {% endif %}
                         {% if cell.can_create_the_child %}
@@ -86,6 +89,10 @@
                 <br>
                 <label class="bold-text" for="tag_description">{% trans 'Description' %}</label>
                 <textarea id="tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                {% if user.extended.role == '2' %}
+                    <br><br>
+                    <div id="edit_tag_user_access_selection"></div>
+                {% endif %}
                 <br><br>
             </div>
         </div>
@@ -121,6 +128,10 @@
                 <br>
                 <label class="bold-text" for="create_tag_description">{% trans 'Description' %}</label>
                 <textarea id="create_tag_description" rows="7" placeholder="{% trans 'Description' %}" style="resize:none"></textarea>
+                {% if user.extended.role == '2' %}
+                    <br><br>
+                    <div id="create_tag_user_access_selection"></div>
+                {% endif %}
                 <br><br>
             </div>
         </div>
@@ -169,4 +180,6 @@
             <button id="upload_tags_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
         </div>
     </div>
+    <span id="label_for_user_access_1" hidden>{% trans 'Users can modify' %}</span>
+    <span id="label_for_user_access_2" hidden>{% trans 'Users can create children' %}</span>
 {% endblock %}

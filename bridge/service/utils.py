@@ -17,6 +17,7 @@
 
 import os
 import json
+import zipfile
 from io import BytesIO
 
 from django.conf import settings
@@ -30,7 +31,7 @@ from bridge.vars import JOB_STATUS, PRIORITY, SCHEDULER_STATUS, SCHEDULER_TYPE, 
 from bridge.utils import file_checksum, logger, BridgeException
 
 from jobs.models import RunHistory, JobFile, FileSystem, Job
-from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent
+from reports.models import ReportRoot, ReportUnknown, TaskStatistic, ReportComponent, ComponentInstances
 from service.models import Scheduler, SolvingProgress, Task, Solution, VerificationTool, Node, NodesConfiguration,\
     SchedulerUser, Workload
 
@@ -69,6 +70,10 @@ class ScheduleTask:
             progress=self.progress, archname=archive.name,
             archive=archive, description=self.description.encode('utf8')
         )
+
+        if not zipfile.is_zipfile(task.archive.file.name):
+            raise ServiceError("The report's archive is not a ZIP file")
+
         SolvingProgress.objects.filter(id=self.progress.id)\
             .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
         return task.id
@@ -181,6 +186,7 @@ class FinishJobDecision:
             self.progress.error = self.error
         self.progress.finish_date = now()
         self.progress.save()
+        ComponentInstances.objects.filter(report__root__job=self.job, in_progress__gt=0).update(in_progress=0)
         change_job_status(self.job, self.status)
 
     def __remove_tasks(self):
@@ -503,8 +509,12 @@ class SaveSolution:
             raise ServiceError('The task already has solution')
         except ObjectDoesNotExist:
             pass
-        Solution.objects.create(task=self.task, description=description.encode('utf8'),
-                                archive=archive, archname=archive.name)
+        solution = Solution.objects.create(task=self.task, description=description.encode('utf8'),
+                                           archive=archive, archname=archive.name)
+
+        if not zipfile.is_zipfile(solution.archive.file.name):
+            raise ServiceError("The report's archive is not a ZIP file")
+
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
         progress.solutions += 1
         progress.save()

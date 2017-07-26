@@ -7,15 +7,10 @@
   "scheduler": {
     "type": "scheduler",
     "production": true,
-    "processes": 4,
+    "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
-    "keep working directory": true,
-    "verification tools": {
-      "CPAchecker": {
-        "trunk@17959": "/bin/ls"
-      }
-    },
+    "keep working directory": false,
     "iteration timeout": {
       "short": 5,
       "medium": 10,
@@ -26,7 +21,7 @@
   },
   "common": {
     "working directory": "verifiercloud-scheduler-work-dir",
-    "keep working directory": true,
+    "keep working directory": false,
     "logging": {
       "version": 1,
       "disable_existing_loggers": false,

@@ -99,7 +99,8 @@ class ASE(core.avtg.plugins.Plugin):
                         self.logger.info('Concatenate all aspects of all plugins together')
 
                         # Resulting request aspect.
-                        aspect = '{0}.aspect'.format(os.path.splitext(os.path.basename(cc_full_desc['out file']))[0])
+                        aspect = '{0}.aspect'.format(core.utils.unique_file_name(os.path.splitext(os.path.basename(
+                            cc_full_desc['out file']))[0], '.aspect'))
 
                         # Get all aspects. Place original request aspect at beginning since it can instrument entities
                         # added by aspects of other plugins while corresponding function declarations still need be at
@@ -125,8 +126,8 @@ class ASE(core.avtg.plugins.Plugin):
                                               '--stage', 'instrumentation',
                                               # TODO: issues like in Weaver.
                                               '--out', os.path.relpath(
-                                               '{0}.c'.format(
-                                                   os.path.splitext(os.path.basename(cc_full_desc['out file']))[0]),
+                                               '{0}.c'.format(core.utils.unique_file_name(os.path.splitext(
+                                                   os.path.basename(cc_full_desc['out file']))[0], '.c.aux')),
                                                os.path.join(self.conf['main working directory'], cc_full_desc['cwd'])),
                                               '--debug', 'DEBUG'] +
                                              (['--keep'] if self.conf['keep intermediate files'] else []) +

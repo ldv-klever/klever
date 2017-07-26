@@ -41,6 +41,11 @@ class Command:
         },
         'ld': {
             'opts requiring vals': ('T', 'm', 'o',),
+            'opts discarding in files': ('-help',),
+            'opts discarding out file': ('-help',)
+        },
+        'objcopy': {
+            'opts requiring vals': ('-set-section-flags', '-rename-section'),
             'opts discarding in files': (),
             'opts discarding out file': ()
         }
@@ -54,6 +59,20 @@ class Command:
         self.other_opts = []
         self.type = None
         self.desc_file = None
+
+        if 'KLEVER_PREFIX' in os.environ:
+            self.prefix = os.environ['KLEVER_PREFIX']
+        else:
+            self.prefix = None
+
+    @property
+    def name_without_prefix(self):
+        if self.prefix:
+            pre, prefix, name = self.name.rpartition(self.prefix)
+        else:
+            name = self.name
+
+        return name
 
     def copy_deps(self):
         # Dependencies can be obtained just for CC commands taking normal C files as input.
@@ -210,9 +229,10 @@ class Command:
         os.environ['PATH'] = re.sub(r'^[^:]+:', '', os.environ['PATH'])
 
         # Execute original build command.
-        if self.name == 'gcc':
+        if self.name_without_prefix == 'gcc':
             self.opts.append('-I{0}'.format(os.environ['KLEVER_RULE_SPECS_DIR']))
-        exit_code = subprocess.call(tuple(['aspectator' if self.name == 'gcc' else self.name] + self.opts))
+        exit_code = subprocess.call(tuple(['aspectator' if self.name_without_prefix == 'gcc'
+                                           else self.name] + self.opts))
 
         # Do not proceed in case of failures (http://forge.ispras.ru/issues/6704).
         if exit_code:
@@ -238,7 +258,7 @@ class Command:
         cmd_requires_in_files = True
         cmd_requires_out_file = True
 
-        if self.name in ('gcc', 'ld'):
+        if self.name_without_prefix in ('gcc', 'ld', 'objcopy'):
             skip_next_opt = False
             for idx, opt in enumerate(self.opts):
                 # Option represents already processed value of the previous option.
@@ -246,17 +266,17 @@ class Command:
                     skip_next_opt = False
                     continue
 
-                for opt_discarding_in_files in self.OPTS[self.name]['opts discarding in files']:
+                for opt_discarding_in_files in self.OPTS[self.name_without_prefix]['opts discarding in files']:
                     if re.search(r'^-{0}'.format(opt_discarding_in_files), opt):
                         cmd_requires_in_files = False
 
-                for opt_discarding_out_file in self.OPTS[self.name]['opts discarding out file']:
+                for opt_discarding_out_file in self.OPTS[self.name_without_prefix]['opts discarding out file']:
                     if re.search(r'^-{0}'.format(opt_discarding_out_file), opt):
                         cmd_requires_out_file = False
 
                 # Options with values.
                 match = None
-                for opt_requiring_val in self.OPTS[self.name]['opts requiring vals']:
+                for opt_requiring_val in self.OPTS[self.name_without_prefix]['opts requiring vals']:
                     match = re.search(r'^-({0})(=?)(.*)'.format(opt_requiring_val), opt)
                     if match:
                         opt, eq, val = match.groups()
@@ -299,6 +319,15 @@ class Command:
             raise NotImplementedError(
                 'Linux kernel raw build command "{0}" is not supported yet'.format(self.name))
 
+        if self.name == 'objcopy':
+            # objcopy has only one input file and no more than one output file.
+            # out file is the same as in file if it didn't specified.
+            if len(self.in_files) == 2:
+                self.out_file = self.in_files[-1]
+                self.in_files = self.in_files[:-1]
+            else:
+                self.out_file = self.in_files[-1]
+
         if cmd_requires_in_files and not self.in_files:
             raise ValueError(
                 'Could not get Linux kernel raw build command input files' + ' from options "{0}"'.format(self.opts))
@@ -321,8 +350,8 @@ class Command:
 
         # We treat all invocations of GCC with more than one input file as pure linking whereas this might be not the
         # case in general.
-        if self.name != 'gcc':
-            self.type = self.name.upper()
+        if self.name_without_prefix != 'gcc':
+            self.type = self.name_without_prefix.upper()
         elif len(self.in_files) > 1:
             self.type = 'LD'
         else:

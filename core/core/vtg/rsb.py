@@ -20,6 +20,8 @@ import os
 import re
 import time
 import zipfile
+from xml.etree import ElementTree
+from xml.dom import minidom
 
 import core.components
 import core.session
@@ -39,8 +41,12 @@ class RSB(core.components.Component):
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
-        self.prepare_property_file()
-        self.prepare_src_files()
+        property_file = self.prepare_property_file()
+        files = self.prepare_src_files()
+        benchmark = self.prepare_benchmark_description(files, property_file)
+        self.files = files + [property_file] + [benchmark]
+        self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                           self.conf['shadow source tree']))
 
         if self.conf['keep intermediate files']:
             self.logger.debug('Create verification task description file "task.json"')
@@ -58,6 +64,27 @@ class RSB(core.components.Component):
                         os.remove(extra_c_file['C file'])
 
     main = generate_verification_tasks
+
+    def prepare_benchmark_description(self, files, property_file):
+        # Property file may not be specified.
+        self.logger.debug("Prepare benchmark.xml file")
+        benchmark = ElementTree.Element("benchmark", {
+            "tool": self.conf['VTG strategy']['verifier']['name'].lower()
+        })
+        rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
+        for opt in self.conf['VTG strategy']['verifier']['options']:
+            for name in opt:
+                ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
+        ElementTree.SubElement(benchmark, "propertyfile").text = property_file
+
+        tasks = ElementTree.SubElement(benchmark, "tasks")
+        # TODO: in this case verifier is invoked per each such file rather than per all of them.
+        for file in files:
+            ElementTree.SubElement(tasks, "include").text = file
+        with open("benchmark.xml", "w", encoding="utf8") as fp:
+            fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
+
+        return "benchmark.xml"
 
     def set_common_verifier_options(self):
         if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':
@@ -140,8 +167,15 @@ class RSB(core.components.Component):
                 self.rule_specification = attr_val
 
         # Use resource limits and verifier specified in job configuration.
-        self.task_desc.update({'verifier': self.conf['VTG strategy']['verifier'],
-                               'resource limits': self.restrictions})
+        self.task_desc.update(
+            {
+                'verifier': {
+                    'name': self.conf['VTG strategy']['verifier']['name'],
+                    'version': self.conf['VTG strategy']['verifier']['version']
+                },
+                'resource limits': self.restrictions
+            }
+        )
 
     def prepare_bug_kind_functions_file(self):
         self.logger.debug('Prepare bug kind functions file "bug kind funcs.c"')
@@ -178,7 +212,7 @@ class RSB(core.components.Component):
                     for spec in self.conf['abstract task desc']['verifier specifications']:
                         fp.write('CHECK( init({0}()), {1} )\n'.format(
                             self.conf['abstract task desc']['entry points'][0], spec))
-                self.task_desc['property file'] = 'spec.prp'
+                property_file = 'spec.prp'
 
                 self.logger.debug('Verifier property file was outputted to "spec.prp"')
             else:
@@ -186,14 +220,17 @@ class RSB(core.components.Component):
                     fp.write('CHECK( init({0}()), LTL(G ! call(__VERIFIER_error())) )'.format(
                     self.conf['abstract task desc']['entry points'][0]))
 
-                self.task_desc['property file'] = 'unreach-call.prp'
+                property_file = 'unreach-call.prp'
 
                 self.logger.debug('Verifier property file was outputted to "unreach-call.prp"')
         else:
-            self.logger.warning('Verifier property file was not prepared since entry points were not specified')
+            raise ValueError('Verifier property file was not prepared since entry points were not specified')
+
+        return property_file
 
     def prepare_src_files(self):
-        self.task_desc['files'] = []
+        regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
+        files = []
 
         if self.conf['VTG strategy']['merge source files']:
             self.logger.info('Merge source files by means of CIL')
@@ -208,11 +245,25 @@ class RSB(core.components.Component):
                 trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
                 with open(os.path.join(self.conf['main working directory'], extra_c_file['C file']),
                           encoding='utf8') as fp_in, open(trimmed_c_file, 'w', encoding='utf8') as fp_out:
+                    trigger = False
+
                     # Specify original location to avoid references to *.trimmed.i files in error traces.
                     fp_out.write('# 1 "{0}"\n'.format(extra_c_file['C file']))
                     # Each such expression occupies individual line, so just get rid of them.
                     for line in fp_in:
-                        fp_out.write(re.sub(r'asm volatile goto.*;', '', line))
+
+                        # Asm volatile goto
+                        l = re.sub(r'asm volatile goto.*;', '', line)
+
+                        if not trigger and regex.match(line):
+                            trigger = True
+                        elif trigger:
+                            l = line.replace('typedef __va_list __gnuc_va_list;',
+                                             'typedef __builtin_va_list __gnuc_va_list;')
+                            trigger = False
+
+                        fp_out.write(l)
+
                 extra_c_file['new C file'] = trimmed_c_file
                 c_files += (trimmed_c_file, )
 
@@ -241,22 +292,21 @@ class RSB(core.components.Component):
                     if 'new C file' in extra_c_file:
                         os.remove(extra_c_file['new C file'])
 
-            self.task_desc['files'].append('cil.i')
+            files.append('cil.i')
 
             self.logger.debug('Merged source files was outputted to "cil.i"')
         else:
             for extra_c_file in self.conf['abstract task desc']['extra C files']:
-                self.task_desc['files'].append(extra_c_file['C file'])
+                files.append(extra_c_file['C file'])
+
+        return files
 
     def prepare_verification_task_files_archive(self):
         self.logger.info('Prepare archive with verification task files')
 
-        with zipfile.ZipFile('task files.zip', mode='w') as zfp:
-            if self.task_desc['property file']:
-                zfp.write(self.task_desc['property file'])
-            for file in self.task_desc['files']:
+        with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+            for file in self.files:
                 zfp.write(file)
-            self.task_desc['files'] = [os.path.basename(file) for file in self.task_desc['files']]
 
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
@@ -271,10 +321,6 @@ class RSB(core.components.Component):
                           self.conf['main working directory'])
 
         self.verdict = None
-
-        if not self.task_desc['property file']:
-            self.logger.warning('Verification task will not be decided since verifier property file was not prepared')
-            return
 
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         task_id = session.schedule_task(self.task_desc)
@@ -354,8 +400,7 @@ class RSB(core.components.Component):
                               'resources': decision_results['resources'],
                               'log': None if self.logger.disabled else self.log_file,
                               'files': ([] if self.logger.disabled else [self.log_file]) + (
-                                  (['benchmark.xml'] if os.path.isfile('benchmark.xml') else []) +
-                                  [self.task_desc['property file']] + self.task_desc['files']
+                                  self.files
                                   if self.conf['upload input files of static verifiers']
                                   else []
                               )
@@ -364,6 +409,26 @@ class RSB(core.components.Component):
                           self.conf['main working directory'])
 
     def process_single_verdict(self, decision_results, verification_report_id):
+        # Parse reports and determine status
+        benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
+        if len(benchexec_reports) != 1:
+            raise FileNotFoundError('Expect strictly single BenchExec XML report file, but found {}'.
+                                    format(len(benchexec_reports)))
+
+        # Expect single report file
+        with open(benchexec_reports[0], encoding="utf8") as fp:
+            result = ElementTree.parse(fp).getroot()
+
+            run = result.findall("run")[0]
+            for column in run.iter("column"):
+                name, value = [column.attrib.get(name) for name in ("title", "value")]
+                if name == "status":
+                    decision_results["status"] = value
+
+        # Check that we have set status
+        if "status" not in decision_results:
+            raise KeyError("There is no solution status in BenchExec XML report")
+
         self.logger.info('Verification task decision status is "{0}"'.format(decision_results['status']))
 
         # Do not fail immediately in case of witness processing failures that often take place. Otherwise we will
@@ -371,7 +436,7 @@ class RSB(core.components.Component):
         # Necessary verificaiton finish report also won't be uploaded causing Bridge to corrupt the whole job.
         self.witness_processing_exception = None
 
-        if decision_results['status'] == 'safe':
+        if re.match('true', decision_results['status']):
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -383,6 +448,8 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
+
+            self.verdict = 'safe'
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
@@ -398,6 +465,8 @@ class RSB(core.components.Component):
                         error_trace_name = 'error trace_' + trace_id + '.json'
 
                         self.logger.info('Write processed witness to "' + error_trace_name + '"')
+                        arcnames = self.trim_file_names(et['files'])
+                        et['files'] = [arcnames[file] for file in et['files']]
                         with open(error_trace_name, 'w', encoding='utf8') as fp:
                             json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -410,7 +479,8 @@ class RSB(core.components.Component):
                                                   {"Rule specification": self.rule_specification},
                                                   {"Error trace identifier": trace_id}],
                                               'error trace': error_trace_name,
-                                              'files': [error_trace_name] + et['files']
+                                              'files': [error_trace_name] + list(arcnames.keys()),
+                                              'arcname': arcnames
                                           },
                                           self.mqs['report files'],
                                           self.conf['main working directory'],
@@ -424,13 +494,18 @@ class RSB(core.components.Component):
                         else:
                             self.witness_processing_exception = e
 
-            if decision_results['status'] == 'unsafe' and self.rule_specification != 'sync:race':
+                self.verdict = 'unsafe'
+
+            if re.match('false', decision_results['status']) and self.rule_specification != 'sync:race':
                 try:
                     if len(witnesses) != 1:
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.format(len(witnesses)))
 
                     et = import_error_trace(self.logger, witnesses[0])
                     self.logger.info('Write processed witness to "error trace.json"')
+
+                    arcnames = self.trim_file_names(et['files'])
+                    et['files'] = [arcnames[file] for file in et['files']]
                     with open('error trace.json', 'w', encoding='utf8') as fp:
                         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -441,13 +516,16 @@ class RSB(core.components.Component):
                                           'parent id': verification_report_id,
                                           'attrs': [{"Rule specification": self.rule_specification}],
                                           'error trace': 'error trace.json',
-                                          'files': ['error trace.json'] + et['files']
+                                          'files': ['error trace.json'] + list(arcnames.keys()),
+                                          'arcname': arcnames
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
                 except Exception as e:
                     self.witness_processing_exception = e
-            elif decision_results['status'] != 'unsafe':
+
+                self.verdict = 'unsafe'
+            elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
                 # TODO: otherwise just the same file as parent log is reported, looks strange.
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
@@ -467,7 +545,7 @@ class RSB(core.components.Component):
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
 
-        self.verdict = decision_results['status']
+                self.verdict = 'unknown'
 
     def create_verification_finish_report(self, verification_report_id):
         core.utils.report(self.logger,
@@ -475,3 +553,13 @@ class RSB(core.components.Component):
                           {'id': verification_report_id},
                           self.mqs['report files'],
                           self.conf['main working directory'])
+
+    def trim_file_names(self, file_names):
+        arcnames = {}
+        for file_name in file_names:
+            if file_name.startswith(self.shadow_src_dir):
+                new_file_name = os.path.relpath(file_name, self.shadow_src_dir)
+            else:
+                new_file_name = core.utils.make_relative_path(self.logger, self.conf['main working directory'], file_name)
+            arcnames[file_name] = new_file_name
+        return arcnames

@@ -19,7 +19,6 @@ import os
 import json
 import logging.config
 import subprocess
-import sys
 
 import utils as utils
 
@@ -51,8 +50,6 @@ def prepare_node_info(node_info):
     # resources if they are specified as decimals.
     if isinstance(result["available CPU number"], float):
         result["available CPU number"] = int(result["CPU number"] * result["available CPU number"])
-    if result["available CPU number"] < 1:
-        result["available CPU number"] = 1
     elif result["available CPU number"] > result["CPU number"]:
         result["available CPU number"] = result["CPU number"]
     if isinstance(result["available RAM memory"], float):
@@ -112,7 +109,7 @@ def setup_consul(conf):
             check_desc = {
                 "id": "{} {}".format(conf["node configuration"]["node name"], check["name"]),
                 "name": check["name"],
-                "script": "{} {}".format(sys.executable, check_file),
+                "script": check_file,
                 "interval": check["interval"]
             }
             consul_config["checks"].append(check_desc)
@@ -151,6 +148,7 @@ def setup_consul(conf):
     logging.info("Consul setup has been finished")
 
     return consul_work_dir, consul_config_file
+
 
 def run_consul(conf, work_dir, config_file):
     """
