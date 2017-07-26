@@ -126,6 +126,23 @@ Returns the number of similar forests with callbacks calls divided by the maximu
             return 1
         return len(err_trace_converted & pattern) / max_len
 
+    def all_forests_compare(self):
+        """
+Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
+        """
+        converted_et = self.__get_converted_trace('all_forests')
+        pattern = self.pattern_error_trace
+        if any(not isinstance(x, str) for x in converted_et):
+            converted_et = list(json.dumps(x) for x in converted_et)
+        if any(not isinstance(x, str) for x in pattern):
+            pattern = list(json.dumps(x) for x in pattern)
+        err_trace_converted = set(converted_et)
+        pattern = set(pattern)
+        max_len = max(len(err_trace_converted), len(pattern))
+        if max_len == 0:
+            return 1
+        return len(err_trace_converted & pattern) / max_len
+
     def callstack_all_warnings_compare(self):
         """
 Returns the number of similar call stacks divided by total number of call stacks.

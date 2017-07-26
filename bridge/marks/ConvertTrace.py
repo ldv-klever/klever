@@ -81,7 +81,7 @@ The forest is a couple of call trees under callback action.
 Return list of forests.
         """
 
-        return ErrorTraceForests(self.error_trace, False).trace
+        return ErrorTraceForests(self.error_trace).trace
 
     def forests_callbacks(self):
         """
@@ -90,7 +90,17 @@ The forest is a couple of call trees under callback action.
 Return list of forests. These forests includes callback actions as leaves.
         """
 
-        return ErrorTraceForests(self.error_trace, True).trace
+        return ErrorTraceForests(self.error_trace, with_callbacks=True).trace
+
+    def all_forests(self):
+        """
+This function is extracting the error trace call stack "forests".
+The forest is a couple of call trees in the same thread.
+Call three includes notes, warnings and just functions that have it (the whole callstack).
+Return list of forests.
+        """
+
+        return ErrorTraceForests(self.error_trace, all_threads=True).trace
 
     def call_stack_all_warnings(self):
         """
