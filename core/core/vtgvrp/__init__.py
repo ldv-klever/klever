@@ -47,6 +47,8 @@ class VTGVRP(core.components.Component):
         # self.abstract_task_desc_num = 0
         # self.failed_abstract_task_desc_num = multiprocessing.Value('i', 0)
         # self.abstract_task_descs_num = multiprocessing.Value('i', 0)
+        # Tasks waiting for solution
+        self.mqs['VTGVRP pending tasks'] = multiprocessing.Queue()
 
         # TODO: combine extracting and reporting of attributes.
         core.utils.report(self.logger,

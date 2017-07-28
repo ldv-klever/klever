@@ -64,6 +64,7 @@ def __generate_all_verification_obj_descs(context):
 def __set_common_prj_attrs(context):
     context.mqs['VTG common prj attrs'].put(context.common_prj_attrs)
 
+
 def _extract_plugin_descs(logger, tmpl_id, tmpl_desc):
     logger.info('Extract descriptions for plugins of template "{0}"'.format(tmpl_id))
 
@@ -317,18 +318,19 @@ class VTG(core.components.Component):
         self.__get_shadow_src_tree()
         self.__get_model_cc_opts()
 
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.__get_common_prj_attrs()
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'],
-                          suffix='vtg')
+        # core.utils.report(self.logger,
+        #                   'attrs',
+        #                   {
+        #                       'id': self.id,
+        #                       'attrs': self.__get_common_prj_attrs()
+        #                   },
+        #                   self.mqs['report files'],
+        #                   self.conf['main working directory'],
+        #                   suffix='vtg')
 
         # Start plugins
         self.__generate_all_abstract_verification_task_descs()
+        self.mqs['VTGVRP pending tasks'].put(None)
 
     main = generate_verification_tasks
 

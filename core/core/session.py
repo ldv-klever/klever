@@ -92,9 +92,10 @@ class Session:
                               files={'file': open('task files.zip', 'rb')})
         return resp.json()['task id']
 
-    def get_task_status(self, task_id):
-        resp = self.__request('service/get_task_status/', {'task id': task_id})
-        return resp.json()['task status']
+    def get_tasks_statuses(self, identifiers):
+        resp = self.__request('service/get_tasks_statuses/',
+                              {'tasks': json.dumps(identifiers, ensure_ascii=False, sort_keys=True,indent=4)})
+        return resp.json()['task statuses']
 
     def get_task_error(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})

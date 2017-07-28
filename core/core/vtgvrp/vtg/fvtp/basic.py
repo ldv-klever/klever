@@ -60,7 +60,7 @@ class Basic:
             with open('task.json', 'w', encoding='utf8') as fp:
                 json.dump(task_description, fp, ensure_ascii=False, sort_keys=True, indent=4)
         self._cleanup()
-        yield task_description
+        yield task_description, files
 
     def _prepare_benchmark_description(self, resource_limits):
         """
@@ -74,7 +74,7 @@ class Basic:
             "tool": self.conf['VTG']['verifier']['name'].lower()
         })
         if "CPU time" in resource_limits and isinstance(resource_limits["CPU time"], int):
-            benchmark.set('timelimit', int(int(resource_limits["CPU time"]) * 0.9))
+            benchmark.set('timelimit', str(int(int(resource_limits["CPU time"]) * 0.9)))
 
         # Then add options
         self._prepare_run_definition(benchmark)
@@ -89,7 +89,7 @@ class Basic:
         # Save the benchmark definition
         with open("benchmark.xml", "w", encoding="utf8") as fp:
             fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
-        files.append(os.path.abspath("benchmark.xml"))
+        files.append("benchmark.xml")
 
         return files
 
@@ -123,8 +123,8 @@ class Basic:
         task_desc.update(
             {
                 'verifier': {
-                    'name': self.conf['VTG strategy']['verifier']['name'],
-                    'version': self.conf['VTG strategy']['verifier']['version']
+                    'name': self.conf['VTG']['verifier']['name'],
+                    'version': self.conf['VTG']['verifier']['version']
                 },
                 'resource limits': resource_limits
             }
@@ -161,7 +161,7 @@ class Basic:
 
         tasks = ElementTree.SubElement(benchmark_definition, "tasks")
         if "merge source files" in self.conf:
-            file = common.merge_files(self.logger, self.conf)
+            file = common.merge_files(self.logger, self.conf, self.abstract_task_desc)
             ElementTree.SubElement(tasks, "include").text = file
         else:
             raise NotImplementedError('BenchExec does not support verification tasks consisting from several files, '
@@ -250,3 +250,4 @@ class Basic:
 
         ElementTree.SubElement(benchmark_description, "propertyfile").text = property_file
         return property_file
+

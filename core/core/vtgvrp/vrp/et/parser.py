@@ -22,8 +22,10 @@ from core.vtgvrp.vtg import ErrorTrace
 class ErrorTraceParser:
     WITNESS_NS = {'graphml': 'http://graphml.graphdrawing.org/xmlns'}
 
-    def __init__(self, logger, witness):
+    def __init__(self, logger, witness, namespace=None):
         self._logger = logger
+        if namespace:
+            self.WITNESS_NS = {'graphml': namespace}
 
         # Start parsing
         self.error_trace = ErrorTrace(logger)

@@ -21,17 +21,23 @@ import json
 import core.utils
 
 
-def merge_files(logger, conf):
-    regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
-    files = []
+def merge_files(logger, conf, abstract_task_desc):
+    """
+    Merge several given C files into single one using CIL.
 
+    :param logger: Logger object.
+    :param conf: Configration dictionary.
+    :param abstract_task_desc: Abstract verification task description dictionary.
+    :return: A file name of the newly created file.
+    """
+    regex = re.compile('# 40 ".*/arm-unknown-linux-gnueabi/4.6.0/include/stdarg.h"')
     logger.info('Merge source files by means of CIL')
 
     # CIL doesn't support asm goto (https://forge.ispras.ru/issues/1323).
     logger.debug('Ignore asm goto expressions')
 
     c_files = ()
-    for extra_c_file in conf['abstract task desc']['extra C files']:
+    for extra_c_file in abstract_task_desc['extra C files']:
         if 'C file' not in extra_c_file:
             continue
         trimmed_c_file = '{0}.trimmed.i'.format(os.path.splitext(os.path.basename(extra_c_file['C file']))[0])
@@ -112,7 +118,7 @@ def get_list_of_verifiers_options(logger, conf):
 
             # Remove objects finally
             for e in remove:
-                 desc1["add options"].remove(e)
+                desc1["add options"].remove(e)
 
         if "add options" in desc2:
             append = []
@@ -163,11 +169,10 @@ def get_list_of_verifiers_options(logger, conf):
 
     logger.debug("Determine inheritance of profiles and templates")
     sets = [user_opts, profile_opts]
-    try:
-        while 'inherits' in sets[-1]:
-            sets.append(profiles['templates'][sets[-1]['inherits']])
-    except KeyError as err:
-        KeyError("Profile template {!r} does not exist".format(err))
+    while 'inherit' in sets[-1]:
+        if sets[-1]['inherit'] not in profiles['templates']:
+            raise KeyError("Verifier profile template does not exist: {}".format(sets[-1]['inherit']))
+        sets.append(profiles['templates'][sets[-1]['inherit']])
 
     logger.debug("Prepare final opts description")
     last = None
@@ -197,6 +202,12 @@ def read_max_resource_limitations(logger, conf):
 
 
 def prepare_verification_task_files_archive(files):
+    """
+    Generate archive for verification task files in the current directory. The archive name should be 'task files.zip'.
+
+    :param files: A list of files.
+    :return: None
+    """
     with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
         for file in files:
             zfp.write(file)

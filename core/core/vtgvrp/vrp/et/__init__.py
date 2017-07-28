@@ -20,9 +20,9 @@ from core.vtg.et.tmpvars import generic_simplifications
 from core.vtgvrp.vrp.et.parser import ErrorTraceParser
 
 
-def import_error_trace(logger, witness):
+def import_error_trace(logger, witness, namespace=None):
     # Parse witness
-    po = ErrorTraceParser(logger, witness)
+    po = ErrorTraceParser(logger, witness, namespace)
     trace = po.error_trace
 
     # Parse comments from sources
