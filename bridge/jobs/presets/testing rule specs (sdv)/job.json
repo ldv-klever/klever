@@ -40,23 +40,17 @@
       "linux:gendisk"
     ],
     "unite rule specifications": true,
-    "RSG strategy": "instrumentation",
+    "RSG strategy": "all",
     "common aspect": "linux/common.aspect",
     "VTG strategy": {
-      "name": "multi aspect verification",
+      "name": "CV",
       "verifier": {
-        "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}],
-        "MAV preset": "L1",
-        "MAV cleaning strategy": "ALL",
-        "relaunch": "internal",
-        "mea": false
+        "tool config": "cpachecker-sdv.json"
       },
       "resource limits": {
-        "wall time": 1000000,
-        "CPU time": 900000,
-        "memory size": 10000000000,
+        "wall time": 100000000,
+        "CPU time": 27000000,
+        "memory size": 3000000000,
         "CPU model": null,
         "number of CPU cores": 1,
         "result size": 1000000
@@ -311,7 +305,6 @@
         "external modules": "tests/linux/usb2",
         "modules": [
           "netdev.ko",
-          "netdev2.ko",
           "safe.ko"
         ]
       },
@@ -556,7 +549,7 @@
         },
         {
           "ideal verdict": "safe"
-       }
+        }
       ]
     },
     {
@@ -578,64 +571,6 @@
           "ideal verdict": "unsafe",
           "rule specification": "linux:usb:dev",
           "verification object": "ext-modules/more-at-exit.ko"
-        },
-        {
-          "ideal verdict": "safe"
-        }
-      ]
-    },
-    {
-      "Linux kernel": {
-        "external modules": "tests/linux/alloc4",
-        "modules": [
-          "alloc-without-free.ko",
-          "free-without-alloc.ko",
-          "safe.ko"
-        ]
-      },
-      "rule specifications": [
-        "linux:mmc:sdio_func",
-        "linux:usb:coherent",
-        "linux:usb:dev",
-        "linux:usb:gadget",
-        "linux:usb:register",
-        "linux:usb:urb",
-        "linux:alloc:irq",
-        "linux:alloc:spin lock",
-        "linux:alloc:usb lock",
-        "linux:chrdev",
-        "linux:class",
-        "linux:module",
-        "linux:mutex",
-        "linux:netdev",
-        "linux:rwlock",
-        "linux:spinlock",
-        "linux:alloc:resource",
-        "linux:rtnl",
-        "linux:sock",
-        "linux:bitops",
-        "linux:blk:request",
-        "linux:blk:queue",
-        "linux:rculock",
-        "linux:rculockbh",
-        "linux:rculocksched",
-        "linux:srculock",
-        "linux:completion",
-        "linux:sysfs",
-        "linux:iomem",
-        "linux:idr",
-        "linux:gendisk"
-      ],
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:resource",
-          "verification object": "ext-modules/alloc-without-free.ko"
-        },
-        {
-          "ideal verdict": "unsafe",
-          "rule specification": "linux:alloc:resource",
-          "verification object": "ext-modules/free-without-alloc.ko"
         },
         {
           "ideal verdict": "safe"

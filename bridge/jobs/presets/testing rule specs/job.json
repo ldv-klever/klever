@@ -7,19 +7,18 @@
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
-    "unite rule specifications": false,
-    "RSG strategy": "instrumentation",
+    "unite rule specifications": true,
+    "RSG strategy": "all",
+    "common aspect": "linux/common.aspect",
     "VTG strategy": {
-      "name": "separated rules",
+      "name": "SV",
       "verifier": {
-        "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv": ""}]
+        "tool config": "cpachecker-default.json"
       },
       "resource limits": {
         "wall time": 1000000,
         "CPU time": 900000,
-        "memory size": 10000000000,
+        "memory size": 3000000000,
         "CPU model": null,
         "number of CPU cores": 1,
         "result size": 1000000
@@ -135,7 +134,6 @@
         "external modules": "tests/linux/usb2",
         "modules": [
           "netdev.ko",
-          "netdev2.ko",
           "safe.ko"
         ]
       },
@@ -185,11 +183,35 @@
           "wrong-flags-trylock.ko",
           "nonatomic-lock.ko",
           "nonatomic-trylock.ko",
-          "nonatomic-trylock-2.ko",
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:alloc:spin lock"]
+      "rule specifications": ["linux:alloc:spin lock", "linux:spinlock"],
+      "ideal verdicts": [
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/wrong-flags-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/wrong-flags-trylock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/nonatomic-lock.ko"
+        },
+        {
+          "ideal verdict": "unsafe",
+          "rule specification": "linux:alloc:spin lock",
+          "verification object": "ext-modules/nonatomic-trylock.ko"
+        },
+        {
+          "ideal verdict": "safe"
+        }
+      ]
     },
     {
       "Linux kernel": {

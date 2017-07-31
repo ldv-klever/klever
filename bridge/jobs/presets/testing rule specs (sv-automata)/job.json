@@ -7,19 +7,18 @@
     "LKVOG strategy": {"name": "separate modules"},
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
-    "unite rule specifications": false,
-    "RSG strategy": "property automaton",
+    "unite rule specifications": true,
+    "RSG strategy": "all",
+    "common aspect": "linux/common.aspect",
     "VTG strategy": {
-      "name": "separated rules",
+      "name": "SV",
       "verifier": {
-        "name": "CPAchecker",
-        "version": "20376",
-        "options": [{"-ldv-spa": ""}]
+        "tool config": "cpachecker-automata.json"
       },
       "resource limits": {
         "wall time": 1000000,
         "CPU time": 900000,
-        "memory size": 10000000000,
+        "memory size": 3000000000,
         "CPU model": null,
         "number of CPU cores": 1,
         "result size": 1000000
@@ -47,7 +46,7 @@
         "linux:spinlock",
         "linux:rwlock",
         "linux:mutex",
-        "linux:mmc:sdio_func_as"
+        "linux:mmc:sdio_func"
       ]
     },
     {
@@ -135,7 +134,6 @@
         "external modules": "tests/linux/usb2",
         "modules": [
           "netdev.ko",
-          "netdev2.ko",
           "safe.ko"
         ]
       },
@@ -164,7 +162,7 @@
           "safe.ko"
         ]
       },
-      "rule specifications": ["linux:mmc:sdio_func_as"]
+      "rule specifications": ["linux:mmc:sdio_func"]
     },
     {
       "Linux kernel": {
@@ -185,7 +183,6 @@
           "wrong-flags-trylock.ko",
           "nonatomic-lock.ko",
           "nonatomic-trylock.ko",
-          "nonatomic-trylock-2.ko",
           "safe.ko"
         ]
       },
