@@ -14,8 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtg.et.envmodel import envmodel_simplifications
-from core.vtg.et.tmpvars import generic_simplifications
+from core.vtgvrp.vrp.et.envmodel import envmodel_simplifications
+from core.vtgvrp.vrp.et.tmpvars import generic_simplifications
 
 from core.vtgvrp.vrp.et.parser import ErrorTraceParser
 

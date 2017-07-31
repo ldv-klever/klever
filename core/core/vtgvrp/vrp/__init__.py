@@ -28,7 +28,7 @@ import re
 import core.components
 import core.utils
 import core.session
-import core.vtgvrp.vrp.et as et
+#import core.vtgvrp.vrp.et as et
 
 
 class VRP(core.components.Component):

@@ -18,7 +18,8 @@
 import multiprocessing
 import core.components
 import core.utils
-from core.vtgvrp import vtg, vrp
+from core.vtgvrp.vtg import VTG
+from core.vtgvrp.vrp import VRP
 
 
 @core.utils.before_callback
@@ -50,22 +51,21 @@ class VTGVRP(core.components.Component):
         # Tasks waiting for solution
         self.mqs['VTGVRP pending tasks'] = multiprocessing.Queue()
 
-        # TODO: combine extracting and reporting of attributes.
-        core.utils.report(self.logger,
-                          'attrs',
-                          {
-                              'id': self.id,
-                              'attrs': self.__get_common_prj_attrs()
-                          },
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
+        # core.utils.report(self.logger,
+        #                   'attrs',
+        #                   {
+        #                       'id': self.id,
+        #                       'attrs': self.__get_common_prj_attrs()
+        #                   },
+        #                   self.mqs['report files'],
+        #                   self.conf['main working directory'])
 
-        self.launch_subcomponents(
-            # todo: fix or rewrite
-            #('ALKBCDP', self.evaluate_abstract_verification_task_descs_num),
-            vtg.VTG,
- #           vrp.VRP
-        )
+        tg = VTG(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)
+        rp = VRP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)
+        tg.start()
+        rp.start()
+        tg.join()
+        rp.join()
 
     main = main_routine
 

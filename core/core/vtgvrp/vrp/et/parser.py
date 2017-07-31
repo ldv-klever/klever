@@ -16,7 +16,7 @@
 #
 import xml.etree.ElementTree as ET
 
-from core.vtgvrp.vtg import ErrorTrace
+from core.vtgvrp.vrp.et.error_trace import ErrorTrace
 
 
 class ErrorTraceParser:

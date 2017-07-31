@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from core.vtgvrp.vtg import get_original_file, get_original_start_line
+from core.vtgvrp.vrp.et.error_trace import get_original_file, get_original_start_line
 
 
 def envmodel_simplifications(logger, error_trace):

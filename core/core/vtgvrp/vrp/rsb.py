@@ -26,7 +26,7 @@ from xml.etree import ElementTree
 import core.components
 import core.session
 import core.utils
-from core.vtgvrp.vtg import import_error_trace
+from core.vtgvrp.vrp.et import import_error_trace
 
 
 class RSB(core.components.Component):
