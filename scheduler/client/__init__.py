@@ -120,30 +120,6 @@ def solve_task(conf):
     sys.path.append(bench_exec_location)
     from benchexec.benchexec import BenchExec
 
-    # Add CPAchecker path
-    if "cpachecker location" in conf["client"]:
-        logging.info("Add CPAchecker bin location to path {}".format(conf["client"]["cpachecker location"]))
-        os.environ["PATH"] = "{}:{}".format(conf["client"]["cpachecker location"], os.environ["PATH"])
-        cpachecker_location = conf["client"]["cpachecker location"]
-        logging.debug("Current PATH content is {}".format(os.environ["PATH"]))
-    else:
-        if "verifiers" in conf["client"]:
-            verifier_found = False
-            for verifier in conf["client"]["verifiers"]:
-                print(verifier)
-                alias = verifier['alias']
-                location = verifier['location']
-                if conf["verifier"]["alias"].lower() == alias:
-                    os.environ["PATH"] = "{}:{}".format(location, os.environ["PATH"])
-                    cpachecker_location = location
-                    verifier_found = True
-                    break
-            if not verifier_found:
-                raise KeyError("Specified verifier alias '{0}' is not supported".format(conf["verifier"]["alias"].lower()))
-        else:
-            raise KeyError("Provide configuration option 'client''cpachecker location' or "
-                           "'verifiers' as path to CPAchecker executables")
-
     benchexec = BenchExec()
 
     # Check resource limitations
@@ -167,33 +143,25 @@ def solve_task(conf):
     with tarfile.open("task files.tar.gz") as tar:
         tar.extractall()
 
-    logging.info("Prepare benchmark")
-    benchmark = ElementTree.Element("benchmark", {
-        "tool": conf["verifier"]["name"].lower(),
-        "timelimit": str(round(conf["resource limits"]["CPU time"] / 1000)),
-        "memlimit": str(conf["resource limits"]["memory size"]) + "B",
-    })
-    rundefinition = ElementTree.SubElement(benchmark, "rundefinition")
-    for opt in conf["verifier"]["options"]:
-        for name in opt:
-            ElementTree.SubElement(rundefinition, "option", {"name": name}).text = opt[name]
-    # Property file may not be specified.
-    if "property file" in conf:
-        ElementTree.SubElement(benchmark, "propertyfile").text = conf["property file"]
-    tasks = ElementTree.SubElement(benchmark, "tasks")
-    # TODO: in this case verifier is invoked per each such file rather than per all of them.
-    for file in conf["files"]:
-        ElementTree.SubElement(tasks, "include").text = file
-    with open("benchmark.xml", "w", encoding="ascii") as fp:
-        fp.write(minidom.parseString(ElementTree.tostring(benchmark)).toprettyxml(indent="    "))
+    scheduler_config = "scheduler_config.json"
+    try:
+        with open(scheduler_config, encoding="ascii") as fp:
+            config = json.load(fp)
+            tool = config.get('tool')
+            path = config.get('path')
+            os.environ["PATH"] = "{}:{}".format(path, os.environ["PATH"])
+    except IOError:
+        raise RuntimeError('Error during reading of scheduler configuration file {0}'.format(scheduler_config))
 
     os.makedirs("output")
 
-    # This is done because of CPAchecker is not clever enough to search for its configuration and specification files
-    # around its binary.
-    os.symlink(os.path.join(cpachecker_location, os.pardir, 'config'), 'config')
+    # Additional actions for specific verifiers.
+    if tool.lower() == "cpachecker":
+        os.symlink(os.path.join(path, os.pardir, 'config'), 'config')
+    if tool.lower() == "cbmc":
+        os.symlink(os.path.join(path, 'cbmc-binary'), 'cbmc-binary')
 
-    logging.info("Run verifier {} using benchmark benchmark.xml".format(conf["verifier"]["name"]))
+    logging.info("Run verifier {} using benchmark benchmark.xml".format(tool))
 
     exit_code = benchexec.start(["--debug", "--no-compress-results", "--outputpath", "output", "benchmark.xml"])
 
