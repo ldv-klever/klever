@@ -256,7 +256,7 @@ class ComponentUnknown(models.Model):
 
 
 class CompareJobsInfo(models.Model):
-    user = models.OneToOneField(User)
+    user = models.ForeignKey(User)
     root1 = models.ForeignKey(ReportRoot, related_name='+')
     root2 = models.ForeignKey(ReportRoot, related_name='+')
     files_diff = models.TextField()

@@ -674,9 +674,14 @@ def fill_compare_cache(request):
         j1 = Job.objects.get(pk=request.POST.get('job1', 0))
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload the page')})
     if not can_compare(request.user, j1, j2):
         return JsonResponse({'error': _("You can't compare the selected jobs")})
+    try:
+        reports.models.CompareJobsInfo.objects.get(user=request.user, root1=j1.reportroot.id, root2=j2.reportroot.id)
+        return JsonResponse({})
+    except ObjectDoesNotExist:
+        pass
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
