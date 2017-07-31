@@ -1,0 +1,24 @@
+{
+  "tool": "SMACK",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.prp": "CHECK( init(${entry_point}()), LTL(G ! call(__VERIFIER_error())) )"
+  },
+  "options": [
+    {"-w": "output/error-witness.graphml"},
+    {"--clang-options=-m64": ""},
+    {"--entry-points": "${entry_point}"}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "C file",
+    "explicit error function": "__VERIFIER_error",
+    "ignore builtins": true,
+    "supported": [
+      "SV",
+      "BV"
+    ]
+  },
+  "path": ""
+}

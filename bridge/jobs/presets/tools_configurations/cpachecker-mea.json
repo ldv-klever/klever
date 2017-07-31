@@ -1,0 +1,28 @@
+{
+  "tool": "CPAchecker",
+  "version": "cmav-2:24399",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.prp": "CHECK( init(${entry_point}()), LTL(G ! call(__VERIFIER_error_${assertion_escape}())) )"
+  },
+  "options": [
+    {"-ldv": ""},
+    {"-setprop": "cpa.arg.errorPath.graphml=witness.%d.graphml"},
+    {"-setprop": "parser.readLineDirectives=true"},
+    {"-setprop": "cpa.arg.errorPath.exportImmediately=true"},
+    {"-setprop": "cpa.arg.errorPath.filters=org.sosy_lab.cpachecker.cpa.predicate.counterexamples.ABEBlockCounterexampleFilter"},
+    {"-setprop": "counterexample.export.compressWitness=false"},
+    {"-setprop": "analysis.stopAfterError=false"},
+    {"-heap": "{{i 13/15*${memory_limit} / 10 ** 6 i}}m"}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "C file",
+    "supported": [
+      "SV",
+      "BV"
+    ]
+  },
+  "path": ""
+}

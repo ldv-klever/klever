@@ -1,0 +1,24 @@
+{
+  "tool": "SeaHorn",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.prp": "CHECK( init(main()), LTL(G ! call(__VERIFIER_error())) )"
+  },
+  "options": [
+    {"--cex": "output/witness.graphml"},
+    {"-m64": ""}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "C file",
+    "explicit error function": "__VERIFIER_error",
+    "explicit entry point": "main",
+    "ignore builtins": true,
+    "supported": [
+      "SV",
+      "BV"
+    ]
+  },
+  "path": ""
+}

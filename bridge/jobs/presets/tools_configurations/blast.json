@@ -1,0 +1,30 @@
+{
+  "tool": "BLAST",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.prp": "CHECK( init(${entry_point}()), LTL(G ! call(__VERIFIER_error())) )"
+  },
+  "options": [
+    {"-svcomp-witness": "output/error-witness.graphml"},
+    {"-alias": "empty"},
+    {"-enable-recursion": ""},
+    {"-noprofile": ""},
+    {"-cref": ""},
+    {"-sv-comp": ""},
+    {"-lattice": ""},
+    {"-include-lattice": "symb"},
+    {"-nosserr": ""},
+    {"-main": "${entry_point}"}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "C file",
+    "explicit error function": "__VERIFIER_error",
+    "supported": [
+      "SV",
+      "BV"
+    ]
+  },
+  "path": ""
+}

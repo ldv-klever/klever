@@ -1,0 +1,26 @@
+{
+  "tool": "CPAchecker",
+  "version": "muauto:20125",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.spc": ""
+  },
+  "options": [
+    {"-ldv-spa": ""},
+    {"-setprop": "cpa.arg.errorPath.graphml=witness.%d.graphml"},
+    {"-setprop": "parser.readLineDirectives=true"},
+    {"-entryfunction": "${entry_point}"},
+    {"-heap": "{{i 13/15*${memory_limit} / 10 ** 6 i}}m"}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "automaton",
+    "supported": [
+      "SV",
+      "BV",
+      "SC"
+    ]
+  },
+  "path": ""
+}

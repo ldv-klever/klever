@@ -1,0 +1,32 @@
+{
+  "tool": "CPAchecker",
+  "version": "muauto:20125",
+  "resultfiles": "**/*.graphml",
+  "propertyfiles": {
+    "${assertion}.spc": ""
+  },
+  "options": [
+    {"-ldv-mpa": ""},
+    {"-setprop": "cpa.arg.errorPath.graphml=witness.%d.graphml"},
+    {"-setprop": "parser.readLineDirectives=true"},
+    {"-setprop": "analysis.mpa.partition.operator=RelevanceThenIrrelevantThenRelevantOperator"},
+    {"-setprop": "analysis.mpa.partition.time.cpu={{i ${time_limit} / ${number_of_assertions} / 10 ** 3 * 2/9 i}}"},
+    {"-setprop": "analysis.mpa.time.cpu.relevance.step2={{i ${time_limit} / ${number_of_assertions} / 10 ** 3  * 4/3 i}}"},
+    {"-setprop": "analysis.mpa.time.cpu.relevance.step3={{i ${time_limit} / ${number_of_assertions} / 10 ** 3 i}}"},
+    {"-setprop": "cpa.arg.errorPath.exportImmediately=true"},
+    {"-setprop": "limits.time.cpu={{i ${time_limit} / 10 ** 3 * 0.99 i}}s"},
+    {"-entryfunction": "${entry_point}"},
+    {"-heap": "{{i 13/15*${memory_limit} / 10 ** 6 i}}m"}
+  ],
+  "strategy": {
+    "separate assertion": false,
+    "external filtering": "model_functions",
+    "model": "automaton",
+    "supported": [
+      "CV",
+      "SC",
+      "RV"
+    ]
+  },
+  "path": ""
+}

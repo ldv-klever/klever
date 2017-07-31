@@ -1,0 +1,21 @@
+{
+  "tool": "<tool name (same as in BenchExec)>",
+  "version": "<branch>:<version> (only make sense for CPAchecker and VerifierCloud)",
+  "resultfiles": "<regexp that searches for all files, needed from verifier (not only witnesses)>",
+  "propertyfiles": {
+    "<property file name>": "<property file content>"
+  },
+  "options": [
+    {"<option_1>": "<value_1>"},
+    {"<option_n>": "<value_n>"}
+  ],
+  "strategy": {
+    "separate assertion": "<true|false (all assertions will be checked separately in case of true)>",
+    "external filtering": "<conversion function for external filtering in MEA ('model_functions', 'default' or 'no')>",
+    "model": "<type model for specification (currently supported 'automaton' and 'C file')>",
+    "supported": [
+      "<list of supported strategy names>"
+    ]
+  },
+  "path": "<path to verifier executables>"
+}
