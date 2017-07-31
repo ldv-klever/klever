@@ -202,12 +202,6 @@ def execute(logger, args, env=None, cwd=None, timeout=0, collect_all_stdout=Fals
                 if line is None:
                     break
                 output.append(line)
-            if output:
-                m = '"{0}" outputted to {1}:\n{2}'.format(cmd, stream_q.stream_name, '\n'.join(output))
-                if stream_q is out_q:
-                    logger.debug(m)
-                else:
-                    logger.warning(m)
 
     for stream_q in (out_q, err_q):
         stream_q.join()
