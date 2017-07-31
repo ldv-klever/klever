@@ -46,7 +46,7 @@ REP_MARK_TITLES = {
     'mark_verdict': _("Verdict"),
     'mark_result': _('Similarity'),
     'mark_status': _('Status'),
-    'number': '№',
+    'number': _('#'),
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
