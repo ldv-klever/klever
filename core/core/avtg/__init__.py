@@ -193,8 +193,7 @@ def _unite_rule_specifications(conf, logger, raw_rule_spec_descs):
     logger.info('Unite all rule specifications')
 
     rule_specifications = conf['rule specifications']
-    prefix = os.path.commonprefix(rule_specifications)
-    new_rule_name_id = prefix + ":" + 'united'
+    new_rule_name_id = ''
     logger.info('United rule specification was given the following name "{0}"'.format(new_rule_name_id))
 
     template = 'Linux kernel modules'
