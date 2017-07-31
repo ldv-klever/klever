@@ -1,0 +1,61 @@
+{
+  "Linux kernel": {
+    "source": "linux-4.0-rc1",
+    "configuration": "allmodconfig",
+    "modules": ["drivers/block/brd.ko"]
+  },
+  "LKVOG strategy": {"name": "separate modules"},
+  "maximum verification object size": 30000,
+  "rule specifications DB": "rule specs.json",
+  "rule specifications": [
+    "linux:mmc:sdio_func",
+    "linux:usb:coherent",
+    "linux:usb:dev",
+    "linux:usb:gadget",
+    "linux:usb:register",
+    "linux:usb:urb",
+    "linux:alloc:irq",
+    "linux:alloc:spin lock",
+    "linux:alloc:usb lock",
+    "linux:chrdev",
+    "linux:class",
+    "linux:module",
+    "linux:mutex",
+    "linux:netdev",
+    "linux:rwlock",
+    "linux:spinlock",
+    "linux:rtnl",
+    "linux:sock",
+    "linux:bitops",
+    "linux:blk:request",
+    "linux:blk:queue",
+    "linux:rculock",
+    "linux:rculockbh",
+    "linux:rculocksched",
+    "linux:srculock",
+    "linux:completion",
+    "linux:sysfs",
+    "linux:iomem",
+    "linux:idr",
+    "linux:gendisk"
+  ],
+  "unite rule specifications": true,
+  "RSG strategy": "all",
+  "common aspect": "linux/common.aspect",
+  "VTG strategy": {
+    "name": "CV",
+    "verifier": {
+      "tool config": "cpachecker-sdv.json"
+    },
+    "poll interval": 60,
+    "resource limits": {
+      "wall time": 100000000,
+      "CPU time": 27000000,
+      "memory size": 15000000000,
+      "CPU model": null,
+      "number of CPU cores": 1,
+      "result size": 1000000
+    },
+    "merge source files": true
+  }
+}
