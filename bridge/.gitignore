@@ -1,4 +1,4 @@
 bridge/settings.py
 bridge/db.json
 locale/ru/LC_MESSAGES/django.mo
-
+jobs/presets/tools_configurations/*
