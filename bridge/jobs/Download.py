@@ -32,7 +32,7 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, AttrName, Attr, ReportAttr, LightResource
+    Component, Computer, ReportAttr, LightResource
 from jobs.utils import create_job, update_job, change_job_status
 from reports.utils import AttrData
 from tools.utils import Recalculation
@@ -226,6 +226,7 @@ class ReportsData(object):
             'identifier': report.identifier,
             'computer': str(report.computer_id),
             'component': report.component.name,
+            'verification': report.verification,
             'resource': {
                 'cpu_time': report.cpu_time,
                 'wall_time': report.wall_time,
@@ -552,6 +553,7 @@ class UploadReports:
                 parent_id=self._parents[self.data[i].get('parent')],
                 computer_id=self._computers[self.data[i]['computer']],
                 component_id=self.__get_component(self.data[i]['component']),
+                verification=self.data[i]['verification'],
                 start_date=datetime.fromtimestamp(self.data[i]['start_date'], pytz.timezone('UTC')),
                 finish_date=datetime.fromtimestamp(self.data[i]['finish_date'], pytz.timezone('UTC'))
                 if self.data[i]['finish_date'] is not None else None,
