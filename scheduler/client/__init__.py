@@ -167,6 +167,8 @@ def solve_task(logger, conf, server):
 
     if exit_code != 0:
         # To keep the last warning exit without any exception
+        if not isinstance(exit_code, int):
+            exit_code = 1
         server.stop()
         os._exit(int(exit_code))
 
@@ -298,8 +300,6 @@ def prepare_job_arguments(conf):
             args.extend(conf['client']["runexec container mode options"])
     else:
         args.append('--no-container')
-
-    args.append(sys.executable)
 
     # Determine Klever Core script path
     if "Klever Core path" in conf["client"]:

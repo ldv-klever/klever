@@ -65,9 +65,9 @@ $(document).ready(function () {
 
     $('#get_task_status_submit').click(function () {
         $.ajax({
-            url: '/service/get_task_status/',
+            url: '/service/get_tasks_statuses/',
             data: {
-                'task id': $('#task_id').val()
+                'tasks': JSON.stringify([$('#task_id').val()])
             },
             type: 'POST',
             success: function (data) {
@@ -75,7 +75,19 @@ $(document).ready(function () {
                     err_notify(data.error);
                 }
                 else {
-                    success_notify("Task status: " + data['task status']);
+                    var statuses = JSON.parse(data['tasks statuses']);
+                    if (statuses['pending'].length) {
+                        success_notify("Task status: PENDING");
+                    }
+                    else if (statuses['processing'].length) {
+                        success_notify("Task status: PROCESSING");
+                    }
+                    else if (statuses['finished'].length) {
+                        success_notify("Task status: FINISHED");
+                    }
+                    else if (statuses['error'].length) {
+                        success_notify("Task status: ERROR");
+                    }
                 }
             }
         });

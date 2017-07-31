@@ -596,10 +596,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
             self.__process_future(self.cancel_job, self.__jobs[job_id], job_id)
 
     @abc.abstractmethod
-    def update_nodes(self):
+    def update_nodes(self, wait_controller=False):
         """
         Update statuses and configurations of available nodes and push them to the server.
 
+        :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
         return True

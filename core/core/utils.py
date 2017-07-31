@@ -113,7 +113,7 @@ class Cd:
     def __exit__(self, etype, value, traceback):
         os.chdir(self.prev_path)
 
-# Based on https://pypi.python.org/pypi/filelock/.
+
 class LockedOpen(object):
     def __init__(self, file, *args, **kwargs):
         self.file = file

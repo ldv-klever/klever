@@ -22,7 +22,6 @@ import multiprocessing
 import os
 import shutil
 import signal
-import sys
 
 import schedulers as schedulers
 import schedulers.resource_scheduler
@@ -121,7 +120,12 @@ class Scheduler(schedulers.SchedulerExchange):
         else:
             concurrent_jobs = 1
         self.__manager = schedulers.resource_scheduler.ResourceManager(logging, concurrent_jobs)
-        self.update_nodes()
+
+        if "wait controller initialization" in self.conf["scheduler"]:
+            wc = self.conf["scheduler"]["wait controller initialization"]
+        else:
+            wc = False
+        self.update_nodes(wc)
         nodes = self.__manager.active_nodes
         if len(nodes) != 1:
             raise ValueError('Expect strictly single active connected node but {} given'.format(len(nodes)))
@@ -134,9 +138,18 @@ class Scheduler(schedulers.SchedulerExchange):
         if "processes" not in self.conf["scheduler"]:
             raise KeyError("Provide configuration property 'scheduler''processes' to set "
                            "available number of parallel processes")
-        max_processes = self.conf["scheduler"]["processes"]
-        if isinstance(max_processes, float):
-            max_processes = int(max_processes * self.__cpu_cores)
+
+        if "disable CPU cores account" in self.conf["scheduler"] and \
+                self.conf["scheduler"]["disable CPU cores account"]:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                data = utils.extract_cpu_cores_info()
+                # Evaluate as a number of virtual cores
+                max_processes = int(max_processes * sum((len(data[a]) for a in data)))
+        else:
+            max_processes = self.conf["scheduler"]["processes"]
+            if isinstance(max_processes, float):
+                max_processes = int(max_processes * self.__cpu_cores)
         if max_processes < 2:
             raise KeyError(
                 "The number of parallel processes should be greater than 2 ({} is given)".format(max_processes))
@@ -272,14 +285,15 @@ class Scheduler(schedulers.SchedulerExchange):
         # Be sure that workers are killed
         self.__pool.shutdown(wait=False)
 
-    def update_nodes(self):
+    def update_nodes(self, wait_controller=False):
         """
         Update statuses and configurations of available nodes and push them to the server.
 
+        :param wait_controller: Ignore KV fails until it become working.
         :return: Return True if nothing has changes.
         """
         # Use resource mamanger to manage resources
-        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url)
+        cacnel_jobs, cancel_tasks = self.__manager.update_system_status(self.__kv_url, wait_controller)
         # todo: how to provide jobs or tasks to cancel?
         if len(cancel_tasks) > 0 or len(cacnel_jobs) > 0:
             logging.warning("Need to cancel jobs {} and tasks {} to avoid deadlocks, since resources has been "
@@ -308,8 +322,8 @@ class Scheduler(schedulers.SchedulerExchange):
         :raise SchedulerException: Raised if the preparation fails and task or job cannot be scheduled.
         """
         logging.info("Going to prepare execution of the {} {}".format(mode, identifier))
-        args = [sys.executable, self.__client_bin]
         node_status = self.__manager.node_info(self.__node_name)
+
         if mode == 'task':
             subdir = 'tasks'
             client_conf = self.__get_task_configuration()
@@ -318,7 +332,8 @@ class Scheduler(schedulers.SchedulerExchange):
             subdir = 'jobs'
             client_conf = self.__job_conf_prototype.copy()
             self.__manager.check_resources(configuration, job=True)
-        args.append(mode)
+
+        args = [self.__client_bin, mode]
 
         self.__create_work_dir(subdir, identifier)
         client_conf["Klever Bridge"] = self.conf["Klever Bridge"]
@@ -390,8 +405,13 @@ class Scheduler(schedulers.SchedulerExchange):
                                      int(node_status["reserved CPU number"]),
                                      int(configuration["resource limits"]["number of CPU cores"]))
         if mode != "task":
-            client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
-                len(client_conf["resource limits"]["CPU cores"])
+            if len(client_conf["resource limits"]["CPU cores"]) == 0:
+                data = utils.extract_cpu_cores_info()
+                client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                    sum((len(data[a]) for a in data))
+            else:
+                client_conf["Klever Core conf"]["task resource limits"]["CPU Virtual cores"] = \
+                    len(client_conf["resource limits"]["CPU cores"])
 
         with open(file_name, 'w', encoding="utf8") as fp:
             json.dump(client_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)

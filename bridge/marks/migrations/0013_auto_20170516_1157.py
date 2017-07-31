@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('marks', '0010_auto_20170505_1534'),
+        ('marks', '0012_remove_manual'),
     ]
 
     operations = [
