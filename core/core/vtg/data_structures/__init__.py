@@ -549,6 +549,11 @@ class SubmittedTask(object):
                 verdicts[assertion] = SAFE
             elif 'false' in verdict:
                 verdicts[assertion] = UNSAFE
+            else:
+                # Save reason of global unknown in case of checking several properties.
+                if global_verdict not in (SAFE, UNSAFE, UNKNOWN) \
+                        and 'true' not in global_verdict and 'false' not in global_verdict:
+                    verdicts[assertion] = global_verdict
         error_traces = self.__get_error_traces()
         if len(error_traces) == 1 and len(assertions) == 1:
             # Do not expect good property names here.
