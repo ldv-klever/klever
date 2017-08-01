@@ -36,7 +36,7 @@ class LCOV:
         PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
 
         DIR_MAP = (('source files', self.shadow_src_dir),
-                   ('models', os.path.join(self.main_work_dir, 'job', 'root')),
+                   ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
                    ('generated models', self.main_work_dir))
 
         ignore_file = False
@@ -90,7 +90,10 @@ class LCOV:
                         len_file = self.get_file_len(file_name)
                         for dest, src in DIR_MAP:
                             if file_name.startswith(src):
-                                new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
+                                if dest == 'generated models':
+                                    new_file_name = os.path.join(dest, os.path.basename(file_name))
+                                else:
+                                    new_file_name = os.path.join(dest, os.path.relpath(file_name, src))
                                 ignore_file = False
                                 break
                         else:
