@@ -1,0 +1,16 @@
+{% for data in data_map %}
+    <div id="COVDataLine_{{ data.line }}" style="display:none;margin-top: 10px;">
+        <div class="ui top attached tabular menu">
+        {% for d in data.content %}
+            <a class="item{% if d.2 %} active{% endif %}" data-tab="{{ d.0 }} {{ data.line }}">{{ d.0 }}</a>
+        {% endfor %}
+        </div>
+        {% for d in data.content %}
+            <div class="ui bottom attached tab segment{% if d.2 %} active{% endif %}" data-tab="{{ d.0 }} {{ data.line }}" data-data-id="{{ d.1 }}"></div>
+        {% endfor %}
+    </div>
+{% endfor %}
+
+{% for d in data_values %}
+    <div id="{{ d.0 }}" hidden>{{ d.1|safe }}</div>
+{% endfor %}

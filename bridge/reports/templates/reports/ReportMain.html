@@ -112,19 +112,17 @@
             </div>
         {% endif %}
         <br>
-        <div class="ui grid">
+        <div class="ui buttons">
             {% if report.log %}
-                <div class="eight wide column">
-                    <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
-                </div>
+                <button id="show_component_log" class="ui violet button">{% trans 'Log' %}</button>
             {% endif %}
             {% if report.archive %}
-                <div class="eight wide column right aligned">
-                    <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
-                </div>
+                <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
+                {% if report.coverage %}
+                    <a href="{% if user.extended.coverage_weight == '0' %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
+                {% endif %}
             {% endif %}
         </div>
-
     </div>
 
     <div class="ten wide column">

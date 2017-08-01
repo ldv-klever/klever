@@ -79,6 +79,11 @@
                         </div>
                         <br>
                     </div>
+                    <div class="field">
+                        <label>{{ profile_form.coverage_weight.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of coverage data and its statistic.' %}"></i></label>
+                        {{ profile_form.coverage_weight }}
+                        <br>
+                    </div>
                 </div>
                 <div class="six wide column">
                     <h3 class="header">{% trans 'VerifierCloud Credentials' %}</h3>

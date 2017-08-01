@@ -59,15 +59,18 @@ window.inittree = function(table, column, expanded, collapsed) {
                 curr_indent = old_rows[tt_par_id] + indent;
             }
             new_element.append($("<span>", {style: 'margin-left: ' + curr_indent + 'px;', class: 'tabletree'}));
-            new_element.append($('<i>', {class: collapsed, style: 'cursor: pointer', id: 'tt_expander_' + tt_id}));
+            if ($(this).hasClass('tr-show')) {
+                $(this).removeClass('tr-show');
+                new_element.append($('<i>', {class: expanded, style: 'cursor: pointer', id: 'tt_expander_' + tt_id}));
+                expanded_parents.push(tt_id);
+            }
+            else {
+                new_element.append($('<i>', {class: collapsed, style: 'cursor: pointer', id: 'tt_expander_' + tt_id}));
+            }
             tree_cell.prepend(new_element.html());
             if (tt_par_id && expanded_parents.indexOf(tt_par_id) === -1) {
                 $(this).hide();
             }
-        }
-        var curr_icon = $(this).find('i').first();
-        if (curr_icon.attr('class') === expanded) {
-            expanded_parents.push(tt_id);
         }
         old_rows[tt_id] = curr_indent;
         if (prev_icon) {

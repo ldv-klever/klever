@@ -739,7 +739,7 @@ class DecideJobs(object):
             'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
 
-    def __upload_verification_report(self, name, parent, attrs=None):
+    def __upload_verification_report(self, name, parent, attrs, coverage_arch='full_coverage.zip'):
         r_id = self.__get_report_id(name)
         report = {
             'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name,
@@ -747,8 +747,9 @@ class DecideJobs(object):
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
-        if random.randint(1, 10) > 4:
-            with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
+        if random.randint(1, 10) > 0:
+            with open(os.path.join(ARCHIVE_PATH, coverage_arch), mode='rb') as fp:
+                report['coverage'] = 'coverage.json'
                 self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
         else:
             report['log'] = None
@@ -881,12 +882,16 @@ class DecideJobs(object):
                 # self.__upload_empty_safe_report(tool, [])
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
-                    tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
+                    tool = self.__upload_verification_report(
+                        chunk['tool'], abkm, chunk['tool_attrs'], 'big_full_coverage.zip'
+                    )
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
                     self.__upload_finish_verification_report(tool)
                     cnt += 1
             if 'unknown' in chunk and 'safe' not in chunk:
-                tool = self.__upload_verification_report(chunk['tool'], abkm, chunk['tool_attrs'])
+                tool = self.__upload_verification_report(
+                    chunk['tool'], abkm, chunk['tool_attrs'], 'partially_coverage.zip'
+                )
                 self.__upload_unknown_report(tool, chunk['unknown'], False)
                 self.__upload_finish_verification_report(tool)
             self.__upload_finish_report(abkm)
