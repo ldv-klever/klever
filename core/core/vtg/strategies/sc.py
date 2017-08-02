@@ -18,7 +18,6 @@ class SC(Strategy):
     name = "SC"
 
     def execute(self):
-        # TODO: need be fully checked
         launches = self.__get_launches_information()
         verification_task = None
         verification_result = VerificationResults()
@@ -26,9 +25,7 @@ class SC(Strategy):
             (launch_config, assertions_handling, factor) = self._select_config(launch, verification_result)
 
             if not verification_task:
-                # TODO: var overall_assertions is not used
-                verification_task, overall_assertions = create_task(self, predefined_config=launch_config,
-                                                                    limitations_factor=factor)
+                verification_task = create_task(self, predefined_config=launch_config, limitations_factor=factor)[0]
             else:
                 verification_task = update_task(self, verification_task, verification_result, launch_config, factor)
 
@@ -48,9 +45,16 @@ class SC(Strategy):
         process_result(verification_result, self, verification_task)
 
     def _select_config(self, launch_information, verification_result: VerificationResults):
-        primary = launch_information["primary config"]
-        secondary = launch_information.get("secondary config")
-        factor = launch_information["limitations factor"]
+        """
+        Provides new configuration for each new launch based on the given results.
+        This function can be overridden in child strategies.
+        :param launch_information: information from base config.
+        :param verification_result: previous results (or None in case of the first launch).
+        :return: tuple <tool config>, <unite / separate properties>, <resource limitation factor>.
+        """
+        primary = launch_information["primary config"]  # mandatory item
+        secondary = launch_information.get("secondary config")  # aux config
+        factor = launch_information.get("limitations factor") or 1.0  # base resource limitation factor
         if not secondary or verification_result.is_empty():
             config = (primary, UNITE_ASSERTIONS)
         else:

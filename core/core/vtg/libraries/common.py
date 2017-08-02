@@ -28,7 +28,7 @@ UNKNOWN_FILE = "error.txt"
 
 
 def create_task(strategy: Strategy, predefined_config=None, limitations_factor=None,
-                specified_assertions=set()) -> VerificationTask:
+                specified_assertions=set()) -> (VerificationTask, []):
     """
     Extracts information regarding verification task from strategy component and
     creates VerificationTask object based on it.
