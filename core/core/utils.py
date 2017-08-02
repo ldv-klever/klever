@@ -27,6 +27,7 @@ import zipfile
 import threading
 import time
 import queue
+import hashlib
 from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
@@ -565,7 +566,7 @@ def merge_confs(a, b):
 
 
 # TODO: replace report file with report everywhere.
-def report(logger, type, report, mq=None, dir=None, suffix=None):
+def report(logger, type, report, mq, dir):
     logger.debug('Create {0} report'.format(type))
 
     # Specify report type.
@@ -591,14 +592,18 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
         report['attrs'] = capitalize_attr_names(report['attrs'])
 
+    # Get text
+    report_text = json.dumps(report, ensure_ascii=False, sort_keys=True, indent=4)
+    identifier = hashlib.sha224(report_text.encode('UTF8')).hexdigest()
+
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
     rel_report_files_archive = None
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
-        rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        if os.path.isfile(report_files_archive):
-            raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+        report_files_archive = '{}.zip'.format(identifier)
+        rel_report_files_archive = os.path.join(dir, report_files_archive)
+        if os.path.isfile(rel_report_files_archive):
+            unique_file_name(rel_report_files_archive)
+        with zipfile.ZipFile(rel_report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in report['files']:
                 arcname = None
                 if 'arcname' in report and file in report['arcname']:
@@ -609,12 +614,12 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
 
     # Create report file in current working directory.
-    report_file = '{0}{1} report.json'.format(type, suffix or '')
-    rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
-    if os.path.isfile(report_file):
-        raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
-    with open(report_file, 'w', encoding='utf8') as fp:
-        json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
+    report_file = '{0} report.json'.format(identifier)
+    rel_report_file = os.path.join(dir, report_file)
+    if os.path.isfile(rel_report_file):
+        unique_file_name(rel_report_file)
+    with open(rel_report_file, 'w', encoding='utf8') as fp:
+        fp.write(report_text)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(type.capitalize(), rel_report_file))
 
@@ -622,7 +627,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
     if mq:
         mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
 
-    return report_file
+    return rel_report_file
 
 
 def unique_file_name(file_name, suffix=''):
