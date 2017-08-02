@@ -7,6 +7,7 @@ from core.vtg.data_structures import VerificationResults
 SEQUENTIAL_COMBINATION_TAG = "sequential combination"
 UNITE_ASSERTIONS = 1
 SEPARATE_ASSERTIONS = 0
+SEPARATION_PARAMETER = 3
 
 
 class SC(Strategy):
@@ -58,7 +59,7 @@ class SC(Strategy):
         if not secondary or verification_result.is_empty():
             config = (primary, UNITE_ASSERTIONS)
         else:
-            if len(verification_result.get_checked_assertions()) < 3:
+            if len(verification_result.get_checked_assertions()) < SEPARATION_PARAMETER:
                 config = (secondary, SEPARATE_ASSERTIONS)
                 factor = 1.0 / len(verification_result.verdicts)
             else:
