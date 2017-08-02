@@ -59,6 +59,7 @@ class SC(Strategy):
                 factor = 1.0 / len(verification_result.verdicts)
             else:
                 config = (primary, UNITE_ASSERTIONS)
+                factor = len(verification_result.get_checked_assertions()) / len(verification_result.verdicts)
         return config + (factor, )
 
     def __get_launches_information(self):
