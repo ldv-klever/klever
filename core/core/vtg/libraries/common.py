@@ -262,7 +262,7 @@ def process_result(results: VerificationResults, strategy: Strategy, task: Verif
                           },
                           strategy.mqs['report files'],
                           strategy.conf['main working directory'],
-                          assertion)
+                          assertion + "ui")
 
     for assertion, verdict in results.verdicts.items():
         if assertion in results.error_traces and results.error_traces[assertion]:
