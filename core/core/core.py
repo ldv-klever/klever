@@ -65,7 +65,9 @@ class Core(core.utils.CallbacksCaller):
                                                       'id': self.ID,
                                                       'attrs': [{'Klever Core version': version}],
                                                       'comp': self.comp
-                                                  })
+                                                  },
+                                                  None,
+                                                  os.path.abspath(os.path.curdir))
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()
@@ -88,7 +90,8 @@ class Core(core.utils.CallbacksCaller):
                                           'problem desc': 'problem desc.txt',
                                           'files': ['problem desc.txt']
                                       },
-                                      self.mqs['report files'])
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'])
                 except Exception:
                     self.process_exception()
         finally:
@@ -113,7 +116,8 @@ class Core(core.utils.CallbacksCaller):
                                           'log': 'log.txt' if os.path.isfile('log.txt') else None,
                                           'files': ['log.txt'] if os.path.isfile('log.txt') else []
                                       },
-                                      self.mqs['report files'])
+                                      self.mqs['report files'],
+                                      self.conf['main working directory'])
                     self.logger.info('Terminate report files message queue')
                     self.mqs['report files'].put(None)
 

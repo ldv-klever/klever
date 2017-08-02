@@ -71,9 +71,10 @@ class FVTP(core.vtgvrp.vtg.plugins.Plugin):
         # Submit for solution
         task_id = self.session.schedule_task(verification_task)
         # Plan for checking staus
-        self.mqs['VTGVRP pending tasks'].put([task_id,
+        self.mqs['VTGVRP pending tasks'].put([str(task_id),
                                               self.conf["result processing"] if self.conf["result processing"] else {},
-                                              self.abstract_task_desc['attrs']['rule specification'],
+                                              self.abstract_task_desc['attrs'][0]['verification object'],
+                                              self.abstract_task_desc['attrs'][1]['rule specification'],
                                               files,
                                               self.shadow_src_dir,
                                               self.work_dir])

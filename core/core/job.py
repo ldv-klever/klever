@@ -171,13 +171,12 @@ class Job(core.utils.CallbacksCaller):
                     # calculate validation and testing results.
                     self.mqs['verification statuses'] = multiprocessing.Queue()
 
-                    def after_generate_abstact_verification_task_desc(context):
-                        if not context.abstract_task_desc_file:
-                            context.mqs['verification statuses'].put({
-                                'verification object': context.verification_obj,
-                                'rule specification': context.rule_spec,
-                                'verdict': 'unknown'
-                            })
+                    def after_send_unknown_report(context):
+                        context.mqs['verification statuses'].put({
+                            'verification object': context.verification_object,
+                            'rule specification': context.rule_specification,
+                            'verdict': context.verdict
+                        })
 
                     def after_process_single_verdict(context):
                         context.mqs['verification statuses'].put({
@@ -186,15 +185,15 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    def after_generate_all_verification_tasks(context):
+                    def after_result_processing(context):
                         context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
-                                                           after_generate_abstact_verification_task_desc,
                                                            after_process_single_verdict,
-                                                           after_generate_all_verification_tasks
+                                                           after_send_unknown_report,
+                                                           after_result_processing
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
@@ -443,8 +442,7 @@ class Job(core.utils.CallbacksCaller):
                                           'data': {name: verification_result}
                                       },
                                       self.mqs['report files'],
-                                      self.components_common_conf['main working directory'],
-                                      re.sub(r'/', '-', name_suffix))
+                                      self.components_common_conf['main working directory'])
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
             exit(1)

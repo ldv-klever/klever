@@ -417,7 +417,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             raise ValueError("Attempt to scheduler running or processed job {}".format(job_id))
                         try:
                             self.__jobs[job_id]["future"]\
-                                = self.__attempts(self.solve_job, 3, 'start job {}'.format(job_id),
+                                = self.__attempts(self.solve_job, 1, 'start job {}'.format(job_id),
                                                   (job_id,
                                                    self.__jobs[job_id]))
                         except SchedulerException as err:
@@ -432,7 +432,7 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                             raise ValueError("Attempt to scheduler running or processed task {}".format(task_id))
                         try:
                             self.__tasks[task_id]["future"]\
-                                = self.__attempts(self.solve_task, 3, 'start task {}'.format(task_id),
+                                = self.__attempts(self.solve_task, 1, 'start task {}'.format(task_id),
                                                   (task_id,
                                                    self.__tasks[task_id]["description"],
                                                    self.__tasks[task_id]["user"],

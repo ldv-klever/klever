@@ -51,15 +51,6 @@ class VTGVRP(core.components.Component):
         # Tasks waiting for solution
         self.mqs['VTGVRP pending tasks'] = multiprocessing.Queue()
 
-        # core.utils.report(self.logger,
-        #                   'attrs',
-        #                   {
-        #                       'id': self.id,
-        #                       'attrs': self.__get_common_prj_attrs()
-        #                   },
-        #                   self.mqs['report files'],
-        #                   self.conf['main working directory'])
-
         tg = VTG(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)
         rp = VRP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)
         tg.start()
