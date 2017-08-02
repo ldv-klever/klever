@@ -95,7 +95,7 @@ class Session:
     def get_tasks_statuses(self, task_ids):
         resp = self.__request('service/get_tasks_statuses/', {'tasks': json.dumps(task_ids)})
         statuses = resp.json()['tasks statuses']
-        return statuses
+        return json.loads(statuses)
 
     def get_task_error(self, task_id):
         resp = self.__request('service/download_solution/', {'task id': task_id})
