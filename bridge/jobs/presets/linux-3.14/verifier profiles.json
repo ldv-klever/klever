@@ -20,9 +20,7 @@
       "description": "CPAchecker with BAM fore reachability checking",
       "inherit": "CPAchecker common",
       "add options": [
-        {
-          "-ldv-bam-optimized": ""
-        }
+        {"-ldv-bam-optimized": ""}
       ]
     },
     "CPAchecker SMG memory checking": {
@@ -38,7 +36,7 @@
     "reachability common Linux64": {
       "CPAchecker": {
         "ldv-bam:25139": {
-          "inherit": "CPAchecker BAM reachability template"
+          "inherit": "CPAchecker BAM reachability"
         }
       },
       "UltimateAutomizer": {
