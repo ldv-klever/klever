@@ -180,7 +180,7 @@ class Job(core.utils.CallbacksCaller):
 
                     def after_process_single_verdict(context):
                         context.mqs['verification statuses'].put({
-                            'verification object': context.conf['abstract task desc']['attrs'][0]['verification object'],
+                            'verification object': context.verification_object,
                             'rule specification': context.rule_specification,
                             'verdict': context.verdict
                         })

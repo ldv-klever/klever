@@ -16,9 +16,7 @@
 #
 
 import queue
-import multiprocessing
 import os
-import traceback
 import zipfile
 import json
 import xml.etree.ElementTree as ElementTree
@@ -28,7 +26,7 @@ import re
 import core.components
 import core.utils
 import core.session
-#import core.vtgvrp.vrp.et as et
+from core.vtgvrp.vrp.et import import_error_trace
 
 
 class VRP(core.components.Component):
@@ -38,17 +36,24 @@ class VRP(core.components.Component):
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.__pending = dict()
         self.__downloaded = dict()
-        self.mqs['VRP result processing'] = multiprocessing.Queue
-        self.__workers = core.utils.get_parallel_threads_num(logger, conf, 'todo')
 
+        # Read this in a callback
+        self.verdict = None
+        self.rule_specification = None
+        self.verification_object = None
+
+        # Common initialization
         super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
                                   unknown_attrs, separate_from_parent, include_child_resources)
 
     def process_results(self):
-        self.launch_subcomponents(
-            [('RP', self.__process_results) for _ in range(self.__workers)]
-        )
+        # This function call exists because I was not able to add a callback for the main function. Thus the call below
+        # justs serves as a callback attaching point.
+        self.result_processing()
 
+    main = process_results
+
+    def result_processing(self):
         pending = {}
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
@@ -70,7 +75,7 @@ class VRP(core.components.Component):
                         self.logger.debug("Fetched {} tasks".format(number))
                 else:
                     try:
-                        data = self.mqs['VTGVRP pending tasks'].get(block=True, timout=30)
+                        data = self.mqs['VTGVRP pending tasks'].get(block=True, timeout=30)
                         if not data:
                             receiving = False
                             self.logger.info("Expect no tasks to be generated")
@@ -81,115 +86,125 @@ class VRP(core.components.Component):
 
             if len(pending) > 0:
                 tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
-                for task in pending:
+                for task in list(pending.keys()):
+                    task_id, opts, verification_object, rule_specification, files, shadow_src_dir, work_dir =\
+                        pending[task]
                     if task in tasks_statuses['finished']:
-                        self.mqs['VRP result processing'].put(pending[task])
+                        self.__process_results(session, task_id, opts, verification_object, rule_specification, files,
+                                               shadow_src_dir, work_dir)
                         del pending[task]
                     elif task in tasks_statuses['error']:
                         task_error = session.get_task_error(task)
-
                         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
                         with open('task error.txt', 'w', encoding='utf8') as fp:
                             fp.write(task_error)
 
-                        core.utils.report(self.logger,
-                                          'unknown',
-                                          {
-                                              # todo: What should I submit there?
-                                              'id': 'id?' + '/unknown',
-                                              'parent id': 'id?',
-                                              'problem desc': 'task error.txt',
-                                              'files': ['task error.txt']
-                                          },
-                                          self.mqs['report files'],
-                                          self.conf['main working directory'])
+                        self.send_unknown_report(task_id, verification_object, rule_specification, 'task error.txt')
                         del pending[task]
                     elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
                         raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
                                        "tasks".format(task))
             elif not receiving:
-                for i in range(self.__workers):
-                    self.mqs['VRP result processing'].put(None)
+                self.mqs['VTGVRP pending tasks'].close()
                 break
 
         # todo: Clean work dirs
         self.logger.debug("Shutting down result processing gracefully")
 
-    main = process_results
+    def __process_results(self, session, task_id, opts, verification_object, rule_specification, files, shadow_src_dir,
+                          work_dir):
+        self.logger.debug("Prcess results of the task {}".find(task_id))
+        work_dir = os.path.abspath(os.path.join(os.path.pardir, 'vtg', work_dir))
+        mydir = os.path.abspath(os.curdir)
+        os.chdir(work_dir)
 
-    def __process_results(self):
-        self.logger.debug("A worker starts its watch")
-        session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+        try:
+            session.download_decision(task_id)
 
-        while True:
-            data = self.mqs['VTGVRP pending tasks'].get()
-            if not data:
-                break
+            with zipfile.ZipFile('decision result files.zip') as zfp:
+                zfp.extractall()
 
-            task_id, opts, rule_specification, files, shadow_src_dir, work_dir = data
-            mydir = os.curdir
-            os.chdir(work_dir)
-            try:
-                self.logger.info('Verification task {} was successfully decided'.format(task_id))
-                session.download_decision(task_id)
+            with open('decision results.json', encoding='utf8') as fp:
+                decision_results = json.load(fp)
 
-                with zipfile.ZipFile('decision result files.zip') as zfp:
-                    zfp.extractall()
+            # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
+            log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
 
-                with open('decision results.json', encoding='utf8') as fp:
-                    decision_results = json.load(fp)
+            if len(log_files) != 1:
+                raise RuntimeError(
+                    'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
+                        log_files))
 
-                verification_report_id = '{0}/verification'.format(self.id)
-                log_file = self.__create_verification_report(verification_report_id, decision_results, files)
+            log_file = log_files[0]
 
-                witness_processing_exception = self.__process_single_verdict(
-                    decision_results, verification_report_id, opts, rule_specification, shadow_src_dir, log_file)
-
-                self.__create_verification_finish_report(verification_report_id)
-
-                if witness_processing_exception:
-                    raise witness_processing_exception
-            except Exception:
-                self.logger.warning("Cannot process results of the verification task {}:\n {}".
-                                    format(task_id, traceback.format_exc().rstrip()))
+            # Send an initial report
+            core.utils.report(self.logger,
+                              'verification',
+                              {
+                                  # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                                  'id': "{}/verification_{}".format(self.id, task_id),
+                                  'parent id': self.id,
+                                  # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                                  'attrs': [],
+                                  'name': self.conf['VTG']['verifier']['name'],
+                                  'resources': decision_results['resources'],
+                                  'log': None if self.logger.disabled or not log_file else log_file,
+                                  'files': (files if self.conf['upload input files of static verifiers'] else []) +
+                                           ([] if self.logger.disabled or not log_file else [log_file])
+                              },
+                              self.mqs['report files'],
+                              self.conf['main working directory'])
+            # Submit a verdict
+            witness_processing_exception = self.process_single_verdict(
+                task_id, decision_results, opts, verification_object, rule_specification, shadow_src_dir, log_file)
+            # Submit a closing report
+            core.utils.report(self.logger,
+                              'verification finish',
+                              {'id': "{}/verification_{}".format(self.id, task_id)},
+                              self.mqs['report files'],
+                              self.conf['main working directory'])
+            if witness_processing_exception:
+                raise witness_processing_exception
+        finally:
             # Return back anyway
             os.chdir(mydir)
 
-        self.logger.debug("A worker has finished its watch")
-
-    def __create_verification_report(self, verification_report_id, decision_results, files):
-        # TODO: specify the computer where the verifier was invoked (this information should be get from BenchExec or VerifierCloud web client.
-        log_files = glob.glob(os.path.join('output', 'benchmark*logfiles/*'))
-
-        if len(log_files) != 1:
-            RuntimeError(
-                'Exactly one log file should be outputted when source files are merged (but "{0}" are given)'.format(
-                    log_files))
-
-        log_file = log_files[0]
+    def send_unknown_report(self, task_id, verification_object, rule_specification, problem):
+        """The function has a callback at Job module."""
+        self.rule_specification = rule_specification
+        self.verification_object = verification_object
+        self.verdict = 'unknown'
 
         core.utils.report(self.logger,
-                          'verification',
+                          'unknown',
                           {
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'id': verification_report_id,
+                              'id': "{}/unknown_{}".format(self.id, task_id),
                               'parent id': self.id,
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'attrs': [],
-                              'name': self.conf['VTG']['verifier']['name'],
-                              'resources': decision_results['resources'],
-                              'log': None if self.logger.disabled else log_file,
-                              'files': ([] if self.logger.disabled else [log_file]) + (
-                                  files if self.conf['upload input files of static verifiers'] else []
-                              )
+                              'attrs': [{"Rule specification": rule_specification}],
+                              'problem desc': problem,
+                              'files': [problem]
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
-        return log_file
 
-    def __process_single_verdict(self, decision_results, verification_report_id, opts, rule_specification,
-                                 shadow_src_dir, log_file):
+    def process_single_verdict(self, task_id, decision_results, opts, verification_object, rule_specification,
+                               shadow_src_dir, log_file):
+        """
+        The function has a callback that collects verdicts to compare them with the ideal ones.
+
+        :param decision_results:
+        :param verification_report_id:
+        :param opts:
+        :param rule_specification:
+        :param shadow_src_dir:
+        :param log_file:
+        :return:
+        """
+        # Set the data for callbacks
+        self.verification_object = verification_object
+        self.rule_specification = rule_specification
+
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
         if len(benchexec_reports) != 1:
@@ -221,14 +236,15 @@ class VRP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': verification_report_id + '/safe',
-                                  'parent id': verification_report_id,
+                                  'id': "{}/verification_{}/safe".format(self.id, task_id),
+                                  'parent id': "{}/verification_{}".format(self.id, task_id),
                                   'attrs': [{"Rule specification": rule_specification}],
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   'proof': None
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
+            self.verdict = 'safe'
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 
@@ -237,7 +253,7 @@ class VRP(core.components.Component):
             if "expect several files" in opts and opts["expect several files"] and len(witnesses) != 0:
                 for witness in witnesses:
                     try:
-                        etrace = et.import_error_trace(self.logger, witness,
+                        etrace = import_error_trace(self.logger, witness,
                                                        opts["namespace"] if "namespace" in opts else None)
 
                         result = re.search(r'witness\.(.*)\.graphml', witness)
@@ -253,8 +269,8 @@ class VRP(core.components.Component):
                         core.utils.report(self.logger,
                                           'unsafe',
                                           {
-                                              'id': verification_report_id + '/unsafe' + '_' + trace_id,
-                                              'parent id': verification_report_id,
+                                              'id': "{}/verification_{}/unsafe_{}".format(self.id, task_id, trace_id),
+                                              'parent id': "{}/verification_{}".format(self.id, task_id),
                                               'attrs': [
                                                   {"Rule specification": rule_specification},
                                                   {"Error trace identifier": trace_id}],
@@ -263,8 +279,8 @@ class VRP(core.components.Component):
                                               'arcname': arcnames
                                           },
                                           self.mqs['report files'],
-                                          self.conf['main working directory'],
-                                          trace_id)
+                                          self.conf['main working directory'])
+                        self.verdict = 'unsafe'
                     except Exception as e:
                         if witness_processing_exception:
                             try:
@@ -292,8 +308,8 @@ class VRP(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': verification_report_id + '/unsafe',
-                                          'parent id': verification_report_id,
+                                          'id': "{}/verification_{}/unsafe".format(self.id, task_id),
+                                          'parent id': "{}/verification_{}".format(self.id, task_id),
                                           'attrs': [{"Rule specification": rule_specification}],
                                           'error trace': 'error trace.json',
                                           'files': ['error trace.json'] + list(arcnames.keys()),
@@ -301,6 +317,7 @@ class VRP(core.components.Component):
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
+                    self.verdict = 'unsafe'
                 except Exception as e:
                     witness_processing_exception = e
 
@@ -312,26 +329,9 @@ class VRP(core.components.Component):
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                core.utils.report(self.logger,
-                                  'unknown',
-                                  {
-                                      'id': verification_report_id + '/unknown',
-                                      'parent id': verification_report_id,
-                                      'attrs': [{"Rule specification": rule_specification}],
-                                      'problem desc': log_file,
-                                      'files': [log_file]
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'])
+                self.send_unknown_report(task_id, verification_object, rule_specification, log_file)
 
         return witness_processing_exception
-
-    def __create_verification_finish_report(self, verification_report_id):
-        core.utils.report(self.logger,
-                          'verification finish',
-                          {'id': verification_report_id},
-                          self.mqs['report files'],
-                          self.conf['main working directory'])
 
     def __trim_file_names(self, file_names, shadow_src_dir):
         arcnames = {}
