@@ -185,7 +185,7 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    def after_result_processing(context):
+                    def after_finish_tasks_results_processing(context):
                         context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
 
@@ -193,7 +193,7 @@ class Job(core.utils.CallbacksCaller):
                                                        (
                                                            after_process_single_verdict,
                                                            after_send_unknown_report,
-                                                           after_result_processing
+                                                           after_finish_tasks_results_processing
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
