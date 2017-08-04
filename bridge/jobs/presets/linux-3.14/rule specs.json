@@ -162,7 +162,8 @@
         },
         "TR",
         "RSG",
-        "Weaver"
+        "Weaver",
+        "FVTP"
       ]
     }
   },
@@ -207,7 +208,7 @@
           "LTL(G valid-memtrack)"
       ]},
       "FVTP": {
-        "verifier profile": "CPAchecker SMG Linux64"
+        "verifier profile": "memory checking Linux64"
       }
     },
     "linux:empty": {

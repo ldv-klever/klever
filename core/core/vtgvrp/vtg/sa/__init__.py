@@ -33,11 +33,21 @@ def nested_dict():
 
 
 class SA(core.vtgvrp.vtg.plugins.Plugin):
-    # TODO: Use template processor instead of predefined aspect file and target output files
-    collection = None
-    files = []
-    modules_functions = []
-    kernel_functions = []
+    depend_on_rule = False
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+        # Rule specification descriptions were already extracted when getting VTG callbacks.
+        self.rule_spec_descs = None
+
+        super(SA, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+                                 unknown_attrs, separate_from_parent, include_child_resources)
+
+        # TODO: Use template processor instead of predefined aspect file and target output files
+        self.collection = None
+        self.files = []
+        self.modules_functions = []
+        self.kernel_functions = []
 
     def analyze_sources(self):
         # Init an empty collection

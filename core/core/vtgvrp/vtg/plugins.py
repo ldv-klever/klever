@@ -22,6 +22,8 @@ import core.components
 
 
 class Plugin(core.components.Component):
+    depend_on_rule = True
+
     def run(self):
         in_abstract_task_desc_file = os.path.relpath(
             os.path.join(self.conf['main working directory'], self.conf['in abstract task desc file']))

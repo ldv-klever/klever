@@ -143,16 +143,16 @@ def get_list_of_verifiers_options(logger, conf):
 
     logger.debug("Import verifier profiles DB")
     try:
-        verofer_profile_db = conf["verifier profiles DB"]
+        verifier_profile_db = conf["verifier profiles DB"]
     except KeyError:
         raise KeyError('Set "verifier profiles DB" configuration option and provide corresponding file with '
                        'verifiers profiles containing options')
     try:
-        verofer_profile_db = core.utils.find_file_or_dir(logger, conf["main working directory"], verofer_profile_db)
-        with open(verofer_profile_db, 'r', encoding='utf8') as fp:
+        verifier_profile_db = core.utils.find_file_or_dir(logger, conf["main working directory"], verifier_profile_db)
+        with open(verifier_profile_db, 'r', encoding='utf8') as fp:
             profiles = json.loads(fp.read())
     except FileNotFoundError:
-        raise FileNotFoundError("There is no verifier profiles DB file: {!r}".format(verofer_profile_db))
+        raise FileNotFoundError("There is no verifier profiles DB file: {!r}".format(verifier_profile_db))
 
     logger.debug("Determine profile for the given verifier and its version")
     try:

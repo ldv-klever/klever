@@ -151,6 +151,8 @@ class RP(core.components.Component):
             else:
                 raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
+            self.mqs['VTGVRP processed tasks'].put((verification_object, rule_specification))
+
     main = fetcher
 
     def send_unknown_report(self, task_id, verification_object, rule_specification, problem):

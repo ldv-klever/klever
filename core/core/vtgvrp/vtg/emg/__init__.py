@@ -36,6 +36,7 @@ class EMG(core.vtgvrp.vtg.plugins.Plugin):
     """
 
     specification_extension_re = re.compile('.json$')
+    depend_on_rule = False
 
     ####################################################################################################################
     # PUBLIC METHODS

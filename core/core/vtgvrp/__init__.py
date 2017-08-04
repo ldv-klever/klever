@@ -50,6 +50,7 @@ class VTGVRP(core.components.Component):
         # self.abstract_task_descs_num = multiprocessing.Value('i', 0)
         # Tasks waiting for solution
         self.mqs['VTGVRP pending tasks'] = multiprocessing.Queue()
+        self.mqs['VTGVRP processed tasks'] = multiprocessing.Queue()
 
         tg = VTG(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)
         rp = VRP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, separate_from_parent=True)

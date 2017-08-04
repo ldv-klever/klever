@@ -71,7 +71,6 @@ def propogate_callbacks(decorated_function):
     return decorated_function
 
 
-
 class CallbacksCaller:
     def __getattribute__(self, name):
         attr = object.__getattribute__(self, name)
