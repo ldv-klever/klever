@@ -166,6 +166,7 @@ def edit_profile(request):
 
 
 @login_required
+@unparallel_group([])
 def show_profile(request, user_id):
     activate(request.user.extended.language)
     target = get_object_or_404(User, pk=user_id)

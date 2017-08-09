@@ -16,6 +16,7 @@
 #
 
 import json
+import zipfile
 from io import BytesIO
 
 from django.core.exceptions import ObjectDoesNotExist
@@ -270,13 +271,16 @@ class UploadReport:
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
 
+        check_arch = False
         if self.archive is not None and \
                 (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
             report.coverage = self.data.get('coverage')
-
+            check_arch = True
         report.save()
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -358,9 +362,11 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
+        check_arch = False
         if self.archive is not None and (report.parent is None or self.job.weight == JOB_WEIGHT[0][0]):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
+            check_arch = True
 
         report.finish_date = now()
         if 'data' in self.data:
@@ -368,6 +374,9 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
+
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -417,6 +426,7 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -429,10 +439,14 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
+        check_arch = False
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
+            check_arch = True
         report.save()
+        if check_arch:
+            self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -449,6 +463,7 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
@@ -603,6 +618,11 @@ class UploadReport:
                 if parent.attrs.filter(attr__name_id__in=names).count() > 0:
                     raise ValueError("The report has redefined parent's attributes")
         return attrorder
+
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch):
+            raise ValueError("The report's archive is not a ZIP file")
 
     def __is_not_used(self):
         pass

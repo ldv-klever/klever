@@ -141,7 +141,7 @@ def calculate_validation_stats(validation_results):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def report_component(request, job_id, report_id):
     activate(request.user.extended.language)
 
@@ -212,7 +212,7 @@ def report_component(request, job_id, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent', 'ReportSafe'])
+@unparallel_group([])
 def safes_list(request, report_id):
     activate(request.user.extended.language)
 
@@ -271,7 +271,7 @@ def safes_list(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent', 'ReportUnsafe'])
+@unparallel_group([])
 def unsafes_list(request, report_id):
     activate(request.user.extended.language)
 
@@ -332,7 +332,7 @@ def unsafes_list(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent', 'ReportUnknown'])
+@unparallel_group([])
 def unknowns_list(request, report_id):
     activate(request.user.extended.language)
 
@@ -391,7 +391,7 @@ def unknowns_list(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def report_unsafe(request, report_id):
     activate(request.user.extended.language)
 
@@ -444,7 +444,7 @@ def report_unsafe(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportSafe'])
+@unparallel_group([])
 def report_safe(request, report_id):
     activate(request.user.extended.language)
 
@@ -495,7 +495,7 @@ def report_safe(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnknown'])
+@unparallel_group([])
 def report_unknown(request, report_id):
     activate(request.user.extended.language)
 
@@ -537,7 +537,7 @@ def report_unknown(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def report_etv_full(request, report_id):
     activate(request.user.extended.language)
 
@@ -595,7 +595,7 @@ def upload_report(request):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def get_component_log(request, report_id):
     report_id = int(report_id)
     try:
@@ -623,7 +623,7 @@ def get_component_log(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def get_log_content(request, report_id):
     report_id = int(report_id)
     try:
@@ -649,7 +649,7 @@ def get_log_content(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def get_source_code(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'report_id' not in request.POST or 'file_name' not in request.POST:
@@ -690,7 +690,7 @@ def fill_compare_cache(request):
 
 
 @login_required
-@unparallel_group([reports.models.CompareJobsInfo])
+@unparallel_group([])
 def jobs_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -720,7 +720,7 @@ def jobs_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group([reports.models.CompareJobsInfo])
+@unparallel_group([])
 def get_compare_jobs_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST' or 'info_id' not in request.POST:
@@ -762,7 +762,7 @@ def get_compare_jobs_data(request):
 
 
 @login_required
-@unparallel_group(['ReportComponent'])
+@unparallel_group([])
 def download_report_files(request, report_id):
     try:
         report = reports.models.ReportComponent.objects.get(pk=int(report_id))
@@ -778,7 +778,7 @@ def download_report_files(request, report_id):
 
 
 @login_required
-@unparallel_group(['ReportUnsafe'])
+@unparallel_group([])
 def download_error_trace(request, report_id):
     if request.method != 'GET':
         return BridgeErrorResponse(301)
