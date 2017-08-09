@@ -26,7 +26,7 @@ from django.db import transaction
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 
-from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, JOB_WEIGHT
+from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, COVERAGE_FILES_ARCHIVE, JOB_WEIGHT
 from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
@@ -160,6 +160,11 @@ class JobArchiveGenerator:
                         os.path.join(settings.MEDIA_ROOT, report.archive.name),
                         os.path.join(table.__name__, '%s.zip' % report.pk)
                     ))
+                if table == ReportComponent and report.coverage_arch:
+                    self.files_to_add.append((
+                        os.path.join(settings.MEDIA_ROOT, report.coverage_arch.name),
+                        os.path.join(table.__name__, 'coverage_%s.zip' % report.pk)
+                    ))
 
 
 class JobsArchivesGen:
@@ -235,7 +240,9 @@ class ReportsData(object):
             'finish_date': report.finish_date.timestamp() if report.finish_date is not None else None,
             'data': data,
             'attrs': [],
-            'log': report.log
+            'log': report.log,
+            'coverage': report.coverage,
+            'verification': report.verification
         }
 
     def __report_leaf_data(self, report):
@@ -338,6 +345,10 @@ class UploadJob(object):
                         m = re.match('(\d+)\.zip', file_name)
                         if m is not None:
                             report_files[(b_dir, int(m.group(1)))] = os.path.join(dir_path, file_name)
+                        else:
+                            m = re.match('coverage_(\d+)\.zip', file_name)
+                            if m is not None:
+                                report_files[(b_dir, 'coverage', int(m.group(1)))] = os.path.join(dir_path, file_name)
                     else:
                         try:
                             files_in_db[b_dir + '/' + file_name] = file_get_or_create(
@@ -552,6 +563,7 @@ class UploadReports:
                 parent_id=self._parents[self.data[i].get('parent')],
                 computer_id=self._computers[self.data[i]['computer']],
                 component_id=self.__get_component(self.data[i]['component']),
+                verification=self.data[i]['verification'],
                 start_date=datetime.fromtimestamp(self.data[i]['start_date'], pytz.timezone('UTC')),
                 finish_date=datetime.fromtimestamp(self.data[i]['finish_date'], pytz.timezone('UTC'))
                 if self.data[i]['finish_date'] is not None else None,
@@ -564,6 +576,10 @@ class UploadReports:
             if (ReportComponent.__name__, self.data[i]['pk']) in self.files:
                 with open(self.files[(ReportComponent.__name__, self.data[i]['pk'])], mode='rb') as fp:
                     report.new_archive(REPORT_FILES_ARCHIVE, fp)
+            if (ReportComponent.__name__, 'coverage', self.data[i]['pk']) in self.files:
+                with open(self.files[(ReportComponent.__name__, 'coverage', self.data[i]['pk'])], mode='rb') as fp:
+                    report.new_coverage(COVERAGE_FILES_ARCHIVE, fp)
+                    report.coverage = self.data[i]['coverage']
             if self.data[i]['data'] is not None:
                 report.new_data('report-data.json', BytesIO(self.data[i]['data'].encode('utf8')))
             report.save()
