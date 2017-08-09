@@ -114,6 +114,7 @@ class ReportComponent(Report):
     log = models.CharField(max_length=128, null=True)
     coverage = models.CharField(max_length=128, null=True)
     archive = models.FileField(upload_to=get_component_path, null=True)
+    coverage_arch = models.FileField(upload_to=get_component_path, null=True)
     data = models.FileField(upload_to=get_component_path, null=True)
 
     def new_data(self, fname, fp, save=False):
@@ -121,6 +122,9 @@ class ReportComponent(Report):
 
     def new_archive(self, fname, fp, save=False):
         self.archive.save(fname, File(fp), save)
+
+    def new_coverage(self, fname, fp, save=False):
+        self.coverage_arch.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_component'

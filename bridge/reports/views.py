@@ -586,9 +586,12 @@ def upload_report(request):
         logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Can not parse json data'})
     archive = None
-    for f in request.FILES.getlist('file'):
-        archive = f
-    err = UploadReport(job, data, archive).error
+    coverage_arch = None
+    if 'report files archive' in request.FILES:
+        archive = request.FILES['report files archive']
+    if 'coverage files archive' in request.FILES:
+        coverage_arch = request.FILES['coverage files archive']
+    err = UploadReport(job, data, archive, coverage_arch).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})

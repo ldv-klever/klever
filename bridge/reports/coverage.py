@@ -156,7 +156,7 @@ class GetCoverage:
     def __get_files(self):
         if not self.report.verification:
             raise ValueError("The parent is not verification report")
-        with self.report.archive as fp:
+        with self.report.coverage_arch as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -233,7 +233,7 @@ class GetCoverage:
         return self.__wrap_items('Select file', root_dirs_sorted)
 
     def get_file_content(self, filename):
-        with self.report.archive as fp:
+        with self.report.coverage_arch as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -475,7 +475,7 @@ class CoverageStatistics:
     def __get_files_and_data(self):
         if not self.report.verification:
             raise ValueError("The parent is not verification report")
-        with self.report.archive as fp:
+        with self.report.coverage_arch as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
@@ -621,7 +621,7 @@ class DataStatistic:
         if not self.report.verification:
             raise ValueError("The parent is not verification report")
         data = []
-        with self.report.archive as fp:
+        with self.report.coverage_arch as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
