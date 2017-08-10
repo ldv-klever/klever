@@ -394,6 +394,22 @@ class RSB(core.components.Component):
 
         self.log_file = log_files[0]
 
+        if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
+            cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
+                                       self.conf['main working directory'],
+                                       self.conf['VTG strategy']['collect coverage'])
+            with open('coverage.json', 'w', encoding='utf-8') as fp:
+                json.dump(cov.get_coverage(), fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+            arcnames = cov.get_arcnames()
+            with zipfile.ZipFile('coverage.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                for file in ['coverage.json'] + list(arcnames.keys()):
+                    arcname = None
+                    if file in arcnames:
+                        arcname = arcnames[file]
+                    zfp.write(file, arcname=arcname)
+
+
         core.utils.report(self.logger,
                           'verification',
                           {
@@ -405,11 +421,16 @@ class RSB(core.components.Component):
                               'name': self.conf['VTG strategy']['verifier']['name'],
                               'resources': decision_results['resources'],
                               'log': None if self.logger.disabled else self.log_file,
-                              'files': ([] if self.logger.disabled else [self.log_file]) + (
-                                  self.files
-                                  if self.conf['upload input files of static verifiers']
-                                  else []
-                              )
+                              'coverage': 'coverage.json',
+                              'files': {
+                                  'report files archive': ([] if self.logger.disabled else [self.log_file]) + (
+                                                           self.files
+                                                           if self.conf['upload input files of static verifiers']
+                                                           else []),
+                                  'coverage files archive': ['coverage.json'] + list(arcnames.keys()),
+                              },
+
+                              'arcname': arcnames
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -444,14 +465,7 @@ class RSB(core.components.Component):
 
         if re.match('true', decision_results['status']):
             self.verdict = 'safe'
-            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
-                cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
-                                        self.conf['main working directory'], self.conf['VTG strategy']['collect coverage'])
-                with open('coverage.json', 'w', encoding='utf-8') as fp:
-                    json.dump(cov.get_coverage(), fp, ensure_ascii=True, sort_keys=True, indent=4)
-
-                arcnames = cov.get_arcnames()
-                core.utils.report(self.logger,
+            core.utils.report(self.logger,
                               'safe',
                               {
                                   'id': verification_report_id + '/safe',
@@ -459,24 +473,9 @@ class RSB(core.components.Component):
                                   'attrs': [{"Rule specification": self.rule_specification}],
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   'proof': None,
-                                  'files': ['coverage.json'] + list(arcnames.keys()),
-                                  'arcname': arcnames
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
-
-            else:
-                core.utils.report(self.logger,
-                                  'safe',
-                                  {
-                                      'id': verification_report_id + '/safe',
-                                      'parent id': verification_report_id,
-                                      'attrs': [{"Rule specification": self.rule_specification}],
-                                      # TODO: at the moment it is unclear what are verifier proofs.
-                                      'proof': None,
-                                  },
-                                  self.mqs['report files'],
-                                  self.conf['main working directory'])
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 

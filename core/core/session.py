@@ -120,6 +120,6 @@ class Session:
             if archive:
                 self.__request('reports/upload/',
                                {'report': fp.read()},
-                               files={'file': open(archive, 'rb')})
+                               files={file_name: open(path, 'rb') for file_name, path in archive.items()})
             else:
                 self.__request('reports/upload/', {'report': fp.read()})

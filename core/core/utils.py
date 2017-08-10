@@ -553,18 +553,21 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
         report['attrs'] = capitalize_attr_names(report['attrs'])
 
     # Add all report files to archive. It is assumed that all files are placed in current working directory.
-    rel_report_files_archive = None
+    rel_report_files_archive = {}
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
-        rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        if os.path.isfile(report_files_archive):
-            raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-            for file in report['files']:
-                arcname = None
-                if 'arcname' in report and file in report['arcname']:
-                    arcname = report['arcname'][file]
-                zfp.write(file, arcname=arcname)
+        if isinstance(report['files'], list) or isinstance(report['files'], tuple):
+            report['files'] = {'report files archive': report['files']}
+        for file_name, files in report['files'].items():
+            report_files_archive = '{0}{1}{2} report files.zip'.format(type, suffix or '', file_name)
+            rel_report_files_archive[file_name] = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
+            if os.path.isfile(report_files_archive):
+                raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive[file_name]))
+            with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                for file in files:
+                    arcname = None
+                    if 'arcname' in report and file in report['arcname']:
+                        arcname = report['arcname'][file]
+                    zfp.write(file, arcname=arcname)
         del (report['files'])
         logger.debug(
             '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
