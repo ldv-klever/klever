@@ -428,7 +428,7 @@ class TestReports(KleverTestCase):
                 'report': json.dumps({
                     'id': r_id, 'type': 'finish', 'resources': resources(),
                     'log': 'log.txt', 'desc': 'It does not matter'
-                }), 'file': fp
+                }), 'report files archive': fp
             })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
@@ -464,7 +464,9 @@ class TestReports(KleverTestCase):
             report['attrs'] = attrs
 
         with open(os.path.join(ARCHIVE_PATH, 'report.zip'), mode='rb') as fp:
-            response = self.service_client.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+            response = self.service_client.post('/reports/upload/', {
+                'report': json.dumps(report), 'report files archive': fp
+            })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -489,7 +491,9 @@ class TestReports(KleverTestCase):
         r_id = self.__get_report_id('unknown')
         report = {'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': 'problem description.txt'}
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            response = self.service_client.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+            response = self.service_client.post('/reports/upload/', {
+                'report': json.dumps(report), 'report files archive': fp
+            })
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -503,7 +507,7 @@ class TestReports(KleverTestCase):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': 'proof.txt', 'attrs': attrs
-            }), 'file': fp})
+            }), 'report files archive': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -518,7 +522,7 @@ class TestReports(KleverTestCase):
             response = self.service_client.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
                 'error trace': 'error trace.json', 'attrs': attrs
-            }), 'file': fp})
+            }), 'report files archive': fp})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response['Content-Type'], 'application/json')
         self.assertNotIn('error', json.loads(str(response.content, encoding='utf8')))
@@ -724,7 +728,7 @@ class DecideJobs(object):
                 'report': json.dumps({
                     'id': r_id, 'type': 'finish', 'resources': resources(),
                     'log': 'log.txt', 'desc': 'It does not matter'
-                }), 'file': fp
+                }), 'report files archive': fp
             })
 
     def __upload_attrs_report(self, r_id, attrs):
@@ -739,21 +743,24 @@ class DecideJobs(object):
             'report': json.dumps({'id': r_id, 'type': 'data', 'data': data})
         })
 
-    def __upload_verification_report(self, name, parent, attrs, coverage_arch='full_coverage.zip'):
+    def __upload_verification_report(self, name, parent, attrs, report_arch='report.zip', coverage='full_coverage.zip'):
         r_id = self.__get_report_id(name)
         report = {
-            'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name,
-            'resources': resources(), 'data': {'description': str(r_id)}, 'log': 'log.txt'
+            'id': r_id, 'type': 'verification', 'parent id': parent, 'name': name, 'resources': resources(),
+            'data': {'description': str(r_id)}, 'coverage': 'coverage.json'
         }
         if isinstance(attrs, list):
             report['attrs'] = attrs
-        if random.randint(1, 10) > 0:
-            with open(os.path.join(ARCHIVE_PATH, coverage_arch), mode='rb') as fp:
-                report['coverage'] = 'coverage.json'
-                self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
-        else:
-            report['log'] = None
-            self.service.post('/reports/upload/', {'report': json.dumps(report)})
+
+        with open(os.path.join(ARCHIVE_PATH, coverage), mode='rb') as cfp:
+            if random.randint(1, 10) > 4:
+                report['log'] = 'log.txt'
+                with open(os.path.join(ARCHIVE_PATH, report_arch), mode='rb') as fp:
+                    self.service.post('/reports/upload/', {
+                        'report': json.dumps(report), 'report files archive': fp, 'coverage files archive': cfp
+                    })
+            else:
+                self.service.post('/reports/upload/', {'report': json.dumps(report), 'coverage files archive': cfp})
         return r_id
 
     def __upload_finish_verification_report(self, r_id):
@@ -763,7 +770,7 @@ class DecideJobs(object):
         r_id = self.__get_report_id('unknown')
         report = {'id': r_id, 'type': 'unknown', 'parent id': parent, 'problem desc': 'problem description.txt'}
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
-            self.service.post('/reports/upload/', {'report': json.dumps(report), 'file': fp})
+            self.service.post('/reports/upload/', {'report': json.dumps(report), 'report files archive': fp})
         if finish_parent:
             self.__upload_finish_report(parent)
 
@@ -772,7 +779,7 @@ class DecideJobs(object):
         with open(os.path.join(ARCHIVE_PATH, archive), mode='rb') as fp:
             self.service.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'safe', 'parent id': parent, 'proof': 'proof.txt', 'attrs': attrs
-            }), 'file': fp})
+            }), 'report files archive': fp})
 
     def __upload_empty_safe_report(self, parent, attrs):
         self.service.post('/reports/upload/', {'report': json.dumps({
@@ -785,7 +792,7 @@ class DecideJobs(object):
             self.service.post('/reports/upload/', {'report': json.dumps({
                 'id': r_id, 'type': 'unsafe', 'parent id': parent,
                 'error trace': 'error trace.json', 'attrs': attrs
-            }), 'file': fp})
+            }), 'report files archive': fp})
 
     def __decide_job(self, job_identifier):
         self.service.post('/jobs/decide_job/', {'report': json.dumps({
@@ -883,14 +890,14 @@ class DecideJobs(object):
             elif 'unsafes' in chunk:
                 for u_arch in chunk['unsafes']:
                     tool = self.__upload_verification_report(
-                        chunk['tool'], abkm, chunk['tool_attrs'], 'big_full_coverage.zip'
+                        chunk['tool'], abkm, chunk['tool_attrs'], coverage='big_full_coverage.zip'
                     )
                     self.__upload_unsafe_report(tool, [{'entry point': 'any_function_%s' % cnt}], u_arch)
                     self.__upload_finish_verification_report(tool)
                     cnt += 1
             if 'unknown' in chunk and 'safe' not in chunk:
                 tool = self.__upload_verification_report(
-                    chunk['tool'], abkm, chunk['tool_attrs'], 'partially_coverage.zip'
+                    chunk['tool'], abkm, chunk['tool_attrs'], coverage='partially_coverage.zip'
                 )
                 self.__upload_unknown_report(tool, chunk['unknown'], False)
                 self.__upload_finish_verification_report(tool)
