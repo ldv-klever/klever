@@ -113,10 +113,11 @@
 }
 
 .CovLegCell {
-    width: 100%;
+    min-width: 35px;
     height: 20px;
     text-align: center;
-    font-size: smaller;
+    font-size: x-small;
+    display: inline-block;
 }
 #cov-legend-box {
     border: 1px solid #860cff;

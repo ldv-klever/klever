@@ -347,6 +347,7 @@ class GetCoverageSrcHTML:
         if line in self._line_coverage and self._line_coverage[line] > 0:
             line_num['data'].append(('number', self._line_coverage[line]))
             code['color'] = coverage_color(self._line_coverage[line], self._max_cov_line)
+            code['data'] = [('number', self._line_coverage[line])]
 
         if line in self._data_map:
             line_num['data'].append(('line', line))

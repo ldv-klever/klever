@@ -65,15 +65,20 @@ $(document).ready(function () {
         $(this).append($('<span>', {'class': 'CovNumberPopup', text: $(this).data('number')}));
     });
     src_code_content.on('mouseleave', '.COVLine[data-number]', function () {
-        if ($(this).data('number')) {
-            $(this).find('.CovNumberPopup').remove();
-        }
+        $(this).find('.CovNumberPopup').remove();
     });
     src_code_content.on('mouseenter', '.COVIsFC[data-number]', function () {
         $(this).append($('<span>', {'class': 'CovNumberPopup', text: $(this).data('number')}));
     });
     src_code_content.on('mouseleave', '.COVIsFC[data-number]', function () {
         $(this).find('.CovNumberPopup').remove();
+    });
+
+    src_code_content.on('mouseenter', '.COVCode[data-number]', function () {
+        $(this).siblings('.COVStatic').find('.COVLine').append($('<span>', {'class': 'CovNumberPopup', text: $(this).data('number')}));
+    });
+    src_code_content.on('mouseleave', '.COVCode[data-number]', function () {
+        $(this).siblings('.COVStatic').find('.CovNumberPopup').remove();
     });
 
     $('#show_cov_attributes').click(function () {
