@@ -142,122 +142,30 @@ def json_to_html(data):
 
 class GetCoverage:
     def __init__(self, report_id, weight):
-        self._weight = weight
-
         self.report = ReportComponent.objects.get(id=report_id)
         self.job = self.report.root.job
         self.parents = get_parents(self.report)
-
-        self._files = []
-        self._curr_i = 0
-        self._sum = 0
-        self.coverage = None
-
-    def __get_files(self):
-        if not self.report.verification:
-            raise ValueError("The parent is not verification report")
-        with self.report.coverage_arch as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                for filename in zfp.namelist():
-                    if filename.endswith('/'):
-                        continue
-                    if filename not in {self.report.coverage, self.report.log}:
-                        self._files.append(os.path.normpath(filename))
-
-    def __wrap_item(self, title, item, header):
-        self.__is_not_used()
-        style = ''
-        if header:
-            style = ' style="color:%s;"' % COLOR['grey']
-        return '<div class="item" data-value="%s"%s>%s</div>' % (title, style, item)
-
-    def __wrap_items(self, title, items):
-        self.__is_not_used()
-        return '<i class="dropdown icon"></i><span class="text">%s</span><div class="menu">%s</div>' % (
-            title, ''.join(items)
-        )
-
-    def __get_children_list(self, path):
-        children = []
-        headers_dir = True
-        for f in self._files[self._curr_i:]:
-            if f.startswith(path):
-                relpath = os.path.relpath(f, path)
-                childpath = relpath.split(os.path.sep)
-                if len(childpath) == 1:
-                    self._sum += 1
-                    is_header = False
-                    if childpath[0].endswith('.h'):
-                        is_header = True
-                    else:
-                        headers_dir = False
-                    children.append(self.__wrap_item(f, childpath[0], is_header))
-                    self._curr_i += 1
-                elif len(childpath) > 1:
-                    children_html, children_are_headers = self.__get_children_list(os.path.join(path, childpath[0]))
-                    if len(children_html) > 0:
-                        if not children_are_headers:
-                            headers_dir = False
-                        children.append(self.__wrap_item('', children_html, children_are_headers))
-            else:
-                break
-        if len(children) > 0:
-            return self.__wrap_items(os.path.basename(path), children), headers_dir
-        return '', headers_dir
-
-    def files_tree(self):
-        self.__get_files()
-        self._files = list(sorted(self._files))
-
-        root_dirs = []
-        indexes = {}
-        cnt = 0
-        for rdir in sorted(ROOT_DIRS_ORDER):
-            children_html, children_are_headers = self.__get_children_list(rdir)
-            if len(children_html) > 0:
-                for i in range(len(ROOT_DIRS_ORDER)):
-                    if ROOT_DIRS_ORDER[i] == rdir:
-                        indexes[i] = cnt
-                        break
-                root_dirs.append(self.__wrap_item(rdir, children_html, children_are_headers))
-                cnt += 1
-
-        root_dirs_sorted = []
-        for j in sorted(indexes):
-            root_dirs_sorted.append(root_dirs[indexes[j]])
-        if self._sum != len(self._files):
-            raise ValueError('Something is wrong')
-
-        return self.__wrap_items('Select file', root_dirs_sorted)
-
-    def get_file_content(self, filename):
-        with self.report.coverage_arch as fp:
-            if os.path.splitext(fp.name)[-1] != '.zip':
-                raise ValueError('Archive type is not supported')
-            with zipfile.ZipFile(fp, 'r') as zfp:
-                filename = os.path.normpath(filename).replace('\\', '/')
-                return GetCoverageSrcHTML(
-                    filename,
-                    zfp.read(filename).decode('utf8'),
-                    json.loads(zfp.read(self.report.coverage).decode('utf8')),
-                    self._weight
-                )
+        self._statistic = CoverageStatistics(self.report)
+        self.statistic_table = self._statistic.table_data
+        if self._statistic.first_file:
+            self.first_file = GetCoverageSrcHTML(report_id, self._statistic.first_file, weight)
+        if weight == '0':
+            self.data_statistic = DataStatistic(report_id).table_html
 
     def __is_not_used(self):
         pass
 
 
 class GetCoverageSrcHTML:
-    def __init__(self, filename, content, coverage, weight):
-        self._filename = filename
+    def __init__(self, report_id, filename, weight):
+        self._report = ReportComponent.objects.get(id=report_id)
+        self.filename = os.path.normpath(filename).replace('\\', '/')
         self._weight = weight
 
-        self._coverage = coverage
-        self._max_cov_line, self._line_coverage = self.__get_coverage(coverage['line coverage'])
+        self._content, self._coverage = self.__get_arch_content()
+        self._max_cov_line, self._line_coverage = self.__get_coverage(self._coverage['line coverage'])
         del self._coverage['line coverage']
-        self._max_cov_func, self._func_coverage = self.__get_coverage(coverage['function coverage']['coverage'])
+        self._max_cov_func, self._func_coverage = self.__get_coverage(self._coverage['function coverage']['coverage'])
         del self._coverage['function coverage']
 
         self._is_comment = False
@@ -268,19 +176,26 @@ class GetCoverageSrcHTML:
         self.data_html = ''
         if self._weight == '0':
             self.data_html = self.__get_data()
-        self.src_html = self.__get_source_html(content)
+        self.src_html = self.__get_source_html()
         self.legend = loader.get_template('reports/coverage/cov_legend.html').render({'legend': {
             'lines': get_legend(self._max_cov_line, 'lines', 5),
             'funcs': get_legend(self._max_cov_func, 'funcs', 5)
         }})
 
+    def __get_arch_content(self):
+        with self._report.coverage_arch as fp:
+            if os.path.splitext(fp.name)[-1] != '.zip':
+                raise ValueError('Archive type is not supported')
+            with zipfile.ZipFile(fp, 'r') as zfp:
+                return zfp.read(self.filename).decode('utf8'), json.loads(zfp.read(self._report.coverage).decode('utf8'))
+
     def __get_coverage(self, coverage):
         data = {}
         max_cov = 0
         for cov in coverage:
-            if self._filename in cov[1]:
+            if self.filename in cov[1]:
                 max_cov = max(max_cov, cov[0])
-                for line_num in cov[1][self._filename]:
+                for line_num in cov[1][self.filename]:
                     if isinstance(line_num, int):
                         data[line_num] = cov[0]
                     elif isinstance(line_num, list) and len(line_num) == 2:
@@ -295,12 +210,12 @@ class GetCoverageSrcHTML:
         for data_name in self._coverage:
             cnt = 0
             for data_val in self._coverage[data_name]['values']:
-                if self._filename in data_val[1]:
+                if self.filename in data_val[1]:
                     cnt += 1
                     data_id = ("%s_%s" % (data_name, cnt)).replace(' ', '_')
                     data_names.add(data_name)
                     data_values[data_id] = json_to_html(data_val[0])
-                    for line_num in data_val[1][self._filename]:
+                    for line_num in data_val[1][self.filename]:
                         if isinstance(line_num, int):
                             if line_num not in self._data_map:
                                 self._data_map[line_num] = {}
@@ -327,10 +242,10 @@ class GetCoverageSrcHTML:
             'data_values': list([d_id, data_values[d_id]] for d_id in data_values)
         })
 
-    def __get_source_html(self, source_content):
+    def __get_source_html(self):
         data = []
         cnt = 1
-        lines = source_content.split('\n')
+        lines = self._content.split('\n')
         self._total_lines = len(str(len(lines)))
         for line in lines:
             line = line.replace('\t', ' ' * TAB_LENGTH).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
@@ -341,7 +256,7 @@ class GetCoverageSrcHTML:
     def __get_line_data(self, line, code):
         line_num = {
             'class': 'COVLine', 'static': True, 'data': [],
-            'content': '<a class="COVLineLink">%s</a>' % (' ' * (self._total_lines - len(str(line))) + str(line))
+            'content': (' ' * (self._total_lines - len(str(line))) + str(line))
         }
         code = {'class': 'COVCode', 'content': code}
         if line in self._line_coverage and self._line_coverage[line] > 0:
@@ -362,12 +277,9 @@ class GetCoverageSrcHTML:
                 func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
 
         linedata = [line_num]
-        if self._weight == '0':
-            linedata.append({
-                'class': 'COVHasD', 'static': True,
-                'content': '&nbsp;',
-                'color': COLOR['purple'] if line in self._data_map else COLOR['lightgrey']
-            })
+        if self._weight == '0' and line in self._data_map:
+            line_num['content'] = '<a class="COVLineLink">%s</a>' % line_num['content']
+            line_num['class'] += ' COVWithData'
         linedata.append(func_cov)
         linedata.append(code)
         return linedata
@@ -462,16 +374,16 @@ class GetCoverageSrcHTML:
 
 
 class CoverageStatistics:
-    def __init__(self, report_id):
-        self.report = ReportComponent.objects.get(id=report_id)
+    def __init__(self, report):
+        self.report = report
         self._files = []
         self._total_lines = {}
         self._covered_lines = {}
         self._covered_funcs = {}
         self.__get_files_and_data()
         self.shown_ids = set()
-        self._table_data = self.__get_table_data()
-        self.table_html = self.__html_table()
+        self.first_file = None
+        self.table_data = self.__get_table_data()
 
     def __get_files_and_data(self):
         if not self.report.verification:
@@ -602,11 +514,11 @@ class CoverageStatistics:
         for fd in first_lvl:
             ordered_data.append(fd)
             ordered_data.extend(__get_all_children(fd))
+        for fd in ordered_data:
+            if not fd['is_dir'] and parents[fd['parent']]['display']:
+                self.first_file = fd['path']
+                break
         return ordered_data
-
-    def __html_table(self):
-        return loader.get_template('reports/coverage/coverageStatisticsTable.html')\
-            .render({'TableData': self._table_data})
 
     def __is_not_used(self):
         pass
