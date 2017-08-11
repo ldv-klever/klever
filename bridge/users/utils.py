@@ -57,7 +57,7 @@ JOB_DATA_VIEW = {
         'unsafes', 'safes', 'unknowns', 'resources', 'tags_safe', 'tags_unsafe',
         'safes_attr_stat', 'unsafes_attr_stat', 'unknowns_attr_stat'
     ],
-    # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total'],
+    # 'hidden': ['unknowns_nomark', 'unknowns_total', 'resource_total', 'confirmed_marks'],
     'attr_stat': ['Rule specification']
 
     # FILTERS:
