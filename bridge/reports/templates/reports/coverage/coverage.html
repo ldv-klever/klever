@@ -68,12 +68,12 @@
     <br>
     <div id="div_for_legend"></div>
 
+    <div id="files_tree" class="ui floating labeled grey icon tiny dropdown button">{{ coverage.files_tree|safe }}</div>
     <div class="ui tiny buttons">
         <button id="show_cov_attributes" class="ui tiny icon violet button note-popup" data-position="bottom left" data-content="{% trans 'Show attributes' %}"><i class="ui list icon"></i></button>
         <button id="get_coverage_table" class="ui tiny purple icon button note-popup" data-content="{% trans 'Coverage statistics' %}"><i class="ui signal icon"></i></button>
         <button id="get_data_statistic" class="ui tiny purple icon button note-popup" data-content="{% trans 'Data statistics' %}"><i class="ui browser icon"></i></button>
     </div>
-    <div id="files_tree" class="ui floating labeled grey icon tiny dropdown button">{{ coverage.files_tree|safe }}</div>
 
     <br><br>
     <div id="CoverageAttrTable" style="display: none;">
