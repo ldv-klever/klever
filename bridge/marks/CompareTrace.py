@@ -109,6 +109,20 @@ Returns the number of similar forests divided by the maximum number of forests i
             return 1
         return len(err_trace_converted & pattern) / max_len
 
+    def call_forests_compare_simple(self):
+        """
+Returns 1 if forests are similar, 0 otherwise.
+        """
+        converted_et = self.__get_converted_trace('call_forests')
+        pattern = self.pattern_error_trace
+        if any(not isinstance(x, str) for x in converted_et):
+            converted_et = list(json.dumps(x) for x in converted_et)
+        if any(not isinstance(x, str) for x in pattern):
+            pattern = list(json.dumps(x) for x in pattern)
+        err_trace_converted = set(converted_et)
+        pattern = set(pattern)
+        return int(err_trace_converted == pattern)
+
     def forests_callbacks_compare(self):
         """
 Returns the number of similar forests with callbacks calls divided by the maximum number of forests in 2 error traces.
@@ -125,6 +139,20 @@ Returns the number of similar forests with callbacks calls divided by the maximu
         if max_len == 0:
             return 1
         return len(err_trace_converted & pattern) / max_len
+
+    def forests_cb_compare_simple(self):
+        """
+Returns 1 if forests with callbacks are similar, 0 otherwise.
+        """
+        converted_et = self.__get_converted_trace('forests_callbacks')
+        pattern = self.pattern_error_trace
+        if any(not isinstance(x, str) for x in converted_et):
+            converted_et = list(json.dumps(x) for x in converted_et)
+        if any(not isinstance(x, str) for x in pattern):
+            pattern = list(json.dumps(x) for x in pattern)
+        err_trace_converted = set(converted_et)
+        pattern = set(pattern)
+        return int(err_trace_converted == pattern)
 
     def __get_converted_trace(self, conversion_function_name):
         return GetConvertedErrorTrace(
