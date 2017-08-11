@@ -88,10 +88,12 @@ class RSB(core.components.Component):
         return "benchmark.xml"
 
     def set_common_verifier_options(self):
+        is_coverage = self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight')
         if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
 
+            ldv_bam_optimized = False
             if 'verifier configuration' in self.conf['abstract task desc']:
                 self.conf['VTG strategy']['verifier']['options'].append(
                     {self.conf['abstract task desc']['verifier configuration']: ''}
@@ -102,7 +104,11 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
+                ldv_bam_optimized = True
+                if is_coverage:
+                    self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized-coverage': ''})
+                else:
+                    self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
@@ -144,9 +150,7 @@ class RSB(core.components.Component):
                     self.conf['abstract task desc']['verifier options']
                 )
 
-            if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
-                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.enabled=true'})
-                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.export=true'})
+            if is_coverage and not ldv_bam_optimized:
                 self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.file=coverage.info'})
         else:
             raise NotImplementedError(
