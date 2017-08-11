@@ -147,6 +147,8 @@ class UploadMark:
                     except ValueError:
                         raise BridgeException(_("The mark archive is corrupted"))
 
+        if mark_data is None or len(versions_data) == 0:
+            raise BridgeException(_("The mark archive is corrupted: it doesn't contain necessary data"))
         if not isinstance(mark_data, dict):
             raise ValueError('Unsupported mark data type: %s' % type(mark_data))
         self.type = mark_data.get('mark_type')
