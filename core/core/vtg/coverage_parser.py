@@ -12,7 +12,7 @@ class LCOV:
         self.main_work_dir = main_work_dir
         self.type = type
         self.len_files = {}
-        if self.type not in ('full', 'partially', 'lightweight'):
+        if self.type not in ('full', 'partial', 'lightweight'):
             raise NotImplementedError("Coverage type '{0}' is not supported".format(self.type))
 
         self.lines_coverage = {}
@@ -42,7 +42,7 @@ class LCOV:
         ignore_file = False
 
         excluded_dirs = set()
-        if self.type in ('partially', 'lightweight'):
+        if self.type in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
                 all_files = {}
                 for line in fp:
