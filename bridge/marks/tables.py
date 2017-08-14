@@ -42,7 +42,7 @@ from marks.ConvertTrace import DEFAULT_CONVERT
 
 
 MARK_TITLES = {
-    'mark_num': '№',
+    'mark_num': _('#'),
     'change_kind': _('Association change kind'),
     'verdict': _("Verdict"),
     'sum_verdict': _('Total verdict'),
@@ -54,7 +54,7 @@ MARK_TITLES = {
     'report': _('Report'),
     'job': _('Job'),
     'format': _('Format'),
-    'number': '№',
+    'number': _('#'),
     'num_of_links': _('Number of associated leaf reports'),
     'problem': _("Problem"),
     'component': _('Component'),
