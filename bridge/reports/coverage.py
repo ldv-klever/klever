@@ -141,15 +141,15 @@ def json_to_html(data):
 
 
 class GetCoverage:
-    def __init__(self, report_id, weight):
+    def __init__(self, report_id, with_data):
         self.report = ReportComponent.objects.get(id=report_id)
         self.job = self.report.root.job
         self.parents = get_parents(self.report)
         self._statistic = CoverageStatistics(self.report)
         self.statistic_table = self._statistic.table_data
         if self._statistic.first_file:
-            self.first_file = GetCoverageSrcHTML(report_id, self._statistic.first_file, weight)
-        if weight == '0':
+            self.first_file = GetCoverageSrcHTML(report_id, self._statistic.first_file, with_data)
+        if with_data:
             self.data_statistic = DataStatistic(report_id).table_html
 
     def __is_not_used(self):
@@ -157,10 +157,10 @@ class GetCoverage:
 
 
 class GetCoverageSrcHTML:
-    def __init__(self, report_id, filename, weight):
+    def __init__(self, report_id, filename, with_data):
         self._report = ReportComponent.objects.get(id=report_id)
         self.filename = os.path.normpath(filename).replace('\\', '/')
-        self._weight = weight
+        self._with_data = with_data
 
         self._content, self._coverage = self.__get_arch_content()
         self._max_cov_line, self._line_coverage = self.__get_coverage(self._coverage['line coverage'])
@@ -174,7 +174,7 @@ class GetCoverageSrcHTML:
         self._total_lines = 1
         self._data_map = {}
         self.data_html = ''
-        if self._weight == '0':
+        if self._with_data:
             self.data_html = self.__get_data()
         self.src_html = self.__get_source_html()
         self.legend = loader.get_template('reports/coverage/cov_legend.html').render({'legend': {
@@ -278,7 +278,7 @@ class GetCoverageSrcHTML:
                 func_cov['color'] = coverage_color(self._func_coverage[line], self._max_cov_func, 40)
 
         linedata = [line_num]
-        if self._weight == '0' and line in self._data_map:
+        if self._with_data and line in self._data_map:
             line_num['content'] = '<a class="COVLineLink">%s</a>' % line_num['content']
             line_num['class'] += ' COVWithData'
         linedata.append(func_cov)

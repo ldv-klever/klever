@@ -80,8 +80,10 @@
                         <br>
                     </div>
                     <div class="field">
-                        <label>{{ profile_form.coverage_weight.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of coverage data and its statistic.' %}"></i></label>
-                        {{ profile_form.coverage_weight }}
+                        <div class="ui checkbox">
+                            {{ profile_form.coverage_data }}
+                            <label>{{ profile_form.coverage_data.label }}<i class="ui help blue icon note-popup" data-content="{% trans 'This setting turns on visualization of coverage data and its statistic.' %}"></i></label>
+                        </div>
                         <br>
                     </div>
                 </div>
