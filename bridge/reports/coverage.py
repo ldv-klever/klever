@@ -187,7 +187,8 @@ class GetCoverageSrcHTML:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
-                return zfp.read(self.filename).decode('utf8'), json.loads(zfp.read(self._report.coverage).decode('utf8'))
+                return zfp.read(self.filename).decode('utf8'),\
+                       json.loads(zfp.read(self._report.coverage).decode('utf8'))
 
     def __get_coverage(self, coverage):
         data = {}
@@ -482,15 +483,19 @@ class CoverageStatistics:
                 div = parents[fname]['lines']['covered'] / parents[fname]['lines']['total']
                 parents[fname]['lines']['percent'] = '%s%%' % int(100 * div)
                 color_id = int(div * len(TABLE_STAT_COLOR))
-                if color_id == len(TABLE_STAT_COLOR):
-                    color_id -= 1
+                if color_id >= len(TABLE_STAT_COLOR):
+                    color_id = len(TABLE_STAT_COLOR) - 1
+                elif color_id < 0:
+                    color_id = 0
                 parents[fname]['lines']['color'] = TABLE_STAT_COLOR[color_id]
             if parents[fname]['funcs']['total'] > 0:
                 div = parents[fname]['funcs']['covered'] / parents[fname]['funcs']['total']
                 parents[fname]['funcs']['percent'] = '%s%%' % int(100 * div)
                 color_id = int(div * len(TABLE_STAT_COLOR))
-                if color_id == len(TABLE_STAT_COLOR):
-                    color_id -= 1
+                if color_id >= len(TABLE_STAT_COLOR):
+                    color_id = len(TABLE_STAT_COLOR) - 1
+                elif color_id < 0:
+                    color_id = 0
                 parents[fname]['funcs']['color'] = TABLE_STAT_COLOR[color_id]
 
         other_data = list(sorted(parents.values(), key=lambda x: (not x['is_dir'], x['title'])))
