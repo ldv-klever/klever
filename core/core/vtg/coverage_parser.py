@@ -184,32 +184,3 @@ class LCOV:
         else:
             res.append(lines[prev])
         return res
-
-if __name__ == '__main__':
-    import os
-    l = LCOV(None, '', '/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/jobs/a585593f1fe930315637b6cbcac2b6f0/klever-core-work-dir/lkbce/',
-             '/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/jobs/a585593f1fe930315637b6cbcac2b6f0/klever-core-work-dir/',
-             'partially')
-    total = 0
-    for dir in os.listdir('/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/tasks'):
-        path = os.path.join('/home/alexey/klever/native-scheduler-work-dir/native-scheduler-work-dir/scheduler/tasks',
-                                       dir, 'output', 'coverage.info')
-        if os.path.isfile(path):
-            print('Parse', dir)
-            total += 1
-            l.coverage_file = path
-            l.parse()
-
-    ##l = LCOV(None, '../coverage.info', '/home/alexey/klever/native-scheduler-work-dir/'
-                                       #'native-scheduler-work-dir/scheduler/jobs/35e0dfd4993067c50d8e4544fc9c157f/'
-                                       #'klever-core-work-dir/lkbce/', '.', "partially")
-    with open('/home/alexey/coverage.json', 'w', encoding='utf-8') as fp:
-        json.dump(l.get_coverage(), fp, indent=4)
-
-    import zipfile
-    print('Total', total)
-    with zipfile.ZipFile('/home/alexey/big_full_coverage.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-        for file, arcname in l.get_arcnames().items():
-            zfp.write(file, arcname=arcname)
-
-        zfp.write('/home/alexey/coverage.json', 'coverage.json')
