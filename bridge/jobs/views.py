@@ -303,18 +303,19 @@ def get_job_data(request):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     data = {'jobstatus': job.status}
-    try:
-        data['jobdata'] = loader.get_template('jobs/jobData.html').render({
-            'reportdata': ViewJobData(
-                request.user,
-                ReportComponent.objects.get(root__job=job, parent=None),
-                view=request.POST.get('view', None)
-            )
-        })
-    except ObjectDoesNotExist:
-        pass
-    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
+    if 'just_status' in request.POST and not json.loads(request.POST['just_status']):
+        try:
+            data['jobdata'] = loader.get_template('jobs/jobData.html').render({
+                'reportdata': ViewJobData(
+                    request.user,
+                    ReportComponent.objects.get(root__job=job, parent=None),
+                    view=request.POST.get('view', None)
+                )
+            })
+        except ObjectDoesNotExist:
+            pass
+        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
