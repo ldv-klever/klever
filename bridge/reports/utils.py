@@ -174,10 +174,10 @@ class SafesTable:
         columns.extend(self.view['columns'])
 
         safes_filters = {}
+        if isinstance(self.confirmed, bool) and self.confirmed:
+            safes_filters['safe__has_confirmed'] = True
         if self.verdict is not None:
             safes_filters['safe__verdict'] = self.verdict
-            if isinstance(self.confirmed, bool) and self.confirmed:
-                safes_filters['safe__has_confirmed'] = True
         else:
             if 'verdict' in self.view:
                 safes_filters['safe__verdict__in'] = self.view['verdict']
@@ -378,10 +378,10 @@ class UnsafesTable:
         columns.extend(self.view['columns'])
 
         unsafes_filters = {}
+        if isinstance(self.confirmed, bool) and self.confirmed:
+            unsafes_filters['unsafe__has_confirmed'] = True
         if self.verdict is not None:
             unsafes_filters['unsafe__verdict'] = self.verdict
-            if isinstance(self.confirmed, bool) and self.confirmed:
-                unsafes_filters['unsafe__has_confirmed'] = True
         else:
             if 'verdict' in self.view:
                 unsafes_filters['unsafe__verdict__in'] = self.view['verdict']
