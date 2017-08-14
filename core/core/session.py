@@ -114,12 +114,12 @@ class Session:
         self.logger.info('Finish session')
         self.__request('users/service_signout/')
 
-    def upload_report(self, report, archive=None):
+    def upload_report(self, report, archives=None):
         # TODO: report is likely should be compressed.
         with open(report, encoding='utf8') as fp:
-            if archive:
-                self.__request('reports/upload/',
-                               {'report': fp.read()},
-                               files={file_name: open(path, 'rb') for file_name, path in archive.items()})
-            else:
-                self.__request('reports/upload/', {'report': fp.read()})
+            self.__request(
+                'reports/upload/',
+                {'report': fp.read()},
+                files={arhive_name + ' files archive': open(archive, 'rb') for arhive_name, archive in archives.items()}
+                if archives else {}
+            )

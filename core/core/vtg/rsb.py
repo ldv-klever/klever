@@ -427,13 +427,13 @@ class RSB(core.components.Component):
                               'log': None if self.logger.disabled else self.log_file,
                               'coverage': 'coverage.json',
                               'files': {
-                                  'report files archive': ([] if self.logger.disabled else [self.log_file]) + (
-                                                           self.files
-                                                           if self.conf['upload input files of static verifiers']
-                                                           else []),
-                                  'coverage files archive': ['coverage.json'] + list(arcnames.keys()),
+                                  'report': ([] if self.logger.disabled else [self.log_file]) + (
+                                    self.files
+                                    if self.conf['upload input files of static verifiers']
+                                    else []
+                                  ),
+                                  'coverage': ['coverage.json'] + list(arcnames.keys()),
                               },
-
                               'arcname': arcnames
                           },
                           self.mqs['report files'],
