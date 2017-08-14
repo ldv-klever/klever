@@ -400,6 +400,20 @@ class RSB(core.components.Component):
 
         self.log_file = log_files[0]
 
+        report = {
+          # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+          'id': verification_report_id,
+          'parent id': self.id,
+          # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+          'attrs': [],
+          'name': self.conf['VTG strategy']['verifier']['name'],
+          'resources': decision_results['resources'],
+          'log': None if self.logger.disabled else self.log_file,
+          'coverage': 'coverage.json',
+          'files': {'report': ([] if self.logger.disabled else [self.log_file]) +
+                              (self.files if self.conf['upload input files of static verifiers'] else [])}
+        }
+
         if self.is_coverage:
             cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
                                        self.conf['main working directory'],
@@ -409,28 +423,12 @@ class RSB(core.components.Component):
 
             arcnames = cov.get_arcnames()
 
+            report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
+            report['arcname'] = arcnames
+
         core.utils.report(self.logger,
                           'verification',
-                          {
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'id': verification_report_id,
-                              'parent id': self.id,
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'attrs': [],
-                              'name': self.conf['VTG strategy']['verifier']['name'],
-                              'resources': decision_results['resources'],
-                              'log': None if self.logger.disabled else self.log_file,
-                              'coverage': 'coverage.json',
-                              'files': {
-                                  'report': ([] if self.logger.disabled else [self.log_file]) + (
-                                    self.files
-                                    if self.conf['upload input files of static verifiers']
-                                    else []
-                                  ),
-                                  'coverage': ['coverage.json'] + list(arcnames.keys()),
-                              },
-                              'arcname': arcnames
-                          },
+                          report,
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
