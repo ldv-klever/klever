@@ -27,7 +27,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
@@ -550,11 +550,16 @@ def showjobdata(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return HttpResponse('')
+    try:
+        job_version = JobHistory.objects.get(job=job, version=F('job__version'))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.versions.get(version=job.version).description,
-        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata
+        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata,
+        'roles': jobs.utils.role_info(job_version, request.user)
     })
 
 

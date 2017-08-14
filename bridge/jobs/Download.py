@@ -32,10 +32,12 @@ from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, AttrName, Attr, ReportAttr, LightResource
+    Component, Computer, ReportAttr, LightResource
 from jobs.utils import create_job, update_job, change_job_status
 from reports.utils import AttrData
 from tools.utils import Recalculation
+
+ARCHIVE_FORMAT = 1
 
 
 class KleverCoreArchiveGen:
@@ -136,9 +138,9 @@ class JobArchiveGenerator:
 
     def __job_data(self):
         return json.dumps({
-            'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
-            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
-            'weight': self.job.weight, 'safe_marks': self.job.safe_marks
+            'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
+            'type': self.job.type, 'status': self.job.status, 'files_map': self.arch_files,
+            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __add_run_history_files(self):
@@ -231,6 +233,7 @@ class ReportsData(object):
             'identifier': report.identifier,
             'computer': str(report.computer_id),
             'component': report.component.name,
+            'verification': report.verification,
             'resource': {
                 'cpu_time': report.cpu_time,
                 'wall_time': report.wall_time,
@@ -363,7 +366,9 @@ class UploadJob(object):
         # Check job data
         if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
                                           'run_history', 'weight', 'safe_marks']):
-            raise ValueError('Not enough data in job.json file')
+            raise BridgeException(_("The job archive was corrupted"))
+        if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
+            raise BridgeException(_("The job archive format is not supported"))
         if jobdata['format'] != FORMAT:
             raise BridgeException(_("The job format is not supported"))
         if 'identifier' in jobdata:

@@ -39,12 +39,9 @@ KEY1_WORDS = [
 ]
 
 KEY2_WORDS = [
-    '__based', 'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'new', 'this', 'break', 'inline', 'explicit',
-    'template', 'bool', 'for', 'private', 'default', 'else', 'const', '__pascal', 'delete', 'switch', 'continue', 'do',
-    '__fastcall', 'union', 'extern', '__cdecl', 'friend', '__inline', 'int', '__virtual_inheritance', 'void', 'case',
-    '__multiple_inheritance', 'enum', 'short', 'operator', '__asm', 'float', 'struct', 'cout', 'public', 'auto', 'long',
-    'goto', '__single_inheritance', 'volatile', 'throw', 'namespace', 'protected', 'virtual', 'return', 'signed',
-    'register', 'while', 'try', 'char', 'catch', 'cerr', 'cin'
+    'static', 'if', 'sizeof', 'double', 'typedef', 'unsigned', 'break', 'inline', 'for', 'default', 'else', 'const',
+    'switch', 'continue', 'do', 'union', 'extern', 'int', 'void', 'case', 'enum', 'short', 'float', 'struct', 'auto',
+    'long', 'goto', 'volatile', 'return', 'signed', 'register', 'while', 'char'
 ]
 
 THREAD_COLORS = [
