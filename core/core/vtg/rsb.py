@@ -39,6 +39,9 @@ class RSB(core.components.Component):
         with open(restrictions_file, 'r', encoding='utf8') as fp:
             self.restrictions = json.loads(fp.read())
 
+        # Whether coverage should be collected.
+        self.is_coverage = self.conf['VTG strategy']['collect coverage'] != 'none'
+
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
         self.prepare_bug_kind_functions_file()
@@ -88,7 +91,6 @@ class RSB(core.components.Component):
         return "benchmark.xml"
 
     def set_common_verifier_options(self):
-        is_coverage = self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight')
         if self.conf['VTG strategy']['verifier']['name'] == 'CPAchecker':
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
@@ -105,7 +107,7 @@ class RSB(core.components.Component):
             # Specify default CPAchecker configuration.
             else:
                 ldv_bam_optimized = True
-                if is_coverage:
+                if self.is_coverage:
                     self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized-coverage': ''})
                 else:
                     self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
@@ -150,7 +152,7 @@ class RSB(core.components.Component):
                     self.conf['abstract task desc']['verifier options']
                 )
 
-            if is_coverage and not ldv_bam_optimized:
+            if self.is_coverage and not ldv_bam_optimized:
                 self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.file=coverage.info'})
         else:
             raise NotImplementedError(
@@ -398,7 +400,7 @@ class RSB(core.components.Component):
 
         self.log_file = log_files[0]
 
-        if self.conf['VTG strategy'].get('collect coverage', '') in ('full', 'partially', 'lightweight'):
+        if self.is_coverage:
             cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
                                        self.conf['main working directory'],
                                        self.conf['VTG strategy']['collect coverage'])
@@ -476,7 +478,7 @@ class RSB(core.components.Component):
                                   'parent id': verification_report_id,
                                   'attrs': [{"Rule specification": self.rule_specification}],
                                   # TODO: at the moment it is unclear what are verifier proofs.
-                                  'proof': None,
+                                  'proof': None
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
