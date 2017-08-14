@@ -408,13 +408,6 @@ class RSB(core.components.Component):
                 json.dump(cov.get_coverage(), fp, ensure_ascii=True, sort_keys=True, indent=4)
 
             arcnames = cov.get_arcnames()
-            with zipfile.ZipFile('coverage.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                for file in ['coverage.json'] + list(arcnames.keys()):
-                    arcname = None
-                    if file in arcnames:
-                        arcname = arcnames[file]
-                    zfp.write(file, arcname=arcname)
-
 
         core.utils.report(self.logger,
                           'verification',
