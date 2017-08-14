@@ -244,11 +244,11 @@ class ConnectMarks:
         self._prime_id = prime_id
         self.changes = {}
 
+        self._marks_attrs = self.__get_marks_attrs()
         self._safes_attrs = self.__get_safes_attrs()
         if len(self._safes_attrs) == 0:
             return
         self.__clear_connections()
-        self._marks_attrs = self.__get_marks_attrs()
         self._author = dict((m.id, m.author) for m in self._marks)
 
         self.__connect()
@@ -256,16 +256,18 @@ class ConnectMarks:
 
     def __get_safes_attrs(self):
         self.__is_not_used()
-        safes = {}
+        attrs_ids = set()
+        for m_id in self._marks_attrs:
+            attrs_ids |= self._marks_attrs[m_id]
+
+        safes_attrs = {}
         roots = set(root_id for root_id, in ReportRoot.objects.filter(job__safe_marks=True).values_list('id'))
-        for safe in ReportSafe.objects.filter(root_id__in=roots):
-            safes[safe] = set()
-        for attr in ReportAttr.objects.filter(report__in=safes):
-            for s in safes:
-                if s.id == attr.report_id:
-                    safes[s].add(attr.attr_id)
-                    break
-        return safes
+        for r_id, a_id in ReportAttr.objects.exclude(report__reportsafe=None)\
+                .filter(report__root_id__in=roots, attr_id__in=attrs_ids).values_list('report_id', 'attr_id'):
+            if r_id not in safes_attrs:
+                safes_attrs[r_id] = set()
+            safes_attrs[r_id].add(a_id)
+        return safes_attrs
 
     def __get_marks_attrs(self):
         attr_filters = {
@@ -288,10 +290,19 @@ class ConnectMarks:
         MarkSafeReport.objects.filter(mark__in=self._marks).delete()
 
     def __connect(self):
+        marks_reports = {}
+        safes_ids = set()
+        for mark_id in self._marks_attrs:
+            marks_reports[mark_id] = set()
+            for safe_id in self._safes_attrs:
+                if self._marks_attrs[mark_id].issubset(self._safes_attrs[safe_id]):
+                    marks_reports[mark_id].add(safe_id)
+                    safes_ids.add(safe_id)
+
         new_markreports = []
-        for safe in self._safes_attrs:
+        for safe in ReportSafe.objects.filter(id__in=safes_ids):
             for mark_id in self._marks_attrs:
-                if not self._marks_attrs[mark_id].issubset(self._safes_attrs[safe]):
+                if safe.id not in marks_reports[mark_id]:
                     continue
                 ass_type = ASSOCIATION_TYPE[0][0]
                 if self._prime_id == safe.id:

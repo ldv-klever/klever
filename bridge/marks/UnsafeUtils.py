@@ -287,11 +287,11 @@ class ConnectMarks:
         self._functions = {}
         self._patterns = {}
 
+        self._marks_attrs = self.__get_marks_attrs()
         self._unsafes_attrs = self.__get_unsafes_attrs()
         if len(self._unsafes_attrs) == 0:
             return
         self.__clear_connections()
-        self._marks_attrs = self.__get_marks_attrs()
         self._author = dict((m.id, m.author) for m in self._marks)
 
         self.__connect()
@@ -299,15 +299,17 @@ class ConnectMarks:
 
     def __get_unsafes_attrs(self):
         self.__is_not_used()
-        unsafes = {}
-        for unsafe in ReportUnsafe.objects.all():
-            unsafes[unsafe] = set()
-        for attr in ReportAttr.objects.filter(report__in=unsafes):
-            for u in unsafes:
-                if u.id == attr.report_id:
-                    unsafes[u].add(attr.attr_id)
-                    break
-        return unsafes
+        attrs_ids = set()
+        for m_id in self._marks_attrs:
+            attrs_ids |= self._marks_attrs[m_id]
+
+        unsafes_attrs = {}
+        for r_id, a_id in ReportAttr.objects.exclude(report__reportunsafe=None).filter(attr_id__in=attrs_ids)\
+                .values_list('report_id', 'attr_id'):
+            if r_id not in unsafes_attrs:
+                unsafes_attrs[r_id] = set()
+            unsafes_attrs[r_id].add(a_id)
+        return unsafes_attrs
 
     def __get_marks_attrs(self):
         attr_filters = {
@@ -333,14 +335,15 @@ class ConnectMarks:
         MarkUnsafeReport.objects.filter(mark__in=self._marks).delete()
 
     def __connect(self):
-        new_markreports = []
+        marks_reports = {}
+        unsafes_ids = set()
         for mark_id in self._marks_attrs:
-            mark_used = False
-            for unsafe in self._unsafes_attrs:
-                if self._marks_attrs[mark_id].issubset(self._unsafes_attrs[unsafe]):
-                    mark_used = True
-                    break
-            if not mark_used:
+            marks_reports[mark_id] = set()
+            for unsafe_id in self._unsafes_attrs:
+                if self._marks_attrs[mark_id].issubset(self._unsafes_attrs[unsafe_id]):
+                    marks_reports[mark_id].add(unsafe_id)
+                    unsafes_ids.add(unsafe_id)
+            if len(marks_reports[mark_id]) == 0:
                 del self._patterns[mark_id]
                 del self._functions[mark_id]
         patterns = {}
@@ -350,9 +353,10 @@ class ConnectMarks:
         for m_id in self._patterns:
             self._patterns[m_id] = patterns[self._patterns[m_id]]
 
-        for unsafe in self._unsafes_attrs:
+        new_markreports = []
+        for unsafe in ReportUnsafe.objects.filter(id__in=unsafes_ids):
             for mark_id in self._patterns:
-                if not self._marks_attrs[mark_id].issubset(self._unsafes_attrs[unsafe]):
+                if unsafe.id not in marks_reports[mark_id]:
                     continue
                 compare_error = None
                 try:
