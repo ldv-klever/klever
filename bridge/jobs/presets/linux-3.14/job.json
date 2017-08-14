@@ -16,6 +16,7 @@
       "name": "CPAchecker",
       "version": "ldv-bam:24572"
     },
-    "merge source files": true
+    "merge source files": true,
+    "collect coverage": "none"
   }
 }
