@@ -119,7 +119,7 @@
             {% if report.archive %}
                 <a href="{% url 'reports:download_files' report.pk %}" class="ui violet button">{% trans 'Download files' %}</a>
                 {% if report.coverage %}
-                    <a href="{% if user.extended.coverage_weight == '0' %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
+                    <a href="{% if user.extended.coverage_data %}{% url 'reports:coverage' report.id %}{% else %}{% url 'reports:coverage_light' report.id %}{% endif %}" class="ui violet button">{% trans 'Coverage' %}</a>
                 {% endif %}
             {% endif %}
         </div>

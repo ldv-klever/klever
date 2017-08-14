@@ -233,8 +233,3 @@ ASSOCIATION_TYPE = (
     ('1', _('Confirmed')),
     ('2', _('Unconfirmed'))
 )
-
-COV_WEIGHT = (
-    ('0', _('With data')),
-    ('1', _('Without data'))
-)

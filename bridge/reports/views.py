@@ -29,8 +29,7 @@ from django.utils.translation import ugettext as _, activate, string_concat
 from django.template.defaulttags import register
 
 from tools.profiling import unparallel_group
-from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES,\
-    COV_WEIGHT
+from bridge.vars import JOB_STATUS, UNKNOWN_ERROR, SAFE_VERDICTS, UNSAFE_VERDICTS, COMPARE_VERDICT, VIEW_TYPES
 from bridge.utils import logger, ArchiveFileContent, BridgeException, BridgeErrorResponse
 from jobs.ViewJobData import ViewJobData
 from jobs.utils import JobAccess
@@ -823,7 +822,7 @@ def coverage_page(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        coverage = GetCoverage(report_id, COV_WEIGHT[0][0])
+        coverage = GetCoverage(report_id, True)
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
@@ -839,7 +838,7 @@ def coverage_light_page(request, report_id):
     activate(request.user.extended.language)
 
     try:
-        coverage = GetCoverage(report_id, COV_WEIGHT[1][0])
+        coverage = GetCoverage(report_id, False)
     except BridgeException as e:
         return BridgeErrorResponse(str(e))
     except Exception as e:
