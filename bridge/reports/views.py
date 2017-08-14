@@ -15,9 +15,7 @@
 # limitations under the License.
 #
 
-import os
 import json
-import mimetypes
 from io import BytesIO
 from urllib.parse import quote
 from wsgiref.util import FileWrapper
@@ -48,7 +46,7 @@ import reports.models
 from reports.UploadReport import UploadReport
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
-from reports.coverage import GetCoverage, CoverageStatistics, DataStatistic, get_legend
+from reports.coverage import GetCoverage, GetCoverageSrcHTML
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
@@ -827,7 +825,7 @@ def coverage_page(request, report_id):
         logger.exception(e)
         return BridgeErrorResponse(500)
     return render(request, 'reports/coverage/coverage.html', {
-        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attibutes(coverage.report)
+        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attributes_with_parents(coverage.report)
     })
 
 
@@ -843,7 +841,7 @@ def coverage_light_page(request, report_id):
         logger.exception(e)
         return BridgeErrorResponse(500)
     return render(request, 'reports/coverage/coverage_light.html', {
-        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attibutes(coverage.report)
+        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attributes_with_parents(coverage.report)
     })
 
 
@@ -854,43 +852,10 @@ def get_coverage_src(request):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     try:
-        coverage = GetCoverage(request.POST['report_id'], request.POST['weight'])
-        res = coverage.get_file_content(request.POST['filename'])
+        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], request.POST['weight'])
     except BridgeException as e:
         return JsonResponse({'error': str(e)})
     except Exception as e:
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({'content': res.src_html, 'data': res.data_html, 'legend': res.legend})
-
-
-@unparallel_group([reports.models.Report])
-def get_coverage_statistic(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST' or 'report_id' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        table = CoverageStatistics(request.POST['report_id']).table_html
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'table': table})
-
-
-@unparallel_group([reports.models.Report])
-def get_coverage_data_stat(request):
-    activate(request.user.extended.language)
-    if request.method != 'POST' or 'report_id' not in request.POST:
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-
-    try:
-        table = DataStatistic(request.POST['report_id']).table_html
-    except BridgeException as e:
-        return JsonResponse({'error': str(e)})
-    except Exception as e:
-        logger.exception(e)
-        return JsonResponse({'error': str(UNKNOWN_ERROR)})
-    return JsonResponse({'table': table})

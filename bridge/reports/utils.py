@@ -917,6 +917,15 @@ def report_attibutes(report):
     return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
 
 
+def report_attributes_with_parents(report):
+    attrs = []
+    parent = report
+    while parent is not None:
+        attrs = list(parent.attrs.order_by('id').values_list('attr__name__name', 'attr__value')) + attrs
+        parent = parent.parent
+    return attrs
+
+
 def remove_verification_files(job):
     root = job.reportroot
     for report in ReportComponent.objects.filter(root=root, verification=True):

@@ -44,7 +44,7 @@
     padding-right: 5px;
 }
 .COVLineSelected {
-    background-color: #fff0eb;
+    background-color: #fff0eb!important;
 }
 .COVLineLink {
     cursor: pointer;
@@ -57,6 +57,9 @@
     font-weight: bold;
     padding-left: 5px;
     padding-right: 5px;
+}
+.COVWithData {
+    background-color: #e9b4e8;
 }
 .COVCode {
     width: 100%;
@@ -113,22 +116,16 @@
 }
 
 .CovLegCell {
-    width: 100%;
+    min-width: 35px;
     height: 20px;
     text-align: center;
-    font-size: smaller;
-}
-#cov-legend-box {
-    border: 1px solid #860cff;
-    border-radius: 5px;
-    padding: 10px;
+    font-size: x-small;
+    display: inline-block;
 }
 .small-violet-text {
     font-size: smaller;
     color: #680cce;
 }
 #div_for_legend {
-    float: right;
-    width: 35vw;
-    margin-bottom: 15px;
+    margin-top: 20px;
 }
