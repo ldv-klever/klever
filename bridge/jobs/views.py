@@ -27,7 +27,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
@@ -54,7 +54,7 @@ from jobs.Download import UploadJob, JobArchiveGenerator, KleverCoreArchiveGen, 
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def tree_view(request):
     activate(request.user.extended.language)
 
@@ -213,7 +213,7 @@ def share_view(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def show_job(request, job_id=None):
     activate(request.user.extended.language)
 
@@ -291,7 +291,7 @@ def show_job(request, job_id=None):
 
 
 @login_required
-@unparallel_group(['Job', 'Report'])
+@unparallel_group([])
 def get_job_data(request):
     activate(request.user.extended.language)
 
@@ -319,7 +319,7 @@ def get_job_data(request):
 
 
 @login_required
-@unparallel_group([Job])
+@unparallel_group([])
 def edit_job(request):
     activate(request.user.extended.language)
 
@@ -393,7 +393,7 @@ def remove_versions(request):
 
 
 @login_required
-@unparallel_group(['Job', 'JobHistory'])
+@unparallel_group([])
 def get_job_versions(request):
     activate(request.user.extended.language)
 
@@ -415,7 +415,7 @@ def get_job_versions(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def copy_new_job(request):
     activate(request.user.extended.language)
 
@@ -540,7 +540,7 @@ def remove_jobs(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def showjobdata(request):
     activate(request.user.extended.language)
 
@@ -550,16 +550,21 @@ def showjobdata(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return HttpResponse('')
+    try:
+        job_version = JobHistory.objects.get(job=job, version=F('job__version'))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.versions.get(version=job.version).description,
-        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata
+        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata,
+        'roles': jobs.utils.role_info(job_version, request.user)
     })
 
 
 @login_required
-@unparallel_group(['JobFile'])
+@unparallel_group([JobFile])
 def upload_file(request):
     activate(request.user.extended.language)
 
@@ -580,7 +585,7 @@ def upload_file(request):
 
 
 @login_required
-@unparallel_group(['FileSystem', 'JobFile'])
+@unparallel_group([])
 def download_file(request, file_id):
     if request.method == 'POST':
         return BridgeErrorResponse(301)
@@ -600,7 +605,7 @@ def download_file(request, file_id):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_job(request, job_id):
     try:
         job = Job.objects.get(pk=int(job_id))
@@ -617,7 +622,7 @@ def download_job(request, job_id):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_jobs(request):
     if request.method != 'POST' or 'job_ids' not in request.POST:
         return BridgeErrorResponse(301, back=reverse('jobs:tree'))
@@ -635,7 +640,7 @@ def download_jobs(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def check_access(request):
     activate(request.user.extended.language)
 
@@ -738,7 +743,7 @@ def decide_job(request):
 
 
 @login_required
-@unparallel_group(['FileSystem', 'JobFile'])
+@unparallel_group([])
 def getfilecontent(request):
     activate(request.user.extended.language)
 
@@ -803,7 +808,7 @@ def run_decision(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def prepare_decision(request, job_id):
     activate(request.user.extended.language)
     try:
@@ -890,7 +895,7 @@ def lastconf_run_decision(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def check_compare_access(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -906,7 +911,7 @@ def check_compare_access(request):
 
 
 @login_required
-@unparallel_group(['Job', 'JobFile'])
+@unparallel_group([])
 def jobs_files_comparison(request, job1_id, job2_id):
     activate(request.user.extended.language)
     try:
@@ -927,7 +932,7 @@ def jobs_files_comparison(request, job1_id, job2_id):
 
 
 @login_required
-@unparallel_group(['JobFile'])
+@unparallel_group([])
 def get_file_by_checksum(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -960,7 +965,7 @@ def get_file_by_checksum(request):
     return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
 
-@unparallel_group(['RunHistory'])
+@unparallel_group([])
 def download_configuration(request, runhistory_id):
     try:
         run_history = RunHistory.objects.get(id=runhistory_id)
@@ -1022,7 +1027,7 @@ def collapse_reports(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def do_job_has_children(request):
     activate(request.user.extended.language)
 
@@ -1038,7 +1043,7 @@ def do_job_has_children(request):
 
 
 @login_required
-@unparallel_group(['Job'])
+@unparallel_group([])
 def download_files_for_compet(request, job_id):
     if request.method != 'POST':
         return BridgeErrorResponse(301)

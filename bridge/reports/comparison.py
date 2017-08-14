@@ -160,7 +160,6 @@ class CompareTree:
                 }
 
     def __fill_cache(self, j1, j2):
-        CompareJobsInfo.objects.filter(user=self.user).delete()
         info = CompareJobsInfo.objects.create(
             user=self.user, root1=j1.reportroot, root2=j2.reportroot,
             files_diff=json.dumps(CompareFileSet(j1, j2).data, ensure_ascii=False)

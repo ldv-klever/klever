@@ -10,7 +10,7 @@
     "processes": 1.0,
     "process pool": false,
     "controller address": "http://localhost:8500",
-    "keep working directory": false
+    "keep working directory": false,
     "iteration timeout": {
       "short": 5,
       "medium": 10,
