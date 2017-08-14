@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0009_componentinstances'),
+        ('reports', '0010_auto_comparison_user'),
     ]
 
     operations = [

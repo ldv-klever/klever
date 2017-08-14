@@ -9,7 +9,7 @@ import reports.models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('reports', '0010_reportcomponent_coverage'),
+        ('reports', '0011_reportcomponent_coverage'),
     ]
 
     operations = [
