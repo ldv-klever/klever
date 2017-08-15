@@ -27,7 +27,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
@@ -303,18 +303,19 @@ def get_job_data(request):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     data = {'jobstatus': job.status}
-    try:
-        data['jobdata'] = loader.get_template('jobs/jobData.html').render({
-            'reportdata': ViewJobData(
-                request.user,
-                ReportComponent.objects.get(root__job=job, parent=None),
-                view=request.POST.get('view', None)
-            )
-        })
-    except ObjectDoesNotExist:
-        pass
-    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
+    if 'just_status' in request.POST and not json.loads(request.POST['just_status']):
+        try:
+            data['jobdata'] = loader.get_template('jobs/jobData.html').render({
+                'reportdata': ViewJobData(
+                    request.user,
+                    ReportComponent.objects.get(root__job=job, parent=None),
+                    view=request.POST.get('view', None)
+                )
+            })
+        except ObjectDoesNotExist:
+            pass
+        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
@@ -550,11 +551,16 @@ def showjobdata(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return HttpResponse('')
+    try:
+        job_version = JobHistory.objects.get(job=job, version=F('job__version'))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.versions.get(version=job.version).description,
-        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata
+        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata,
+        'roles': jobs.utils.role_info(job_version, request.user)
     })
 
 

@@ -23,7 +23,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.timezone import now
 
-from bridge.vars import REPORT_FILES_ARCHIVE, JOB_WEIGHT, JOB_STATUS
+from bridge.vars import REPORT_FILES_ARCHIVE, COVERAGE_FILES_ARCHIVE, JOB_WEIGHT, JOB_STATUS
 from bridge.utils import logger
 
 import marks.SafeUtils as SafeUtils
@@ -45,9 +45,10 @@ BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verifica
 
 
 class UploadReport:
-    def __init__(self, job, data, archive=None):
+    def __init__(self, job, data, archive=None, coverage_arch=None):
         self.job = job
         self.archive = archive
+        self.coverage = coverage_arch
         self.data = {}
         self.ordered_attrs = []
         self.error = None
@@ -141,6 +142,8 @@ class UploadReport:
                 self.data['comp'] = data['comp']
             if 'log' in data:
                 self.data['log'] = data['log']
+            if 'coverage' in data:
+                self.data['coverage'] = data['coverage']
         elif data['type'] == 'verification finish':
             pass
         elif data['type'] == 'safe':
@@ -275,9 +278,17 @@ class UploadReport:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
             check_arch = True
+        check_coverage_arch = False
+        if self.coverage is not None and self.data['type'] == 'verification':
+            report.new_coverage(COVERAGE_FILES_ARCHIVE, self.coverage)
+            report.coverage = self.data.get('coverage')
+            check_coverage_arch = True
         report.save()
+
         if check_arch:
             self.__check_archive(report.archive.file.name)
+        if check_coverage_arch:
+            self.__check_archive(report.coverage_arch.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
