@@ -50,6 +50,7 @@ JOB_TREE_VIEW = {
     # 'format': ['is', '1'],
     # 'priority': ['me', 'LOW'],
     # 'finish_date': ['is', '1', '2016'],
+    # 'hidden': ['confirmed_marks']
 }
 
 JOB_DATA_VIEW = {
