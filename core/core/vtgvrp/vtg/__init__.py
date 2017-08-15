@@ -388,20 +388,20 @@ class VTG(core.components.Component):
 
     def __generate_all_abstract_verification_task_descs(self):
         def get_from_queue_no_wait(collection, name):
-            status = True
+            s = True
             try:
                 while True:
                     element = self.mqs[name].get_nowait()
                     if element is None:
                         self.logger.debug('Message queue {!r} was terminated'.format(name))
                         self.mqs[name].close()
-                        status = False
+                        s = False
                         break
                     collection.append(element)
             except queue.Empty:
                 pass
 
-            return status
+            return s
 
         self.logger.info('Generate all abstract verification task decriptions')
         vo_descriptions = dict()
@@ -477,23 +477,26 @@ class VTG(core.components.Component):
                     # Check readiness for further tasks generation
                     pilot_task_status = processing_status[vobject][rule_class][_rule_spec_classes[rule_class][0]['id']]
                     if (pilot_task_status is False or pilot_task_status is True) and active_tasks < max_tasks:
-                        for rule_name in [rule for rule in _rule_spec_classes[rule_class]
-                                          if rule['id'] not in processing_status[vobject][rule_class]]:
+                        for rule in [rule for rule in _rule_spec_classes[rule_class][1:] if
+                                     rule['id'] not in processing_status[vobject][rule_class]]:
                             self.logger.info("Submit next verification task after having cached plugin results for "
-                                             "verification object {!r} and rule {!r}".format(vobject, rule_name))
+                                             "verification object {!r} and rule {!r}".format(vobject, rule['id']))
                             self.mqs['prepare verification objects'].put(
-                                (vo_descriptions[vobject], rule_name))
-                            processing_status[vobject][rule_class][rule_name['id']] = None
+                                (vo_descriptions[vobject], rule))
+                            processing_status[vobject][rule_class][rule['id']] = None
                             active_tasks += 1
 
                     solved = 0
-                    for rule_name in _rule_spec_classes[rule_class]:
-                        if rule_name['id'] in processing_status[vobject][rule_class] and \
-                                processing_status[vobject][rule_class][rule_name['id']]:
+                    for rule in _rule_spec_classes[rule_class]:
+                        if rule['id'] in processing_status[vobject][rule_class] and \
+                                processing_status[vobject][rule_class][rule['id']]:
                             solved += 1
+
                     if solved == len(_rule_spec_classes[rule_class]):
+                        # if not self.conf['keep intermediate files']:
+                        for rule in processing_status[vobject][rule_class]:
+                            shutil.rmtree(os.path.join(vobject, rule))
                         del processing_status[vobject][rule_class]
-                        # todo: cleanup dir
 
                 if len(processing_status[vobject]) == 0:
                     self.logger.info("All tasks for verification object {!r} are either solved or failed".
@@ -501,8 +504,6 @@ class VTG(core.components.Component):
                     # Verification object is lastly processed
                     del processing_status[vobject]
                     del vo_descriptions[vobject]
-                    if not self.conf['keep intermediate files']:
-                        shutil.rmtree(vobject)
 
             if not expect_objects and active_tasks == 0 and len(vo_descriptions) == 0:
                 for _ in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
@@ -516,6 +517,13 @@ class VTG(core.components.Component):
 
 
 class VTGW(core.components.Component):
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+                                   unknown_attrs, separate_from_parent, include_child_resources)
+        self.verification_obj = None
+        self.rule_spec = None
 
     def tasks_generator_worker(self):
         self.logger.info("Start VTG worker")
@@ -597,9 +605,15 @@ class VTGW(core.components.Component):
                     pilot_abstract_task_desc_file =  os.path.join(
                         pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
                     pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
+                    shutil.copyfile(pilot_abstract_task_desc_file, out_abstract_task_desc_file)
                     os.symlink(os.path.relpath(pilot_plugin_work_dir, plugins_work_dir), plugin_work_dir)
-                    os.symlink(os.path.relpath(pilot_abstract_task_desc_file, plugins_work_dir),
-                               out_abstract_task_desc_file)
+
+                    # Update attributes.
+                    with open(out_abstract_task_desc_file, 'r', encoding='utf8') as fp:
+                        at = json.load(fp)
+                    at['attrs'] = initial_attrs
+                    with open(out_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+                        json.dump(at, fp)
                 else:
                     self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
@@ -620,7 +634,6 @@ class VTGW(core.components.Component):
                     plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
                                                                                  self.conf[
                                                                                      'main working directory'])
-
 
                     plugin_conf_file = os.path.join(plugins_work_dir,
                                                     '{0} conf.json'.format(plugin_desc['name'].lower()))
