@@ -90,6 +90,11 @@ UNSAFES_VIEW = {
     # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
     # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
+    # 'verdict': [<ids from UNSAFE_VERDICTS>]
+    # 'hidden': ['confirmed_marks']
+    # 'marks_number': [confirmed|total, iexact|lte|gte, <positive integer number>]
+    # 'tags': [<string of tags separated with ';'>]
+    # 'parent_cpu': [lt|gt, <number>, m|s|ms]
 }
 
 SAFES_VIEW = {
@@ -98,6 +103,11 @@ SAFES_VIEW = {
     # order: [up|down, attr|parent_cpu, <any text, empty for parent_cpu>]
     # 'order': ['down', 'attr', 'Rule specification'],
     # 'attr': ['LKVOG strategy:Name', 'istartswith', 'Separate']
+    # 'verdict': [<ids from SAFE_VERDICTS>]
+    # 'hidden': ['confirmed_marks']
+    # 'marks_number': [confirmed|total, iexact|lte|gte, <positive integer number>]
+    # 'tags': [<string of tags separated with ';'>]
+    # 'parent_cpu': [lt|gt, <number>, m|s|ms]
 }
 
 UNKNOWNS_VIEW = {
@@ -116,7 +126,7 @@ UNSAFE_MARKS_VIEW = {
 
     # FILTERS:
     # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from UNSAFE_VERDICTS>]
+    # verdict: [is|isnot, <id from MARK_UNSAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
@@ -138,7 +148,7 @@ SAFE_MARKS_VIEW = {
 
     # FILTERS:
     # status: [is|isnot, <id from MARK_STATUS>]
-    # verdict: [is|isnot, <id from UNSAFE_VERDICTS>]
+    # verdict: [is|isnot, <id from MARK_SAFE>]
     # author: [<author id>]
     # source: [is|isnot, <id from MARK_TYPE>]
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
