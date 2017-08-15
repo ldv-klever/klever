@@ -854,7 +854,7 @@ class StartJobDecision:
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file)
+        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, date=now())
 
     def __check_schedulers(self):
         try:

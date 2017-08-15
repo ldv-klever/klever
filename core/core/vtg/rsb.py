@@ -27,6 +27,7 @@ import core.components
 import core.session
 import core.utils
 from core.vtg.et import import_error_trace
+from core.vtg import coverage_parser
 
 
 class RSB(core.components.Component):
@@ -37,6 +38,9 @@ class RSB(core.components.Component):
         restrictions_file = core.utils.find_file_or_dir(self.logger, self.conf["main working directory"], "tasks.json")
         with open(restrictions_file, 'r', encoding='utf8') as fp:
             self.restrictions = json.loads(fp.read())
+
+        # Whether coverage should be collected.
+        self.is_coverage = self.conf['VTG strategy']['collect coverage'] != 'none'
 
         self.set_common_verifier_options()
         self.prepare_common_verification_task_desc()
@@ -91,6 +95,7 @@ class RSB(core.components.Component):
             if 'options' not in self.conf['VTG strategy']['verifier']:
                 self.conf['VTG strategy']['verifier']['options'] = []
 
+            ldv_bam_optimized = False
             if 'verifier configuration' in self.conf['abstract task desc']:
                 self.conf['VTG strategy']['verifier']['options'].append(
                     {self.conf['abstract task desc']['verifier configuration']: ''}
@@ -101,7 +106,11 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'] = [{'-valuePredicateAnalysis-bam-rec': ''}]
             # Specify default CPAchecker configuration.
             else:
-                self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
+                ldv_bam_optimized = True
+                if self.is_coverage:
+                    self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized-coverage': ''})
+                else:
+                    self.conf['VTG strategy']['verifier']['options'].append({'-ldv-bam-optimized': ''})
 
             # Remove internal CPAchecker timeout.
             self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'limits.time.cpu={0}s'.format(
@@ -142,6 +151,9 @@ class RSB(core.components.Component):
                 self.conf['VTG strategy']['verifier']['options'].extend(
                     self.conf['abstract task desc']['verifier options']
                 )
+
+            if self.is_coverage and not ldv_bam_optimized:
+                self.conf['VTG strategy']['verifier']['options'].append({'-setprop': 'coverage.file=coverage.info'})
         else:
             raise NotImplementedError(
                 'Verifier {0} is not supported'.format(self.conf['VTG strategy']['verifier']['name']))
@@ -388,23 +400,35 @@ class RSB(core.components.Component):
 
         self.log_file = log_files[0]
 
+        report = {
+          # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+          'id': verification_report_id,
+          'parent id': self.id,
+          # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+          'attrs': [],
+          'name': self.conf['VTG strategy']['verifier']['name'],
+          'resources': decision_results['resources'],
+          'log': None if self.logger.disabled else self.log_file,
+          'coverage': 'coverage.json',
+          'files': {'report': ([] if self.logger.disabled else [self.log_file]) +
+                              (self.files if self.conf['upload input files of static verifiers'] else [])}
+        }
+
+        if self.is_coverage:
+            cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
+                                       self.conf['main working directory'],
+                                       self.conf['VTG strategy']['collect coverage'])
+            with open('coverage.json', 'w', encoding='utf-8') as fp:
+                json.dump(cov.get_coverage(), fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+            arcnames = cov.get_arcnames()
+
+            report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
+            report['arcname'] = arcnames
+
         core.utils.report(self.logger,
                           'verification',
-                          {
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'id': verification_report_id,
-                              'parent id': self.id,
-                              # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                              'attrs': [],
-                              'name': self.conf['VTG strategy']['verifier']['name'],
-                              'resources': decision_results['resources'],
-                              'log': None if self.logger.disabled else self.log_file,
-                              'files': ([] if self.logger.disabled else [self.log_file]) + (
-                                  self.files
-                                  if self.conf['upload input files of static verifiers']
-                                  else []
-                              )
-                          },
+                          report,
                           self.mqs['report files'],
                           self.conf['main working directory'])
 
@@ -437,6 +461,7 @@ class RSB(core.components.Component):
         self.witness_processing_exception = None
 
         if re.match('true', decision_results['status']):
+            self.verdict = 'safe'
             core.utils.report(self.logger,
                               'safe',
                               {
@@ -448,8 +473,6 @@ class RSB(core.components.Component):
                               },
                               self.mqs['report files'],
                               self.conf['main working directory'])
-
-            self.verdict = 'safe'
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
 

@@ -30,6 +30,7 @@ class Extended(models.Model):
     timezone = models.CharField(max_length=255, default=DEF_USER['timezone'])
     assumptions = models.BooleanField(default=DEF_USER['assumptions'])
     triangles = models.BooleanField(default=DEF_USER['triangles'])
+    coverage_data = models.BooleanField(default=DEF_USER['coverage_data'])
 
     def __str__(self):
         return self.user.username

@@ -46,7 +46,7 @@ REP_MARK_TITLES = {
     'mark_verdict': _("Verdict"),
     'mark_result': _('Similarity'),
     'mark_status': _('Status'),
-    'number': '№',
+    'number': _('#'),
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
@@ -87,7 +87,8 @@ def get_parents(report):
         parents_data.insert(0, {
             'title': parent.component.name,
             'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
-            'attrs': parent_attrs
+            'attrs': parent_attrs,
+            'coverage': parent.coverage
         })
         try:
             parent = ReportComponent.objects.get(id=parent.parent_id)
@@ -914,6 +915,15 @@ class FilesForCompetitionArchive(object):
 
 def report_attibutes(report):
     return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
+
+
+def report_attributes_with_parents(report):
+    attrs = []
+    parent = report
+    while parent is not None:
+        attrs = list(parent.attrs.order_by('id').values_list('attr__name__name', 'attr__value')) + attrs
+        parent = parent.parent
+    return attrs
 
 
 def remove_verification_files(job):

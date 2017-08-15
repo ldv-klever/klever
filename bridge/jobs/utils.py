@@ -389,11 +389,11 @@ def convert_memory(val, acc):
 
 
 def role_info(job, user):
-    roles_data = {'global': job.global_role}
+    roles_data = {'global': (job.global_role, job.get_global_role_display())}
 
     users = []
     user_roles_data = []
-    users_roles = job.userrole_set.filter(~Q(user=user))
+    users_roles = job.userrole_set.exclude(user=user).order_by('user__last_name')
     job_author = job.job.versions.get(version=1).change_author
 
     for ur in users_roles:
@@ -407,7 +407,7 @@ def role_info(job, user):
     roles_data['user_roles'] = user_roles_data
 
     available_users = []
-    for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)):
+    for u in User.objects.filter(~Q(pk__in=users) & ~Q(pk=user.pk)).order_by('last_name'):
         if u != job_author:
             available_users.append({'id': u.pk, 'name': u.get_full_name()})
     roles_data['available_users'] = available_users
