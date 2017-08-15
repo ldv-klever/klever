@@ -54,6 +54,14 @@
         <h3>{% trans 'Filters' %}</h3>
         <div class="ui divider"></div>
 
+        {# Hide data #}
+        <input id="view_data_{{ view.type }}__hidden" value="checkboxes" type="hidden">
+        <div class="ui checkbox">
+            <input type="checkbox" id="view_{{ view.type }}__hidden__confirmed_marks"{% if 'confirmed_marks' in view.hidden %} checked{% endif %}>
+            <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed unsafes number' %}</label>
+        </div>
+        <div class="ui divider"></div>
+
         {# Attribute #}
         <input id="view_data_{{ view.type }}__attr" value="list_if_attr" data-list="attr_name__attr_type__attr_value" type="hidden">
         <div class="ui checkbox">

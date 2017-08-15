@@ -205,10 +205,16 @@ class SafesTable:
                 marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
             leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
+        include_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
         reports = {}
         for leaf in leaves_set:
+            if include_confirmed:
+                marks_num = "%s (%s)" % (leaf['confirmed'], leaf['marks_number'])
+            else:
+                marks_num = str(leaf['marks_number'])
             reports[leaf['safe_id']] = {
-                'marks_number': "%s (%s)" % (leaf['confirmed'], leaf['marks_number']),
+                'marks_number': marks_num,
                 'verdict': leaf['safe__verdict'],
                 'parent_id': leaf['safe__parent_id'],
                 'parent_cpu': leaf['safe__verifier_time'],
@@ -410,10 +416,16 @@ class UnsafesTable:
                 marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
             leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
+        include_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
         reports = {}
         for leaf in leaves_set:
+            if include_confirmed:
+                marks_num = "%s (%s)" % (leaf['confirmed'], leaf['marks_number'])
+            else:
+                marks_num = str(leaf['marks_number'])
             reports[leaf['unsafe_id']] = {
-                'marks_number': "%s (%s)" % (leaf['confirmed'], leaf['marks_number']),
+                'marks_number': marks_num,
                 'verdict': leaf['unsafe__verdict'],
                 'parent_id': leaf['unsafe__parent_id'],
                 'parent_cpu': leaf['unsafe__verifier_time'],

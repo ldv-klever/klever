@@ -267,8 +267,13 @@ class ViewJobData:
             if confirmed > 0:
                 href[0] = '%s?verdict=%s&confirmed=1' % (reverse('reports:safes', args=[self.report.pk]), verdict)
 
+            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
+                value = [total]
+                del href[0]
+            else:
+                value = [confirmed, total]
+
             color = None
-            value = [confirmed, total]
             safe_name = 'safe:'
             if verdict == SAFE_VERDICTS[0][0]:
                 safe_name += SAFES[2]
@@ -285,7 +290,8 @@ class ViewJobData:
             elif verdict == SAFE_VERDICTS[4][0]:
                 safe_name += SAFES[4]
                 value = [total]
-                del href[0]
+                if len(href) == 2:
+                    del href[0]
 
             if total > 0:
                 safes_numbers[safe_name] = {
@@ -324,8 +330,13 @@ class ViewJobData:
             if confirmed > 0:
                 href[0] = '%s?verdict=%s&confirmed=1' % (reverse('reports:unsafes', args=[self.report.pk]), verdict)
 
+            if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
+                value = [total]
+                del href[0]
+            else:
+                value = [confirmed, total]
+
             color = None
-            value = [confirmed, total]
             unsafe_name = 'unsafe:'
             if verdict == UNSAFE_VERDICTS[0][0]:
                 unsafe_name += UNSAFES[3]
@@ -345,7 +356,8 @@ class ViewJobData:
             elif verdict == UNSAFE_VERDICTS[5][0]:
                 unsafe_name += UNSAFES[5]
                 value = [total]
-                del href[0]
+                if len(href) == 2:
+                    del href[0]
 
             if total > 0:
                 unsafes_numbers[unsafe_name] = {
