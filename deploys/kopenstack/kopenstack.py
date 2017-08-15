@@ -471,20 +471,23 @@ class OSKleverExperimentalInstances(OSEntity):
 
         self.name = self.args.name or '{0}-klever-experiment'.format(self.args.os_username)
 
+        # It is assumed that all requested Klever experimental instances have the same unique prefix (name).
+        self.name_pattern = self.name + '.*'
+
     def show(self):
         self._connect(nova=True)
 
-        klever_experimental_instances = self._get_instances(self.name + '.*')
+        klever_experimental_instances = self._get_instances(self.name_pattern)
 
         if len(klever_experimental_instances) == 1:
             self.logger.info('There is Klever experimental instance "{0}" matching "{1}"'
-                             .format(klever_experimental_instances[0].name, self.name))
+                             .format(klever_experimental_instances[0].name, self.name_pattern))
         elif len(klever_experimental_instances) > 1:
             self.logger.info('There are {0} Klever experimental instances matching "{1}":\n* {2}'
-                             .format(len(klever_experimental_instances), self.name,
+                             .format(len(klever_experimental_instances), self.name_pattern,
                                      '\n* '.join([instance.name for instance in klever_experimental_instances])))
         else:
-            self.logger.info('There are no Klever experimental instances matching "{0}"'.format(self.name))
+            self.logger.info('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
 
     def create(self):
         # TODO: like for Klever developer instance create.
