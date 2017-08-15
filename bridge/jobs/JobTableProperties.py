@@ -15,7 +15,6 @@
 # limitations under the License.
 #
 
-import time
 from django.core.urlresolvers import reverse
 from django.db.models import Q, F, Case, When, Count
 from django.template import Template, Context
@@ -26,7 +25,7 @@ from bridge.vars import USER_ROLES, PRIORITY, JOB_STATUS, JOB_WEIGHT, SAFE_VERDI
 
 from jobs.models import Job, JobHistory, UserRole
 from marks.models import ReportSafeTag, ReportUnsafeTag, ComponentMarkUnknownProblem
-from reports.models import Verdict, ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
+from reports.models import ComponentResource, ReportComponent, ComponentUnknown, LightResource, ReportRoot,\
     TaskStatistic, ReportComponentLeaf
 
 from users.utils import ViewData
@@ -687,7 +686,6 @@ class TableTree:
             )
 
     def __collect_verdicts(self):
-        t1 = time.time()
         if 'hidden' in self.view and 'confirmed_marks' in self.view['hidden']:
             self.__get_verdicts_without_confirmed()
         else:
@@ -699,42 +697,6 @@ class TableTree:
                 .annotate(job_id=F('report__root__job_id'), total=Count('id'))\
                 .values_list('job_id', 'report_id', 'total'):
             self._values_data[job_id]['problem:total'] = (total, reverse('reports:unknowns', args=[r_id]))
-        print('NEW verdicts calc: %s' % (time.time() - t1))
-        t1 = time.time()
-
-        old_data = {}
-        for j_id in self._job_ids:
-            old_data[j_id] = {}
-        for verdict in Verdict.objects.filter(report__root__job_id__in=self._job_ids, report__parent=None)\
-                .annotate(job_id=F('report__root__job_id')):
-            safes_url = reverse('reports:safes', args=[verdict.report_id])
-            unsafes_url = reverse('reports:unsafes', args=[verdict.report_id])
-            old_data[verdict.job_id].update({
-                'unsafe:total': (verdict.unsafe, unsafes_url),
-                'unsafe:unknown': (verdict.unsafe_unknown, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[0][0])),
-                'unsafe:bug': (verdict.unsafe_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[1][0])),
-                'unsafe:target_bug': (
-                    verdict.unsafe_target_bug, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[2][0])
-                ),
-                'unsafe:false_positive': (
-                    verdict.unsafe_false_positive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[3][0])
-                ),
-
-                'unsafe:unassociated': (
-                    verdict.unsafe_unassociated, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[5][0])
-                ),
-                'unsafe:inconclusive': (
-                    verdict.unsafe_inconclusive, '%s?verdict=%s' % (unsafes_url, UNSAFE_VERDICTS[4][0])
-                ),
-                'safe:total': (verdict.safe, safes_url),
-                'safe:unknown': (verdict.safe_unknown, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[0][0])),
-                'safe:incorrect': (verdict.safe_incorrect_proof, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[1][0])),
-                'safe:missed_bug': (verdict.safe_missed_bug, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[2][0])),
-                'safe:inconclusive': (verdict.safe_inconclusive, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[3][0])),
-                'safe:unassociated': (verdict.safe_unassociated, '%s?verdict=%s' % (safes_url, SAFE_VERDICTS[4][0])),
-                'problem:total': (verdict.unknown, reverse('reports:unknowns', args=[verdict.report_id]))
-            })
-        print('OLD verdicts calc: %s' % (time.time() - t1))
 
     def __get_verdicts_with_confirmed(self):
         unsafe_columns_map = {
