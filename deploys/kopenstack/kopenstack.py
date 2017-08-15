@@ -495,7 +495,14 @@ class OSKleverExperimentalInstances(OSEntity):
 
     def remove(self):
         self._connect(nova=True)
-        self.os_services['nova'].servers.delete(self._get_instance(self.name).id)
+
+        klever_experimental_instances = self._get_instances(self.name_pattern)
+
+        if len(klever_experimental_instances) == 0:
+            raise ValueError('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
+
+        for klever_experimental_instance in klever_experimental_instances:
+            self.os_services['glance'].images.delete(klever_experimental_instance.id)
 
     def ssh(self):
         self._connect(nova=True)
