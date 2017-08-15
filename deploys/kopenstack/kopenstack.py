@@ -333,8 +333,9 @@ class OSKleverDeveloperInstance(OSEntity):
                          .format(name, host_version, instance_version))
 
         instance_klever_conf[name] = {'version': host_version}
-        if 'executable path' in host_desc:
-            instance_klever_conf[name]['executable path'] = host_desc['executable path']
+        for attr in ('name', 'executable path'):
+            if attr in host_desc:
+                instance_klever_conf[name][attr] = host_desc[attr]
 
         # Remove previous version of entity if so.
         if instance_version:
@@ -414,6 +415,7 @@ class OSKleverDeveloperInstance(OSEntity):
                                        instance_programs_conf, ssh):
                     ssh.execute_cmd('sudo chown -LR klever:klever klever-programs')
 
+        # TODO: if something below will fail below then one will see entities as successfully updated. But indeed this is a fatal error.
         self.logger.info('Specify actual versions of Klever, its addons and programs')
         with ssh.sftp.file('klever.json', 'w') as fp:
             json.dump(instance_klever_conf, fp, sort_keys=True, indent=4)

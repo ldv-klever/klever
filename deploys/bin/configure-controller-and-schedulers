@@ -93,11 +93,13 @@ print('Configure Klever NativeScheduler Task Worker')
 with open('klever/scheduler/conf/task-client.json') as fp:
     task_client_conf = json.load(fp)
 
-task_client_conf['client'] = {
-    'benchexec location': get_klever_addon_abs_path('BenchExec'),
-    'verification tools': {name: {desc['version']: get_klever_addon_abs_path(name, verification_backend=True)}
-                           for name, desc in klever_conf['Klever Addons']['Verification Backends'].items()}
-}
+task_client_conf['client']['benchexec location'] = get_klever_addon_abs_path('BenchExec')
+verification_backends = task_client_conf['client']['verification tools'] = {}
+
+for name, desc in klever_conf['Klever Addons']['Verification Backends'].items():
+    if desc['name'] not in verification_backends:
+        verification_backends[desc['name']] = {}
+    verification_backends[desc['name']][desc['version']] = get_klever_addon_abs_path(name, verification_backend=True)
 
 with open('klever-conf/native-scheduler-task-client.json', 'w') as fp:
     json.dump(task_client_conf, fp, sort_keys=True, indent=4)

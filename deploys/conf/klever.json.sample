@@ -23,16 +23,19 @@
     },
     "Verification Backends": {
       "CPAchecker LDV BAM": {
+        "name": "CPAchecker",
         "version": "ldv-bam:24572",
         "path": "addons/CPAchecker-1.6.1-svn 05b6b8c-unix",
         "executable path": "scripts"
       },
       "CPAchecker LDV SMG": {
+        "name": "CPAchecker",
         "version": "smg_witness_for_ldv:24577",
         "path": "addons/CPAchecker-1.6.1-svn 5f0eb6d-unix",
         "executable path": "scripts"
       },
       "CPAlocator": {
+        "name": "CPAchecker",
         "version": "CPALockator:24629",
         "path": "addons/CPAchecker-1.6.1-svn b9e3664606-unix",
         "executable path": "scripts"
