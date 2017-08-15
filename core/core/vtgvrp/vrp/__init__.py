@@ -37,6 +37,8 @@ class VRP(core.components.Component):
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.__pending = dict()
         self.__downloaded = dict()
+        self.__subcomponents = dict()
+        self.__workers = None
 
         # Read this in a callback
         self.verdict = None
@@ -49,12 +51,16 @@ class VRP(core.components.Component):
 
     def process_results(self):
         self.mqs['VRP processing tasks'] = multiprocessing.Queue()
-        workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
-        self.logger.info("Going to start {} workers to process results".format(workers))
-        subcomponents = [('MF', self.result_processing)]
-        for i in range(workers):
-            subcomponents.append(RP)
-        self.launch_subcomponents(*subcomponents)
+        self.__workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
+        self.logger.info("Going to start {} workers to process results".format(self.__workers))
+
+        # Do result processing
+        try:
+            self.result_processing()
+        finally:
+            # Always terminate subcomponent workers before existing
+            for component in self.__subcomponents.values():
+                component.join()
 
         # Finalize
         self.finish_tasks_results_processing()
@@ -66,7 +72,44 @@ class VRP(core.components.Component):
     main = process_results
 
     def result_processing(self):
-        pending = {}
+        pending = dict()
+
+        def submit_processing_task(status, t):
+            self.mqs['VRP processing tasks'].put([status, pending[t]])
+            vo = pending[t][2]
+            rule = pending[t][3]
+            new_id = "{}/{}".format(vo, rule)
+            workdir = os.path.join(vo, rule)
+            rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, new_id, workdir,
+                    separate_from_parent=True)
+            rp.start()
+            self.__subcomponents[t] = (rp, vo, rule)
+
+        def wait_for_subcomponents(timeout=None):
+            for t in list(self.__subcomponents.keys()):
+                component, vo, rule = self.__subcomponents[t]
+                try:
+                    if timeout is None or (isinstance(timeout, int) and timeout != 0):
+                        status = component.join(timeout)
+                        if status is not None:
+                            del self.__subcomponents[t]
+                    elif timeout == 0 and component.is_alive():
+                        # Do nothing and check it a bit later
+                        pass
+                    elif timeout == 0 and not component.is_alive():
+                        # Expect that the component returns an exit code in no time
+                        component.join()
+                        del self.__subcomponents[t]
+                    else:
+                        raise ValueError("Unexpected timout value: {}".format(timeout))
+                except core.components.ComponentError:
+                    self.logger.warning("Task {} processing has been terminated".format(task))
+                    del self.__subcomponents[t]
+                finally:
+                    if t not in self.__subcomponents:
+                        # For all either terminated or successfully processed tasks drop a line
+                        self.mqs['VTGVRP processed tasks'].put((vo, rule))
+
         receiving = True
         session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
         while True:
@@ -97,23 +140,28 @@ class VRP(core.components.Component):
                     except queue.Empty:
                         self.logger.debug("No tasks has come for last 30 seconds")
 
-            if len(pending) > 0:
+            # Join processed ones
+            wait_for_subcomponents(0)
+
+            # Plan for processing new tasks
+            if len(pending) > 0 and len(self.__subcomponents) < self.__workers:
                 tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
                 for task in list(pending.keys()):
                     if task in tasks_statuses['finished']:
-                        self.mqs['VRP processing tasks'].put(['finished', pending[task]])
+                        submit_processing_task('finished', task)
                         del pending[task]
                     elif task in tasks_statuses['error']:
-                        self.mqs['VRP processing tasks'].put(['error', pending[task]])
+                        submit_processing_task('error', task)
                         del pending[task]
                     elif task not in tasks_statuses['processing'] and task not in tasks_statuses['pending']:
                         raise KeyError("Cannot find task {!r} in either finished, processing, pending or erroneus "
                                        "tasks".format(task))
-            elif not receiving:
+
+            if not receiving and len(pending) == 0 and len(self.__subcomponents) == 0:
+                # Wait for all rest tasks, no tasks can come currently
+                wait_for_subcomponents(None)
                 self.mqs['VTGVRP pending tasks'].close()
-                workers = core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')
-                for _ in range(workers):
-                    self.mqs['VRP processing tasks'].put(None)
+                self.mqs['VRP processing tasks'].close()
                 break
 
         self.logger.debug("Shutting down result processing gracefully")
@@ -135,36 +183,30 @@ class RP(core.components.Component):
 
     def fetcher(self):
         self.logger.info("VRP instance is ready to work")
-        while True:
-            element = self.mqs['VRP processing tasks'].get()
-            if not element:
-                self.logger.info("Stopping result processing instance")
-                break
+        element = self.mqs['VRP processing tasks'].get()
 
-            status, data = element
-            task_id, opts, verification_object, rule_specification, files, shadow_src_dir, work_dir = data
-            if status == 'finished':
-                self.__process_finished_task(task_id, opts, verification_object, rule_specification, files,
-                                             shadow_src_dir, work_dir)
-            elif status == 'error':
-                self.__process_failed_task(task_id, verification_object, rule_specification)
-            else:
-                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
-
-            self.mqs['VTGVRP processed tasks'].put((verification_object, rule_specification))
+        status, data = element
+        task_id, opts, verification_object, rule_specification, files, shadow_src_dir, work_dir = data
+        self.verification_object = verification_object
+        self.rule_specification = rule_specification
+        if status == 'finished':
+            self.__process_finished_task(task_id, opts, verification_object, rule_specification, files,
+                                         shadow_src_dir, work_dir)
+        elif status == 'error':
+            self.__process_failed_task(task_id, verification_object, rule_specification)
+        else:
+            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
 
     main = fetcher
 
     def send_unknown_report(self, task_id, verification_object, rule_specification, problem):
         """The function has a callback at Job module."""
-        self.rule_specification = rule_specification
-        self.verification_object = verification_object
         self.verdict = 'unknown'
 
         core.utils.report(self.logger,
                           'unknown',
                           {
-                              'id': "{}/unknown_{}".format(self.parent_id, task_id),
+                              'id': "{}/unknown".format(self.id, task_id),
                               'parent id': self.parent_id,
                               'attrs': [{"Rule specification": rule_specification}],
                               'problem desc': problem,
@@ -186,10 +228,6 @@ class RP(core.components.Component):
         :param log_file:
         :return:
         """
-        # Set the data for callbacks
-        self.verification_object = verification_object
-        self.rule_specification = rule_specification
-
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
         if len(benchexec_reports) != 1:
@@ -221,8 +259,8 @@ class RP(core.components.Component):
             core.utils.report(self.logger,
                               'safe',
                               {
-                                  'id': "{}/verification_{}/safe".format(self.parent_id, task_id),
-                                  'parent id': "{}/verification_{}".format(self.parent_id, task_id),
+                                  'id': "{}/{}/verification/safe".format(self.id, task_id),
+                                  'parent id': "{}/{}/verification".format(self.id, task_id),
                                   'attrs': [{"Rule specification": rule_specification}],
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   'proof': None
@@ -254,8 +292,8 @@ class RP(core.components.Component):
                         core.utils.report(self.logger,
                                           'unsafe',
                                           {
-                                              'id': "{}/verification_{}/unsafe_{}".format(self.parent_id, task_id, trace_id),
-                                              'parent id': "{}/verification_{}".format(self.parent_id, task_id),
+                                              'id': "{}/{}/verification/unsafe_{}".format(self.id, task_id, trace_id),
+                                              'parent id': "{}/{}/verification".format(self.id, task_id),
                                               'attrs': [
                                                   {"Rule specification": rule_specification},
                                                   {"Error trace identifier": trace_id}],
@@ -293,8 +331,8 @@ class RP(core.components.Component):
                     core.utils.report(self.logger,
                                       'unsafe',
                                       {
-                                          'id': "{}/verification_{}/unsafe".format(self.parent_id, task_id),
-                                          'parent id': "{}/verification_{}".format(self.parent_id, task_id),
+                                          'id': "{}/{}/verification/unsafe".format(self.id, task_id),
+                                          'parent id': "{}/verification_{}".format(self.id, task_id),
                                           'attrs': [{"Rule specification": rule_specification}],
                                           'error trace': 'error trace.json',
                                           'files': ['error trace.json'] + list(arcnames.keys()),
@@ -322,15 +360,17 @@ class RP(core.components.Component):
         task_error = self.session.get_task_error(task_id)
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
-        with open('task error.txt', 'w', encoding='utf8') as fp:
+        task_err_file = 'task error.txt'
+        with open(task_err_file, 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report(task_id, verification_object, rule_specification, 'task error.txt')
+        self.send_unknown_report(task_id, verification_object, rule_specification, task_err_file)
 
     def __process_finished_task(self, task_id, opts, verification_object, rule_specification, files,
                                 shadow_src_dir, work_dir):
-        self.logger.debug("Prcess results of the task {}".find(task_id))
-        work_dir = os.path.abspath(os.path.join(os.path.pardir, 'vtg', work_dir))
+        self.logger.debug("Prcess results of the task {}".format(task_id))
+        vtgvrp_path, vrp_dir = os.path.abspath(os.path.curdir).split('/vrp/', 1)
+        work_dir = os.path.join(vtgvrp_path, 'vtg', work_dir)
         mydir = os.path.abspath(os.curdir)
         os.chdir(work_dir)
 
@@ -358,8 +398,8 @@ class RP(core.components.Component):
                               'verification',
                               {
                                   # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                  'id': "{}/verification_{}".format(self.parent_id, task_id),
-                                  'parent id': self.parent_id,
+                                  'id': "{}/{}/verification".format(self.id, task_id),
+                                  'parent id': self.id,
                                   # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                                   'attrs': [],
                                   'name': self.conf['VTG']['verifier']['name'],
@@ -376,7 +416,7 @@ class RP(core.components.Component):
             # Submit a closing report
             core.utils.report(self.logger,
                               'verification finish',
-                              {'id': "{}/verification_{}".format(self.parent_id, task_id)},
+                              {'id': "{}/{}/verification".format(self.id, task_id)},
                               self.mqs['report files'],
                               self.conf['main working directory'])
             if witness_processing_exception:
