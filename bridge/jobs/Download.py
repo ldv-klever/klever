@@ -244,8 +244,7 @@ class ReportsData(object):
             'data': data,
             'attrs': [],
             'log': report.log,
-            'coverage': report.coverage,
-            'verification': report.verification
+            'coverage': report.coverage
         }
 
     def __report_leaf_data(self, report):
