@@ -410,8 +410,9 @@ class OSKleverDeveloperInstance(OSEntity):
             instance_programs_conf = instance_klever_conf['Programs']
 
             for program in host_programs_conf.keys():
-                self._update_entity(program, os.path.join('klever-programs', program), host_programs_conf,
-                                    instance_programs_conf, ssh)
+                if self._update_entity(program, os.path.join('klever-programs', program), host_programs_conf,
+                                       instance_programs_conf, ssh):
+                    ssh.execute_cmd('sudo chown -LR klever:klever klever-programs')
 
         self.logger.info('Specify actual versions of Klever, its addons and programs')
         with ssh.sftp.file('klever.json', 'w') as fp:
