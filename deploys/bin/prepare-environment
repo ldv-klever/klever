@@ -16,6 +16,7 @@
 # limitations under the License.
 #
 
+import glob
 import os
 import subprocess
 
@@ -43,7 +44,7 @@ execute_cmd('chown', '-LR', 'klever:klever', 'klever-work')
 
 
 print('Prepare CIF environment')
-execute_cmd('ln', '-s', '/usr/lib/x86_64-linux-gnu/crt*.o', '/usr/lib')
+execute_cmd('ln', '-s', *glob.glob('/usr/lib/x86_64-linux-gnu/crt*.o'), '/usr/lib')
 
 
 print('Move PostgreSQL data directory')
