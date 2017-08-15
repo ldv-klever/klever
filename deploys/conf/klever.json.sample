@@ -43,11 +43,11 @@
     }
   },
   "Programs": {
-    "Linux 3.14": {
+    "linux-3.14": {
       "version": "3.14",
       "path": "programs/linux-3.14.tar.xz"
     },
-    "Linux 4.2.6": {
+    "linux-4.2.6": {
       "version": "4.2.6",
       "path": "programs/linux-4.2.6"
     }
