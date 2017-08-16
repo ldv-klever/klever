@@ -339,7 +339,7 @@ class OSKleverDeveloperInstance(OSEntity):
 
         # Remove previous version of entity if so.
         if instance_version:
-            ssh.execute_cmd('rm -rf ' + instance_path)
+            ssh.execute_cmd('sudo rm -rf ' + instance_path)
 
         if is_git_repo:
             with tempfile.TemporaryDirectory() as tmpdir:
@@ -411,9 +411,9 @@ class OSKleverDeveloperInstance(OSEntity):
             instance_programs_conf = instance_klever_conf['Programs']
 
             for program in host_programs_conf.keys():
-                if self._update_entity(program, os.path.join('klever-programs', program), host_programs_conf,
-                                       instance_programs_conf, ssh):
-                    ssh.execute_cmd('sudo chown -LR klever:klever klever-programs')
+                instance_path = os.path.join('klever-programs', program)
+                if self._update_entity(program, instance_path, host_programs_conf, instance_programs_conf, ssh):
+                    ssh.execute_cmd('sudo chown -LR klever:klever ' + instance_path)
 
         # TODO: if something below will fail below then one will see entities as successfully updated. But indeed this is a fatal error.
         self.logger.info('Specify actual versions of Klever, its addons and programs')
