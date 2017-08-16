@@ -602,7 +602,7 @@ class OSInstance:
                 if instance:
                     instance.delete()
                 attempts -= 1
-                logging.warning(
+                self.logger.warning(
                     'Could not create instance, wait for {0} seconds and try {1} times more{2}'
                     .format(self.CREATION_RECOVERY_INTERVAL, attempts,
                             '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
@@ -642,7 +642,7 @@ class OSInstance:
                 raise OSInstanceCreationTimeout
             except Exception as e:
                 attempts -= 1
-                logging.warning(
+                self.logger.warning(
                     'Could not create image, wait for {0} seconds and try {1} times more{2}'
                     .format(self.CREATION_RECOVERY_INTERVAL, attempts,
                             '' if isinstance(e, OSInstanceCreationTimeout) else '\n' + traceback.format_exc().rstrip()))
