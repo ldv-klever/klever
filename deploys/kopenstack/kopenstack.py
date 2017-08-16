@@ -20,7 +20,6 @@ import logging
 import json
 import os
 import re
-import shutil
 import subprocess
 import tarfile
 import tempfile
