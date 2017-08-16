@@ -50,6 +50,10 @@
     "linux-4.2.6": {
       "version": "4.2.6",
       "path": "programs/linux-4.2.6"
+    },
+    "linux-stable": {
+      "version": "master",
+      "path": "programs/linux-stable"
     }
   }
 }
