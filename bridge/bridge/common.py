@@ -155,7 +155,7 @@ DEF_KLEVER_CORE_MODES = [
         'production': [
             ['LOW', '0', 'balance'],
             'slow',
-            [1.0, 2, 100.0, None, None, None],
+            [1.0, 0, 100.0, None, None, None],
             ['NONE', 'brief', 'NONE', 'brief'],
             False, False, False, False, False, False, '1'
         ]
@@ -164,7 +164,7 @@ DEF_KLEVER_CORE_MODES = [
         'development': [
             ['IDLE', '0', 'balance'],
             'quick',
-            [1.0, 1, 100.0, None, None, None],
+            [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'detailed'],
             True, True, False, True, True, True, '0'
         ]
@@ -173,7 +173,7 @@ DEF_KLEVER_CORE_MODES = [
         'paranoid development': [
             ['IDLE', '0', 'balance'],
             'quick',
-            [1.0, 1, 100.0, None, None, None],
+            [1.0, 0, 100.0, None, None, None],
             ['INFO', 'detailed', 'DEBUG', 'paranoid'],
             True, True, True, True, True, True, '0'
         ]
