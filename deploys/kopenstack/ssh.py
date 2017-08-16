@@ -16,7 +16,6 @@
 #
 
 import errno
-import logging
 import os
 import paramiko
 import select

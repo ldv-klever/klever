@@ -16,7 +16,6 @@
 #
 
 import getpass
-import logging
 import json
 import os
 import re
