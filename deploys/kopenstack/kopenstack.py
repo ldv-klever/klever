@@ -30,6 +30,7 @@ from keystoneauth1.identity import v2
 from keystoneauth1 import session
 import glanceclient.client
 import novaclient.client
+import novaclient.exceptions
 import neutronclient.v2_0.client
 import cinderclient.client
 
@@ -542,7 +543,17 @@ class OSInstance:
                          .format(self.name, self.flavor_name, self.base_image.name))
 
         instance = None
-        flavor = self.os_services['nova'].flavors.find(name=self.flavor_name)
+
+        try:
+            flavor = self.os_services['nova'].flavors.find(name=self.flavor_name)
+        except novaclient.exceptions.NotFound:
+            self.logger.info(
+                'You can use one of the following flavors:\n{0}'.format(
+                    '\n'.join(['    {0} - {1} VCPUs, {2} MB of RAM, {3} GB of disk space'
+                               .format(flavor.name, flavor.vcpus, flavor.ram, flavor.disk)
+                               for flavor in self.os_services['nova'].flavors.list()])))
+            raise
+
         attempts = self.CREATION_ATTEMPTS
 
         while attempts > 0:
