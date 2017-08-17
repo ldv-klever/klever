@@ -543,7 +543,8 @@ class OSKleverExperimentalInstances(OSEntity):
             raise ValueError('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
 
         for klever_experimental_instance in klever_experimental_instances:
-            self.os_services['glance'].images.delete(klever_experimental_instance.id)
+            self.logger.info('Terminate instance "{0}"'.format(klever_experimental_instance.name))
+            self.os_services['nova'].servers.delete(klever_experimental_instance.id)
 
     def ssh(self):
         self._connect(nova=True)
