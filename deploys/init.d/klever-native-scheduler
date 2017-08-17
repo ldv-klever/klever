@@ -23,7 +23,7 @@
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: Klever host scheduler
-# Description:       Klever NativeScheduler executes both verification jobs and verification tasks on a given host
+# Description:       Klever Native Scheduler executes both verification jobs and verification tasks on a given host
 ### END INIT INFO
 
 DESC="Klever NativeScheduler"
@@ -46,6 +46,10 @@ case "$1" in
             log_end_msg 0
             exit 0
         fi
+
+        # Enable control groups access each time when (re)starting Native Scheduler.
+        chmod o+wt /sys/fs/cgroup/cpuset "/sys/fs/cgroup/cpu,cpuacct" /sys/fs/cgroup/memory /sys/fs/cgroup/freezer
+
         export KLEVER_WORK_DIR=${WORKDIR}
         if start-stop-daemon --start --quiet --background --pidfile ${PIDFILE} --make-pidfile --chuid ${USER} \
             --group ${GROUP} --exec ${DAEMON} -- ${CONFFILE}
