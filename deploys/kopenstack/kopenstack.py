@@ -209,9 +209,6 @@ class OSKleverBaseImage(OSEntity):
                 ssh.execute_cmd('sudo ./install-deps')
                 ssh.sftp.remove('install-deps')
 
-            # TODO: perhaps due to some hardware issues without this delay created images can be corrupted.
-            # time.sleep(300)
-
             instance.create_image()
 
     def remove(self):
@@ -657,6 +654,11 @@ class OSInstance:
 
     def create_image(self):
         self.logger.info('Create image "{0}"'.format(self.name))
+
+        # Shut off instance to ensure all data is written to disks.
+        self.instance.stop()
+
+        # TODO: wait until instance will be shut off otherwise image can't be created.
 
         attempts = self.IMAGE_CREATION_ATTEMPTS
 
