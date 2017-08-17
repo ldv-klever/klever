@@ -40,7 +40,7 @@ def main():
                         help='SSH username for authentication (default: "%(default)s").')
     parser.add_argument('--ssh-rsa-private-key-file',
                         help='Path to SSH RSA private key file.'
-                             'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv"')
+                             'The appropriate SSH RSA key pair should be stored to OpenStack by name "ldv".')
     parser.add_argument('--name', help='Entity name.')
     parser.add_argument('--base-image', default='Debian 9.0.4 64-bit',
                         help='Name of base image on which Klever base image will be based on (default: "%(default)s").')
@@ -48,6 +48,8 @@ def main():
                         help='Name of Klever base image on which instances will be based on (default: "%(default)s").')
     parser.add_argument('--flavor', default='spark.large',
                         help='Name of flavor to be used for new instances (default: "%(default)s").')
+    parser.add_argument('--instances', type=int,
+                        help='The number of new Klever experimental instances.')
     parser.add_argument('--klever-configuration-file', default=os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                             'conf', 'klever.json'),
                         help='Path to Klever configuration file (default: "%(default)s").')

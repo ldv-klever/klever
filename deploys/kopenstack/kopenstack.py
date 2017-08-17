@@ -237,6 +237,9 @@ class OSKleverDeveloperInstance(OSEntity):
 
         self.name = self.args.name or '{0}-klever-dev'.format(self.args.os_username)
 
+        # For external users like OSKleverExperimentalInstances#create.
+        self.instance = None
+
     def show(self):
         self._connect(nova=True)
 
@@ -266,8 +269,8 @@ class OSKleverDeveloperInstance(OSEntity):
             raise ValueError('Klever developer instance matching "{0}" already exists'.format(self.name))
 
         with OSInstance(logger=self.logger, os_services=self.os_services, name=self.name, base_image=base_image,
-                        flavor_name=self.args.flavor) as instance:
-            with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=instance.floating_ip) as ssh:
+                        flavor_name=self.args.flavor) as self.instance:
+            with SSH(args=self.args, logger=self.logger, name=self.name, floating_ip=self.instance.floating_ip) as ssh:
                 self.logger.info('Copy and install init.d scripts')
                 for dirpath, dirnames, filenames in os.walk(os.path.join(os.path.dirname(__file__), os.path.pardir,
                                                                          'init.d')):
@@ -292,7 +295,7 @@ class OSKleverDeveloperInstance(OSEntity):
                 self._do_update(ssh)
 
                 # Preserve instance if everything above went well.
-                instance.keep_on_exit = True
+                self.instance.keep_on_exit = True
 
     def _update_entity(self, name, instance_path, host_klever_conf, instance_klever_conf, ssh):
         if name not in host_klever_conf:
@@ -492,8 +495,47 @@ class OSKleverExperimentalInstances(OSEntity):
             self.logger.info('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
 
     def create(self):
-        # TODO: like for Klever developer instance create.
-        pass
+        if not self.args.instances:
+            raise ValueError('Please specify the number of new Klever experimental instances with help of' +
+                             ' command-line option --instances')
+
+        self._connect(glance=True, nova=True, neutron=True)
+
+        self.logger.info(
+            'Create master image "{0}" upon which Klever experimintal instances will be based'.format(self.name))
+        master_instance = None
+        master_image = None
+        self.args.name = self.name
+        # Use the same flavor for creating master instance as for creating Klever base image.
+        flavor = self.args.flavor
+        self.args.flavor = 'keystone.xlarge'
+        try:
+            klever_developer_instance = OSKleverDeveloperInstance(self.args, self.logger)
+            klever_developer_instance.create()
+            master_instance = klever_developer_instance.instance
+            self.args.flavor = flavor
+            master_instance.create_image()
+            master_image = self._get_base_image(self.name)
+
+            instance_id = 1
+            while instance_id <= self.args.instances:
+                instance_name = '{0}-{1}'.format(self.name, instance_id)
+                self.logger.info('Create Klever experimental instance "{0}"'.format(instance_name))
+
+                with OSInstance(logger=self.logger, os_services=self.os_services, name=instance_name,
+                                base_image=master_image, flavor_name=self.args.flavor, keep_on_exit=True):
+                    pass
+
+                instance_id += 1
+        # Always terminate master instance in case of failures. Klever experimental instances should be terminated via
+        # OSKleverExperimentalInstances#remove.
+        finally:
+            if master_instance:
+                master_instance.terminate()
+            if master_image:
+                self.logger.info('Remove master image "{0}"'.format(self.name))
+                # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
+                self.os_services['glance'].images.delete(master_image.id)
 
     def remove(self):
         self._connect(nova=True)
@@ -610,9 +652,8 @@ class OSInstance:
         raise RuntimeError('Could not create instance')
 
     def __exit__(self, etype, value, traceback):
-        if not self.keep_on_exit and self.instance:
-            self.logger.info('Terminate instance "{0}"'.format(self.name))
-            self.instance.delete()
+        if not self.keep_on_exit:
+            self.terminate()
 
     def create_image(self):
         self.logger.info('Create image "{0}"'.format(self.name))
@@ -648,6 +689,11 @@ class OSInstance:
                 time.sleep(self.IMAGE_CREATION_RECOVERY_INTERVAL)
 
         raise RuntimeError('Could not create image')
+
+    def terminate(self):
+        if self.instance:
+            self.logger.info('Terminate instance "{0}"'.format(self.name))
+            self.instance.delete()
 
 
 def execute_os_entity_action(args, logger):
