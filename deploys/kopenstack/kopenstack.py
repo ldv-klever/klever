@@ -52,6 +52,7 @@ class OSEntity:
     def __getattr__(self, name):
         raise NotImplementedOSEntityAction('You can not {0} "{1}"'.format(name, self.kind))
 
+    # TODO: measure whether there are any benefits from connection to not all services unconditionally.
     def _connect(self, glance=False, nova=False, neutron=False, cinder=False):
         self.logger.info('Sign in to OpenStack')
         auth = v2.Password(**{
