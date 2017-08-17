@@ -550,11 +550,18 @@ class RSB(core.components.Component):
                 self.verdict = 'unsafe'
             elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
-                # TODO: otherwise just the same file as parent log is reported, looks strange.
-                if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
+                # Check resource limitiations
+                if decision_results['resources']['memory size'] >= self.restrictions['memory size']:
+                    termination_reason = "memory exhausted"
+                elif decision_results['resources']['CPU time'] >= self.restrictions['CPU time']:
+                    termination_reason = "CPU time exhausted"
+                else:
+                    termination_reason = "Reported status is {!r}".format(decision_results['status'])
+
+                if termination_reason in ("memory exhausted", "CPU time exhausted"):
                     self.log_file = 'error.txt'
                     with open(self.log_file, 'w', encoding='utf8') as fp:
-                        fp.write(decision_results['status'])
+                        fp.write(termination_reason)
 
                 core.utils.report(self.logger,
                                   'unknown',
