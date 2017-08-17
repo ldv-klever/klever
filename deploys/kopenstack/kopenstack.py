@@ -149,6 +149,10 @@ class OSEntity:
 
         return instances
 
+    def _show_instance(self, instance):
+        return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
+                                                   self._get_instance_floating_ip(instance))
+
 
 class OSKleverBaseImage(OSEntity):
     def __init__(self, args, logger):
@@ -245,13 +249,11 @@ class OSKleverDeveloperInstance(OSEntity):
 
         if len(klever_developer_instances) == 1:
             self.logger.info('There is Klever developer instance "{0}" matching "{1}"'
-                             .format('{0} (status: {1})'
-                                     .format(klever_developer_instances[0].name, klever_developer_instances[0].status),
-                                     self.name))
+                             .format(self._show_instance(klever_developer_instances[0]), self.name))
         elif len(klever_developer_instances) > 1:
             self.logger.info('There are {0} Klever developer instances matching "{1}":\n* {2}'
                              .format(len(klever_developer_instances), self.name,
-                                     '\n* '.join(['{0} (status: {1})'.format(instance.name, instance.status)
+                                     '\n* '.join([self._show_instance(instance)
                                                  for instance in klever_developer_instances])))
         else:
             self.logger.info('There are no Klever developer instances matching "{0}"'.format(self.name))
@@ -484,11 +486,12 @@ class OSKleverExperimentalInstances(OSEntity):
 
         if len(klever_experimental_instances) == 1:
             self.logger.info('There is Klever experimental instance "{0}" matching "{1}"'
-                             .format(klever_experimental_instances[0].name, self.name_pattern))
+                             .format(self._show_instance(klever_experimental_instances[0]), self.name_pattern))
         elif len(klever_experimental_instances) > 1:
             self.logger.info('There are {0} Klever experimental instances matching "{1}":\n* {2}'
                              .format(len(klever_experimental_instances), self.name_pattern,
-                                     '\n* '.join([instance.name for instance in klever_experimental_instances])))
+                                     '\n* '.join([self._show_instance(instance)
+                                                  for instance in klever_experimental_instances])))
         else:
             self.logger.info('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
 
