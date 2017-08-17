@@ -524,11 +524,11 @@ class OSKleverExperimentalInstances(OSEntity):
                     pass
 
                 instance_id += 1
-        # Always terminate master instance in case of failures. Klever experimental instances should be terminated via
+        # Always remove master instance in case of failures. Klever experimental instances should be removed via
         # OSKleverExperimentalInstances#remove.
         finally:
             if master_instance:
-                master_instance.terminate()
+                master_instance.remove()
             if master_image:
                 self.logger.info('Remove master image "{0}"'.format(self.name))
                 # TODO: after this there won't be any base image for created Klever experimental instances. Likely we need to overwrite corresponding attribute when creating these instances.
@@ -543,7 +543,7 @@ class OSKleverExperimentalInstances(OSEntity):
             raise ValueError('There are no Klever experimental instances matching "{0}"'.format(self.name_pattern))
 
         for klever_experimental_instance in klever_experimental_instances:
-            self.logger.info('Terminate instance "{0}"'.format(klever_experimental_instance.name))
+            self.logger.info('Remove instance "{0}"'.format(klever_experimental_instance.name))
             self.os_services['nova'].servers.delete(klever_experimental_instance.id)
 
     def ssh(self):
@@ -651,7 +651,7 @@ class OSInstance:
 
     def __exit__(self, etype, value, traceback):
         if not self.keep_on_exit:
-            self.terminate()
+            self.remove()
 
     def create_image(self):
         self.logger.info('Create image "{0}"'.format(self.name))
@@ -693,9 +693,9 @@ class OSInstance:
 
         raise RuntimeError('Could not create image')
 
-    def terminate(self):
+    def remove(self):
         if self.instance:
-            self.logger.info('Terminate instance "{0}"'.format(self.name))
+            self.logger.info('Remove instance "{0}"'.format(self.name))
             self.instance.delete()
 
 
