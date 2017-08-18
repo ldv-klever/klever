@@ -60,7 +60,7 @@ class LabelTranslator(FSATranslator):
                 sv = self.__thread_variable(automaton, 'array')
                 self._cmodel.add_global_variable(sv, file, extern=True)
                 return 'pthread_create_N({}, 0, {}, {});'.\
-                    format('& ' + sv.name,self._control_function(automaton).name, parameter)
+                    format(sv.name,self._control_function(automaton).name, parameter)
             else:
                 sv = self.__thread_variable(automaton, 'single')
                 self._cmodel.add_global_variable(sv, file, extern=True)
