@@ -551,17 +551,14 @@ class RSB(core.components.Component):
             elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
                 # Check resource limitiations
-                if decision_results['resources']['memory size'] >= self.restrictions['memory size']:
-                    termination_reason = "memory exhausted"
-                elif decision_results['resources']['CPU time'] >= self.restrictions['CPU time']:
-                    termination_reason = "CPU time exhausted"
-                else:
-                    termination_reason = "Reported status is {!r}".format(decision_results['status'])
-
-                if termination_reason in ("memory exhausted", "CPU time exhausted"):
+                if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
+                    if decision_results['status'] == 'OUT OF MEMORY':
+                        msg = "memory exhausted"
+                    else:
+                        msg = "CPU time exhausted"
                     self.log_file = 'error.txt'
                     with open(self.log_file, 'w', encoding='utf8') as fp:
-                        fp.write(termination_reason)
+                        fp.write(msg)
 
                 core.utils.report(self.logger,
                                   'unknown',
