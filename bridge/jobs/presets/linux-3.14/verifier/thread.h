@@ -18,9 +18,15 @@
 #ifndef __VERIFIER_THREAD_H
 #define __VERIFIER_THREAD_H
 
-typedef int pthread_t;
+typedef unsigned long int pthread_t;
 
-typedef int pthread_attr_t;
+union pthread_attr_t
+{
+   char __size[56];
+   long int __align;
+};
+
+typedef union pthread_attr_t pthread_attr_t;
 
 /* Create a thread according to the pthread library interface.
  */
@@ -32,7 +38,7 @@ int pthread_join(pthread_t thread, void **value_ptr );
 
 /* Create N threads. This is an artificial function accepted by specific verifiers.
  */
-int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void (*function)(void *), void *data);
+int pthread_create_N(pthread_t **thread, pthread_attr_t const *attr, void *(*function)(void *), void *data);
 
 /* Join N threads. This is an artificial function accepted by specific verifiers.
  */
