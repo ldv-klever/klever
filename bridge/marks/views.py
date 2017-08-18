@@ -39,7 +39,8 @@ from bridge.utils import logger, extract_archive, ArchiveFileContent, BridgeExce
 from users.models import User
 from reports.models import ReportSafe, ReportUnsafe, ReportUnknown
 from marks.models import MarkSafe, MarkUnsafe, MarkUnknown, MarkSafeHistory, MarkUnsafeHistory, MarkUnknownHistory,\
-    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, MarkAssociationsChanges, SafeTagAccess, UnsafeTagAccess
+    MarkUnsafeConvert, MarkUnsafeCompare, UnsafeTag, SafeTag, SafeTagAccess, UnsafeTagAccess,\
+    MarkSafeReport, MarkUnsafeReport, MarkUnknownReport
 
 import marks.utils as mutils
 from marks.tags import GetTagsData, GetParents, SaveTag, TagsInfo, CreateTagsFromFile, TagAccess
@@ -53,7 +54,7 @@ def value_type(value):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def create_mark(request, mark_type, report_id):
     activate(request.user.extended.language)
 
@@ -95,7 +96,7 @@ def create_mark(request, mark_type, report_id):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown', 'UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def view_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -151,7 +152,7 @@ def view_mark(request, mark_type, mark_id):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def edit_mark(request, mark_type, mark_id):
     activate(request.user.extended.language)
 
@@ -245,7 +246,7 @@ def save_mark(request):
 
 
 @login_required
-@unparallel_group(['MarkUnsafeCompare', 'MarkUnsafeConvert'])
+@unparallel_group([])
 def get_func_description(request):
     activate(request.user.extended.language)
 
@@ -273,7 +274,7 @@ def get_func_description(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def get_mark_version_data(request):
     activate(request.user.extended.language)
     if request.method != 'POST':
@@ -335,7 +336,7 @@ def get_mark_version_data(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def mark_list(request, marks_type):
     activate(request.user.extended.language)
 
@@ -359,7 +360,7 @@ def mark_list(request, marks_type):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def download_mark(request, mark_type, mark_id):
 
     if request.method == 'POST':
@@ -384,7 +385,7 @@ def download_mark(request, mark_type, mark_id):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([MarkSafe, MarkUnsafe, MarkUnknown])
 def upload_marks(request):
     activate(request.user.extended.language)
 
@@ -469,7 +470,7 @@ def remove_versions(request):
 
 
 @login_required
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def get_mark_versions(request):
     activate(request.user.extended.language)
 
@@ -504,7 +505,7 @@ def get_mark_versions(request):
 
 
 @login_required
-@unparallel_group([MarkAssociationsChanges])
+@unparallel_group([])
 def association_changes(request, association_id):
     activate(request.user.extended.language)
 
@@ -524,7 +525,7 @@ def association_changes(request, association_id):
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def show_tags(request, tags_type):
     activate(request.user.extended.language)
 
@@ -546,7 +547,7 @@ def show_tags(request, tags_type):
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def get_tag_data(request):
     activate(request.user.extended.language)
 
@@ -642,7 +643,7 @@ def remove_tag(request):
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def get_tags_data(request):
     activate(request.user.extended.language)
 
@@ -681,7 +682,7 @@ def get_tags_data(request):
 
 
 @login_required
-@unparallel_group(['UnsafeTag', 'SafeTag'])
+@unparallel_group([])
 def download_tags(request, tags_type):
     tags_data = []
     if tags_type == 'safe':
@@ -730,7 +731,7 @@ def upload_tags(request):
     return JsonResponse({})
 
 
-@unparallel_group(['MarkSafe', 'MarkUnsafe', 'MarkUnknown'])
+@unparallel_group([])
 def download_all(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -773,7 +774,7 @@ def upload_all(request):
     return JsonResponse(res.numbers)
 
 
-@unparallel_group(['MarkSafe', 'MarkUnsafe'])
+@unparallel_group([])
 def get_inline_mark_form(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -824,7 +825,7 @@ def get_inline_mark_form(request):
     })
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def unconfirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -847,7 +848,7 @@ def unconfirm_association(request):
     return JsonResponse({})
 
 
-@unparallel_group(['MarkUnsafe', 'ReportUnsafe', 'MarkSafe', 'ReportSafe'])
+@unparallel_group([MarkUnsafe, ReportUnsafe, MarkSafe, ReportSafe])
 def confirm_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -870,8 +871,7 @@ def confirm_association(request):
     return JsonResponse({})
 
 
-@unparallel_group(['UnsafeAssociationLike', 'MarkUnsafeReport', 'SafeAssociationLike', 'MarkSafeReport',
-                   'UnknownAssociationLike', 'MarkUnknownReport'])
+@unparallel_group([MarkUnsafeReport, MarkSafeReport, MarkUnknownReport])
 def like_association(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})

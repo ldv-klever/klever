@@ -407,7 +407,7 @@ class VTG(core.components.Component):
         vo_descriptions = dict()
         processing_status = dict()
 
-        max_tasks = self.conf['VTG']['max solving tasks']
+        max_tasks = self.conf['VTGVRP']['VTG']['max solving tasks']
         active_tasks = 0
         expect_objects = True
         while True:
@@ -493,9 +493,9 @@ class VTG(core.components.Component):
                             solved += 1
 
                     if solved == len(_rule_spec_classes[rule_class]):
-                        # if not self.conf['keep intermediate files']:
-                        for rule in processing_status[vobject][rule_class]:
-                            shutil.rmtree(os.path.join(vobject, rule))
+                        if not self.conf['keep intermediate files']:
+                            for rule in processing_status[vobject][rule_class]:
+                                shutil.rmtree(os.path.join(vobject, rule))
                         del processing_status[vobject][rule_class]
 
                 if len(processing_status[vobject]) == 0:

@@ -90,7 +90,13 @@
                     <input type="checkbox" id="view_{{ view.type }}__hidden__resource_total"{% if 'resource_total' in view.hidden %} checked{% endif %}>
                     <label for="view_{{ view.type }}__hidden__resource_total">{% trans 'Hide total of consumed resources' %}</label>
                 </div>
+                <br>
+                <div class="ui checkbox">
+                    <input type="checkbox" id="view_{{ view.type }}__hidden__confirmed_marks"{% if 'confirmed_marks' in view.hidden %} checked{% endif %}>
+                    <label for="view_{{ view.type }}__hidden__confirmed_marks">{% trans 'Hide confirmed verdicts number' %}</label>
+                </div>
                 <div class="ui divider"></div>
+
                 {# Unknown component #}
                 <input id="view_data_{{ view.type }}__unknown_component" value="list_if_unknown_component" data-list="unknown_component_type__unknown_component_name" type="hidden">
                 <div class="ui checkbox">

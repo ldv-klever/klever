@@ -85,7 +85,7 @@ def get_tasks_statuses(request):
     return JsonResponse({'tasks statuses': res.statuses})
 
 
-@unparallel_group(['Solution'])
+@unparallel_group([])
 def download_solution(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})
@@ -169,7 +169,7 @@ def get_jobs_and_tasks(request):
     return JsonResponse({'jobs and tasks status': jobs_and_tasks})
 
 
-@unparallel_group(['Task'])
+@unparallel_group([])
 def download_task(request):
     if not request.user.is_authenticated():
         return JsonResponse({'error': 'You are not signing in'})

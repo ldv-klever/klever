@@ -28,6 +28,7 @@ import core.components
 import core.utils
 import core.session
 from core.vtgvrp.vrp.et import import_error_trace
+from core.vtgvrp.vrp.coverage_parser import LCOV
 
 
 class VRP(core.components.Component):
@@ -81,7 +82,7 @@ class VRP(core.components.Component):
             new_id = "{}/{}".format(vo, rule)
             workdir = os.path.join(vo, rule)
             rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, new_id, workdir,
-                    separate_from_parent=True)
+                    [{"Rule specification": rule}], separate_from_parent=True)
             rp.start()
             self.__subcomponents[t] = (rp, vo, rule)
 
@@ -208,7 +209,7 @@ class RP(core.components.Component):
                           {
                               'id': "{}/unknown".format(self.id, task_id),
                               'parent id': self.parent_id,
-                              'attrs': [{"Rule specification": rule_specification}],
+                              'attrs': [],
                               'problem desc': problem,
                               'files': [problem]
                           },
@@ -261,7 +262,7 @@ class RP(core.components.Component):
                               {
                                   'id': "{}/{}/verification/safe".format(self.id, task_id),
                                   'parent id': "{}/{}/verification".format(self.id, task_id),
-                                  'attrs': [{"Rule specification": rule_specification}],
+                                  'attrs': [],
                                   # TODO: at the moment it is unclear what are verifier proofs.
                                   'proof': None
                               },
@@ -295,7 +296,6 @@ class RP(core.components.Component):
                                               'id': "{}/{}/verification/unsafe_{}".format(self.id, task_id, trace_id),
                                               'parent id': "{}/{}/verification".format(self.id, task_id),
                                               'attrs': [
-                                                  {"Rule specification": rule_specification},
                                                   {"Error trace identifier": trace_id}],
                                               'error trace': error_trace_name,
                                               'files': [error_trace_name] + list(arcnames.keys()),
@@ -333,7 +333,7 @@ class RP(core.components.Component):
                                       {
                                           'id': "{}/{}/verification/unsafe".format(self.id, task_id),
                                           'parent id': "{}/verification_{}".format(self.id, task_id),
-                                          'attrs': [{"Rule specification": rule_specification}],
+                                          'attrs': [],
                                           'error trace': 'error trace.json',
                                           'files': ['error trace.json'] + list(arcnames.keys()),
                                           'arcname': arcnames
@@ -394,22 +394,40 @@ class RP(core.components.Component):
             log_file = log_files[0]
 
             # Send an initial report
+            report = {
+                # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                'id': "{}/{}/verification".format(self.id, task_id),
+                'parent id': self.id,
+                # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
+                'attrs': [],
+                'name': self.conf['VTGVRP']['VTG']['verifier']['name'],
+                'resources': decision_results['resources'],
+                'log': None if self.logger.disabled or not log_file else log_file,
+                'coverage':
+                    'coverage.json' if 'expect coverage' in self.conf['VTGVRP']['VRP'] and
+                    self.conf['VTGVRP']['VRP']['expect coverage'] else None,
+                'files': {
+                    'report': (files if self.conf['upload input files of static verifiers'] else []) +
+                    ([] if self.logger.disabled or not log_file else [log_file])
+                }
+            }
+            if 'expect coverage' in self.conf['VTGVRP']['VRP'] and self.conf['VTGVRP']['VRP']['expect coverage'] and\
+                    os.path.isfile(os.path.join('output', 'coverage.info')):
+                cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
+                           shadow_src_dir, self.conf['main working directory'],
+                           self.conf['VTGVRP']['VRP']['coverage completeness'])
+                with open('coverage.json', 'w', encoding='utf-8') as fp:
+                    json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+
+                arcnames = cov.arcnames
+                report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
+                report['arcname'] = arcnames
             core.utils.report(self.logger,
                               'verification',
-                              {
-                                  # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                  'id': "{}/{}/verification".format(self.id, task_id),
-                                  'parent id': self.id,
-                                  # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
-                                  'attrs': [],
-                                  'name': self.conf['VTG']['verifier']['name'],
-                                  'resources': decision_results['resources'],
-                                  'log': None if self.logger.disabled or not log_file else log_file,
-                                  'files': (files if self.conf['upload input files of static verifiers'] else []) +
-                                           ([] if self.logger.disabled or not log_file else [log_file])
-                              },
+                              report,
                               self.mqs['report files'],
                               self.conf['main working directory'])
+
             # Submit a verdict
             witness_processing_exception = self.process_single_verdict(
                 task_id, decision_results, opts, verification_object, rule_specification, shadow_src_dir, log_file)

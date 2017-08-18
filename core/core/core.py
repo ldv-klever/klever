@@ -240,21 +240,24 @@ class Core(core.utils.CallbacksCaller):
     def send_reports(self):
         try:
             while True:
-                # TODO: replace MQ with "reports and report files archives".
-                report_and_report_files_archive = self.mqs['report files'].get()
+                # TODO: replace MQ with "reports and report file archives".
+                report_and_report_file_archives = self.mqs['report files'].get()
 
-                if report_and_report_files_archive is None:
+                if report_and_report_file_archives is None:
                     self.logger.debug('Report files message queue was terminated')
                     break
 
-                report_file = report_and_report_files_archive['report file']
-                report_files_archive = report_and_report_files_archive.get('report files archive')
+                report_file = report_and_report_file_archives['report file']
+                report_file_archives = report_and_report_file_archives.get('report file archives')
 
                 self.logger.debug('Upload report file "{0}"{1}'.format(
                     report_file,
-                    ' with report files archive "{0}"'.format(report_files_archive) if report_files_archive else ''))
+                    ' with report file archives:\n{0}'.format(
+                        '\n'.join(['  {0} - {1}'.format(archive_name, archive)
+                                   for archive_name, archive in report_file_archives.items()]))
+                    if report_file_archives else ''))
 
-                self.session.upload_report(report_file, report_files_archive)
+                self.session.upload_report(report_file, report_file_archives)
         except Exception as e:
             # If we can't send reports to Klever Bridge by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Klever Bridge')
