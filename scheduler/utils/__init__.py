@@ -434,12 +434,6 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
                 zfp.write(os.path.join(dirpath, filename),
                           os.path.join(os.path.relpath(dirpath, solution_path), filename))
 
-    # Like in core.utils.report.
-    with open(results_archive, 'rb') as fp:
-        while True:
-            if not fp.read(1024):
-                break
-
     server.submit_solution(identifier, decision_results, results_archive)
 
 
