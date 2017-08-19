@@ -254,7 +254,7 @@ def prepare_task_arguments(conf):
     if 'memory size' in conf["resource limits"] and conf["resource limits"]['memory size']:
         args.extend(['--memorylimit', str(conf["resource limits"]['memory size']) + 'B'])
     if 'CPU time' in conf["resource limits"] and conf["resource limits"]['CPU time']:
-        args.extend(['--timelimit', str(conf["resource limits"]['CPU time'])])
+        args.extend(['--timelimit', str(round(conf["resource limits"]["CPU time"] / 1000))])
 
     # Check container mode
     if "benchexec container mode" in conf['client'] and conf['client']["benchexec container mode"]:
