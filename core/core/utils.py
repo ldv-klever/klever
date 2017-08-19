@@ -573,6 +573,13 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(type.capitalize(),
                                                                        rel_report_file_archives[archive_name]))
+
+            # Ensure archive buffers are written to disk. Otherwise Bridge can get stream corresponding to empty file.
+            with open(report_files_archive, 'rb') as fp:
+                while True:
+                    if not fp.read(1024):
+                        break
+
         del (report['files'])
 
     # Create report file in current working directory.
