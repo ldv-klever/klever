@@ -104,7 +104,7 @@ def __import_process(name, dic, conf, model_flag=False):
     # Import comments
     if 'comment' in dic:
         process.comment = dic['comment']
-    elif model_flag:
+    else:
         raise KeyError("You must specify manually 'comment' attribute within the description of {!r} kernel "
                        "function model process".format(name))
 
