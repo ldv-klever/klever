@@ -223,6 +223,7 @@ START_JOB_DEFAULT_MODES = {
 }
 
 REPORT_FILES_ARCHIVE = 'data.zip'
+COVERAGE_FILES_ARCHIVE = 'coverage.zip'
 
 # You can set translatable text _("Unknown error")
 UNKNOWN_ERROR = 'Unknown error'

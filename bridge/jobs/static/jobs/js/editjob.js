@@ -1108,7 +1108,7 @@ $(document).ready(function () {
     }
 
     if ($('#job_data_div').length) {
-        var num_of_updates = 0, is_filters_open = false;
+        var num_of_updates = 0, is_filters_open = false, just_status = false, message_is_shown = false;
         $('#job_filters_accordion').accordion({
             onOpen: function() {
                 is_filters_open = true;
@@ -1129,7 +1129,8 @@ $(document).ready(function () {
                 {
                     job_id: $('#job_pk').val(),
                     view: collect_view_data('2')['view'],
-                    checked_run_history: $('#run_history').val()
+                    checked_run_history: $('#run_history').val(),
+                    just_status: just_status
                 },
                 function (data) {
                     if (data.error) {
@@ -1175,8 +1176,11 @@ $(document).ready(function () {
                     }
                     num_of_updates++;
                     if (num_of_updates > 60) {
-                        err_notify($('#error__autoupdate_off').text());
-                        clearInterval(interval);
+                        if (!message_is_shown) {
+                            err_notify($('#error__autoupdate_off').text());
+                            message_is_shown = true;
+                        }
+                        just_status = true;
                     }
                 }
             ).fail(function () {

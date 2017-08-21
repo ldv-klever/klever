@@ -357,3 +357,23 @@ class ErrorTraceConvertionCache(models.Model):
 
     class Meta:
         db_table = 'cache_error_trace_converted'
+
+
+class SafeTagAccess(models.Model):
+    user = models.ForeignKey(User)
+    tag = models.ForeignKey(SafeTag)
+    modification = models.BooleanField(default=False)
+    child_creation = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'marks_safe_tag_access'
+
+
+class UnsafeTagAccess(models.Model):
+    user = models.ForeignKey(User)
+    tag = models.ForeignKey(UnsafeTag)
+    modification = models.BooleanField(default=False)
+    child_creation = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'marks_unsafe_tag_access'

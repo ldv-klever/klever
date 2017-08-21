@@ -17,6 +17,7 @@
 
 import os
 import json
+import zipfile
 from io import BytesIO
 
 from django.conf import settings
@@ -69,6 +70,10 @@ class ScheduleTask:
             progress=self.progress, archname=archive.name,
             archive=archive, description=self.description.encode('utf8')
         )
+
+        if not zipfile.is_zipfile(task.archive.file.name):
+            raise ServiceError("The report's archive is not a ZIP file")
+
         SolvingProgress.objects.filter(id=self.progress.id)\
             .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
         return task.id
@@ -504,8 +509,12 @@ class SaveSolution:
             raise ServiceError('The task already has solution')
         except ObjectDoesNotExist:
             pass
-        Solution.objects.create(task=self.task, description=description.encode('utf8'),
-                                archive=archive, archname=archive.name)
+        solution = Solution.objects.create(task=self.task, description=description.encode('utf8'),
+                                           archive=archive, archname=archive.name)
+
+        if not zipfile.is_zipfile(solution.archive.file.name):
+            raise ServiceError("The report's archive is not a ZIP file")
+
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
         progress.solutions += 1
         progress.save()
@@ -845,7 +854,7 @@ class StartJobDecision:
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file)
+        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, date=now())
 
     def __check_schedulers(self):
         try:

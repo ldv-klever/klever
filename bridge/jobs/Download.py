@@ -26,16 +26,18 @@ from django.db import transaction
 from django.utils.translation import ugettext_lazy as _, override
 from django.utils.timezone import datetime, pytz
 
-from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, JOB_WEIGHT
+from bridge.vars import JOB_CLASSES, FORMAT, JOB_STATUS, REPORT_FILES_ARCHIVE, COVERAGE_FILES_ARCHIVE, JOB_WEIGHT
 from bridge.utils import logger, file_get_or_create, BridgeException
 from bridge.ZipGenerator import ZipStream, CHUNK_SIZE
 
 from jobs.models import Job, RunHistory, JobFile
 from reports.models import Report, ReportRoot, ReportSafe, ReportUnsafe, ReportUnknown, ReportComponent,\
-    Component, Computer, AttrName, Attr, ReportAttr, LightResource
+    Component, Computer, ReportAttr, LightResource
 from jobs.utils import create_job, update_job, change_job_status
 from reports.utils import AttrData
 from tools.utils import Recalculation
+
+ARCHIVE_FORMAT = 1
 
 
 class KleverCoreArchiveGen:
@@ -136,9 +138,9 @@ class JobArchiveGenerator:
 
     def __job_data(self):
         return json.dumps({
-            'format': self.job.format, 'identifier': self.job.identifier, 'type': self.job.type,
-            'status': self.job.status, 'files_map': self.arch_files, 'run_history': self.__add_run_history_files(),
-            'weight': self.job.weight, 'safe_marks': self.job.safe_marks
+            'archive_format': ARCHIVE_FORMAT, 'format': self.job.format, 'identifier': self.job.identifier,
+            'type': self.job.type, 'status': self.job.status, 'files_map': self.arch_files,
+            'run_history': self.__add_run_history_files(), 'weight': self.job.weight, 'safe_marks': self.job.safe_marks
         }, ensure_ascii=False, sort_keys=True, indent=4).encode('utf-8')
 
     def __add_run_history_files(self):
@@ -159,6 +161,11 @@ class JobArchiveGenerator:
                     self.files_to_add.append((
                         os.path.join(settings.MEDIA_ROOT, report.archive.name),
                         os.path.join(table.__name__, '%s.zip' % report.pk)
+                    ))
+                if table == ReportComponent and report.coverage_arch:
+                    self.files_to_add.append((
+                        os.path.join(settings.MEDIA_ROOT, report.coverage_arch.name),
+                        os.path.join(table.__name__, 'coverage_%s.zip' % report.pk)
                     ))
 
 
@@ -226,6 +233,7 @@ class ReportsData(object):
             'identifier': report.identifier,
             'computer': str(report.computer_id),
             'component': report.component.name,
+            'verification': report.verification,
             'resource': {
                 'cpu_time': report.cpu_time,
                 'wall_time': report.wall_time,
@@ -235,7 +243,8 @@ class ReportsData(object):
             'finish_date': report.finish_date.timestamp() if report.finish_date is not None else None,
             'data': data,
             'attrs': [],
-            'log': report.log
+            'log': report.log,
+            'coverage': report.coverage
         }
 
     def __report_leaf_data(self, report):
@@ -338,6 +347,10 @@ class UploadJob(object):
                         m = re.match('(\d+)\.zip', file_name)
                         if m is not None:
                             report_files[(b_dir, int(m.group(1)))] = os.path.join(dir_path, file_name)
+                        else:
+                            m = re.match('coverage_(\d+)\.zip', file_name)
+                            if m is not None:
+                                report_files[(b_dir, 'coverage', int(m.group(1)))] = os.path.join(dir_path, file_name)
                     else:
                         try:
                             files_in_db[b_dir + '/' + file_name] = file_get_or_create(
@@ -352,7 +365,9 @@ class UploadJob(object):
         # Check job data
         if any(x not in jobdata for x in ['format', 'type', 'status', 'files_map',
                                           'run_history', 'weight', 'safe_marks']):
-            raise ValueError('Not enough data in job.json file')
+            raise BridgeException(_("The job archive was corrupted"))
+        if jobdata.get('archive_format', 0) != ARCHIVE_FORMAT:
+            raise BridgeException(_("The job archive format is not supported"))
         if jobdata['format'] != FORMAT:
             raise BridgeException(_("The job format is not supported"))
         if 'identifier' in jobdata:
@@ -552,6 +567,7 @@ class UploadReports:
                 parent_id=self._parents[self.data[i].get('parent')],
                 computer_id=self._computers[self.data[i]['computer']],
                 component_id=self.__get_component(self.data[i]['component']),
+                verification=self.data[i]['verification'],
                 start_date=datetime.fromtimestamp(self.data[i]['start_date'], pytz.timezone('UTC')),
                 finish_date=datetime.fromtimestamp(self.data[i]['finish_date'], pytz.timezone('UTC'))
                 if self.data[i]['finish_date'] is not None else None,
@@ -564,6 +580,10 @@ class UploadReports:
             if (ReportComponent.__name__, self.data[i]['pk']) in self.files:
                 with open(self.files[(ReportComponent.__name__, self.data[i]['pk'])], mode='rb') as fp:
                     report.new_archive(REPORT_FILES_ARCHIVE, fp)
+            if (ReportComponent.__name__, 'coverage', self.data[i]['pk']) in self.files:
+                with open(self.files[(ReportComponent.__name__, 'coverage', self.data[i]['pk'])], mode='rb') as fp:
+                    report.new_coverage(COVERAGE_FILES_ARCHIVE, fp)
+                    report.coverage = self.data[i]['coverage']
             if self.data[i]['data'] is not None:
                 report.new_data('report-data.json', BytesIO(self.data[i]['data'].encode('utf8')))
             report.save()
