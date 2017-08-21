@@ -149,7 +149,7 @@
     "environment processes": {
       "proto_scenario": {
         "headers": ["linux/poll.h"],
-        "comment": "Socket family scenario.",
+        "comment": "Invoke socket family callbacks.",
         "labels": {
           "container": {
             "container": true

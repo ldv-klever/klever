@@ -68,7 +68,7 @@
     },
     "environment processes": {
       "io_target_scenario": {
-        "comment": "Linux-IO target callbacks invocation scenario.",
+        "comment": "Invoke Linux-IO target callbacks.",
         "labels": {
           "se_subsystem_api": {
             "container": true,
@@ -244,7 +244,7 @@
     },
     "environment processes": {
       "io_target_scenario": {
-        "comment": "Linux-IO target callbacks invocation scenario.",
+        "comment": "Invoke Linux-IO target callbacks.",
         "labels": {
           "target_backend_ops": {
             "container": true,

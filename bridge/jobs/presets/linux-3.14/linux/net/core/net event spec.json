@@ -45,7 +45,7 @@
         }
       },
       "alloc_netdev_mqs": {
-        "comment": "Allocate network device",
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
@@ -256,7 +256,7 @@
         }
       },
       "alloc_netdev_mqs": {
-        "comment": "Allocate network device",
+        "comment": "Allocate network device.",
         "labels": {
           "netdev": {
             "container": true,
