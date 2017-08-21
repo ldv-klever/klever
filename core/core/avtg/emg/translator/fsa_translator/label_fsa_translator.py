@@ -45,7 +45,7 @@ class LabelTranslator(FSATranslator):
             else:
                 sv = self.__thread_variable(automaton, 'single')
                 self._cmodel.add_global_variable(sv, file, extern=True)
-                return 'pthread_join({}, 0);'.format('& ' + sv.name)
+                return 'pthread_join({}, 0);'.format(sv.name)
 
     def _call_cf_code(self, file, automaton, parameter='0'):
         if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism') and \
@@ -123,7 +123,7 @@ class LabelTranslator(FSATranslator):
                         thread_vars = self.__thread_variable(automata_peers[name]['automaton'], type='pair')
                         for v in thread_vars:
                             # Expect that for this particular case the first argument is unset
-                            block.extend(['ret = {}'.format(call.format("& " + v.name)),
+                            block.extend(['ret = {}'.format(call.format(v.name)),
                                           'ldv_assume(ret == 0);'])
                     else:
                         block.extend(['ret = {}'.format(call),
