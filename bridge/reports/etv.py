@@ -840,7 +840,7 @@ class Forest:
 class ErrorTraceForests:
     def __init__(self, error_trace, with_callbacks=False):
         self.data = json.loads(error_trace)
-        self.with_callbcaks = with_callbacks
+        self.with_callbacks = with_callbacks
         self.trace = self.__get_forests(get_error_trace_nodes(self.data))
 
     def __get_forests(self, edge_trace):
@@ -878,7 +878,7 @@ class ErrorTraceForests:
             if collect_names:
                 is_model = 'note' in edge_data or 'warn' in edge_data
                 if 'enter' in edge_data:
-                    if self.with_callbcaks and 'action' in edge_data \
+                    if self.with_callbacks and 'action' in edge_data \
                             and edge_data['action'] in self.data['callback actions']:
                         is_model = True
                     forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
