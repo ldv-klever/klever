@@ -232,7 +232,7 @@ def dir_size(dir):
     except ValueError as e:
         # One of the files inside the dir has been removed. We should delete the warning message.
         splts = output.split('\n')
-        if len(splts < 2):
+        if len(splts) < 2:
             # Can not delete the warning message
             raise e
         else:
@@ -272,28 +272,37 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
             return True
 
     def handler(arg1, arg2):
+        def terminate():
+            print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
+            os._exit(-1)
+
         # Repeate until it dies
         if p and p.pid:
             pid = p.pid
             print("{}: Cancelling process {}".format(os.getpid(), pid), file=sys.stderr)
             # Sent initial signals
-            os.kill(pid, signal.SIGINT)
+            try:
+                os.kill(pid, signal.SIGINT)
+            except ProcessLookupError:
+                terminate()
             restore_handlers()
 
             try:
                 # Try to wait - it helps if a process is waiting for something, we need to check its status
-                p.wait(timeout=5)
+                p.wait(timeout=10)
             except subprocess.TimeoutExpired:
                 print('{}: Process {} is still alive ...'.format(os.getpid(), pid), file=sys.stderr)
                 # Lets try it again
-                os.killpg(os.getpgid(pid), signal.SIGTERM)
-                os.killpg(os.getpgid(pid), signal.SIGINT)
-                os.kill(pid, signal.SIGKILL)
+                try:
+                    os.killpg(os.getpgid(pid), signal.SIGTERM)
+                    os.killpg(os.getpgid(pid), signal.SIGINT)
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    terminate()
                 # It should not survive after kill, lets wait a couple of seconds
                 time.sleep(10)
 
-        print("{}: Cancellation of {} is successfull, exiting".format(os.getpid(), pid), file=sys.stderr)
-        os._exit(-1)
+        terminate()
 
     def set_handlers():
         signal.signal(signal.SIGTERM, handler)
@@ -301,18 +310,21 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
 
     def disk_controller(pid, limitation, period):
         while process_alive(pid):
-            size = dir_size("./")
-            if size > limitation:
+            s = dir_size("./")
+            if s > limitation:
                 # Kill the process
                 print("Reached disk memory limit of {}B, killing process {}".format(limitation, pid), file=sys.stderr)
-                os.kill(p.pid, signal.SIGINT)
+                os.kill(pid, signal.SIGINT)
             time.sleep(period)
         os._exit(0)
 
     def activate_disk_limitation(pid, limitation):
         if limitation:
-            p = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
-            p.start()
+            checker = multiprocessing.Process(target=disk_controller, args=(pid, limitation, disk_checking_period))
+            checker.start()
+            return checker
+        else:
+            return None
 
     set_handlers()
     cmd = args[0]
@@ -326,7 +338,7 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                                                   ' '.join('"{0}"'.format(arg) for arg in args[1:])))
 
         p = subprocess.Popen(args, env=env, stderr=subprocess.PIPE, cwd=cwd, preexec_fn=os.setsid)
-        activate_disk_limitation(p.pid, disk_limitation)
+        disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
         err_q = StreamQueue(p.stderr, 'STDERR', True)
         err_q.start()
@@ -351,18 +363,17 @@ def execute(args, env=None, cwd=None, timeout=None, logger=None, stderr=sys.stde
                 m = '"{0}" outputted to {1}:\n{2}'.format(cmd, err_q.stream_name, '\n'.join(output))
                 logger.warning(m)
 
-        p.poll()
         err_q.join()
     else:
         p = subprocess.Popen(args, env=env, cwd=cwd, preexec_fn=os.setsid, stderr=stderr, stdout=stdout)
-        activate_disk_limitation(p.pid, disk_limitation)
-        try:
-            p.wait()
-        except OSError:
-            p.kill()
+        disk_checker = activate_disk_limitation(p.pid, disk_limitation)
 
+    p.wait()
+    if disk_checker:
+        disk_checker.join()
     restore_handlers()
 
+    # Check dir size after a stop
     if disk_limitation:
         size = dir_size("./")
         if size >= disk_limitation:
