@@ -227,9 +227,8 @@ def _remove_control_func_aux_code(data, error_trace):
         # Stepping into a control function?
         match = _match_control_function(error_trace, e, stack, data)
         if match:
-            # TODO do we really need this? Environment model actions are described by means of attribute action now. Moreover I don't think that corresponding comments even should become actions since they are too low level. It would be better to print them as usual comments.
             # Add note on each control function entry
-            #e['note'] = match['cf']['comment']
+            e['entry_point'] = match['cf']['comment']
             return
 
         if len(stack) != 0:
