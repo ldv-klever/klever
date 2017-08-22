@@ -461,9 +461,9 @@ class Scheduler(schedulers.SchedulerExchange):
         # Set final status
         if termination_reason:
             if termination_reason == "cputime":
-                description["status"] = "CPU time exhausted"
+                description["status"] = "TIMEOUT"
             elif termination_reason == "memory":
-                description["status"] = "memory exhausted"
+                description["status"] = 'OUT OF MEMORY'
             else:
                 raise ValueError("Unsupported termination reason {}".format(termination_reason))
         elif "signal num" in description:

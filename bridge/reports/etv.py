@@ -231,7 +231,9 @@ class ParseErrorTrace:
         line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
         if 'enter' in edge:
-            line_data.update(self.__enter_function(edge['enter'], line_data['code']))
+            line_data.update(self.__enter_function(
+                edge['enter'], code=line_data['code'], comment=edge.get('entry_point')
+            ))
             if any(x in edge for x in ['note', 'warn']):
                 self.scope.hide_current_scope()
             if 'return' in edge:
@@ -274,11 +276,16 @@ class ParseErrorTrace:
         self.lines.append(enter_action_data)
         return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_function(self, func_id, code=None):
+    def __enter_function(self, func_id, code=None, comment=None):
         self.scope.add(func_id, self.thread_id, (code is None))
         enter_data = {'type': 'enter', 'hide_id': self.scope.current()}
         if code is not None:
-            enter_data['func'] = self.functions[func_id]
+            if comment is None:
+                enter_data['comment'] = self.functions[func_id]
+                enter_data['comment_class'] = 'ETV_Fname'
+            else:
+                enter_data['comment'] = comment
+                enter_data['comment_class'] = 'ETV_Fcomment'
             enter_data['code'] = re.sub(
                 '(^|\W)' + self.functions[func_id] + '(\W|$)',
                 '\g<1><span class="ETV_Fname">' + self.functions[func_id] + '</span>\g<2>',
@@ -392,8 +399,10 @@ class ParseErrorTrace:
                     self.lines[i]['type'] = 'eye-control'
                 elif self.lines[i]['type'] == 'enter' and not self.scope.is_shown(self.lines[i]['hide_id']):
                     self.lines[i]['type'] = 'eye-control'
-                    if 'func' in self.lines[i]:
-                        del self.lines[i]['func']
+                    if 'comment' in self.lines[i]:
+                        del self.lines[i]['comment']
+                    if 'comment_class' in self.lines[i]:
+                        del self.lines[i]['comment_class']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = not self.scope.is_shown(self.lines[i]['scope'])
