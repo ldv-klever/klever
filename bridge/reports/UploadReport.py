@@ -242,7 +242,7 @@ class UploadReport:
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+        if self.error is None and len(self.ordered_attrs) != len(set(self.ordered_attrs)):
             raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
@@ -287,9 +287,21 @@ class UploadReport:
         report.save()
 
         if check_arch:
-            self.__check_archive(report.archive.file.name)
+            try:
+                self.__check_archive(report.archive.file.name)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                report.delete()
+                return
         if check_coverage_arch:
-            self.__check_archive(report.coverage_arch.file.name)
+            try:
+                self.__check_archive(report.coverage_arch.file.name)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                report.delete()
+                return
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -385,7 +397,13 @@ class UploadReport:
             report.save()
 
         if check_arch:
-            self.__check_archive(report.archive.file.name)
+            try:
+                self.__check_archive(report.archive.file.name)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                report.delete()
+                return
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -435,7 +453,13 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        self.__check_archive(report.archive.file.name)
+        try:
+            self.__check_archive(report.archive.file.name)
+        except Exception as e:
+            logger.exception(e)
+            self.error = 'ZIP error'
+            report.delete()
+            return
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -455,7 +479,13 @@ class UploadReport:
             check_arch = True
         report.save()
         if check_arch:
-            self.__check_archive(report.archive.file.name)
+            try:
+                self.__check_archive(report.archive.file.name)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                report.delete()
+                return
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -472,7 +502,13 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        self.__check_archive(report.archive.file.name)
+        try:
+            self.__check_archive(report.archive.file.name)
+        except Exception as e:
+            logger.exception(e)
+            self.error = 'ZIP error'
+            report.delete()
+            return
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
@@ -629,14 +665,8 @@ class UploadReport:
         return attrorder
 
     def __check_archive(self, arch):
-        self.__is_not_used()
-        try:
-            if not zipfile.is_zipfile(arch):
-                self.message = 'ZIP error'
-                logger.error('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
-        except Exception as e:
-            logger.exception(e)
-            self.message = 'ZIP error'
+        if not zipfile.is_zipfile(arch):
+            raise ValueError('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
 
     def __is_not_used(self):
         pass
