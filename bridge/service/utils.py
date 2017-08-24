@@ -315,7 +315,8 @@ class GetTasks:
 
         # Finish job decisions and add pending/processing/cancelled jobs
         if self._scheduler.type == SCHEDULER_TYPE[0][0]:
-            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0]).select_related('job'):
+            for progress in SolvingProgress.objects.filter(job__status=JOB_STATUS[1][0], fake=False)\
+                    .select_related('job'):
                 if progress.job.identifier in data['jobs']['finished']:
                     FinishJobDecision(progress, JOB_STATUS[5][0], "The job can't be finished as it is still pending")
                 elif progress.job.identifier in data['jobs']['error']:
@@ -738,9 +739,10 @@ class NodesData(object):
 
 
 class StartJobDecision:
-    def __init__(self, user, job_id, data):
+    def __init__(self, user, job_id, data, fake=False):
         self.operator = user
         self.data = data
+        self._fake = fake
         self.job = self.__get_job(job_id)
         self.job_scheduler = self.__get_scheduler()
         self.klever_core_data = self.__get_klever_core_data()
@@ -839,8 +841,7 @@ class StartJobDecision:
             pass
         self.__save_configuration()
         return SolvingProgress.objects.create(
-            job=self.job, priority=self.data[0][0],
-            scheduler=self.job_scheduler,
+            job=self.job, priority=self.data[0][0], scheduler=self.job_scheduler, fake=self._fake,
             configuration=json.dumps(self.klever_core_data, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8')
         )
 
