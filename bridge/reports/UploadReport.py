@@ -402,7 +402,9 @@ class UploadReport:
             except Exception as e:
                 logger.exception(e)
                 self.error = 'ZIP error'
-                report.delete()
+                report.archive.delete()
+                report.log = None
+                report.save()
                 return
 
         if 'attrs' in self.data:
