@@ -46,6 +46,7 @@ BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verifica
 
 class UploadReport:
     def __init__(self, job, data, archive=None, coverage_arch=None):
+        self.message = None
         self.job = job
         self.archive = archive
         self.coverage = coverage_arch
@@ -629,9 +630,13 @@ class UploadReport:
 
     def __check_archive(self, arch):
         self.__is_not_used()
-        if not zipfile.is_zipfile(arch):
-            # TODO: fix me within https://forge.ispras.ru/issues/7894.
-            logger.error('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
+        try:
+            if not zipfile.is_zipfile(arch):
+                self.message = 'ZIP error'
+                logger.error('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
+        except Exception as e:
+            logger.exception(e)
+            self.message = 'ZIP error'
 
     def __is_not_used(self):
         pass

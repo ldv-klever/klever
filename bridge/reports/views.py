@@ -588,9 +588,11 @@ def upload_report(request):
         archive = request.FILES['report files archive']
     if 'coverage files archive' in request.FILES:
         coverage_arch = request.FILES['coverage files archive']
-    err = UploadReport(job, data, archive, coverage_arch).error
-    if err is not None:
-        return JsonResponse({'error': err})
+    res = UploadReport(job, data, archive, coverage_arch)
+    if res.error is not None:
+        return JsonResponse({'error': res.error})
+    if res.message is not None:
+        return JsonResponse({'message': res.message})
     return JsonResponse({})
 
 
