@@ -647,10 +647,10 @@ class CollapseReports:
             return
         ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
         ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
         ReportUnknown.objects.filter(
             root=root, parent__reportcomponent__archive='', parent__reportcomponent__verification=True
         ).update(parent=core_report)
-        ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
         ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
