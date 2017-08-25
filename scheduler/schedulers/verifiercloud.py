@@ -433,7 +433,7 @@ class Scheduler(schedulers.SchedulerExchange):
                         description["comp"]["command"] = value
                     elif key == "exitsignal":
                         description["signal num"] = int(value)
-                    elif key == "returnvalue":
+                    elif key == "exitcode":
                         description["return value"] = int(value)
                     elif key == "walltime":
                         sec = number.match(value).group(1)
