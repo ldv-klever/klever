@@ -56,10 +56,17 @@ class UploadReport:
                 logger.exception(e)
                 self.error = 'ZIP error'
                 return
+        if self.archive is not None:
+            try:
+                self.__check_archive(self.archive, data.get('id'))
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                return
         self.coverage = coverage_arch
         if self.coverage is not None:
             try:
-                self.__check_archive(self.coverage)
+                self.__check_archive(self.coverage, data.get('id'))
             except Exception as e:
                 logger.exception(e)
                 self.error = 'ZIP error'
@@ -621,9 +628,10 @@ class UploadReport:
                     raise ValueError("The report has redefined parent's attributes")
         return attrorder
 
-    def __check_archive(self, arch):
+    def __check_archive(self, arch, report_id):
+        self.__is_not_used()
         if not zipfile.is_zipfile(arch):
-            raise ValueError('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
+            raise ValueError('The archive "%s" of report "%s" is not a ZIP file' % (arch, report_id))
 
     def __is_not_used(self):
         pass
