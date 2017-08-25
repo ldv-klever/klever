@@ -366,7 +366,7 @@ def run(selflogger, args, conf, logger=None):
         job_exit = None
         if ec == 0 and os.path.isfile('runexec stdout.log'):
             selflogger.info("Get return code of the job since runexec successfully exited")
-            with open('runexec stdout.log', encoding="utf8") as fp:
+            with open('runexec stdout.log', 'r', encoding="utf8") as fp:
                 for line in fp.readlines():
                     key, value = line.split('=')
                     if key and value and key == 'exitcode':
@@ -375,7 +375,7 @@ def run(selflogger, args, conf, logger=None):
                             # Be cool as Unix is
                             job_exit = job_exit >> 8
                         break
-        if not os.path.isfile('runexec stdout.log') or not job_exit:
+        if not os.path.isfile('runexec stdout.log') or job_exit is None:
             selflogger.warning("Runexec exited successfully but it is not possible to read job exit code, aborting")
             ec = 1
         else:
