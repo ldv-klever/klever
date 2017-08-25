@@ -51,13 +51,6 @@ class UploadReport:
         self.archive = archive
         if self.archive is not None:
             try:
-                self.__check_archive(self.archive)
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                return
-        if self.archive is not None:
-            try:
                 self.__check_archive(self.archive, data.get('id'))
             except Exception as e:
                 logger.exception(e)
