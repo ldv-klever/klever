@@ -46,13 +46,26 @@ BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verifica
 
 class UploadReport:
     def __init__(self, job, data, archive=None, coverage_arch=None):
-        self.message = None
+        self.error = None
         self.job = job
         self.archive = archive
+        if self.archive is not None:
+            try:
+                self.__check_archive(self.archive)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                return
         self.coverage = coverage_arch
+        if self.coverage is not None:
+            try:
+                self.__check_archive(self.coverage)
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                return
         self.data = {}
         self.ordered_attrs = []
-        self.error = None
         try:
             self.__check_data(data)
             self.parent = self.__get_parent()
@@ -273,35 +286,14 @@ class UploadReport:
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
 
-        check_arch = False
         if self.archive is not None and \
                 (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
-            check_arch = True
-        check_coverage_arch = False
         if self.coverage is not None and self.data['type'] == 'verification':
             report.new_coverage(COVERAGE_FILES_ARCHIVE, self.coverage)
             report.coverage = self.data.get('coverage')
-            check_coverage_arch = True
         report.save()
-
-        if check_arch:
-            try:
-                self.__check_archive(report.archive.file.name)
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                report.delete()
-                return
-        if check_coverage_arch:
-            try:
-                self.__check_archive(report.coverage_arch.file.name)
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                report.delete()
-                return
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -383,11 +375,9 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        check_arch = False
         if self.archive is not None and (report.parent is None or self.job.weight == JOB_WEIGHT[0][0]):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
-            check_arch = True
 
         report.finish_date = now()
         if 'data' in self.data:
@@ -395,17 +385,6 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
-
-        if check_arch:
-            try:
-                self.__check_archive(report.archive.file.name)
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                report.archive.delete()
-                report.log = None
-                report.save()
-                return
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -455,13 +434,6 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        try:
-            self.__check_archive(report.archive.file.name)
-        except Exception as e:
-            logger.exception(e)
-            self.error = 'ZIP error'
-            report.delete()
-            return
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -474,20 +446,10 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
-        check_arch = False
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
-            check_arch = True
         report.save()
-        if check_arch:
-            try:
-                self.__check_archive(report.archive.file.name)
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                report.delete()
-                return
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -504,13 +466,6 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        try:
-            self.__check_archive(report.archive.file.name)
-        except Exception as e:
-            logger.exception(e)
-            self.error = 'ZIP error'
-            report.delete()
-            return
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
