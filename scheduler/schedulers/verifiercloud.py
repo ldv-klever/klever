@@ -73,7 +73,8 @@ class Run:
         }
 
         # Check optional limits
-        if "number of CPU cores" in description["resource limits"]:
+        if "number of CPU cores" in description["resource limits"] and \
+                description["resource limits"]["number of CPU cores"] != 0:
             self.limits["corelimit"] = int(description["resource limits"]["number of CPU cores"])
         if "CPU model" in description["resource limits"]:
             self.cpu_model = description["resource limits"]["CPU model"]
@@ -461,9 +462,9 @@ class Scheduler(schedulers.SchedulerExchange):
         # Set final status
         if termination_reason:
             if termination_reason == "cputime":
-                description["status"] = "CPU time exhausted"
+                description["status"] = "TIMEOUT"
             elif termination_reason == "memory":
-                description["status"] = "memory exhausted"
+                description["status"] = 'OUT OF MEMORY'
             else:
                 raise ValueError("Unsupported termination reason {}".format(termination_reason))
         elif "signal num" in description:
