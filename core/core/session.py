@@ -20,6 +20,14 @@ import requests
 import time
 
 
+class UnexpectedStatusCode(IOError):
+    pass
+
+
+class BridgeError(IOError):
+    pass
+
+
 class Session:
     def __init__(self, logger, bridge, job_id):
         logger.info('Create session for user "{0}" at Klever Bridge "{1}"'.format(bridge['user'], bridge['name']))
@@ -27,6 +35,7 @@ class Session:
         self.logger = logger
         self.name = bridge['name']
         self.session = requests.Session()
+        self.error = None
 
         # TODO: try to autentificate like with httplib2.Http().add_credentials().
         # Get initial value of CSRF token via useless GET request.
@@ -61,12 +70,13 @@ class Session:
                 if resp.status_code != 200:
                     with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
-                    raise IOError(
+                    raise UnexpectedStatusCode(
                         'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
                                                                                                    method, url))
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
-                    raise IOError(
-                        'Got error "{0}" when send "{1}" request to "{2}"'.format(resp.json()['error'], method, url))
+                    self.error = resp.json()['error']
+                    raise BridgeError(
+                        'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
 
                 return resp
             except requests.ConnectionError:
@@ -114,12 +124,25 @@ class Session:
         self.logger.info('Finish session')
         self.__request('users/service_signout/')
 
-    def upload_report(self, report, archives=None):
-        # TODO: report is likely should be compressed.
-        with open(report, encoding='utf8') as fp:
-            self.__request(
-                'reports/upload/',
-                {'report': fp.read()},
-                files={arhive_name + ' files archive': open(archive, 'rb') for arhive_name, archive in archives.items()}
-                if archives else {}
-            )
+    def upload_report(self, report_file, archives=None):
+        with open(report_file, encoding='utf8') as fp:
+            report = fp.read()
+
+        while True:
+            try:
+                # TODO: report is likely should be compressed.
+                self.__request(
+                    'reports/upload/',
+                    {'report': report},
+                    files={arhive_name + ' files archive': open(archive, 'rb')
+                           for arhive_name, archive in archives.items()}
+                    if archives else {}
+                )
+                break
+            except BridgeError:
+                if self.error == 'ZIP error':
+                    self.logger.exception('Could not send ZIP archive')
+                    self.error = None
+                    time.sleep(1)
+                else:
+                    raise
