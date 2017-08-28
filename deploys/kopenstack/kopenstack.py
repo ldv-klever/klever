@@ -20,6 +20,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
@@ -58,7 +59,7 @@ class OSEntity:
         auth = v2.Password(**{
             'auth_url': self.args.os_auth_url,
             'username': self.args.os_username,
-            'password': getpass.getpass('OpenStack password for authentication: '),
+            'password': self._get_password(),
             'tenant_name': self.args.os_tenant_name
         })
         sess = session.Session(auth=auth)
@@ -148,6 +149,15 @@ class OSEntity:
                 instances.append(instance)
 
         return instances
+
+    def _get_password(self):
+        prompt = 'OpenStack password for authentication: '
+        if sys.stdin.isatty():
+            return getpass.getpass(prompt)
+        else:
+            self.logger.warning('Password will be echoed')
+            print(prompt, end='', flush=True)
+            return sys.stdin.readline().rstrip()
 
     def _show_instance(self, instance):
         return '{0} (status: {1}, IP: {2})'.format(instance.name, instance.status,
