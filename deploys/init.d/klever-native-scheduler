@@ -26,7 +26,7 @@
 # Description:       Klever Native Scheduler executes both verification jobs and verification tasks on a given host
 ### END INIT INFO
 
-DESC="Klever Native zkbCScheduler"
+DESC="Klever Native Scheduler"
 NAME=klever-native-scheduler
 DAEMON=/home/debian/klever/scheduler/bin/native-scheduler
 PIDFILE=/var/run/"$NAME".pid
