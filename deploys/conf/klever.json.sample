@@ -4,6 +4,10 @@
     "path": "."
   },
   "Klever Addons": {
+    "BenchExec": {
+      "version": "master",
+      "path": "../benchexec"
+    },
     "CIF": {
       "version": "58ca670",
       "path": "addons/cif-58ca670"
@@ -17,9 +21,10 @@
       "version": "0.8.3",
       "path": "addons/consul"
     },
-    "BenchExec": {
-      "version": "master",
-      "path": "../benchexec"
+    "VerifierCloud Client": {
+      "version": "ldv-bam:25523",
+      "path": "addons/CPAchecker-1.6.1-svn c7ea2c1da3-unix/scripts/",
+      "executable path": "benchmark"
     },
     "Verification Backends": {
       "CPAchecker LDV BAM": {

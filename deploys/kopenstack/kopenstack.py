@@ -411,7 +411,7 @@ class OSKleverDeveloperInstance(OSEntity):
                                                 ssh)
                 elif self._update_entity(addon, os.path.join('klever-addons', addon), host_klever_addons_conf,
                                          instance_klever_addons_conf, ssh) \
-                        and addon in ('BenchExec', 'CIF', 'CIL', 'Consul'):
+                        and addon in ('BenchExec', 'CIF', 'CIL', 'Consul', 'VerifierCloud Client'):
                     is_update_controller_and_schedulers = True
 
         if 'Programs' in host_klever_conf:
@@ -445,7 +445,7 @@ class OSKleverDeveloperInstance(OSEntity):
 
         if is_update_klever or is_update_controller_and_schedulers:
             self.logger.info('(Re)configure and (re)start Klever Controller and Klever schedulers')
-            services = ('klever-controller', 'klever-native-scheduler')
+            services = ('klever-controller', 'klever-native-scheduler', 'klever-verifiercloud-scheduler')
             ssh.execute_cmd('sudo sh -c "{0}"'.format(
                 '; '.join('service {0} stop'.format(service) for service in services)
             ))

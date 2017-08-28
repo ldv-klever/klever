@@ -103,3 +103,18 @@ for name, desc in klever_conf['Klever Addons']['Verification Backends'].items():
 
 with open('klever-conf/native-scheduler-task-client.json', 'w') as fp:
     json.dump(task_client_conf, fp, sort_keys=True, indent=4)
+
+
+print('Configure Klever VerifierCloud Scheduler')
+with open('klever/scheduler/conf/verifiercloud-scheduler.json') as fp:
+    verifiercloud_scheduler_conf = json.load(fp)
+
+verifiercloud_scheduler_conf['common']['working directory'] = '/home/debian/klever-work/verifiercloud-scheduler'
+verifiercloud_scheduler_conf['Klever Bridge'].update({
+    'user': 'service',
+    'password': 'service'
+})
+verifiercloud_scheduler_conf['scheduler']['web client location'] = get_klever_addon_abs_path('VerifierCloud Client')
+
+with open('klever-conf/verifiercloud-scheduler.json', 'w') as fp:
+    json.dump(verifiercloud_scheduler_conf, fp, sort_keys=True, indent=4)
