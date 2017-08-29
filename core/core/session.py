@@ -18,6 +18,7 @@
 import json
 import requests
 import time
+import zipfile
 
 
 class UnexpectedStatusCode(IOError):
@@ -70,11 +71,14 @@ class Session:
                 if resp.status_code != 200:
                     with open('response error.html', 'w', encoding='utf8') as fp:
                         fp.write(resp.text)
+                    status_code = resp.status_code
+                    resp.close()
                     raise UnexpectedStatusCode(
-                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(resp.status_code,
+                        'Got unexpected status code "{0}" when send "{1}" request to "{2}"'.format(status_code,
                                                                                                    method, url))
                 if resp.headers['content-type'] == 'application/json' and 'error' in resp.json():
                     self.error = resp.json()['error']
+                    resp.close()
                     raise BridgeError(
                         'Got error "{0}" when send "{1}" request to "{2}"'.format(self.error, method, url))
 
@@ -84,22 +88,19 @@ class Session:
                 time.sleep(1)
 
     def start_job_decision(self, job, start_report_file):
-        # TODO: report is likely should be compressed.
         with open(start_report_file, encoding='utf8') as fp:
-            resp = self.__request('jobs/decide_job/', {
-                'job format': job.FORMAT,
-                'report': fp.read()
-            }, stream=True)
+            start_report = fp.read()
 
-        self.logger.debug('Write job archive to "{0}'.format(job.ARCHIVE))
-        with open(job.ARCHIVE, 'wb') as fp:
-            for chunk in resp.iter_content(1024):
-                fp.write(chunk)
+        # TODO: report is likely should be compressed.
+        self.__download_archive('job', 'jobs/decide_job/', {'job format': job.FORMAT, 'report': start_report},
+                                job.ARCHIVE)
 
     def schedule_task(self, task_desc):
-        resp = self.__request('service/schedule_task/',
-                              {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-                              files={'file': open('task files.zip', 'rb')})
+        resp = self.__upload_archive(
+            'service/schedule_task/',
+            {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
+            {'file': open('task files.zip', 'rb')}
+        )
         return resp.json()['task id']
 
     def get_task_status(self, task_id):
@@ -111,11 +112,8 @@ class Session:
         return resp.json()['task error']
 
     def download_decision(self, task_id):
-        resp = self.__request('service/download_solution/', {'task id': task_id})
-
-        with open('decision result files.zip', 'wb') as fp:
-            for chunk in resp.iter_content(1024):
-                fp.write(chunk)
+        self.__download_archive('decision', 'service/download_solution/', {'task id': task_id},
+                                'decision result files.zip')
 
     def remove_task(self, task_id):
         self.__request('service/remove_task/', {'task id': task_id})
@@ -128,21 +126,44 @@ class Session:
         with open(report_file, encoding='utf8') as fp:
             report = fp.read()
 
+        # TODO: report is likely should be compressed.
+        self.__upload_archive('reports/upload/', {'report': report},
+                              {arhive_name + ' files archive': open(archive, 'rb')
+                               for arhive_name, archive in archives.items()}
+                              if archives else {})
+
+    def __download_archive(self, kind, path_url, data, archive):
         while True:
+            resp = None
             try:
-                # TODO: report is likely should be compressed.
-                self.__request(
-                    'reports/upload/',
-                    {'report': report},
-                    files={arhive_name + ' files archive': open(archive, 'rb')
-                           for arhive_name, archive in archives.items()}
-                    if archives else {}
-                )
-                break
+                resp = self.__request(path_url, data, stream=True)
+
+                self.logger.debug('Write {0} archive to "{1}"'.format(kind, archive))
+                with open(archive, 'wb') as fp:
+                    for chunk in resp.iter_content(1024):
+                        fp.write(chunk)
+
+                if zipfile.ZipFile(archive).testzip():
+                    self.logger.warning('Could not download ZIP archive')
+                else:
+                    break
+            finally:
+                if resp:
+                    resp.close()
+
+    def __upload_archive(self, path_url, data, files):
+        while True:
+            resp = None
+            try:
+                resp = self.__request(path_url, data, files=files, stream=True)
+                return resp
             except BridgeError:
                 if self.error == 'ZIP error':
-                    self.logger.exception('Could not send ZIP archive')
+                    self.logger.exception('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(1)
                 else:
                     raise
+            finally:
+                if resp:
+                    resp.close()
