@@ -144,6 +144,15 @@
           "FVTP": {
             "merge source files": true,
             "verifier profile": "reachability common Linux64",
+            "verifier": {
+              "name": "CPAchecker",
+              "version": "ldv-bam:25139",
+              "add options": [
+                {"-heap": "4000m"},
+                {"-setprop": "limits.time.cpu=300s"}
+              ],
+              "exclude options": []
+            },
             "result processing": {
               "namespace": "http://graphml.graphdrawing.org/xmlns"
             }
@@ -208,7 +217,11 @@
           "LTL(G valid-memtrack)"
       ]},
       "FVTP": {
-        "verifier profile": "memory checking Linux64"
+        "verifier profile": "memory checking Linux64",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "smg_witness_for_ldv:24577"
+        }
       }
     },
     "linux:empty": {
@@ -605,6 +618,10 @@
       },
       "FVTP": {
         "verifier profile": "CPALockator race checking",
+        "verifier": {
+          "name": "CPAchecker",
+          "version": "CPALockator:25139"
+        },
         "result processing": {
           "expect several files": true,
           "namespace": "http://graphml.graphdrawing.org/xmlns"

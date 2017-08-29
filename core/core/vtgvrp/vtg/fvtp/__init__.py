@@ -75,6 +75,7 @@ class FVTP(core.vtgvrp.vtg.plugins.Plugin):
                                               self.conf["result processing"] if self.conf["result processing"] else {},
                                               self.abstract_task_desc['attrs'][0]['verification object'],
                                               self.abstract_task_desc['attrs'][1]['rule specification'],
+                                              self.conf['verifier']['name'],
                                               files,
                                               self.shadow_src_dir,
                                               self.work_dir])

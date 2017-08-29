@@ -187,11 +187,11 @@ class RP(core.components.Component):
         element = self.mqs['VRP processing tasks'].get()
 
         status, data = element
-        task_id, opts, verification_object, rule_specification, files, shadow_src_dir, work_dir = data
+        task_id, opts, verification_object, rule_specification, verifier, files, shadow_src_dir, work_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
         if status == 'finished':
-            self.__process_finished_task(task_id, opts, verification_object, rule_specification, files,
+            self.__process_finished_task(task_id, opts, verifier, verification_object, rule_specification, files,
                                          shadow_src_dir, work_dir)
         elif status == 'error':
             self.__process_failed_task(task_id, verification_object, rule_specification)
@@ -375,7 +375,7 @@ class RP(core.components.Component):
 
         self.send_unknown_report(task_id, verification_object, rule_specification, task_err_file)
 
-    def __process_finished_task(self, task_id, opts, verification_object, rule_specification, files,
+    def __process_finished_task(self, task_id, opts, verifier, verification_object, rule_specification, files,
                                 shadow_src_dir, work_dir):
         self.logger.debug("Prcess results of the task {}".format(task_id))
         vtgvrp_path, vrp_dir = os.path.abspath(os.path.curdir).split('/vrp/', 1)
@@ -409,7 +409,7 @@ class RP(core.components.Component):
                 'parent id': self.id,
                 # TODO: replace with something meaningful, e.g. tool name + tool version + tool configuration.
                 'attrs': [],
-                'name': self.conf['VTGVRP']['VTG']['verifier']['name'],
+                'name': verifier,
                 'resources': decision_results['resources'],
                 'log': None if self.logger.disabled or not log_file else log_file,
                 'coverage':

@@ -156,9 +156,9 @@ def get_list_of_verifiers_options(logger, conf):
 
     logger.debug("Determine profile for the given verifier and its version")
     try:
-        verifier_name = conf['VTGVRP']['VTG']['verifier']['name']
-        verifier_version = conf['VTGVRP']['VTG']['verifier']['version']
-        user_opts = conf['VTGVRP']['VTG']['verifier']
+        verifier_name = conf['verifier']['name']
+        verifier_version = conf['verifier']['version']
+        user_opts = conf['verifier']
         profile = conf['verifier profile']
         profile_opts = profiles['profiles'][profile][verifier_name][verifier_version]
     except KeyError as err:

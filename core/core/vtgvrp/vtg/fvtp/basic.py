@@ -71,7 +71,7 @@ class Basic:
         """
         self.logger.debug("Prepare benchmark.xml file")
         benchmark = ElementTree.Element("benchmark", {
-            "tool": self.conf['VTGVRP']['VTG']['verifier']['name'].lower()
+            "tool": self.conf['verifier']['name'].lower()
         })
         if "CPU time" in resource_limits and isinstance(resource_limits["CPU time"], int):
             benchmark.set('timelimit', str(int(int(resource_limits["CPU time"]) * 0.9)))
@@ -123,8 +123,8 @@ class Basic:
         task_desc.update(
             {
                 'verifier': {
-                    'name': self.conf['VTGVRP']['VTG']['verifier']['name'],
-                    'version': self.conf['VTGVRP']['VTG']['verifier']['version']
+                    'name': self.conf['verifier']['name'],
+                    'version': self.conf['verifier']['version']
                 },
                 'resource limits': resource_limits
             }
