@@ -624,7 +624,7 @@ class UploadReport:
 
     def __check_archive(self, arch, report_id):
         self.__is_not_used()
-        if not zipfile.is_zipfile(arch):
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
             raise ValueError('The archive "%s" of report "%s" is not a ZIP file' % (arch, report_id))
 
     def __is_not_used(self):

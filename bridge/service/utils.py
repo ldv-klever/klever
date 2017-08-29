@@ -81,7 +81,7 @@ class ScheduleTask:
 
     def __check_archive(self, arch):
         self.__is_not_used()
-        if not zipfile.is_zipfile(arch):
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
             raise ValueError('The task archive "%s" is not a ZIP file' % arch)
 
     def __is_not_used(self):
@@ -543,7 +543,7 @@ class SaveSolution:
 
     def __check_archive(self, arch):
         self.__is_not_used()
-        if not zipfile.is_zipfile(arch):
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
             raise ValueError('The task archive "%s" is not a ZIP file' % arch)
 
     def __is_not_used(self):
