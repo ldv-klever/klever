@@ -724,15 +724,17 @@ def decide_job(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
+    attempt = int(request.POST.get('attempt', 0))
     if not jobs.utils.JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
             'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(request.user, job.identifier)
         })
-    if job.status != JOB_STATUS[1][0]:
-        return JsonResponse({'error': 'Only pending jobs can be decided'})
+    if attempt == 0:
+        if job.status != JOB_STATUS[1][0]:
+            return JsonResponse({'error': 'Only pending jobs can be decided'})
+        jobs.utils.change_job_status(job, JOB_STATUS[2][0])
 
-    jobs.utils.change_job_status(job, JOB_STATUS[2][0])
-    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}')), attempt=attempt).error
     if err is not None:
         return JsonResponse({'error': err})
 

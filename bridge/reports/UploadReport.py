@@ -45,29 +45,25 @@ BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verifica
 
 
 class UploadReport:
-    def __init__(self, job, data, archive=None, coverage_arch=None):
+    def __init__(self, job, data, archive=None, coverage_arch=None, attempt=0):
         self.error = None
         self.job = job
         self.archive = archive
-        if self.archive is not None:
-            try:
-                self.__check_archive(self.archive, data.get('id'))
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                return
         self.coverage = coverage_arch
-        if self.coverage is not None:
-            try:
-                self.__check_archive(self.coverage, data.get('id'))
-            except Exception as e:
-                logger.exception(e)
-                self.error = 'ZIP error'
-                return
+        self.attempt = attempt
         self.data = {}
         self.ordered_attrs = []
         try:
             self.__check_data(data)
+            try:
+                if self.archive is not None:
+                    self.__check_archive(self.archive, self.data['id'])
+                if self.coverage is not None:
+                    self.__check_archive(self.coverage, self.data['id'])
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                return
             self.parent = self.__get_parent()
             self._parents_branch = self.__get_parents_branch()
             self.root = self.__get_root_report()
@@ -255,24 +251,29 @@ class UploadReport:
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if self.error is None and len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+        if self.error is None and self.attempt == 0 and len(self.ordered_attrs) != len(set(self.ordered_attrs)):
             raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
         try:
-            ReportComponent.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
+            report = ReportComponent.objects.get(identifier=identifier)
+            if self.attempt > 0:
+                report.start_date = now()
+                report.save()
+                return
+            else:
+                raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportComponent(
                 identifier=identifier, parent=self.parent, root=self.root,
                 start_date=now(), verification=(self.data['type'] == 'verification'),
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
-            if 'data' in self.data:
-                if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
-                    report.new_data('report-data.json', BytesIO(json.dumps(
-                        self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
-                    ).encode('utf8')))
+        if 'data' in self.data:
+            if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
+                report.new_data('report-data.json', BytesIO(json.dumps(
+                    self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
+                ).encode('utf8')))
 
         if 'comp' in self.data:
             report.computer = Computer.objects.get_or_create(
