@@ -111,7 +111,7 @@ class Session:
                         fp.write(chunk)
 
                 if zipfile.ZipFile(archive).testzip():
-                    logging.warning('Could not download ZIP archive')
+                    logging.debug('Could not download ZIP archive')
                 else:
                     break
             finally:
@@ -126,7 +126,7 @@ class Session:
                 break
             except BridgeError:
                 if self.error == 'ZIP error':
-                    logging.exception('Could not upload ZIP archive')
+                    logging.debug('Could not upload ZIP archive')
                     self.error = None
                     time.sleep(1)
                 else:
