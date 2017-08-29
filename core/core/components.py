@@ -239,7 +239,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def launch_subcomponents(self, *subcomponents):
         subcomponent_processes = []
         try:
-            for subcomponent in subcomponents:
+            for index, subcomponent in enumerate(subcomponents):
                 if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
                     subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
                     setattr(subcomponent_class, 'main', subcomponent[1])
@@ -247,7 +247,8 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                     # We always include child resources into resources of these components since otherwise they will
                     # disappear from resources statistics.
                 else:
-                    subcomponent_class = subcomponent
+                    subcomponent_class = types.new_class('KleverSubcomponent' + str(subcomponent.__name__) + str(index),
+                                                         (subcomponent,))
                 p = subcomponent_class(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks,
                                        include_child_resources=True)
                 p.start()
