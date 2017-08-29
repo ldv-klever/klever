@@ -92,7 +92,12 @@ class Session:
             start_report = fp.read()
 
         # TODO: report is likely should be compressed.
-        self.__download_archive('job', 'jobs/decide_job/', {'job format': job.FORMAT, 'report': start_report},
+        self.__download_archive('job', 'jobs/decide_job/',
+                                {
+                                    'attempt': 0,
+                                    'job format': job.FORMAT,
+                                    'report': start_report
+                                },
                                 job.ARCHIVE)
 
     def schedule_task(self, task_desc):
@@ -148,6 +153,9 @@ class Session:
                 else:
                     break
             finally:
+                if 'attempt' in data:
+                    data['attempt'] += 1
+
                 if resp:
                     resp.close()
 
