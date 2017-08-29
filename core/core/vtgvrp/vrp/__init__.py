@@ -346,7 +346,16 @@ class RP(core.components.Component):
 
             elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
-                # TODO: otherwise just the same file as parent log is reported, looks strange.
+                # Check resource limitiations
+                if decision_results['status'] in ('OUT OF MEMORY', 'TIMEOUT'):
+                    if decision_results['status'] == 'OUT OF MEMORY':
+                        msg = "memory exhausted"
+                    else:
+                        msg = "CPU time exhausted"
+                    log_file = 'error.txt'
+                    with open(log_file, 'w', encoding='utf8') as fp:
+                        fp.write(msg)
+
                 if decision_results['status'] in ('CPU time exhausted', 'memory exhausted'):
                     log_file = 'error.txt'
                     with open(log_file, 'w', encoding='utf8') as fp:

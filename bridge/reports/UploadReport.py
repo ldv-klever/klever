@@ -630,7 +630,8 @@ class UploadReport:
     def __check_archive(self, arch):
         self.__is_not_used()
         if not zipfile.is_zipfile(arch):
-            raise ValueError("The report's archive is not a ZIP file")
+            # TODO: fix me within https://forge.ispras.ru/issues/7894.
+            logger.error('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
 
     def __is_not_used(self):
         pass
@@ -653,7 +654,10 @@ class CollapseReports:
             return
         ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
         ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
-        ReportUnknown.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportUnknown.objects.filter(
+            root=root, parent__reportcomponent__archive='', parent__reportcomponent__verification=True
+        ).update(parent=core_report)
+        ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
         ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()

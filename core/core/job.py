@@ -53,7 +53,7 @@ class Job(core.utils.CallbacksCaller):
         self.work_dir = None
         self.mqs = {}
         self.locks = {}
-        self.uploading_reports_process = None
+        self.uploading_reports_process_exitcode = None
         self.data = None
         self.data_lock = None
         self.type = type
@@ -64,12 +64,12 @@ class Job(core.utils.CallbacksCaller):
         self.component_processes = []
         self.reporting_results_process = None
 
-    def decide(self, conf, mqs, locks, uploading_reports_process):
+    def decide(self, conf, mqs, locks, uploading_reports_process_exitcode):
         self.logger.info('Decide job')
 
         self.mqs = mqs
         self.locks = locks
-        self.uploading_reports_process = uploading_reports_process
+        self.uploading_reports_process_exitcode = uploading_reports_process_exitcode
         self.data = multiprocessing.Manager().dict()
         self.data_lock = multiprocessing.Lock()
         self.extract_archive()
@@ -338,7 +338,7 @@ class Job(core.utils.CallbacksCaller):
                 sub_job.work_dir = sub_job_work_dir
                 sub_job.mqs = self.mqs
                 sub_job.locks = self.locks
-                sub_job.uploading_reports_process = self.uploading_reports_process
+                sub_job.uploading_reports_process_exitcode = self.uploading_reports_process_exitcode
                 sub_job.data = self.data
                 sub_job.data_lock = self.data_lock
                 sub_job.components_common_conf = sub_job_concrete_conf
@@ -384,7 +384,7 @@ class Job(core.utils.CallbacksCaller):
                 if not operating_components_num:
                     break
 
-                if self.uploading_reports_process.exitcode:
+                if self.uploading_reports_process_exitcode.value:
                     raise RuntimeError('Uploading reports failed')
 
                 if self.reporting_results_process and self.reporting_results_process.exitcode:
@@ -445,7 +445,7 @@ class Job(core.utils.CallbacksCaller):
                                       self.components_common_conf['main working directory'])
         except Exception as e:
             self.logger.exception('Catch exception when reporting results')
-            exit(1)
+            os._exit(1)
 
     def __match_ideal_verdict(self, verification_status):
         verification_object = verification_status['verification object']

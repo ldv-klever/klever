@@ -45,6 +45,7 @@ class Core(core.utils.CallbacksCaller):
         self.session = None
         self.mqs = {}
         self.uploading_reports_process = None
+        self.uploading_reports_process_exitcode = multiprocessing.Value('i', 0)
         self.callbacks = {}
 
     def main(self):
@@ -73,7 +74,8 @@ class Core(core.utils.CallbacksCaller):
             self.mqs['report files'] = multiprocessing.Manager().Queue()
             self.uploading_reports_process = multiprocessing.Process(target=self.send_reports)
             self.uploading_reports_process.start()
-            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()}, self.uploading_reports_process)
+            job.decide(self.conf, self.mqs, {'build': multiprocessing.Manager().Lock()},
+                       self.uploading_reports_process_exitcode)
         except Exception:
             self.process_exception()
 
@@ -261,7 +263,8 @@ class Core(core.utils.CallbacksCaller):
         except Exception as e:
             # If we can't send reports to Klever Bridge by some reason we can just silently die.
             self.logger.exception('Catch exception when sending reports to Klever Bridge')
-            exit(1)
+            self.uploading_reports_process_exitcode.value = 1
+            os._exit(1)
 
     def process_exception(self):
         self.exit_code = 1
