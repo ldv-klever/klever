@@ -102,7 +102,8 @@ class UploadReport:
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                KleverCoreStartDecision(self.job)
+                if self.attempt == 0:
+                    KleverCoreStartDecision(self.job)
                 try:
                     self.data.update({
                         'attrs': data['attrs'],
