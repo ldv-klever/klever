@@ -190,13 +190,17 @@ class RP(core.components.Component):
         task_id, opts, verification_object, rule_specification, verifier, files, shadow_src_dir, work_dir = data
         self.verification_object = verification_object
         self.rule_specification = rule_specification
-        if status == 'finished':
-            self.__process_finished_task(task_id, opts, verifier, verification_object, rule_specification, files,
-                                         shadow_src_dir, work_dir)
-        elif status == 'error':
-            self.__process_failed_task(task_id, verification_object, rule_specification)
-        else:
-            raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+
+        try:
+            if status == 'finished':
+                self.__process_finished_task(task_id, opts, verifier, verification_object, rule_specification, files,
+                                             shadow_src_dir, work_dir)
+            elif status == 'error':
+                self.__process_failed_task(task_id, verification_object, rule_specification)
+            else:
+                raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
+        finally:
+            self.session.remove_task(task_id)
 
     main = fetcher
 
