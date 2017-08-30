@@ -567,13 +567,14 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
                 raise FileExistsError(
                     'Report files archive "{0}" already exists'.format(rel_report_file_archives[archive_name]))
 
-            with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                for file in files:
-                    arcname = None
-                    if 'arcname' in report and file in report['arcname']:
-                        arcname = report['arcname'][file]
-                    zfp.write(file, arcname=arcname)
-                os.fsync(zfp.fp)
+            with open(report_files_archive, mode='w+b', buffering=0) as fp:
+                with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                    for file in files:
+                        arcname = None
+                        if 'arcname' in report and file in report['arcname']:
+                            arcname = report['arcname'][file]
+                        zfp.write(file, arcname=arcname)
+                    os.fsync(zfp.fp)
 
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(type.capitalize(),
