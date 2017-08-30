@@ -319,6 +319,7 @@ class RSB(core.components.Component):
         with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
             for file in self.files:
                 zfp.write(file)
+            os.fsync(zfp.fp)
 
     def decide_verification_task(self):
         self.logger.info('Decide verification task')
