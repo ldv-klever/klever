@@ -148,7 +148,7 @@ class Session:
                     for chunk in resp.iter_content(1024):
                         fp.write(chunk)
 
-                if zipfile.ZipFile(archive).testzip():
+                if not zipfile.is_zipfile(archive) or zipfile.ZipFile(archive).testzip():
                     self.logger.warning('Could not download ZIP archive')
                 else:
                     break
