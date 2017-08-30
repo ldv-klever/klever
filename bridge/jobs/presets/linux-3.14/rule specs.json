@@ -146,16 +146,9 @@
             "verifier profile": "reachability common Linux64",
             "verifier": {
               "name": "CPAchecker",
-              "version": "ldv-bam:25139",
-              "add options": [
-                {"-heap": "4000m"},
-                {"-setprop": "limits.time.cpu=300s"}
-              ],
-              "exclude options": []
+              "version": "ldv-bam:25139"
             },
-            "result processing": {
-              "namespace": "http://graphml.graphdrawing.org/xmlns"
-            }
+            "result processing": {}
           }
         }
       ]
