@@ -23,6 +23,7 @@ import json
 import xml.etree.ElementTree as ElementTree
 import glob
 import re
+import traceback
 
 import core.components
 import core.utils
@@ -118,7 +119,6 @@ class VRP(core.components.Component):
             if receiving:
                 if len(pending) > 0:
                     number = 0
-                    self.logger.debug("Fetching all available tasks without ")
                     try:
                         while True:
                             data = self.mqs['VTGVRP pending tasks'].get_nowait()
@@ -176,6 +176,7 @@ class RP(core.components.Component):
         self.verdict = None
         self.rule_specification = None
         self.verification_object = None
+        self.__exception = None
 
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
@@ -275,14 +276,15 @@ class RP(core.components.Component):
             self.verdict = 'safe'
         else:
             witnesses = glob.glob(os.path.join('output', 'witness.*.graphml'))
+            self.logger.info("Found {} witnesses".format(len(witnesses)))
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
             if "expect several files" in opts and opts["expect several files"] and len(witnesses) != 0:
                 for witness in witnesses:
+                    self.verdict = 'unsafe'
                     try:
-                        etrace = import_error_trace(self.logger, witness,
-                                                       opts["namespace"] if "namespace" in opts else None)
+                        etrace = import_error_trace(self.logger, witness)
 
                         result = re.search(r'witness\.(.*)\.graphml', witness)
                         trace_id = result.groups()[0]
@@ -299,26 +301,26 @@ class RP(core.components.Component):
                                           {
                                               'id': "{}/{}/verification/unsafe_{}".format(self.id, task_id, trace_id),
                                               'parent id': "{}/{}/verification".format(self.id, task_id),
-                                              'attrs': [
-                                                  {"Error trace identifier": trace_id}],
+                                              'attrs': [{"Error trace identifier": trace_id}],
                                               'error trace': error_trace_name,
                                               'files': [error_trace_name] + list(arcnames.keys()),
                                               'arcname': arcnames
                                           },
                                           self.mqs['report files'],
                                           self.conf['main working directory'])
-                        self.verdict = 'unsafe'
                     except Exception as e:
-                        if witness_processing_exception:
+                        self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                        if self.__exception:
                             try:
-                                raise e from witness_processing_exception
+                                raise e from self.__exception
                             except Exception as e:
-                                witness_processing_exception = e
+                                self.__exception = e
                         else:
-                            witness_processing_exception = e
+                            self.__exception = e
 
             if re.match('false', decision_results['status']) and \
                     ("expect several files" not in opts or not opts["expect several files"]):
+                self.verdict = 'unsafe'
                 try:
                     if len(witnesses) != 1:
                         NotImplementedError('Just one witness is supported (but "{0}" are given)'.
@@ -336,7 +338,7 @@ class RP(core.components.Component):
                                       'unsafe',
                                       {
                                           'id': "{}/{}/verification/unsafe".format(self.id, task_id),
-                                          'parent id': "{}/verification_{}".format(self.id, task_id),
+                                          'parent id': "{}/{}/verification".format(self.id, task_id),
                                           'attrs': [],
                                           'error trace': 'error trace.json',
                                           'files': ['error trace.json'] + list(arcnames.keys()),
@@ -344,9 +346,9 @@ class RP(core.components.Component):
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
-                    self.verdict = 'unsafe'
                 except Exception as e:
-                    witness_processing_exception = e
+                    self.logger.warning('Failed to process a witness:\n{}'.format(traceback.format_exc().rstrip()))
+                    self.__exception = e
 
             elif not re.match('false', decision_results['status']):
                 # Prepare file to send it with unknown report.
@@ -366,8 +368,6 @@ class RP(core.components.Component):
                         fp.write(decision_results['status'])
 
                 self.send_unknown_report(task_id, verification_object, rule_specification, log_file)
-
-        return witness_processing_exception
 
     def __process_failed_task(self, task_id, verification_object, rule_specification):
         task_error = self.session.get_task_error(task_id)
@@ -442,7 +442,7 @@ class RP(core.components.Component):
                               self.conf['main working directory'])
 
             # Submit a verdict
-            witness_processing_exception = self.process_single_verdict(
+            self.process_single_verdict(
                 task_id, decision_results, opts, verification_object, rule_specification, shadow_src_dir, log_file)
             # Submit a closing report
             core.utils.report(self.logger,
@@ -450,8 +450,9 @@ class RP(core.components.Component):
                               {'id': "{}/{}/verification".format(self.id, task_id)},
                               self.mqs['report files'],
                               self.conf['main working directory'])
-            if witness_processing_exception:
-                raise witness_processing_exception
+            if self.__exception:
+                self.logger.warning("Raising the saved exception")
+                raise self.__exception
         finally:
             # Return back anyway
             os.chdir(mydir)
