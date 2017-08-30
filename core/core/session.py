@@ -161,7 +161,7 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files={arhive_name: open(archive, 'rb')
+                resp = self.__request(path_url, data, files={arhive_name: open(archive, 'rb', buffering=0)
                                                              for arhive_name, archive in archives.items()}, stream=True)
                 return resp
             except BridgeError:

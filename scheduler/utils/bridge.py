@@ -122,7 +122,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb')}, stream=True)
+                resp = self.__request(endpoint, 'POST', data, files={'file': open(archive, 'rb', buffering=0)},
+                                      stream=True)
                 break
             except BridgeError:
                 if self.error == 'ZIP error':
