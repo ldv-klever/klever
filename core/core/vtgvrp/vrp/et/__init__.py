@@ -14,15 +14,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.vtgvrp.vrp.et.error_trace import ErrorTrace
+from core.vtgvrp.vrp.et.parser import ErrorTraceParser
 from core.vtgvrp.vrp.et.envmodel import envmodel_simplifications
 from core.vtgvrp.vrp.et.tmpvars import generic_simplifications
 
-from core.vtgvrp.vrp.et.parser import ErrorTraceParser
 
-
-def import_error_trace(logger, witness, namespace=None):
+def import_error_trace(logger, witness):
     # Parse witness
-    po = ErrorTraceParser(logger, witness, namespace)
+    po = ErrorTraceParser(logger, witness)
     trace = po.error_trace
 
     # Parse comments from sources
@@ -36,6 +36,9 @@ def import_error_trace(logger, witness, namespace=None):
 
     # Make more difficult transformations
     envmodel_simplifications(logger, trace)
+
+    # Do final checks
+    trace.final_checks()
 
     return trace.serialize()
 

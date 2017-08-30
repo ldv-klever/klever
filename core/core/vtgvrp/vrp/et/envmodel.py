@@ -22,7 +22,15 @@ def envmodel_simplifications(logger, error_trace):
     data, main_data, main = _collect_action_diaposons(error_trace)
     _set_main(main_data, main, error_trace)
     _set_thread(data, error_trace)
+
+    # This is quite tricky code and it is ensure that before deleting any edges the trace was correct
+    error_trace.final_checks()
     _remove_control_func_aux_code(data, error_trace)
+    try:
+        error_trace.final_checks()
+    except ValueError as e:
+        raise RuntimeError("Edges from error trace has been deleted incorrectly and it cannot be visualized: {}".
+                           format(e))
     _wrap_actions(data, error_trace)
 
 
@@ -53,7 +61,6 @@ def _collect_action_diaposons(error_trace):
                     main_data = data[file][error_trace.emg_comments[file][line]['function']]
                     main = error_trace.emg_comments[file][line]['function']
 
-
         # Set control function end point
         for line in (l for l in error_trace.emg_comments[file]
                      if error_trace.emg_comments[file][l]['type'] == 'CONTROL_FUNCTION_END'):
@@ -80,12 +87,29 @@ def _collect_action_diaposons(error_trace):
     return data, main_data, main
 
 
-def _inside_control_function(cf, file, line):
+def _inside_this_control_function(cf, file, line):
     """Determine action to which string belong."""
     if cf['file'] == file and cf['begin'] <= line <= cf['end']:
         return True
     else:
         return False
+
+
+def _inside_control_function(stack, file, line, thread=None):
+    """Determine action to which string belong."""
+    # Keep in mind that threads may interlieve
+    suits = []
+    for index in reversed(range(0, len(stack))):
+        if _inside_this_control_function(stack[index]['cf'], file, line):
+            suits.append(index)
+
+    if thread:
+        suits = [i for i in suits if stack[i]['thread'] == thread]
+
+    if len(suits) > 0:
+        return stack[suits[0]]
+    else:
+        return None
 
 
 def _inside_action(cf, line):
@@ -108,6 +132,8 @@ def _match_control_function(error_trace, edge, stack, data):
                 'enter id': edge['enter'],
                 'in aux code': False
             }
+            if 'thread' in edge:
+                cf_data['thread'] = edge['thread']
             stack.append(cf_data)
             return cf_data
 
@@ -117,10 +143,11 @@ def _match_control_function(error_trace, edge, stack, data):
 def _match_exit_function(edge, stack):
     """Exit function."""
     if len(stack) > 0:
-        if stack[-1]['enter id'] == edge['return']:
-            # Exit control function
-            stack.pop()
-            return True
+        for index in reversed(range(0, len(stack))):
+            if stack[index]['enter id'] == edge['return']:
+                # Exit control function
+                stack.pop(index)
+                return True
 
     return False
 
@@ -130,14 +157,17 @@ def _set_main(data, main, error_trace):
         return
 
     for edge in error_trace.trace_iterator():
-        if _inside_control_function(data, edge['file'], edge['start line']):
+        if _inside_this_control_function(data, edge['file'], edge['start line']) or 'enter' in edge:
             # Got it!
+            if edge["file"] != data['file']:
+                edge["file"] = data['file']
             identifier = error_trace.resolve_function_id(main)
             new_edge = error_trace.insert_edge_and_target_node(edge, after=False)
             new_edge["enter"] = identifier
             new_edge["file"] = data['file']
             new_edge["line"] = data['begin'] - 1
             new_edge["source"] = "Begin program execution"
+
             return
 
     raise RuntimeError("Cannot determine main function in the witness")
@@ -152,24 +182,40 @@ def _set_thread(data, error_trace):
             return 0
 
     cf_stack = list()
-    current_thread = update_thread(cf_stack)
+
+    already_set = False
     for edge in error_trace.trace_iterator():
-        # Dict changes its size, so keep it in mind
-        m = None
-        if 'enter' in edge:
-            m = _match_control_function(error_trace, edge, cf_stack, data)
-            if m:
-                # Update current thread if a transition has happen
-                current_thread = update_thread(cf_stack)
-            edge['thread'] = current_thread
-        if 'return' in edge:
-            m = _match_exit_function(edge, cf_stack)
-            edge['thread'] = current_thread
-            if m:
-                # Update current thread if a transition has happen
-                current_thread = update_thread(cf_stack)
-        if not m:
-            edge['thread'] = current_thread
+        if "thread" in edge:
+            already_set = True
+            break
+
+    if not already_set:
+        current_thread = update_thread(cf_stack)
+        for edge in error_trace.trace_iterator():
+            # Dict changes its size, so keep it in mind
+            m = None
+            if 'enter' in edge:
+                m = _match_control_function(error_trace, edge, cf_stack, data)
+                if m:
+                    # Update current thread if a transition has happen
+                    current_thread = update_thread(cf_stack)
+                edge['thread'] = current_thread
+            if 'return' in edge:
+                m = _match_exit_function(edge, cf_stack)
+                edge['thread'] = current_thread
+                if m:
+                    # Update current thread if a transition has happen
+                    current_thread = update_thread(cf_stack)
+            if 'thread' not in edge:
+                edge['thread'] = current_thread
+    else:
+        # Shift all existing thread identifiers to keep 0 thread identifier for global initialization edges
+        scope = False
+        for edge in error_trace.trace_iterator():
+            if not scope and 'enter' in edge:
+                scope = True
+            if scope:
+                edge['thread'] = str(int(edge['thread']) + 1)
 
     return
 
@@ -183,54 +229,58 @@ def _remove_control_func_aux_code(data, error_trace):
         # Stepping into a control function?
         match = _match_control_function(error_trace, e, stack, data)
         if match:
-            # TODO do we really need this? Environment model actions are described by means of attribute action now. Moreover I don't think that corresponding comments even should become actions since they are too low level. It would be better to print them as usual comments.
             # Add note on each control function entry
-            #e['note'] = match['cf']['comment']
+            e['entry_point'] = match['cf']['comment']
             return
 
         if len(stack) != 0:
             # todo: here we need actually should be sure that we are still withtin an action but it is hard to check
-            if _inside_control_function(stack[-1]['cf'], get_original_file(e), get_original_start_line(e)):
-                act = _inside_action(stack[-1]['cf'], get_original_start_line(e))
+            cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
+            if cf:
+                act = _inside_action(cf['cf'], get_original_start_line(e))
                 if not act:
-                    cf_stack[-1]['action'] = None
-                    stack[-1]['in aux code'] = True
+                    cf['action'] = None
+                    cf['in aux code'] = True
                     error_trace.remove_edge_and_target_node(e)
                 else:
-                    cf_stack[-1]['action'] = act
-                    stack[-1]['in aux code'] = False
+                    cf['action'] = act
+                    cf['in aux code'] = False
             else:
-                if stack[-1]['in aux code']:
+                cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
+                if len(cfs) > 0:
                     error_trace.remove_edge_and_target_node(e)
 
     def if_simple_state(e, stack):
         """Simple e."""
-        if len(stack) > 0 and _inside_control_function(stack[-1]['cf'], get_original_file(e),
-                                                       get_original_start_line(e)):
-            stack[-1]['in aux code'] = False
-            act = _inside_action(stack[-1]['cf'], get_original_start_line(e))
-            if (act and cf_stack[-1]['action'] and cf_stack[-1]['action'] != act) or \
-                    (act and not cf_stack[-1]['action']):
+        cf = _inside_control_function(stack, get_original_file(e), get_original_start_line(e), e['thread'])
+        if cf:
+            cf['in aux code'] = False
+            act = _inside_action(cf['cf'], get_original_start_line(e))
+            if (act and cf['action'] and cf['action'] != act) or \
+                    (act and not cf['action']):
                 # First action or another action
-                cf_stack[-1]['action'] = act
+                cf['action'] = act
             elif not act:
                 # Not in action
-                cf_stack[-1]['action'] = None
+                cf['action'] = None
                 error_trace.remove_edge_and_target_node(e)
-        elif len(stack) > 0 and stack[-1]['in aux code']:
-            error_trace.remove_edge_and_target_node(e)
+        else:
+            # Check whether there are control functions from this thread which have stack stopped in aux code
+            cfs = [cf for cf in stack if cf['thread'] == e['thread'] and cf['in aux code']]
+            if len(cfs) > 0:
+                error_trace.remove_edge_and_target_node(e)
 
         return
 
     for edge in error_trace.trace_iterator():
         # Dict changes its size, so keep it in mind
-        if 'enter' in edge:
-            if_enter_function(edge, cf_stack, data)
-        elif 'return' in edge:
+        if 'return' in edge:
             m = _match_exit_function(edge, cf_stack)
             if not m and len(cf_stack) > 0:
                 if_simple_state(edge, cf_stack)
-        else:
+        if 'enter' in edge:
+            if_enter_function(edge, cf_stack, data)
+        if 'enter' not in edge and 'return' not in edge:
             if_simple_state(edge, cf_stack)
 
 
@@ -238,8 +288,10 @@ def _wrap_actions(data, error_trace):
     cf_stack = list()
     for edge in error_trace.trace_iterator():
         if len(cf_stack) > 0:
-            if _inside_control_function(cf_stack[-1]['cf'], get_original_file(edge), get_original_start_line(edge)):
-                act = _inside_action(cf_stack[-1]['cf'], get_original_start_line(edge))
+            cf = _inside_control_function(cf_stack, get_original_file(edge), get_original_start_line(edge),
+                                          edge['thread'])
+            if cf:
+                act = _inside_action(cf['cf'], get_original_start_line(edge))
                 if act:
                     if 'callback' in act and act['callback']:
                         callback_flag = True
@@ -248,5 +300,5 @@ def _wrap_actions(data, error_trace):
                     edge['action'] = error_trace.add_action(act['comment'], callback_flag)
         if 'enter' in edge:
             _match_control_function(error_trace, edge, cf_stack, data)
-        elif len(cf_stack) > 0 and 'return' in edge and edge['return'] == cf_stack[-1]['enter id']:
-            cf_stack.pop()
+        elif len(cf_stack) > 0 and 'return' in edge:
+            _match_exit_function(edge, cf_stack)
