@@ -10,13 +10,13 @@
   "rule specifications DB": "rule specs.json",
   "specifications set": "Linux 3.14 (base)",
   "rule specifications": ["linux:alloc:spinlock", "linux:kernel:locking:mutex", "linux:kernel:module"],
-  "VTG strategy": {
-    "name": "rule specification bugs",
-    "verifier": {
-      "name": "CPAchecker",
-      "version": "ldv-bam:25523"
+  "VTGVRP": {
+    "VTG": {
+      "max solving tasks": 100
     },
-    "merge source files": true,
-    "collect coverage": "none"
+    "VRP": {
+      "expect coverage": true,
+      "coverage completeness": "full"
+    }
   }
 }
