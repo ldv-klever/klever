@@ -1,7 +1,7 @@
 {
   "templates": {
     "CPAchecker common": {
-      "description": "Common options for CPAchecker tool",
+      "description": "Common options for the CPAchecker tool",
       "add options": [
         {"-setprop": "parser.readLineDirectives=true"},
         {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
@@ -9,11 +9,11 @@
       ]
     },
     "Ultimate common": {
-      "description": "Common options for CPAchecker tool",
+      "description": "Common options for the UltimateAutimizer tool",
       "add options": [
-        {"-setprop": "parser.readLineDirectives=true"},
-        {"-setprop": "counterexample.export.graphml=witness.%d.graphml"},
-        {"-setprop": "counterexample.export.compressWitness=false"}
+        {"--witness-name": "witness.1.graphml"},
+        {"--witness-dir": "./output/"},
+        {"--architecture": "64bit"}
       ]
     },
     "CPAchecker BAM reachability": {
@@ -41,7 +41,7 @@
         }
       },
       "UltimateAutomizer": {
-        "some version": {
+        "v0.1.20": {
           "inherit": "Ultimate common"
         }
       }
