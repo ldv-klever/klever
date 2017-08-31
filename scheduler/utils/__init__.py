@@ -438,12 +438,14 @@ def submit_task_results(logger, server, identifier, decision_results, solution_p
 
     results_archive = os.path.join(solution_path, 'decision result files.zip')
     logger.debug("Save decision results and files to the archive: {}".format(os.path.abspath(results_archive)))
-    with zipfile.ZipFile(results_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-        zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
-        for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
-            for filename in filenames:
-                zfp.write(os.path.join(dirpath, filename),
-                          os.path.join(os.path.relpath(dirpath, solution_path), filename))
+    with open(results_archive, mode='w+b', buffering=0) as fp:
+        with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+            zfp.write(os.path.join(solution_path, "decision results.json"), "decision results.json")
+            for dirpath, dirnames, filenames in os.walk(os.path.join(solution_path, "output")):
+                for filename in filenames:
+                    zfp.write(os.path.join(dirpath, filename),
+                              os.path.join(os.path.relpath(dirpath, solution_path), filename))
+            os.fsync(zfp.fp)
 
     server.submit_solution(identifier, decision_results, results_archive)
 
