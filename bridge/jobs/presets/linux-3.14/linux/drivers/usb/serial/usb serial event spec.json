@@ -69,7 +69,7 @@
     },
     "environment processes": {
       "usb_serial_scenario": {
-        "comment": "USB serial callback invocation scenario.",
+        "comment": "Invoke USB serial callbacks.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -388,7 +388,7 @@
     },
     "environment processes": {
       "usb_serial_scenario": {
-        "comment": "USB serial callback invocation scenario.",
+        "comment": "Invoke USB serial callbacks.",
         "labels": {
           "usb_device_id": {
             "resource": true,
@@ -633,7 +633,7 @@
     "kernel model": {},
     "environment processes": {
       "usb_serial_scenario": {
-        "comment": "USB serial callback invocation scenario.",
+        "comment": "Invoke USB serial callbacks",
         "labels": {
           "usb_device_id": {
             "resource": true,

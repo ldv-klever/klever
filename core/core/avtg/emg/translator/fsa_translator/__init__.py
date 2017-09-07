@@ -907,7 +907,11 @@ class FSATranslator(metaclass=abc.ABCMeta):
                 cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
             else:
                 name = 'ldv_{}_{}'.format(automaton.process.name, automaton.identifier)
-                cf = FunctionDefinition(name, self._cmodel.entry_file, 'void f(void *data)', False)
+                if not get_necessary_conf_property(self._conf, "direct control functions calls"):
+                    declaration = 'void *f(void *data)'
+                else:
+                    declaration = 'void f(void *data)'
+                cf = FunctionDefinition(name, self._cmodel.entry_file, declaration, False)
 
             self._control_functions[automaton.identifier] = cf
 

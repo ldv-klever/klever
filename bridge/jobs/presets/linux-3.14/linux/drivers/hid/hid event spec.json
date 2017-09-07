@@ -68,6 +68,7 @@
     },
     "environment processes": {
       "hid_scenario": {
+        "comment": "Invoke hid callbacks.",
         "labels": {
           "hid_device": {
             "container": true,

@@ -17,6 +17,7 @@
 
 import copy
 from operator import attrgetter
+from core.avtg.emg.common.interface import Container, Callback
 from core.avtg.emg.common.process import Subprocess, Receive, Dispatch
 from core.avtg.emg.translator.code import Variable
 
@@ -401,6 +402,47 @@ class Automaton:
         # Generate FSA itself
         self.fsa = FSA(self.process)
         self.variables()
+
+    @property
+    def model_comment(self):
+        # First get list of container implementations
+        expressions = []
+        for collection in self.process.accesses().values():
+            for acc in collection:
+                if acc.interface and isinstance(acc.interface, Container) and \
+                        acc.expression in self.process.allowed_implementations and \
+                        self.process.allowed_implementations[acc.expression] and \
+                        acc.interface.identifier in self.process.allowed_implementations[acc.expression] and \
+                        self.process.allowed_implementations[acc.expression][acc.interface.identifier] and \
+                        self.process.allowed_implementations[acc.expression][acc.interface.identifier].value:
+                    expressions.append(self.process.allowed_implementations[acc.expression]
+                                       [acc.interface.identifier].value)
+
+                if len(expressions) == 3:
+                    break
+
+        # If there is no container implementations find callbacks
+        if len(expressions) == 0:
+            for collection in self.process.accesses().values():
+                for acc in collection:
+                    if acc.interface and isinstance(acc.interface, Callback) and \
+                            acc.expression in self.process.allowed_implementations and \
+                            self.process.allowed_implementations[acc.expression] and \
+                            acc.interface.identifier in self.process.allowed_implementations[acc.expression] and \
+                            self.process.allowed_implementations[acc.expression][acc.interface.identifier] and \
+                            self.process.allowed_implementations[acc.expression][acc.interface.identifier].value:
+                        expressions.append(self.process.allowed_implementations[acc.expression]
+                                           [acc.interface.identifier].value)
+
+                    if len(expressions) == 3:
+                        break
+
+        # Generate a comment as a concatenation of an original comment and a suffix
+        if len(expressions) > 0:
+            comment = "{} (Relevant to {})".format(self.process.comment, ' '.join(("{!r}".format(e) for e in expressions)))
+        else:
+            comment = self.process.comment
+        return comment
 
     @property
     def file(self):

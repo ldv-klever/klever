@@ -73,7 +73,8 @@ class Run:
         }
 
         # Check optional limits
-        if "number of CPU cores" in description["resource limits"]:
+        if "number of CPU cores" in description["resource limits"] and \
+                description["resource limits"]["number of CPU cores"] != 0:
             self.limits["corelimit"] = int(description["resource limits"]["number of CPU cores"])
         if "CPU model" in description["resource limits"]:
             self.cpu_model = description["resource limits"]["CPU model"]
@@ -432,7 +433,7 @@ class Scheduler(schedulers.SchedulerExchange):
                         description["comp"]["command"] = value
                     elif key == "exitsignal":
                         description["signal num"] = int(value)
-                    elif key == "returnvalue":
+                    elif key == "exitcode":
                         description["return value"] = int(value)
                     elif key == "walltime":
                         sec = number.match(value).group(1)
