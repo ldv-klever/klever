@@ -67,34 +67,9 @@ class CompareTrace:
         if not (isinstance(self.result, float) and 0 <= self.result <= 1):
             raise BridgeException("Compare function returned incorrect result: %s" % self.result)
 
-    def default_compare(self):
-        """
-Default comparison function.
-Always returns 1.
-        """
-        return 1
-
-    def callstack_compare(self):
-        """
-If call stacks are identical returns 1 else returns 0.
-        """
-
-        err_trace_converted = self.__get_converted_trace('call_stack')
-        pattern = self.pattern_error_trace
-        return int(err_trace_converted == pattern)
-
-    def callstack_tree_compare(self):
-        """
-If call stacks trees are identical returns 1 else returns 0.
-        """
-
-        err_trace_converted = self.__get_converted_trace('call_stack_tree')
-        pattern = self.pattern_error_trace
-        return int(err_trace_converted == pattern)
-
     def call_forests_compare(self):
         """
-Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
+Jaccard index of "call_forests" convertion.
         """
         converted_et = self.__get_converted_trace('call_forests')
         pattern = self.pattern_error_trace
@@ -102,33 +77,11 @@ Returns the number of similar forests divided by the maximum number of forests i
             converted_et = list(json.dumps(x) for x in converted_et)
         if any(not isinstance(x, str) for x in pattern):
             pattern = list(json.dumps(x) for x in pattern)
-        err_trace_converted = set(converted_et)
-        pattern = set(pattern)
-        max_len = max(len(err_trace_converted), len(pattern))
-        if max_len == 0:
-            return 1
-        return len(err_trace_converted & pattern) / max_len
-
-    def forests_callbacks_compare(self):
-        """
-Returns the number of similar forests with callbacks calls divided by the maximum number of forests in 2 error traces.
-        """
-        converted_et = self.__get_converted_trace('forests_callbacks')
-        pattern = self.pattern_error_trace
-        if any(not isinstance(x, str) for x in converted_et):
-            converted_et = list(json.dumps(x) for x in converted_et)
-        if any(not isinstance(x, str) for x in pattern):
-            pattern = list(json.dumps(x) for x in pattern)
-        err_trace_converted = set(converted_et)
-        pattern = set(pattern)
-        max_len = max(len(err_trace_converted), len(pattern))
-        if max_len == 0:
-            return 1
-        return len(err_trace_converted & pattern) / max_len
+        return self.__jaccard(set(converted_et), set(pattern))
 
     def all_forests_compare(self):
         """
-Returns the number of similar forests divided by the maximum number of forests in 2 error traces.
+Jaccard index of "all_forests" convertion.
         """
         converted_et = self.__get_converted_trace('all_forests')
         pattern = self.pattern_error_trace
@@ -136,38 +89,20 @@ Returns the number of similar forests divided by the maximum number of forests i
             converted_et = list(json.dumps(x) for x in converted_et)
         if any(not isinstance(x, str) for x in pattern):
             pattern = list(json.dumps(x) for x in pattern)
-        err_trace_converted = set(converted_et)
-        pattern = set(pattern)
-        max_len = max(len(err_trace_converted), len(pattern))
-        if max_len == 0:
+        return self.__jaccard(set(converted_et), set(pattern))
+
+    def __jaccard(self, set1, set2):
+        self.__is_not_used()
+        similar = len(set1 & set2)
+        res = len(set1) + len(set2) - similar
+        if res == 0:
             return 1
-        return len(err_trace_converted & pattern) / max_len
-
-    def callstack_all_warnings_compare(self):
-        """
-Returns the number of similar call stacks divided by total number of call stacks.
-        """
-
-        err_trace_converted = self.__get_converted_trace('call_stack_all_warnings')
-        pattern = self.pattern_error_trace
-
-        converted_set = set(json.dumps(cs) for cs in err_trace_converted)
-        pattern_set = set(json.dumps(cs) for cs in pattern)
-        if len(err_trace_converted) > 0:
-            return len(converted_set & pattern_set)/len(err_trace_converted)
-        else:
-            return 0
-
-    def calltree_warnings_compare(self):
-        """
-If call stacks trees are identical returns 1 else returns 0.
-        """
-
-        err_trace_converted = self.__get_converted_trace('calltree_all_warnings')
-        pattern = self.pattern_error_trace
-        return int(err_trace_converted == pattern)
+        return similar / res
 
     def __get_converted_trace(self, conversion_function_name):
         return GetConvertedErrorTrace(
             MarkUnsafeConvert.objects.get(name=conversion_function_name), self.unsafe
         ).parsed_trace()
+
+    def __is_not_used(self):
+        pass
