@@ -118,6 +118,7 @@
     },
     "environment processes": {
       "platform_instance": {
+        "comment": "Invoke platform callbacks.",
         "labels": {
           "container": {
             "container": true,
@@ -348,6 +349,7 @@
     },
     "environment processes": {
       "platform_instance": {
+        "comment": "Invoke platfrom callbacks.",
         "labels": {
           "container": {
             "container": true,

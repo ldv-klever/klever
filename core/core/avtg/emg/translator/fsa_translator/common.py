@@ -53,12 +53,12 @@ def action_model_comment(action, text, begin=None, callback=False):
     return model_comment(type_comment, text, data)
 
 
-def control_function_comment_begin(function_name, name, identifier=None):
+def control_function_comment_begin(function_name, comment, identifier=None):
     data = {'function': function_name}
     if identifier:
         data['thread'] = identifier
     return model_comment('CONTROL_FUNCTION_BEGIN',
-                         "Control function {!r}".format(name),
+                         comment,
                          data)
 
 

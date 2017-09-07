@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+from core.avtg.emg.common import get_conf_property
 from operator import attrgetter
 from core.avtg.emg.common.process import Subprocess
 from core.avtg.emg.translator.fsa_translator.common import control_function_comment_begin, control_function_comment_end,\
@@ -24,7 +25,11 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
     v_code, f_code = list(), list()
 
     # Determine returning expression for reuse
-    ret_expression = 'return;'
+    if not get_conf_property(conf, 'direct control functions calls') and not model:
+        ret_expression = 'return 0;'
+    else:
+        ret_expression = 'return;'
+
     if model:
         kfunction_obj = analysis.get_kernel_function(automaton.process.name)
         if kfunction_obj.declaration.return_value and kfunction_obj.declaration.return_value.identifier != 'void':
@@ -65,10 +70,10 @@ def label_based_function(conf, analysis, automaton, cf, model=True):
              [model_comment('CONTROL_FUNCTION_INIT_END', 'Declare auxiliary variables.')]
     if model:
         name = automaton.process.name
-        v_code.insert(0, control_function_comment_begin(cf.name, name))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment))
     else:
         name = '{}({})'.format(automaton.process.name, automaton.process.category)
-        v_code.insert(0, control_function_comment_begin(cf.name, name, automaton.identifier))
+        v_code.insert(0, control_function_comment_begin(cf.name, automaton.model_comment, automaton.identifier))
     f_code.append(control_function_comment_end(cf.name, name))
     cf.body.extend(v_code + f_code)
 

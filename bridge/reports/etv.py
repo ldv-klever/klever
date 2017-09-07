@@ -231,7 +231,9 @@ class ParseErrorTrace:
         line_data.update(self.__get_comment(edge.get('note'), edge.get('warn')))
 
         if 'enter' in edge:
-            line_data.update(self.__enter_function(edge['enter'], line_data['code']))
+            line_data.update(self.__enter_function(
+                edge['enter'], code=line_data['code'], comment=edge.get('entry_point')
+            ))
             if any(x in edge for x in ['note', 'warn']):
                 self.scope.hide_current_scope()
             if 'return' in edge:
@@ -274,11 +276,16 @@ class ParseErrorTrace:
         self.lines.append(enter_action_data)
         return {'offset': self.scope.offset(), 'scope': self.scope.current()}
 
-    def __enter_function(self, func_id, code=None):
+    def __enter_function(self, func_id, code=None, comment=None):
         self.scope.add(func_id, self.thread_id, (code is None))
         enter_data = {'type': 'enter', 'hide_id': self.scope.current()}
         if code is not None:
-            enter_data['func'] = self.functions[func_id]
+            if comment is None:
+                enter_data['comment'] = self.functions[func_id]
+                enter_data['comment_class'] = 'ETV_Fname'
+            else:
+                enter_data['comment'] = comment
+                enter_data['comment_class'] = 'ETV_Fcomment'
             enter_data['code'] = re.sub(
                 '(^|\W)' + self.functions[func_id] + '(\W|$)',
                 '\g<1><span class="ETV_Fname">' + self.functions[func_id] + '</span>\g<2>',
@@ -296,13 +303,18 @@ class ParseErrorTrace:
             data['code'] = '<span class="ETV_DownHideLink"><i class="ui mini icon violet caret up link"></i></span>'
         return data
 
-    def __return(self, func_id=None):
+    def __return(self, func_id=None, if_possible=False):
         if self.scope.current_action():
             # Return from action first
             self.lines.append(self.__triangle_line(self.scope.remove()))
         if not self.scope.is_return_correct(func_id):
+            if if_possible:
+                return
+            func_name = 'NONE'
+            if func_id is not None:
+                func_name = self.functions[func_id]
             raise ValueError('Return from function "%s" without entering it (current scope is %s)' % (
-                self.functions[func_id], self.scope.current()
+                func_name, self.scope.current()
             ))
         return_scope = self.scope.remove()
         self.lines.append(self.__triangle_line(return_scope))
@@ -312,7 +324,7 @@ class ParseErrorTrace:
 
     def __return_all(self):
         while self.scope.can_return():
-            self.__return()
+            self.__return(if_possible=True)
 
     def __get_comment(self, note, warn):
         new_data = {}
@@ -387,8 +399,10 @@ class ParseErrorTrace:
                     self.lines[i]['type'] = 'eye-control'
                 elif self.lines[i]['type'] == 'enter' and not self.scope.is_shown(self.lines[i]['hide_id']):
                     self.lines[i]['type'] = 'eye-control'
-                    if 'func' in self.lines[i]:
-                        del self.lines[i]['func']
+                    if 'comment' in self.lines[i]:
+                        del self.lines[i]['comment']
+                    if 'comment_class' in self.lines[i]:
+                        del self.lines[i]['comment_class']
             a = 'warning' in self.lines[i]
             b = 'note' in self.lines[i]
             c = not self.scope.is_shown(self.lines[i]['scope'])
@@ -835,7 +849,7 @@ class Forest:
 class ErrorTraceForests:
     def __init__(self, error_trace, with_callbacks=False):
         self.data = json.loads(error_trace)
-        self.with_callbcaks = with_callbacks
+        self.with_callbacks = with_callbacks
         self.trace = self.__get_forests(get_error_trace_nodes(self.data))
 
     def __get_forests(self, edge_trace):
@@ -873,7 +887,7 @@ class ErrorTraceForests:
             if collect_names:
                 is_model = 'note' in edge_data or 'warn' in edge_data
                 if 'enter' in edge_data:
-                    if self.with_callbcaks and 'action' in edge_data \
+                    if self.with_callbacks and 'action' in edge_data \
                             and edge_data['action'] in self.data['callback actions']:
                         is_model = True
                     forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
@@ -911,16 +925,24 @@ def etv_callstack(unsafe_id=None, file_name='test.txt'):
     ind = 0
     for x in data['edges']:
         if 'enter' in x:
-            trace += '%s%s {\n' % (' ' * ind, data['funcs'][x['enter']])
+            if 'action' in x:
+                trace += '%s%s(%s)[action_%s] {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'], x['action'])
+            else:
+                trace += '%s%s(%s) {\n' % (' ' * ind, data['funcs'][x['enter']], x['enter'])
             ind += 2
             if 'return' in x:
                 double_returns.add(x['enter'])
         elif 'return' in x:
             ind -= 2
-            trace += '%s}\n' % (' ' * ind)
+            if 'action' in x:
+                trace += '%s}(%s)[action_%s]\n' % (' ' * ind, x['return'], x['action'])
+            else:
+                trace += '%s}(%s)\n' % (' ' * ind, x['return'])
             if x['return'] in double_returns:
                 ind -= 2
-                trace += '%s}\n' % (' ' * ind)
+                trace += '%s}(DOUBLE)\n' % (' ' * ind)
                 double_returns.remove(x['return'])
+        elif 'action' in x:
+            trace += '%sACTION(%s)\n' % (' ' * ind, x['action'])
     with open(file_name, mode='w', encoding='utf8') as fp:
         fp.write(trace)

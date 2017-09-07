@@ -111,6 +111,8 @@ class ErrorTrace:
 
     def add_file(self, file_name):
         if file_name not in self._files:
+            if not os.path.isfile(file_name):
+                raise FileNotFoundError("There is no file {!r}".format(file_name))
             self._files.append(file_name)
             return self.resolve_file_id(file_name)
         else:
@@ -212,6 +214,10 @@ class ErrorTrace:
             new_node['out'] = [edge]
             new_node['in'] = [new_edge]
             new_edge['target node'] = new_node
+
+        if 'thread' in new_edge['target node']['out'][0]:
+            # Keep already set thread identifiers
+            new_edge['thread'] = new_edge['target node']['out'][0]['thread']
 
         return new_edge
 
@@ -388,6 +394,46 @@ class ErrorTrace:
                                 self._asserts[file_id][line + 1] = comment
                                 self._logger.debug("Get assertiom '{0}' for statement from '{1}:{2}'".
                                                    format(comment, file, line + 1))
+
+        return
+
+    def sanity_checks(self):
+        # Check:
+        # * branching
+        # * todo: unexpected function transitions with threads
+        # * todo: unexpected file changes
+        self._logger.info("Perform sanity checks of the error trace")
+        call_stack = []
+        for edge in self.trace_iterator():
+            if len(edge['target node']['out']) > 1:
+                raise ValueError('Witness contains branching which is not supported')
+
+    def final_checks(self):
+        # Iterate over the trace
+        threads = {}
+        last_thread = None
+        for edge in self.trace_iterator():
+            if 'thread' in edge and (not last_thread or last_thread != edge['thread']):
+                if edge['thread'] not in threads:
+                    threads[edge['thread']] = []
+                data = threads[edge['thread']]
+
+            if 'return' in edge:
+                if len(data) == 0:
+                    raise ValueError('Unexpected return from function {!r} in thread {}'.
+                                     format(self.resolve_function(edge['return']), edge['thread']))
+                elif edge['return'] != data[-1]:
+                    raise ValueError('Unexpected return from function {!r} in thread {}, expected last entered '
+                                     'function {}'.
+                                     format(self.resolve_function(edge['return']), edge['thread'],
+                                            self.resolve_function(data[-1])))
+                else:
+                    data.pop(-1)
+            if 'enter' in edge:
+                data.append(edge['enter'])
+
+            last_thread = edge['thread']
+
 
     def _mark_witness(self):
         self._logger.info('Mark witness with model comments')

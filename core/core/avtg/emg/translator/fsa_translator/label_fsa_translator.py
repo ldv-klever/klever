@@ -32,24 +32,40 @@ class LabelTranslator(FSATranslator):
         return list()
 
     def _join_cf_code(self, file, automaton):
-        sv = self.__thread_variable(automaton, get_necessary_conf_property(self._conf, 'instance modifier'))
-        self._cmodel.add_global_variable(sv, file, extern=True)
-        if get_necessary_conf_property(self._conf, 'instance modifier') > 1:
-            return 'ldv_thread_join_N({}, {});'.format('& ' + sv.name, self._control_function(automaton).name)
+        if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism') and \
+                get_conf_property(self._conf, 'pure pthread interface'):
+            for var in self.__thread_variable(automaton, 'pair'):
+                self._cmodel.add_global_variable(var, file, extern=True)
+            return 'pthread_join({}, 0);'
         else:
-            return 'ldv_thread_join({}, {});'.format('& ' + sv.name, self._control_function(automaton).name)
+            if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
+                sv = self.__thread_variable(automaton, 'array')
+                self._cmodel.add_global_variable(sv, file, extern=True)
+                return 'pthread_join_N({}, 0);'.format(sv.name)
+            else:
+                sv = self.__thread_variable(automaton, 'single')
+                self._cmodel.add_global_variable(sv, file, extern=True)
+                return 'pthread_join({}, 0);'.format(sv.name)
 
     def _call_cf_code(self, file, automaton, parameter='0'):
-        sv = self.__thread_variable(automaton, get_necessary_conf_property(self._conf, 'instance modifier'))
-        self._cmodel.add_global_variable(sv, file, extern=True)
-        if get_necessary_conf_property(self._conf, 'instance modifier') > 1:
-            return 'ldv_thread_create_N({}, {}, {});'.format('& ' + sv.name,
-                                                             self._control_function(automaton).name,
-                                                             parameter)
+        if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism') and \
+                get_conf_property(self._conf, 'pure pthread interface'):
+            for var in self.__thread_variable(automaton, 'pair'):
+                self._cmodel.add_global_variable(var, file, extern=True)
+            # Leave the first parameter to fill twise later
+            return 'pthread_create({}, 0, {}, {});'.\
+                format('{}', self._control_function(automaton).name, parameter)
         else:
-            return 'ldv_thread_create({}, {}, {});'.format('& ' + sv.name,
-                                                           self._control_function(automaton).name,
-                                                           parameter)
+            if automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
+                sv = self.__thread_variable(automaton, 'array')
+                self._cmodel.add_global_variable(sv, file, extern=True)
+                return 'pthread_create_N({}, 0, {}, {});'.\
+                    format(sv.name,self._control_function(automaton).name, parameter)
+            else:
+                sv = self.__thread_variable(automaton, 'single')
+                self._cmodel.add_global_variable(sv, file, extern=True)
+                return 'pthread_create({}, 0, {}, {});'.\
+                    format('& ' + sv.name, self._control_function(automaton).name, parameter)
 
     def _dispatch_blocks(self, state, file, automaton, function_parameters, param_interfaces, automata_peers,
                          replicative):
@@ -70,14 +86,22 @@ class LabelTranslator(FSATranslator):
                                                         decl.identifier))
                     for index in range(len(function_parameters)):
                         block.append('{}->arg{} = arg{};'.format(vf_param_var.name, index, index))
-                    call = self._call_cf(file,
-                                         automata_peers[name]['automaton'], cf_param)
                     if r_state.action.replicative:
+                        call = self._call_cf(file, automata_peers[name]['automaton'], cf_param)
                         if get_conf_property(self._conf, 'direct control functions calls'):
                             block.append(call)
                         else:
-                            block.append('ret = {}'.format(call))
-                            block.append('ldv_assume(ret == 0);')
+                            if automata_peers[name]['automaton'].process.self_parallelism and \
+                                    get_necessary_conf_property(self._conf, 'self parallelism') and \
+                                    get_conf_property(self._conf, 'pure pthread interface'):
+                                thread_vars = self.__thread_variable(automata_peers[name]['automaton'], type='pair')
+                                for v in thread_vars:
+                                    # Expect that for this particular case the first argument is unset
+                                    block.extend(['ret = {}'.format(call.format("& " + v.name)),
+                                                  'ldv_assume(ret == 0);'])
+                            else:
+                                block.extend(['ret = {}'.format(call),
+                                              'ldv_assume(ret == 0);'])
                         blocks.append(block)
                         break
                     else:
@@ -93,8 +117,17 @@ class LabelTranslator(FSATranslator):
                 if get_conf_property(self._conf, 'direct control functions calls'):
                     block.append(call)
                 else:
-                    block.extend(['ret = {}'.format(call),
-                                  'ldv_assume(ret == 0);'])
+                    if automata_peers[name]['automaton'].process.self_parallelism and \
+                            get_necessary_conf_property(self._conf, 'self parallelism') and \
+                            get_conf_property(self._conf, 'pure pthread interface'):
+                        thread_vars = self.__thread_variable(automata_peers[name]['automaton'], type='pair')
+                        for v in thread_vars:
+                            # Expect that for this particular case the first argument is unset
+                            block.extend(['ret = {}'.format(call.format(v.name)),
+                                          'ldv_assume(ret == 0);'])
+                    else:
+                        block.extend(['ret = {}'.format(call),
+                                      'ldv_assume(ret == 0);'])
                 blocks.append(block)
 
         return pre, blocks, post
@@ -168,14 +201,18 @@ class LabelTranslator(FSATranslator):
         model_flag = True
         if automaton not in self._model_fsa:
             model_flag = False
-            modifier = get_necessary_conf_property(self._conf, 'instance modifier')
-            if modifier and modifier > 1:
-                self._cmodel.add_global_variable(self.__thread_variable(automaton, modifier),
-                                                 choose_file(self._cmodel, self._analysis, automaton), extern=False)
-            else:
-                self._cmodel.add_global_variable(self.__thread_variable(automaton, modifier),
-                                                 choose_file(self._cmodel, self._analysis, automaton),
-                                                 extern=False)
+            if not get_conf_property(self._conf, 'direct control functions calls') and automaton is not self._entry_fsa:
+                if automaton.process.self_parallelism and \
+                        get_necessary_conf_property(self._conf, 'self parallelism') and \
+                        get_conf_property(self._conf, 'pure pthread interface'):
+                    for var in self.__thread_variable(automaton, 'pair'):
+                        self._cmodel.add_global_variable(var, choose_file(self._cmodel, self._analysis, automaton), False)
+                elif automaton.process.self_parallelism and get_necessary_conf_property(self._conf, 'self parallelism'):
+                    self._cmodel.add_global_variable(self.__thread_variable(automaton, 'array'),
+                                                     choose_file(self._cmodel, self._analysis, automaton), extern=False)
+                else:
+                    self._cmodel.add_global_variable(self.__thread_variable(automaton, 'single'),
+                                                     choose_file(self._cmodel, self._analysis, automaton), extern=False)
 
         # Generate function body
         label_based_function(self._conf, self._analysis, automaton, cf, model_flag)
@@ -213,17 +250,23 @@ class LabelTranslator(FSATranslator):
         """
         normalize_fsa(automaton, self._compose_action)
 
-    def __thread_variable(self, automaton, number=1):
+    def __thread_variable(self, automaton, type='single'):
         if automaton.identifier not in self.__thread_variables:
-            if number > 1:
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread_set a', True,
-                               'global')
-                var.value = '{' + '.number = {}'.format(number) + '}'
+            signature = 'pthread_t a'
+            if type == 'pair':
+                thread_vars = []
+                for i in range(2):
+                    var = Variable('ldv_thread_{}_{}'.format(automaton.identifier, i), None, signature, True, 'global')
+                    var.use += 1
+                    thread_vars.append(var)
+                ret = thread_vars
             else:
-                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, 'struct ldv_thread a', True,
-                               'global')
-            var.use += 1
-            self.__thread_variables[automaton.identifier] = var
+                if type == 'array':
+                    signature = 'pthread_t **a'
+                var = Variable('ldv_thread_{}'.format(automaton.identifier),  None, signature, True, 'global')
+                var.use += 1
+                ret = var
+            self.__thread_variables[automaton.identifier] = ret
 
         return self.__thread_variables[automaton.identifier]
 

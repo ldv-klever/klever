@@ -90,6 +90,7 @@
     },
     "environment processes": {
       "usb_scenario": {
+        "comment": "Invoke usb callbacks.",
         "labels": {
           "container": {
             "container": true,
