@@ -7,6 +7,8 @@
                 <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <i class="ui green plus icon"></i>
             {% elif tag.1 > 0 and tag.2 == 0 %}
                 <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <i class="ui red minus icon"></i>
+            {% elif tag.1 == tag.2 %}
+                <span class="mark-tag {{ type }}">{{ tag.0 }}</span>: <span class="ui mini label">{{ tag.1 }}</span>
             {% else %}
                 <span class="mark-tag {{ type }}">{{ tag.0 }}</span>:
                 <span class="ui mini label">{{ tag.1 }}</span>

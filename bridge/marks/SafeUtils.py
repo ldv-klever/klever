@@ -237,7 +237,7 @@ class NewMark:
     def __get_tags_changes(self, data):
         for report in self.changes:
             if report.id in data and len(data[report.id]) > 0:
-                self.changes[report]['tags'] = data[report.id]
+                self.changes[report]['tags'] = list(sorted(data[report.id]))
 
     def __is_not_used(self):
         pass
@@ -468,10 +468,9 @@ class RecalculateTags:
         for tr_id in set(tags) | set(old_numbers):
             old_n = old_numbers.get(tr_id, 0)
             new_n = tags.get(tr_id, 0)
-            if old_n != new_n:
-                if tr_id[1] not in self.changes:
-                    self.changes[tr_id[1]] = []
-                self.changes[tr_id[1]].append((tags_names[tr_id[0]], old_n, new_n))
+            if tr_id[1] not in self.changes:
+                self.changes[tr_id[1]] = []
+            self.changes[tr_id[1]].append((tags_names[tr_id[0]], old_n, new_n))
 
         # Fill the cache
         SafeReportTag.objects.bulk_create(list(

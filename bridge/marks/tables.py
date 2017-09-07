@@ -156,7 +156,8 @@ class MarkChangesTable:
                 if self.mark_type != 'unknown':
                     values[report.id]['old_verdict'] = self.changes[report].get('verdict1', report.verdict)
                     values[report.id]['new_verdict'] = self.changes[report].get('verdict2', report.verdict)
-                    values[report.id]['tags'] = self.changes[report].get('tags')
+                    if 'tags' in self.changes[report]:
+                        values[report.id]['tags'] = self.changes[report]['tags']
             if self.mark_type != 'unknown':
                 for a_name, a_value in report.attrs.order_by('id').values_list('attr__name__name', 'attr__value'):
                     if a_name not in self.attrs:
@@ -1019,7 +1020,7 @@ class AssociationChangesTable:
                         return False
         if 'hidden' in self.view and 'unchanged' in self.view['hidden']:
             if self._data['values'][r_id]['old_verdict'] == self._data['values'][r_id]['new_verdict'] \
-                    and self._data['values'][r_id]['tags'] is None:
+                    and self._data['values'][r_id].get('tags') is None:
                 return False
         return True
 
