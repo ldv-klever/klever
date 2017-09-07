@@ -74,6 +74,9 @@ def parse_event_specification(logger, conf, raw):
 def __import_process(name, dic, conf, model_flag=False):
     process = Process(name)
 
+    if 'self parallelism' in dic:
+        process.self_parallelism = False
+
     if 'labels' in dic:
         for label_name in dic['labels']:
             label = Label(label_name)

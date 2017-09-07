@@ -76,6 +76,7 @@ class EntryProcessGenerator:
         self.__logger.debug("Generate main process")
         ep = Process("main")
         ep.comment = "Main entry point function."
+        ep.self_parallelism = False
         ep.category = "main"
         ep.identifier = 0
 
@@ -110,6 +111,7 @@ class EntryProcessGenerator:
         self.__logger.info("Generate artificial process description to call Init and Exit module functions 'insmod'")
         ep = Process("insmod")
         ep.comment = "Initialize or exit module."
+        ep.self_parallelism = False
         ep.identifier = 0
 
         # Add register

@@ -45,15 +45,25 @@ BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verifica
 
 
 class UploadReport:
-    def __init__(self, job, data, archive=None, coverage_arch=None):
+    def __init__(self, job, data, archive=None, coverage_arch=None, attempt=0):
+        self.error = None
         self.job = job
         self.archive = archive
         self.coverage = coverage_arch
+        self.attempt = attempt
         self.data = {}
         self.ordered_attrs = []
-        self.error = None
         try:
             self.__check_data(data)
+            try:
+                if self.archive is not None:
+                    self.__check_archive(self.archive, self.data['id'])
+                if self.coverage is not None:
+                    self.__check_archive(self.coverage, self.data['id'])
+            except Exception as e:
+                logger.exception(e)
+                self.error = 'ZIP error'
+                return
             self.parent = self.__get_parent()
             self._parents_branch = self.__get_parents_branch()
             self.root = self.__get_root_report()
@@ -92,7 +102,8 @@ class UploadReport:
 
         if data['type'] == 'start':
             if data['id'] == '/':
-                KleverCoreStartDecision(self.job)
+                if self.attempt == 0:
+                    KleverCoreStartDecision(self.job)
                 try:
                     self.data.update({
                         'attrs': data['attrs'],
@@ -241,24 +252,29 @@ class UploadReport:
         }
         identifier = self.job.identifier + self.data['id']
         actions[self.data['type']](identifier)
-        if len(self.ordered_attrs) != len(set(self.ordered_attrs)):
+        if self.error is None and self.attempt == 0 and len(self.ordered_attrs) != len(set(self.ordered_attrs)):
             raise ValueError("attributes were redefined")
 
     def __create_report_component(self, identifier):
         try:
-            ReportComponent.objects.get(identifier=identifier)
-            raise ValueError('the report with specified identifier already exists')
+            report = ReportComponent.objects.get(identifier=identifier)
+            if self.attempt > 0:
+                report.start_date = now()
+                report.save()
+                return
+            else:
+                raise ValueError('the report with specified identifier already exists')
         except ObjectDoesNotExist:
             report = ReportComponent(
                 identifier=identifier, parent=self.parent, root=self.root,
                 start_date=now(), verification=(self.data['type'] == 'verification'),
                 component=Component.objects.get_or_create(name=self.data['name'] if 'name' in self.data else 'Core')[0]
             )
-            if 'data' in self.data:
-                if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
-                    report.new_data('report-data.json', BytesIO(json.dumps(
-                        self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
-                    ).encode('utf8')))
+        if 'data' in self.data:
+            if self.job.weight == JOB_WEIGHT[0][0] or self.parent is None:
+                report.new_data('report-data.json', BytesIO(json.dumps(
+                    self.data['data'], ensure_ascii=False, sort_keys=True, indent=4
+                ).encode('utf8')))
 
         if 'comp' in self.data:
             report.computer = Computer.objects.get_or_create(
@@ -272,23 +288,14 @@ class UploadReport:
             report.memory = int(self.data['resources']['memory size'])
             report.wall_time = int(self.data['resources']['wall time'])
 
-        check_arch = False
         if self.archive is not None and \
                 (self.job.weight == JOB_WEIGHT[0][0] or self.data['type'] == 'verification' or self.parent is None):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
-            check_arch = True
-        check_coverage_arch = False
         if self.coverage is not None and self.data['type'] == 'verification':
             report.new_coverage(COVERAGE_FILES_ARCHIVE, self.coverage)
             report.coverage = self.data.get('coverage')
-            check_coverage_arch = True
         report.save()
-
-        if check_arch:
-            self.__check_archive(report.archive.file.name)
-        if check_coverage_arch:
-            self.__check_archive(report.coverage_arch.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -370,11 +377,9 @@ class UploadReport:
         report.memory = int(self.data['resources']['memory size'])
         report.wall_time = int(self.data['resources']['wall time'])
 
-        check_arch = False
         if self.archive is not None and (report.parent is None or self.job.weight == JOB_WEIGHT[0][0]):
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.log = self.data.get('log')
-            check_arch = True
 
         report.finish_date = now()
         if 'data' in self.data:
@@ -382,9 +387,6 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
-
-        if check_arch:
-            self.__check_archive(report.archive.file.name)
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -434,7 +436,6 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -447,14 +448,10 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
-        check_arch = False
         if self.archive is not None:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
-            check_arch = True
         report.save()
-        if check_arch:
-            self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -471,7 +468,6 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
-        self.__check_archive(report.archive.file.name)
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
@@ -627,11 +623,10 @@ class UploadReport:
                     raise ValueError("The report has redefined parent's attributes")
         return attrorder
 
-    def __check_archive(self, arch):
+    def __check_archive(self, arch, report_id):
         self.__is_not_used()
-        if not zipfile.is_zipfile(arch):
-            # TODO: fix me within https://forge.ispras.ru/issues/7894.
-            logger.error('The archive "%s" of report "%s" is not a ZIP file' % (arch, self.data['id']))
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+            raise ValueError('The archive "%s" of report "%s" is not a ZIP file' % (arch, report_id))
 
     def __is_not_used(self):
         pass
@@ -654,7 +649,10 @@ class CollapseReports:
             return
         ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
         ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
-        ReportUnknown.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+        ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
+        ReportUnknown.objects.filter(
+            root=root, parent__reportcomponent__archive='', parent__reportcomponent__verification=True
+        ).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
         ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
