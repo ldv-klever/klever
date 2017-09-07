@@ -27,7 +27,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse
-from django.db.models import Q
+from django.db.models import Q, F
 from django.http import HttpResponse, JsonResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.template import loader, Template, Context
@@ -303,18 +303,19 @@ def get_job_data(request):
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
 
     data = {'jobstatus': job.status}
-    try:
-        data['jobdata'] = loader.get_template('jobs/jobData.html').render({
-            'reportdata': ViewJobData(
-                request.user,
-                ReportComponent.objects.get(root__job=job, parent=None),
-                view=request.POST.get('view', None)
-            )
-        })
-    except ObjectDoesNotExist:
-        pass
-    if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
-        data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
+    if 'just_status' in request.POST and not json.loads(request.POST['just_status']):
+        try:
+            data['jobdata'] = loader.get_template('jobs/jobData.html').render({
+                'reportdata': ViewJobData(
+                    request.user,
+                    ReportComponent.objects.get(root__job=job, parent=None),
+                    view=request.POST.get('view', None)
+                )
+            })
+        except ObjectDoesNotExist:
+            pass
+        if job.status in [JOB_STATUS[1][0], JOB_STATUS[2][0]]:
+            data['progress_data'] = json.dumps(list(jobs.utils.get_job_progress(request.user, job)))
     return JsonResponse(data)
 
 
@@ -550,11 +551,16 @@ def showjobdata(request):
         job = Job.objects.get(pk=int(request.POST.get('job_id', 0)))
     except ObjectDoesNotExist:
         return HttpResponse('')
+    try:
+        job_version = JobHistory.objects.get(job=job, version=F('job__version'))
+    except ObjectDoesNotExist:
+        return HttpResponse('')
 
     return render(request, 'jobs/showJob.html', {
         'job': job,
         'description': job.versions.get(version=job.version).description,
-        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata
+        'filedata': jobs.utils.FileData(job.versions.get(version=job.version)).filedata,
+        'roles': jobs.utils.role_info(job_version, request.user)
     })
 
 
@@ -718,15 +724,17 @@ def decide_job(request):
     except ValueError:
         return JsonResponse({'error': 'Unknown error'})
 
+    attempt = int(request.POST.get('attempt', 0))
     if not jobs.utils.JobAccess(request.user, job).klever_core_access():
         return JsonResponse({
             'error': 'User "{0}" doesn\'t have access to decide job "{1}"'.format(request.user, job.identifier)
         })
-    if job.status != JOB_STATUS[1][0]:
-        return JsonResponse({'error': 'Only pending jobs can be decided'})
+    if attempt == 0:
+        if job.status != JOB_STATUS[1][0]:
+            return JsonResponse({'error': 'Only pending jobs can be decided'})
+        jobs.utils.change_job_status(job, JOB_STATUS[2][0])
 
-    jobs.utils.change_job_status(job, JOB_STATUS[2][0])
-    err = UploadReport(job, json.loads(request.POST.get('report', '{}'))).error
+    err = UploadReport(job, json.loads(request.POST.get('report', '{}')), attempt=attempt).error
     if err is not None:
         return JsonResponse({'error': err})
 

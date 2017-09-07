@@ -54,7 +54,7 @@
                     <div class="ui small input fluid">
                         <select id="job_global_roles" class="ui dropdown mini fluid">
                             {% for jr in job_roles %}
-                                <option value="{{ jr.0 }}"{% if roles.global == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
+                                <option value="{{ jr.0 }}"{% if roles.global.0 == jr.0 %} selected{% endif %} >{{ jr.1 }}</option>
                             {% endfor %}
                         </select>
                     </div>

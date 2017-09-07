@@ -543,6 +543,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
                 attr_val = attr[attr_name]
                 # Does capitalize attribute name.
                 attr_name = attr_name[0].upper() + attr_name[1:]
+
                 if isinstance(attr_val, str):
                     capitalized_name_attrs.append({attr_name: attr_val})
                 else:
@@ -552,28 +553,41 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
         report['attrs'] = capitalize_attr_names(report['attrs'])
 
-    # Add all report files to archive. It is assumed that all files are placed in current working directory.
-    rel_report_files_archive = None
+    # Add all report files to archives. It is assumed that all files are placed in current working directory.
+    rel_report_file_archives = {}
     if 'files' in report and report['files']:
-        report_files_archive = '{0}{1} report files.zip'.format(type, suffix or '')
-        rel_report_files_archive = os.path.relpath(report_files_archive, dir) if dir else report_files_archive
-        if os.path.isfile(report_files_archive):
-            raise FileExistsError('Report files archive "{0}" already exists'.format(rel_report_files_archive))
-        with zipfile.ZipFile(report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-            for file in report['files']:
-                arcname = None
-                if 'arcname' in report and file in report['arcname']:
-                    arcname = report['arcname'][file]
-                zfp.write(file, arcname=arcname)
+        if isinstance(report['files'], list) or isinstance(report['files'], tuple):
+            report['files'] = {'report': report['files']}
+        for archive_name, files in report['files'].items():
+            report_files_archive = '{0} {1}{2} report files.zip'.format(type, archive_name, suffix or '')
+            rel_report_file_archives[archive_name] = os.path.relpath(report_files_archive, dir) \
+                if dir else report_files_archive
+
+            if os.path.isfile(report_files_archive):
+                raise FileExistsError(
+                    'Report files archive "{0}" already exists'.format(rel_report_file_archives[archive_name]))
+
+            with open(report_files_archive, mode='w+b', buffering=0) as fp:
+                with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                    for file in files:
+                        arcname = None
+                        if 'arcname' in report and file in report['arcname']:
+                            arcname = report['arcname'][file]
+                        zfp.write(file, arcname=arcname)
+                    os.fsync(zfp.fp)
+
+            logger.debug(
+                '{0} report files were packed to archive "{1}"'.format(type.capitalize(),
+                                                                       rel_report_file_archives[archive_name]))
         del (report['files'])
-        logger.debug(
-            '{0} report files were packed to archive "{1}"'.format(type.capitalize(), rel_report_files_archive))
 
     # Create report file in current working directory.
     report_file = '{0}{1} report.json'.format(type, suffix or '')
     rel_report_file = os.path.relpath(report_file, dir) if dir else report_file
+
     if os.path.isfile(report_file):
         raise FileExistsError('Report file "{0}" already exists'.format(rel_report_file))
+
     with open(report_file, 'w', encoding='utf8') as fp:
         json.dump(report, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
@@ -581,7 +595,7 @@ def report(logger, type, report, mq=None, dir=None, suffix=None):
 
     # Put report to message queue if it is specified.
     if mq:
-        mq.put({'report file': rel_report_file, 'report files archive': rel_report_files_archive})
+        mq.put({'report file': rel_report_file, 'report file archives': rel_report_file_archives})
 
     return report_file
 

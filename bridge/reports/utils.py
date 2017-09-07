@@ -46,7 +46,7 @@ REP_MARK_TITLES = {
     'mark_verdict': _("Verdict"),
     'mark_result': _('Similarity'),
     'mark_status': _('Status'),
-    'number': '№',
+    'number': _('#'),
     'component': _('Component'),
     'marks_number': _("Number of associated marks"),
     'report_verdict': _("Total verdict"),
@@ -87,7 +87,8 @@ def get_parents(report):
         parents_data.insert(0, {
             'title': parent.component.name,
             'href': reverse('reports:component', args=[report.root.job_id, parent.id]),
-            'attrs': parent_attrs
+            'attrs': parent_attrs,
+            'coverage': parent.coverage
         })
         try:
             parent = ReportComponent.objects.get(id=parent.parent_id)
@@ -204,10 +205,16 @@ class SafesTable:
                 marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
             leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
+        include_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
         reports = {}
         for leaf in leaves_set:
+            if include_confirmed:
+                marks_num = "%s (%s)" % (leaf['confirmed'], leaf['marks_number'])
+            else:
+                marks_num = str(leaf['marks_number'])
             reports[leaf['safe_id']] = {
-                'marks_number': "%s (%s)" % (leaf['confirmed'], leaf['marks_number']),
+                'marks_number': marks_num,
                 'verdict': leaf['safe__verdict'],
                 'parent_id': leaf['safe__parent_id'],
                 'parent_cpu': leaf['safe__verifier_time'],
@@ -409,10 +416,16 @@ class UnsafesTable:
                 marknum_filter = 'marks_number__%s' % self.view['marks_number'][1]
             leaves_set = leaves_set.filter(**{marknum_filter: int(self.view['marks_number'][2])})
 
+        include_confirmed = 'hidden' not in self.view or 'confirmed_marks' not in self.view['hidden']
+
         reports = {}
         for leaf in leaves_set:
+            if include_confirmed:
+                marks_num = "%s (%s)" % (leaf['confirmed'], leaf['marks_number'])
+            else:
+                marks_num = str(leaf['marks_number'])
             reports[leaf['unsafe_id']] = {
-                'marks_number': "%s (%s)" % (leaf['confirmed'], leaf['marks_number']),
+                'marks_number': marks_num,
                 'verdict': leaf['unsafe__verdict'],
                 'parent_id': leaf['unsafe__parent_id'],
                 'parent_cpu': leaf['unsafe__verifier_time'],
@@ -914,6 +927,15 @@ class FilesForCompetitionArchive(object):
 
 def report_attibutes(report):
     return report.attrs.order_by('id').values_list('attr__name__name', 'attr__value')
+
+
+def report_attributes_with_parents(report):
+    attrs = []
+    parent = report
+    while parent is not None:
+        attrs = list(parent.attrs.order_by('id').values_list('attr__name__name', 'attr__value')) + attrs
+        parent = parent.parent
+    return attrs
 
 
 def remove_verification_files(job):

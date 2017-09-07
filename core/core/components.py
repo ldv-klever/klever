@@ -20,6 +20,7 @@ import json
 import multiprocessing
 import os
 import signal
+import sys
 import time
 import traceback
 import types
@@ -70,7 +71,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
 
     def main(self):
         self.logger.error('I forgot to define main function!')
-        exit(1)
+        sys.exit(1)
 
     def run(self):
         # Remember approximate time of start to count wall time.

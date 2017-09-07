@@ -63,6 +63,11 @@ class ScheduleTask:
             raise ServiceError('The scheduler for tasks is disconnected')
         if compare_priority(self.progress.priority, priority):
             raise ServiceError('Priority of the task is too big')
+        try:
+            self.__check_archive(archive)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceError('ZIP error')
         self.task_id = self.__create_task(archive)
 
     def __create_task(self, archive):
@@ -70,13 +75,17 @@ class ScheduleTask:
             progress=self.progress, archname=archive.name,
             archive=archive, description=self.description.encode('utf8')
         )
-
-        if not zipfile.is_zipfile(task.archive.file.name):
-            raise ServiceError("The report's archive is not a ZIP file")
-
         SolvingProgress.objects.filter(id=self.progress.id)\
             .update(tasks_total=F('tasks_total') + 1, tasks_pending=F('tasks_pending') + 1)
         return task.id
+
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+            raise ValueError('The task archive "%s" is not a ZIP file' % arch)
+
+    def __is_not_used(self):
+        pass
 
 
 class GetTaskStatus:
@@ -501,6 +510,11 @@ class SaveSolution:
             raise ServiceError('The task %s was not found' % task_id)
         if not Job.objects.filter(solvingprogress=self.task.progress_id, status=JOB_STATUS[2][0]).exists():
             raise ServiceError('The job is not processing')
+        try:
+            self.__check_archive(archive)
+        except Exception as e:
+            logger.exception(e)
+            raise ServiceError('ZIP error')
         self.__create_solution(description, archive)
 
     def __create_solution(self, description, archive):
@@ -509,11 +523,8 @@ class SaveSolution:
             raise ServiceError('The task already has solution')
         except ObjectDoesNotExist:
             pass
-        solution = Solution.objects.create(task=self.task, description=description.encode('utf8'),
-                                           archive=archive, archname=archive.name)
-
-        if not zipfile.is_zipfile(solution.archive.file.name):
-            raise ServiceError("The report's archive is not a ZIP file")
+        Solution.objects.create(task=self.task, description=description.encode('utf8'),
+                                archive=archive, archname=archive.name)
 
         progress = SolvingProgress.objects.get(id=self.task.progress_id)
         progress.solutions += 1
@@ -529,6 +540,14 @@ class SaveSolution:
         )
         ReportRoot.objects.filter(job__solvingprogress=self.task.progress_id) \
             .update(average_time=(F('average_time') * solved_tasks + wall_time) / (solved_tasks + 1))
+
+    def __check_archive(self, arch):
+        self.__is_not_used()
+        if not zipfile.is_zipfile(arch) or zipfile.ZipFile(arch).testzip():
+            raise ValueError('The task archive "%s" is not a ZIP file' % arch)
+
+    def __is_not_used(self):
+        pass
 
 
 class SetNodes:
@@ -854,7 +873,7 @@ class StartJobDecision:
             db_file.file.save('job-%s.conf' % self.job.identifier[:5], NewFile(m))
             db_file.hash_sum = check_sum
             db_file.save()
-        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file)
+        RunHistory.objects.create(job=self.job, operator=self.operator, configuration=db_file, date=now())
 
     def __check_schedulers(self):
         try:

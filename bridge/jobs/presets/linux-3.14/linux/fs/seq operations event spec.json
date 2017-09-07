@@ -2,7 +2,7 @@
   "Linux 3.14 (base)": {
     "kernel model": {
       "seq_open, seq_open_private": {
-        "comment": "Initialize sequential file",
+        "comment": "Initialize sequential file.",
         "labels": {
           "file": {
             "parameter": true,
@@ -79,7 +79,7 @@
     },
     "environment processes": {
       "traverse_kernel_items_scenario": {
-        "comment": "Writting /proc file scenario.",
+        "comment": "Write /proc file.",
         "labels": {
           "ops": {
             "container": true,

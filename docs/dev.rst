@@ -96,13 +96,32 @@ Fixing bugs and implementing new features
 
    .. note:: Do not merge remote-tracking branches.
 
-#. Ask Evgeny Novikov (novikov@ispras.ru) to review and to merge branches to the master branch when corresponding
-   bugs/features are fixed/implemented.
+#. Ask Evgeny Novikov or/and Ilja Zakharov (novikov@ispras.ru) to review and to merge branches to the master branch when
+   corresponding bugs/features are fixed/implemented.
 
 #. Delete merged branches locally and remotely::
 
     master $ git branch -d fix-conf
     master $ git push origin :fix-conf
+
+Releases
+--------
+
+Generally we follow the same rules as for development of the Linux kernel.
+
+Each several months a new release will be issued, e.g. 0.1, 0.2, 1.0.
+
+Just after this a merge window of several weeks will be opened.
+During the merge window features implemented after a previous merge window or during the given one will be merged to
+master.
+
+After the merge window just bug fixes can be merged to the master branch.
+During this period we can issue several release candidates, e.g. 1.0-rc1, 1.0-rc2.
+
+In addition, after issuing a new release we can decide to support a stable branch.
+This branch will start from a commit corresponding to the given release.
+It can contain just bug fixes relevant to an existing functionality and not to a new one which is supported within a
+corresponding merge window.
 
 Using PyCharm IDE
 -----------------

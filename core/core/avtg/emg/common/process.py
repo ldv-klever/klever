@@ -196,6 +196,7 @@ class Process:
         self.process = None
         self.headers = list()
         self.comment = None
+        self.self_parallelism = True
         self.__process_ast = None
         self.__accesses = dict()
         self.allowed_implementations = dict()

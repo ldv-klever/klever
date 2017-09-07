@@ -45,6 +45,7 @@ import reports.models
 from reports.UploadReport import UploadReport
 from reports.etv import GetSource, GetETV
 from reports.comparison import CompareTree, ComparisonTableData, ComparisonData, can_compare
+from reports.coverage import GetCoverage, GetCoverageSrcHTML
 
 
 # These filters are used for visualization component specific data. They should not be used for any other purposes.
@@ -582,9 +583,12 @@ def upload_report(request):
         logger.exception("Json parsing error: %s" % e, stack_info=True)
         return JsonResponse({'error': 'Can not parse json data'})
     archive = None
-    for f in request.FILES.getlist('file'):
-        archive = f
-    err = UploadReport(job, data, archive).error
+    coverage_arch = None
+    if 'report files archive' in request.FILES:
+        archive = request.FILES['report files archive']
+    if 'coverage files archive' in request.FILES:
+        coverage_arch = request.FILES['coverage files archive']
+    err = UploadReport(job, data, archive, coverage_arch).error
     if err is not None:
         return JsonResponse({'error': err})
     return JsonResponse({})
@@ -674,9 +678,14 @@ def fill_compare_cache(request):
         j1 = Job.objects.get(pk=request.POST.get('job1', 0))
         j2 = Job.objects.get(pk=request.POST.get('job2', 0))
     except ObjectDoesNotExist:
-        return JsonResponse({'error': _('One of the selected jobs was not found, please reload page')})
+        return JsonResponse({'error': _('One of the selected jobs was not found, please reload the page')})
     if not can_compare(request.user, j1, j2):
         return JsonResponse({'error': _("You can't compare the selected jobs")})
+    try:
+        reports.models.CompareJobsInfo.objects.get(user=request.user, root1=j1.reportroot.id, root2=j2.reportroot.id)
+        return JsonResponse({})
+    except ObjectDoesNotExist:
+        pass
     try:
         CompareTree(request.user, j1, j2)
     except Exception as e:
@@ -775,6 +784,22 @@ def download_report_files(request, report_id):
 
 @login_required
 @unparallel_group([])
+def download_coverage(request, report_id):
+    try:
+        report = reports.models.ReportComponent.objects.get(pk=int(report_id))
+    except ObjectDoesNotExist:
+        return BridgeErrorResponse(504)
+    if not report.coverage_arch:
+        return BridgeErrorResponse(_("The report doesn't have coverage"))
+
+    response = StreamingHttpResponse(FileWrapper(report.coverage_arch.file, 8192), content_type='application/zip')
+    response['Content-Length'] = len(report.coverage_arch.file)
+    response['Content-Disposition'] = 'attachment; filename="%s coverage.zip"' % report.component.name
+    return response
+
+
+@login_required
+@unparallel_group([])
 def download_error_trace(request, report_id):
     if request.method != 'GET':
         return BridgeErrorResponse(301)
@@ -806,3 +831,51 @@ def clear_verification_files(request):
         logger.exception(e)
         return JsonResponse({'error': str(UNKNOWN_ERROR)})
     return JsonResponse({})
+
+
+@unparallel_group([reports.models.Report])
+def coverage_page(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        coverage = GetCoverage(report_id, True)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'reports/coverage/coverage.html', {
+        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attributes_with_parents(coverage.report)
+    })
+
+
+@unparallel_group([reports.models.Report])
+def coverage_light_page(request, report_id):
+    activate(request.user.extended.language)
+
+    try:
+        coverage = GetCoverage(report_id, False)
+    except BridgeException as e:
+        return BridgeErrorResponse(str(e))
+    except Exception as e:
+        logger.exception(e)
+        return BridgeErrorResponse(500)
+    return render(request, 'reports/coverage/coverage_light.html', {
+        'coverage': coverage, 'SelfAttrsData': reports.utils.report_attributes_with_parents(coverage.report)
+    })
+
+
+@unparallel_group([reports.models.Report])
+def get_coverage_src(request):
+    activate(request.user.extended.language)
+    if request.method != 'POST' or any(x not in request.POST for x in ['report_id', 'filename', 'weight']):
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+
+    try:
+        res = GetCoverageSrcHTML(request.POST['report_id'], request.POST['filename'], request.POST['weight'])
+    except BridgeException as e:
+        return JsonResponse({'error': str(e)})
+    except Exception as e:
+        logger.exception(e)
+        return JsonResponse({'error': str(UNKNOWN_ERROR)})
+    return JsonResponse({'content': res.src_html, 'data': res.data_html, 'legend': res.legend})
