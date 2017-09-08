@@ -161,11 +161,12 @@ class UploadReport:
             try:
                 self.data.update({
                     'parent id': data['parent id'],
-                    'proof': data['proof'],
-                    'attrs': data['attrs'],
+                    'attrs': data['attrs']
                 })
             except KeyError as e:
                 raise ValueError("property '%s' is required." % e)
+            if 'proof' in data:
+                self.data['proof'] = data['proof']
         elif data['type'] == 'unknown':
             try:
                 self.data.update({
@@ -395,14 +396,14 @@ class UploadReport:
         else:
             self.__update_light_resources(report)
 
-        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
-                and ReportComponent.objects.filter(parent=report).count() == 0:
-            report.delete()
-
         report_ids = set(r.pk for r in self._parents_branch)
         report_ids.add(report.pk)
         ComponentInstances.objects.filter(report_id__in=report_ids, component=report.component, in_progress__gt=0)\
             .update(in_progress=(F('in_progress') - 1))
+
+        if self.job.weight == JOB_WEIGHT[1][0] and report.parent is not None \
+                and ReportComponent.objects.filter(parent=report).count() == 0:
+            report.delete()
 
     def __finish_verification_report(self, identifier):
         try:
@@ -448,7 +449,7 @@ class UploadReport:
             report = ReportSafe(
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
-        if self.archive is not None:
+        if self.archive is not None and 'proof' in self.data:
             report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
         report.save()
@@ -647,13 +648,13 @@ class CollapseReports:
             core_report = ReportComponent.objects.get(parent=None, root=root)
         except ObjectDoesNotExist:
             return
-        ReportSafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
-        ReportUnsafe.objects.filter(root=root, parent__reportcomponent__archive='').update(parent=core_report)
+
         ReportUnknown.objects.filter(root=root, parent__reportcomponent__verification=False).update(parent=core_report)
-        ReportUnknown.objects.filter(
-            root=root, parent__reportcomponent__archive='', parent__reportcomponent__verification=True
+        Report.objects.filter(
+            parent__reportcomponent__verification=True,
+            parent__reportcomponent__archive='', parent__reportcomponent__coverage_arch=''
         ).update(parent=core_report)
-        ReportComponent.objects.filter(root=root, verification=True, archive='').delete()
+        ReportComponent.objects.filter(root=root, verification=True, archive='', coverage_arch='').delete()
         ReportComponent.objects.filter(root=root, verification=True).update(parent=core_report)
         ReportComponent.objects.filter(root=root, verification=False).exclude(id=core_report.id).delete()
 
