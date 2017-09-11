@@ -57,7 +57,10 @@ class ReportTree(object):
         self.__get_tree()
 
     def __get_attr_names(self):
-        return list(x[0] for x in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]).values_list('id'))
+        attr_ids = {}
+        for aname in AttrName.objects.filter(name__in=JOBS_COMPARE_ATTRS[self.job.type]):
+            attr_ids[aname.name] = aname.id
+        return list(attr_ids[name] for name in JOBS_COMPARE_ATTRS[self.job.type] if name in attr_ids)
 
     def __get_tree(self):
         leaves_fields = {
