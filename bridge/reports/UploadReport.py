@@ -15,10 +15,12 @@
 # limitations under the License.
 #
 
+import os
 import json
 import zipfile
 from io import BytesIO
 
+from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Q, F
 from django.utils.timezone import now
@@ -42,6 +44,10 @@ AVTG_TOTAL_NAME = 'total number of abstract verification task descriptions to be
 AVTG_FAIL_NAME = 'faulty generated abstract verification task descriptions'
 VTG_FAIL_NAME = 'faulty processed abstract verification task descriptions'
 BT_TOTAL_NAME = 'the number of verification tasks prepared for abstract verification task'
+
+
+class CheckArchiveError(Exception):
+    pass
 
 
 class UploadReport:
@@ -68,6 +74,9 @@ class UploadReport:
             self._parents_branch = self.__get_parents_branch()
             self.root = self.__get_root_report()
             self.__upload()
+        except CheckArchiveError as e:
+            logger.exception(e)
+            self.error = 'ZIP error'
         except Exception as e:
             logger.exception('Uploading report failed: %s' % str(e), stack_info=True)
             self.__job_failed(str(e))
@@ -297,6 +306,13 @@ class UploadReport:
             report.new_coverage(COVERAGE_FILES_ARCHIVE, self.coverage)
             report.coverage = self.data.get('coverage')
         report.save()
+        if report.archive.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
+        if report.coverage_arch.name \
+                and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.coverage_arch.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -388,6 +404,9 @@ class UploadReport:
             self.__update_dict_data(report, self.data['data'])
         else:
             report.save()
+        if report.archive.name and not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
 
         if 'attrs' in self.data:
             self.ordered_attrs = self.__save_attrs(report.id, self.data['attrs'])
@@ -437,6 +456,9 @@ class UploadReport:
             component=self.parent.component, problem_description=self.data['problem desc']
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
         self.__fill_leaf_data(report)
 
     def __create_report_safe(self, identifier):
@@ -450,9 +472,13 @@ class UploadReport:
                 identifier=identifier, parent=self.parent, root=self.root, verifier_time=self.parent.cpu_time
             )
         if self.archive is not None and 'proof' in self.data:
-            report.new_archive(REPORT_FILES_ARCHIVE, self.archive)
             report.proof = self.data['proof']
-        report.save()
+            report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+            if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+                report.delete()
+                raise CheckArchiveError('Archive was not saved')
+        else:
+            report.save()
         self.__fill_leaf_data(report)
 
     def __create_report_unsafe(self, identifier):
@@ -469,6 +495,9 @@ class UploadReport:
             error_trace=self.data['error trace'], verifier_time=self.parent.cpu_time
         )
         report.new_archive(REPORT_FILES_ARCHIVE, self.archive, True)
+        if not os.path.exists(os.path.join(settings.MEDIA_ROOT, report.archive.name)):
+            report.delete()
+            raise CheckArchiveError('Archive was not saved')
         self.__fill_leaf_data(report)
 
     def __fill_leaf_data(self, leaf):
