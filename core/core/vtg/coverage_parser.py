@@ -1,19 +1,14 @@
 import os
-import json
 
 import core.utils
 
 
 class LCOV:
-    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir, type):
+    def __init__(self, logger, coverage_file, shadow_src_dir, main_work_dir):
         self.logger = logger
         self.coverage_file = coverage_file
         self.shadow_src_dir = shadow_src_dir
         self.main_work_dir = main_work_dir
-        self.type = type
-        self.len_files = {}
-        if self.type not in ('full', 'partial', 'lightweight'):
-            raise NotImplementedError("Coverage type '{0}' is not supported".format(self.type))
 
         self.lines_coverage = {}
 
@@ -33,8 +28,6 @@ class LCOV:
         FUNCTION_PREFIX = "FNDA:"
         FUNCTION_NAME_PREFIX = "FN:"
 
-        PARIALLY_ALLOWED_EXT = ('.c', '.i', '.c.aux')
-
         DIR_MAP = (('source files', self.shadow_src_dir),
                    ('specifications', os.path.join(self.main_work_dir, 'job', 'root')),
                    ('generated models', self.main_work_dir))
@@ -42,32 +35,6 @@ class LCOV:
         ignore_file = False
 
         coverage_info = {}
-
-        excluded_dirs = set()
-        if self.type in ('partial', 'lightweight'):
-            with open(self.coverage_file, encoding='utf-8') as fp:
-                all_files = {}
-                for line in fp:
-                    line = line.rstrip('\n')
-                    if line.startswith(FILENAME_PREFIX):
-                        file_name = line[len(FILENAME_PREFIX):]
-                        if os.path.isfile(file_name):
-                            dir, file = os.path.split(file_name)
-                            all_files.setdefault(dir, [])
-                            all_files[dir].append(file)
-                for dir, files in all_files.items():
-                    if self.type == 'lightweight' \
-                            and not dir.startswith(self.shadow_src_dir):
-                        self.logger.debug('Excluded {0}'.format(dir))
-                        excluded_dirs.add(dir)
-                        continue
-                    for file in files:
-                        if file.endswith('.c') or file.endswith('.c.aux'):
-                            break
-                    else:
-                        excluded_dirs.add(dir)
-
-        self.logger.debug(str(excluded_dirs))
 
         with open(self.coverage_file, encoding='utf-8') as fp:
             for line in fp:
@@ -87,9 +54,7 @@ class LCOV:
                 elif line.startswith(FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
                     file_name = line[len(FILENAME_PREFIX):]
-                    if os.path.isfile(file_name) \
-                        and not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
-                        len_file = self.get_file_len(file_name)
+                    if os.path.isfile(file_name):
                         for dest, src in DIR_MAP:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
@@ -116,8 +81,6 @@ class LCOV:
                     if splts[1] == "0":
                         continue
                     covered_lines[int(splts[0])] = int(splts[1])
-                    #covered_lines.setdefault(int(splts[0]), [])
-                    #covered_lines[int(splts[0])].append(int(splts[1]))
                 elif line.startswith(FUNCTION_NAME_PREFIX):
                     splts = line[len(FUNCTION_NAME_PREFIX):].split(',')
                     function_to_line.setdefault(splts[1], [])
@@ -127,41 +90,43 @@ class LCOV:
                     if splts[0] == "0":
                         continue
                     covered_functions[function_to_line[splts[1]]] = int(splts[0])
-                    #covered_functions.setdefault(int(splts[0]), [])
-                    #covered_functions[int(splts[0])].append(function_to_line[splts[1]])
                     count_covered_functions += 1
                 elif line.startswith(EOR_PREFIX):
                     coverage_info.setdefault(file_name, [])
                     coverage_info[file_name].append({
                         'file name': old_file_name,
                         'arcname': file_name,
-                        'len file': len_file,
                         'total functions': len(function_to_line),
                         'covered lines': covered_lines,
                         'covered functions': covered_functions,
+                        'in shadow dir': old_file_name.startswith(self.shadow_src_dir)
                     })
-
-                    """
-                    self.len_files.setdefault(len_file, [])
-                    self.len_files[len_file].append(file_name)
-                    self.functions_statistics[file_name] = [count_covered_functions, len(function_to_line)]
-                    for count, values in covered_lines.items():
-                        ranges = self.build_ranges(values)
-                        self.lines_coverage.setdefault(count, {})
-                        self.lines_coverage[count][file_name] = ranges
-                    for count, values in covered_functions.items():
-                        self.functions_coverage.setdefault(count, {})
-                        self.functions_coverage[count][file_name] = list(values)
-                    """
 
         return coverage_info
 
     @staticmethod
-    def get_coverage(coverage_info):
+    def get_coverage(coverage_info, coverage_type):
+        excluded_dirs = set()
+        dirs_with_c = set()
+        if coverage_type in ('partial', 'lightweight'):
+            for file in coverage_info:
+                    if coverage_type == 'lightweight' \
+                            and not coverage_info[file]['in shadow dir']:
+                        excluded_dirs.add(os.path.dirname(file))
+                        continue
+                    if not file.endswith('.c') and not file.endswith('.c.aux'):
+                        excluded_dirs.add(os.path.dirname(file))
+                    else:
+                        if not (coverage_type == 'lightweight'
+                                and not coverage_info[file]['in shadow dir']):
+                            dirs_with_c.add(os.path.dirname(file))
+        excluded_dirs = excluded_dirs - dirs_with_c
+
+        coverage_info = {file_name: info for file_name, info in coverage_info.items() if not os.path.dirname(file_name) in excluded_dirs}
+
         merged_coverage_info = {}
         for file_name, coverages in coverage_info.items():
             merged_coverage_info[file_name] = {
-                'len file': coverages[0]['len file'],
                 'total functions': coverages[0]['total functions'],
                 'covered lines': {},
                 'covered functions': {}
@@ -195,16 +160,8 @@ class LCOV:
             'function coverage': {
                 'statistics': function_statistics,
                 'coverage': [[key, value] for key, value in function_coverage.items()]
-            }
+                }
         }
-
-    def get_arcnames(self):
-        return self.arcnames
-
-    def get_file_len(self, file_name):
-        with open(file_name, encoding='utf-8') as fp:
-            res = sum(1 for _ in fp)
-        return res
 
     @staticmethod
     def build_ranges(lines):

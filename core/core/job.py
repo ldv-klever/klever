@@ -188,16 +188,10 @@ class Job(core.utils.CallbacksCaller):
                             'verdict': context.verdict
                         })
 
-                    def after_generate_all_verification_tasks(context):
-                        context.logger.info('Terminate verification statuses message queue')
-                        context.mqs['verification statuses'].put(None)
-                        context.mqs['coverages'].put(None)
-
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            after_generate_abstact_verification_task_desc,
                                                            after_process_single_verdict,
-                                                           after_generate_all_verification_tasks,
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
@@ -205,23 +199,28 @@ class Job(core.utils.CallbacksCaller):
                     self.reporting_results_process = multiprocessing.Process(target=self.report_results)
                     self.reporting_results_process.start()
 
-                self.mqs['coverages'] = multiprocessing.Queue()
+                if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
+                    self.mqs['coverages'] = multiprocessing.Queue()
 
-                def after_create_verification_report(context):
-                    context.mqs['coverages'].put({
-                        'rule specification': context.rule_specification,
-                        'coverage info': context.coverage_info
-                    })
+                    def after_create_verification_report(context):
+                        context.mqs['coverages'].put({
+                            'rule specification': context.rule_specification,
+                            'coverage info': context.coverage_info
+                        })
+
+                    core.utils.set_component_callbacks(self.logger, type(self), (after_create_verification_report,))
+
+                    self.collect_coverage_process = multiprocessing.Process(target=self.collect_coverage)
+                    self.collect_coverage_process.start()
 
                 def after_generate_all_verification_tasks(context):
-                        context.logger.info('Terminate verification statuses message queue')
+                    context.logger.info('Terminate verification statuses message queue')
+                    if 'ideal verdicts' in self.components_common_conf:
+                        context.mqs['verification statuses'].put(None)
+                    if self.components_common_conf['VTG strategy']['collect total coverage'] != 'None':
                         context.mqs['coverages'].put(None)
 
-                core.utils.set_component_callbacks(self.logger, type(self), (after_create_verification_report,
-                                                                             after_generate_all_verification_tasks))
-
-                self.collect_coverage_process = multiprocessing.Process(target=self.collect_coverage)
-                self.collect_coverage_process.start()
+                core.utils.set_component_callbacks(self.logger, type(self), (after_generate_all_verification_tasks,))
 
                 self.get_sub_job_components()
 
@@ -445,9 +444,12 @@ class Job(core.utils.CallbacksCaller):
                 total_coverage[coverages_info['rule specification']][file_name] += infos
 
         for rule, coverages in total_coverage.items():
-            coverage = core.vtg.coverage_parser.LCOV.get_coverage(coverages)
+            coverage = core.vtg.coverage_parser.LCOV.get_coverage(coverages,
+                                                                  self.components_common_conf
+                                                                  ['VTG strategy']['collect total coverage'])
             with open('coverage.json', 'w', encoding='utf-8') as fp:
                 json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+            self.logger.debug(os.path.abspath('coverage.json'))
             arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverages.values()}
             # TODO: report
 

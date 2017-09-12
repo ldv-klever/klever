@@ -418,11 +418,11 @@ class RSB(core.components.Component):
 
         if self.is_coverage:
             cov = coverage_parser.LCOV(self.logger, os.path.join('output', 'coverage.info'), self.shadow_src_dir,
-                                       self.conf['main working directory'],
-                                       self.conf['VTG strategy']['collect coverage'])
+                                       self.conf['main working directory'])
             self.coverage_info = cov.parse()
             with open('coverage.json', 'w', encoding='utf-8') as fp:
-                json.dump(cov.get_coverage(self.coverage_info), fp, ensure_ascii=True, sort_keys=True, indent=4)
+                json.dump(cov.get_coverage(self.coverage_info, self.conf['VTG strategy']['collect coverage']),
+                          fp, ensure_ascii=True, sort_keys=True, indent=4)
 
             arcnames = {info[0]['file name']: info[0]['arcname'] for info in self.coverage_info.values()}
 
