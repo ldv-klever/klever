@@ -197,7 +197,7 @@ class RP(core.components.Component):
                 self.__process_finished_task(task_id, opts, verifier, verification_object, rule_specification, files,
                                              shadow_src_dir, work_dir)
             elif status == 'error':
-                self.__process_failed_task(task_id, verification_object, rule_specification)
+                self.__process_failed_task(task_id)
             else:
                 raise ValueError("Unknown task {!r} status {!r}".format(task_id, status))
         finally:
@@ -205,8 +205,11 @@ class RP(core.components.Component):
 
     main = fetcher
 
-    def send_unknown_report(self, task_id, verification_object, rule_specification, problem):
+    def send_unknown_report(self, task_id, problem):
         """The function has a callback at Job module."""
+        self.__send_unknown_report(task_id, problem)
+
+    def __send_unknown_report(self, task_id, problem):
         self.verdict = 'unknown'
 
         core.utils.report(self.logger,
@@ -223,17 +226,7 @@ class RP(core.components.Component):
 
     def process_single_verdict(self, task_id, decision_results, opts, verification_object, rule_specification,
                                shadow_src_dir, log_file):
-        """
-        The function has a callback that collects verdicts to compare them with the ideal ones.
-
-        :param decision_results:
-        :param verification_report_id:
-        :param opts:
-        :param rule_specification:
-        :param shadow_src_dir:
-        :param log_file:
-        :return:
-        """
+        """The function has a callback that collects verdicts to compare them with the ideal ones."""
         # Parse reports and determine status
         benchexec_reports = glob.glob(os.path.join('output', '*.results.xml'))
         if len(benchexec_reports) != 1:
@@ -367,9 +360,9 @@ class RP(core.components.Component):
                     with open(log_file, 'w', encoding='utf8') as fp:
                         fp.write(decision_results['status'])
 
-                self.send_unknown_report(task_id, verification_object, rule_specification, log_file)
+                self.__send_unknown_report(task_id, log_file)
 
-    def __process_failed_task(self, task_id, verification_object, rule_specification):
+    def __process_failed_task(self, task_id):
         task_error = self.session.get_task_error(task_id)
         self.logger.warning('Failed to decide verification task: {0}'.format(task_error))
 
@@ -377,7 +370,7 @@ class RP(core.components.Component):
         with open(task_err_file, 'w', encoding='utf8') as fp:
             fp.write(task_error)
 
-        self.send_unknown_report(task_id, verification_object, rule_specification, task_err_file)
+        self.send_unknown_report(task_id, task_err_file)
 
     def __process_finished_task(self, task_id, opts, verifier, verification_object, rule_specification, files,
                                 shadow_src_dir, work_dir):
