@@ -26,7 +26,7 @@ import json
 
 import server.testgenerator as testgenerator
 import server.bridge as bridge
-from utils import sort_priority
+from utils import sort_priority, time_units_converter, memory_units_converter
 
 
 def get_gateway(conf, work_dir):
@@ -774,5 +774,11 @@ class SchedulerExchange(metaclass=abc.ABCMeta):
                 collection[tag] = 0
         if 'CPU model' not in collection:
             collection['CPU model'] = None
+
+        # Make unit translation
+        for mem in (m for m in ("memory size", "disk memory size") if m in collection and collection[m] is not None):
+            collection[mem] = memory_units_converter(collection[mem])[0]
+        for t in (t for t in ("wall time", "CPU time") if t in collection and collection[t] is not None):
+            collection[t] = time_units_converter(collection[t])[0]
 
 __author__ = 'Ilja Zakharov <ilja.zakharov@ispras.ru>'
