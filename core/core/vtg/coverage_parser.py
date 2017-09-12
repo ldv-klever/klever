@@ -23,7 +23,10 @@ class LCOV:
 
         self.arcnames = {}
 
-        self.parse()
+        try:
+            self.parse()
+        except Exception as e:
+            self.logger.debug(e)
 
     def parse(self):
         NEW_FILE_PREFIX = "TN:"
@@ -43,6 +46,10 @@ class LCOV:
 
         excluded_dirs = set()
         if self.type in ('partial', 'lightweight'):
+            if not os.path.isfile(self.coverage_file):
+                self.logger.debug('There is no coverage file')
+                return
+
             with open(self.coverage_file, encoding='utf-8') as fp:
                 all_files = {}
                 for line in fp:
