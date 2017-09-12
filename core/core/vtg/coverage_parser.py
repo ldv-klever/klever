@@ -111,8 +111,6 @@ class LCOV:
                         ignore_file = True
                 elif line.startswith(LINE_PREFIX):
                     splts = line[len(LINE_PREFIX):].split(',')
-                    if splts[1] == "0":
-                        continue
                     covered_lines.setdefault(int(splts[1]), [])
                     covered_lines[int(splts[1])].append(int(splts[0]))
                 elif line.startswith(FUNCTION_NAME_PREFIX):
