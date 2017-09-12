@@ -27,6 +27,7 @@ import zipfile
 import traceback
 
 import core.utils
+import core.vtg.coverage_parser
 
 
 class Job(core.utils.CallbacksCaller):
@@ -190,18 +191,37 @@ class Job(core.utils.CallbacksCaller):
                     def after_generate_all_verification_tasks(context):
                         context.logger.info('Terminate verification statuses message queue')
                         context.mqs['verification statuses'].put(None)
+                        context.mqs['coverages'].put(None)
 
                     core.utils.set_component_callbacks(self.logger, type(self),
                                                        (
                                                            after_generate_abstact_verification_task_desc,
                                                            after_process_single_verdict,
-                                                           after_generate_all_verification_tasks
+                                                           after_generate_all_verification_tasks,
                                                        ))
 
                     # Start up parallel process for reporting results. Without this there can be deadlocks since queue
                     # created and filled above can be overfilled that results in VTG processes will not terminate.
                     self.reporting_results_process = multiprocessing.Process(target=self.report_results)
                     self.reporting_results_process.start()
+
+                self.mqs['coverages'] = multiprocessing.Queue()
+
+                def after_create_verification_report(context):
+                    context.mqs['coverages'].put({
+                        'rule specification': context.rule_specification,
+                        'coverage info': context.coverage_info
+                    })
+
+                def after_generate_all_verification_tasks(context):
+                        context.logger.info('Terminate verification statuses message queue')
+                        context.mqs['coverages'].put(None)
+
+                core.utils.set_component_callbacks(self.logger, type(self), (after_create_verification_report,
+                                                                             after_generate_all_verification_tasks))
+
+                self.collect_coverage_process = multiprocessing.Process(target=self.collect_coverage)
+                self.collect_coverage_process.start()
 
                 self.get_sub_job_components()
 
@@ -408,6 +428,28 @@ class Job(core.utils.CallbacksCaller):
                 self.reporting_results_process.join()
                 if self.reporting_results_process.exitcode:
                     raise RuntimeError('Reporting results failed')
+
+    def collect_coverage(self):
+        total_coverage = {}
+
+        while True:
+            coverages_info = self.mqs['coverages'].get()
+
+            if coverages_info is None:
+                self.mqs['coverages'].close()
+                break
+
+            for file_name, infos in coverages_info['coverage info'].items():
+                total_coverage.setdefault(coverages_info['rule specification'], {})
+                total_coverage[coverages_info['rule specification']].setdefault(file_name, [])
+                total_coverage[coverages_info['rule specification']][file_name] += infos
+
+        for rule, coverages in total_coverage.items():
+            coverage = core.vtg.coverage_parser.LCOV.get_coverage(coverages)
+            with open('coverage.json', 'w', encoding='utf-8') as fp:
+                json.dump(coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
+            arcnames = {info[0]['file name']: info[0]['arcname'] for info in coverages.values()}
+            # TODO: report
 
     def report_results(self):
         # Process exceptions like for uploading reports.

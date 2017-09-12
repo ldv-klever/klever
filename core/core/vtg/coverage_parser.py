@@ -41,6 +41,8 @@ class LCOV:
 
         ignore_file = False
 
+        coverage_info = {}
+
         excluded_dirs = set()
         if self.type in ('partial', 'lightweight'):
             with open(self.coverage_file, encoding='utf-8') as fp:
@@ -113,8 +115,9 @@ class LCOV:
                     splts = line[len(LINE_PREFIX):].split(',')
                     if splts[1] == "0":
                         continue
-                    covered_lines.setdefault(int(splts[1]), [])
-                    covered_lines[int(splts[1])].append(int(splts[0]))
+                    covered_lines[int(splts[0])] = int(splts[1])
+                    #covered_lines.setdefault(int(splts[0]), [])
+                    #covered_lines[int(splts[0])].append(int(splts[1]))
                 elif line.startswith(FUNCTION_NAME_PREFIX):
                     splts = line[len(FUNCTION_NAME_PREFIX):].split(',')
                     function_to_line.setdefault(splts[1], [])
@@ -123,10 +126,22 @@ class LCOV:
                     splts = line[len(FUNCTION_PREFIX):].split(',')
                     if splts[0] == "0":
                         continue
-                    covered_functions.setdefault(int(splts[0]), [])
-                    covered_functions[int(splts[0])].append(function_to_line[splts[1]])
+                    covered_functions[function_to_line[splts[1]]] = int(splts[0])
+                    #covered_functions.setdefault(int(splts[0]), [])
+                    #covered_functions[int(splts[0])].append(function_to_line[splts[1]])
                     count_covered_functions += 1
                 elif line.startswith(EOR_PREFIX):
+                    coverage_info.setdefault(file_name, [])
+                    coverage_info[file_name].append({
+                        'file name': old_file_name,
+                        'arcname': file_name,
+                        'len file': len_file,
+                        'total functions': len(function_to_line),
+                        'covered lines': covered_lines,
+                        'covered functions': covered_functions,
+                    })
+
+                    """
                     self.len_files.setdefault(len_file, [])
                     self.len_files[len_file].append(file_name)
                     self.functions_statistics[file_name] = [count_covered_functions, len(function_to_line)]
@@ -137,15 +152,49 @@ class LCOV:
                     for count, values in covered_functions.items():
                         self.functions_coverage.setdefault(count, {})
                         self.functions_coverage[count][file_name] = list(values)
+                    """
 
-    def get_coverage(self):
+        return coverage_info
+
+    @staticmethod
+    def get_coverage(coverage_info):
+        merged_coverage_info = {}
+        for file_name, coverages in coverage_info.items():
+            merged_coverage_info[file_name] = {
+                'len file': coverages[0]['len file'],
+                'total functions': coverages[0]['total functions'],
+                'covered lines': {},
+                'covered functions': {}
+            }
+            for coverage in coverages:
+                for type in ('covered lines', 'covered functions'):
+                    for line, value in coverage[type].items():
+                        merged_coverage_info[file_name][type].setdefault(line, 0)
+                        merged_coverage_info[file_name][type][line] += value
+
+        line_coverage = {}
+        function_coverage = {}
+        function_statistics = {}
+        for file_name, coverage in merged_coverage_info.items():
+            for line, value in coverage['covered lines'].items():
+                line_coverage.setdefault(value, {})
+                line_coverage[value].setdefault(file_name, [])
+                line_coverage[value][file_name].append(line)
+            for line, value in coverage['covered functions'].items():
+                function_coverage.setdefault(value, {})
+                function_coverage[value].setdefault(file_name, [])
+                function_coverage[value][file_name].append(line)
+            function_statistics[file_name] = [len(coverage['covered functions']), coverage['total functions']]
+        for key, value in line_coverage.items():
+            for file_name, lines in value.items():
+                line_coverage[key][file_name] = LCOV.build_ranges(lines)
         return {
             'line coverage':
-                [[key, value] for key, value in self.lines_coverage.items()]
+                [[key, value] for key, value in line_coverage.items()]
             ,
             'function coverage': {
-                'statistics': self.functions_statistics,
-                'coverage': [[key, value] for key, value in self.functions_coverage.items()]
+                'statistics': function_statistics,
+                'coverage': [[key, value] for key, value in function_coverage.items()]
             }
         }
 
@@ -157,7 +206,8 @@ class LCOV:
             res = sum(1 for _ in fp)
         return res
 
-    def build_ranges(self, lines):
+    @staticmethod
+    def build_ranges(lines):
         if not lines:
             return []
         res = []
