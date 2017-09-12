@@ -11,7 +11,6 @@ class LCOV:
         self.shadow_src_dir = shadow_src_dir
         self.main_work_dir = main_work_dir
         self.type = type
-        self.len_files = {}
         if self.type not in ('full', 'partial', 'lightweight'):
             raise NotImplementedError("Coverage type '{0}' is not supported".format(self.type))
 
@@ -81,13 +80,11 @@ class LCOV:
                     function_to_line = {}
                     covered_functions = {}
                     count_covered_functions = 0
-                    len_file = 0
                 elif line.startswith(FILENAME_PREFIX):
                     # Get file name, determine his directory and determine, should we ignore this
                     file_name = line[len(FILENAME_PREFIX):]
                     if os.path.isfile(file_name) \
                         and not any(map(lambda prefix: file_name.startswith(prefix), excluded_dirs)):
-                        len_file = self.get_file_len(file_name)
                         for dest, src in DIR_MAP:
                             if file_name.startswith(src):
                                 if dest == 'generated models':
@@ -125,8 +122,6 @@ class LCOV:
                     covered_functions[int(splts[0])].append(function_to_line[splts[1]])
                     count_covered_functions += 1
                 elif line.startswith(EOR_PREFIX):
-                    self.len_files.setdefault(len_file, [])
-                    self.len_files[len_file].append(file_name)
                     self.functions_statistics[file_name] = [count_covered_functions, len(function_to_line)]
                     for count, values in covered_lines.items():
                         ranges = self.build_ranges(values)
@@ -149,11 +144,6 @@ class LCOV:
 
     def get_arcnames(self):
         return self.arcnames
-
-    def get_file_len(self, file_name):
-        with open(file_name, encoding='utf-8') as fp:
-            res = sum(1 for _ in fp)
-        return res
 
     def build_ranges(self, lines):
         if not lines:
