@@ -530,7 +530,7 @@ class Job(core.utils.CallbacksCaller):
                 if prev_verification_result['ideal verdict'] != 'safe':
                     raise ValueError(
                         'Ideal verdict for bug "{0}" after fix is "{1}" ("safe" is expected)'
-                            .format(bug_name, prev_verification_result['ideal verdict']))
+                        .format(bug_name, prev_verification_result['ideal verdict']))
 
                 bug_fix_verification_result = prev_verification_result
         elif verification_result['ideal verdict'] == 'safe':
@@ -542,7 +542,7 @@ class Job(core.utils.CallbacksCaller):
                 if prev_verification_result['ideal verdict'] != 'unsafe':
                     raise ValueError(
                         'Ideal verdict for bug "{0}" before fix is "{1}" ("unsafe" is expected)'
-                            .format(bug_name, prev_verification_result['ideal verdict']))
+                        .format(bug_name, prev_verification_result['ideal verdict']))
 
                 bug_verification_result = prev_verification_result
             else:
