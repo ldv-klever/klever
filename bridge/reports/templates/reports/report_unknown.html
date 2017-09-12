@@ -62,15 +62,17 @@
                 {% endif %}
             </div>
 
-            <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
-            <div class="ui special popup">
-                <div class="header">{% trans 'Consumed resources' %}</div>
-                <div class="content">
-                    <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
-                    <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
-                    <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+            {% if resources %}
+                <i class="ui computer violet link icon parent-popup" data-variation="very wide"></i>
+                <div class="ui special popup">
+                    <div class="header">{% trans 'Consumed resources' %}</div>
+                    <div class="content">
+                        <span class="purple-subtitle">{% trans 'Wall time' %}: </span>{{ resources.wall_time }}<br>
+                        <span class="purple-subtitle">{% trans 'CPU time' %}: </span>{{ resources.cpu_time }}<br>
+                        <span class="purple-subtitle">{% trans 'Memory' %}: </span>{{ resources.memory }}<br>
+                    </div>
                 </div>
-            </div>
+            {% endif %}
 
             <br><br>
             <div id="leaf_attributes" style="display: none">

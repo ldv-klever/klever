@@ -3,7 +3,7 @@
     "kernel model": {},
     "environment processes": {
       "pm_ops_scenario": {
-        "comment": "Power management scenario.",
+        "comment": "Invoke power management callbacks.",
         "labels": {
           "pm_ops": {
             "container": true,
@@ -201,7 +201,7 @@
     "kernel model": {},
     "environment processes": {
       "pm_ops_scenario": {
-        "comment": "Power management scenario.",
+        "comment": "Invoke power management callbacks.",
         "labels": {
           "pm_ops": {
             "container": true,

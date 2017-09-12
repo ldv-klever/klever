@@ -185,7 +185,7 @@
     },
     "environment processes": {
       "scsi_LLDd_scenario": {
-        "comment": "Call SCSI mid level callbacks (e.g. model LLD.",
+        "comment": "Invoke SCSI mid level callbacks (e.g. model LLD).",
         "labels": {
           "host": {
             "container": true,

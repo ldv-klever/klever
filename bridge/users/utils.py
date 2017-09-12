@@ -257,8 +257,9 @@ UNKNOWN_MARK_ASS_REPORTS_VIEW = {
 }
 
 SAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'job', 'format'],
     # FILTERS:
+    'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from SAFE_VERDICTS>
     # new_verdict: <list of identifiers from SAFE_VERDICTS>
@@ -267,8 +268,9 @@ SAFE_ASSOCIATION_CHANGES_VIEW = {
     # attr: [<Attr name>, iexact|istartswith, <Attr value>]
 }
 UNSAFE_ASSOCIATION_CHANGES_VIEW = {
-    'columns': ['change_kind', 'sum_verdict', 'job', 'format'],
+    'columns': ['change_kind', 'sum_verdict', 'tags', 'job', 'format'],
     # FILTERS:
+    'hidden': ['unchanged']
     # change_kind: <sublist from ['changed', 'new', 'deleted']>
     # old_verdict: <list of identifiers from UNSAFE_VERDICTS>
     # new_verdict: <list of identifiers from UNSAFE_VERDICTS>

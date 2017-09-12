@@ -37,6 +37,9 @@ def import_error_trace(logger, witness):
     # Make more difficult transformations
     envmodel_simplifications(logger, trace)
 
+    # Do final checks
+    trace.final_checks()
+
     return trace.serialize()
 
 # This is intended for testing purposes, when one has a witness and would like to debug its transformations.
