@@ -89,7 +89,7 @@ def merge_files(logger, conf, abstract_task_desc):
     return 'cil.i'
 
 
-def get_list_of_verifiers_options(logger, conf):
+def get_list_of_verifiers_options(logger, resource_limits, conf):
     """
     Collect verifier oiptions from a user provided description, template and profile and prepare a final list of
     options. Each option is represented as a small dictionary with an option name given as a key and value provided
@@ -97,6 +97,7 @@ def get_list_of_verifiers_options(logger, conf):
     (the most important), options provided by a profile and options from the template.
 
     :param logger: Logger.
+    :param resource_limits: Dictionary with resource limitations of the task.
     :param conf: Configuration dictionary.
     :return: List with options.
     """
@@ -182,6 +183,41 @@ def get_list_of_verifiers_options(logger, conf):
             last = sets.pop()
         new = sets.pop()
         last = merge(last, new)
+
+    # Process given options according to ldv patterns
+    matcher = re.compile("\%ldv\:([\w|\s]+)\:(\d+\.\d+)\:(\w+)\%")
+
+    def processor(v):
+        """Replace patterns in options by values"""
+        if matcher.search(v):
+            name, modifier, units = matcher.search(v).groups()
+            if '' in (name, modifier, value):
+                raise ValueError("Expect an option pattern in the form %ldv:Name in tasks.json:float modifier:units% "
+                                 "but got: {!r}".format(matcher.search(v).group(0)))
+            if name not in resource_limits:
+                raise KeyError("There is no limitation {!r} set but it is required for configuration option "
+                               "pattern {!r}".format(name, matcher.search(v).group(0)))
+            modifier = float(modifier)
+            if name in ("memory size", "disk memory size"):
+                i = core.utils.memory_units_converter(resource_limits[name], units)[0]
+            elif name in ("wall time", "CPU time"):
+                i = core.utils.time_units_converter(resource_limits[name], units)[0]
+            else:
+                i = resource_limits[name]
+            i = i * modifier
+            if isinstance(resource_limits[name], int):
+                i = int(round(i, 0))
+            elif isinstance(resource_limits[name], float):
+                i = float(round(i, 2))
+            i = str(i)
+            v = v.replace(matcher.search(v).group(0), i)
+
+        return v
+
+    for index in range(len(last['add options'])):
+        option = list(last['add options'][index].keys())[0]
+        value = list(last['add options'][index].values())[0]
+        last['add options'][index] = {processor(option): processor(value)}
 
     return last['add options']
 

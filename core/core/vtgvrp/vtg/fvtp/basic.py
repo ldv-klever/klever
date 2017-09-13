@@ -77,7 +77,7 @@ class Basic:
             benchmark.set('timelimit', str(int(int(resource_limits["CPU time"]) * 0.9)))
 
         # Then add options
-        self._prepare_run_definition(benchmark)
+        self._prepare_run_definition(benchmark, resource_limits)
 
         # Files
         files = self._prepare_task_files(benchmark)
@@ -132,16 +132,17 @@ class Basic:
 
         return task_desc
 
-    def _prepare_run_definition(self, benchmark_definition):
+    def _prepare_run_definition(self, benchmark_definition, resource_limits):
         """
         The function should add a new subelement with name 'rundefinition' to the XML description of the given
         benchmark. The new element should contains a list of options for the given verifier.
 
         :param benchmark_definition: ElementTree.Element.
+        :param resource_limits: Dictionary with resource limitations of the task.
         :return: None.
         """
         rundefinition = ElementTree.SubElement(benchmark_definition, "rundefinition")
-        options = common.get_list_of_verifiers_options(self.logger, self.conf)
+        options = common.get_list_of_verifiers_options(self.logger, resource_limits, self.conf)
 
         # Add options to the XML description
         for opt in options:
