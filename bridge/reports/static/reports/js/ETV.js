@@ -82,7 +82,6 @@ $(document).ready(function () {
     }
     $('#ETVSourceTitle').click(function () {
         src_filename_trunc();
-        console.log(123);
     });
 
     function open_function(hidelink, shift_pressed, change_state) {

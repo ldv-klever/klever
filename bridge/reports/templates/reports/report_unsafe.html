@@ -63,7 +63,7 @@
         <div class="seven wide column">
             <div class="ui tiny buttons" style="float: right;">
                 {% with parents|last as parent %}
-                    {% if parent.coverage %}
+                    {% if parent.has_coverage %}
                         <a href="{% if user.extended.coverage_data %}{% url 'reports:coverage' report.parent_id %}{% else %}{% url 'reports:coverage_light' report.parent_id %}{% endif %}" class="ui tiny icon pink button note-popup" data-position="bottom left" data-content="{% trans 'Coverage' %}"><i class="ui bug icon"></i></a>
                     {% endif %}
                 {% endwith %}

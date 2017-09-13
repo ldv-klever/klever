@@ -24,7 +24,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.utils.translation import ugettext_lazy as _
 
-from bridge.vars import USER_ROLES, MARK_STATUS, MARK_TYPE, ASSOCIATION_TYPE
+from bridge.vars import USER_ROLES, MARK_STATUS, MARK_TYPE, ASSOCIATION_TYPE, PROBLEM_DESC_FILE
 from bridge.utils import unique_id, BridgeException, logger, ArchiveFileContent
 
 from users.models import User
@@ -181,7 +181,8 @@ class ConnectMark:
         problems = {}
         for unknown in ReportUnknown.objects.filter(component=self.mark.component):
             try:
-                problem_description = ArchiveFileContent(unknown, unknown.problem_description).content.decode('utf8')
+                problem_description = ArchiveFileContent(unknown, 'problem_description', PROBLEM_DESC_FILE)\
+                    .content.decode('utf8')
             except Exception as e:
                 logger.exception("Can't get problem description for unknown '%s': %s" % (unknown.id, e))
                 return
@@ -217,7 +218,8 @@ class ConnectReport:
         self.report.markreport_set.all().delete()
 
         try:
-            problem_desc = ArchiveFileContent(self.report, self.report.problem_description).content.decode('utf8')
+            problem_desc = ArchiveFileContent(self.report, 'problem_description', PROBLEM_DESC_FILE)\
+                .content.decode('utf8')
         except Exception as e:
             logger.exception("Can't get problem desc for unknown '%s': %s" % (self.report.id, e))
             return

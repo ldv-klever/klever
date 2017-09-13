@@ -27,7 +27,7 @@ from bridge.populate import populate_users
 from bridge.settings import BASE_DIR, MEDIA_ROOT
 from bridge.utils import KleverTestCase, ArchiveFileContent
 from bridge.vars import JOB_STATUS, MARKS_COMPARE_ATTRS, SAFE_VERDICTS, UNSAFE_VERDICTS, MARK_SAFE, MARK_UNSAFE,\
-    MARK_STATUS, MARK_TYPE
+    MARK_STATUS, MARK_TYPE, PROBLEM_DESC_FILE
 
 from users.models import User
 from jobs.models import Job
@@ -959,7 +959,7 @@ class TestMarks(KleverTestCase):
         unknown = None
 
         for u in ReportUnknown.objects.filter(root__job_id=self.job.pk):
-            afc = ArchiveFileContent(u, u.problem_description)
+            afc = ArchiveFileContent(u, 'problem_description', PROBLEM_DESC_FILE)
             if afc.content == b'ValueError: got wrong attribute: \'rule\'.':
                 unknown = u
                 break

@@ -23,6 +23,8 @@ import time
 
 from django.template import loader
 
+from bridge.vars import COVERAGE_FILE
+
 from reports.models import ReportComponent
 
 from reports.utils import get_parents
@@ -183,12 +185,12 @@ class GetCoverageSrcHTML:
         }})
 
     def __get_arch_content(self):
-        with self._report.coverage_arch as fp:
+        with self._report.coverage as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 return zfp.read(self.filename).decode('utf8'),\
-                       json.loads(zfp.read(self._report.coverage).decode('utf8'))
+                       json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
 
     def __get_coverage(self, coverage):
         data = {}
@@ -389,18 +391,18 @@ class CoverageStatistics:
     def __get_files_and_data(self):
         if not self.report.verification:
             raise ValueError("The parent is not verification report")
-        with self.report.coverage_arch as fp:
+        with self.report.coverage as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
                 for filename in zfp.namelist():
                     if filename.endswith('/'):
                         continue
-                    if filename == self.report.coverage:
-                        coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
+                    if filename == COVERAGE_FILE:
+                        coverage = json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
                         self.__get_covered(coverage['line coverage'])
                         self._covered_funcs = self.__get_covered_funcs(coverage['function coverage']['statistics'])
-                    elif filename != self.report.log:
+                    else:
                         self._files.append(os.path.normpath(filename))
                         with zfp.open(filename) as inzip_fp:
                             lines = 0
@@ -539,11 +541,11 @@ class DataStatistic:
         if not self.report.verification:
             raise ValueError("The parent is not verification report")
         data = []
-        with self.report.coverage_arch as fp:
+        with self.report.coverage as fp:
             if os.path.splitext(fp.name)[-1] != '.zip':
                 raise ValueError('Archive type is not supported')
             with zipfile.ZipFile(fp, 'r') as zfp:
-                coverage = json.loads(zfp.read(self.report.coverage).decode('utf8'))
+                coverage = json.loads(zfp.read(COVERAGE_FILE).decode('utf8'))
                 for val in sorted(coverage):
                     if val not in {'line coverage', 'function coverage'} and 'statistics' in coverage[val]:
                         data.append({

@@ -27,8 +27,6 @@ from bridge.vars import UNSAFE_VERDICTS, SAFE_VERDICTS, COMPARE_VERDICT
 from bridge.utils import RemoveFilesBeforeDelete, logger
 from jobs.models import Job
 
-LOG_DIR = 'ReportLogs'
-
 
 def get_component_path(instance, filename):
     curr_date = now()
@@ -111,20 +109,22 @@ class ReportComponent(Report):
     memory = models.BigIntegerField(null=True)
     start_date = models.DateTimeField()
     finish_date = models.DateTimeField(null=True)
-    log = models.CharField(max_length=128, null=True)
-    coverage = models.CharField(max_length=128, null=True)
-    archive = models.FileField(upload_to=get_component_path, null=True)
-    coverage_arch = models.FileField(upload_to=get_component_path, null=True)
+    log = models.FileField(upload_to=get_component_path, null=True)
+    coverage = models.FileField(upload_to=get_component_path, null=True)
+    verifier_input = models.FileField(upload_to=get_component_path, null=True)
     data = models.FileField(upload_to=get_component_path, null=True)
 
     def new_data(self, fname, fp, save=False):
         self.data.save(fname, File(fp), save)
 
-    def new_archive(self, fname, fp, save=False):
-        self.archive.save(fname, File(fp), save)
+    def add_log(self, fname, fp, save=False):
+        self.log.save(fname, File(fp), save)
 
-    def new_coverage(self, fname, fp, save=False):
-        self.coverage_arch.save(fname, File(fp), save)
+    def add_coverage(self, fname, fp, save=False):
+        self.coverage.save(fname, File(fp), save)
+
+    def add_verifier_input(self, fname, fp, save=False):
+        self.verifier_input.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_component'
@@ -133,21 +133,24 @@ class ReportComponent(Report):
 @receiver(pre_delete, sender=ReportComponent)
 def report_component_delete_signal(**kwargs):
     report = kwargs['instance']
-    if report.archive:
-        report.archive.storage.delete(report.archive.path)
+    if report.log:
+        report.log.storage.delete(report.log.path)
+    if report.coverage:
+        report.coverage.storage.delete(report.coverage.path)
+    if report.verifier_input:
+        report.verifier_input.storage.delete(report.verifier_input.path)
     if report.data:
         report.data.storage.delete(report.data.path)
 
 
 class ReportUnsafe(Report):
-    archive = models.FileField(upload_to='Unsafes/%Y/%m')
-    error_trace = models.CharField(max_length=128)
+    error_trace = models.FileField(upload_to='Unsafes/%Y/%m')
     verdict = models.CharField(max_length=1, choices=UNSAFE_VERDICTS, default='5')
     verifier_time = models.BigIntegerField()
     has_confirmed = models.BooleanField(default=False)
 
-    def new_archive(self, fname, fp, save=False):
-        self.archive.save(fname, File(fp), save)
+    def add_trace(self, fname, fp, save=False):
+        self.error_trace.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_unsafe'
@@ -156,18 +159,17 @@ class ReportUnsafe(Report):
 @receiver(pre_delete, sender=ReportUnsafe)
 def unsafe_delete_signal(**kwargs):
     unsafe = kwargs['instance']
-    unsafe.archive.storage.delete(unsafe.archive.path)
+    unsafe.error_trace.storage.delete(unsafe.error_trace.path)
 
 
 class ReportSafe(Report):
-    archive = models.FileField(upload_to='Safes/%Y/%m', null=True)
-    proof = models.CharField(max_length=128, null=True)
+    proof = models.FileField(upload_to='Safes/%Y/%m', null=True)
     verdict = models.CharField(max_length=1, choices=SAFE_VERDICTS, default='4')
     verifier_time = models.BigIntegerField()
     has_confirmed = models.BooleanField(default=False)
 
-    def new_archive(self, fname, fp, save=False):
-        self.archive.save(fname, File(fp), save)
+    def add_proof(self, fname, fp, save=False):
+        self.proof.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_safe'
@@ -176,17 +178,16 @@ class ReportSafe(Report):
 @receiver(pre_delete, sender=ReportSafe)
 def safe_delete_signal(**kwargs):
     safe = kwargs['instance']
-    if safe.archive:
-        safe.archive.storage.delete(safe.archive.path)
+    if safe.proof:
+        safe.proof.storage.delete(safe.proof.path)
 
 
 class ReportUnknown(Report):
     component = models.ForeignKey(Component, on_delete=models.PROTECT)
-    archive = models.FileField(upload_to='Unknowns/%Y/%m')
-    problem_description = models.CharField(max_length=128)
+    problem_description = models.FileField(upload_to='Unknowns/%Y/%m')
 
-    def new_archive(self, fname, fp, save=False):
-        self.archive.save(fname, File(fp), save)
+    def add_problem_desc(self, fname, fp, save=False):
+        self.problem_description.save(fname, File(fp), save)
 
     class Meta:
         db_table = 'report_unknown'
@@ -195,7 +196,7 @@ class ReportUnknown(Report):
 @receiver(pre_delete, sender=ReportUnknown)
 def unknown_delete_signal(**kwargs):
     unknown = kwargs['instance']
-    unknown.archive.storage.delete(unknown.archive.path)
+    unknown.problem_description.storage.delete(unknown.problem_description.path)
 
 
 class ReportComponentLeaf(models.Model):
