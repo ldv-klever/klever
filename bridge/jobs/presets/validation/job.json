@@ -16,7 +16,9 @@
       },
       "VRP": {
         "expect coverage": true,
-        "coverage completeness": "full"
+        "coverage completeness": "full",
+        "task generation pending period": 300,
+        "task solutions pending period": 30
       }
     }
   },
