@@ -23,6 +23,7 @@ import json
 import xml.etree.ElementTree as ElementTree
 import glob
 import re
+import time
 import traceback
 
 import core.components
@@ -75,6 +76,14 @@ class VRP(core.components.Component):
 
     def result_processing(self):
         pending = dict()
+        if 'task solutions pending period' in self.conf['VTGVRP']['VRP']:
+            solution_timeout = int(self.conf['VTGVRP']['VRP']['task solutions pending period'])
+        else:
+            solution_timeout = 30
+        if 'task generation pending period' in self.conf['VTGVRP']['VRP']:
+            generation_timeout = int(self.conf['VTGVRP']['VRP']['task generation pending period'])
+        else:
+            generation_timeout = 300
 
         def submit_processing_task(status, t):
             self.mqs['VRP processing tasks'].put([status, pending[t]])
@@ -132,7 +141,7 @@ class VRP(core.components.Component):
                         self.logger.debug("Fetched {} tasks".format(number))
                 else:
                     try:
-                        data = self.mqs['VTGVRP pending tasks'].get(block=True, timeout=30)
+                        data = self.mqs['VTGVRP pending tasks'].get(block=True, timeout=generation_timeout)
                         if not data:
                             receiving = False
                             self.logger.info("Expect no tasks to be generated")
@@ -164,6 +173,8 @@ class VRP(core.components.Component):
                 self.mqs['VTGVRP pending tasks'].close()
                 self.mqs['VRP processing tasks'].close()
                 break
+
+            time.sleep(solution_timeout)
 
         self.logger.debug("Shutting down result processing gracefully")
 
