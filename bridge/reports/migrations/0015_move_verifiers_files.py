@@ -24,14 +24,13 @@ def move_files(apps, schema_editor):
                             else:
                                 has_files = True
                                 vif_p.writestr(fname, zfp.read(fname).decode('utf8'))
-        report.log.delete()
-        mem1.seek(0)
-        mem2.seek(0)
-        if has_log:
-            report.log.save('log.zip', File(mem1), False)
         if has_files:
-            report.verifier_input.save('VerifierInput.zip', File(mem2), False)
-        report.save()
+            report.log.delete()
+            if has_log:
+                mem1.seek(0)
+                report.log.save('log.zip', File(mem1), False)
+            mem2.seek(0)
+            report.verifier_input.save('VerifierInput.zip', File(mem2), True)
 
 
 class Migration(migrations.Migration):
