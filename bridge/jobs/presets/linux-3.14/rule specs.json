@@ -51,7 +51,6 @@
               "implicit callback calls": true,
               "direct control functions calls": true,
               "nested automata": true,
-              "instance modifier": 1,
               "pointer initialization": {
                 "structures": true,
                 "arrays": true,
@@ -134,8 +133,7 @@
               },
               "verifier/gcc.c": {},
               "verifier/nondet.c": {},
-              "verifier/memory.c": {},
-              "verifier/thread.c": {}
+              "verifier/memory.c": {}
             }
           }
         },
@@ -183,7 +181,6 @@
           "direct control functions calls": true,
           "nested automata": true,
           "no actions composition": ["Condition"],
-          "instance modifier": 1,
           "pointer initialization": {
             "structures": true,
             "arrays": true,
@@ -587,7 +584,6 @@
            "direct control functions calls": false,
            "nested automata": true,
            "no actions composition": ["Condition"],
-           "instance modifier": 1,
            "pointer initialization": {
              "structures": true,
              "arrays": true,
@@ -613,7 +609,7 @@
         "verifier profile": "CPALockator race checking",
         "verifier": {
           "name": "CPAchecker",
-          "version": "CPALockator:25139"
+          "version": "CPALockator:25248"
         },
         "result processing": {
           "expect several files": true,

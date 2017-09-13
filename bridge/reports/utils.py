@@ -102,8 +102,10 @@ def get_parent_resources(user, report):
         parent = ReportComponent.objects.get(id=report.parent_id)
     except ObjectDoesNotExist:
         return {}
-    rd = get_resource_data(user.extended.data_format, user.extended.accuracy, parent)
-    return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
+    if all(x is not None for x in [parent.wall_time, parent.cpu_time, parent.memory]):
+        rd = get_resource_data(user.extended.data_format, user.extended.accuracy, parent)
+        return {'wall_time': rd[0], 'cpu_time': rd[1], 'memory': rd[2]}
+    return None
 
 
 def report_resources(report, user):

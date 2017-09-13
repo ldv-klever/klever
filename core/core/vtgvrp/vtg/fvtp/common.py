@@ -250,6 +250,8 @@ def prepare_verification_task_files_archive(files):
     :param files: A list of files.
     :return: None
     """
-    with zipfile.ZipFile('task files.zip', mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-        for file in files:
-            zfp.write(file)
+    with open('task files.zip', mode='w+b', buffering=0) as fp:
+        with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+            for file in files:
+                zfp.write(file)
+            os.fsync(zfp.fp)

@@ -582,6 +582,7 @@ def report(logger, kind, report_data, mq, directory):
                 attr_val = attr[attr_name]
                 # Does capitalize attribute name.
                 attr_name = attr_name[0].upper() + attr_name[1:]
+
                 if isinstance(attr_val, str):
                     capitalized_name_attrs.append({attr_name: attr_val})
                 else:
@@ -606,12 +607,15 @@ def report(logger, kind, report_data, mq, directory):
             if os.path.isfile(rel_report_files_archive):
                 unique_file_name(rel_report_files_archive)
             rel_report_file_archives[archive_name] = rel_report_files_archive
-            with zipfile.ZipFile(rel_report_files_archive, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
-                for file in files:
-                    arcname = None
-                    if 'arcname' in report_data and file in report_data['arcname']:
-                        arcname = report_data['arcname'][file]
-                    zfp.write(file, arcname=arcname)
+            with open(rel_report_files_archive, mode='w+b', buffering=0) as fp:
+                with zipfile.ZipFile(fp, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                    for file in files:
+                        arcname = None
+                        if 'arcname' in report_data and file in report_data['arcname']:
+                            arcname = report_data['arcname'][file]
+                        zfp.write(file, arcname=arcname)
+                    os.fsync(zfp.fp)
+
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
                                                                        rel_report_file_archives[archive_name]))

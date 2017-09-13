@@ -17,6 +17,7 @@
                 <div class="ui small icon buttons top attached">
                     <button id="copy_job_btn" class="ui teal button note-popup{% if not can_create %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Make copy' %}"><i class="file outline icon"></i></button>
                     <button id="load_job_btn" class="ui olive button note-popup{% if not can_download %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Download' %}"><i class="download icon"></i></button>
+                    <button id="upload_reports_modal_show" class="ui teal button note-popup{% if not can_upload_reports %} disabled{% endif %}" data-position="bottom right" data-content="{% trans 'Upload reports' %}"><i class="tasks icon"></i></button>
                     <button id="decide_job_btn_show_popup" class="ui purple button note-popup{% if not can_decide %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Start decision' %}"><i class="play icon"></i></button>
                     <button id="show_fast_job_start_popup" data-variation="very wide" class="ui purple button note-popup{% if not can_decide %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Start decision with default values' %}"><i class="play forward icon"></i></button>
                     <button id="show_last_job_start_popup" data-variation="very wide" class="ui purple button note-popup{% if not can_decide %} disabled{% endif %}" data-position="bottom left" data-content="{% trans 'Start decision with last configuration' %}"><i class="history icon"></i></button>
@@ -316,6 +317,25 @@
                     <button id="cancel_clear_verifications" type="button" class="ui blue basic inverted button">{% trans 'Cancel' %}</button>
                     <button id="clear_verifications_confirm" type="button" class="ui red basic inverted button">{% trans 'Clear' %}</button>
                 </div>
+            </div>
+        </div>
+        <div id="upload_reports_popup" class="ui modal">
+            <div class="header">{% trans 'Upload reports' %}</div>
+            <div class="content">
+                <p>{% trans "Choose reprots archive. Format of this archive is described in documentation. Old reports will be replaced." %}</p>
+                <div class="ui grid">
+                    <div class="three wide column right aligned">
+                        <span class="ui violet button btn-file">{% trans 'Browse' %}<input id="upload_reports_file_input" type="file"></span>
+                    </div>
+                    <div class="eight wide column">
+                        <br>
+                        <span id="upload_reports_filename" class="italic" style="color: #7b7b7b">&nbsp;</span>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <button id="upload_reports_start" type="button" class="ui positive button">{% trans 'Upload' %}</button>
+                <button id="upload_reports_cancel" type="button" class="ui blue button">{% trans 'Cancel' %}</button>
             </div>
         </div>
         {% if can_dfc %}

@@ -83,7 +83,7 @@ class VRP(core.components.Component):
         if 'task generation pending period' in self.conf['VTGVRP']['VRP']:
             generation_timeout = int(self.conf['VTGVRP']['VRP']['task generation pending period'])
         else:
-            generation_timeout = 300
+            generation_timeout = 30
 
         def submit_processing_task(status, t):
             self.mqs['VRP processing tasks'].put([status, pending[t]])

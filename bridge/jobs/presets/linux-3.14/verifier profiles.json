@@ -33,6 +33,14 @@
         {"-smg-ldv": ""},
         {"-setprop": "analysis.machineModel=LINUX64"}
       ]
+    },
+    "CPAlockator": {
+      "description": "CPAchecker for checking races",
+      "inherit": "CPAchecker common",
+      "add options": [
+        {"-lockator-linux": ""},
+        {"-setprop": "analysis.machineModel=LINUX64"}
+      ]
     }
   },
   "profiles": {
@@ -50,8 +58,8 @@
     },
     "CPALockator race checking": {
       "CPAchecker": {
-        "CPALockator:???": {
-          "inherit": "CPALockator race checking"
+        "CPALockator:25248": {
+          "inherit": "CPAlockator"
         }
       }
     },
