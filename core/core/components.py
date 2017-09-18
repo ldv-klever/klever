@@ -34,7 +34,7 @@ class ComponentError(ChildProcessError):
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -47,7 +47,6 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.mqs = mqs
         self.locks = locks
         self.attrs = attrs
-        self.unknown_attrs = unknown_attrs
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
 
@@ -134,17 +133,14 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         try:
             if self.separate_from_parent and self.__pid == os.getpid():
                 if os.path.isfile('problem desc.txt'):
-                    report = {
-                        'id': self.id + '/unknown',
-                        'parent id': self.id,
-                        'problem desc': 'problem desc.txt',
-                        'files': ['problem desc.txt']
-                    }
-                    if self.unknown_attrs:
-                        report.update({'attrs': self.unknown_attrs})
                     core.utils.report(self.logger,
                                       'unknown',
-                                      report,
+                                      {
+                                          'id': self.id + '/unknown',
+                                          'parent id': self.id,
+                                          'problem desc': 'problem desc.txt',
+                                          'files': ['problem desc.txt']
+                                      },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
 

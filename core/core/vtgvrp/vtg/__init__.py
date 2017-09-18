@@ -297,9 +297,9 @@ def resolve_rule_class(name):
 class VTG(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                  unknown_attrs, separate_from_parent, include_child_resources)
+                                  separate_from_parent, include_child_resources)
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.mqs['prepared verification tasks'] = multiprocessing.Queue()
         self.mqs['prepare verification objects'] = multiprocessing.Queue()
@@ -519,9 +519,9 @@ class VTG(core.components.Component):
 class VTGW(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                   unknown_attrs, separate_from_parent, include_child_resources)
+                                   separate_from_parent, include_child_resources)
         self.verification_obj = None
         self.rule_spec = None
 

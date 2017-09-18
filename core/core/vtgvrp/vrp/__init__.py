@@ -36,7 +36,7 @@ from core.vtgvrp.vrp.coverage_parser import LCOV
 class VRP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         # Rule specification descriptions were already extracted when getting VTG callbacks.
         self.__pending = dict()
         self.__downloaded = dict()
@@ -50,7 +50,7 @@ class VRP(core.components.Component):
 
         # Common initialization
         super(VRP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                  unknown_attrs, separate_from_parent, include_child_resources)
+                                  separate_from_parent, include_child_resources)
 
     def process_results(self):
         self.mqs['VRP processing tasks'] = multiprocessing.Queue()
@@ -92,7 +92,7 @@ class VRP(core.components.Component):
             new_id = "{}/{}".format(vo, rule)
             workdir = os.path.join(vo, rule)
             rp = RP(self.conf, self.logger, self.id, self.callbacks, self.mqs, self.locks, new_id, workdir,
-                    [{"Rule specification": rule}], separate_from_parent=True)
+                    [{"Rule specification": rule}, {"Verification object": vo}], separate_from_parent=True)
             rp.start()
             self.__subcomponents[t] = (rp, vo, rule)
 
@@ -182,7 +182,7 @@ class VRP(core.components.Component):
 class RP(core.components.Component):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         # Read this in a callback
         self.verdict = None
         self.rule_specification = None
@@ -191,7 +191,7 @@ class RP(core.components.Component):
 
         # Common initialization
         super(RP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                 unknown_attrs, separate_from_parent, include_child_resources)
+                                 separate_from_parent, include_child_resources)
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
 
     def fetcher(self):

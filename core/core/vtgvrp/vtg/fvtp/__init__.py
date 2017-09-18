@@ -23,9 +23,9 @@ import core.vtgvrp.vtg.plugins
 class FVTP(core.vtgvrp.vtg.plugins.Plugin):
 
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         super(FVTP, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                   unknown_attrs, separate_from_parent, include_child_resources)
+                                   separate_from_parent, include_child_resources)
         self.shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
                                                            self.conf['shadow source tree']))
         self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
