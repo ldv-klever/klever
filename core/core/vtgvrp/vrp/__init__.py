@@ -77,7 +77,7 @@ class VRP(core.components.Component):
     def result_processing(self):
         pending = dict()
         # todo: move it from job.json to GUI
-        if  'task solutions pending period' in self.conf['VTGVRP']['VRP']:
+        if 'task solutions pending period' in self.conf['VTGVRP']['VRP']:
             solution_timeout = int(self.conf['VTGVRP']['VRP']['task solutions pending period'])
         else:
             solution_timeout = 30
@@ -158,6 +158,9 @@ class VRP(core.components.Component):
             if len(pending) > 0 and len(self.__subcomponents) < self.__workers:
                 tasks_statuses = session.get_tasks_statuses(list(pending.keys()))
                 for task in list(pending.keys()):
+                    if len(self.__subcomponents) > 10:
+                        break
+
                     if task in tasks_statuses['finished']:
                         submit_processing_task('finished', task)
                         del pending[task]
