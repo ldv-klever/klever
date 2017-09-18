@@ -65,14 +65,14 @@
     },
     "memory checking Linux64": {
       "CPAchecker": {
-        "smg_witness_for_ldv:24577": {
+        "smg_witness_for_ldv:25566": {
           "inherit": "CPAchecker common"
         }
       }
     },
     "memory checking ARM": {
       "CPAchecker": {
-        "smg_witness_for_ldv:24577": {
+        "smg_witness_for_ldv:25566": {
           "inherit": "CPAchecker SMG memory checking",
           "add options": [
             {"-setprop": "analysis.machineModel=ARM"}
