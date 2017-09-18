@@ -31,7 +31,7 @@ from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'call_forests'
+DEFAULT_CONVERT = 'thread_call_forests'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
@@ -57,7 +57,7 @@ class ConvertTrace:
             raise BridgeException(_('Error trace convert function does not exist'))
         self.pattern_error_trace = func()
 
-    def call_forests(self):
+    def callback_call_forests(self):
         """
 This function is extracting the error trace call stack "forests".
 The forest is a couple of "call trees" under callback action.
@@ -68,13 +68,14 @@ Empty trees under callback actions are ignored. Returns list of forests.
 
         return ErrorTraceForests(self.error_trace).trace
 
-    def all_forests(self):
+    def thread_call_forests(self):
         """
 This function is extracting the error trace call stack "forests".
-The forest is a couple of "call trees" in the same thread.
+The forest is a couple of "call trees" in the same thread if it doesn't have callback actions at all.
+Otherwise the forest is a couple of "call trees" under callback action.
 "Call tree" is tree of function names.
-Call tree includes notes, warnings and functions that have it (the whole callstack).
-Empty threads are ignored. Return list of forests.
+All its leaves are names of functions with 'note' or 'warn' in its enter or body.
+Empty threads and callback actions are ignored. Return list of forests.
         """
 
         return ErrorTraceForests(self.error_trace, all_threads=True).trace

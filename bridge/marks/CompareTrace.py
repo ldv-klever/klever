@@ -30,7 +30,7 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 # 5) Add docstring to the created function.
 # Do not use 'pattern_error_trace', 'error' and 'result' as function name.
 
-DEFAULT_COMPARE = 'call_forests_compare'
+DEFAULT_COMPARE = 'thread_call_forests'
 
 
 class CompareTrace:
@@ -67,11 +67,11 @@ class CompareTrace:
         if not (isinstance(self.result, float) and 0 <= self.result <= 1):
             raise BridgeException("Compare function returned incorrect result: %s" % self.result)
 
-    def call_forests_compare(self):
+    def callback_call_forests(self):
         """
-Jaccard index of "call_forests" convertion.
+Jaccard index of "callback_call_forests" convertion.
         """
-        converted_et = self.__get_converted_trace('call_forests')
+        converted_et = self.__get_converted_trace('callback_call_forests')
         pattern = self.pattern_error_trace
         if any(not isinstance(x, str) for x in converted_et):
             converted_et = list(json.dumps(x) for x in converted_et)
@@ -79,11 +79,11 @@ Jaccard index of "call_forests" convertion.
             pattern = list(json.dumps(x) for x in pattern)
         return self.__jaccard(set(converted_et), set(pattern))
 
-    def all_forests_compare(self):
+    def thread_call_forests(self):
         """
-Jaccard index of "all_forests" convertion.
+Jaccard index of "thread_call_forests" convertion.
         """
-        converted_et = self.__get_converted_trace('all_forests')
+        converted_et = self.__get_converted_trace('thread_call_forests')
         pattern = self.pattern_error_trace
         if any(not isinstance(x, str) for x in converted_et):
             converted_et = list(json.dumps(x) for x in converted_et)

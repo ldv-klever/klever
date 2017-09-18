@@ -43,7 +43,7 @@
   "tags": [
     "unsafe:tag:1"
   ],
-  "comparison": "call_forests_compare",
+  "comparison": "callback_call_forests",
   "error trace": [
     [
       {

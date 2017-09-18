@@ -792,10 +792,14 @@ class ErrorTraceForests:
 
     def __get_forests(self, edge_trace):
         threads = {}
+        threads_with_callbacks = set()
         thread_order = []
         for edge_id in edge_trace:
             if 'thread' not in self.data['edges'][edge_id]:
                 raise ValueError('All error trace edges should have thread')
+            if 'action' in self.data['edges'][edge_id] \
+                    and self.data['edges'][edge_id]['action'] in self.data['callback actions']:
+                threads_with_callbacks.add(self.data['edges'][edge_id]['thread'])
             if self.data['edges'][edge_id]['thread'] not in threads:
                 thread_order.append(self.data['edges'][edge_id]['thread'])
                 threads[self.data['edges'][edge_id]['thread']] = []
@@ -803,15 +807,21 @@ class ErrorTraceForests:
         forests = []
         if self.all_threads:
             for t in thread_order:
-                thread_forests = self.__get_thread_forests(threads[t])
-                if len(thread_forests) > 0:
-                    forests.append(thread_forests)
+                if t in threads_with_callbacks:
+                    callback_forests = self.__get_callback_forests(threads[t])
+                    if len(callback_forests) > 0:
+                        forests.extend(callback_forests)
+                else:
+                    thread_forest = self.__get_thread_forest(threads[t])
+                    if len(thread_forest) > 0:
+                        forests.append(thread_forest)
+
         else:
             for t in thread_order:
-                forests.extend(self.__get_thread_callback_forests(threads[t]))
+                forests.extend(self.__get_callback_forests(threads[t]))
         return forests
 
-    def __get_thread_callback_forests(self, edge_trace):
+    def __get_callback_forests(self, edge_trace):
         forests = []
         forest = Forest()
         collect_names = False
@@ -853,18 +863,14 @@ class ErrorTraceForests:
                 forests.append(curr_forest)
         return forests
 
-    def __get_thread_forests(self, edge_trace):
-        forests = []
+    def __get_thread_forest(self, edge_trace):
         forest = Forest()
         double_return = set()
         for edge_id in edge_trace:
             edge_data = self.data['edges'][edge_id]
-            if len(forest.call_stack) == 0:
-                curr_forest = forest.get_forest()
-                if curr_forest is not None and len(curr_forest) > 0:
-                    forests.append(curr_forest)
+            is_model = 'note' in edge_data or 'warn' in edge_data
             if 'enter' in edge_data:
-                forest.enter_func(self.data['funcs'][edge_data['enter']], 'note' in edge_data or 'warn' in edge_data)
+                forest.enter_func(self.data['funcs'][edge_data['enter']], is_model)
                 if 'return' in edge_data:
                     if edge_data['enter'] == edge_data['return']:
                         forest.return_from_func()
@@ -877,15 +883,13 @@ class ErrorTraceForests:
                     double_return.remove(old_scope)
                     old_scope = forest.scope()
                     forest.return_from_func()
-            elif 'note' in edge_data:
-                forest.add_note(edge_data.get('note id', edge_data['note']))
-            elif 'warn' in edge_data:
-                forest.add_note(edge_data.get('warn id', edge_data['warn']))
+            elif is_model:
+                forest.mark_current_scope()
 
         curr_forest = forest.get_forest()
         if curr_forest is not None and len(curr_forest) > 0:
-            forests.append(curr_forest)
-        return forests
+            return curr_forest
+        return []
 
 
 def etv_callstack(unsafe_id=None, file_name='test.txt'):
