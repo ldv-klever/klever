@@ -12,38 +12,13 @@
     "specifications set": "Linux 3.14 (base)",
     "rule specifications": ["linux:emg:test"],
     "VTGVRP": {
-      "VTG": {
-        "max solving tasks": 100
-      },
       "VRP": {
         "expect coverage": false,
-        "coverage completeness": "full",
-        "task generation pending period": 30,
-        "task solutions pending period": 30
+        "coverage completeness": "full"
       }
     }
   },
   "Sub-jobs": [
-    {
-      "Linux kernel": {
-        "external modules": "tests/usb_driver",
-        "modules": [
-          "usb_register.ko",
-          "usb_deregister.ko",
-          "usb_callbacks.ko",
-          "usb_invoke.ko"
-        ]
-      },
-      "ideal verdicts": [
-        {
-          "ideal verdict": "unsafe",
-          "verification object": "ext-modules/usb_invoke.ko"
-        },
-        {"ideal verdict": "safe"}
-      ]
-    }
-  ],
-  "Sub-jobs~": [
     {
       "Linux kernel": {
         "external modules": "tests/atmdev_ops",

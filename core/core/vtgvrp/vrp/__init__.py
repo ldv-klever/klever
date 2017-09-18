@@ -76,7 +76,8 @@ class VRP(core.components.Component):
 
     def result_processing(self):
         pending = dict()
-        if 'task solutions pending period' in self.conf['VTGVRP']['VRP']:
+        # todo: move it from job.json to GUI
+        if  'task solutions pending period' in self.conf['VTGVRP']['VRP']:
             solution_timeout = int(self.conf['VTGVRP']['VRP']['task solutions pending period'])
         else:
             solution_timeout = 30
