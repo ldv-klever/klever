@@ -59,23 +59,24 @@ class ConvertTrace:
 
     def callback_call_forests(self):
         """
-This function is extracting the error trace call stack "forests".
-The forest is a couple of "call trees" under callback action.
-"Call tree" is tree of function names.
-All its leaves are names of functions with 'note' or 'warn' in its enter or body.
-Empty trees under callback actions are ignored. Returns list of forests.
+This function is extracting the error trace call stack forests.
+The forest is a couple of call trees under callback action.
+Call tree is tree of function names in their execution order.
+All its leaves are names of functions which calls or statements
+are marked with the "note" or "warn" attribute. Returns list of forests.
         """
 
         return ErrorTraceForests(self.error_trace).trace
 
     def thread_call_forests(self):
         """
-This function is extracting the error trace call stack "forests".
-The forest is a couple of "call trees" in the same thread if it doesn't have callback actions at all.
-Otherwise the forest is a couple of "call trees" under callback action.
-"Call tree" is tree of function names.
-All its leaves are names of functions with 'note' or 'warn' in its enter or body.
-Empty threads and callback actions are ignored. Return list of forests.
+This function is extracting the error trace call stack forests.
+The forest is a couple of call trees in the same thread
+if it doesn't have callback actions at all.
+Otherwise the forest is a couple of call trees under callback action.
+Call tree is tree of function names in their execution order.
+All its leaves are names of functions which calls or statements
+are marked with the "note" or "warn" attribute. Return list of forests.
         """
 
         return ErrorTraceForests(self.error_trace, all_threads=True).trace
