@@ -229,8 +229,7 @@ class RP(core.components.Component):
                               'id': "{}/unknown".format(self.id, task_id),
                               'parent id': self.parent_id,
                               'attrs': [],
-                              'problem desc': problem,
-                              'files': [problem]
+                              'problem desc': core.utils.ReportFiles([problem])
                           },
                           self.mqs['report files'],
                           self.conf['main working directory'])
@@ -306,9 +305,9 @@ class RP(core.components.Component):
                                               'id': "{}/{}/verification/unsafe_{}".format(self.id, task_id, trace_id),
                                               'parent id': "{}/{}/verification".format(self.id, task_id),
                                               'attrs': [{"Error trace identifier": trace_id}],
-                                              'error trace': error_trace_name,
-                                              'files': [error_trace_name] + list(arcnames.keys()),
-                                              'arcname': arcnames
+                                              'error trace': core.utils.ReportFiles([error_trace_name]
+                                                                                    + list(arcnames.keys()),
+                                                                                    arcnames=arcnames)
                                           },
                                           self.mqs['report files'],
                                           self.conf['main working directory'])
@@ -344,9 +343,9 @@ class RP(core.components.Component):
                                           'id': "{}/{}/verification/unsafe".format(self.id, task_id),
                                           'parent id': "{}/{}/verification".format(self.id, task_id),
                                           'attrs': [],
-                                          'error trace': 'error trace.json',
-                                          'files': ['error trace.json'] + list(arcnames.keys()),
-                                          'arcname': arcnames
+                                          'error trace': core.utils.ReportFiles(['error trace.json']
+                                                                                + list(arcnames.keys()),
+                                                                                arcnames=arcnames)
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
@@ -419,14 +418,8 @@ class RP(core.components.Component):
                 'attrs': [],
                 'name': verifier,
                 'resources': decision_results['resources'],
-                'log': None if self.logger.disabled or not log_file else log_file,
-                'coverage':
-                    'coverage.json' if 'expect coverage' in self.conf['VTGVRP']['VRP'] and
-                    self.conf['VTGVRP']['VRP']['expect coverage'] else None,
-                'files': {
-                    'report': (files if self.conf['upload input files of static verifiers'] else []) +
-                    ([] if self.logger.disabled or not log_file else [log_file])
-                }
+                'log': None if self.logger.disabled or not log_file else core.utils.ReportFiles([log_file]),
+                'report': core.utils.ReportFiles(files) if self.conf['upload input files of static verifiers'] else None
             }
             if 'expect coverage' in self.conf['VTGVRP']['VRP'] and self.conf['VTGVRP']['VRP']['expect coverage'] and\
                     os.path.isfile(os.path.join('output', 'coverage.info')):
@@ -437,8 +430,7 @@ class RP(core.components.Component):
                     json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 
                 arcnames = cov.arcnames
-                report['files']['coverage'] = ['coverage.json'] + list(arcnames.keys())
-                report['arcname'] = arcnames
+                report['coverage'] = core.utils.ReportFiles(['coverage.json'] + list(arcnames.keys()), arcnames=arcnames)
             core.utils.report(self.logger,
                               'verification',
                               report,

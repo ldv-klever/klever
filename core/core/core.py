@@ -89,8 +89,7 @@ class Core(core.utils.CallbacksCaller):
                                       {
                                           'id': self.ID + '/unknown',
                                           'parent id': self.ID,
-                                          'problem desc': 'problem desc.txt',
-                                          'files': ['problem desc.txt']
+                                          'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
@@ -115,8 +114,7 @@ class Core(core.utils.CallbacksCaller):
                                           'resources': core.utils.count_consumed_resources(
                                               self.logger,
                                               self.start_time),
-                                          'log': 'log.txt' if os.path.isfile('log.txt') else None,
-                                          'files': ['log.txt'] if os.path.isfile('log.txt') else []
+                                          'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None,
                                       },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
@@ -255,8 +253,8 @@ class Core(core.utils.CallbacksCaller):
                 self.logger.debug('Upload report file "{0}"{1}'.format(
                     report_file,
                     ' with report file archives:\n{0}'.format(
-                        '\n'.join(['  {0} - {1}'.format(archive_name, archive)
-                                   for archive_name, archive in report_file_archives.items()]))
+                        '\n'.join(['  {0}'.format(archive_name)
+                                   for archive_name in report_file_archives]))
                     if report_file_archives else ''))
 
                 self.session.upload_report(report_file, report_file_archives)

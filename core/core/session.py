@@ -104,7 +104,7 @@ class Session:
         resp = self.__upload_archive(
             'service/schedule_task/',
             {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-            {'file': 'task files.zip'}
+            ['task files.zip']
         )
         return resp.json()['task id']
 
@@ -133,8 +133,7 @@ class Session:
             report = fp.read()
 
         # TODO: report is likely should be compressed.
-        self.__upload_archive('reports/upload/', {'report': report},
-                              {arhive_name + ' files archive': archive for arhive_name, archive in archives.items()})
+        self.__upload_archive('reports/upload/', {'report': report}, archives)
 
     def __download_archive(self, kind, path_url, data, archive):
         while True:
@@ -162,8 +161,8 @@ class Session:
         while True:
             resp = None
             try:
-                resp = self.__request(path_url, data, files={arhive_name: open(archive, 'rb', buffering=0)
-                                                             for arhive_name, archive in archives.items()}, stream=True)
+                resp = self.__request(path_url, data, files={archive_name: open(archive_name, 'rb', buffering=0)
+                                                             for archive_name in archives}, stream=True)
                 return resp
             except BridgeError:
                 if self.error == 'ZIP error':

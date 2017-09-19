@@ -220,8 +220,7 @@ class Job(core.utils.CallbacksCaller):
                                           {
                                               'id': self.id + '/unknown',
                                               'parent id': self.id,
-                                              'problem desc': 'problem desc.txt',
-                                              'files': ['problem desc.txt']
+                                              'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
                                           },
                                           self.mqs['report files'],
                                           self.components_common_conf['main working directory'])

@@ -28,6 +28,7 @@ import threading
 import time
 import queue
 import hashlib
+import tempfile
 from benchexec.runexecutor import RunExecutor
 
 CALLBACK_KINDS = ('before', 'instead', 'after')
@@ -564,11 +565,37 @@ def merge_confs(a, b):
     return a
 
 
+class ReportFiles:
+    def __init__(self, files, arcnames={}):
+        self.files = files
+        self.arcnames = arcnames
+        self.archive_name = None
+
+    def make_archive(self):
+        fp, self.archive_name = tempfile.mkstemp(prefix='.zip', dir='.')
+        #fp = tempfile.NamedTemporaryFile(buffering=0, suffix='.zip', dir='.', delete=False)
+
+        with open(self.archive_name, mode='w+b', buffering=0) as f:
+            with zipfile.ZipFile(f, mode='w', compression=zipfile.ZIP_DEFLATED) as zfp:
+                for file in self.files:
+                    arcname = self.arcnames.get(file, None)
+                    zfp.write(file, arcname=arcname)
+                os.fsync(zfp.fp)
+        os.close(fp)
+
+
+class ExtendedJSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, ReportFiles):
+            return obj.archive_name
+
+        return json.JSONEncoder.default(self, obj)
+
+
 # TODO: replace report file with report everywhere.
 def report(logger, kind, report_data, mq, directory):
     logger.debug('Create {0} report'.format(kind))
 
-    # Specify report type.
     report_data.update({'type': kind})
 
     if 'attrs' in report_data:
@@ -592,10 +619,25 @@ def report(logger, kind, report_data, mq, directory):
 
         report_data['attrs'] = capitalize_attr_names(report_data['attrs'])
 
+    archives = []
+    process_queue = [report_data]
+    while process_queue:
+        elem = process_queue.pop(0)
+        if isinstance(elem, dict):
+            process_queue.extend(elem.values())
+        elif isinstance(elem, list) or isinstance(elem, tuple) or isinstance(elem, set):
+            process_queue.extend(elem)
+        elif isinstance(elem, ReportFiles):
+            logger.debug('Archive files - {0}'.format(elem.files))
+            elem.make_archive()
+            archives.append(elem.archive_name)
+    logger.debug('Archives -{0}'.format(archives))
+
     # Get text
-    report_text = json.dumps(report_data, ensure_ascii=False, sort_keys=True, indent=4)
+    report_text = json.dumps(report_data, cls=ExtendedJSONEncoder, ensure_ascii=False, sort_keys=True, indent=4)
     identifier = hashlib.sha224(report_text.encode('UTF8')).hexdigest()
 
+    """
     # Add all report files to archives. It is assumed that all files are placed in current working directory.
     rel_report_file_archives = {}
     if 'files' in report_data and report_data['files']:
@@ -620,6 +662,7 @@ def report(logger, kind, report_data, mq, directory):
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
                                                                        rel_report_file_archives[archive_name]))
         del (report_data['files'])
+    """
 
     # Create report file in current working directory.
     report_file = '{0} report.json'.format(identifier)
@@ -633,7 +676,7 @@ def report(logger, kind, report_data, mq, directory):
 
     # Put report to message queue if it is specified.
     if mq:
-        mq.put({'report file': rel_report_file, 'report file archives': rel_report_file_archives})
+        mq.put({'report file': rel_report_file, 'report file archives': archives})
 
     return rel_report_file
 

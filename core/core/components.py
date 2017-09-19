@@ -137,8 +137,7 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                     report = {
                         'id': self.id + '/unknown',
                         'parent id': self.id,
-                        'problem desc': 'problem desc.txt',
-                        'files': ['problem desc.txt']
+                        'problem_desc': core.utils.ReportFiles(['problem desc.txt'])
                     }
                     if self.unknown_attrs:
                         report.update({'attrs': self.unknown_attrs})
@@ -164,9 +163,8 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                                           self.start_time,
                                           self.include_child_resources,
                                           all_child_resources),
-                                      'log': 'log.txt' if os.path.isfile('log.txt') else None,
-                                      'files': (['desc.txt'] if os.path.isfile('desc.txt') else []) +
-                                               (['log.txt'] if os.path.isfile('log.txt') else [])
+                                      'log': core.utils.ReportFiles(['log.txt']) if os.path.isfile('log.txt') else None,
+                                      'desc': core.utils.ReportFiles(['desc.txt']) if os.path.isfile('desct.xt') else None
                                   },
                                   self.mqs['report files'],
                                   self.conf['main working directory'])
