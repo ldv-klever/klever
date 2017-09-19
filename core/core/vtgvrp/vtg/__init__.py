@@ -27,7 +27,7 @@ import time
 import shutil
 import core.components
 import core.utils
-
+import core.session
 
 @core.utils.before_callback
 def __launch_sub_job_components(context):
@@ -230,7 +230,7 @@ def _extract_rule_spec_descs(conf, logger):
 
     if conf['keep intermediate files']:
         if os.path.isfile('rule spec descs.json'):
-           raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
+            raise FileExistsError('Rule specification descriptions file "rule spec descs.json" already exists')
         logger.debug('Create rule specification descriptions file "rule spec descs.json"')
         with open('rule spec descs.json', 'w', encoding='utf8') as fp:
             json.dump(rule_spec_descs, fp, ensure_ascii=False, sort_keys=True, indent=4)
@@ -261,6 +261,7 @@ def _classify_rule_descriptions(logger, rule_descriptions):
 _rule_spec_descs = None
 _rule_spec_classes = None
 
+
 @core.utils.propogate_callbacks
 def collect_plugin_callbacks(conf, logger):
     logger.info('Get VTG plugin callbacks')
@@ -268,8 +269,6 @@ def collect_plugin_callbacks(conf, logger):
     global _rule_spec_descs, _rule_spec_classes
     _rule_spec_descs = _extract_rule_spec_descs(conf, logger)
     _rule_spec_classes = _classify_rule_descriptions(logger, _rule_spec_descs)
-
-
     plugins = []
 
     # Find appropriate classes for plugins if so.
@@ -300,9 +299,8 @@ class VTG(core.components.Component):
                  separate_from_parent=False, include_child_resources=False):
         super(VTG, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
                                   separate_from_parent, include_child_resources)
-        # Rule specification descriptions were already extracted when getting VTG callbacks.
-        self.mqs['prepared verification tasks'] = multiprocessing.Queue()
-        self.mqs['prepare verification objects'] = multiprocessing.Queue()
+        self.model_headers = {}
+        self.rule_spec_descs = None
 
     def generate_verification_tasks(self):
         self.rule_spec_descs = _rule_spec_descs
@@ -313,7 +311,7 @@ class VTG(core.components.Component):
         # Start plugins
         subcomponents = [('AAVTDG', self.__generate_all_abstract_verification_task_descs)]
         for i in range(core.utils.get_parallel_threads_num(self.logger, self.conf, 'Tasks generation')):
-            subcomponents.append(VTGW)
+            subcomponents.append(('WTGWL', self.__loop_worker))
         self.launch_subcomponents(*subcomponents)
 
         self.mqs['VTGVRP pending tasks'].put(None)
@@ -324,7 +322,6 @@ class VTG(core.components.Component):
     def set_model_headers(self):
         """Set model headers. Do not rename function - it has a callback in LKBCE."""
         self.logger.info('Set model headers')
-        self.model_headers = {}
 
         for rule_spec_desc in self.rule_spec_descs:
             self.logger.debug('Set headers of rule specification "{0}"'.format(rule_spec_desc['id']))
@@ -519,26 +516,46 @@ class VTG(core.components.Component):
 
         self.logger.info("Stop generating verification tasks")
 
-
-class VTGW(core.components.Component):
-
-    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 separate_from_parent=False, include_child_resources=False):
-        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
-                                   separate_from_parent, include_child_resources)
-        self.verification_obj = None
-        self.rule_spec = None
-
-    def tasks_generator_worker(self):
-        self.logger.info("Start VTG worker")
+    def __loop_worker(self):
+        self.logger.info("Start VTGL worker")
         while True:
             pair = self.mqs['prepare verification objects'].get()
             if pair is None:
                 self.mqs['prepare verification objects'].close()
                 break
+            vo = pair[0]
+            rs = pair[1]
+            self.logger.debug("VTGL is about to start VTGW for {!r}, {!r}".format(vo['id'], rs['id']))
+            try:
+                obj = VTGW(self.conf, self.logger, self.id, self.callbacks, self.mqs,
+                           self.locks, "{}/{}/VTGW".format(vo['id'], rs['id']), os.path.join(vo['id'], rs['id']),
+                           attrs=[{"Rule specification": rs['id']}, {"Verification object": vo['id']}],
+                           separate_from_parent=True, verification_object=vo, rule_spec=rs)
+                obj.start()
+                obj.join()
+            except core.components.ComponentError:
+                self.logger.debug("VTGW that processed {!r}, {!r} failed".format(vo['id'], rs['id']))
+                self.mqs['VTGVRP processed tasks'].put((vo['id'], rs['id']))
+            finally:
+                if rs['id'] in [c[0]['id'] for c in _rule_spec_classes.values()]:
+                    self.mqs['prepared verification tasks'].put((vo['id'], rs['id']))
 
-            self.generate_abstact_verification_task_desc(pair[0], pair[1])
-        self.logger.info("Terminate VTG worker")
+        self.logger.info("Terminate VTGL worker")
+
+
+class VTGW(core.components.Component):
+
+    def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
+                 separate_from_parent=False, include_child_resources=False, verification_object=None, rule_spec=None):
+        super(VTGW, self).__init__(conf, logger, parent_id, callbacks, mqs, locks, id, work_dir, attrs,
+                                   separate_from_parent, include_child_resources)
+        self.verification_obj = verification_object
+        self.rule_spec = rule_spec
+        self.abstract_task_desc_file = None
+        self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
+
+    def tasks_generator_worker(self):
+        self.generate_abstact_verification_task_desc(self.verification_obj, self.rule_spec)
 
     main = tasks_generator_worker
 
@@ -547,12 +564,10 @@ class VTGW(core.components.Component):
         # todo: fix or reimplement
         # Count the number of generated abstract verification task descriptions.
         # self.abstract_task_desc_num += 1
-
-        initial_attrs = (
-            {'verification object': verification_obj_desc['id']},
-            {'rule specification': rule_spec_desc['id']}
-        )
-        initial_attr_vals = tuple(attr[name] for attr in initial_attrs for name in attr)
+        self.logger.info("Start generating tasks for verification object {!r} and rule specification {!r}".
+                         format(verification_obj_desc['id'], rule_spec_desc['id']))
+        self.verification_obj = verification_obj_desc['id']
+        self.rule_spec = rule_spec_desc['id']
 
         # todo: fix or reimplement
         # self.logger.info(
@@ -561,10 +576,6 @@ class VTGW(core.components.Component):
         #         self.abstract_task_desc_num, '/{0}'.format(self.abstract_task_descs_num.value)
         #         if self.abstract_task_descs_num.value else ''))
 
-        plugins_work_dir = os.path.join(verification_obj_desc['id'], rule_spec_desc['id'])
-        os.makedirs(plugins_work_dir.encode('utf8'), exist_ok=True)
-        self.logger.debug('Plugins working directory is "{0}"'.format(plugins_work_dir))
-
         # Prepare pilot workdirs if it will be possible to reuse data
         rule_class = resolve_rule_class(rule_spec_desc['id'])
         pilot_rule = _rule_spec_classes[rule_class][0]['id']
@@ -572,8 +583,8 @@ class VTGW(core.components.Component):
 
         # Initial abstract verification task looks like corresponding verification object.
         initial_abstract_task_desc = copy.deepcopy(verification_obj_desc)
-        initial_abstract_task_desc['id'] = '{0}/{1}'.format(*initial_attr_vals)
-        initial_abstract_task_desc['attrs'] = initial_attrs
+        initial_abstract_task_desc['id'] = '{0}/{1}'.format(self.verification_obj, self.rule_spec)
+        initial_abstract_task_desc['attrs'] = ()
         for grp in initial_abstract_task_desc['grps']:
             grp['cc extra full desc files'] = []
             for cc_full_desc_file in grp['cc full desc files']:
@@ -584,7 +595,7 @@ class VTGW(core.components.Component):
                 grp['cc extra full desc files'].append(
                     {'cc full desc file': cc_full_desc_file, "in file": in_file})
             del (grp['cc full desc files'])
-        initial_abstract_task_desc_file = os.path.join(plugins_work_dir, 'initial abstract task.json')
+        initial_abstract_task_desc_file = 'initial abstract task.json'
         self.logger.debug(
             'Put initial abstract verification task description to file "{0}"'.format(
                 initial_abstract_task_desc_file))
@@ -592,108 +603,90 @@ class VTGW(core.components.Component):
             json.dump(initial_abstract_task_desc, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
         # Invoke all plugins one by one.
-        try:
-            cur_abstract_task_desc_file = initial_abstract_task_desc_file
-            out_abstract_task_desc_file = None
-            for plugin_desc in rule_spec_desc['plugins']:
-                # Here plugin will put modified abstract verification task description.
-                plugin_work_dir = os.path.join(plugins_work_dir, plugin_desc['name'].lower())
-                out_abstract_task_desc_file = os.path.join(plugins_work_dir,
-                                                           '{0} abstract task.json'.format(
-                                                               plugin_desc['name'].lower()))
+        cur_abstract_task_desc_file = initial_abstract_task_desc_file
+        out_abstract_task_desc_file = None
+        for plugin_desc in rule_spec_desc['plugins']:
+            # Here plugin will put modified abstract verification task description.
+            plugin_work_dir = plugin_desc['name'].lower()
+            out_abstract_task_desc_file = '{0} abstract task.json'.format(plugin_desc['name'].lower())
 
-                if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
-                        plugin_desc['name'] in ['SA', 'EMG']:
-                    # Expect that there is a work directory which has all prepared
-                    # Make symlinks to the pilot rule work dir
-                    pilot_abstract_task_desc_file =  os.path.join(
-                        pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
-                    pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
-                    shutil.copyfile(pilot_abstract_task_desc_file, out_abstract_task_desc_file)
-                    os.symlink(os.path.relpath(pilot_plugin_work_dir, plugins_work_dir), plugin_work_dir)
+            if rule_spec_desc['id'] not in [c[0]['id'] for c in _rule_spec_classes.values()] and \
+                    plugin_desc['name'] in ['SA', 'EMG']:
+                # Expect that there is a work directory which has all prepared
+                # Make symlinks to the pilot rule work dir
+                pilot_abstract_task_desc_file =  os.path.join(
+                    pilot_plugins_work_dir, '{0} abstract task.json'.format(plugin_desc['name'].lower()))
+                pilot_plugin_work_dir = os.path.join(pilot_plugins_work_dir, plugin_desc['name'].lower())
+                shutil.copyfile(pilot_abstract_task_desc_file, out_abstract_task_desc_file)
+                os.symlink(os.path.relpath(pilot_plugin_work_dir, os.path.curdir), plugin_work_dir)
 
-                    # Update attributes.
-                    with open(out_abstract_task_desc_file, 'r', encoding='utf8') as fp:
-                        at = json.load(fp)
-                    at['attrs'] = initial_attrs
-                    with open(out_abstract_task_desc_file, 'w', encoding='utf8') as fp:
-                        json.dump(at, fp)
-                else:
-                    self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
+                # Update attributes.
+                with open(out_abstract_task_desc_file, 'r', encoding='utf8') as fp:
+                    at = json.load(fp)
+                at['attrs'] = ()
+                with open(out_abstract_task_desc_file, 'w', encoding='utf8') as fp:
+                    json.dump(at, fp)
+            else:
+                self.logger.info('Launch plugin {0}'.format(plugin_desc['name']))
 
-                    # Get plugin configuration on the basis of common configuration, plugin options specific for rule
-                    # specification and information on rule specification itself. In addition put either initial or current
-                    # description of abstract verification task into plugin configuration.
-                    plugin_conf = copy.deepcopy(self.conf)
-                    # todo: Why is it required? I currently need it at task generation ...
-                    #if plugin_desc['name'] != 'RSG':
-                    #    del plugin_conf['shadow source tree']
-                    if 'options' in plugin_desc:
-                        plugin_conf.update(plugin_desc['options'])
-                    if 'bug kinds' in rule_spec_desc:
-                        plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
-                    plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
-                                                                                self.conf[
-                                                                                    'main working directory'])
-                    plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
-                                                                                 self.conf[
-                                                                                     'main working directory'])
+                # Get plugin configuration on the basis of common configuration, plugin options specific for rule
+                # specification and information on rule specification itself. In addition put either initial or current
+                # description of abstract verification task into plugin configuration.
+                plugin_conf = copy.deepcopy(self.conf)
+                if 'options' in plugin_desc:
+                    plugin_conf.update(plugin_desc['options'])
+                if 'bug kinds' in rule_spec_desc:
+                    plugin_conf.update({'bug kinds': rule_spec_desc['bug kinds']})
+                plugin_conf['in abstract task desc file'] = os.path.relpath(cur_abstract_task_desc_file,
+                                                                            self.conf[
+                                                                                'main working directory'])
+                plugin_conf['out abstract task desc file'] = os.path.relpath(out_abstract_task_desc_file,
+                                                                             self.conf[
+                                                                                 'main working directory'])
 
-                    plugin_conf_file = os.path.join(plugins_work_dir,
-                                                    '{0} conf.json'.format(plugin_desc['name'].lower()))
-                    self.logger.debug(
-                        'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
-                                                                                 plugin_conf_file))
-                    with open(plugin_conf_file, 'w', encoding='utf8') as fp:
-                        json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
+                plugin_conf_file = '{0} conf.json'.format(plugin_desc['name'].lower())
+                self.logger.debug(
+                    'Put configuration of plugin "{0}" to file "{1}"'.format(plugin_desc['name'],
+                                                                             plugin_conf_file))
+                with open(plugin_conf_file, 'w', encoding='utf8') as fp:
+                    json.dump(plugin_conf, fp, ensure_ascii=False, sort_keys=True, indent=4)
 
-                    p = plugin_desc['plugin'](plugin_conf, self.logger, self.parent_id, self.callbacks, self.mqs,
-                                              self.locks,
-                                              '{0}/{1}/{2}'.format(
-                                                  *list(initial_attr_vals) + [plugin_desc['name']]),
-                                              plugin_work_dir,
-                                              attrs=initial_attrs, separate_from_parent=True,
-                                              include_child_resources=True)
-                    p.start()
-                    p.join()
+                p = plugin_desc['plugin'](plugin_conf, self.logger, self.id, self.callbacks, self.mqs,
+                                          self.locks,
+                                          '{0}/{1}/{2}'.format(self.verification_obj, self.rule_spec,
+                                                               plugin_desc['name']),
+                                          plugin_work_dir, separate_from_parent=True,
+                                          include_child_resources=True)
+                p.start()
+                p.join()
 
-                cur_abstract_task_desc_file = out_abstract_task_desc_file
+            cur_abstract_task_desc_file = out_abstract_task_desc_file
 
-            final_abstract_task_desc_file = os.path.join(plugins_work_dir, 'final abstract task.json')
-            self.logger.debug(
-                'Put final abstract verification task description to file "{0}"'.format(
-                    final_abstract_task_desc_file))
-            # Final abstract verification task description equals to abstract verification task description received
-            # from last plugin.
-            os.symlink(os.path.relpath(out_abstract_task_desc_file, plugins_work_dir),
-                       final_abstract_task_desc_file)
+        final_abstract_task_desc_file = 'final abstract task.json'
+        self.logger.debug(
+            'Put final abstract verification task description to file "{0}"'.format(
+                final_abstract_task_desc_file))
+        # Final abstract verification task description equals to abstract verification task description received
+        # from last plugin.
+        os.symlink(os.path.relpath(out_abstract_task_desc_file, os.path.curdir),
+                   final_abstract_task_desc_file)
 
-            # VTG will consume this abstract verification task description file.
-            self.abstract_task_desc_file = out_abstract_task_desc_file
-        # Failures in plugins aren't treated as the critical ones. We just warn and proceed to other
-        # verification objects or/and rule specifications.
-        except core.components.ComponentError:
-            # todo: fix or rewrite
-            # Count the number of abstract verification task descriptions that weren't generated successfully to print
-            # it at the end of work. Note that the total number of abstract verification task descriptions to be
-            # generated in ideal will be printed at least once already.
-            # with self.failed_abstract_task_desc_num.get_lock():
-            #    self.failed_abstract_task_desc_num.value += 1
-            #    core.utils.report(self.logger,
-            #                       'data',
-            #                       {
-            #                           'id': self.id,
-            #                           'data': {
-            #                               'faulty generated abstract verification task descriptions':
-            #                                   self.failed_abstract_task_desc_num.value
-            #                           }
-            #                       },
-            #                       self.mqs['report files'],
-            #                       self.conf['main working directory'],
-            #                       self.failed_abstract_task_desc_num.value)
-            self.verification_obj = verification_obj_desc['id']
-            self.rule_spec = rule_spec_desc['id']
-            self.mqs['VTGVRP processed tasks'].put((self.verification_obj, self.rule_spec))
-        finally:
-            if rule_spec_desc['id'] in [c[0]['id'] for c in _rule_spec_classes.values()]:
-                self.mqs['prepared verification tasks'].put((verification_obj_desc['id'], rule_spec_desc['id']))
+        # VTG will consume this abstract verification task description file.
+        self.abstract_task_desc_file = out_abstract_task_desc_file
+        shadow_src_dir = os.path.abspath(os.path.join(self.conf['main working directory'],
+                                                      self.conf['shadow source tree']))
+
+        task_id = self.session.schedule_task(os.path.join(plugin_work_dir, 'task.json'),
+                                             os.path.join(plugin_work_dir, 'task files.zip'))
+        with open(self.abstract_task_desc_file, 'r', encoding='utf8') as fp:
+            final_task_data = json.load(fp)
+
+        # Plan for checking staus
+        self.mqs['VTGVRP pending tasks'].put([str(task_id),
+                                              final_task_data["result processing"],
+                                              self.verification_obj,
+                                              self.rule_spec,
+                                              final_task_data['verifier'],
+                                              shadow_src_dir,
+                                              os.path.join(self.verification_obj, self.rule_spec, plugin_work_dir)])
+

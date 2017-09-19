@@ -51,6 +51,10 @@ class VTGVRP(core.components.Component):
         # Tasks waiting for solution
         self.mqs['VTGVRP pending tasks'] = multiprocessing.Queue()
         self.mqs['VTGVRP processed tasks'] = multiprocessing.Queue()
+        # Rule specification descriptions were already extracted when getting VTG callbacks.
+        self.mqs['prepared verification tasks'] = multiprocessing.Queue()
+        self.mqs['prepare verification objects'] = multiprocessing.Queue()
+        self.mqs['VRP processing tasks'] = multiprocessing.Queue()
 
         core.utils.report(self.logger,
                           'attrs',

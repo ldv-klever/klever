@@ -40,8 +40,7 @@ class Basic:
         self.conf = conf
         self.abstract_task_desc = abstract_task_desc
 
-    @property
-    def verification_tasks(self):
+    def generate_verification_task(self):
         """
         Main routine of the strategy. It is suspicious if you need to change it, do it if you need to play with resource
         limitations or generate several tasks. This should be a generator to update archives each time before submitting
@@ -60,7 +59,6 @@ class Basic:
             with open('task.json', 'w', encoding='utf8') as fp:
                 json.dump(task_description, fp, ensure_ascii=False, sort_keys=True, indent=4)
         self._cleanup()
-        yield task_description, files
 
     def _prepare_benchmark_description(self, resource_limits):
         """

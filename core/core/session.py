@@ -100,11 +100,14 @@ class Session:
                                 },
                                 job.ARCHIVE)
 
-    def schedule_task(self, task_desc):
+    def schedule_task(self, task_file, archive):
+        with open(task_file, 'r', encoding='utf8') as fp:
+            data = fp.read()
+
         resp = self.__upload_archive(
             'service/schedule_task/',
-            {'description': json.dumps(task_desc, ensure_ascii=False, sort_keys=True, indent=4)},
-            {'file': 'task files.zip'}
+            {'description': data},
+            {'file': archive}
         )
         return resp.json()['task id']
 
