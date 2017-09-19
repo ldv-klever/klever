@@ -1,7 +1,4 @@
 /*
- * Copyright (c) 2014-2016 ISPRAS (http://www.ispras.ru)
- * Institute for System Programming of the Russian Academy of Sciences
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -15,6 +12,8 @@
  * limitations under the License.
  */
 
+/* The test should check processing of function pointers with different declarations */
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -22,28 +21,26 @@
 #include <verifier/thread.h>
 
 static DEFINE_MUTEX(my_mutex);
+int safe;
+int unsafe;
 
-int gvar = 0;
-
-void f(void* arg) {
-	gvar = 1;
+int f(void) {
+    safe = 1;
+    unsafe = 1;
 }
 
-void g(void* arg) {
-	int b;
-
-	mutex_lock(&my_mutex);
-	b = gvar;
-	mutex_unlock(&my_mutex);
+void* control_function(void *arg) {
+    f();
 }
 
 static int __init init(void)
 {
-	struct ldv_thread thread1, thread2;
+	pthread_t thread2;
+	void* status;
 
-	ldv_thread_create(&thread1, &f, 0);
-	ldv_thread_create(&thread2, &g, 0);
-
+	pthread_create(&thread2, 0, &control_function, 0);
+    unsafe = 0;
+    pthread_join(&thread2, &status);
 	return 0;
 }
 

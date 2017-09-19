@@ -1,1 +1,1 @@
-obj-m += safe.o race.o race2.o race_10.o
+obj-m += safe.o race.o simple_race_10_unsafes.o simple_race-2.o simple_race-3.o simple_race.o BAM_ARG_cleaning_test-unsafe.o BAM_ARG_cleaning_test-safe.o BAM_lattice_test-unsafe.o BAM_restore_path-unsafe.o bitwise_operations-unsafe.o FunctionPointerTest.o JoinTest.o LockReduceTest.o LoopTest.o PathIteratorTest.o RaceTest.o RaceTest10.o RaceTest2.o RaceTest3.o RaceTest4.o RaceTest5.o RaceTest6.o RaceTest7.o RaceTest8.o RaceTest9.o lockTest.o probe_filter_test.o sv-comp/

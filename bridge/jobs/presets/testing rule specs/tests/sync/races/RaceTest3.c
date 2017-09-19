@@ -21,56 +21,65 @@
 #include <linux/mutex.h>
 #include <verifier/thread.h>
 
+int global;
+ 
 static DEFINE_MUTEX(my_mutex);
 
-int gvar = 0;
-int global1 = 0;
-int global2 = 0;
-int global3 = 0;
-int global4 = 0;
-int global5 = 0;
-int global6 = 0;
-int global7 = 0;
-int global8 = 0;
-int global9 = 0;
+ int h(int i) {
+	 int j = h(i);
+	 i++;
+	 if (j > i) {
+		 j = j - i;
+	 } else {
+		 j = i - j;
+		 global++;
+	 }
+	 j = h(j);
+	 j++;
+	 return j;
+ }
+ 
+ int g(int i) {
+	 int j = h(i);
+	 i++;
+	 if (j > i) {
+		 j = j - i;
+	 } else {
+		 j = i - j;
+	 }
+	 j = h(j);
+	 j++;
+	 return j;
+ }
+ 
+ int f(int i) {
+	 int j = g(i);
+	 i++;
+	 if (j > i) {
+		 j = j - i;
+	 } else {
+		 j = i - j;
+	 }
+	 j = g(j);
+	 j++;
+	 return j;
+ }
 
-void f(void* arg) {
-	gvar = 1;
-	global1 = 1;
-	global2 = 1;
-	global3 = 1;
-	global4 = 1;
-	global5 = 1;
-	global6 = 1;
-	global7 = 1;
-	global8 = 1;
-	global9 = 1;
-}
-
-void g(void* arg) {
+void* ldv_main(void* arg) {
 	int b;
-
+	f(b);
 	mutex_lock(&my_mutex);
-	b = gvar;
-	b = global1;
-	b = global2;
-	b = global3;
-	b = global4;
-	b = global5;
-	b = global6;
-	b = global7;
-	b = global8;
-	b = global9;
+	f(b++);
 	mutex_unlock(&my_mutex);
+	return 0;
 }
 
 static int __init init(void)
 {
-	struct ldv_thread thread1, thread2;
+	pthread_t thread2;
 
-	ldv_thread_create(&thread1, &f, 0);
-	ldv_thread_create(&thread2, &g, 0);
-
+	pthread_create(&thread2, 0, &ldv_main, 0);
+	ldv_main(0);
 	return 0;
 }
 
