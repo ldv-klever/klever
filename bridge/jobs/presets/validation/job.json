@@ -9,13 +9,7 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
-    "specifications set": "Linux 3.14 (base)",
-    "VTGVRP": {
-      "VRP": {
-        "expect coverage": true,
-        "coverage completeness": "full"
-      }
-    }
+    "specifications set": "Linux 3.14 (base)"
   },
   "Sub-jobs": [
     {

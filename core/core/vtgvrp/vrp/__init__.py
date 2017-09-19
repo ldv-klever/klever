@@ -71,15 +71,15 @@ class VRP(core.components.Component):
 
     def result_processing(self):
         pending = dict()
-        # todo: move it from job.json to GUI
-        if 'task solutions pending period' in self.conf['VTGVRP']['VRP']:
-            solution_timeout = int(self.conf['VTGVRP']['VRP']['task solutions pending period'])
-        else:
-            solution_timeout = 30
-        if 'task generation pending period' in self.conf['VTGVRP']['VRP']:
-            generation_timeout = int(self.conf['VTGVRP']['VRP']['task generation pending period'])
-        else:
-            generation_timeout = 30
+        # todo: implement them in GUI
+        #if 'task solutions pending period' in self.conf['VTGVRP']['VRP']:
+        #    solution_timeout = int(self.conf['VTGVRP']['VRP']['task solutions pending period'])
+        #else:
+        solution_timeout = 30
+        #if 'task generation pending period' in self.conf['VTGVRP']['VRP']:
+        #    generation_timeout = int(self.conf['VTGVRP']['VRP']['task generation pending period'])
+        #else:
+        generation_timeout = 30
 
         def submit_processing_task(status, t):
             self.mqs['VRP processing tasks'].put([status, pending[t]])
@@ -265,7 +265,7 @@ class RP(core.components.Component):
 
             # Create unsafe reports independently on status. Later we will create unknown report in addition if status
             # is not "unsafe".
-            if "expect several files" in opts and opts["expect several files"] and len(witnesses) != 0:
+            if "expect several witnesses" in opts and opts["expect several witnesses"] and len(witnesses) != 0:
                 for witness in witnesses:
                     self.verdict = 'unsafe'
                     try:
@@ -304,7 +304,7 @@ class RP(core.components.Component):
                             self.__exception = e
 
             if re.match('false', decision_results['status']) and \
-                    ("expect several files" not in opts or not opts["expect several files"]):
+                    ("expect several witnesses" not in opts or not opts["expect several witnesses"]):
                 self.verdict = 'unsafe'
                 try:
                     if len(witnesses) != 1:
@@ -400,19 +400,18 @@ class RP(core.components.Component):
                 'resources': decision_results['resources'],
                 'log': None if self.logger.disabled or not log_file else log_file,
                 'coverage':
-                    'coverage.json' if 'expect coverage' in self.conf['VTGVRP']['VRP'] and
-                    self.conf['VTGVRP']['VRP']['expect coverage'] else None,
+                    'coverage.json' if 'coverage' in opts and opts['coverage'] else None,
                 'files': {
                     'report': [] if self.logger.disabled or not log_file else [log_file]
                 }
             }
             if self.conf['upload input files of static verifiers']:
                 report['task identifier'] = task_id
-            if 'expect coverage' in self.conf['VTGVRP']['VRP'] and self.conf['VTGVRP']['VRP']['expect coverage'] and\
+            if 'coverage' in opts and opts['coverage'] and\
                     os.path.isfile(os.path.join('output', 'coverage.info')):
                 cov = LCOV(self.logger, os.path.join('output', 'coverage.info'),
                            shadow_src_dir, self.conf['main working directory'],
-                           self.conf['VTGVRP']['VRP']['coverage completeness'])
+                           opts['coverage'])
                 with open('coverage.json', 'w', encoding='utf-8') as fp:
                     json.dump(cov.coverage, fp, ensure_ascii=True, sort_keys=True, indent=4)
 

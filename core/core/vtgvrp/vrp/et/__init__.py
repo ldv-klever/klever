@@ -48,15 +48,15 @@ if __name__ == '__main__':
     import logging
     import sys
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    gl_logger = logging.getLogger()
+    gl_logger.setLevel(logging.DEBUG)
     handler = logging.StreamHandler(sys.stdout)
     handler.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s (%(filename)s:%(lineno)03d) %(levelname)5s> %(message)s', '%Y-%m-%d %H:%M:%S')
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    gl_logger.addHandler(handler)
 
-    et = import_error_trace(logger, 'witness.0.graphml')
+    et = import_error_trace(gl_logger, 'witness.0.graphml')
 
     with open('error trace.json', 'w', encoding='utf8') as fp:
         json.dump(et, fp, ensure_ascii=False, sort_keys=True, indent=4)

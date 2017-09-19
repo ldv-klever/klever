@@ -10,12 +10,6 @@
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 3.14 (base)",
-    "VTGVRP": {
-      "VRP": {
-        "expect coverage": false,
-        "coverage completeness": "full"
-      }
-    },
     "ideal verdicts": [
       {
         "ideal verdict": "safe",

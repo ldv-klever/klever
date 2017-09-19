@@ -404,11 +404,11 @@ class VTG(core.components.Component):
         vo_descriptions = dict()
         processing_status = dict()
 
-        # todo: move it from job.json to GUI
-        if 'VTG' in self.conf['VTGVRP'] and 'max solving tasks' in self.conf['VTGVRP']['VTG']:
-            max_tasks = self.conf['VTGVRP']['VTG']['max solving tasks']
-        else:
-            max_tasks = 100
+        # todo: implement it as an option in GUI
+        #if 'VTG' in self.conf['VTGVRP'] and 'max solving tasks' in self.conf['VTGVRP']['VTG']:
+        #    max_tasks = self.conf['VTGVRP']['VTG']['max solving tasks']
+        #else:
+        max_tasks = 100
         active_tasks = 0
         expect_objects = True
         while True:

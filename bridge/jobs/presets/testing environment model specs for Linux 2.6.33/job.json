@@ -10,13 +10,7 @@
     "rule specifications DB": "rule specs.json",
     "specifications set": "Linux 2.6.33",
     "verifier profiles DB": "verifier profiles.json",
-    "rule specifications": ["linux:emg:test"],
-    "VTGVRP": {
-      "VRP": {
-        "expect coverage": false,
-        "coverage completeness": "full"
-      }
-    }
+    "rule specifications": ["linux:emg:test"]
   },
   "Sub-jobs": [
     {
