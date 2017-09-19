@@ -146,7 +146,9 @@
               "name": "CPAchecker",
               "version": "ldv-bam:25523"
             },
-            "result processing": {}
+            "result processing": {
+              "coverage": "lightweight"
+            }
           }
         }
       ]
@@ -210,8 +212,9 @@
         "verifier profile": "memory checking Linux64",
         "verifier": {
           "name": "CPAchecker",
-          "version": "smg_witness_for_ldv:24577"
-        }
+          "version": "smg_witness_for_ldv:25566"
+        },
+        "result processing": {}
       }
     },
     "linux:empty": {
@@ -612,8 +615,7 @@
           "version": "CPALockator:25248"
         },
         "result processing": {
-          "expect several files": true,
-          "namespace": "http://graphml.graphdrawing.org/xmlns"
+          "expect several witnesses": true
         }
       }
     }

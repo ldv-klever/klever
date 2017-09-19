@@ -10,18 +10,7 @@
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
     "specifications set": "Linux 4.6.7",
-    "rule specifications": ["linux:emg:test"],
-    "VTGVRP": {
-      "VTG": {
-        "max solving tasks": 100
-      },
-      "VRP": {
-        "expect coverage": false,
-        "coverage completeness": "full",
-        "task generation pending period": 30,
-        "task solutions pending period": 30
-      }
-    }
+    "rule specifications": ["linux:emg:test"]
   },
   "Sub-jobs": [
     {

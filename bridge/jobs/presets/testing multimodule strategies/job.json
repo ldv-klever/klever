@@ -8,18 +8,7 @@
     "maximum verification object size": 30000,
     "rule specifications DB": "rule specs.json",
     "verifier profiles DB": "verifier profiles.json",
-    "specifications set": "Linux 3.14 (base)",
-    "VTGVRP": {
-      "VTG": {
-        "max solving tasks": 100
-      },
-      "VRP": {
-        "expect coverage": false,
-        "coverage completeness": "full",
-        "task generation pending period": 30,
-        "task solutions pending period": 30
-      }
-    }
+    "specifications set": "Linux 3.14 (base)"
   },
   "Sub-jobs": [
     {

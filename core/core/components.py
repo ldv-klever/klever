@@ -34,7 +34,7 @@ class ComponentError(ChildProcessError):
 
 class Component(multiprocessing.Process, core.utils.CallbacksCaller):
     def __init__(self, conf, logger, parent_id, callbacks, mqs, locks, id=None, work_dir=None, attrs=None,
-                 unknown_attrs=None, separate_from_parent=False, include_child_resources=False):
+                 separate_from_parent=False, include_child_resources=False):
         # Actually initialize process.
         multiprocessing.Process.__init__(self)
 
@@ -47,7 +47,6 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         self.mqs = mqs
         self.locks = locks
         self.attrs = attrs
-        self.unknown_attrs = unknown_attrs
         self.separate_from_parent = separate_from_parent
         self.include_child_resources = include_child_resources
 
@@ -143,7 +142,11 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
                         report.update({'attrs': self.unknown_attrs})
                     core.utils.report(self.logger,
                                       'unknown',
-                                      report,
+                                      {
+                                          'id': self.id + '/unknown',
+                                          'parent id': self.id,
+                                          'problem desc': core.utils.ReportFiles(['problem desc.txt'])
+                                      },
                                       self.mqs['report files'],
                                       self.conf['main working directory'])
 
@@ -239,7 +242,8 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         try:
             for index, subcomponent in enumerate(subcomponents):
                 if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
-                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
+                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0] + str(index),
+                                                         (type(self),))
                     setattr(subcomponent_class, 'main', subcomponent[1])
                     # Do not try to separate these subcomponents from their parents - it is a true headache.
                     # We always include child resources into resources of these components since otherwise they will

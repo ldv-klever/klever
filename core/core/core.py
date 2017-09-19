@@ -68,7 +68,7 @@ class Core(core.utils.CallbacksCaller):
                                                       'comp': self.comp
                                                   },
                                                   None,
-                                                  os.path.abspath(os.path.curdir))
+                                                  self.conf['main working directory'])
             self.session = core.session.Session(self.logger, self.conf['Klever Bridge'], self.conf['identifier'])
             self.session.start_job_decision(job, start_report_file)
             self.mqs['report files'] = multiprocessing.Manager().Queue()

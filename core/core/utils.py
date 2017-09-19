@@ -595,6 +595,8 @@ class ExtendedJSONEncoder(json.JSONEncoder):
 # TODO: replace report file with report everywhere.
 def report(logger, kind, report_data, mq, directory):
     logger.debug('Create {0} report'.format(kind))
+    if not os.path.isdir(os.path.join(directory, 'reports')):
+        os.mkdir(os.path.join(directory, 'reports'))
 
     report_data.update({'type': kind})
 
@@ -645,7 +647,7 @@ def report(logger, kind, report_data, mq, directory):
             report_data['files'] = {'report': report_data['files']}
         for archive_name, files in report_data['files'].items():
             report_files_archive = '{} {} {} report files.zip'.format(identifier, kind, archive_name)
-            rel_report_files_archive = os.path.join(directory, report_files_archive)
+            rel_report_files_archive = os.path.join(directory, 'reports', report_files_archive)
             if os.path.isfile(rel_report_files_archive):
                 unique_file_name(rel_report_files_archive)
             rel_report_file_archives[archive_name] = rel_report_files_archive
@@ -657,6 +659,8 @@ def report(logger, kind, report_data, mq, directory):
                             arcname = report_data['arcname'][file]
                         zfp.write(file, arcname=arcname)
                     os.fsync(zfp.fp)
+            # Create Symlink
+            os.symlink(os.path.relpath(rel_report_files_archive), report_files_archive)
 
             logger.debug(
                 '{0} report files were packed to archive "{1}"'.format(kind.capitalize(),
@@ -666,11 +670,13 @@ def report(logger, kind, report_data, mq, directory):
 
     # Create report file in current working directory.
     report_file = '{0} report.json'.format(identifier)
-    rel_report_file = os.path.join(directory, report_file)
+    rel_report_file = os.path.join(directory, 'reports', report_file)
     if os.path.isfile(rel_report_file):
         unique_file_name(rel_report_file)
     with open(rel_report_file, 'w', encoding='utf8') as fp:
         fp.write(report_text)
+    # Create symlink
+    os.symlink(os.path.relpath(rel_report_file), report_file)
 
     logger.debug('{0} report was dumped to file "{1}"'.format(kind.capitalize(), rel_report_file))
 
