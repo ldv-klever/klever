@@ -17,7 +17,10 @@
 
 import json
 from types import MethodType
-from bridge.utils import BridgeException
+
+from django.utils.translation import ugettext_lazy as _
+
+from bridge.utils import BridgeException, logger
 from marks.models import MarkUnsafeConvert
 from marks.ConvertTrace import GetConvertedErrorTrace
 
@@ -31,6 +34,7 @@ from marks.ConvertTrace import GetConvertedErrorTrace
 # Do not use 'pattern_error_trace', 'error' and 'result' as function name.
 
 DEFAULT_COMPARE = 'thread_call_forests'
+CONVERSION = {}
 
 
 class CompareTrace:
@@ -106,3 +110,39 @@ Jaccard index of "thread_call_forests" convertion.
 
     def __is_not_used(self):
         pass
+
+
+class CheckTraceFormat:
+    def __init__(self, compare_func, error_trace):
+        self._func = compare_func
+        self._trace = error_trace
+        if self._func in {'callback_call_forests', 'thread_call_forests'}:
+            try:
+                self.__check_forests()
+            except Exception as e:
+                logger.exception(e)
+                raise BridgeException(_('The converted error trace has wrong format'))
+
+    def __check_calltree(self, calltree):
+        if not isinstance(calltree, dict):
+            raise BridgeException('One of the error trace call tree items is not a dict: %s' % calltree)
+        if len(calltree) != 1:
+            raise BridgeException('One of the error trace call tree items has wrong number of keys: %s' % calltree)
+        func = next(iter(calltree))
+        if not isinstance(func, str):
+            raise BridgeException('Function name must be a string: %s' % func)
+        if not isinstance(calltree[func], list):
+            raise BridgeException('Function "%s" children are not a list: %s' % (func, calltree[func]))
+        for child in calltree[func]:
+            self.__check_calltree(child)
+
+    def __check_forests(self):
+        if not isinstance(self._trace, list):
+            raise BridgeException('The error trace is not a list')
+        for forest in self._trace:
+            if not isinstance(forest, list):
+                raise BridgeException('One of the error trace forests is not a list: %s' % forest)
+            for calltree in forest:
+                if not isinstance(calltree, dict):
+                    raise BridgeException('One of the error trace call trees is not a dict: %s' % calltree)
+                self.__check_calltree(calltree)

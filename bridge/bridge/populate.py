@@ -40,7 +40,7 @@ from service.models import Scheduler
 
 from jobs.utils import create_job
 from marks.ConvertTrace import ConvertTrace
-from marks.CompareTrace import CompareTrace
+from marks.CompareTrace import CompareTrace, CONVERSION
 from marks.tags import CreateTagsFromFile
 
 
@@ -93,28 +93,35 @@ class Population:
         self.changes['schedulers'] = (sch_crtd1 or sch_crtd2)
 
     def __populate_functions(self):
-        func_names = []
+        conversions = {}
         for func_name in [x for x, y in ConvertTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
-            func_names.append(func_name)
             description = self.__correct_description(getattr(ConvertTrace, func_name).__doc__)
             func, crtd = MarkUnsafeConvert.objects.get_or_create(name=func_name)
             if crtd or description != func.description:
                 self.changes['functions'] = True
                 func.description = description
                 func.save()
-        MarkUnsafeConvert.objects.filter(~Q(name__in=func_names)).delete()
-        func_names = []
+            conversions[func_name] = func
+        MarkUnsafeConvert.objects.filter(~Q(name__in=list(conversions))).delete()
+
+        comparisons = []
         for func_name in [x for x, y in CompareTrace.__dict__.items()
                           if type(y) == FunctionType and not x.startswith('_')]:
-            func_names.append(func_name)
+            comparisons.append(func_name)
             description = self.__correct_description(getattr(CompareTrace, func_name).__doc__)
-            func, crtd = MarkUnsafeCompare.objects.get_or_create(name=func_name)
+
+            conversion = CONVERSION.get(func_name, func_name)
+            if conversion not in conversions:
+                raise BridgeException('Convert function "%s" for comparison "%s" does not exist' %
+                                      (conversion, func_name))
+
+            func, crtd = MarkUnsafeCompare.objects.get_or_create(name=func_name, convert=conversions[conversion])
             if crtd or description != func.description:
                 self.changes['functions'] = True
                 func.description = description
                 func.save()
-        MarkUnsafeCompare.objects.filter(~Q(name__in=func_names)).delete()
+        MarkUnsafeCompare.objects.filter(~Q(name__in=comparisons)).delete()
         ErrorTraceConvertionCache.objects.all().delete()
 
     def __correct_description(self, descr):

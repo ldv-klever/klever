@@ -67,6 +67,7 @@ class MarkUnsafeConvert(models.Model):
 
 
 class MarkUnsafeCompare(models.Model):
+    convert = models.ForeignKey(MarkUnsafeConvert)
     name = models.CharField(max_length=30, db_index=True)
     description = models.CharField(max_length=1000, default='')
 

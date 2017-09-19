@@ -34,9 +34,9 @@ from users.models import User
 from reports.models import Verdict, ReportComponentLeaf, ReportAttr, ReportUnsafe, Attr, AttrName
 from marks.models import MarkUnsafe, MarkUnsafeHistory, MarkUnsafeReport, MarkUnsafeAttr,\
     MarkUnsafeTag, UnsafeTag, UnsafeReportTag, ReportUnsafeTag,\
-    MarkUnsafeCompare, MarkUnsafeConvert, ConvertedTraces, UnsafeAssociationLike
+    MarkUnsafeCompare, ConvertedTraces, UnsafeAssociationLike
 from marks.ConvertTrace import GetConvertedErrorTrace, ET_FILE_NAME
-from marks.CompareTrace import CompareTrace
+from marks.CompareTrace import CompareTrace, CheckTraceFormat
 
 
 class NewMark:
@@ -44,7 +44,6 @@ class NewMark:
         self._user = user
         self._args = args
         self.changes = {}
-        self._conversion = None
         self._comparison = None
         self.__check_args()
 
@@ -59,13 +58,6 @@ class NewMark:
             raise ValueError('Unsupported status: %s' % self._args.get('status'))
         if not isinstance(self._args.get('comment'), str):
             self._args['comment'] = ''
-
-        if 'convert_id' in self._args:
-            try:
-                self._conversion = MarkUnsafeConvert.objects.get(id=self._args['convert_id'])
-            except ObjectDoesNotExist:
-                logger.exception("Get MarkUnsafeConvert(pk=%s)" % self._args['convert_id'])
-                raise BridgeException(_('The error traces conversion function was not found'))
 
         if 'compare_id' not in self._args:
             raise ValueError('compare_id is required')
@@ -99,9 +91,7 @@ class NewMark:
         self._args['tags'] = tags
 
     def create_mark(self, report):
-        if self._conversion is None:
-            raise ValueError('Not enough args')
-        error_trace = GetConvertedErrorTrace(self._conversion, report).converted
+        error_trace = GetConvertedErrorTrace(self._comparison.convert, report).converted
         mark = MarkUnsafe.objects.create(
             identifier=unique_id(), author=self._user, format=report.root.job.format,
             job=report.root.job, description=str(self._args.get('description', '')), function=self._comparison,
@@ -124,9 +114,13 @@ class NewMark:
             raise BridgeException(_('Change comment is required'))
         error_trace = None
         if 'error_trace' in self._args and isinstance(self._args['error_trace'], str):
-            error_trace = BytesIO(json.dumps(
-                json.loads(self._args['error_trace']), ensure_ascii=False, sort_keys=True, indent=4
-            ).encode('utf8'))
+            try:
+                et_json = json.loads(self._args['error_trace'])
+                CheckTraceFormat(self._comparison.name, et_json)
+            except Exception as e:
+                logger.exception(e)
+                raise BridgeException(_('Converted error trace has wrong format. Inspect logs for more info.'))
+            error_trace = BytesIO(json.dumps(et_json, ensure_ascii=False, sort_keys=True, indent=4).encode('utf8'))
 
         last_v = MarkUnsafeHistory.objects.get(mark=mark, version=F('mark__version'))
 

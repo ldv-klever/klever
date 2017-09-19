@@ -114,23 +114,6 @@ $(document).ready(function () {
         );
     });
 
-    $('#convert_function').change(function () {
-        $.ajax({
-            url: marks_ajax_url + 'get_func_description/',
-            data: {func_id: $(this).children('option:selected').val(), func_type: 'convert'},
-            type: 'POST',
-            success: function (data) {
-                if (data.error) {
-                    err_notify(data.error);
-                }
-                else if (data.description) {
-                    $('#convert_function_description').text(data.description);
-                }
-
-            }
-        });
-    });
-
     $('#compare_function').change(set_action_on_func_change);
 
     $('#mark_version_selector').change(function () {

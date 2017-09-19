@@ -45,16 +45,7 @@
         <button id="cancel_create_mark" class="ui blue button" style="float: right">{% trans 'Cancel' %}</button>
         <button id="save_inline_mark_btn" class="ui green button">{% trans 'Save' %}</button>
     {% endif %}
-    {% for f in markdata.convertion %}
-        {% if f.selected %}
-            <input id="convert_function" type="hidden" value="{{ f.value }}">
-        {% endif %}
-    {% endfor %}
-    {% for f in markdata.comparison %}
-        {% if f.selected %}
-            <input id="compare_function" type="hidden" value="{{ f.value }}">
-        {% endif %}
-    {% endfor %}
+    <input id="compare_function" type="hidden" value="{{ markdata.selected_func.id }}">
     {% if markdata.mark_version.mark_id %}
         <input id="mark_pk" type="hidden" value="{{ markdata.mark_version.mark_id }}">
         <input id="mark_type" type="hidden" value="{{ markdata.type }}">

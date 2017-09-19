@@ -31,7 +31,6 @@ from marks.models import ErrorTraceConvertionCache, ConvertedTraces
 # 5) Add docstring to the created function.
 # Do not use 'error_trace', 'pattern_error_trace', 'error' as function name.
 
-DEFAULT_CONVERT = 'thread_call_forests'
 ET_FILE_NAME = 'converted-error-trace.json'
 
 
