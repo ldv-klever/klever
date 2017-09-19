@@ -39,10 +39,10 @@ void g(void* arg) {
 
 static int __init init(void)
 {
-	struct ldv_thread thread1, thread2;
+	pthread_t thread1, thread2;
 
-	ldv_thread_create(&thread1, &f, 0);
-	ldv_thread_create(&thread2, &g, 0);
+	pthread_create(&thread1, 0, &f, 0);
+	pthread_create(&thread2, 0, &g, 0);
 
 	return 0;
 }
