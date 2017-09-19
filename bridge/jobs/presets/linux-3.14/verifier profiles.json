@@ -22,7 +22,7 @@
       "description": "CPAchecker with BAM fore reachability checking",
       "inherit": "CPAchecker common",
       "add options": [
-        {"-ldv-bam-optimized": ""},
+        {"-ldv-bam-optimized-coverage": ""},
         {"-setprop": "coverage.file=coverage.info"}
       ]
     },
