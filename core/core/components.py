@@ -237,7 +237,8 @@ class Component(multiprocessing.Process, core.utils.CallbacksCaller):
         try:
             for index, subcomponent in enumerate(subcomponents):
                 if isinstance(subcomponent, list) or isinstance(subcomponent, tuple):
-                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0], (type(self),))
+                    subcomponent_class = types.new_class('KleverSubcomponent' + subcomponent[0] + str(index),
+                                                         (type(self),))
                     setattr(subcomponent_class, 'main', subcomponent[1])
                     # Do not try to separate these subcomponents from their parents - it is a true headache.
                     # We always include child resources into resources of these components since otherwise they will
